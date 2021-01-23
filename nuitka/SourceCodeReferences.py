@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -48,6 +48,9 @@ class SourceCodeReference(object):
 
     def __repr__(self):
         return "<%s to %s:%s>" % (self.__class__.__name__, self.filename, self.line)
+
+    def __hash__(self):
+        return hash((self.filename, self.line, self.column))
 
     def __lt__(self, other):
         # Many cases decide early, pylint: disable=too-many-return-statements

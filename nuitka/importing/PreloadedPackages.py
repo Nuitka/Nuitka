@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,8 +24,8 @@ package. Nuitka will pretend for those that there be one, but without content.
 
 import os
 import sys
-from logging import warning
 
+from nuitka.Tracing import recursion_logger
 from nuitka.utils.FileOperations import getFileContentByLine, listDir
 
 
@@ -60,6 +60,8 @@ preloaded_packages = None
 
 
 def getPreloadedPackagePaths():
+    """Return dictionrary with preloaded package paths from .pth files"""
+
     # We need to set this from the outside, pylint: disable=global-statement
     global preloaded_packages
 
@@ -77,7 +79,7 @@ def setPreloadedPackagePaths(value):
 
 
 def getPreloadedPackagePath(package_name):
-    return getPreloadedPackagePaths().get(package_name, None)
+    return getPreloadedPackagePaths().get(package_name)
 
 
 def isPreloadedPackagePath(path):
@@ -95,6 +97,9 @@ def detectPthImportedPackages():
     if not hasattr(sys.modules["site"], "getsitepackages"):
         return ()
 
+    # TODO: Move hard import config to elsewhere.
+    from nuitka.nodes.ImportNodes import isHardModuleWithoutSideEffect
+
     pth_imports = set()
 
     for prefix in sys.modules["site"].getsitepackages():
@@ -110,9 +115,14 @@ def detectPthImportedPackages():
                                 line = line[: line.find(";")]
 
                             for part in line[7:].split(","):
-                                pth_imports.add(part.strip())
+                                pth_import = part.strip()
+
+                                if not isHardModuleWithoutSideEffect(pth_import):
+                                    pth_imports.add(pth_import)
                 except OSError:
-                    warning("Python installation problem, cannot read file '%s'.")
+                    recursion_logger.warning(
+                        "Python installation problem, cannot read file '%s'."
+                    )
 
     return tuple(sorted(pth_imports))
 

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -131,9 +131,6 @@ class StatementAssignmentVariable(StatementChildHavingBase):
     it can be determined.
     """
 
-    # Using slots, they don't need that
-    # pylint: disable=access-member-before-definition,attribute-defined-outside-init
-
     kind = "STATEMENT_ASSIGNMENT_VARIABLE"
 
     named_child = "source"
@@ -250,7 +247,7 @@ class StatementAssignmentVariable(StatementChildHavingBase):
             # sequence and compute that instead.
             statements = [
                 makeStatementExpressionOnlyReplacementNode(side_effect, self)
-                for side_effect in source.getSideEffects()
+                for side_effect in source.subnode_side_effects
             ]
 
             statements.append(self)
@@ -260,7 +257,7 @@ class StatementAssignmentVariable(StatementChildHavingBase):
 
             # Need to update ourselves to no longer reference the side effects,
             # but go to the wrapped thing.
-            self.subnode_source = source.getExpression()
+            self.setChild("source", source.subnode_expression)
 
             result = makeStatementsSequenceReplacementNode(
                 statements=statements, node=self
@@ -349,8 +346,10 @@ Removed assignment of %s from itself which is known to be defined."""
 
             if last_trace is not None and not last_trace.getMergeOrNameUsageCount():
                 if source.isCompileTimeConstant():
-                    # TODO: We do not trust these yet
-                    if not variable.isModuleVariable():
+                    if variable.isModuleVariable():
+                        # TODO: We do not trust these yet a lot, but more might be
+                        pass
+                    else:
                         # Unused constants can be eliminated in any case.
                         if not last_trace.getUsageCount():
                             if not last_trace.getPrevious().isUnassignedTrace():

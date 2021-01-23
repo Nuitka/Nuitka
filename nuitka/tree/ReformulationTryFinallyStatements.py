@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,10 +24,7 @@ source code comments with developer manual sections.
 
 from nuitka import Options
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
-from nuitka.nodes.ReturnNodes import (
-    ExpressionReturnedValueRef,
-    StatementReturn,
-)
+from nuitka.nodes.ReturnNodes import StatementReturnReturnedValue
 from nuitka.nodes.StatementNodes import (
     StatementPreserveFrameException,
     StatementPublishException,
@@ -171,8 +168,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc=False
     if tried.mayReturn():
         return_handler = getStatementsAppended(
             statement_sequence=getFinal(),
-            statements=StatementReturn(
-                expression=ExpressionReturnedValueRef(source_ref=source_ref),
+            statements=StatementReturnReturnedValue(
                 source_ref=source_ref,
             ),
         )
@@ -198,7 +194,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc=False
 
 def buildTryFinallyNode(provider, build_tried, node, source_ref):
 
-    if python_version < 300:
+    if python_version < 0x300:
         # Prevent "continue" statements in the final blocks
         pushBuildContext("finally")
         final = buildStatementsNode(
@@ -207,7 +203,11 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
         popBuildContext()
 
         return makeTryFinallyStatement(
-            provider=provider, tried=build_tried(), final=final, source_ref=source_ref
+            provider=provider,
+            tried=build_tried(),
+            final=final,
+            source_ref=source_ref,
+            public_exc=False,
         )
     else:
         tried = build_tried()

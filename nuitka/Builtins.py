@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,11 +19,10 @@
 
 """
 
-import functools
 import sys
 from types import BuiltinFunctionType, FunctionType, GeneratorType
 
-from nuitka.__past__ import builtins, iterItems
+from nuitka.__past__ import builtins
 from nuitka.containers.odict import OrderedDict
 from nuitka.PythonVersions import python_version
 
@@ -47,7 +46,7 @@ def _getBuiltinExceptionNames():
     exceptions = OrderedDict()
 
     # Hide Python3 changes for built-in exception names
-    if python_version < 300:
+    if python_version < 0x300:
         import exceptions as builtin_exceptions
 
         for key in sorted(dir(builtin_exceptions)):
@@ -84,7 +83,7 @@ assert "BaseException" in builtin_exception_names
 assert "Exception" in builtin_exception_names
 assert "NotImplemented" in builtin_exception_names
 
-assert "StopAsyncIteration" in builtin_exception_names or python_version < 350
+assert "StopAsyncIteration" in builtin_exception_names or python_version < 0x350
 
 
 def _getBuiltinNames():
@@ -180,7 +179,7 @@ def _getAnonBuiltins():
     anon_names["code"] = type(_getAnonBuiltins.__code__)
     anon_codes["code"] = "&PyCode_Type"
 
-    if python_version < 300:
+    if python_version < 0x300:
         # There are only there for Python2,
         # pylint: disable=I0021,no-name-in-module
         from types import ClassType, InstanceType, MethodType
@@ -207,25 +206,3 @@ builtin_anon_values = OrderedDict((b, a) for a, b in builtin_anon_names.items())
 # For being able to check if it's not hashable, we need something not using
 # a hash.
 builtin_anon_value_list = tuple(builtin_anon_values)
-
-
-def calledWithBuiltinArgumentNamesDecorator(f):
-    """Allow a function to be called with an "_arg" if a built-in name.
-
-    This avoids using built-in names in Nuitka source, while enforcing
-    a policy how to make them pretty.
-    """
-
-    @functools.wraps(f)
-    def wrapper(*args, **kw):
-        new_kw = {}
-
-        for key, value in iterItems(kw):
-            if key in builtin_all_names:
-                key = key + "_arg"
-
-            new_kw[key] = value
-
-        return f(*args, **new_kw)
-
-    return wrapper

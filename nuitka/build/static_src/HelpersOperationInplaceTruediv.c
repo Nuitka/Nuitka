@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -34,23 +34,23 @@
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static inline bool _BINARY_OPERATION_TRUEDIV_INT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (1 && 1) {
 
         PyObject *result;
@@ -58,12 +58,12 @@ static inline bool _BINARY_OPERATION_TRUEDIV_INT_INT_INPLACE(PyObject **operand1
 
         CHECK_OBJECT(op1);
         assert(PyInt_CheckExact(op1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(op1));
 #endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -158,7 +158,7 @@ bool BINARY_OPERATION_TRUEDIV_INT_INT_INPLACE(PyObject **operand1, PyObject *ope
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static inline bool _BINARY_OPERATION_TRUEDIV_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
@@ -166,11 +166,11 @@ static inline bool _BINARY_OPERATION_TRUEDIV_OBJECT_INT_INPLACE(PyObject **opera
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(*operand1) && 1) {
 
         PyObject *result;
@@ -178,12 +178,12 @@ static inline bool _BINARY_OPERATION_TRUEDIV_OBJECT_INT_INPLACE(PyObject **opera
 
         CHECK_OBJECT(op1);
         assert(PyInt_CheckExact(op1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(op1));
 #endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -278,19 +278,19 @@ bool BINARY_OPERATION_TRUEDIV_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static inline bool _BINARY_OPERATION_TRUEDIV_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (1 && PyInt_CheckExact(operand2)) {
 
         PyObject *result;
@@ -298,12 +298,12 @@ static inline bool _BINARY_OPERATION_TRUEDIV_INT_OBJECT_INPLACE(PyObject **opera
 
         CHECK_OBJECT(op1);
         assert(PyInt_CheckExact(op1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(op1));
 #endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -404,12 +404,12 @@ static inline bool _BINARY_OPERATION_TRUEDIV_LONG_LONG_INPLACE(PyObject **operan
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -445,7 +445,7 @@ static inline bool _BINARY_OPERATION_TRUEDIV_OBJECT_LONG_INPLACE(PyObject **oper
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -480,7 +480,7 @@ static inline bool _BINARY_OPERATION_TRUEDIV_LONG_OBJECT_INPLACE(PyObject **oper
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -516,12 +516,12 @@ static inline bool _BINARY_OPERATION_TRUEDIV_FLOAT_FLOAT_INPLACE(PyObject **oper
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -557,7 +557,7 @@ static inline bool _BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_INPLACE(PyObject **ope
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -592,7 +592,7 @@ static inline bool _BINARY_OPERATION_TRUEDIV_FLOAT_OBJECT_INPLACE(PyObject **ope
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -622,19 +622,19 @@ bool BINARY_OPERATION_TRUEDIV_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject
     return _BINARY_OPERATION_TRUEDIV_FLOAT_OBJECT_INPLACE(operand1, operand2);
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _BINARY_OPERATION_TRUEDIV_INT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -664,19 +664,19 @@ bool BINARY_OPERATION_TRUEDIV_INT_LONG_INPLACE(PyObject **operand1, PyObject *op
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
 static inline bool _BINARY_OPERATION_TRUEDIV_INT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -706,19 +706,19 @@ bool BINARY_OPERATION_TRUEDIV_INT_FLOAT_INPLACE(PyObject **operand1, PyObject *o
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static inline bool _BINARY_OPERATION_TRUEDIV_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -754,12 +754,12 @@ static inline bool _BINARY_OPERATION_TRUEDIV_LONG_FLOAT_INPLACE(PyObject **opera
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -788,19 +788,19 @@ bool BINARY_OPERATION_TRUEDIV_LONG_FLOAT_INPLACE(PyObject **operand1, PyObject *
     return _BINARY_OPERATION_TRUEDIV_LONG_FLOAT_INPLACE(operand1, operand2);
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 static inline bool _BINARY_OPERATION_TRUEDIV_FLOAT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -836,12 +836,12 @@ static inline bool _BINARY_OPERATION_TRUEDIV_FLOAT_LONG_INPLACE(PyObject **opera
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -877,7 +877,7 @@ static inline bool _BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_INPLACE(PyObject **op
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(*operand1) && PyInt_CheckExact(operand2)) {
 
         PyObject *result;
@@ -885,12 +885,12 @@ static inline bool _BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_INPLACE(PyObject **op
 
         CHECK_OBJECT(op1);
         assert(PyInt_CheckExact(op1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(op1));
 #endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(operand2));
 #endif
 

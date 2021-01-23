@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,7 +36,7 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
     )
 
     # This is used for Python3 only.
-    assert python_version >= 300
+    assert python_version >= 0x300
 
     arg_names = [metaclass_name, bases_name]
 

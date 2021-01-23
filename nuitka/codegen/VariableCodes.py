@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -131,7 +131,7 @@ if (unlikely(%(value_name)s == NULL)) {
 """
                 % {
                     "helper_code": "GET_MODULE_VARIABLE_VALUE_FALLBACK_IN_FUNCTION"
-                    if python_version < 340
+                    if python_version < 0x340
                     and not owner.isCompiledPythonModule()
                     and not owner.isExpressionClassBody()
                     else "GET_MODULE_VARIABLE_VALUE_FALLBACK",

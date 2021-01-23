@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -95,12 +95,12 @@ class PythonModuleBase(NodeBase):
                 module_name=package_name,
                 parent_package=None,
                 level=1,
-                warn=python_version < 300,
+                warn=python_version < 0x300,
             )
 
             # TODO: Temporary, if we can't find the package for Python3.3 that
             # is semi-OK, maybe.
-            if python_version >= 300 and not package_filename:
+            if python_version >= 0x300 and not package_filename:
                 return ()
 
             if package_name == "uniconvertor.app.modules":
@@ -218,10 +218,6 @@ class CompiledPythonModule(
     kind = "COMPILED_PYTHON_MODULE"
 
     named_children = ("body", "functions")
-    getBody = ChildrenHavingMixin.childGetter("body")
-    setBody = ChildrenHavingMixin.childSetter("body")
-    getFunctions = ChildrenHavingMixin.childGetter("functions")
-    setFunctions = ChildrenHavingMixin.childSetter("functions")
 
     checkers = {"body": checkStatementsSequenceOrNone}
 
@@ -425,10 +421,10 @@ class CompiledPythonModule(
         return encodePythonIdentifierToC(self.getFullName())
 
     def addFunction(self, function_body):
-        functions = self.getFunctions()
+        functions = self.subnode_functions
         assert function_body not in functions
         functions += (function_body,)
-        self.setFunctions(functions)
+        self.setChild("functions", functions)
 
     def startTraversal(self):
         self.used_modules = OrderedSet()
@@ -444,7 +440,7 @@ class CompiledPythonModule(
         return self.used_modules
 
     def addUsedFunction(self, function_body):
-        assert function_body in self.getFunctions(), function_body
+        assert function_body in self.subnode_functions, function_body
 
         assert (
             function_body.isExpressionFunctionBody()
@@ -465,7 +461,7 @@ class CompiledPythonModule(
         return self.active_functions
 
     def getUnusedFunctions(self):
-        for function in self.getFunctions():
+        for function in self.subnode_functions:
             if function not in self.active_functions:
                 yield function
 
@@ -477,7 +473,7 @@ class CompiledPythonModule(
         return self.cross_used_functions
 
     def getFunctionFromCodeName(self, code_name):
-        for function in self.getFunctions():
+        for function in self.subnode_functions:
             if function.getCodeName() == code_name:
                 return function
 
@@ -502,7 +498,7 @@ class CompiledPythonModule(
 
         self.trace_collection = TraceCollectionModule(self)
 
-        module_body = self.getBody()
+        module_body = self.subnode_body
 
         if module_body is not None:
             result = module_body.computeStatementsSequence(
@@ -510,7 +506,7 @@ class CompiledPythonModule(
             )
 
             if result is not module_body:
-                self.setBody(result)
+                self.setChild("body", result)
 
         new_modules = self.attemptRecursion()
 

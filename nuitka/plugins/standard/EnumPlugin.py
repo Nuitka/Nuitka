@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -33,7 +33,7 @@ class NuitkaPluginEnumWorkarounds(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        return python_version < 300
+        return python_version < 0x300
 
     @staticmethod
     def isAlwaysEnabled():

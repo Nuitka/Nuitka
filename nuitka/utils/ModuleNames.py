@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,6 +21,9 @@ These are used in Nuitka for module and package names in most places, and
 allow to easily make checks on them.
 
 """
+
+import fnmatch
+import os
 
 
 class ModuleName(str):
@@ -60,6 +63,9 @@ class ModuleName(str):
         """
 
         return str(self)
+
+    def asPath(self):
+        return str(self).replace(".", os.path.sep)
 
     def getPackageName(self):
         """Get the package name if any.
@@ -104,15 +110,92 @@ class ModuleName(str):
 
         return package_part, module_name
 
+    def splitPackageName(self):
+        """ Split a module into the top level package name and remaining module name."""
+
+        if "." in self:
+            package_part = ModuleName(self[: self.find(".")])
+            module_name = ModuleName(self[self.find(".") + 1 :])
+        else:
+            package_part = None
+            module_name = self
+
+        return package_part, module_name
+
     def hasNamespace(self, package_name):
         return self == package_name or self.isBelowNamespace(package_name)
 
     def hasOneOfNamespaces(self, *package_names):
+        """Check if a module name is below one of many namespaces.
+
+        Args:
+            - package_names: Star argument that allows also lists and tuples
+
+        Returns:
+            bool - module name is below one of the packages.
+        """
+
         for package_name in package_names:
-            if self.hasNamespace(package_name):
+            if type(package_name) in (tuple, list):
+                if self.hasOneOfNamespaces(*package_name):
+                    return True
+            elif self.hasNamespace(package_name):
                 return True
 
         return False
 
     def isBelowNamespace(self, package_name):
-        return self.startswith(package_name + ".")
+        assert type(package_name) in (str, ModuleName), package_name
+
+        # Avoid startswith on these.
+        return str(self).startswith(package_name + ".")
+
+    def getChildNamed(self, *args):
+        return ModuleName(".".join([self] + list(args)))
+
+    def matchesToShellPatterns(self, patterns):
+        """Match a module name to a list of patterns
+
+        Args:
+            patters:
+                List of patterns that comply with fnmatch.fnmatch description
+                or also is below the package. So "*.tests" will matches to also
+                "something.tests.MyTest", thereby allowing to match whole
+                packages with one pattern only.
+        Returns:
+            Tuple of two values, where the first value is the result, second value
+            explains which pattern matched and how.
+        """
+
+        for pattern in patterns:
+            if self == pattern:
+                return True, "is exact match of %r" % pattern
+            elif self.isBelowNamespace(pattern):
+                return True, "is package content of %r" % pattern
+            elif fnmatch.fnmatch(self.asString(), pattern):
+                return True, "matches pattern %r" % pattern
+            elif fnmatch.fnmatch(self.asString(), pattern + ".*"):
+                return True, "is package content of match to pattern %r" % pattern
+
+        return False, None
+
+    # Reject APIs being used. TODO: Maybe make this a decorator for reuse.
+    # TODO: Add rsplit and subscript operations too.
+    for _func_name in ("split", "startswith", "endswith"):
+        code = """\
+def %(func_name)s(*args, **kwargs):
+    from nuitka.Errors import NuitkaCodeDeficit
+    raise NuitkaCodeDeficit('''
+Do not use %(func_name)s on ModuleName objects, use e.g.
+.hasNamespace(),
+.getBasename(),
+.getTopLevelPackageName()
+.hasOneOfNamespaces
+
+Check API documentation of nuitka.utils.ModuleNames.ModuleName
+''')
+""" % {
+            "func_name": _func_name
+        }
+
+        exec(code)  # Avoid code duplication, pylint: disable=exec-used

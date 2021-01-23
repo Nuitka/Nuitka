@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -164,7 +164,9 @@ Allow Nuitka to download code if necessary, e.g. dependency walker on Windows.""
 )
 
 
-include_group = OptionGroup(parser, "Control the inclusion of modules and packages")
+include_group = OptionGroup(
+    parser, "Control the inclusion of modules and packages in result."
+)
 
 include_group.add_option(
     "--include-package",
@@ -210,7 +212,7 @@ include_group.add_option(
     metavar="PATTERN",
     default=[],
     help="""\
-Include into files matching the PATTERN. Overrides all recursion other options.
+Include into files matching the PATTERN. Overrides all other follow options.
 Can be given multiple times. Default empty.""",
 )
 
@@ -237,12 +239,11 @@ include_group.add_option(
 
 parser.add_option_group(include_group)
 
-recurse_group = OptionGroup(parser, "Control the recursion into imported modules")
+follow_group = OptionGroup(parser, "Control the following into imported modules")
 
 
-recurse_group.add_option(
+follow_group.add_option(
     "--follow-stdlib",
-    "--recurse-stdlib",
     action="store_true",
     dest="recurse_stdlib",
     default=False,
@@ -251,9 +252,8 @@ Also descend into imported modules from standard library. This will increase
 the compilation time by a lot. Defaults to off.""",
 )
 
-recurse_group.add_option(
+follow_group.add_option(
     "--nofollow-imports",
-    "--recurse-none",
     action="store_true",
     dest="recurse_none",
     default=False,
@@ -262,44 +262,74 @@ When --recurse-none is used, do not descend into any imported modules at all,
 overrides all other recursion options. Defaults to off.""",
 )
 
-recurse_group.add_option(
+follow_group.add_option(
     "--follow-imports",
-    "--recurse-all",
     action="store_true",
     dest="recurse_all",
     default=False,
     help="""\
-When --recurse-all is used, attempt to descend into all imported modules.
+When --follow-imports is used, attempt to descend into all imported modules.
 Defaults to off.""",
 )
 
-recurse_group.add_option(
+follow_group.add_option(
     "--follow-import-to",
-    "--recurse-to",
     action="append",
     dest="recurse_modules",
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\
-Recurse to that module, or if a package, to the whole package. Can be given
+Follow to that module if used, or if a package, to the whole package. Can be given
 multiple times. Default empty.""",
 )
 
-recurse_group.add_option(
+follow_group.add_option(
     "--nofollow-import-to",
-    "--recurse-not-to",
     action="append",
     dest="recurse_not_modules",
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\
-Do not recurse to that module name, or if a package name, to the whole package
-in any case, overrides all other options. Can be given multiple times. Default
+Do not follow to that module name even if used, or if a package name, to the
+whole package in any case, overrides all other options. Can be given multiple
+times. Default empty.""",
+)
+
+parser.add_option_group(follow_group)
+
+
+data_group = OptionGroup(parser, "Data files for standalone/onefile mode")
+
+data_group.add_option(
+    "--include-package-data",
+    action="append",
+    dest="package_data",
+    metavar="PACKAGE_DATA",
+    default=[],
+    help="""\
+Include data files of the given package name. Can use patterns. By default
+Nuitka does not unless hard coded and vital for operation of a package. This
+will include all non-DLL, non-extension modules in the distribution. Default
 empty.""",
 )
 
+data_group.add_option(
+    "--include-data-file",
+    action="append",
+    dest="data_files",
+    metavar="DATA_FILES",
+    default=[],
+    help="""\
+Include data files by filenames in the distribution. Could use patterns for
+use in glob, if specifying a directory with trailing slash. An example would
+be --include-data-file=/etc/somefile.txt=etc/somefile.txt for plain file copy,
+and you can copy multiple like --include-data-file=/etc/*.txt:etc/ with a
+trailing slash required to use the pattern. Default empty.""",
+)
 
-parser.add_option_group(recurse_group)
+
+parser.add_option_group(data_group)
+
 
 execute_group = OptionGroup(parser, "Immediate execution after compilation")
 
@@ -741,7 +771,7 @@ windows_group.add_option(
     dest="icon_path",
     metavar="ICON_PATH",
     default=[],
-    help="Add executable icon (Windows only at this time). Can be given multiple times.",
+    help="Add executable icon. Can be given multiple times for different resolutions.",
 )
 
 windows_group.add_option(
@@ -837,8 +867,31 @@ One of file or product version is required, when a version resource needs to be
 added, e.g. to specify product name, or company name. Defaults to nonsense.""",
 )
 
+windows_group.add_option(
+    "--windows-onefile-tempdir",
+    action="store_true",
+    dest="is_windows_onefile_tempdir",
+    metavar="WINDOWS_ONEFILE_TEMPDIR",
+    default=False,
+    help="""\
+Use temporary folder rather than company AppData. Defaults to off.""",
+)
+
 
 parser.add_option_group(windows_group)
+
+linux_group = OptionGroup(parser, "Linux specific controls")
+
+linux_group.add_option(
+    "--linux-onefile-icon",
+    action="append",
+    dest="icon_path",
+    metavar="ICON_PATH",
+    default=[],
+    help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to ",
+)
+
+parser.add_option_group(linux_group)
 
 plugin_group = OptionGroup(parser, "Plugin control")
 
@@ -898,7 +951,8 @@ plugin_group.add_option(
 )
 
 
-def _considerPluginOptions():
+def _considerPluginOptions(logger):
+    # Recursive dependency on plugins during parsing of command line.
     from nuitka.plugins.Plugins import (
         addPluginCommandLineOptions,
         addUserPluginCommandLineOptions,
@@ -908,7 +962,7 @@ def _considerPluginOptions():
         if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
             plugin_names = arg[16:]
             if "=" in plugin_names:
-                sys.exit(
+                logger.sysexit(
                     "Error, plugin options format changed. Use '--plugin-enable=%s --help' to know new options."
                     % plugin_names.split("=", 1)[0]
                 )
@@ -920,7 +974,7 @@ def _considerPluginOptions():
         if arg.startswith("--user-plugin="):
             plugin_name = arg[14:]
             if "=" in plugin_name:
-                sys.exit(
+                logger.sysexit(
                     "Error, plugin options format changed. Use '--user-plugin=%s --help' to know new options."
                     % plugin_name
                 )
@@ -928,7 +982,7 @@ def _considerPluginOptions():
             addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
 
 
-def parseOptions():
+def parseOptions(logger):
     # First, isolate the first non-option arguments.
     extra_args = []
 
@@ -952,7 +1006,7 @@ def parseOptions():
             sys.argv = sys.argv[0 : count + 1]
 
     # Next, lets activate plugins early, so they can inject more options to the parser.
-    _considerPluginOptions()
+    _considerPluginOptions(logger)
 
     options, positional_args = parser.parse_args()
 
@@ -965,7 +1019,7 @@ def parseOptions():
     if not positional_args:
         parser.print_help()
 
-        sys.exit(
+        logger.sysexit(
             """
 Error, need positional argument with python module or main program."""
         )
@@ -973,9 +1027,9 @@ Error, need positional argument with python module or main program."""
     if not options.immediate_execution and len(positional_args) > 1:
         parser.print_help()
 
-        sys.exit(
+        logger.sysexit(
             """
-Error, need only one positional argument unless "--run" is specified to
+Error, specify only one positional argument unless "--run" is specified to
 pass them to the compiled program execution."""
         )
 

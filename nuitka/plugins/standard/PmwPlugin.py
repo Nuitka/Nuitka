@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,7 +21,6 @@
 
 import os
 import re
-import sys
 
 from nuitka import Options
 from nuitka.__past__ import StringIO
@@ -133,7 +132,7 @@ Should 'Pmw.Color' not be included, Default is to include it.""",
         candidates.reverse()
 
         if not candidates:
-            sys.exit("Error, cannot find any Pmw versions.")
+            self.sysexit("Error, cannot find any Pmw versions.")
 
         self.info(
             "Found the following Pmw version candidates %s." % ",".join(candidates)

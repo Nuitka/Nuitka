@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -119,19 +119,24 @@ if "bdist_msi" in sys.argv:
 else:
     project_name = "Nuitka"
 
-# Lets hack the byte_compile function so it doesn't byte compile old Scons built-in
-# copy with Python3.
-if sys.version_info >= (3,):
-    from distutils import util
+import distutils.util
 
-    real_byte_compile = util.byte_compile
+orig_byte_compile = distutils.util.byte_compile
 
-    def byte_compile(py_files, *args, **kw):
+
+def byte_compile(py_files, *args, **kw):
+    # Lets hack the byte_compile function so it doesn't byte compile old Scons built-in
+    # copy with Python3 or Windows as it's not used there.
+    if sys.version_info >= (3,) or (os.name == "nt" and "sdist" not in sys.argv):
         py_files = [py_file for py_file in py_files if "scons-2.3.2" not in py_file]
 
-        real_byte_compile(py_files, *args, **kw)
+    # Disable bytecode compilation output, too annoying.
+    kw["verbose"] = 0
 
-    util.byte_compile = byte_compile
+    orig_byte_compile(py_files, *args, **kw)
+
+
+distutils.util.byte_compile = byte_compile
 
 
 # We monkey patch easy install script generation to not load pkg_resources,

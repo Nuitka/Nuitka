@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -47,7 +47,7 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBa
         self.doc = doc
 
         # Force creation with proper type.
-        if python_version >= 300:
+        if python_version >= 0x300:
             locals_kind = "python3_class"
         else:
             locals_kind = "python2_class"
@@ -96,7 +96,7 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBa
         # they provide "__class__" but nothing else.
 
         if variable_name == "__class__":
-            if python_version < 300:
+            if python_version < 0x300:
                 return self.provider.getVariableForClosure("__class__")
             else:
                 return ExpressionOutlineFunctionBase.getVariableForClosure(
@@ -116,7 +116,7 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBa
         return False
 
     def mayRaiseException(self, exception_type):
-        return self.getBody().mayRaiseException(exception_type)
+        return self.subnode_body.mayRaiseException(exception_type)
 
     def isUnoptimized(self):
         # Classes all are that.
@@ -127,8 +127,6 @@ class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SELECT_METACLASS"
 
     named_children = ("metaclass", "bases")
-    getMetaclass = ExpressionChildrenHavingBase.childGetter("metaclass")
-    getBases = ExpressionChildrenHavingBase.childGetter("bases")
 
     def __init__(self, metaclass, bases, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -144,9 +142,6 @@ class ExpressionBuiltinType3(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_TYPE3"
 
     named_children = ("type_name", "bases", "dict")
-    getTypeName = ExpressionChildrenHavingBase.childGetter("type_name")
-    getBases = ExpressionChildrenHavingBase.childGetter("bases")
-    getDict = ExpressionChildrenHavingBase.childGetter("dict")
 
     def __init__(self, type_name, bases, type_dict, source_ref):
         ExpressionChildrenHavingBase.__init__(

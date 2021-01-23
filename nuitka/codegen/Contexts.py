@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -170,7 +170,7 @@ class TempMixin(object):
 
         # For finally handlers of Python3, which have conditions on assign and
         # use, the NULL init is needed.
-        debug = Options.is_debug and python_version >= 300
+        debug = Options.is_debug and python_version >= 0x300
 
         if debug:
             keeper_obj_init = "NULL"
@@ -213,7 +213,7 @@ class TempMixin(object):
         # use.
         if preserver_id not in self.preserver_variable_declaration:
 
-            debug = Options.is_debug and python_version >= 300
+            debug = Options.is_debug and python_version >= 0x300
 
             if debug:
                 preserver_obj_init = "NULL"
@@ -330,7 +330,7 @@ class CodeObjectsMixin(object):
 
         return self.code_objects[key]
 
-    if python_version < 300:
+    if python_version < 0x300:
 
         def _calcHash(self, key):
             hash_value = hashlib.md5("-".join(str(s) for s in key))
@@ -801,7 +801,7 @@ class PythonModuleContext(
         return self.name
 
     def mayRaiseException(self):
-        body = self.module.getBody()
+        body = self.module.subnode_body
 
         return body is not None and body.mayRaiseException(BaseException)
 
@@ -925,7 +925,7 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
         return "generator"
 
     def getGeneratorReturnValueName(self):
-        if python_version >= 300:
+        if python_version >= 0x300:
             return self.allocateTempName("return_value", "PyObject *", unique=True)
         else:
             return self.allocateTempName("generator_return", "bool", unique=True)

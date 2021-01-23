@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -102,7 +102,7 @@ class ConstantStreamWriter(object):
 
         filename = os.path.join(OutputDirectories.getSourceDirectoryPath(), filename)
         self.file = open(filename, "wb")
-        if python_version < 300:
+        if python_version < 0x300:
             self.pickle = pickle.Pickler(self.file, -1)
         else:
             self.pickle = pickle._Pickler(  # pylint: disable=I0021,protected-access
@@ -172,11 +172,11 @@ class ConstantAccessor(object):
                 key = "(PyObject *)&PyEnum_Type"
             elif constant is frozenset:
                 key = "(PyObject *)&PyFrozenSet_Type"
-            elif python_version >= 270 and constant is memoryview:
+            elif python_version >= 0x270 and constant is memoryview:
                 key = "(PyObject *)&PyMemoryView_Type"
-            elif python_version < 300 and constant is basestring:
+            elif python_version < 0x300 and constant is basestring:
                 key = "(PyObject *)&PyBaseString_Type"
-            elif python_version < 300 and constant is xrange:
+            elif python_version < 0x300 and constant is xrange:
                 key = "(PyObject *)&PyRange_Type"
             elif constant in builtin_anon_values:
                 key = "(PyObject *)" + builtin_anon_codes[builtin_anon_values[constant]]
@@ -185,10 +185,10 @@ class ConstantAccessor(object):
             else:
                 type_name = constant.__name__
 
-                if constant is int and python_version >= 300:
+                if constant is int and python_version >= 0x300:
                     type_name = "long"
                 elif constant is str:
-                    type_name = "string" if python_version < 300 else "unicode"
+                    type_name = "string" if python_version < 0x300 else "unicode"
 
                 key = "(PyObject *)&Py%s_Type" % type_name.title()
         else:

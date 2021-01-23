@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -62,10 +62,10 @@ static PyMemberDef Nuitka_Method_members[] = {
     {NULL}};
 
 static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't pickle instancemethod objects");
     return NULL;
-#elif PYTHON_VERSION < 340
+#elif PYTHON_VERSION < 0x340
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't pickle method objects");
     return NULL;
 #else
@@ -89,8 +89,8 @@ static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyO
         return NULL;
     }
 
-#if PYTHON_VERSION < 340
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x340
+#if PYTHON_VERSION < 0x300
     PyObject *copy_reg = PyImport_ImportModule("copy_reg");
 #else
     PyObject *copy_reg = PyImport_ImportModule("copyreg");
@@ -152,7 +152,7 @@ static char const *GET_CLASS_NAME(PyObject *klass) {
     if (klass == NULL) {
         return "?";
     } else {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         if (PyClass_Check(klass)) {
             return Nuitka_String_AsString(((PyClassObject *)klass)->cl_name);
         }
@@ -189,7 +189,7 @@ static char const *GET_CALLABLE_DESC(PyObject *object) {
         PyFunction_Check(object) || PyCFunction_Check(object)) {
         return "()";
     }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     else if (PyClass_Check(object)) {
         return " constructor";
     } else if (PyInstance_Check(object)) {
@@ -211,7 +211,7 @@ static char const *GET_CALLABLE_NAME(PyObject *object) {
     } else if (PyFunction_Check(object)) {
         return Nuitka_String_AsString(((PyFunctionObject *)object)->func_name);
     }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     else if (PyInstance_Check(object)) {
         return Nuitka_String_AsString(((PyInstanceObject *)object)->in_class->cl_name);
     } else if (PyClass_Check(object)) {
@@ -225,7 +225,7 @@ static char const *GET_CALLABLE_NAME(PyObject *object) {
     }
 }
 
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
 static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method, PyObject *const *stack, size_t nargsf,
                                              PyObject *kwnames) {
     assert(kwnames == NULL || PyTuple_CheckExact(kwnames));
@@ -342,7 +342,7 @@ static PyObject *Nuitka_Method_tp_getattro(struct Nuitka_MethodObject *method, P
 
     if (descr != NULL) {
         if (
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS) &&
 #endif
             (Py_TYPE(descr)->tp_descr_get != NULL)) {
@@ -367,7 +367,7 @@ static long Nuitka_Method_tp_traverse(struct Nuitka_MethodObject *method, visitp
 // tp_repr slot, decide how a function shall be output
 static PyObject *Nuitka_Method_tp_repr(struct Nuitka_MethodObject *method) {
     if (method->m_object == NULL) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         return PyString_FromFormat("<unbound compiled_method %s.%s>", GET_CLASS_NAME(method->m_class),
                                    Nuitka_String_AsString(method->m_function->m_name));
 #else
@@ -382,7 +382,7 @@ static PyObject *Nuitka_Method_tp_repr(struct Nuitka_MethodObject *method) {
         if (object_repr == NULL) {
             return NULL;
         }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         else if (!PyString_Check(object_repr)) {
             Py_DECREF(object_repr);
             return NULL;
@@ -394,11 +394,11 @@ static PyObject *Nuitka_Method_tp_repr(struct Nuitka_MethodObject *method) {
         }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         PyObject *result = PyString_FromFormat("<bound compiled_method %s.%s of %s>", GET_CLASS_NAME(method->m_class),
                                                Nuitka_String_AsString(method->m_function->m_name),
                                                Nuitka_String_AsString_Unchecked(object_repr));
-#elif PYTHON_VERSION < 350
+#elif PYTHON_VERSION < 0x350
         PyObject *result = PyUnicode_FromFormat("<bound compiled_method %s.%s of %s>", GET_CLASS_NAME(method->m_class),
                                                 Nuitka_String_AsString(method->m_function->m_name),
                                                 Nuitka_String_AsString_Unchecked(object_repr));
@@ -414,7 +414,7 @@ static PyObject *Nuitka_Method_tp_repr(struct Nuitka_MethodObject *method) {
     }
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static int Nuitka_Method_tp_compare(struct Nuitka_MethodObject *a, struct Nuitka_MethodObject *b) {
     if (a->m_function->m_counter < b->m_function->m_counter) {
         return -1;
@@ -448,7 +448,7 @@ static PyObject *Nuitka_Method_tp_richcompare(struct Nuitka_MethodObject *a, str
     // If the underlying function objects are the same, check the objects, which
     // may be NULL in case of unbound methods, which would be the same again.
     if (b_res) {
-#if PYTHON_VERSION < 380
+#if PYTHON_VERSION < 0x380
         if (a->m_object == NULL) {
             b_res = b->m_object == NULL;
         } else if (b->m_object == NULL) {
@@ -552,14 +552,14 @@ PyTypeObject Nuitka_Method_Type = {
     sizeof(struct Nuitka_MethodObject),
     0,
     (destructor)Nuitka_Method_tp_dealloc, /* tp_dealloc */
-#if PYTHON_VERSION < 380
+#if PYTHON_VERSION < 0x380
     0, /* tp_print */
 #else
     offsetof(struct Nuitka_MethodObject, m_vectorcall), /* tp_vectorcall_offset */
 #endif
     0, /* tp_getattr */
     0, /* tp_setattr */
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     (cmpfunc)Nuitka_Method_tp_compare, /* tp_compare */
 #else
     0,
@@ -575,10 +575,10 @@ PyTypeObject Nuitka_Method_Type = {
     PyObject_GenericSetAttr,                 /* tp_setattro */
     0,                                       /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT |                     /* tp_flags */
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         Py_TPFLAGS_HAVE_WEAKREFS |
 #endif
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
         _Py_TPFLAGS_HAVE_VECTORCALL |
 #endif
         Py_TPFLAGS_HAVE_GC,
@@ -609,7 +609,7 @@ PyTypeObject Nuitka_Method_Type = {
     0,                                                /* tp_weaklist */
     0,                                                /* tp_del */
     0                                                 /* tp_version_tag */
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
     ,
     0 /* tp_finalizer */
 #endif
@@ -645,7 +645,7 @@ PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *ob
 
     result->m_weakrefs = NULL;
 
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
     result->m_vectorcall = (vectorcallfunc)Nuitka_Method_tp_vectorcall;
 #endif
 

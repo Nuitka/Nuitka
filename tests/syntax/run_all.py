@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -48,7 +48,7 @@ from nuitka.tools.testing.Common import (
 
 
 def main():
-    python_version = setup(needs_io_encoding=True)
+    setup(needs_io_encoding=True)
 
     search_mode = createSearchMode()
 
@@ -57,9 +57,6 @@ def main():
             continue
 
         if not decideFilenameVersionSkip(filename):
-            continue
-
-        if filename == "TryFinallyContinue.py" and python_version >= "3.8":
             continue
 
         active = search_mode.consider(dirname=None, filename=filename)

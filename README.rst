@@ -19,7 +19,7 @@ requirements, credits, etc.
 
 Nuitka is **the** Python compiler. It is written in Python. It is a seamless
 replacement or extension to the Python interpreter and compiles **every**
-construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, and 3.8 have, when
+construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9 have, when
 itself run with that Python version.
 
 It then executes uncompiled code and compiled code together in an extremely
@@ -53,35 +53,42 @@ Requirements
 
   * The ``clang`` compiler on macOS X or FreeBSD.
 
-  * The MinGW64 C11 compiler on Windows, ideally the one based on gcc
-    8 or higher. It will be automatically downloaded if not found.
+  * The MinGW64 C11 compiler on Windows, must be based on gcc 8 or higher. It
+    will be automatically downloaded if not found, which is the recommended
+    way of installing it.
 
-  * Visual Studio 2019 or higher on Windows [#]_, older versions may work
-    but are not officially supported. Configure to use the English language
-    pack for best results (Nuitka filters away garbage outputs, but only
-    for that language).
+  * Visual Studio 2019 or higher on Windows [#]_, older versions will work
+    but only supported for commercial users. Configure to use the English
+    language pack for best results (Nuitka filters away garbage outputs,
+    but only for that language).
 
   * On Windows the ``clang-cl`` compiler on Windows can be used if provided
     by the Visual Studion installer.
 
 
-- Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8
+- Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9
 
-  .. admonition:: For 3.3, and 3.4 and *only* those versions, we need other
-     Python versions as a *compile time* dependency
+  .. admonition:: For Python 3.3, and 3.4 and *only* those versions, we need
+     other Python versions as a *compile time* dependency.
 
-     Nuitka itself is fully compatible with all mentioned versions, Scons as
-     an internally used tool is not.
+     Nuitka itself is fully compatible with all listed versions, but Scons as an
+     internally used tool is not.
 
      For these versions, you *need* a Python2 or Python 3.5 or higher installed
      as well, but only during the compile time only. That is for use with Scons
      (which orchestrates the C compilation), which does not support the same
      Python versions as Nuitka.
 
+     In addition, on Windows, Python2 cannot be used because ``clcache`` does
+     not work with it, there a Python 3.5 or higher needs to be installed.
+
+     Nuitka finds these needed Python versions (on Windows via registry) and
+     you shouldn't notice it as long as they are installed.
+
   .. admonition:: Moving binaries to other machines
 
      The created binaries can be made executable independent of the Python
-     installation, with ``--standalone`` option.
+     installation, with ``--standalone`` and ``--onefile`` options.
 
   .. admonition:: Binary filename suffix
 
@@ -223,7 +230,6 @@ Install Nuitka
 ++++++++++++++
 
  - ``python -m pip install nuitka``
- - or if you use Anaconda: ``conda install -c conda-forge nuitka``
  - Verify using command ``python -m nuitka --version``
 
 Write some code and test
@@ -285,10 +291,9 @@ To distribute, build with ``--standalone`` option, which will not output a
 single executable, but a whole folder. Copy the resulting ``hello.dist`` folder
 to the other machine and run it.
 
-You may also try ``--onefile`` which does create a single file, but it is still
-experimental at this stage and wants more options specified from you, while not
-allowing you easily to add missing files yet.
-
+You may also try ``--onefile`` which does create a single file, but make sure
+that the mere standalone is working, before turning to it, as it will make the
+debugging only harder, e.g. in case of missing data files.
 
 Use Cases
 =========
@@ -306,12 +311,14 @@ file that is the main program, do it like this:
 .. note::
 
    There are more fine grained controls than ``--follow-imports`` available.
-   Consider the output of ``nuitka --help``.
+   Consider the output of ``nuitka --help``. Including less modules into the
+   compilation, but instead using normal Python for it will make it faster to
+   compile.
 
-In case you have a plugin directory, i.e. one which cannot be found by
-recursing after normal import statements via the ``PYTHONPATH`` (which would be
-the recommended way), you can always require that a given directory shall also
-be included in the executable:
+In case you have a source directory with dynamically loaded files, i.e. one
+which cannot be found by recursing after normal import statements via the
+``PYTHONPATH`` (which would be the recommended way), you can always require
+that a given directory shall also be included in the executable:
 
 .. code-block:: bash
 
@@ -320,7 +327,7 @@ be included in the executable:
 .. note::
 
    If you don't do any dynamic imports, simply setting your ``PYTHONPATH`` at
-   compilation time will be sufficient for all your needs normally.
+   compilation time is what you should do.
 
    Use ``--include-plugin-directory`` only if you make ``__import__()`` calls
    that Nuitka cannot predict, because they e.g. depend on command line
@@ -333,7 +340,7 @@ be included in the executable:
 
 .. note::
 
-   The resulting binary still depends on CPython and used C extension modules
+   The resulting binary still depend on CPython and used C extension modules
    being installed.
 
    If you want to be able to copy it to another machine, use ``--standalone``
@@ -363,6 +370,11 @@ The resulting file ``some_module.so`` can then be used instead of
    included modules will only become importable *after* you imported the
    ``some_module`` name.
 
+.. note::
+
+   The resulting extension module can only be loaded into a CPython of the same version
+   and doesn't include other extension modules.
+
 Use Case 3 - Package compilation
 --------------------------------
 
@@ -379,6 +391,47 @@ feasible, use Nuitka like this:
    otherwise, the package is empty. Data files located inside the package will
    not be embedded yet.
 
+
+Use Case 4 - Program Distribution
+---------------------------------
+
+For distribution to other systems, there is the standalone mode which produces
+a folder for which you can specify ``--standalone``.
+
+.. code-block:: bash
+
+    python -m nuitka --standalone program.py
+
+Follow all imports is default in this mode. You can selectively exclude modules
+by specifically saying ``--nofollow-import-to``, but then an ``ImportError``
+will be raised when import of it is attempted at program runtime.
+
+For data files to be included, use the option
+``--include-data-file=<source>=<target>`` where the source is a file system
+path, but target has to be specified relative. For standalone you can also copy
+them manually, but this can do extra checks, and for onefile mode, there is no
+manual copying possible.
+
+For package data, there is a better way, using ``--include-package-data`` which
+detects data files of packages automatically and copies them over. It even
+accepts patterns in shell style.
+
+With data files, you are largely on your own. Nuitka keeps track of ones that
+are needed by popular packages, but it might be incomplete. Raise issues if you
+encounter something in these.
+
+When that is working, you can use the onefile if you so desire.
+
+.. code-block:: bash
+
+    python -m nuitka --onefile program.py
+
+This will create a single binary, which on Linux will not even unpack itself,
+but instead loop back mount its contents as a filesystem and use that. On
+Windows, there are two modes, one which is copying it to the AppData of your
+company specified, to also use it as a cache, and one which does it in the
+temporary directory.
+
 Typical Problems
 ================
 
@@ -389,6 +442,40 @@ If your script modifies ``sys.path`` to e.g. insert directories with source
 code relative to it, Nuitka will currently not be able to see those. However,
 if you set the ``PYTHONPATH`` to the resulting value, you will be able to
 compile it.
+
+Missing data files in standalone
+--------------------------------
+
+If your program fails to file data, it can cause all kinds of different
+behaviours, e.g. a package might complain it is not the right version, because
+a ``VERSION`` file check defaulted to unknown. The absence of icon files or
+help texts, may raise strange errors.
+
+Often the error paths for files not being present are even buggy and will
+reveal programming errors like unbound local variables. Please look carefully
+at these exceptions keeping in mind that this can be the cause. If you program
+works without standalone, chances are data files might be cause.
+
+Missing DLLs in standalone
+--------------------------
+
+Nuitka has plugins that deal with copying DLLs. For NumPy, SciPy, Tkinter, etc.
+
+These need special treatment to be able to run on other systems. Manually
+copying them is not enough and will given strange errors. Sometimes newer
+version of packages, esp. NumPy can be unsupported. In this case you will have
+to raise an issue, and use the older one.
+
+Dependency creep in standalone
+------------------------------
+
+Some packages are a single import, but to Nuitka mean that more than a thousand
+packages (literally) are to be included. The prime example of Pandas, which
+does want to plug and use just about everything you can imagine. Multiple
+frameworks for syntax highlighting everything imaginable take time.
+
+Nuitka will have to learn effective caching to deal with this in the future.
+Right now, you will have to deal with huge compilation times for these.
 
 Tips
 ====
@@ -535,12 +622,12 @@ With earlier Windows platforms (and wine/ReactOS), you should consider
 installing Visual C Runtime libraries before executing a Nuitka standalone
 compiled program.
 
-Depdending on the used C compiler, you'll need the following redist versions:
+Depending on the used C compiler, you'll need the following redist versions:
 
 +------------------+-------------+-------------------------+
 | Visual C version | Redist Year | CPython                 |
 +==================+=============+=========================+
-| 14.2             | 2019        | 3.5, 3.6, 3.7, 3.8      |
+| 14.2             | 2019        | 3.5, 3.6, 3.7, 3.8, 3.9 |
 +------------------+-------------+-------------------------+
 | 14.1             | 2017        | 3.5, 3.6, 3.7, 3.8      |
 +------------------+-------------+-------------------------+
@@ -556,7 +643,7 @@ When using MingGW64, you'll need the following redist versions:
 +------------------+-------------+-------------------------+
 | MingGW64 version | Redist Year | CPython                 |
 +==================+=============+=========================+
-| 8.1.0            | 2015        | 3.5, 3.6, 3.7, 3.8      |
+| 8.1.0            | 2015        | 3.5, 3.6, 3.7, 3.8, 3.9 |
 +------------------+-------------+-------------------------+
 
 

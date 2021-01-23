@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -51,7 +51,6 @@ catching and passing in exceptions raised.
 
 import os
 import sys
-from logging import info, warning
 
 from nuitka import (
     ModuleRegistry,
@@ -93,6 +92,7 @@ from nuitka.nodes.ExceptionNodes import (
     StatementReraiseException,
 )
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
+from nuitka.nodes.ImportNodes import makeExpressionAbsoluteImportNode
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleAttributeNodes import (
     ExpressionModuleAttributeFileRef,
@@ -108,11 +108,7 @@ from nuitka.nodes.OperatorNodes import (
     ExpressionOperationUnary,
     makeBinaryOperationNode,
 )
-from nuitka.nodes.ReturnNodes import (
-    StatementReturn,
-    StatementReturnNone,
-    makeStatementReturnConstant,
-)
+from nuitka.nodes.ReturnNodes import makeStatementReturn
 from nuitka.nodes.SliceNodes import makeExpressionBuiltinSlice
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
@@ -121,6 +117,7 @@ from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import memory_logger, plugins_logger, unusual_logger
 from nuitka.utils import MemoryUsage
 from nuitka.utils.FileOperations import splitPath
 from nuitka.utils.ModuleNames import ModuleName
@@ -191,7 +188,6 @@ from .TreeHelpers import (
     extractDocFromBody,
     getBuildContext,
     getKind,
-    makeAbsoluteImportNode,
     makeModuleFrame,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
@@ -305,7 +301,7 @@ def buildRaiseNode(provider, node, source_ref):
     # Raise statements. Under Python2 they may have type, value and traceback
     # attached, for Python3, you can only give type (actually value) and cause.
 
-    if python_version < 300:
+    if python_version < 0x300:
         exception_type = buildNode(provider, node.type, source_ref, allow_none=True)
         exception_value = buildNode(provider, node.inst, source_ref, allow_none=True)
         exception_trace = buildNode(provider, node.tback, source_ref, allow_none=True)
@@ -356,9 +352,9 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
     # On the module level, there is nothing to do.
     if provider.isCompiledPythonModule():
         if shallWarnUnusualCode():
-            warning(
-                "%s: Using 'global' statement on module level has no effect.",
-                source_ref.getAsString(),
+            unusual_logger.warning(
+                "%s: Using 'global' statement on module level has no effect."
+                % source_ref.getAsString(),
             )
 
         return None
@@ -372,7 +368,10 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
             if variable_name in parameters.getParameterNames():
                 SyntaxErrors.raiseSyntaxError(
                     "name '%s' is %s and global"
-                    % (variable_name, "local" if python_version < 300 else "parameter"),
+                    % (
+                        variable_name,
+                        "local" if python_version < 0x300 else "parameter",
+                    ),
                     source_ref.atColumnNumber(node.col_offset),
                 )
 
@@ -404,7 +403,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
         assert closure_variable.isModuleVariable()
 
         if (
-            python_version < 340
+            python_version < 0x340
             and provider.isExpressionClassBody()
             and closure_variable.getName() == "__class__"
         ):
@@ -481,7 +480,7 @@ def buildStatementLoopContinue(node, source_ref):
 
     # Python forbids this, although technically it's probably not much of
     # an issue.
-    if getBuildContext() == "finally" and python_version < 380:
+    if getBuildContext() == "finally" and python_version < 0x380:
         SyntaxErrors.raiseSyntaxError(
             "'continue' not supported inside 'finally' clause", source_ref
         )
@@ -513,7 +512,7 @@ def buildReturnNode(provider, node, source_ref):
     expression = buildNode(provider, node.value, source_ref, allow_none=True)
 
     if provider.isExpressionGeneratorObjectBody():
-        if expression is not None and python_version < 300:
+        if expression is not None and python_version < 0x300:
             SyntaxErrors.raiseSyntaxError(
                 "'return' with argument inside generator",
                 source_ref.atColumnNumber(node.col_offset),
@@ -535,14 +534,7 @@ def buildReturnNode(provider, node, source_ref):
 
         return StatementGeneratorReturn(expression=expression, source_ref=source_ref)
     else:
-        if expression is None:
-            return StatementReturnNone(source_ref=source_ref)
-        elif expression.isExpressionConstantRef():
-            return makeStatementReturnConstant(
-                constant=expression.getCompileTimeConstant(), source_ref=source_ref
-            )
-        else:
-            return StatementReturn(expression=expression, source_ref=source_ref)
+        return makeStatementReturn(expression=expression, source_ref=source_ref)
 
 
 def buildExprOnlyNode(provider, node, source_ref):
@@ -551,7 +543,7 @@ def buildExprOnlyNode(provider, node, source_ref):
     )
 
     result.setCompatibleSourceReference(
-        result.getExpression().getCompatibleSourceReference()
+        result.subnode_expression.getCompatibleSourceReference()
     )
 
     return result
@@ -747,7 +739,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
     body, doc = extractDocFromBody(body)
 
-    if is_module and is_main and python_version >= 360:
+    if is_module and is_main and python_version >= 0x360:
         provider.markAsNeedsAnnotationsDictionary()
 
     result = buildStatementsNode(provider=provider, nodes=body, source_ref=source_ref)
@@ -765,7 +757,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             for path_imported_name in getPthImportedPackages():
                 statements.append(
                     StatementExpressionOnly(
-                        expression=makeAbsoluteImportNode(
+                        expression=makeExpressionAbsoluteImportNode(
                             module_name=path_imported_name, source_ref=source_ref
                         ),
                         source_ref=source_ref,
@@ -774,7 +766,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
             statements.append(
                 StatementExpressionOnly(
-                    expression=makeAbsoluteImportNode(
+                    expression=makeExpressionAbsoluteImportNode(
                         module_name="site", source_ref=source_ref
                     ),
                     source_ref=source_ref,
@@ -811,7 +803,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                 createImporterCacheAssignment(provider, internal_source_ref)
             )
 
-        if python_version >= 340 and not is_main:
+        if python_version >= 0x340 and not is_main:
             statements += (
                 StatementAssignmentAttribute(
                     expression=ExpressionModuleAttributeSpecRef(
@@ -853,7 +845,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                     )
                 )
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         statements.append(
             StatementAssignmentVariableName(
                 provider=provider,
@@ -863,7 +855,9 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             )
         )
 
-    needs__initializing__ = not provider.isMainModule() and 300 <= python_version < 340
+    needs__initializing__ = (
+        not provider.isMainModule() and 0x300 <= python_version < 0x340
+    )
 
     if needs__initializing__:
         # Set "__initializing__" at the beginning to True
@@ -893,7 +887,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
     # Now the module body if there is any at all.
     if result is not None:
-        statements.extend(result.getStatements())
+        statements.extend(result.subnode_statements)
 
     if needs__initializing__:
         # Set "__initializing__" at the end to False
@@ -924,7 +918,7 @@ def decideCompilationMode(is_top, module_name, source_ref):
     result = Plugins.decideCompilation(module_name, source_ref)
 
     if result == "bytecode" and is_top:
-        warning(
+        plugins_logger.warning(
             """\
 Ignoring plugin decision to compile top level package '%s'
 as bytecode, the extension module entry point is technically
@@ -1069,14 +1063,14 @@ def createModuleTree(module, source_ref, source_code, is_main):
     if module_body.isStatementsFrame():
         module_body = makeStatementsSequenceFromStatement(statement=module_body)
 
-    module.setBody(module_body)
+    module.setChild("body", module_body)
 
     completeVariableClosures(module)
 
     if Options.isShowMemory():
         memory_watch.finish()
 
-        info(
+        memory_logger.info(
             "Memory usage changed loading module '%s': %s"
             % (module.getFullName(), memory_watch.asStr())
         )
@@ -1119,7 +1113,10 @@ def buildModuleTree(filename, package, is_top, is_main):
             is_main=is_main,
         )
 
-    if not module.isMainModule():
+    # Main modules do not get added to the import cache, but plugins get to see it.
+    if module.isMainModule():
+        Plugins.onModuleDiscovered(module)
+    else:
         addImportedModule(imported_module=module)
 
     return module

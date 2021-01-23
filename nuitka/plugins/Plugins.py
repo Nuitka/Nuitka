@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,7 +30,6 @@ The base class in PluginBase will serve as documentation of available.
 import os
 import pkgutil
 import shutil
-import sys
 from optparse import OptionGroup
 
 import nuitka.plugins.commercial
@@ -41,7 +40,7 @@ from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPointOld
 from nuitka.ModuleRegistry import addUsedModule
-from nuitka.Tracing import printLine
+from nuitka.Tracing import plugins_logger, printLine
 from nuitka.utils.FileOperations import makePath
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName
@@ -113,7 +112,7 @@ def getPluginClass(plugin_name):
     loadPlugins()
 
     if plugin_name not in plugin_name2plugin_classes:
-        sys.exit("Error, unknown plug-in '%s' referenced." % plugin_name)
+        plugins_logger.sysexit("Error, unknown plug-in '%s' referenced." % plugin_name)
 
     return plugin_name2plugin_classes[plugin_name][0]
 
@@ -134,7 +133,16 @@ def _loadPluginClassesFromPath(scan_path):
             # it was compiled with Nuitka.
             pass
 
-        plugin_module = module_loader.load_module(name)
+        try:
+            plugin_module = module_loader.load_module(name)
+        except Exception:  # need to catch everything, pylint: disable=broad-except
+            if Options.is_nondebug:
+                plugins_logger.warning(
+                    "Problem loading plugin %r (%s), ignored. Use --debug to make it visible."
+                    % (name, module_loader.get_filename())
+                )
+            else:
+                raise
 
         plugin_classes = set(
             obj
@@ -212,6 +220,16 @@ class Plugins(object):
 
     @staticmethod
     def considerExtraDlls(dist_dir, module):
+        """Ask plugins to provide extra DLLs.
+
+        Notes:
+            These will be of type nuitka.freezer.IncludedEntryPoints.IncludedEntryPoint
+            and currently there is a backward compatibility for old style plugins that do
+            provide tuples of 3 elements. But plugins are really supposed to provide the
+            stuff created from factory functions for that type.
+
+        """
+
         result = []
 
         for plugin in getActivePlugins():
@@ -225,13 +243,13 @@ class Plugins(object):
                     )
 
                     if not os.path.isfile(extra_dll.dest_path):
-                        sys.exit(
+                        plugin.sysexit(
                             "Error, copied filename %r for module %r that is not a file."
                             % (extra_dll.dest_path, module.getFullName())
                         )
                 else:
                     if not os.path.isfile(extra_dll.source_path):
-                        sys.exit(
+                        plugin.sysexit(
                             "Error, attempting to copy plugin determined filename %r for module %r that is not a file."
                             % (extra_dll.source_path, module.getFullName())
                         )
@@ -279,7 +297,7 @@ class Plugins(object):
         for plugin in getActivePlugins():
             for value in plugin.considerDataFiles(module):
                 if value:
-                    yield plugin.plugin_name, value
+                    yield plugin, value
 
     @staticmethod
     def onModuleDiscovered(module):
@@ -488,8 +506,6 @@ def listPlugins():
     for line in plist:
         printLine(" " + line[0].ljust(name_len), line[1])
 
-    sys.exit(0)
-
 
 def isObjectAUserPluginBaseClass(obj):
     """Verify that a user plugin inherits from UserPluginBase."""
@@ -510,7 +526,7 @@ def loadUserPlugin(plugin_filename):
         None
     """
     if not os.path.exists(plugin_filename):
-        sys.exit("Error, cannot find '%s'." % plugin_filename)
+        plugins_logger.sysexit("Error, cannot find '%s'." % plugin_filename)
 
     user_plugin_module = importFileAsModule(plugin_filename)
 
@@ -529,7 +545,7 @@ def loadUserPlugin(plugin_filename):
             break  # do not look for more in that module
 
     if not valid_file:  # this is not a plugin file ...
-        sys.exit("Error, '%s' is not a plugin file." % plugin_filename)
+        plugins_logger.sysexit("Error, '%s' is not a plugin file." % plugin_filename)
 
     return plugin_class
 
@@ -583,13 +599,17 @@ def activatePlugins():
     # ensure plugin is known and not both, enabled and disabled
     for plugin_name in Options.getPluginsEnabled() + Options.getPluginsDisabled():
         if plugin_name not in plugin_name2plugin_classes:
-            sys.exit("Error, unknown plug-in '%s' referenced." % plugin_name)
+            plugins_logger.sysexit(
+                "Error, unknown plug-in '%s' referenced." % plugin_name
+            )
 
         if (
             plugin_name in Options.getPluginsEnabled()
             and plugin_name in Options.getPluginsDisabled()
         ):
-            sys.exit("Error, conflicting enable/disable of plug-in '%s'." % plugin_name)
+            plugins_logger.sysexit(
+                "Error, conflicting enable/disable of plug-in '%s'." % plugin_name
+            )
 
     for (plugin_name, (plugin_class, plugin_detector)) in sorted(
         plugin_name2plugin_classes.items()
@@ -697,7 +717,10 @@ def getPluginOptions(plugin_name):
 
         if "[REQUIRED]" in option.help:
             if not arg_value:
-                sys.exit("Error, required plugin argument %r not given." % option_name)
+                plugins_logger.sysexit(
+                    "Error, required plugin argument %r of Nuitka plugin %s not given."
+                    % (option_name, plugin_name)
+                )
 
         result[option.dest] = arg_value
 

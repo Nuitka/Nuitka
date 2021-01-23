@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -47,7 +47,9 @@ def getModuleAccessCode(context):
     return "module_%s" % context.getModuleCodeName()
 
 
-def getModuleCode(module, function_decl_codes, function_body_codes, context):
+def getModuleCode(
+    module, function_decl_codes, function_body_codes, module_const_blob_name, context
+):
 
     # For the module code, lots of arguments and attributes come together.
     # pylint: disable=too-many-locals
@@ -70,7 +72,7 @@ def getModuleCode(module, function_decl_codes, function_body_codes, context):
     module_codes = Emission.SourceCodeCollector()
 
     module = context.getOwner()
-    module_body = module.getBody()
+    module_body = module.subnode_body
 
     generateStatementSequenceCode(
         statement_sequence=module_body,
@@ -139,6 +141,7 @@ def getModuleCode(module, function_decl_codes, function_body_codes, context):
         "module_code_objects_decl": indented(module_code_objects_decl, 0),
         "module_code_objects_init": indented(module_code_objects_init, 1),
         "constants_count": context.getConstantsCount(),
+        "module_const_blob_name": module_const_blob_name,
     }
 
 

@@ -1,6 +1,8 @@
 %if 0%{?rhel} < 8
 # detect python site-packages path, use get_python_lib(0) as nuitka using
+%if 0%{?fedora} < 31
 %global python_sitearch %(%{__python} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
+%endif
 %global python3_sitearch %(%{__python3} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
 %endif
 
@@ -11,7 +13,7 @@ Version:        VERSION
 Release:        5%{?dist}
 Summary:        Python compiler with full language support and CPython compatibility
 Group:          Development/Languages/Python
-License:        Apache License 2.0
+License:        Apache-2.0
 URL:            https://nuitka.net/
 Source0:        https://nuitka.net/releases/Nuitka-%{version}.tar.gz
 Source1:        nuitka-rpmlintrc
@@ -43,6 +45,7 @@ BuildRequires:  gcc-c++
 BuildRequires:  strace
 BuildRequires:  chrpath
 BuildRequires:  ccache
+BuildRequires:  gdb
 %if 0%{?fedora} < 28 && 0%{?rhel} < 8
 Requires:       python-devel
 %endif
@@ -90,6 +93,8 @@ fi
 
 # This is Windows only
 rm -rf nuitka/build/inline_copy/pefile
+rm -rf nuitka/build/inline_copy/clcache
+rm -rf nuitka/build/inline_copy/atomicwrites
 
 if [ "$python2" != "" ]
 then

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,11 +28,8 @@ expression only stuff.
 from abc import abstractmethod
 
 from nuitka import Options, Tracing, TreeXML, Variables
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    intern,
-    iterItems,
-)
-from nuitka.Errors import NuitkaNodeError
+from nuitka.__past__ import iterItems
+from nuitka.Errors import NuitkaNodeDesignError, NuitkaNodeError
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils.InstanceCounters import counted_del, counted_init
@@ -450,6 +447,9 @@ class NodeBase(NodeMetaClassBase):
 
 
 class CodeNodeMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def __init__(self, name, code_prefix):
         assert name is not None
 
@@ -482,7 +482,7 @@ class CodeNodeMixin(object):
             if str is not bytes:
                 name = name.encode("ascii", "c_identifier").decode()
 
-            self.code_name = "%s$$$%s%s" % (parent_name, self.code_prefix, name)
+            self.code_name = "%s$$$%s_%s" % (parent_name, self.code_prefix, name)
 
         return self.code_name
 
@@ -496,19 +496,29 @@ class CodeNodeMixin(object):
 
 
 class ChildrenHavingMixin(object):
+    # Mixins are not allow to specify slots.
+    __slots__ = ()
+
     named_children = ()
 
     checkers = {}
 
     def __init__(self, values):
-        assert type(self.named_children) is tuple and self.named_children
+        assert (
+            type(self.named_children) is tuple and self.named_children
+        ), self.named_children
 
         # TODO: Make this true.
         # assert len(self.named_children) > 1, self.kind
 
         # Check for completeness of given values, everything should be there
         # but of course, might be put to None.
-        assert set(values.keys()) == set(self.named_children)
+        if set(values.keys()) != set(self.named_children):
+            raise NuitkaNodeDesignError(
+                "Must pass named children in value dictionary",
+                set(values.keys()),
+                set(self.named_children),
+            )
 
         for name, value in values.items():
             if name in self.checkers:
@@ -558,25 +568,25 @@ class ChildrenHavingMixin(object):
 
         setattr(self, attr_name, value)
 
+    def clearChild(self, name):
+        # Only accept legal child names
+        assert name in self.named_children, name
+
+        if name in self.checkers:
+            self.checkers[name](None)
+
+        attr_name = "subnode_" + name
+
+        # Determine old value, and inform it about losing its parent.
+        old_value = getattr(self, attr_name)
+
+        assert old_value is not None
+
+        setattr(self, attr_name, None)
+
     def getChild(self, name):
         attr_name = "subnode_" + name
         return getattr(self, attr_name)
-
-    @staticmethod
-    def childGetter(name):
-        attr_name = intern("subnode_" + name)
-
-        def getter(self):
-            return getattr(self, attr_name)
-
-        return getter
-
-    @staticmethod
-    def childSetter(name):
-        def setter(self, value):
-            self.setChild(name, value)
-
-        return setter
 
     def getVisitableNodes(self):
         # TODO: Consider if a generator would be faster.
@@ -678,7 +688,10 @@ class ChildrenHavingMixin(object):
 
 
 class ClosureGiverNodeMixin(CodeNodeMixin):
-    """ Blass class for nodes that provide variables for closure takers. """
+    """Base class for nodes that provide variables for closure takers. """
+
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
 
     def __init__(self, name, code_prefix):
         CodeNodeMixin.__init__(self, name=name, code_prefix=code_prefix)
@@ -760,7 +773,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         del self.temp_variables[variable.getName()]
 
     def allocatePreserverId(self):
-        if python_version >= 300:
+        if python_version >= 0x300:
             self.preserver_id += 1
 
         return self.preserver_id
@@ -768,6 +781,9 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
 class ClosureTakerMixin(object):
     """ Mixin for nodes that accept variables from closure givers. """
+
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
 
     def __init__(self, provider):
         self.provider = provider
@@ -938,22 +954,6 @@ class StatementChildHavingBase(StatementBase):
         attr_name = "subnode_" + name
         return getattr(self, attr_name)
 
-    @staticmethod
-    def childGetter(name):
-        attr_name = "subnode_" + name
-
-        def getter(self):
-            return getattr(self, attr_name)
-
-        return getter
-
-    @staticmethod
-    def childSetter(name):
-        def setter(self, value):
-            self.setChild(name, value)
-
-        return setter
-
     def getVisitableNodes(self):
         # TODO: Consider if a generator would be faster.
         attr_name = "subnode_" + self.named_child
@@ -1048,6 +1048,9 @@ class StatementChildHavingBase(StatementBase):
 
 
 class SideEffectsFromChildrenMixin(object):
+    # Mixins are not allow to specify slots.
+    __slots__ = ()
+
     def mayHaveSideEffects(self):
         for child in self.getVisitableNodes():
             if child.mayHaveSideEffects():

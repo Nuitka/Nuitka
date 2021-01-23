@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,6 @@ import wheel.bdist_wheel  # pylint: disable=I0021,import-error,no-name-in-module
 
 from nuitka.tools.testing.Common import my_print
 from nuitka.utils.Execution import check_call
-from nuitka.utils.FileOperations import copyTree, removeDirectory
 
 
 def setupNuitkaDistutilsCommands(dist, keyword, value):
@@ -175,7 +174,7 @@ class build(distutils.command.build.build):
             assert finding == "absolute", finding
 
             if package is not None:
-                output_dir = os.path.join(build_lib, package)
+                output_dir = os.path.join(build_lib, package.asPath())
             else:
                 output_dir = build_lib
 
@@ -224,9 +223,10 @@ class build(distutils.command.build.build):
 
             command.append(main_filename)
 
-            # added for clarity
-            my_print("Building: %s" % to_build, style="yellow")
+            # Adding traces for clarity, TODO: color scheme used is not really clear.
+            my_print("Building: %s with %r" % (to_build, command), style="yellow")
             check_call(command, cwd=build_lib)
+            my_print("Finished compilation of %s." % to_build, style="yellow")
 
             for root, _, filenames in os.walk(build_lib):
                 for filename in filenames:
@@ -234,18 +234,6 @@ class build(distutils.command.build.build):
 
                     if fullpath.lower().endswith((".py", ".pyw", ".pyc", ".pyo")):
                         os.unlink(fullpath)
-
-            # If the Python module has more than one parent package (e.g.
-            # 'a.b.mod'), the compiled module will be in 'a.b/mod.so'. Move it
-            # to 'a/b/mod.so', to make imports work.
-            if package and "." in package:
-                compiled_package_path = os.path.join(build_lib, package)
-                assert os.path.isdir(compiled_package_path), compiled_package_path
-
-                parts = package.split(".")
-                fixed_package_path = os.path.join(build_lib, *parts)
-                copyTree(compiled_package_path, fixed_package_path)
-                removeDirectory(compiled_package_path, ignore_errors=False)
 
             os.chdir(old_dir)
 

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -40,7 +40,10 @@ from .ModuleAttributeNodes import (
     ExpressionModuleAttributePackageRef,
     ExpressionModuleAttributeSpecRef,
 )
-from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
+from .NodeMakingHelpers import (
+    makeRaiseExceptionReplacementExpression,
+    makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
+)
 from .shapes.StandardShapes import tshape_unknown
 
 
@@ -129,6 +132,52 @@ class ExpressionVariableRefBase(ExpressionBase):
         else:
             return self.variable_trace.getTypeShape()
 
+    def onContentEscapes(self, trace_collection):
+        trace_collection.onVariableContentEscapes(self.variable)
+
+    def computeExpressionLen(self, len_node, trace_collection):
+        if self.variable_trace is not None and self.variable_trace.isAssignTrace():
+            value = self.variable_trace.getAssignNode().subnode_source
+
+            shape = value.getValueShape()
+
+            has_len = shape.hasShapeSlotLen()
+
+            if has_len is False:
+                return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                    template="object of type '%s' has no len()",
+                    operation="len",
+                    original_node=len_node,
+                    value_node=self,
+                )
+            elif has_len is True:
+                iter_length = value.getIterationLength()
+
+                if iter_length is not None:
+                    from .ConstantRefNodes import makeConstantRefNode
+
+                    result = makeConstantRefNode(
+                        constant=int(iter_length),  # make sure to downcast long
+                        source_ref=len_node.getSourceReference(),
+                    )
+
+                    return (
+                        result,
+                        "new_constant",
+                        "Predicted 'len' result of variable.",
+                    )
+
+        # The variable itself is to be considered escaped.
+        trace_collection.markActiveVariableAsEscaped(self.variable)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return len_node, None, None
+
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -184,16 +233,34 @@ Check '%s' on dictionary lowered to dictionary '%s'.""" % (
         # By default, an subscript may change everything about the lookup
         # source.
         if self.variable_trace.hasShapeDictionaryExact():
-            set_node = StatementDictOperationSet(
+            result = StatementDictOperationSet(
                 dict_arg=self,
                 key=subscript,
                 value=value_node,
                 source_ref=set_node.getSourceReference(),
             )
-
-            tags = "new_statements"
-            message = """\
+            change_tags = "new_statements"
+            change_desc = """\
 Subscript assignment to dictionary lowered to dictionary assignment."""
+
+            trace_collection.removeKnowledge(self)
+
+            result2, change_tags2, change_desc2 = result.computeStatementOperation(
+                trace_collection
+            )
+
+            if result2 is not result:
+                trace_collection.signalChange(
+                    tags=change_tags,
+                    source_ref=self.source_ref,
+                    message=change_desc,
+                )
+
+                return result2, change_tags2, change_desc2
+            else:
+                return result, change_tags, change_desc
+
+        trace_collection.removeKnowledge(self)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -208,19 +275,37 @@ Subscript assignment to dictionary lowered to dictionary assignment."""
         tags = None
         message = None
 
+        if self.variable_trace.hasShapeDictionaryExact():
+            result = StatementDictOperationRemove(
+                dict_arg=self,
+                key=subscript,
+                source_ref=del_node.getSourceReference(),
+            )
+            change_tags = "new_statements"
+            change_desc = """\
+Subscript del to dictionary lowered to dictionary del."""
+
+            trace_collection.removeKnowledge(self)
+
+            result2, change_tags2, change_desc2 = result.computeStatementOperation(
+                trace_collection
+            )
+
+            if result2 is not result:
+                trace_collection.signalChange(
+                    tags=change_tags,
+                    source_ref=self.source_ref,
+                    message=change_desc,
+                )
+
+                return result2, change_tags2, change_desc2
+            else:
+                return result, change_tags, change_desc
+
         # By default, an subscript may change everything about the lookup
         # source.
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        if self.variable_trace.hasShapeDictionaryExact():
-            del_node = StatementDictOperationRemove(
-                dict_arg=self, key=subscript, source_ref=del_node.getSourceReference()
-            )
-
-            tags = "new_statements"
-            message = """\
-Subscript del to dictionary lowered to dictionary del."""
 
         # Any exception might be raised.
         if del_node.mayRaiseException(BaseException):
@@ -336,7 +421,8 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             return self._applyReplacement(trace_collection, replacement)
 
         if not self.variable_trace.mustHaveValue():
-            # TODO: This could be way more specific surely.
+            # TODO: This could be way more specific surely, either NameError or UnboundLocalError
+            # could be decided from context.
             trace_collection.onExceptionRaiseExit(BaseException)
 
         if variable.isModuleVariable() and variable.hasDefiniteWrites() is False:
@@ -403,7 +489,7 @@ Replaced read-only module attribute '__name__' with module attribute reference."
                 change_tags = "new_expression"
                 change_desc = """\
 Replaced read-only module attribute '__package__' with module attribute reference."""
-            elif variable_name == "__loader__" and python_version >= 300:
+            elif variable_name == "__loader__" and python_version >= 0x300:
                 new_node = ExpressionModuleAttributeLoaderRef(
                     variable=variable, source_ref=self.source_ref
                 )
@@ -411,7 +497,7 @@ Replaced read-only module attribute '__package__' with module attribute referenc
                 change_tags = "new_expression"
                 change_desc = """\
 Replaced read-only module attribute '__loader__' with module attribute reference."""
-            elif variable_name == "__spec__" and python_version >= 340:
+            elif variable_name == "__spec__" and python_version >= 0x340:
                 new_node = ExpressionModuleAttributeSpecRef(
                     variable=variable, source_ref=self.source_ref
                 )
@@ -471,9 +557,6 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
 
     def getTruthValue(self):
         return self.variable_trace.getTruthValue()
-
-    def onContentEscapes(self, trace_collection):
-        trace_collection.onVariableContentEscapes(self.variable)
 
     @staticmethod
     def isKnownToBeIterable(count):
@@ -612,9 +695,6 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return may_not_raise, (next_node, None, None)
-
-    def onContentEscapes(self, trace_collection):
-        trace_collection.onVariableContentEscapes(self.variable)
 
     @staticmethod
     def mayHaveSideEffects():

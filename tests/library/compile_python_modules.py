@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -135,7 +135,8 @@ compileLibraryTest(
     search_mode=search_mode,
     stage_dir=os.path.join(
         tmp_dir,
-        "compile_library_%s-%s-%s" % (python_version, python_arch, python_vendor),
+        "compile_library_%s-%s-%s"
+        % (".".join(python_version), python_arch, python_vendor),
     ),
     decide=decide,
     action=action,

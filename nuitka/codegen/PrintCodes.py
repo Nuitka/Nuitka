@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,8 +28,8 @@ from .ErrorCodes import getErrorExitBoolCode
 
 
 def generatePrintValueCode(statement, emit, context):
-    destination = statement.getDestination()
-    value = statement.getValue()
+    destination = statement.subnode_dest
+    value = statement.subnode_value
 
     if destination is not None:
         dest_name = context.allocateTempName("print_dest", unique=True)
@@ -70,7 +70,7 @@ def generatePrintValueCode(statement, emit, context):
 
 
 def generatePrintNewlineCode(statement, emit, context):
-    destination = statement.getDestination()
+    destination = statement.subnode_dest
 
     if destination is not None:
         dest_name = context.allocateTempName("print_dest", unique=True)

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -103,7 +103,7 @@ def encodeNonAscii(var_name):
     For Python3, unicode identifiers can be used, but these are not
     possible in C, so we need to replace them.
     """
-    if python_version < 300:
+    if python_version < 0x300:
         return var_name
     else:
         # Using a escaping here, because that makes it safe in terms of not
@@ -130,3 +130,7 @@ def isExecutableCommand(command):
                 return True
 
     return False
+
+
+def hasOnefileSupportedOS():
+    return getOS() in ("Linux", "Windows")

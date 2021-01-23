@@ -1,4 +1,4 @@
-#     Copyright 2020, Batakrishna Sahu, mailto:<Batakrishna.Sahu@suiit.ac.in>
+#     Copyright 2021, Batakrishna Sahu, mailto:<Batakrishna.Sahu@suiit.ac.in>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -46,7 +46,7 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
     builtin_spec = BuiltinParameterSpecs.builtin_any_spec
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
+        value = self.subnode_value
         shape = value.getTypeShape()
         if shape.hasShapeSlotIter() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -71,7 +71,9 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
 
                 if truth_value is True:
                     result = wrapExpressionWithNodeSideEffects(
-                        new_node=makeConstantReplacementNode(constant=True, node=self),
+                        new_node=makeConstantReplacementNode(
+                            constant=True, node=self, user_provided=False
+                        ),
                         old_node=value,
                     )
 
@@ -87,7 +89,9 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
 
             if all_false is True:
                 result = wrapExpressionWithNodeSideEffects(
-                    new_node=makeConstantReplacementNode(constant=False, node=self),
+                    new_node=makeConstantReplacementNode(
+                        constant=False, node=self, user_provided=False
+                    ),
                     old_node=value,
                 )
 
@@ -113,8 +117,8 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
         return tshape_bool
 
     def mayRaiseException(self, exception_type):
-        """returns boolean True if try/except/finally is needed else False"""
-        value = self.getValue()
+        """returns boolean True if exception is raised else False"""
+        value = self.subnode_value
 
         if value.mayRaiseException(exception_type):
             return True

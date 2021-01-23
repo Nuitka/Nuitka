@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -21,7 +21,7 @@
  * very inconsistent.
  */
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #include <stddef.h>
 
 #define PyStringObject_SIZE (offsetof(PyStringObject, ob_sval) + 1)
@@ -76,7 +76,7 @@ NUITKA_MAY_BE_UNUSED static bool STRING_ADD_INPLACE(PyObject **operand1, PyObjec
 }
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 NUITKA_MAY_BE_UNUSED static bool BYTES_ADD_INCREMENTAL(PyObject **operand1, PyObject *operand2) {
     assert(PyBytes_CheckExact(*operand1));
     assert(PyBytes_CheckExact(operand2));
@@ -113,7 +113,7 @@ NUITKA_MAY_BE_UNUSED static bool UNICODE_ADD_INCREMENTAL(PyObject **operand1, Py
     if (operand2_size == 0)
         return true;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     Py_ssize_t operand1_size = PyUnicode_GET_SIZE(*operand1);
 
     Py_ssize_t new_size = operand1_size + operand2_size;

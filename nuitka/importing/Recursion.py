@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,12 +19,9 @@
 
 """
 
-import fnmatch
 import glob
 import marshal
 import os
-import sys
-from logging import warning
 
 from nuitka import ModuleRegistry, Options
 from nuitka.importing import ImportCache, Importing, StandardLibrary
@@ -34,35 +31,6 @@ from nuitka.Tracing import recursion_logger
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.FileOperations import listDir, relpath
 from nuitka.utils.ModuleNames import ModuleName
-
-
-def matchesModuleNameToPatterns(module_name, patterns):
-    """Match a module name to a list of patterns
-
-    Args:
-        module_name:
-            The module name to match. Full path with dot separators.
-        patters:
-            List of patterns that comply with fnmatch.fnmatch description
-            or also is below the package. So "*.tests" will matches to also
-            "something.tests.MyTest", thereby allowing to match whole
-            packages with one pattern only.
-    Returns:
-        Tuple of two values, where the first value is the result, second value
-        explains which pattern matched and how.
-    """
-
-    for pattern in patterns:
-        if module_name == pattern:
-            return True, "is exact match of %r" % pattern
-        elif module_name.startswith(pattern + "."):
-            return True, "is package content of %r" % pattern
-        elif fnmatch.fnmatch(module_name, pattern):
-            return True, "matches pattern %r" % pattern
-        elif fnmatch.fnmatch(module_name, pattern + ".*"):
-            return True, "is package content of match to pattern %r" % pattern
-
-    return False, None
 
 
 def _recurseTo(module_package, module_filename, module_relpath, module_kind, reason):
@@ -99,12 +67,10 @@ def _recurseTo(module_package, module_filename, module_relpath, module_kind, rea
             if module_filename not in Importing.warned_about:
                 Importing.warned_about.add(module_filename)
 
-                warning(
+                recursion_logger.warning(
                     """\
-Cannot recurse to import module '%s' (%s) because of '%s'""",
-                    module_relpath,
-                    module_filename,
-                    e.__class__.__name__,
+Cannot follow import to module %r (%r) because of %r"""
+                    % (module_relpath, module_filename, e.__class__.__name__)
                 )
 
             return None, False
@@ -112,11 +78,13 @@ Cannot recurse to import module '%s' (%s) because of '%s'""",
             if module_filename not in Importing.warned_about:
                 Importing.warned_about.add(module_filename)
 
-                warning(
+                recursion_logger.warning(
                     """\
-Cannot recurse to import module '%s' (%s) because code is too complex.""",
-                    module_relpath,
-                    module_filename,
+Cannot recurse to import module %r (%r) because code is too complex."""
+                    % (
+                        module_relpath,
+                        module_filename,
+                    )
                 )
 
                 if Options.isStandaloneMode():
@@ -182,15 +150,15 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
         else:
             return False, "Shared library cannot be inspected."
 
-    no_case, reason = matchesModuleNameToPatterns(
-        module_name=module_name, patterns=Options.getShallFollowInNoCase()
+    no_case, reason = module_name.matchesToShellPatterns(
+        patterns=Options.getShallFollowInNoCase()
     )
 
     if no_case:
         return (False, "Module %s instructed by user to not recurse to." % reason)
 
-    any_case, reason = matchesModuleNameToPatterns(
-        module_name=module_name, patterns=Options.getShallFollowModules()
+    any_case, reason = module_name.matchesToShellPatterns(
+        patterns=Options.getShallFollowModules()
     )
 
     if any_case:
@@ -288,18 +256,22 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
             if module:
                 if not is_added:
-                    warning(
-                        "Recursed to %s '%s' at '%s' twice.",
-                        "package" if module.isCompiledPythonPackage() else "module",
-                        module.getName(),
-                        plugin_filename,
+                    recursion_logger.warning(
+                        "Recursed to %s '%s' at '%s' twice."
+                        % (
+                            "package" if module.isCompiledPythonPackage() else "module",
+                            module.getName(),
+                            plugin_filename,
+                        )
                     )
 
                     if not isSameModulePath(module.getFilename(), plugin_filename):
-                        warning(
-                            "Duplicate '%s' of '%s' ignored .",
-                            plugin_filename,
-                            module.getFilename(),
+                        recursion_logger.warning(
+                            "Duplicate '%s' of '%s' ignored ."
+                            % (
+                                plugin_filename,
+                                module.getFilename(),
+                            )
                         )
 
                         return
@@ -321,7 +293,7 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
                     if os.path.isdir(package_filename):
                         # Must be a namespace package.
-                        assert python_version >= 300
+                        assert python_version >= 0x300
 
                         package_dir = package_filename
 
@@ -357,7 +329,9 @@ def checkPluginSinglePath(plugin_filename, module_package):
                     ModuleRegistry.addRootModule(module)
 
             else:
-                warning("Failed to include module from '%s'.", plugin_filename)
+                recursion_logger.warning(
+                    "Failed to include module from '%s'." % plugin_filename
+                )
 
 
 def checkPluginPath(plugin_filename, module_package):
@@ -381,17 +355,18 @@ def checkPluginPath(plugin_filename, module_package):
                 if Importing.isPackageDir(sub_path) or sub_path.endswith(".py"):
                     checkPluginSinglePath(sub_path, module_package=None)
         else:
-            warning("Failed to include module from '%s'.", plugin_info[0])
+            recursion_logger.warning(
+                "Failed to include module from %r." % plugin_info[0]
+            )
     else:
-        warning("Failed to recurse to directory '%s'.", plugin_filename)
+        recursion_logger.warning("Failed to recurse to directory %r." % plugin_filename)
 
 
 def checkPluginFilenamePattern(pattern):
     if Options.isShowInclusion():
         recursion_logger.info("Checking plug-in pattern '%s':" % pattern)
 
-    if os.path.isdir(pattern):
-        sys.exit("Error, pattern cannot be a directory name.")
+    assert not os.path.isdir(pattern), pattern
 
     found = False
 
@@ -406,4 +381,4 @@ def checkPluginFilenamePattern(pattern):
         checkPluginSinglePath(filename, module_package=None)
 
     if not found:
-        warning("Didn't match any files against pattern '%s'." % pattern)
+        recursion_logger.warning("Didn't match any files against pattern %r." % pattern)

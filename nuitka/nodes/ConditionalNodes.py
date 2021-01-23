@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -41,9 +41,6 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CONDITIONAL"
 
     named_children = ("condition", "expression_yes", "expression_no")
-    getCondition = ExpressionChildrenHavingBase.childGetter("condition")
-    getExpressionYes = ExpressionChildrenHavingBase.childGetter("expression_yes")
-    getExpressionNo = ExpressionChildrenHavingBase.childGetter("expression_no")
 
     def __init__(self, condition, expression_yes, expression_no, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -57,14 +54,14 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
         )
 
     def getBranches(self):
-        return (self.getExpressionYes(), self.getExpressionNo())
+        return (self.subnode_expression_yes, self.subnode_expression_no)
 
     def computeExpressionRaw(self, trace_collection):
         # This is rather complex stuff, pylint: disable=too-many-branches
 
         # Query the truth value after the expression is evaluated, once it is
         # evaluated in onExpression, it is known.
-        condition = trace_collection.onExpression(expression=self.getCondition())
+        condition = trace_collection.onExpression(expression=self.subnode_condition)
 
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
@@ -80,14 +77,14 @@ branches.""",
         # Tell it we are evaluation it for boolean value only, it may demote
         # itself possibly.
         condition.computeExpressionBool(trace_collection)
-        condition = self.getCondition()
+        condition = self.subnode_condition
 
         # Decide this based on truth value of condition.
         truth_value = condition.getTruthValue()
 
         # TODO: We now know that condition evaluates to true for the yes branch
         # and to not true for no branch, the branch should know that.
-        yes_branch = self.getExpressionYes()
+        yes_branch = self.subnode_expression_yes
 
         # Continue to execute for yes branch unless we know it's not going to be
         # relevant.
@@ -99,7 +96,7 @@ branches.""",
             branch_yes_collection.computeBranch(branch=yes_branch)
 
             # May have just gone away, so fetch it again.
-            yes_branch = self.getExpressionYes()
+            yes_branch = self.subnode_expression_yes
 
             # If it's aborting, it doesn't contribute to merging.
             if yes_branch.willRaiseException(BaseException):
@@ -107,7 +104,7 @@ branches.""",
         else:
             branch_yes_collection = None
 
-        no_branch = self.getExpressionNo()
+        no_branch = self.subnode_expression_no
 
         # Continue to execute for yes branch.
         if truth_value is not True:
@@ -118,7 +115,7 @@ branches.""",
             branch_no_collection.computeBranch(branch=no_branch)
 
             # May have just gone away, so fetch it again.
-            no_branch = self.getExpressionNo()
+            no_branch = self.subnode_expression_no
 
             # If it's aborting, it doesn't contribute to merging.
             if no_branch.willRaiseException(BaseException):
@@ -137,7 +134,7 @@ branches.""",
         if truth_value is True:
             return (
                 wrapExpressionWithNodeSideEffects(
-                    new_node=self.getExpressionYes(), old_node=condition
+                    new_node=self.subnode_expression_yes, old_node=condition
                 ),
                 "new_expression",
                 "Conditional expression predicted to yes case.",
@@ -145,7 +142,7 @@ branches.""",
         elif truth_value is False:
             return (
                 wrapExpressionWithNodeSideEffects(
-                    new_node=self.getExpressionNo(), old_node=condition
+                    new_node=self.subnode_expression_no, old_node=condition
                 ),
                 "new_expression",
                 "Conditional expression predicted to no case.",
@@ -155,12 +152,12 @@ branches.""",
 
     def computeExpressionDrop(self, statement, trace_collection):
         result = makeStatementConditional(
-            condition=self.getCondition(),
+            condition=self.subnode_condition,
             yes_branch=makeStatementExpressionOnlyReplacementNode(
-                expression=self.getExpressionYes(), node=self.getExpressionYes()
+                expression=self.subnode_expression_yes, node=self.subnode_expression_yes
             ),
             no_branch=makeStatementExpressionOnlyReplacementNode(
-                expression=self.getExpressionNo(), node=self.getExpressionNo()
+                expression=self.subnode_expression_no, node=self.subnode_expression_no
             ),
             source_ref=self.source_ref,
         )
@@ -175,19 +172,19 @@ Convert conditional expression with unused result into conditional statement."""
         )
 
     def mayHaveSideEffectsBool(self):
-        if self.getCondition().mayHaveSideEffectsBool():
+        if self.subnode_condition.mayHaveSideEffectsBool():
             return True
 
-        if self.getExpressionYes().mayHaveSideEffectsBool():
+        if self.subnode_expression_yes.mayHaveSideEffectsBool():
             return True
 
-        if self.getExpressionNo().mayHaveSideEffectsBool():
+        if self.subnode_expression_no.mayHaveSideEffectsBool():
             return True
 
         return False
 
     def mayRaiseException(self, exception_type):
-        condition = self.getCondition()
+        condition = self.subnode_condition
 
         if condition.mayRaiseException(exception_type):
             return True
@@ -195,13 +192,13 @@ Convert conditional expression with unused result into conditional statement."""
         if condition.mayRaiseExceptionBool(exception_type):
             return True
 
-        yes_branch = self.getExpressionYes()
+        yes_branch = self.subnode_expression_yes
 
         # Handle branches that became empty behind our back
         if yes_branch is not None and yes_branch.mayRaiseException(exception_type):
             return True
 
-        no_branch = self.getExpressionNo()
+        no_branch = self.subnode_expression_no
 
         # Handle branches that became empty behind our back
         if no_branch is not None and no_branch.mayRaiseException(exception_type):
@@ -210,20 +207,20 @@ Convert conditional expression with unused result into conditional statement."""
         return False
 
     def mayRaiseExceptionBool(self, exception_type):
-        if self.getCondition().mayRaiseExceptionBool(exception_type):
+        if self.subnode_condition.mayRaiseExceptionBool(exception_type):
             return True
 
-        if self.getExpressionYes().mayRaiseExceptionBool(exception_type):
+        if self.subnode_expression_yes.mayRaiseExceptionBool(exception_type):
             return True
 
-        if self.getExpressionNo().mayRaiseExceptionBool(exception_type):
+        if self.subnode_expression_no.mayRaiseExceptionBool(exception_type):
             return True
 
         return False
 
     def getIntegerValue(self):
-        result_yes = self.getExpressionYes().getIntegerValue()
-        result_no = self.getExpressionNo().getIntegerValue()
+        result_yes = self.subnode_expression_yes.getIntegerValue()
+        result_no = self.subnode_expression_no.getIntegerValue()
 
         if result_yes == result_no:
             return result_yes
@@ -233,8 +230,6 @@ Convert conditional expression with unused result into conditional statement."""
 
 class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
     named_children = ("left", "right")
-    getLeft = ExpressionChildrenHavingBase.childGetter("left")
-    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
     def __init__(self, left, right, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -244,7 +239,7 @@ class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
     def computeExpressionRaw(self, trace_collection):
         # Query the truth value after the expression is evaluated, once it is
         # evaluated in onExpression, it is known.
-        left = trace_collection.onExpression(expression=self.getLeft())
+        left = trace_collection.onExpression(expression=self.subnode_left)
 
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
@@ -269,7 +264,7 @@ branches."""
         truth_value_use_left = self.conditional_kind == "or"
         truth_value_use_right = not truth_value_use_left
 
-        right = self.getRight()
+        right = self.subnode_right
 
         # Continue to execute for yes branch unless we know it's not going to be
         # relevant.
@@ -284,7 +279,7 @@ branches."""
             branch_yes_collection.computeBranch(branch=right)
 
             # May have just gone away, so fetch it again.
-            right = self.getRight()
+            right = self.subnode_right
 
             # If it's aborting, it doesn't contribute to merging.
             if right.willRaiseException(BaseException):
@@ -314,7 +309,7 @@ branches."""
             return self, None, None
 
     def mayRaiseException(self, exception_type):
-        left = self.getLeft()
+        left = self.subnode_left
 
         if left.mayRaiseException(exception_type):
             return True
@@ -322,7 +317,7 @@ branches."""
         if left.mayRaiseExceptionBool(exception_type):
             return True
 
-        right = self.getRight()
+        right = self.subnode_right
 
         if right.mayRaiseException(exception_type):
             return True
@@ -330,19 +325,19 @@ branches."""
         return False
 
     def mayRaiseExceptionBool(self, exception_type):
-        if self.getLeft().mayRaiseExceptionBool(exception_type):
+        if self.subnode_left.mayRaiseExceptionBool(exception_type):
             return True
 
-        if self.getRight().mayRaiseExceptionBool(exception_type):
+        if self.subnode_right.mayRaiseExceptionBool(exception_type):
             return True
 
         return False
 
     def mayHaveSideEffectsBool(self):
-        if self.getLeft().mayHaveSideEffectsBool():
+        if self.subnode_left.mayHaveSideEffectsBool():
             return True
 
-        if self.getRight().mayHaveSideEffectsBool():
+        if self.subnode_right.mayHaveSideEffectsBool():
             return True
 
         return False
@@ -351,19 +346,19 @@ branches."""
 class ExpressionConditionalOr(ExpressionConditionalBoolBase):
     kind = "EXPRESSION_CONDITIONAL_OR"
 
+    conditional_kind = "or"
+
     def __init__(self, left, right, source_ref):
         ExpressionConditionalBoolBase.__init__(
             self, left=left, right=right, source_ref=source_ref
         )
 
-        self.conditional_kind = "or"
-
     def computeExpressionDrop(self, statement, trace_collection):
         result = makeStatementConditional(
-            condition=self.getLeft(),
+            condition=self.subnode_left,
             yes_branch=None,
             no_branch=makeStatementExpressionOnlyReplacementNode(
-                expression=self.getRight(), node=self.getRight()
+                expression=self.subnode_right, node=self.subnode_right
             ),
             source_ref=self.source_ref,
         )
@@ -381,19 +376,19 @@ Convert conditional 'or' expression with unused result into conditional statemen
 class ExpressionConditionalAnd(ExpressionConditionalBoolBase):
     kind = "EXPRESSION_CONDITIONAL_AND"
 
+    conditional_kind = "and"
+
     def __init__(self, left, right, source_ref):
         ExpressionConditionalBoolBase.__init__(
             self, left=left, right=right, source_ref=source_ref
         )
 
-        self.conditional_kind = "and"
-
     def computeExpressionDrop(self, statement, trace_collection):
         result = makeStatementConditional(
-            condition=self.getLeft(),
+            condition=self.subnode_left,
             no_branch=None,
             yes_branch=makeStatementExpressionOnlyReplacementNode(
-                expression=self.getRight(), node=self.getRight()
+                expression=self.subnode_right, node=self.subnode_right
             ),
             source_ref=self.source_ref,
         )
@@ -412,11 +407,6 @@ class StatementConditional(StatementChildrenHavingBase):
     kind = "STATEMENT_CONDITIONAL"
 
     named_children = ("condition", "yes_branch", "no_branch")
-    getCondition = StatementChildrenHavingBase.childGetter("condition")
-    getBranchYes = StatementChildrenHavingBase.childGetter("yes_branch")
-    setBranchYes = StatementChildrenHavingBase.childSetter("yes_branch")
-    getBranchNo = StatementChildrenHavingBase.childGetter("no_branch")
-    setBranchNo = StatementChildrenHavingBase.childSetter("no_branch")
 
     checkers = {
         "yes_branch": checkStatementsSequenceOrNone,
@@ -435,11 +425,11 @@ class StatementConditional(StatementChildrenHavingBase):
         )
 
     def isStatementAborting(self):
-        yes_branch = self.getBranchYes()
+        yes_branch = self.subnode_yes_branch
 
         if yes_branch is not None:
             if yes_branch.isStatementAborting():
-                no_branch = self.getBranchNo()
+                no_branch = self.subnode_no_branch
 
                 if no_branch is not None:
                     return no_branch.isStatementAborting()
@@ -451,7 +441,7 @@ class StatementConditional(StatementChildrenHavingBase):
             return False
 
     def mayRaiseException(self, exception_type):
-        condition = self.getCondition()
+        condition = self.subnode_condition
 
         if condition.mayRaiseException(exception_type):
             return True
@@ -459,13 +449,13 @@ class StatementConditional(StatementChildrenHavingBase):
         if condition.mayRaiseExceptionBool(exception_type):
             return True
 
-        yes_branch = self.getBranchYes()
+        yes_branch = self.subnode_yes_branch
 
         # Handle branches that became empty behind our back
         if yes_branch is not None and yes_branch.mayRaiseException(exception_type):
             return True
 
-        no_branch = self.getBranchNo()
+        no_branch = self.subnode_no_branch
 
         # Handle branches that became empty behind our back
         if no_branch is not None and no_branch.mayRaiseException(exception_type):
@@ -474,7 +464,7 @@ class StatementConditional(StatementChildrenHavingBase):
         return False
 
     def needsFrame(self):
-        condition = self.getCondition()
+        condition = self.subnode_condition
 
         if condition.mayRaiseException(BaseException):
             return True
@@ -482,13 +472,13 @@ class StatementConditional(StatementChildrenHavingBase):
         if condition.mayRaiseExceptionBool(BaseException):
             return True
 
-        yes_branch = self.getBranchYes()
+        yes_branch = self.subnode_yes_branch
 
         # Handle branches that became empty behind our back
         if yes_branch is not None and yes_branch.needsFrame():
             return True
 
-        no_branch = self.getBranchNo()
+        no_branch = self.subnode_no_branch
 
         # Handle branches that became empty behind our back
         if no_branch is not None and no_branch.needsFrame():
@@ -499,7 +489,7 @@ class StatementConditional(StatementChildrenHavingBase):
     def computeStatement(self, trace_collection):
         # This is rather complex stuff, pylint: disable=too-many-branches,too-many-statements
 
-        condition = trace_collection.onExpression(expression=self.getCondition())
+        condition = trace_collection.onExpression(expression=self.subnode_condition)
 
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
@@ -519,7 +509,7 @@ branches.""",
         # Tell it we are evaluation it for boolean value only, it may demote
         # itself possibly.
         condition.computeExpressionBool(trace_collection)
-        condition = self.getCondition()
+        condition = self.subnode_condition
 
         # Query the truth value after the expression is evaluated, once it is
         # evaluated in onExpression, it is known.
@@ -527,23 +517,23 @@ branches.""",
 
         # TODO: We now know that condition evaluates to true for the yes branch
         # and to not true for no branch, the branch collection should know that.
-        yes_branch = self.getBranchYes()
-        no_branch = self.getBranchNo()
+        yes_branch = self.subnode_yes_branch
+        no_branch = self.subnode_no_branch
 
         # Handle branches that became empty behind our back.
         if yes_branch is not None:
-            if not yes_branch.getStatements():
+            if not yes_branch.subnode_statements:
                 yes_branch.finalize()
                 yes_branch = None
 
-                self.setBranchYes(None)
+                self.clearChild("yes_branch")
 
         if no_branch is not None:
-            if not no_branch.getStatements():
+            if not no_branch.subnode_statements:
                 no_branch.finalize()
                 no_branch = None
 
-                self.setBranchNo(None)
+                self.clearChild("no_branch")
 
         # Consider to not remove branches that we know won't be taken.
         if yes_branch is not None and truth_value is False:
@@ -554,7 +544,7 @@ branches.""",
             )
 
             yes_branch.finalize()
-            self.setBranchYes(None)
+            self.clearChild("yes_branch")
             yes_branch = None
 
         if no_branch is not None and truth_value is True:
@@ -565,7 +555,7 @@ branches.""",
             )
 
             no_branch.finalize()
-            self.setBranchNo(None)
+            self.clearChild("no_branch")
             no_branch = None
 
         # Continue to execute for yes branch unless we know it's not going to be
@@ -578,7 +568,7 @@ branches.""",
             branch_yes_collection.computeBranch(branch=yes_branch)
 
             # May have just gone away, so fetch it again.
-            yes_branch = self.getBranchYes()
+            yes_branch = self.subnode_yes_branch
 
             # If it's aborting, it doesn't contribute to merging.
             if yes_branch is None or yes_branch.isStatementAborting():
@@ -595,7 +585,7 @@ branches.""",
             branch_no_collection.computeBranch(branch=no_branch)
 
             # May have just gone away, so fetch it again.
-            no_branch = self.getBranchNo()
+            no_branch = self.subnode_no_branch
 
             # If it's aborting, it doesn't contribute to merging.
             if no_branch is None or no_branch.isStatementAborting():
@@ -707,12 +697,12 @@ Empty 'yes' branch for conditional statement treated with inverted condition che
         return self, None, None
 
     def mayReturn(self):
-        yes_branch = self.getBranchYes()
+        yes_branch = self.subnode_yes_branch
 
         if yes_branch is not None and yes_branch.mayReturn():
             return True
 
-        no_branch = self.getBranchNo()
+        no_branch = self.subnode_no_branch
 
         if no_branch is not None and no_branch.mayReturn():
             return True
@@ -720,12 +710,12 @@ Empty 'yes' branch for conditional statement treated with inverted condition che
         return False
 
     def mayBreak(self):
-        yes_branch = self.getBranchYes()
+        yes_branch = self.subnode_yes_branch
 
         if yes_branch is not None and yes_branch.mayBreak():
             return True
 
-        no_branch = self.getBranchNo()
+        no_branch = self.subnode_no_branch
 
         if no_branch is not None and no_branch.mayBreak():
             return True
@@ -733,12 +723,12 @@ Empty 'yes' branch for conditional statement treated with inverted condition che
         return False
 
     def mayContinue(self):
-        yes_branch = self.getBranchYes()
+        yes_branch = self.subnode_yes_branch
 
         if yes_branch is not None and yes_branch.mayContinue():
             return True
 
-        no_branch = self.getBranchNo()
+        no_branch = self.subnode_no_branch
 
         if no_branch is not None and no_branch.mayContinue():
             return True
@@ -764,10 +754,14 @@ def makeStatementConditional(condition, yes_branch, no_branch, source_ref):
         yes_branch, no_branch = no_branch, yes_branch
 
     if yes_branch is not None and not yes_branch.isStatementsSequence():
-        yes_branch = StatementsSequence(statements=(yes_branch,), source_ref=source_ref)
+        yes_branch = StatementsSequence(
+            statements=(yes_branch,), source_ref=yes_branch.source_ref
+        )
 
     if no_branch is not None and not no_branch.isStatementsSequence():
-        no_branch = StatementsSequence(statements=(no_branch,), source_ref=source_ref)
+        no_branch = StatementsSequence(
+            statements=(no_branch,), source_ref=no_branch.source_ref
+        )
 
     return StatementConditional(
         condition=condition,

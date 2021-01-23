@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -34,6 +34,7 @@ from optparse import OptionGroup, OptionParser
 
 from nuitka.freezer.DependsExe import getDependsExePath
 from nuitka.Tracing import OurLogger, my_print
+from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import check_output, withEnvironmentVarOverriden
 from nuitka.utils.FileOperations import (
@@ -52,6 +53,8 @@ from .SearchModes import (
     SearchModeOnly,
     SearchModeResume,
 )
+
+test_logger = OurLogger("", base_style="blue")
 
 
 def check_result(*popenargs, **kwargs):
@@ -73,6 +76,7 @@ def goMainDir():
     os.chdir(os.path.dirname(os.path.abspath(sys.modules["__main__"].__file__)))
 
 
+_python_version_str = None
 _python_version = None
 _python_arch = None
 _python_executable = None
@@ -119,30 +123,32 @@ print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else 
         stderr=subprocess.STDOUT,
     )
 
-    global _python_version, _python_arch, _python_executable, _python_vendor  # singleton, pylint: disable=global-statement
+    global _python_version_str, _python_version, _python_arch, _python_executable, _python_vendor  # singleton, pylint: disable=global-statement
 
-    _python_version = version_output.split(b"\n")[0].strip()
+    _python_version_str = version_output.split(b"\n")[0].strip()
     _python_arch = version_output.split(b"\n")[1].strip()
     _python_executable = version_output.split(b"\n")[2].strip()
     _python_vendor = version_output.split(b"\n")[3].strip()
 
-    if sys.version.startswith("3"):
+    if str is not bytes:
+        _python_version_str = _python_version_str.decode("utf-8")
         _python_arch = _python_arch.decode("utf-8")
-        _python_version = _python_version.decode("utf-8")
         _python_executable = _python_executable.decode("utf-8")
         _python_vendor = _python_vendor.decode("utf-8")
 
-    if not silent:
-        my_print("Using concrete python", _python_version, "on", _python_arch)
-
-    assert type(_python_version) is str, repr(_python_version)
+    assert type(_python_version_str) is str, repr(_python_version_str)
     assert type(_python_arch) is str, repr(_python_arch)
     assert type(_python_executable) is str, repr(_python_executable)
+
+    if not silent:
+        my_print("Using concrete python", _python_version_str, "on", _python_arch)
 
     if "COVERAGE_FILE" not in os.environ:
         os.environ["COVERAGE_FILE"] = os.path.join(
             os.path.dirname(__file__), "..", "..", "..", ".coverage"
         )
+
+    _python_version = tuple(int(d) for d in _python_version_str.split("."))
 
     return _python_version
 
@@ -153,6 +159,10 @@ def getPythonArch():
 
 def getPythonVendor():
     return _python_vendor
+
+
+def getPythonVersionString():
+    return _python_version_str
 
 
 tmp_dir = None
@@ -256,8 +266,7 @@ def decideFilenameVersionSkip(filename):
     # This will make many decisions with immediate returns.
     # pylint: disable=too-many-branches,too-many-return-statements
 
-    assert type(filename) is str
-    assert type(_python_version) is str
+    assert type(filename) is str, repr(filename)
 
     # Skip runner scripts by default.
     if filename.startswith("run_"):
@@ -267,54 +276,54 @@ def decideFilenameVersionSkip(filename):
         filename = filename[:-3]
 
     # Skip tests that require Python 2.7 at least.
-    if filename.endswith("27.py") and _python_version.startswith("2.6"):
+    if filename.endswith("27.py") and _python_version < (2, 7):
         return False
 
     # Skip tests that require Python 2 at maximum.
-    if filename.endswith("_2.py") and _python_version.startswith("3"):
+    if filename.endswith("_2.py") and _python_version > (3,):
         return False
 
     # Skip tests that require Python 3.7 at maximum.
-    if filename.endswith("_37.py") and _python_version >= "3.8":
+    if filename.endswith("_37.py") and _python_version > (3, 8):
         return False
 
     # Skip tests that require Python 3.2 at least.
-    if filename.endswith("32.py") and _python_version < "3.2":
+    if filename.endswith("32.py") and _python_version < (3, 2):
         return False
 
     # Skip tests that require Python 3.3 at least.
-    if filename.endswith("33.py") and _python_version < "3.3":
+    if filename.endswith("33.py") and _python_version < (3, 3):
         return False
 
     # Skip tests that require Python 3.4 at least.
-    if filename.endswith("34.py") and _python_version < "3.4":
+    if filename.endswith("34.py") and _python_version < (3, 4):
         return False
 
     # Skip tests that require Python 3.5 at least.
-    if filename.endswith("35.py") and _python_version < "3.5":
+    if filename.endswith("35.py") and _python_version < (3, 5):
         return False
 
     # Skip tests that require Python 3.6 at least.
-    if filename.endswith("36.py") and _python_version < "3.6":
+    if filename.endswith("36.py") and _python_version < (3, 6):
         return False
 
     # Skip tests that require Python 3.7 at least.
-    if filename.endswith("37.py") and _python_version < "3.7":
+    if filename.endswith("37.py") and _python_version < (3, 7):
         return False
 
     # Skip tests that require Python 3.8 at least.
-    if filename.endswith("38.py") and _python_version < "3.8":
+    if filename.endswith("38.py") and _python_version < (3, 8):
         return False
 
     # Skip tests that require Python 3.9 at least.
-    if filename.endswith("39.py") and _python_version < "3.9":
+    if filename.endswith("39.py") and _python_version < (3, 9):
         return False
 
     return True
 
 
 def decideNeeds2to3(filename):
-    return _python_version.startswith("3") and not filename.endswith(
+    return _python_version >= (3,) and not filename.endswith(
         ("32.py", "33.py", "34.py", "35.py", "36.py", "37.py", "38.py", "39.py")
     )
 
@@ -560,7 +569,8 @@ Error, needs 'strace' on your system to scan used libraries."""
                         continue
 
                     if filename in (
-                        b"/usr/bin/python3." + version for version in (b"5", b"6", b"7")
+                        b"/usr/bin/python3." + version
+                        for version in (b"5", b"6", b"7", b"8", b"9")
                     ):
                         continue
 
@@ -580,7 +590,11 @@ Error, needs 'strace' on your system to scan used libraries."""
                         binary_path = os.path.dirname(binary_path)
 
                         if filename == os.path.join(
-                            binary_path, b"python" + _python_version[:3].encode("utf8")
+                            binary_path,
+                            b"python"
+                            + (
+                                "%d%d" % (_python_version[0], _python_version[1])
+                            ).encode("utf8"),
                         ):
                             found = True
                             continue
@@ -771,7 +785,7 @@ def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
 def hasModule(module_name):
     with open(os.devnull, "w") as devnull:
         result = subprocess.call(
-            (os.environ["PYTHON"], "-c" "import %s" % module_name),
+            (os.environ["PYTHON"], "-c", "import %s" % module_name),
             stdout=devnull,
             stderr=subprocess.STDOUT,
         )
@@ -968,6 +982,8 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
 
 
 def createSearchMode():
+    # Dealing with many options, pylint: disable=too-many-branches
+
     parser = OptionParser()
 
     select_group = OptionGroup(parser, "Select Tests")
@@ -1003,9 +1019,24 @@ Executing all self checks possible to find errors in Nuitka, good for test cover
 Defaults to off.""",
     )
 
+    debug_group.add_option(
+        "--commands",
+        action="store_true",
+        dest="show_commands",
+        default=False,
+        help="""Output commands being done in output comparison.
+Defaults to off.""",
+    )
+
     parser.add_option_group(debug_group)
 
     options, positional_args = parser.parse_args()
+
+    if options.debug:
+        addExtendedExtraOptions("--debug")
+
+    if options.show_commands:
+        os.environ["NUITKA_TRACE_COMMANDS"] = "1"
 
     # Default to searching.
     mode = positional_args[0] if positional_args else "search"
@@ -1138,10 +1169,8 @@ def withPythonPathChange(python_path):
             os.environ["PYTHONPATH"] = old_path
 
 
-@contextmanager
-def withExtendedExtraOptions(*args):
-    assert args
-    old_value = os.environ.get("NUITKA_EXTRA_OPTIONS", None)
+def addExtendedExtraOptions(*args):
+    old_value = os.environ.get("NUITKA_EXTRA_OPTIONS")
 
     value = old_value
 
@@ -1152,6 +1181,15 @@ def withExtendedExtraOptions(*args):
             value += " " + arg
 
     os.environ["NUITKA_EXTRA_OPTIONS"] = value
+
+    return old_value
+
+
+@contextmanager
+def withExtendedExtraOptions(*args):
+    assert args
+
+    old_value = addExtendedExtraOptions(*args)
 
     yield
 
@@ -1486,6 +1524,29 @@ def setupCacheHashSalt(test_code_path):
     os.environ["NUITKA_HASH_SALT"] = salt_value.hexdigest()
 
 
+def displayFolderContents(name, path):
+    test_logger.info("Listing of %s %r:" % (name, path))
+
+    if os.path.exists(path):
+        if os.name == "nt":
+            command = "dir /b /s /a:-D %s" % path
+        else:
+            command = "ls -Rla %s" % path
+
+        os.system(command)
+    else:
+        test_logger.info("Does not exist.")
+
+
+def displayFileContents(name, path):
+    test_logger.info("Contents of %s %r:" % (name, path))
+
+    if os.path.exists(path):
+        os.system("cat %r" % path)
+    else:
+        test_logger.info("Does not exist.")
+
+
 def someGenerator():
     yield 1
     yield 2
@@ -1497,4 +1558,37 @@ def someGeneratorRaising():
     raise TypeError(2)
 
 
-test_logger = OurLogger("", base_style="blue")
+# checks requirements needed to run each test module, according to the specified special comment
+# special comments are in the following formats:
+#     "# nuitka-skip-unless-expression: expression to be evaluated"
+#       OR
+#     "# nuitka-skip-unless-imports: module1,module2,..."
+def checkRequirements(filename):
+    for line in readSourceCodeFromFilename(None, filename).splitlines():
+        if line.startswith("# nuitka-skip-unless-"):
+            if line[21:33] == "expression: ":
+                expression = line[33:]
+                with open(os.devnull, "w") as devnull:
+                    result = subprocess.call(
+                        (
+                            os.environ["PYTHON"],
+                            "-c",
+                            "import sys, os; sys.exit(not bool(%s))" % expression,
+                        ),
+                        stdout=devnull,
+                        stderr=subprocess.STDOUT,
+                    )
+                if result != 0:
+                    return (False, "Expression '%s' evaluated to false" % expression)
+
+            elif line[21:30] == "imports: ":
+                imports_needed = line[30:].rstrip().split(",")
+                for i in imports_needed:
+                    if not hasModule(i):
+                        return (
+                            False,
+                            i
+                            + " not installed for this Python version, but test needs it",
+                        )
+    # default return value
+    return (True, "")

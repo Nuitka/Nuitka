@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -86,8 +86,9 @@ def _insertFinalReturnStatement(function_statements_body, return_statement):
             statement=return_statement
         )
     elif not function_statements_body.isStatementAborting():
-        function_statements_body.setStatements(
-            function_statements_body.getStatements() + (return_statement,)
+        function_statements_body.setChild(
+            "statements",
+            function_statements_body.subnode_statements + (return_statement,),
         )
 
     return function_statements_body
@@ -103,8 +104,9 @@ def _insertInitialSetLocalsDictStatement(function_body, function_statements_body
             statement=locals_statement
         )
     else:
-        function_statements_body.setStatements(
-            (locals_statement,) + function_statements_body.getStatements()
+        function_statements_body.setChild(
+            "statements",
+            (locals_statement,) + function_statements_body.subnode_statements,
         )
 
     return function_statements_body
@@ -174,7 +176,8 @@ def buildFunctionNode(provider, node, source_ref):
         for variable in function_body.getProvidedVariables():
             code_body.getVariableForReference(variable.getName())
 
-        function_body.setBody(
+        function_body.setChild(
+            "body",
             makeStatementsSequenceFromStatement(
                 statement=StatementReturn(
                     expression=maker_class(
@@ -185,7 +188,7 @@ def buildFunctionNode(provider, node, source_ref):
                     ),
                     source_ref=source_ref,
                 )
-            )
+            ),
         )
 
     decorators = buildNodeList(
@@ -224,7 +227,7 @@ def buildFunctionNode(provider, node, source_ref):
             statement=function_statements_body
         )
 
-    code_body.setBody(function_statements_body)
+    code_body.setChild("body", function_statements_body)
 
     annotations = buildParameterAnnotations(provider, node, source_ref)
 
@@ -243,7 +246,7 @@ def buildFunctionNode(provider, node, source_ref):
     # CPython made these optional, but secretly applies them when it does
     # "class __new__".  We add them earlier, so our optimization will see it.
     if (
-        python_version < 300
+        python_version < 0x300
         and node.name == "__new__"
         and provider.isExpressionClassBody()
     ):
@@ -253,14 +256,14 @@ def buildFunctionNode(provider, node, source_ref):
 
     # Add the "classmethod" decorator to __init_subclass__ methods if not provided.
     if (
-        python_version >= 360
+        python_version >= 0x360
         and node.name == "__init_subclass__"
         and provider.isExpressionClassBody()
     ):
         _injectDecorator(decorators, "classmethod", ("classmethod",), source_ref)
 
     if (
-        python_version >= 370
+        python_version >= 0x370
         and node.name == "__class_getitem__"
         and provider.isExpressionClassBody()
     ):
@@ -279,7 +282,7 @@ def buildFunctionNode(provider, node, source_ref):
         source_ref=source_ref,
     )
 
-    if python_version >= 340:
+    if python_version >= 0x340:
         function_body.qualname_setup = result.getVariableName()
 
     return result
@@ -355,7 +358,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             statement=function_statements_body
         )
 
-    function_body.setBody(function_statements_body)
+    function_body.setChild("body", function_statements_body)
 
     annotations = buildParameterAnnotations(provider, node, source_ref)
 
@@ -381,10 +384,11 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             source_ref=source_ref,
         )
 
-    creator_function_body.setBody(
+    creator_function_body.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             statement=StatementReturn(expression=creation_node, source_ref=source_ref)
-        )
+        ),
     )
 
     function_creation = ExpressionFunctionCreation(
@@ -423,7 +427,7 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
     # Build keyword only arguments default values. We are hiding here, that it
     # is a Python3 only feature.
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         kw_only_names = function_body.getParameters().getKwOnlyParameterNames()
 
         if kw_only_names:
@@ -450,12 +454,12 @@ def buildParameterAnnotations(provider, node, source_ref):
     # Too many branches, because there is too many cases, pylint: disable=too-many-branches
 
     # Build annotations. We are hiding here, that it is a Python3 only feature.
-    if python_version < 300:
+    if python_version < 0x300:
         return None
 
     # Starting with Python 3.4, the names of parameters are mangled in
     # annotations as well.
-    if python_version < 340:
+    if python_version < 0x340:
         mangle = lambda variable_name: variable_name
     else:
         mangle = lambda variable_name: mangleName(variable_name, provider)
@@ -482,7 +486,7 @@ def buildParameterAnnotations(provider, node, source_ref):
         else:
             assert False, getKind(arg)
 
-    if python_version >= 380:
+    if python_version >= 0x380:
         for arg in node.args.posonlyargs:
             extractArgAnnotation(arg)
 
@@ -492,7 +496,7 @@ def buildParameterAnnotations(provider, node, source_ref):
     for arg in node.args.kwonlyargs:
         extractArgAnnotation(arg)
 
-    if python_version < 340:
+    if python_version < 0x340:
         if node.args.varargannotation is not None:
             addAnnotation(
                 key=node.args.vararg,
@@ -626,7 +630,8 @@ def _wrapFunctionWithSpecialNestedArgs(
 
     statements.append(StatementReturn(expression=code_body, source_ref=source_ref))
 
-    outer_body.setBody(
+    outer_body.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             statement=makeTryFinallyStatement(
                 provider=outer_body,
@@ -641,7 +646,7 @@ def _wrapFunctionWithSpecialNestedArgs(
                 source_ref=source_ref,
                 public_exc=False,
             )
-        )
+        ),
     )
 
     return code_body
@@ -693,10 +698,10 @@ def buildFunctionWithParsing(
         ps_name=name,
         ps_normal_args=extractNormalArgs(node.args.args),
         ps_pos_only_args=[extractArg(arg) for arg in node.args.posonlyargs]
-        if python_version >= 380
+        if python_version >= 0x380
         else (),
         ps_kw_only_args=[extractArg(arg) for arg in node.args.kwonlyargs]
-        if python_version >= 300
+        if python_version >= 0x300
         else (),
         ps_list_star_arg=extractArg(node.args.vararg),
         ps_dict_star_arg=extractArg(node.args.kwarg),
@@ -770,7 +775,7 @@ def addFunctionVariableReleases(function):
         )
 
     if releases:
-        body = function.getBody()
+        body = function.subnode_body
 
         if body.isStatementsFrame():
             body = makeStatementsSequenceFromStatement(statement=body)
@@ -779,4 +784,4 @@ def addFunctionVariableReleases(function):
             provider=function, tried=body, final=releases, source_ref=source_ref
         )
 
-        function.setBody(makeStatementsSequenceFromStatement(statement=body))
+        function.setChild("body", makeStatementsSequenceFromStatement(statement=body))

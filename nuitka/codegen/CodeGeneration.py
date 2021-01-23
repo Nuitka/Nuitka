@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,6 +25,8 @@ As such this is the place that knows how to take a condition and two code
 branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
+
+from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 
 from . import Contexts
 from .AsyncgenCodes import (
@@ -220,7 +222,7 @@ from .ReturnCodes import (
     generateGeneratorReturnValueCode,
     generateReturnCode,
     generateReturnConstantCode,
-    generateReturnedValueRefCode,
+    generateReturnedValueCode,
 )
 from .SetCodes import (
     generateBuiltinFrozensetCode,
@@ -417,7 +419,6 @@ def generateModuleCode(module, data_filename):
 
     context = Contexts.PythonModuleContext(
         module=module,
-        # TODO: Have output filename already before generating code.
         data_filename=data_filename,
     )
 
@@ -462,7 +463,13 @@ def generateModuleCode(module, data_filename):
 
         function_decl_codes.append(function_decl)
 
-    return getModuleCode(module, function_decl_codes, function_body_codes, context)
+    return getModuleCode(
+        module=module,
+        function_decl_codes=function_decl_codes,
+        function_body_codes=function_body_codes,
+        module_const_blob_name=deriveModuleConstantsBlobName(data_filename),
+        context=context,
+    )
 
 
 def generateHelpersCode():
@@ -569,8 +576,11 @@ setExpressionDispatchDict(
         "EXPRESSION_CONSTANT_TRUE_REF": generateConstantTrueReferenceCode,
         "EXPRESSION_CONSTANT_FALSE_REF": generateConstantFalseReferenceCode,
         "EXPRESSION_CONSTANT_STR_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_STR_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_UNICODE_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_UNICODE_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_BYTES_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_BYTES_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_INT_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_LONG_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_FLOAT_REF": generateConstantReferenceCode,
@@ -668,7 +678,6 @@ setExpressionDispatchDict(
         "EXPRESSION_OUTLINE_FUNCTION": generateFunctionOutlineCode,
         # TODO: Rename to make more clear it is an outline
         "EXPRESSION_CLASS_BODY": generateFunctionOutlineCode,
-        "EXPRESSION_RETURNED_VALUE_REF": generateReturnedValueRefCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP": generateSubscriptLookupCode,
         "EXPRESSION_SLICE_LOOKUP": generateSliceLookupCode,
         "EXPRESSION_SET_OPERATION_UPDATE": generateSetOperationUpdateCode,
@@ -716,6 +725,7 @@ setStatementDispatchDict(
         "STATEMENT_RETURN_FALSE": generateReturnConstantCode,
         "STATEMENT_RETURN_NONE": generateReturnConstantCode,
         "STATEMENT_RETURN_CONSTANT": generateReturnConstantCode,
+        "STATEMENT_RETURN_RETURNED_VALUE": generateReturnedValueCode,
         "STATEMENT_GENERATOR_RETURN": generateGeneratorReturnValueCode,
         "STATEMENT_GENERATOR_RETURN_NONE": generateGeneratorReturnNoneCode,
         "STATEMENT_CONDITIONAL": generateBranchCode,

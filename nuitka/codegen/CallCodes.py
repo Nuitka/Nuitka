@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -52,7 +52,7 @@ def _generateCallCodePosOnly(
     # TODO: Not yet specialized for method calls.
     # assert called_attribute_name is None
 
-    call_args = expression.getCallArgs()
+    call_args = expression.subnode_args
 
     if call_args is None or call_args.isExpressionConstantRef():
         context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
@@ -226,9 +226,9 @@ def generateCallCode(to_name, expression, emit, context):
     # optimized code, constant, with and without positional or keyword arguments
     # each, so there is lots of branches involved.
 
-    called = expression.getCalled()
-    call_kw = expression.getCallKw()
-    call_args = expression.getCallArgs()
+    called = expression.subnode_called
+    call_kw = expression.subnode_kwargs
+    call_args = expression.subnode_args
 
     # TODO: Make this work for all cases. Currently, the method calls that do
     # a combined lookup and call, do a re-ordering of things, and therefore it
@@ -276,7 +276,7 @@ def generateCallCode(to_name, expression, emit, context):
                 context=context,
             )
         else:
-            call_args = expression.getCallArgs()
+            call_args = expression.subnode_args
 
             if call_args is None or call_args.isExpressionConstantTupleEmptyRef():
                 _generateCallCodeKwOnly(

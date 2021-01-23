@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -238,7 +238,7 @@ def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
     ]
 
     # TODO: Move this into the helper code.
-    if python_version >= 300:
+    if python_version >= 0x300:
         set_exception.extend(_getExceptionChainingCode(context))
 
     emit(
@@ -260,7 +260,7 @@ def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
 def getNameReferenceErrorCode(variable_name, condition, emit, context):
     helper_code = "FORMAT_NAME_ERROR"
 
-    if python_version < 340:
+    if python_version < 0x340:
         owner = context.getOwner()
 
         if not owner.isCompiledPythonModule() and not owner.isExpressionClassBody():
@@ -281,7 +281,7 @@ def getNameReferenceErrorCode(variable_name, condition, emit, context):
     )
 
     # TODO: Make this part of the helper code as well.
-    if python_version >= 300:
+    if python_version >= 0x300:
         set_exception = [set_exception]
         set_exception.extend(_getExceptionChainingCode(context))
 

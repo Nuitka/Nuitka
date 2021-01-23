@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -52,6 +52,8 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
     the source, which gets to decide if it knows it will work or not,
     and what value it will be.
     """
+
+    __slots__ = ("attribute_name",)
 
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
 
@@ -211,8 +213,6 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_GETATTR"
 
     named_children = ("expression", "name", "default")
-    getAttribute = ExpressionChildrenHavingBase.childGetter("name")
-    getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def __init__(self, expression, name, default, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -224,7 +224,7 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        default = self.getDefault()
+        default = self.subnode_default
 
         if default is None or not default.mayHaveSideEffects():
             attribute = self.subnode_name
@@ -271,8 +271,6 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_SETATTR"
 
     named_children = ("expression", "attribute", "value")
-    getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def __init__(self, expression, name, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -292,7 +290,6 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_HASATTR"
 
     named_children = ("expression", "attribute")
-    getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
 
     def __init__(self, expression, name, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -307,7 +304,7 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
         source = self.subnode_expression
 
         if source.isCompileTimeConstant():
-            attribute = self.getAttribute()
+            attribute = self.subnode_attribute
 
             attribute_name = attribute.getStringValue()
 

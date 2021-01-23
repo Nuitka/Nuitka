@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -65,7 +65,7 @@ static Py_ssize_t CONVERT_LONG_TO_REPEAT_FACTOR(PyObject *value) {
 }
 
 static Py_ssize_t CONVERT_TO_REPEAT_FACTOR(PyObject *value) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(PyInt_Check(value) || PyLong_Check(value));
 
     if (PyInt_Check(value)) {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -103,10 +103,10 @@ def main():
     global operations
     global candidates
 
-    if python_version >= "3.5":
+    if python_version >= (3, 5):
         operations += (("MatMult", "@"),)
 
-    if python_version < "3":
+    if python_version < (3,):
         candidates += (("long", "17L", "-9L"),)
         candidates += (("unicode", "u'lala'", "u'lele'"),)
     else:

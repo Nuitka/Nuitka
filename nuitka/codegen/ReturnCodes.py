@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -34,25 +34,32 @@ from .LabelCodes import getGotoCode
 def generateReturnCode(statement, emit, context):
     getExceptionUnpublishedReleaseCode(emit, context)
 
-    return_value = statement.getExpression()
+    return_value = statement.subnode_expression
 
-    if not return_value.isExpressionReturnedValueRef():
-        return_value_name = context.getReturnValueName()
+    return_value_name = context.getReturnValueName()
 
-        if context.getReturnReleaseMode():
-            emit("Py_DECREF(%s);" % return_value_name)
+    if context.getReturnReleaseMode():
+        emit("Py_DECREF(%s);" % return_value_name)
 
-        generateExpressionCode(
-            to_name=return_value_name,
-            expression=return_value,
-            emit=emit,
-            context=context,
-        )
+    generateExpressionCode(
+        to_name=return_value_name,
+        expression=return_value,
+        emit=emit,
+        context=context,
+    )
 
-        if context.needsCleanup(return_value_name):
-            context.removeCleanupTempName(return_value_name)
-        else:
-            emit("Py_INCREF(%s);" % return_value_name)
+    if context.needsCleanup(return_value_name):
+        context.removeCleanupTempName(return_value_name)
+    else:
+        emit("Py_INCREF(%s);" % return_value_name)
+
+    getGotoCode(label=context.getReturnTarget(), emit=emit)
+
+
+def generateReturnedValueCode(statement, emit, context):
+    # We don't need the statement, pylint: disable=unused-argument
+
+    getExceptionUnpublishedReleaseCode(emit, context)
 
     getGotoCode(label=context.getReturnTarget(), emit=emit)
 
@@ -80,22 +87,13 @@ def generateReturnConstantCode(statement, emit, context):
     getGotoCode(label=context.getReturnTarget(), emit=emit)
 
 
-def generateReturnedValueRefCode(to_name, expression, emit, context):
-    # We don't need the expression, pylint: disable=unused-argument
-
-    # TODO: Support other C types than object.
-    return_value_name = context.getReturnValueName()
-
-    emit("%s = %s;" % (to_name, return_value_name))
-
-
 def generateGeneratorReturnValueCode(statement, emit, context):
     if context.getOwner().isExpressionAsyncgenObjectBody():
         pass
-    elif python_version >= 300:
+    elif python_version >= 0x300:
         return_value_name = context.getGeneratorReturnValueName()
 
-        expression = statement.getExpression()
+        expression = statement.subnode_expression
 
         if context.getReturnReleaseMode():
             emit("Py_DECREF(%s);" % return_value_name)
@@ -123,7 +121,7 @@ def generateGeneratorReturnValueCode(statement, emit, context):
 def generateGeneratorReturnNoneCode(statement, emit, context):
     if context.getOwner().isExpressionAsyncgenObjectBody():
         pass
-    elif python_version >= 300:
+    elif python_version >= 0x300:
         return_value_name = context.getGeneratorReturnValueName()
 
         if context.getReturnReleaseMode():

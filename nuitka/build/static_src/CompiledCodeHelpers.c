@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -33,6 +33,7 @@
 #include "HelpersExceptions.c"
 #include "HelpersHeapStorage.c"
 #include "HelpersImport.c"
+#include "HelpersImportHard.c"
 #include "HelpersRaising.c"
 #include "HelpersStrings.c"
 
@@ -111,7 +112,7 @@ void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) 
     }
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 
 static Py_ssize_t ESTIMATE_RANGE(long low, long high, long step) {
     if (low >= high) {
@@ -159,7 +160,7 @@ static PyObject *TO_RANGE_ARG(PyObject *value, char const *name) {
 
     // Everything that casts to int is allowed.
     if (
-#if PYTHON_VERSION >= 270
+#if PYTHON_VERSION >= 0x270
         PyFloat_Check(value) ||
 #endif
         tp_as_number == NULL || tp_as_number->nb_int == NULL) {
@@ -177,7 +178,7 @@ static PyObject *TO_RANGE_ARG(PyObject *value, char const *name) {
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 
 NUITKA_DEFINE_BUILTIN(range);
 
@@ -330,7 +331,7 @@ PyObject *BUILTIN_RANGE3(PyObject *low, PyObject *high, PyObject *step) {
 
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 
 /* Same as CPython2: */
 static unsigned long getLengthOfRange(long lo, long hi, long step) {
@@ -485,7 +486,7 @@ static PyObject *MAKE_XRANGE(PyObject *start, PyObject *stop, PyObject *step) {
 
 /* Built-in xrange (Python2) or xrange (Python3) with one argument. */
 PyObject *BUILTIN_XRANGE1(PyObject *high) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(PyFloat_Check(high))) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
 
@@ -524,7 +525,7 @@ PyObject *BUILTIN_XRANGE1(PyObject *high) {
 
 /* Built-in xrange (Python2) or xrange (Python3) with two arguments. */
 PyObject *BUILTIN_XRANGE2(PyObject *low, PyObject *high) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(PyFloat_Check(low))) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
 
@@ -557,7 +558,7 @@ PyObject *BUILTIN_XRANGE2(PyObject *low, PyObject *high) {
 
 /* Built-in xrange (Python2) or xrange (Python3) with three arguments. */
 PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(PyFloat_Check(low))) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
 
@@ -719,12 +720,12 @@ PyObject *BUILTIN_FORMAT(PyObject *value, PyObject *format_spec) {
 // Helper functions for print. Need to play nice with Python softspace
 // behaviour.
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 NUITKA_DEFINE_BUILTIN(print);
 #endif
 
 bool PRINT_NEW_LINE_TO(PyObject *file) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (file == NULL || file == Py_None) {
         file = GET_STDOUT();
 
@@ -780,7 +781,7 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
 bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 // The print built-in function cannot replace "softspace" behavior of CPython
 // print statement, so this code is really necessary.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (file == NULL || file == Py_None) {
         file = GET_STDOUT();
 
@@ -846,24 +847,23 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 
     FETCH_ERROR_OCCURRED_UNTRACED(&exception_type, &exception_value, &exception_tb);
 
-    PyObject *result;
+    PyObject *print_kw = PyDict_New();
+    PyDict_SetItem(print_kw, const_str_plain_end, const_str_empty);
 
-    if (likely(file == NULL)) {
-        result = CALL_FUNCTION_WITH_SINGLE_ARG(NUITKA_ACCESS_BUILTIN(print), object);
-    } else {
-        PyObject *print_kw = PyDict_New();
-        PyDict_SetItem(print_kw, const_str_plain_end, const_str_empty);
+    if (file == NULL) {
         PyDict_SetItem(print_kw, const_str_plain_file, GET_STDOUT());
-
-        PyObject *print_args = PyTuple_New(1);
-        PyTuple_SET_ITEM(print_args, 0, object);
-        Py_INCREF(object);
-
-        result = CALL_FUNCTION(NUITKA_ACCESS_BUILTIN(print), print_args, print_kw);
-
-        Py_DECREF(print_args);
-        Py_DECREF(print_kw);
+    } else {
+        PyDict_SetItem(print_kw, const_str_plain_file, file);
     }
+
+    PyObject *print_args = PyTuple_New(1);
+    PyTuple_SET_ITEM(print_args, 0, object);
+    Py_INCREF(object);
+
+    PyObject *result = CALL_FUNCTION(NUITKA_ACCESS_BUILTIN(print), print_args, print_kw);
+
+    Py_DECREF(print_args);
+    Py_DECREF(print_kw);
 
     Py_XDECREF(result);
 
@@ -941,7 +941,7 @@ void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyObj
     if (exception_value) {
         PRINT_REFCOUNT(exception_value);
     }
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     if (exception_value != NULL && PyExceptionInstance_Check(exception_value)) {
         PRINT_STRING(" <- context ");
         PyObject *context = PyException_GetContext(exception_value);
@@ -971,7 +971,7 @@ void PRINT_PUBLISHED_EXCEPTION(void) {
 
 // TODO: Could be ported, the "printf" stuff would need to be split. On Python3
 // the normal C print output gets lost.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 void PRINT_TRACEBACK(PyTracebackObject *traceback) {
     PRINT_STRING("Dumping traceback:\n");
 
@@ -1029,7 +1029,7 @@ bool PRINT_ITEM(PyObject *object) {
     }
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 
 static void set_slot(PyObject **slot, PyObject *value) {
     PyObject *temp = *slot;
@@ -1192,7 +1192,7 @@ static PyObject *nuitka_class_getattr(PyClassObject *klass, PyObject *attr_name)
 #endif
 
 void enhancePythonTypes(void) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // Our own variant won't call PyEval_GetRestricted, saving quite some cycles
     // not doing that.
     PyClass_Type.tp_setattro = (setattrofunc)nuitka_class_setattr;
@@ -1242,13 +1242,13 @@ int Nuitka_IsInstance(PyObject *inst, PyObject *cls) {
         return true;
     }
 
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
     if (cls == (PyObject *)&PyCoro_Type && Nuitka_Coroutine_Check(inst)) {
         return true;
     }
 #endif
 
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
     if (cls == (PyObject *)&PyAsyncGen_Type && Nuitka_Asyncgen_Check(inst)) {
         return true;
     }
@@ -1292,12 +1292,12 @@ int Nuitka_IsInstance(PyObject *inst, PyObject *cls) {
             } else if (cls == (PyObject *)&PyFrame_Type) {
                 args[1] = (PyObject *)&Nuitka_Frame_Type;
             }
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
             else if (cls == (PyObject *)&PyCoro_Type) {
                 args[1] = (PyObject *)&Nuitka_Coroutine_Type;
             }
 #endif
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
             else if (cls == (PyObject *)&PyAsyncGen_Type) {
                 args[1] = (PyObject *)&Nuitka_Asyncgen_Type;
             }
@@ -1450,7 +1450,7 @@ PyObject *BUILTIN_SUM1(PyObject *sequence) {
         item = QUICK_ITERATOR_NEXT(&qiter, &finished);
 
         if (finished) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             return PyInt_FromLong(int_result);
 #else
             return PyLong_FromLong(int_result);
@@ -1462,7 +1462,7 @@ PyObject *BUILTIN_SUM1(PyObject *sequence) {
         CHECK_OBJECT(item);
 
 // For Python2 int objects:
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         if (PyInt_CheckExact(item)) {
             long b = PyInt_AS_LONG(item);
             long x = int_result + b;
@@ -1477,7 +1477,7 @@ PyObject *BUILTIN_SUM1(PyObject *sequence) {
 #endif
 
 // For Python2 long, Python3 int objects
-#if PYTHON_VERSION >= 270
+#if PYTHON_VERSION >= 0x270
         if (PyLong_CheckExact(item)) {
             int overflow;
             long b = PyLong_AsLongAndOverflow(item, &overflow);
@@ -1519,7 +1519,7 @@ PyObject *BUILTIN_SUM1(PyObject *sequence) {
     }
 
 /* Switch over to objects, and redo last step. */
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     result = PyInt_FromLong(int_result);
 #else
     result = PyLong_FromLong(int_result);
@@ -1629,7 +1629,7 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
         }
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     if (found == false) {
         res = PyObject_RichCompareBool(name, const_str_plain_print, Py_EQ);
 
@@ -1799,7 +1799,7 @@ wchar_t const *getBinaryDirectoryWideChars() {
     return (wchar_t const *)binary_directory;
 }
 
-#if defined(_WIN32) && PYTHON_VERSION < 300
+#if defined(_WIN32) && PYTHON_VERSION < 0x300
 char const *getBinaryDirectoryHostEncoded() {
     static char *binary_directory = NULL;
 
@@ -1836,7 +1836,7 @@ static PyObject *getBinaryDirectoryObject() {
 
 // On Python3, this must be a unicode object, it cannot be on Python2,
 // there e.g. code objects expect Python2 strings.
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 #ifdef _WIN32
     wchar_t const *bin_directory = getBinaryDirectoryWideChars();
     binary_directory = PyUnicode_FromWideChar(bin_directory, wcslen(bin_directory));
@@ -1911,7 +1911,7 @@ static char const *getDllDirectory() {
     static char path[MAXPATHLEN + 1];
     path[0] = '\0';
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     WCHAR path2[MAXPATHLEN + 1];
     path2[0] = 0;
 
@@ -1948,7 +1948,7 @@ void _initBuiltinModule() {
     assert(builtin_module == NULL);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     builtin_module = (PyModuleObject *)PyImport_ImportModule("__builtin__");
 #else
     builtin_module = (PyModuleObject *)PyImport_ImportModule("builtins");
@@ -2014,7 +2014,7 @@ NUITKA_DEFINE_BUILTIN(len)
 NUITKA_DEFINE_BUILTIN(repr)
 NUITKA_DEFINE_BUILTIN(int)
 NUITKA_DEFINE_BUILTIN(iter)
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 NUITKA_DEFINE_BUILTIN(long)
 #else
 NUITKA_DEFINE_BUILTIN(range);
@@ -2027,7 +2027,7 @@ void _initBuiltinOriginalValues() {
     NUITKA_ASSIGN_BUILTIN(repr);
     NUITKA_ASSIGN_BUILTIN(int);
     NUITKA_ASSIGN_BUILTIN(iter);
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     NUITKA_ASSIGN_BUILTIN(long);
 #endif
 
@@ -2037,11 +2037,11 @@ void _initBuiltinOriginalValues() {
 #endif
 
 // Used for threading.
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 volatile int _Py_Ticker = _Py_CheckInterval;
 #endif
 
-#if PYTHON_VERSION >= 270
+#if PYTHON_VERSION >= 0x270
 iternextfunc default_iternext;
 
 void _initSlotIternext() {
@@ -2087,10 +2087,10 @@ void _initSlotIternext() {
 #include "HelpersOperationBinaryRshift.c"
 #include "HelpersOperationBinarySub.c"
 #include "HelpersOperationBinaryTruediv.c"
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #include "HelpersOperationBinaryOlddiv.c"
 #endif
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
 #include "HelpersOperationBinaryMatmult.c"
 #endif
 
@@ -2106,10 +2106,10 @@ void _initSlotIternext() {
 #include "HelpersOperationInplaceRshift.c"
 #include "HelpersOperationInplaceSub.c"
 #include "HelpersOperationInplaceTruediv.c"
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #include "HelpersOperationInplaceOlddiv.c"
 #endif
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
 #include "HelpersOperationInplaceMatmult.c"
 #endif
 

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -44,6 +44,8 @@ from .shapes.BuiltinTypeShapes import tshape_list, tshape_set, tshape_tuple
 class ExpressionMakeSequenceBase(
     SideEffectsFromChildrenMixin, ExpressionChildHavingBase
 ):
+    __slots__ = ("sequence_kind",)
+
     named_child = "elements"
 
     def __init__(self, sequence_kind, elements, source_ref):
@@ -90,6 +92,7 @@ class ExpressionMakeSequenceBase(
                 element.getCompileTimeConstant() for element in elements
             ),
             description="%s with constant arguments." % simulator.__name__.title(),
+            user_provided=True,
         )
 
     @staticmethod
@@ -142,6 +145,10 @@ class ExpressionMakeSequenceBase(
             """\
 Removed sequence creation for unused sequence.""",
         )
+
+    def onContentEscapes(self, trace_collection):
+        for element in self.subnode_elements:
+            element.onContentEscapes(trace_collection)
 
 
 def makeExpressionMakeTuple(elements, source_ref):

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -189,7 +189,7 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
                 sorted(
                     pairs,
                     key=lambda pair: names.index(
-                        pair.getKey().getCompileTimeConstant()
+                        pair.subnode_key.getCompileTimeConstant()
                     ),
                 )
             )

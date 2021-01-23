@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,6 +28,8 @@ from .ExpressionBases import (
 
 
 class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
+    __slots__ = ("may_not_raise",)
+
     kind = "EXPRESSION_BUILTIN_NEXT1"
 
     def __init__(self, value, source_ref):
@@ -55,6 +57,8 @@ class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
 
 
 class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
+    __slots__ = ("count", "expected", "starred")
+
     kind = "EXPRESSION_SPECIAL_UNPACK"
 
     def __init__(self, value, count, expected, starred, source_ref):
@@ -62,7 +66,7 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
 
         self.count = int(count)
 
-        # TODO: Unused before 3.5 or higher, maybe specialize for it.
+        # TODO: Unused before 3.5 or higher, and even then starred is rare, maybe specialize for it.
         self.expected = int(expected)
         self.starred = starred
 
@@ -87,8 +91,6 @@ class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_NEXT2"
 
     named_children = ("iterator", "default")
-    getIterator = ExpressionChildrenHavingBase.childGetter("iterator")
-    getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def __init__(self, iterator, default, source_ref):
         ExpressionChildrenHavingBase.__init__(

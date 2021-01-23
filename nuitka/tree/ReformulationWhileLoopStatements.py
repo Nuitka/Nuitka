@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -131,7 +131,7 @@ def buildWhileLoopNode(provider, node, source_ref):
         source_ref=source_ref,
     )
 
-    loop_statement = StatementLoop(body=loop_body, source_ref=source_ref)
+    loop_statement = StatementLoop(loop_body=loop_body, source_ref=source_ref)
 
     if else_block is None:
         return loop_statement

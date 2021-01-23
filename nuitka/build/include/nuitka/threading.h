@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -18,7 +18,7 @@
 #ifndef __NUITKA_THREADING_H__
 #define __NUITKA_THREADING_H__
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 // We share this with CPython bytecode main loop.
 PyAPI_DATA(volatile int) _Py_Ticker;
 #else

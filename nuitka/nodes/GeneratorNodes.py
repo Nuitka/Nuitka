@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -34,7 +34,6 @@ class ExpressionMakeGeneratorObject(ExpressionChildHavingBase):
     kind = "EXPRESSION_MAKE_GENERATOR_OBJECT"
 
     named_child = "generator_ref"
-    getGeneratorRef = ExpressionChildHavingBase.childGetter("generator_ref")
 
     __slots__ = ("variable_closure_traces",)
 
@@ -55,9 +54,9 @@ class ExpressionMakeGeneratorObject(ExpressionChildHavingBase):
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []
 
-        for closure_variable in (
-            self.getGeneratorRef().getFunctionBody().getClosureVariables()
-        ):
+        for (
+            closure_variable
+        ) in self.subnode_generator_ref.getFunctionBody().getClosureVariables():
             trace = trace_collection.getVariableCurrentTrace(closure_variable)
             trace.addNameUsage()
 
@@ -83,7 +82,7 @@ class ExpressionGeneratorObjectBody(
 ):
     kind = "EXPRESSION_GENERATOR_OBJECT_BODY"
 
-    if python_version >= 340:
+    if python_version >= 0x340:
         qualname_setup = None
 
     def __init__(self, provider, name, code_object, flags, auto_release, source_ref):
@@ -120,6 +119,15 @@ class ExpressionGeneratorObjectBody(
     def needsCreation():
         return False
 
+    def getConstantReturnValue(self):
+        """Special function that checks if code generation allows to use common C code."""
+        body = self.subnode_body
+
+        if body is None:
+            return True, None
+
+        return False, False
+
 
 class StatementGeneratorReturn(StatementReturn):
     kind = "STATEMENT_GENERATOR_RETURN"
@@ -132,7 +140,7 @@ class StatementGeneratorReturn(StatementReturn):
         return True
 
     def computeStatement(self, trace_collection):
-        expression = trace_collection.onExpression(self.getExpression())
+        expression = trace_collection.onExpression(self.subnode_expression)
 
         if expression.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)

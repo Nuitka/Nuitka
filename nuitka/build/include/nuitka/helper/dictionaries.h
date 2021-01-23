@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -32,7 +32,7 @@ static inline PyDictObject *MODULE_DICT(PyObject *module) {
     return dict;
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 // Quick dictionary lookup for a string value.
 
 typedef PyDictEntry *Nuitka_DictEntryHandle;
@@ -82,9 +82,9 @@ typedef struct {
     PyObject *me_value; /* This field is only meaningful for combined tables */
 } PyDictKeyEntry;
 
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
 typedef PyDictKeyEntry *(*dict_lookup_func)(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
-#elif PYTHON_VERSION < 370
+#elif PYTHON_VERSION < 0x370
 typedef Py_ssize_t (*dict_lookup_func)(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr,
                                        Py_ssize_t *hashpos);
 #else
@@ -98,7 +98,7 @@ struct _dictkeysobject {
     Py_ssize_t dk_size;
     dict_lookup_func dk_lookup;
     Py_ssize_t dk_usable;
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
     PyDictKeyEntry dk_entries[1];
 #else
     Py_ssize_t dk_nentries;
@@ -115,7 +115,7 @@ struct _dictkeysobject {
 };
 
 // Taken from Objects/dictobject.c of CPython 3.6
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
 
 #define DK_SIZE(dk) ((dk)->dk_size)
 
@@ -147,7 +147,7 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_S
         key->_base._base.hash = hash;
     }
 
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
     PyObject **value_addr;
 
     PyDictKeyEntry *entry = dict->ma_keys->dk_lookup(dict, (PyObject *)key, hash, &value_addr);
@@ -158,7 +158,7 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_S
 
     return value_addr;
 
-#elif PYTHON_VERSION < 370
+#elif PYTHON_VERSION < 0x370
     PyObject **value_addr;
 
     // TODO: Find out what the returned Py_ssize_t "ix" might be good for.
@@ -192,7 +192,7 @@ NUITKA_MAY_BE_UNUSED static void SET_DICT_ENTRY_VALUE(Nuitka_DictEntryHandle han
 NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, Nuitka_StringObject *key) {
     Nuitka_DictEntryHandle handle = GET_STRING_DICT_ENTRY(dict, key);
 
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
     if (handle == NULL) {
         return NULL;
     }
@@ -270,7 +270,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyDictObject *dict, Nuitka_
 
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY(dict, key);
 
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
     if (entry == NULL) {
         DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
         return;
@@ -299,7 +299,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyDictObject *dict, 
 
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY(dict, key);
 
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
     if (entry == NULL) {
         DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
 
@@ -329,7 +329,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_
 
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY(dict, key);
 
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
     if (entry == NULL) {
         DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
 

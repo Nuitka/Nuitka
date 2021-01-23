@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,20 +31,15 @@ from nuitka.Options import assumeYesForDownloads, getIconPaths, getJobLimit
 from nuitka.OutputDirectories import getResultBasepath, getResultFullpath
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import version_resources
-from nuitka.Tracing import general, postprocessing_logger
+from nuitka.Tracing import general, postprocessing_logger, scons_logger
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import getNullOutput, withEnvironmentVarsOverriden
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
     getFileList,
+    removeDirectory,
 )
 from nuitka.utils.Utils import getArchitecture, getOS
-from nuitka.utils.WindowsResources import (
-    RT_GROUP_ICON,
-    RT_ICON,
-    RT_VERSION,
-    copyResourcesFromFileToFile,
-)
 
 
 def packDistFolderToOnefile(dist_dir, binary_filename):
@@ -55,7 +50,9 @@ def packDistFolderToOnefile(dist_dir, binary_filename):
     elif getOS() == "Windows":
         packDistFolderToOnefileWindows(dist_dir)
     else:
-        general.warning("Onefile mode is not yet available on '%s'." % getOS())
+        postprocessing_logger.sysexit(
+            "Onefile mode is not yet available on %r." % getOS()
+        )
 
 
 def getAppImageToolPath():
@@ -107,19 +104,10 @@ exec $APPDIR/%s $@"""
 
     icon_paths = getIconPaths()
 
-    if not icon_paths:
-        if os.path.exists("/usr/share/pixmaps/python.xpm"):
-            icon_paths.append("/usr/share/pixmaps/python.xpm")
+    assert icon_paths
+    extension = os.path.splitext(icon_paths[0])[1].lower()
 
-    if icon_paths:
-        extension = os.path.splitext(icon_paths[0])[1].lower()
-
-        shutil.copyfile(icon_paths[0], getResultBasepath() + extension)
-    else:
-        general.warning(
-            "Cannot apply onefile unless icon file is specified. Yes, crazy."
-        )
-        return
+    shutil.copyfile(icon_paths[0], getResultBasepath() + extension)
 
     with open(getResultBasepath() + ".desktop", "w") as output_file:
         output_file.write(
@@ -161,12 +149,12 @@ Categories=Utility;"""
     result = appimagetool_process.wait()
 
     if not os.path.exists(onefile_output_filename):
-        sys.exit(
+        postprocessing_logger.sysexit(
             "Error, expected output file %s not created by AppImage."
             % onefile_output_filename
         )
 
-    postprocessing_logger.info("Completed onefile execution.")
+    postprocessing_logger.info("Completed onefile creation.")
 
     assert result == 0, result
 
@@ -174,7 +162,7 @@ Categories=Utility;"""
 def _runOnefileScons(quiet):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-statements
 
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True)
     SconsInterface.cleanSconsDirectory(source_dir)
@@ -192,6 +180,7 @@ def _runOnefileScons(quiet):
         "target_arch": getArchitecture(),
         "python_prefix": sys.prefix,
         "nuitka_src": SconsInterface.getSconsDataPath(),
+        "compiled_exe": OutputDirectories.getResultFullpath(onefile=False),
     }
 
     # Ask Scons to cache on Windows, except where the directory is thrown
@@ -243,21 +232,22 @@ def _runOnefileScons(quiet):
     if Options.assumeYesForDownloads():
         options["assume_yes_for_downloads"] = "true"
 
-    # Merge version information if necessary, to avoid collisions, or deep nesting
-    # in file system.
-    product_version = version_resources["ProductVersion"]
-    file_version = version_resources["FileVersion"]
+    onefile_env_values = {}
 
-    if product_version != file_version:
-        effective_version = "%s-%s" % (product_version, file_version)
-    else:
-        effective_version = file_version
+    if not Options.isWindowsOnefileTempDirMode():
+        # Merge version information if necessary, to avoid collisions, or deep nesting
+        # in file system.
+        product_version = version_resources["ProductVersion"]
+        file_version = version_resources["FileVersion"]
 
-    onefile_env_values = {
-        "ONEFILE_COMPANY": version_resources["CompanyName"],
-        "ONEFILE_PRODUCT": version_resources["ProductName"],
-        "ONEFILE_VERSION": effective_version,
-    }
+        if product_version != file_version:
+            effective_version = "%s-%s" % (product_version, file_version)
+        else:
+            effective_version = file_version
+
+        onefile_env_values["ONEFILE_COMPANY"] = version_resources["CompanyName"]
+        onefile_env_values["ONEFILE_PRODUCT"] = version_resources["ProductName"]
+        onefile_env_values["ONEFILE_VERSION"] = effective_version
 
     with withEnvironmentVarsOverriden(onefile_env_values):
         result = SconsInterface.runScons(
@@ -266,7 +256,15 @@ def _runOnefileScons(quiet):
 
     # Exit if compilation failed.
     if not result:
-        sys.exit("Error, one file bootstrap build for Windows failed.")
+        scons_logger.sysexit("Error, one file bootstrap build for Windows failed.")
+
+    if Options.isRemoveBuildDir():
+        general.info("Removing onefile build directory %r." % source_dir)
+
+        removeDirectory(path=source_dir, ignore_errors=False)
+        assert not os.path.exists(source_dir)
+    else:
+        general.info("Keeping onefile build directory %r." % source_dir)
 
 
 def _pickCompressor():
@@ -284,24 +282,16 @@ def _pickCompressor():
 
 
 def packDistFolderToOnefileWindows(dist_dir):
-    general.warning("Onefile mode is experimental on '%s'." % getOS())
-
     postprocessing_logger.info(
         "Creating single file from dist folder, this may take a while."
     )
 
     onefile_output_filename = getResultFullpath(onefile=True)
 
+    general.info("Running bootstrap binary compilation via Scons.")
+
     # First need to create the bootstrap binary for unpacking.
     _runOnefileScons(quiet=not Options.isShowScons())
-
-    # Make sure to copy the resources from the created binary to the bootstrap binary, these
-    # are icons and version information.
-    copyResourcesFromFileToFile(
-        source_filename=getResultFullpath(onefile=False),
-        target_filename=onefile_output_filename,
-        resource_kinds=(RT_ICON, RT_GROUP_ICON, RT_VERSION),
-    )
 
     # Now need to append to payload it, potentially compressing it.
     compression_indicator, compressor = _pickCompressor()

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -74,6 +74,7 @@ def main():
     # Inform the user about potential issues with the running version. e.g. unsupported.
     from nuitka.PythonVersions import (
         getSupportedPythonVersions,
+        python_version,
         python_version_str,
     )
 
@@ -99,12 +100,15 @@ def main():
         # libraries.
         args = [sys.executable, sys.executable]
 
-        if python_version_str >= "3.7" and sys.flags.utf8_mode:
+        if python_version >= 0x370 and sys.flags.utf8_mode:
             args += ["-X", "utf8"]
 
         args += ["-S", our_filename]
 
         os.environ["NUITKA_BINARY_NAME"] = sys.modules["__main__"].__file__
+        os.environ["NUITKA_PACKAGE_HOME"] = os.path.dirname(
+            os.path.abspath(sys.modules["nuitka"].__path__[0])
+        )
 
         if Options.is_nuitka_run:
             args.append("--run")
@@ -155,6 +159,8 @@ def main():
                 "Error, the Python from Windows store is not supported, check user manual."
             )
 
+    Options.commentArgs()
+
     # Load plugins after we know, we don't execute again.
     from nuitka.plugins.Plugins import activatePlugins
 
@@ -193,4 +199,11 @@ def main():
 
 
 if __name__ == "__main__":
+    if "NUITKA_PACKAGE_HOME" in os.environ:
+        sys.path.insert(0, os.environ["NUITKA_PACKAGE_HOME"])
+
+        import nuitka  # just to have it loaded from there, pylint: disable=unused-import
+
+        del sys.path[0]
+
     main()

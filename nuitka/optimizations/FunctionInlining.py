@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -64,7 +64,7 @@ def convertFunctionCallToOutline(provider, function_body, values, call_source_re
     )
 
     # Make a clone first, so we do not harm other references.
-    clone = function_body.getBody().makeClone()
+    clone = function_body.subnode_body.makeClone()
 
     locals_scope_clone, variable_translation = function_body.locals_scope.makeClone(
         clone
@@ -111,6 +111,6 @@ def convertFunctionCallToOutline(provider, function_body, values, call_source_re
             source_ref=function_source_ref,
         )
 
-    outline_body.setBody(body)
+    outline_body.setChild("body", body)
 
     return outline_body

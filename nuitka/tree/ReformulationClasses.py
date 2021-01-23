@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -164,7 +164,7 @@ def buildClassNode2(provider, node, source_ref):
     # The class body is basically a function that implicitly, at the end
     # returns its locals and cannot have other return statements contained.
 
-    function_body.setBody(body)
+    function_body.setChild("body", body)
 
     temp_scope = provider.allocateTempScope("class_creation")
 
@@ -261,10 +261,11 @@ def buildClassNode2(provider, node, source_ref):
             ),
         )
 
-    select_metaclass.setBody(
+    select_metaclass.setChild(
+        "body",
         makeStatementsSequence(
             statements=statements, allow_none=False, source_ref=source_ref
-        )
+        ),
     )
 
     statements = [
@@ -394,7 +395,7 @@ def buildClassNode(provider, node, source_ref):
 
     # Python2 and Python3 are similar, but fundamentally different, so handle
     # them in dedicated code.
-    if python_version < 300:
+    if python_version < 0x300:
         return buildClassNode2(provider, node, source_ref)
     else:
         return buildClassNode3(provider, node, source_ref)

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,15 +31,13 @@ from .PythonAPICodes import generateCAPIObjectCode
 
 
 def generateBuiltinLong1Code(to_name, expression, emit, context):
-    assert python_version < 300
-
-    value = expression.getValue()
+    assert python_version < 0x300
 
     # TODO: Have dedicated helper that inlines.
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PyNumber_Long",
-        arg_desc=(("long_arg", value),),
+        arg_desc=(("long_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -49,7 +47,7 @@ def generateBuiltinLong1Code(to_name, expression, emit, context):
 
 
 def generateBuiltinLong2Code(to_name, expression, emit, context):
-    assert python_version < 300
+    assert python_version < 0x300
 
     value_name, base_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
@@ -72,13 +70,11 @@ def generateBuiltinLong2Code(to_name, expression, emit, context):
 
 
 def generateBuiltinInt1Code(to_name, expression, emit, context):
-    value = expression.getValue()
-
     # TODO: Have dedicated helper that inlines.
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PyNumber_Int",
-        arg_desc=(("int_arg", value),),
+        arg_desc=(("int_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),

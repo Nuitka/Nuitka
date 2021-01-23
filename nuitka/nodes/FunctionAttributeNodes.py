@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -59,7 +59,9 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
 
     def computeExpressionRaw(self, trace_collection):
         result = makeConstantReplacementNode(
-            node=self, constant=self.function_body.getFunctionQualname()
+            node=self,
+            constant=self.function_body.getFunctionQualname(),
+            user_provided=True,
         )
 
         return (

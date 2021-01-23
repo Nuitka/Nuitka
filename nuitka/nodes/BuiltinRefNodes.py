@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -240,7 +240,7 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         exception_name = self.getExceptionName()
 
         def createBuiltinMakeException(args, name=None, path=None, source_ref=None):
-            if exception_name == "ImportError" and python_version >= 300:
+            if exception_name == "ImportError" and python_version >= 0x300:
                 return ExpressionBuiltinMakeExceptionImportError(
                     exception_name=exception_name,
                     args=args,

@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -28,7 +28,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases) {
     CHECK_OBJECT(metaclass);
     CHECK_OBJECT(bases);

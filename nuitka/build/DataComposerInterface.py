@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,22 +22,51 @@ import os
 import subprocess
 import sys
 
+from nuitka.Options import isExperimental
+from nuitka.utils.Execution import withEnvironmentVarsOverriden
+
 
 def runDataComposer(source_dir):
     data_composer_path = os.path.normpath(
         os.path.join(os.path.dirname(__file__), "..", "tools", "data_composer")
     )
 
-    subprocess.check_call(
-        [
-            sys.executable,
-            data_composer_path,
-            source_dir,
-            getConstantBlobFilename(source_dir),
-        ],
-        shell=False,
-    )
+    mapping = {
+        "NUITKA_PACKAGE_HOME": os.path.dirname(
+            os.path.abspath(sys.modules["nuitka"].__path__[0])
+        )
+    }
+
+    if isExperimental("debug-constants"):
+        mapping["NUITKA_DATACOMPOSER_VERBOSE"] = "1"
+
+    with withEnvironmentVarsOverriden(mapping):
+        subprocess.check_call(
+            [
+                sys.executable,
+                data_composer_path,
+                source_dir,
+                getConstantBlobFilename(source_dir),
+            ],
+            shell=False,
+        )
 
 
 def getConstantBlobFilename(source_dir):
     return os.path.join(source_dir, "__constants.bin")
+
+
+def deriveModuleConstantsBlobName(filename):
+    assert filename.endswith(".const")
+
+    basename = filename[:-6]
+
+    if basename == "__constants":
+        return ""
+    elif basename == "__bytecode":
+        return ".bytecode"
+    else:
+        # Stripe "module." prefix"
+        basename = basename[7:]
+
+        return basename

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,10 +25,10 @@ binaries (needed for exec) and run them capturing outputs.
 import os
 import shutil
 import subprocess
-import sys
 from contextlib import contextmanager
 
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import general
 
 from .Utils import getArchitecture, getOS, isWin32Windows
 
@@ -67,7 +67,7 @@ def callExec(args):
 def getExecutablePath(filename):
     """ Find an execute in PATH environment. """
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         return shutil.which(filename)
     else:
         # Append ".exe" suffix  on Windows if not already present.
@@ -171,7 +171,9 @@ def check_call(*popenargs, **kwargs):
     try:
         subprocess.check_call(*popenargs, **kwargs)
     except OSError:
-        sys.exit("Error, failed to execute '%s'. Is it installed?" % popenargs[0])
+        general.sysexit(
+            "Error, failed to execute '%s'. Is it installed?" % popenargs[0]
+        )
 
 
 @contextmanager
@@ -267,7 +269,7 @@ def wrapCommandForDebuggerForExec(*args):
     lldb_path = getExecutablePath("lldb")
 
     if gdb_path is None and lldb_path is None:
-        sys.exit("Error, no 'gdb' or 'lldb' binary found in path.")
+        general.sysexit("Error, no 'gdb' or 'lldb' binary found in path.")
 
     if gdb_path is not None:
         args = (gdb_path, "gdb", "-ex=run", "-ex=where", "-ex=quit", "--args") + args
@@ -328,7 +330,7 @@ def getPythonInstallPathWindows(supported, decider=lambda x: True):
             seen.add(install_dir)
 
     # Windows only code, pylint: disable=I0021,import-error,undefined-variable
-    if python_version < 300:
+    if python_version < 0x300:
         import _winreg as winreg  # pylint: disable=I0021,import-error,no-name-in-module
     else:
         import winreg  # pylint: disable=I0021,import-error,no-name-in-module

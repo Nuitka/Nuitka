@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,10 +21,9 @@ These are not the graphs you might be thinking of. This is for rending the
 progress of optimization into images.
 """
 
-from logging import warning
-
 from nuitka import Options
 from nuitka.ModuleRegistry import getDoneModules
+from nuitka.Tracing import general
 
 graph = None
 computation_counters = {}
@@ -58,7 +57,7 @@ def startGraph():
             graph = AGraph(name="Optimization", directed=True)
             graph.layout()
         except ImportError:
-            warning("Cannot import pygraphviz module, no graphing capability.")
+            general.sysexit("Cannot import pygraphviz module, no graphing capability.")
 
 
 def endGraph(output_filename):

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -252,7 +252,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
             }
 #endif
 
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else {
@@ -262,7 +262,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
             if (flags == (METH_VARARGS|METH_KEYWORDS)) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
                 result = (*(_PyCFunctionFast)method)(self, &PyTuple_GET_ITEM(pos_args, 0), %(args_count)d, NULL);
 #else
                 result = (*(_PyCFunctionFast)method)(self, &pos_args, %(args_count)d);
@@ -348,7 +348,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
         if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
 #endif
                 func = Py_TYPE(descr)->tp_descr_get;
@@ -364,7 +364,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
                     Py_DECREF(called_object);
                     return result;
                 }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             }
 #endif
         }
@@ -453,7 +453,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
             return result;
         }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         PyErr_Format(
             PyExc_AttributeError,
             "'%%s' object has no attribute '%%s'",
@@ -470,7 +470,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
 #endif
         return NULL;
     }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 

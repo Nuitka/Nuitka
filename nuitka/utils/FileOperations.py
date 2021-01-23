@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,6 +24,7 @@ stuff. It will also frequently add sorting for determism.
 
 from __future__ import print_function
 
+import glob
 import os
 import shutil
 import stat
@@ -34,8 +35,10 @@ from contextlib import contextmanager
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     basestring,
 )
+from nuitka.PythonVersions import python_version
 from nuitka.Tracing import my_print
 
+from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
 from .Utils import getOS
 
@@ -99,6 +102,10 @@ def haveSameFileContents(path1, path2):
     import filecmp
 
     return filecmp.cmp(path1, path2)
+
+
+def getFileSize(path):
+    return os.path.getsize(path)
 
 
 def relpath(path, start="."):
@@ -234,12 +241,14 @@ def getFileList(path, ignore_dirs=(), ignore_suffixes=()):
         dirnames.sort()
         filenames.sort()
 
+        # Normalize dirnames for better matching.
+        dirnames[:] = [os.path.normcase(dirname) for dirname in dirnames]
         for dirname in ignore_dirs:
             if dirname in dirnames:
                 dirnames.remove(dirname)
 
         for filename in filenames:
-            if filename.endswith(ignore_suffixes):
+            if os.path.normcase(filename).endswith(ignore_suffixes):
                 continue
 
             result.append(os.path.normpath(os.path.join(root, filename)))
@@ -556,3 +565,26 @@ def getLinkTarget(filename):
         is_link = True
 
     return is_link, filename
+
+
+def replaceFileAtomic(source_path, dest_path):
+    """
+    Move ``src`` to ``dst``. If ``dst`` exists, it will be silently
+    overwritten.
+
+    Both paths must reside on the same filesystem for the operation to be
+    atomic.
+    """
+
+    if python_version >= 0x300:
+        os.replace(source_path, dest_path)
+    else:
+        importFromInlineCopy("atomicwrites", must_exist=True).replace_atomic(
+            source_path, dest_path
+        )
+
+
+def resolveShellPatternToFilenames(pattern):
+    result = glob.glob(pattern)
+    result.sort()
+    return result

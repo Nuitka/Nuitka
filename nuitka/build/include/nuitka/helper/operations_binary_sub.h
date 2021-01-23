@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -24,32 +24,32 @@
 
 /* C helpers for type specialized "-" (SUB) operations */
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 extern PyObject *BINARY_OPERATION_SUB_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 extern PyObject *BINARY_OPERATION_SUB_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 extern PyObject *BINARY_OPERATION_SUB_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2);
 #endif
@@ -90,32 +90,32 @@ extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_OBJECT_FLOAT(PyObject *operand1, P
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern PyObject *BINARY_OPERATION_SUB_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
 extern PyObject *BINARY_OPERATION_SUB_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
 extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 extern PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2);
 #endif
@@ -126,12 +126,12 @@ extern PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_FLOAT(PyObject *operand1, PyOb
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
 extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_LONG_FLOAT(PyObject *operand1, PyObject *operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 extern PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2);
 #endif

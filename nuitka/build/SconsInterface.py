@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -78,22 +78,20 @@ def _getSconsBinaryCall():
         if scons_path is not None:
             return [scons_path]
         else:
-            sys.exit(
-                "Error, the inline copy of scons is not present, nor scons in the system path."
+            Tracing.scons_logger.sysexit(
+                "Error, the inline copy of scons is not present, nor a scons binary in the PATH."
             )
 
 
 def _getPythonSconsExePathWindows():
     """Find Python for Scons on Windows.
 
-    First try a few guesses, the look into registry for user or system wide
-    installations of Python2. Both Python 2.6 and 2.7, and 3.5 or higher
-    will do.
+    Only 3.5 or higher will do.
     """
 
     # Ordered in the list of preference.
     python_dir = Execution.getPythonInstallPathWindows(
-        supported=("2.7", "3.5", "3.6", "3.7", "3.8", "3.9", "2.6")
+        supported=("3.5", "3.6", "3.7", "3.8", "3.9")
     )
 
     if python_dir is not None:
@@ -112,20 +110,24 @@ def _getPythonForSconsExePath():
     if python_exe is not None:
         return python_exe
 
-    if python_version < 300 or python_version >= 350:
+    if python_version < 0x300 and not Utils.isWin32Windows():
+        # Python 2.6 and 2.7 are fine for scons on all platforms, but not
+        # on Windows due to clcache usage.
         return sys.executable
-    elif Utils.getOS() == "Windows":
+    elif python_version >= 0x350:
+        # Python 3.5 or higher work on all platforms.
+        return sys.executable
+    elif Utils.isWin32Windows():
         python_exe = _getPythonSconsExePathWindows()
 
         if python_exe is not None:
             return python_exe
         else:
-            sys.exit(
+            Tracing.scons_logger.sysexit(
                 """\
-Error, while Nuitka works with Python 3.3 and 3.4, scons does not, and Nuitka
-needs to find a Python executable 2.6/2.7 or 3.5 or higher. Simply under the
-C:\\PythonXY, e.g. C:\\Python27 to execute the scons utility which is used
-to build the C files to binary.
+Error, while Nuitka works with older Python, Scons does not, and therefore
+Nuitka needs to find a Python 3.5 or higher executable, so please install
+it.
 
 You may provide it using option "--python-for-scons=path_to_python.exe"
 in case it is not visible in registry, e.g. due to using uninstalled
@@ -157,7 +159,7 @@ def _setupSconsEnvironment():
     """
 
     # For Python2, avoid unicode working directory.
-    if Utils.isWin32Windows() and python_version < 300:
+    if Utils.isWin32Windows() and python_version < 0x300:
         if os.getcwd() != os.getcwdu():
             os.chdir(getWindowsShortPathName(os.getcwdu()))
 
@@ -171,18 +173,17 @@ def _setupSconsEnvironment():
     # Remove environment variables that can only harm if we have to switch
     # major Python versions, these cannot help Python2 to execute scons, this
     # is a bit of noise, but helpful.
-    if python_version >= 300:
+    old_pythonpath = None
+    old_pythonhome = None
+
+    if python_version >= 0x300:
         if "PYTHONPATH" in os.environ:
             old_pythonpath = os.environ["PYTHONPATH"]
             del os.environ["PYTHONPATH"]
-        else:
-            old_pythonpath = None
 
         if "PYTHONHOME" in os.environ:
             old_pythonhome = os.environ["PYTHONHOME"]
             del os.environ["PYTHONHOME"]
-        else:
-            old_pythonhome = None
 
     import nuitka
 
@@ -190,12 +191,11 @@ def _setupSconsEnvironment():
 
     yield
 
-    if python_version >= 300:
-        if old_pythonpath is not None:
-            os.environ["PYTHONPATH"] = old_pythonpath
+    if old_pythonpath is not None:
+        os.environ["PYTHONPATH"] = old_pythonpath
 
-        if old_pythonhome is not None:
-            os.environ["PYTHONHOME"] = old_pythonhome
+    if old_pythonhome is not None:
+        os.environ["PYTHONHOME"] = old_pythonhome
 
     if Utils.isWin32Windows():
         del os.environ["NUITKA_PYTHON_DLL_PATH"]
@@ -231,7 +231,7 @@ def _buildSconsCommand(quiet, options, scons_filename):
     ]
 
     if Options.isShowScons():
-        scons_command.append("--debug=explain")
+        scons_command.append("--debug=explain,stacktrace")
 
     # Python2, encoding unicode values
     def encode(value):
@@ -269,6 +269,11 @@ def runScons(options, quiet, scons_filename):
                 options["result_exe"] = getExternalUsePath(
                     options["result_exe"], only_dirname=True
                 )
+            if "compiled_exe" in options:
+                options["compiled_exe"] = getExternalUsePath(
+                    options["compiled_exe"], only_dirname=True
+                )
+
         else:
             source_dir = None
 

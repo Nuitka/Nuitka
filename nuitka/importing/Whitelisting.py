@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,7 +20,8 @@
 """
 
 import sys
-from logging import warning
+
+from nuitka.Errors import NuitkaOptimizationError
 
 
 def getModuleWhiteList():
@@ -434,18 +435,12 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
 
 def isWhiteListedNotExistingModule(module_name):
-    result = False
-    for white_listed in getModuleWhiteList():
-        if module_name == white_listed or module_name.startswith(white_listed + "."):
-            result = True
-            break
-
-    if not result and module_name in sys.builtin_module_names:
-        warning(
-            """\
+    if module_name in sys.builtin_module_names:
+        raise NuitkaOptimizationError(
+            """
 Your CPython version has a built-in module '%s', that is not whitelisted
-please report this to http://bugs.nuitka.net.""",
-            module_name,
+please report this as a bug."""
+            % module_name,
         )
 
-    return result
+    return module_name.hasOneOfNamespaces(getModuleWhiteList())

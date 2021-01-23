@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -52,7 +52,7 @@ def buildAssertNode(provider, node, source_ref):
     if "no_asserts" in getPythonFlags():
         return None
 
-    if exception_value is not None and python_version > 272:
+    if exception_value is not None and python_version >= 0x272:
         exception_value = makeExpressionMakeTuple(
             elements=(exception_value,), source_ref=source_ref
         )

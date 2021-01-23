@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -40,12 +40,12 @@ static inline bool _BINARY_OPERATION_MATMULT_LONG_LONG_INPLACE(PyObject **operan
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -81,7 +81,7 @@ static inline bool _BINARY_OPERATION_MATMULT_OBJECT_LONG_INPLACE(PyObject **oper
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -116,7 +116,7 @@ static inline bool _BINARY_OPERATION_MATMULT_LONG_OBJECT_INPLACE(PyObject **oper
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -152,12 +152,12 @@ static inline bool _BINARY_OPERATION_MATMULT_FLOAT_FLOAT_INPLACE(PyObject **oper
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -193,7 +193,7 @@ static inline bool _BINARY_OPERATION_MATMULT_OBJECT_FLOAT_INPLACE(PyObject **ope
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -228,7 +228,7 @@ static inline bool _BINARY_OPERATION_MATMULT_FLOAT_OBJECT_INPLACE(PyObject **ope
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -265,7 +265,7 @@ static inline bool _BINARY_OPERATION_MATMULT_OBJECT_OBJECT_INPLACE(PyObject **op
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(*operand1) && PyInt_CheckExact(operand2)) {
 
         PyObject *result;
@@ -273,12 +273,12 @@ static inline bool _BINARY_OPERATION_MATMULT_OBJECT_OBJECT_INPLACE(PyObject **op
 
         CHECK_OBJECT(op1);
         assert(PyInt_CheckExact(op1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(op1));
 #endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(operand2));
 #endif
 

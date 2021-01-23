@@ -826,6 +826,18 @@ def msvc_setup_env(env):
         return None
 
     for k, v in d.items():
+        # Nuitka: Make the Windows SDK version visible in environment.
+        if k == "WindowsSDKVersion":
+            # Always just a single version if any.
+            if len(v) == 1:
+                env["WindowsSDKVersion"] = v[0].rstrip('\\')
+            elif len(v) == 0:
+                env["WindowsSDKVersion"] = None
+            else:
+                assert False, v
+
+            continue
+
         debug('msvc_setup_env() env:%s -> %s'%(k,v))
         env.PrependENVPath(k, v, delete_existing=True)
 

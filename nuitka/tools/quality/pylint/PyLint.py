@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -37,7 +37,10 @@ def checkVersion():
     global pylint_version
 
     if not hasModule("pylint"):
-        sys.exit("Error, pylint is not installed for this interpreter version.")
+        sys.exit(
+            "Error, pylint is not installed for this interpreter %r version."
+            % os.environ["PYTHON"]
+        )
 
     if pylint_version is None:
         with open(os.devnull, "w") as devnull:
@@ -306,8 +309,18 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
 
         return False
 
+    def isSpecificPythonOnly(filename):
+        if str is bytes and "TracebackEncryptionPlugin" in filename:
+            # This is Python3 only code.
+            return True
+
+        return False
+
     filenames = [
-        filename for filename in filenames if not hasPyLintBugTrigger(filename)
+        filename
+        for filename in filenames
+        if not hasPyLintBugTrigger(filename)
+        if not isSpecificPythonOnly(filename)
     ]
 
     extra_options = os.environ.get("PYLINT_EXTRA_OPTIONS", "").split()

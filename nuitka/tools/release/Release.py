@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,7 +25,7 @@ from nuitka.utils.Execution import check_output
 from nuitka.Version import getNuitkaVersion
 
 
-def checkAtHome():
+def checkAtHome(expected="Nuitka Staging"):
     assert os.path.isfile("setup.py")
 
     if os.path.isdir(".git"):
@@ -42,7 +42,7 @@ def checkAtHome():
 
     with open(git_description_filename) as f:
         description = f.read().strip()
-        assert description == "Nuitka Staging", description
+        assert description == expected, (expected, description)
 
 
 def getBranchName():

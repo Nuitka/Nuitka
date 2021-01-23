@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -180,7 +180,7 @@ def generateBuiltinSetCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PySet_New",
-        arg_desc=(("set_arg", expression.getValue()),),
+        arg_desc=(("set_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -193,7 +193,7 @@ def generateBuiltinFrozensetCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PyFrozenSet_New",
-        arg_desc=(("frozenset_arg", expression.getValue()),),
+        arg_desc=(("frozenset_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),

@@ -1,4 +1,4 @@
-#     Copyright 2020, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2021, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -126,53 +126,6 @@ print(__version__)
     return matplotlibrc_filename, backend, data_path, matplotlib_version
 
 
-def copyMplDataFiles(data_dir, dist_dir):
-    """ Write matplotlib data files ('mpl-data')."""
-
-    matplotlibrc, backend, data_dir, matplotlib_version = _getMatplotlibInfo()
-    if not os.path.isdir(data_dir):
-        sys.exit("mpl-data missing: matplotlib installation is broken")
-
-    for fullname in getFileList(data_dir):  # copy data files to dist folder
-        filename = os.path.relpath(fullname, data_dir)
-
-        if filename.endswith("matplotlibrc"):  # handle config separately
-            continue
-
-        target_filename = os.path.join(dist_dir, "mpl-data", filename)
-
-        makePath(os.path.dirname(target_filename))  # create intermediate folders
-        shutil.copyfile(fullname, target_filename)
-
-    old_lines = open(matplotlibrc).read().splitlines()  # old config file lines
-    new_lines = []  # new config file lines
-
-    found = False  # checks whether backend definition encountered
-    for line in old_lines:
-        line = line.strip()
-
-        if line == "":
-            continue
-
-        # omit meaningless lines
-        if line.startswith("#") and matplotlib_version < "3":
-            continue
-
-        new_lines.append(line)
-
-        if line.startswith(("backend ", "backend:")):
-            # old config file has a backend definition
-            found = True
-
-    if not found and matplotlib_version < "3":
-        # Set the backend, so even if it was run time determined, we now enforce it.
-        new_lines.append("backend: %s" % backend)
-
-    matplotlibrc_filename = os.path.join(dist_dir, "mpl-data", "matplotlibrc")
-
-    putTextFileContents(filename=matplotlibrc_filename, contents=new_lines)
-
-
 class NumpyPlugin(NuitkaPluginBase):
     """This class represents the main logic of the plugin.
 
@@ -200,9 +153,7 @@ class NumpyPlugin(NuitkaPluginBase):
         if self.scipy:
             self.scipy_copied = False
 
-        self.mpl_data_copied = True  # indicator: matplotlib data copied
-        if self.matplotlib:
-            self.mpl_data_copied = False
+        self.mpl_data_copied = False  # indicator: matplotlib data copied
 
     @classmethod
     def isRelevant(cls):
@@ -243,7 +194,6 @@ Should matplotlib not be be included with numpy, Default is %default.""",
             empty tuple
         """
         full_name = module.getFullName()
-        elements = full_name.split(".")
 
         if not self.numpy_copied and full_name == "numpy":
             self.numpy_copied = True
@@ -285,10 +235,60 @@ Should matplotlib not be be included with numpy, Default is %default.""",
                 )
                 self.info(msg)
 
-        if not self.mpl_data_copied and "matplotlib" in elements:
+        if self.matplotlib and full_name == "matplotlib" and not self.mpl_data_copied:
             self.mpl_data_copied = True
-            copyMplDataFiles(module, dist_dir)
-            self.info("Copied 'matplotlib/mpl-data'.")
+
+            self.copyMplDataFiles(module, dist_dir)
+
+    def copyMplDataFiles(self, data_dir, dist_dir):
+        """ Write matplotlib data files ('mpl-data')."""
+
+        matplotlibrc, backend, data_dir, matplotlib_version = _getMatplotlibInfo()
+        if not os.path.isdir(data_dir):
+            self.sysexit(
+                "mpl-data missing, matplotlib installation appears to be broken"
+            )
+
+        for fullname in getFileList(data_dir):  # copy data files to dist folder
+            filename = os.path.relpath(fullname, data_dir)
+
+            if filename.endswith("matplotlibrc"):  # handle config separately
+                continue
+
+            target_filename = os.path.join(dist_dir, "mpl-data", filename)
+
+            makePath(os.path.dirname(target_filename))  # create intermediate folders
+            shutil.copyfile(fullname, target_filename)
+
+        old_lines = open(matplotlibrc).read().splitlines()  # old config file lines
+        new_lines = []  # new config file lines
+
+        found = False  # checks whether backend definition encountered
+        for line in old_lines:
+            line = line.strip()
+
+            if line == "":
+                continue
+
+            # omit meaningless lines
+            if line.startswith("#") and matplotlib_version < "3":
+                continue
+
+            new_lines.append(line)
+
+            if line.startswith(("backend ", "backend:")):
+                # old config file has a backend definition
+                found = True
+
+        if not found and matplotlib_version < "3":
+            # Set the backend, so even if it was run time determined, we now enforce it.
+            new_lines.append("backend: %s" % backend)
+
+        matplotlibrc_filename = os.path.join(dist_dir, "mpl-data", "matplotlibrc")
+
+        putTextFileContents(filename=matplotlibrc_filename, contents=new_lines)
+
+        self.info("Copied 'matplotlib/mpl-data'.")
 
     @staticmethod
     def _getScipyCoreBinaries(scipy_dir):
@@ -371,14 +371,19 @@ Should matplotlib not be be included with numpy, Default is %default.""",
                     "matplotlib.backends.backend_tkagg",
                     "matplotlib.backend.tkagg",
                 ):
-                    return True, "Needed for tkinter backend"
+                    return True, "Needed for tkinter matplotplib backend"
 
             if hasActivePlugin("qt-plugins"):
-                if module_name.startswith("matplotlib.backends.backend_qt"):
-                    return True, "Needed for Qt backend"
+                if module_name in (
+                    "matplotlib.backends.backend_qt5",
+                    "matplotlib.backends.backend_qt5.py",
+                    "matplotlib.backends.backend_qt5cairo.py",
+                    "matplotlib.backend.backend_qt5.py",
+                ):
+                    return True, "Needed for Qt5 matplotplib backend"
 
             if module_name == "matplotlib.backends.backend_agg":
-                return True, "Needed as standard backend"
+                return True, "Needed as standard matplotplib backend"
 
     def createPreModuleLoadCode(self, module):
         """Method called when a module is being imported.

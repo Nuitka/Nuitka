@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -444,9 +444,9 @@ def getFrameGuardLightCode(
 
 
 def generateFramePreserveExceptionCode(statement, emit, context):
-    emit("// Preserve existing published exception.")
+    if python_version < 0x300:
+        emit("// Preserve existing published exception.")
 
-    if python_version < 300:
         emit(
             "PRESERVE_FRAME_EXCEPTION(%(frame_identifier)s);"
             % {"frame_identifier": context.getFrameHandle()}
@@ -461,30 +461,26 @@ def generateFramePreserveExceptionCode(statement, emit, context):
             exception_preserved_tb,
         ) = context.addExceptionPreserverVariables(preserver_id)
 
-        # TODO: Multiple thread state calls should be avoided.
         emit(
             """\
-%(exception_preserved_type)s = EXC_TYPE(PyThreadState_GET());
-Py_XINCREF(%(exception_preserved_type)s);
-%(exception_preserved_value)s = EXC_VALUE(PyThreadState_GET());
-Py_XINCREF(%(exception_preserved_value)s);
-%(exception_preserved_tb)s = (PyTracebackObject *)EXC_TRACEBACK(PyThreadState_GET());
-Py_XINCREF(%(exception_preserved_tb)s);
+// Preserve existing published exception id %(preserver_id)d.
+GET_CURRENT_EXCEPTION(&%(exception_preserved_type)s, &%(exception_preserved_value)s, &%(exception_preserved_tb)s);
 """
             % {
                 "exception_preserved_type": exception_preserved_type,
                 "exception_preserved_value": exception_preserved_value,
                 "exception_preserved_tb": exception_preserved_tb,
+                "preserver_id": preserver_id,
             }
         )
 
 
 def generateFrameRestoreExceptionCode(statement, emit, context):
-    emit("// Restore previous exception.")
-
-    if python_version < 300:
+    if python_version < 0x300:
         emit(
-            "RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);"
+            """\
+// Restore previous exception.
+RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);"""
             % {"frame_identifier": context.getFrameHandle()}
         )
     else:
@@ -497,10 +493,14 @@ def generateFrameRestoreExceptionCode(statement, emit, context):
         ) = context.addExceptionPreserverVariables(preserver_id)
 
         emit(
-            "SET_CURRENT_EXCEPTION(%s, %s, %s);"
-            % (
-                exception_preserved_type,
-                exception_preserved_value,
-                exception_preserved_tb,
-            )
+            """\
+// Restore previous exception id %(preserver_id)d.
+SET_CURRENT_EXCEPTION(%(exception_preserved_type)s, %(exception_preserved_value)s, %(exception_preserved_tb)s);
+"""
+            % {
+                "exception_preserved_type": exception_preserved_type,
+                "exception_preserved_value": exception_preserved_value,
+                "exception_preserved_tb": exception_preserved_tb,
+                "preserver_id": preserver_id,
+            }
         )

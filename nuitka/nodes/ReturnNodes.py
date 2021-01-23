@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,9 +22,7 @@ This one exits functions. The only other exit is the default exit of functions w
 
 from abc import abstractmethod
 
-from .ExpressionBases import ExpressionBase
 from .NodeBases import StatementBase, StatementChildHavingBase
-from .NodeMakingHelpers import makeConstantReplacementNode
 
 
 class StatementReturn(StatementChildHavingBase):
@@ -32,9 +30,9 @@ class StatementReturn(StatementChildHavingBase):
 
     named_child = "expression"
     nice_child = "return value"
-    getExpression = StatementChildHavingBase.childGetter("expression")
 
     def __init__(self, expression, source_ref):
+        assert expression
         StatementChildHavingBase.__init__(self, value=expression, source_ref=source_ref)
 
     @staticmethod
@@ -46,10 +44,10 @@ class StatementReturn(StatementChildHavingBase):
         return True
 
     def mayRaiseException(self, exception_type):
-        return self.getExpression().mayRaiseException(exception_type)
+        return self.subnode_expression.mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        expression = trace_collection.onExpression(self.getExpression())
+        expression = trace_collection.onExpression(self.subnode_expression)
 
         if expression.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -100,6 +98,10 @@ class StatementReturnConstantBase(StatementBase):
         return True
 
     @staticmethod
+    def isStatementReturnConstant():
+        return True
+
+    @staticmethod
     def isStatementAborting():
         return True
 
@@ -119,9 +121,6 @@ class StatementReturnConstantBase(StatementBase):
     @abstractmethod
     def getConstant(self):
         """The returned constant value."""
-
-    def getExpression(self):
-        return makeConstantReplacementNode(node=self, constant=self.getConstant())
 
     @staticmethod
     def getStatementNiceName():
@@ -194,6 +193,47 @@ class StatementReturnConstant(StatementReturnConstantBase):
         return {"constant": self.constant}
 
 
+class StatementReturnReturnedValue(StatementBase):
+    kind = "STATEMENT_RETURN_RETURNED_VALUE"
+
+    __slots__ = ()
+
+    def __init__(self, source_ref):
+        StatementBase.__init__(self, source_ref=source_ref)
+
+    def finalize(self):
+        del self.parent
+
+    @staticmethod
+    def isStatementReturnReturnedValue():
+        return True
+
+    @staticmethod
+    def isStatementReturn():
+        return True
+
+    @staticmethod
+    def isStatementAborting():
+        return True
+
+    @staticmethod
+    def mayReturn():
+        return True
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+    def computeStatement(self, trace_collection):
+        trace_collection.onFunctionReturn()
+
+        return self, None, None
+
+    @staticmethod
+    def getStatementNiceName():
+        return "rereturn statement"
+
+
 def makeStatementReturnConstant(constant, source_ref):
     if constant is None:
         return StatementReturnNone(source_ref=source_ref)
@@ -205,24 +245,14 @@ def makeStatementReturnConstant(constant, source_ref):
         return StatementReturnConstant(constant=constant, source_ref=source_ref)
 
 
-class ExpressionReturnedValueRef(ExpressionBase):
-    kind = "EXPRESSION_RETURNED_VALUE_REF"
+def makeStatementReturn(expression, source_ref):
+    """Create the best return statement variant."""
 
-    def __init__(self, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
-
-    def finalize(self):
-        del self.parent
-
-    def computeExpressionRaw(self, trace_collection):
-        # TODO: Might be predictable based on the exception handler this is in.
-        return self, None, None
-
-    @staticmethod
-    def mayHaveSideEffects():
-        # Referencing the expression type has no side effect
-        return False
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
+    if expression is None:
+        return StatementReturnNone(source_ref=source_ref)
+    elif expression.isCompileTimeConstant():
+        return makeStatementReturnConstant(
+            constant=expression.getCompileTimeConstant(), source_ref=source_ref
+        )
+    else:
+        return StatementReturn(expression=expression, source_ref=source_ref)

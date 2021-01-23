@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -46,7 +46,7 @@ typedef struct {
     long long_value;
 } nuitka_long;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 typedef enum {
     NUITKA_ILONG_UNASSIGNED = 0,
     NUITKA_ILONG_OBJECT_VALID = 1,

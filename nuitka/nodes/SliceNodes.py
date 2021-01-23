@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -49,11 +49,9 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_SLICE"
 
     named_children = ("source", "expression", "lower", "upper")
-    getLower = StatementChildrenHavingBase.childGetter("lower")
-    getUpper = StatementChildrenHavingBase.childGetter("upper")
 
     def __init__(self, expression, lower, upper, source, source_ref):
-        assert python_version < 300
+        assert python_version < 0x300
 
         StatementChildrenHavingBase.__init__(
             self,
@@ -97,7 +95,7 @@ Slice assignment raises exception in assigned value, removed assignment.""",
 Slice assignment raises exception in sliced value, removed assignment.""",
             )
 
-        lower = trace_collection.onExpression(self.getLower(), allow_none=True)
+        lower = trace_collection.onExpression(self.subnode_lower, allow_none=True)
 
         if lower is not None and lower.willRaiseException(BaseException):
             result = makeStatementOnlyNodesFromExpressions(
@@ -112,7 +110,7 @@ Slice assignment raises exception in lower slice boundary value, removed \
 assignment.""",
             )
 
-        upper = trace_collection.onExpression(self.getUpper(), allow_none=True)
+        upper = trace_collection.onExpression(self.subnode_upper, allow_none=True)
 
         if upper is not None and upper.willRaiseException(BaseException):
             result = makeStatementOnlyNodesFromExpressions(
@@ -140,8 +138,6 @@ class StatementDelSlice(StatementChildrenHavingBase):
     kind = "STATEMENT_DEL_SLICE"
 
     named_children = ("expression", "lower", "upper")
-    getLower = StatementChildrenHavingBase.childGetter("lower")
-    getUpper = StatementChildrenHavingBase.childGetter("upper")
 
     def __init__(self, expression, lower, upper, source_ref):
         StatementChildrenHavingBase.__init__(
@@ -165,7 +161,7 @@ class StatementDelSlice(StatementChildrenHavingBase):
 Slice del raises exception in sliced value, removed del""",
             )
 
-        lower = trace_collection.onExpression(self.getLower(), allow_none=True)
+        lower = trace_collection.onExpression(self.subnode_lower, allow_none=True)
 
         if lower is not None and lower.willRaiseException(BaseException):
             result = makeStatementOnlyNodesFromExpressions(
@@ -179,8 +175,8 @@ Slice del raises exception in sliced value, removed del""",
 Slice del raises exception in lower slice boundary value, removed del""",
             )
 
-        trace_collection.onExpression(self.getUpper(), allow_none=True)
-        upper = self.getUpper()
+        trace_collection.onExpression(self.subnode_upper, allow_none=True)
+        upper = self.subnode_upper
 
         if upper is not None and upper.willRaiseException(BaseException):
             result = makeStatementOnlyNodesFromExpressions(
@@ -203,13 +199,11 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SLICE_LOOKUP"
 
     named_children = ("expression", "lower", "upper")
-    getLower = ExpressionChildrenHavingBase.childGetter("lower")
-    getUpper = ExpressionChildrenHavingBase.childGetter("upper")
 
     checkers = {"upper": convertNoneConstantToNone, "lower": convertNoneConstantToNone}
 
     def __init__(self, expression, lower, upper, source_ref):
-        assert python_version < 300
+        assert python_version < 0x300
 
         ExpressionChildrenHavingBase.__init__(
             self,
@@ -222,8 +216,8 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
 
         return lookup_source.computeExpressionSlice(
             lookup_node=self,
-            lower=self.getLower(),
-            upper=self.getUpper(),
+            lower=self.subnode_lower,
+            upper=self.subnode_upper,
             trace_collection=trace_collection,
         )
 

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,7 +31,7 @@ from .ExpressionBases import ExpressionChildHavingBase
 
 
 class ExpressionYieldBase(ExpressionChildHavingBase):
-    if python_version >= 300:
+    if python_version >= 0x300:
         __slots__ = ("exception_preserving",)
     else:
         __slots__ = ()
@@ -39,10 +39,10 @@ class ExpressionYieldBase(ExpressionChildHavingBase):
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
-        if python_version >= 300:
+        if python_version >= 0x300:
             self.exception_preserving = False
 
-    if python_version >= 300:
+    if python_version >= 0x300:
 
         def markAsExceptionPreserving(self):
             self.exception_preserving = True
@@ -57,7 +57,8 @@ class ExpressionYieldBase(ExpressionChildHavingBase):
             return False
 
     def computeExpression(self, trace_collection):
-        trace_collection.removeKnowledge(self.getExpression())
+        # TODO: That's actually only needed if the value is mutable.
+        trace_collection.removeKnowledge(self.subnode_expression)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -82,7 +83,6 @@ class ExpressionYield(ExpressionYieldBase):
     kind = "EXPRESSION_YIELD"
 
     named_child = "expression"
-    getExpression = ExpressionChildHavingBase.childGetter("expression")
 
     def __init__(self, expression, source_ref):
         ExpressionYieldBase.__init__(self, value=expression, source_ref=source_ref)
@@ -104,7 +104,6 @@ class ExpressionYieldFrom(ExpressionYieldBase):
     kind = "EXPRESSION_YIELD_FROM"
 
     named_child = "expression"
-    getExpression = ExpressionChildHavingBase.childGetter("expression")
 
     def __init__(self, expression, source_ref):
         ExpressionYieldBase.__init__(self, value=expression, source_ref=source_ref)
@@ -125,7 +124,6 @@ class ExpressionYieldFromWaitable(ExpressionYieldBase):
     kind = "EXPRESSION_YIELD_FROM_WAITABLE"
 
     named_child = "expression"
-    getExpression = ExpressionChildHavingBase.childGetter("expression")
 
     def __init__(self, expression, source_ref):
         ExpressionYieldBase.__init__(self, value=expression, source_ref=source_ref)

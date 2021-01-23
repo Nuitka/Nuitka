@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -151,17 +151,18 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
 
             # Create a cloned node with the locals variable.
             call_node_clone = call_node.makeClone()
-            call_node_clone.setCalled(
+            call_node_clone.setChild(
+                "called",
                 ExpressionLocalsVariableRef(
                     locals_scope=self.locals_scope,
                     variable_name=variable_name,
                     source_ref=self.source_ref,
-                )
+                ),
             )
 
             # Make the original one for the fallback
             call_node = call_node.makeCloneShallow()
-            call_node.setCalled(self.subnode_fallback)
+            call_node.setChild("called", self.subnode_fallback)
 
             result = ExpressionConditional(
                 condition=ExpressionLocalsVariableCheck(
@@ -183,7 +184,7 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
         return call_node, None, None
 
     def mayRaiseException(self, exception_type):
-        if python_version < 300 or self.locals_scope.getTypeShape() is tshape_dict:
+        if python_version < 0x300 or self.locals_scope.getTypeShape() is tshape_dict:
             return False
 
         return self.subnode_fallback.mayRaiseException(exception_type)
@@ -329,7 +330,7 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
     __slots__ = ("variable", "variable_version", "variable_trace", "locals_scope")
 
     # TODO: Specialize for Python3 maybe to save attribute for Python2.
-    may_raise_set = python_version >= 300
+    may_raise_set = python_version >= 0x300
 
     def __init__(self, locals_scope, variable_name, value, source_ref):
         assert type(variable_name) is str
@@ -431,7 +432,7 @@ class StatementLocalsDictOperationDel(StatementBase):
     )
 
     # TODO: Specialize for Python3 maybe to save attribute for Python2.
-    may_raise_del = python_version >= 300
+    may_raise_del = python_version >= 0x300
 
     def __init__(self, locals_scope, variable_name, tolerant, source_ref):
         assert type(variable_name) is str
@@ -527,7 +528,6 @@ class StatementSetLocals(StatementChildHavingBase):
     kind = "STATEMENT_SET_LOCALS"
 
     named_child = "new_locals"
-    getNewLocals = StatementChildHavingBase.childGetter("new_locals")
 
     __slots__ = ("locals_scope",)
 
@@ -551,10 +551,10 @@ class StatementSetLocals(StatementChildHavingBase):
         return self.locals_scope
 
     def mayRaiseException(self, exception_type):
-        return self.getNewLocals().mayRaiseException(exception_type)
+        return self.subnode_new_locals.mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        new_locals = trace_collection.onExpression(self.getNewLocals())
+        new_locals = trace_collection.onExpression(self.subnode_new_locals)
 
         if new_locals.willRaiseException(BaseException):
             from .NodeMakingHelpers import (

@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -30,7 +30,7 @@ bool BINARY_OPERATION_ADD_OBJECT_UNICODE_INPLACE(PyObject **operand1, PyObject *
     assert(PyUnicode_CheckExact(operand2));
 
     if (likely(PyUnicode_CheckExact(*operand1))) {
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         if (Py_REFCNT(*operand1) == 1 && !PyUnicode_CHECK_INTERNED(*operand1)) {
             // We more or less own the operand, so we might re-use its storage and
             // execute stuff in-place.
@@ -73,7 +73,7 @@ bool BINARY_OPERATION_ADD_UNICODE_OBJECT_INPLACE(PyObject **operand1, PyObject *
     assert(PyUnicode_CheckExact(*operand1));
 
     if (likely(PyUnicode_CheckExact(operand2))) {
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         if (Py_REFCNT(*operand1) == 1 && !PyUnicode_CHECK_INTERNED(*operand1)) {
             // We more or less own the operand, so we might re-use its storage and
             // execute stuff in-place.
@@ -116,7 +116,7 @@ bool BINARY_OPERATION_ADD_UNICODE_UNICODE_INPLACE(PyObject **operand1, PyObject 
     assert(PyUnicode_CheckExact(*operand1));
     assert(PyUnicode_CheckExact(operand2));
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     if (Py_REFCNT(*operand1) == 1 && !PyUnicode_CHECK_INTERNED(*operand1)) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
@@ -136,7 +136,7 @@ bool BINARY_OPERATION_ADD_UNICODE_UNICODE_INPLACE(PyObject **operand1, PyObject 
     return true;
 }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 bool BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1);
     CHECK_OBJECT(*operand1);

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,6 +21,7 @@ Used for Nuitka plugins and for test code.
 """
 
 import os
+import sys
 
 from nuitka.PythonVersions import python_version
 
@@ -67,9 +68,9 @@ def importFileAsModule(filename):
     Returns:
         Imported Python module with code from the filename.
     """
-    if python_version < 300:
+    if python_version < 0x300:
         return importFilePy2(filename)
-    elif python_version < 350:
+    elif python_version < 0x350:
         return _importFilePy3OldWay(filename)
     else:
         return _importFilePy3NewWay(filename)
@@ -84,7 +85,7 @@ def getSharedLibrarySuffixes():
     global _shared_library_suffixes
 
     if _shared_library_suffixes is None:
-        if python_version < 300:
+        if python_version < 0x300:
             import imp
 
             _shared_library_suffixes = []
@@ -103,7 +104,7 @@ def getSharedLibrarySuffixes():
 
 
 def getSharedLibrarySuffix(preferred):
-    if preferred and python_version >= 300:
+    if preferred and python_version >= 0x300:
         return getSharedLibrarySuffixes()[0]
 
     result = None
@@ -113,3 +114,39 @@ def getSharedLibrarySuffix(preferred):
             result = suffix
 
     return result
+
+
+def importFromFolder(module_name, path, must_exist):
+    """Import a module from a folder by adding it temporarily to sys.path"""
+    # May already be loaded
+    if module_name in sys.modules:
+        return sys.modules[module_name]
+
+    # Temporarily add the inline path of the module to the import path.
+    sys.path.insert(0, path)
+
+    # Handle case without inline copy too.
+    try:
+        return __import__(module_name)
+    except ImportError:
+        if not must_exist:
+            return None
+
+        sys.exit(
+            "Error, excepted inline copy of %r is in %r there." % (module_name, path)
+        )
+    finally:
+        # Do not forget to remove it from sys.path again.
+        del sys.path[0]
+
+
+def importFromInlineCopy(module_name, must_exist):
+    """Import a module from the inline copy stage."""
+
+    return importFromFolder(
+        module_name=module_name,
+        path=os.path.join(
+            os.path.dirname(__file__), "..", "build", "inline_copy", module_name
+        ),
+        must_exist=must_exist,
+    )

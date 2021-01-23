@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -84,7 +84,7 @@ def main():
             my_print("Consider distutils example:", filename)
 
             py3_only_examples = ("example_3", "nested_namespaces")
-            if python_version < "3" and filename in py3_only_examples:
+            if python_version < (3,) and filename in py3_only_examples:
                 reportSkip("Skipped, only relevant for Python3", ".", filename)
                 continue
 

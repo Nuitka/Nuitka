@@ -1,4 +1,4 @@
-#     Copyright 2020, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2021, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,8 +17,6 @@
 #
 """ Details see below in class definition.
 """
-import sys
-
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
@@ -78,8 +76,7 @@ class TensorflowPlugin(NuitkaPluginBase):
         if found_insert is True:
             self.info("Patched 'running-from-pip' path magic.")
         else:
-            # TODO: Add method for exit to logger too.
-            sys.exit("'%s' plugin did not find path magic." % self.plugin_name)
+            self.sysexit("Did not find path magic code." % self.plugin_name)
 
         return "\n".join(source_lines)
 
@@ -134,6 +131,5 @@ class TensorflowPluginDetector(NuitkaPluginBase):
         Returns:
             None
         """
-        full_name = module.getFullName().split(".")
-        if "tensorflow" in full_name:
+        if module.getFullName().hasNamespace("tensorflow"):
             self.warnUnusedPlugin("tensorflow support.")

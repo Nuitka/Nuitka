@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -98,7 +98,7 @@ bool LIST_EXTEND(PyObject *target, PyObject *other) {
 
     Py_ssize_t cur_size = PyList_GET_SIZE(list);
 
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
     // Guess a iteratat if possible
     src_size = PyObject_LengthHint(other, 8);
 
@@ -174,7 +174,7 @@ bool LIST_EXTEND(PyObject *target, PyObject *other) {
     return true;
 }
 
-#if PYTHON_VERSION >= 390
+#if PYTHON_VERSION >= 0x390
 bool LIST_EXTEND_FOR_UNPACK(PyObject *list, PyObject *other) {
     // TODO: For improved performance, inline this, but we probably wait
     // until code generation for this kind of helpers is there.

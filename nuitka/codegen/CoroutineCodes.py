@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -90,7 +90,7 @@ def getCoroutineObjectCode(
     coroutine_object_body = context.getOwner()
 
     generateStatementSequenceCode(
-        statement_sequence=coroutine_object_body.getBody(),
+        statement_sequence=coroutine_object_body.subnode_body,
         allow_none=True,
         emit=function_codes,
         context=context,
@@ -169,7 +169,7 @@ struct %(function_identifier)s_locals *coroutine_heap = \
 
 
 def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
-    coroutine_object_body = expression.getCoroutineRef().getFunctionBody()
+    coroutine_object_body = expression.subnode_coroutine_ref.getFunctionBody()
 
     closure_variables = expression.getClosureVariableVersions()
 

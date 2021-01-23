@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -40,7 +40,7 @@ struct Nuitka_MethodObject {
     PyObject *m_object;
     PyObject *m_class;
 
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
     vectorcallfunc m_vectorcall;
 #endif
 };

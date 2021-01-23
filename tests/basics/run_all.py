@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -48,7 +48,7 @@ from nuitka.tools.testing.Common import (
 
 
 def main():
-    _python_version = setup(suite="basics", needs_io_encoding=True)
+    setup(suite="basics", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 

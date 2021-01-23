@@ -41,8 +41,8 @@ Depends: gcc (>= 5.0) | g++ (>= 4.4) | clang (>= 3.0),
          ${python3:Depends}
 Recommends: python3-lxml,
             strace,
-            chrpath
-Suggests: ccache
+            chrpath,
+            ccache
 Description: Python compiler with full language support and CPython compatibility
  This Python compiler achieves full language compatibility and compiles Python
  code into compiled objects that are not second class at all. Instead they can

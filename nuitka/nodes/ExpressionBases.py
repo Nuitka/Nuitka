@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -117,7 +117,10 @@ class ExpressionBase(NodeBase):
         string_value = self.getStringValue()
 
         if string_value is not None:
-            return makeConstantReplacementNode(node=self, constant=string_value)
+            # Those that are user provided, need to overload this.
+            return makeConstantReplacementNode(
+                node=self, constant=string_value, user_provided=False
+            )
 
         return None
 
@@ -175,7 +178,7 @@ class ExpressionBase(NodeBase):
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # By default, an attribute lookup may change everything about the lookup
         # source.
-        trace_collection.removeKnowledge(self)
+        # trace_collection.onValueEscapeAttributeLookup(self, attribute_name)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -190,7 +193,7 @@ class ExpressionBase(NodeBase):
     ):
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=unused-argument
-        trace_collection.removeKnowledge(lookup_node)
+        # trace_collection.onValueEscapeAttributeLookup(self, attribute_name)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -214,8 +217,8 @@ class ExpressionBase(NodeBase):
 
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=unused-argument
-        trace_collection.removeKnowledge(self)
-        trace_collection.removeKnowledge(value_node)
+        # trace_collection.removeKnowledge(self)
+        # trace_collection.removeKnowledge(value_node)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -229,7 +232,7 @@ class ExpressionBase(NodeBase):
 
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=unused-argument
-        trace_collection.removeKnowledge(self)
+        # trace_collection.removeKnowledge(self)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -275,10 +278,14 @@ class ExpressionBase(NodeBase):
         return del_node, None, None
 
     def computeExpressionSlice(self, lookup_node, lower, upper, trace_collection):
+        # pylint: disable=unused-argument
+
         # By default, a slicing may change everything about the lookup source.
-        trace_collection.removeKnowledge(self)
-        trace_collection.removeKnowledge(lower)
-        trace_collection.removeKnowledge(upper)
+        # trace_collection.removeKnowledge(self)
+        # trace_collection.onValueEscapeSliceOperation(self, lower, upper)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
 
         # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -288,11 +295,15 @@ class ExpressionBase(NodeBase):
     def computeExpressionSetSlice(
         self, set_node, lower, upper, value_node, trace_collection
     ):
+        # pylint: disable=unused-argument
+
         # By default, an subscript may change everything about the lookup
         # source.
         trace_collection.removeKnowledge(self)
-        trace_collection.removeKnowledge(lower)
-        trace_collection.removeKnowledge(upper)
+
+        # trace_collection.onValueEscapeSliceArguments(self, lower, upper)
+
+        # trace_collection.onValueEscapeSliceSetSource(self, lower, upper)
         trace_collection.removeKnowledge(value_node)
 
         # Any code could be run, note that.
@@ -304,11 +315,13 @@ class ExpressionBase(NodeBase):
         return set_node, None, None
 
     def computeExpressionDelSlice(self, set_node, lower, upper, trace_collection):
+        # pylint: disable=unused-argument
+
         # By default, an subscript may change everything about the lookup
         # source.
         trace_collection.removeKnowledge(self)
-        trace_collection.removeKnowledge(lower)
-        trace_collection.removeKnowledge(upper)
+
+        # trace_collection.onValueEscapeSliceArguments(self, lower, upper)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -404,7 +417,7 @@ class ExpressionBase(NodeBase):
         if shape.hasShapeSlotInt() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="int() argument must be a string or a number, not '%s'"
-                if python_version < 300
+                if python_version < 0x300
                 else "int() argument must be a string, a bytes-like object or a number, not '%s'",
                 operation="int",
                 original_node=int_node,
@@ -448,7 +461,7 @@ class ExpressionBase(NodeBase):
         if shape.hasShapeSlotFloat() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "float() argument must be a string or a number"
-                if Options.is_fullcompat and python_version < 300
+                if Options.is_fullcompat and python_version < 0x300
                 else "float() argument must be a string or a number, not '%s'",
                 operation="long",
                 original_node=float_node,
@@ -496,7 +509,7 @@ class ExpressionBase(NodeBase):
         if shape.hasShapeSlotComplex() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "complex() argument must be a string or a number"
-                if Options.is_fullcompat and python_version < 300
+                if Options.is_fullcompat and python_version < 0x300
                 else "complex() argument must be a string or a number, not '%s'",
                 operation="complex",
                 original_node=complex_node,
@@ -563,7 +576,7 @@ class ExpressionBase(NodeBase):
         # Virtual method, pylint: disable=no-self-use
 
         # The value of that node escapes and could change its contents.
-        trace_collection.removeKnowledge(not_node)
+        # trace_collection.onValueEscapeNot(self)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(not_node)
@@ -612,7 +625,8 @@ class ExpressionBase(NodeBase):
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-    def onContentEscapes(self, trace_collection):
+    @staticmethod
+    def onContentEscapes(trace_collection):
         pass
 
     @staticmethod
@@ -975,6 +989,7 @@ Compile time constant bytes value pre-computed.""",
                             lower.getCompileTimeConstant() : upper.getCompileTimeConstant()
                         ],
                         description="Slicing of constant with constant indexes.",
+                        user_provided=False,
                     )
             else:
                 if lower.isCompileTimeConstant():
@@ -984,6 +999,7 @@ Compile time constant bytes value pre-computed.""",
                             lower.getCompileTimeConstant() :
                         ],
                         description="Slicing of constant with constant lower index only.",
+                        user_provided=False,
                     )
         else:
             if upper is not None:
@@ -994,12 +1010,14 @@ Compile time constant bytes value pre-computed.""",
                             : upper.getCompileTimeConstant()
                         ],
                         description="Slicing of constant with constant upper index only.",
+                        user_provided=False,
                     )
             else:
                 return getComputationResult(
                     node=lookup_node,
                     computation=lambda: self.getCompileTimeConstant()[:],
                     description="Slicing of constant with no indexes.",
+                    user_provided=False,
                 )
 
         # Any exception might be raised.
@@ -1018,6 +1036,7 @@ Compile time constant bytes value pre-computed.""",
                 description="""\
 Predicted '%s' on compiled time constant values."""
                 % in_node.comparator,
+                user_provided=False,
             )
 
         # Look-up of __contains__ on compile time constants does mostly nothing.
@@ -1031,7 +1050,7 @@ Predicted '%s' on compiled time constant values."""
         assert type(constant) is not bool
 
         self.parent.replaceChild(
-            self, makeConstantReplacementNode(bool(constant), self)
+            self, makeConstantReplacementNode(bool(constant), self, user_provided=False)
         )
 
         trace_collection.signalChange(
@@ -1149,9 +1168,9 @@ class ExpressionChildHavingBase(ExpressionBase):
     def setChild(self, name, value):
         """Set a child value.
 
-        Do not overload, provider self.checkers instead.
+        Do not overload, provide self.checkers instead.
         """
-        # Only accept legal child names
+        # Only accept legal child name
         assert name == self.named_child, name
 
         # Lists as inputs are OK, but turn them into tuples.
@@ -1169,33 +1188,34 @@ class ExpressionChildHavingBase(ExpressionBase):
 
         attr_name = "subnode_" + name
 
+        # TODO: This is not being done for any variant of this, this only checks if it's a real change,
+        # but that should only be done in debug mode maybe.
+
         # Determine old value, and inform it about losing its parent.
         old_value = getattr(self, attr_name)
-
         assert old_value is not value, value
 
         setattr(self, attr_name, value)
+
+    def clearChild(self, name):
+        # Only accept legal child name
+        assert name == self.named_child, name
+
+        if self.checker is not None:
+            self.checker(None)  # False alarm, pylint: disable=not-callable
+
+        attr_name = "subnode_" + name
+
+        # Determine old value, and inform it about losing its parent.
+        old_value = getattr(self, attr_name)
+        assert old_value is not None
+
+        setattr(self, attr_name, None)
 
     def getChild(self, name):
         # Only accept legal child names
         attr_name = "subnode_" + name
         return getattr(self, attr_name)
-
-    @staticmethod
-    def childGetter(name):
-        attr_name = "subnode_" + name
-
-        def getter(self):
-            return getattr(self, attr_name)
-
-        return getter
-
-    @staticmethod
-    def childSetter(name):
-        def setter(self, value):
-            self.setChild(name, value)
-
-        return setter
 
     def getVisitableNodes(self):
         # TODO: Consider if a generator would be faster.
@@ -1282,6 +1302,9 @@ class ExpressionChildHavingBase(ExpressionBase):
 
 
 class ExpressionSpecBasedComputationMixin(object):
+    # Mixins are not allow to specify slots.
+    __slots__ = ()
+
     builtin_spec = None
 
     def computeBuiltinSpec(self, trace_collection, given_values):
@@ -1301,6 +1324,9 @@ class ExpressionSpecBasedComputationMixin(object):
 
 
 class ExpressionSpecBasedComputationNoRaiseMixin(object):
+    # Mixins are not allow to specify slots.
+    __slots__ = ()
+
     builtin_spec = None
 
     def computeBuiltinSpec(self, trace_collection, given_values):
@@ -1321,7 +1347,6 @@ class ExpressionBuiltinSingleArgBase(
     ExpressionSpecBasedComputationMixin, ExpressionChildHavingBase
 ):
     named_child = "value"
-    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)

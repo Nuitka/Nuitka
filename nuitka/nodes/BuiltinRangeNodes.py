@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -66,7 +66,7 @@ class ExpressionBuiltinRangeMixin(object):
             if child.getIntegerValue() is None:
                 return True
 
-            if python_version >= 270 and child.isExpressionConstantFloatRef():
+            if python_version >= 0x270 and child.isExpressionConstantFloatRef():
                 return True
 
         return False
@@ -80,10 +80,10 @@ class ExpressionBuiltinRangeMixin(object):
             if child.getIntegerValue() is None:
                 return True
 
-            if python_version >= 270 and child.isExpressionConstantFloatRef():
+            if python_version >= 0x270 and child.isExpressionConstantFloatRef():
                 return True
 
-        step = self.getStep()
+        step = self.subnode_step
 
         # A step of 0 will raise.
         if step is not None and step.getIntegerValue() == 0:
@@ -109,15 +109,15 @@ class ExpressionBuiltinRangeMixin(object):
         )
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        assert python_version < 300
+        assert python_version < 0x300
 
         iteration_length = self.getIterationLength()
 
         if iteration_length is not None and iteration_length > 256:
             result = makeExpressionBuiltinXrange(
-                low=self.getLow(),
-                high=self.getHigh(),
-                step=self.getStep(),
+                low=self.subnode_low,
+                high=self.subnode_high,
+                step=self.subnode_step,
                 source_ref=self.source_ref,
             )
 
@@ -137,40 +137,30 @@ class ExpressionBuiltinRangeMixin(object):
     def canPredictIterationValues(self):
         return self.getIterationLength() is not None
 
-    @staticmethod
-    def getLow():
-        return None
-
-    @staticmethod
-    def getHigh():
-        return None
-
-    @staticmethod
-    def getStep():
-        return None
-
 
 class ExpressionBuiltinRange1(ExpressionBuiltinRangeMixin, ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_RANGE1"
 
     named_child = "low"
-    getLow = ExpressionChildrenHavingBase.childGetter("low")
+
+    subnode_high = None
+    subnode_step = None
 
     def __init__(self, low, source_ref):
         assert low is not None
-        assert python_version < 300
+        assert python_version < 0x300
 
         ExpressionChildHavingBase.__init__(self, value=low, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
-        low = self.getLow()
+        low = self.subnode_low
 
         return self.computeBuiltinSpec(
             trace_collection=trace_collection, given_values=(low,)
         )
 
     def getIterationLength(self):
-        low = self.getLow().getIntegerValue()
+        low = self.subnode_low.getIntegerValue()
 
         if low is None:
             return None
@@ -178,7 +168,7 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeMixin, ExpressionChildHaving
         return max(0, low)
 
     def getIterationHandle(self):
-        low = self.getLow().getIntegerValue()
+        low = self.subnode_low.getIntegerValue()
         if low is None:
             return None
 
@@ -195,7 +185,9 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeMixin, ExpressionChildHaving
 
         # TODO: Make sure to cast element_index to what CPython will give, for
         # now a downcast will do.
-        return makeConstantReplacementNode(constant=int(element_index), node=self)
+        return makeConstantReplacementNode(
+            constant=int(element_index), node=self, user_provided=False
+        )
 
     def isKnownToBeIterable(self, count):
         return count is None or count == self.getIterationLength()
@@ -207,8 +199,8 @@ class ExpressionBuiltinRange2(
     kind = "EXPRESSION_BUILTIN_RANGE2"
 
     named_children = ("low", "high")
-    getLow = ExpressionChildrenHavingBase.childGetter("low")
-    getHigh = ExpressionChildrenHavingBase.childGetter("high")
+
+    subnode_step = None
 
     def __init__(self, low, high, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -218,18 +210,18 @@ class ExpressionBuiltinRange2(
     builtin_spec = BuiltinParameterSpecs.builtin_range_spec
 
     def computeExpression(self, trace_collection):
-        assert python_version < 300
+        assert python_version < 0x300
 
-        low = self.getLow()
-        high = self.getHigh()
+        low = self.subnode_low
+        high = self.subnode_high
 
         return self.computeBuiltinSpec(
             trace_collection=trace_collection, given_values=(low, high)
         )
 
     def getIterationLength(self):
-        low = self.getLow()
-        high = self.getHigh()
+        low = self.subnode_low
+        high = self.subnode_high
 
         low = low.getIntegerValue()
 
@@ -244,19 +236,19 @@ class ExpressionBuiltinRange2(
         return max(0, high - low)
 
     def getIterationHandle(self):
-        low = self.getLow().getIntegerValue()
+        low = self.subnode_low.getIntegerValue()
         if low is None:
             return None
 
-        high = self.getHigh().getIntegerValue()
+        high = self.subnode_high.getIntegerValue()
         if high is None:
             return None
 
         return IterationHandleRange2(low, high, self.source_ref)
 
     def getIterationValue(self, element_index):
-        low = self.getLow()
-        high = self.getHigh()
+        low = self.subnode_low
+        high = self.subnode_high
 
         low = low.getIntegerValue()
 
@@ -273,7 +265,9 @@ class ExpressionBuiltinRange2(
         if result >= high:
             return None
         else:
-            return makeConstantReplacementNode(constant=result, node=self)
+            return makeConstantReplacementNode(
+                constant=result, node=self, user_provided=False
+            )
 
     def isKnownToBeIterable(self, count):
         return count is None or count == self.getIterationLength()
@@ -285,12 +279,9 @@ class ExpressionBuiltinRange3(
     kind = "EXPRESSION_BUILTIN_RANGE3"
 
     named_children = ("low", "high", "step")
-    getLow = ExpressionChildrenHavingBase.childGetter("low")
-    getHigh = ExpressionChildrenHavingBase.childGetter("high")
-    getStep = ExpressionChildrenHavingBase.childGetter("step")
 
     def __init__(self, low, high, step, source_ref):
-        assert python_version < 300
+        assert python_version < 0x300
 
         ExpressionChildrenHavingBase.__init__(
             self, values={"low": low, "high": high, "step": step}, source_ref=source_ref
@@ -299,18 +290,18 @@ class ExpressionBuiltinRange3(
     builtin_spec = BuiltinParameterSpecs.builtin_range_spec
 
     def computeExpression(self, trace_collection):
-        low = self.getLow()
-        high = self.getHigh()
-        step = self.getStep()
+        low = self.subnode_low
+        high = self.subnode_high
+        step = self.subnode_step
 
         return self.computeBuiltinSpec(
             trace_collection=trace_collection, given_values=(low, high, step)
         )
 
     def getIterationLength(self):
-        low = self.getLow()
-        high = self.getHigh()
-        step = self.getStep()
+        low = self.subnode_low
+        high = self.subnode_high
+        step = self.subnode_step
 
         low = low.getIntegerValue()
 
@@ -352,15 +343,15 @@ class ExpressionBuiltinRange3(
         return self.getIterationLength() is not None
 
     def getIterationHandle(self):
-        low = self.getLow().getIntegerValue()
+        low = self.subnode_low.getIntegerValue()
         if low is None:
             return None
 
-        high = self.getHigh().getIntegerValue()
+        high = self.subnode_high.getIntegerValue()
         if high is None:
             return None
 
-        step = self.getStep().getIntegerValue()
+        step = self.subnode_step.getIntegerValue()
         if step is None:
             return None
 
@@ -371,24 +362,26 @@ class ExpressionBuiltinRange3(
         return IterationHandleRange3(low, high, step, self.source_ref)
 
     def getIterationValue(self, element_index):
-        low = self.getLow().getIntegerValue()
+        low = self.subnode_low.getIntegerValue()
 
         if low is None:
             return None
 
-        high = self.getHigh().getIntegerValue()
+        high = self.subnode_high.getIntegerValue()
 
         if high is None:
             return None
 
-        step = self.getStep().getIntegerValue()
+        step = self.subnode_step.getIntegerValue()
 
         result = low + step * element_index
 
         if result >= high:
             return None
         else:
-            return makeConstantReplacementNode(constant=result, node=self)
+            return makeConstantReplacementNode(
+                constant=result, node=self, user_provided=False
+            )
 
     def isKnownToBeIterable(self, count):
         return count is None or count == self.getIterationLength()
@@ -433,7 +426,7 @@ class ExpressionBuiltinXrangeMixin(object):
             if child.getIntegerValue() is None:
                 return True
 
-        step = self.getStep()
+        step = self.subnode_step
 
         # A step of 0 will raise.
         if step is not None and step.getIntegerValue() == 0:
@@ -464,38 +457,28 @@ class ExpressionBuiltinXrangeMixin(object):
 
         return iter_node, None, None
 
-    @staticmethod
-    def getLow():
-        return None
-
-    @staticmethod
-    def getHigh():
-        return None
-
-    @staticmethod
-    def getStep():
-        return None
-
 
 class ExpressionBuiltinXrange1(ExpressionBuiltinXrangeMixin, ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_XRANGE1"
 
     named_child = "low"
-    getLow = ExpressionChildrenHavingBase.childGetter("low")
+
+    subnode_high = None
+    subnode_step = None
 
     def __init__(self, low, source_ref):
         ExpressionChildHavingBase.__init__(self, value=low, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
-        low = self.getLow()
+        low = self.subnode_low
 
-        # TODO: Optimize this if self.getLow().getIntegerValue() is Not None
+        # TODO: Optimize this if self.subnode_low.getIntegerValue() is Not None
         return self.computeBuiltinSpec(
             trace_collection=trace_collection, given_values=(low,)
         )
 
     def getIterationLength(self):
-        low = self.getLow().getIntegerValue()
+        low = self.subnode_low.getIntegerValue()
 
         if low is None:
             return None
@@ -513,7 +496,9 @@ class ExpressionBuiltinXrange1(ExpressionBuiltinXrangeMixin, ExpressionChildHavi
 
         # TODO: Make sure to cast element_index to what CPython will give, for
         # now a downcast will do.
-        return makeConstantReplacementNode(constant=int(element_index), node=self)
+        return makeConstantReplacementNode(
+            constant=int(element_index), node=self, user_provided=False
+        )
 
 
 class ExpressionBuiltinXrange2(
@@ -522,8 +507,8 @@ class ExpressionBuiltinXrange2(
     kind = "EXPRESSION_BUILTIN_XRANGE2"
 
     named_children = ("low", "high")
-    getLow = ExpressionChildrenHavingBase.childGetter("low")
-    getHigh = ExpressionChildrenHavingBase.childGetter("high")
+
+    subnode_step = None
 
     def __init__(self, low, high, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -531,16 +516,16 @@ class ExpressionBuiltinXrange2(
         )
 
     def computeExpression(self, trace_collection):
-        low = self.getLow()
-        high = self.getHigh()
+        low = self.subnode_low
+        high = self.subnode_high
 
         return self.computeBuiltinSpec(
             trace_collection=trace_collection, given_values=(low, high)
         )
 
     def getIterationLength(self):
-        low = self.getLow()
-        high = self.getHigh()
+        low = self.subnode_low
+        high = self.subnode_high
 
         low = low.getIntegerValue()
 
@@ -555,8 +540,8 @@ class ExpressionBuiltinXrange2(
         return max(0, high - low)
 
     def getIterationValue(self, element_index):
-        low = self.getLow()
-        high = self.getHigh()
+        low = self.subnode_low
+        high = self.subnode_high
 
         low = low.getIntegerValue()
 
@@ -573,7 +558,9 @@ class ExpressionBuiltinXrange2(
         if result >= high:
             return None
         else:
-            return makeConstantReplacementNode(constant=result, node=self)
+            return makeConstantReplacementNode(
+                constant=result, node=self, user_provided=False
+            )
 
 
 class ExpressionBuiltinXrange3(
@@ -582,9 +569,6 @@ class ExpressionBuiltinXrange3(
     kind = "EXPRESSION_BUILTIN_XRANGE3"
 
     named_children = ("low", "high", "step")
-    getLow = ExpressionChildrenHavingBase.childGetter("low")
-    getHigh = ExpressionChildrenHavingBase.childGetter("high")
-    getStep = ExpressionChildrenHavingBase.childGetter("step")
 
     def __init__(self, low, high, step, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -592,18 +576,18 @@ class ExpressionBuiltinXrange3(
         )
 
     def computeExpression(self, trace_collection):
-        low = self.getLow()
-        high = self.getHigh()
-        step = self.getStep()
+        low = self.subnode_low
+        high = self.subnode_high
+        step = self.subnode_step
 
         return self.computeBuiltinSpec(
             trace_collection=trace_collection, given_values=(low, high, step)
         )
 
     def getIterationLength(self):
-        low = self.getLow()
-        high = self.getHigh()
-        step = self.getStep()
+        low = self.subnode_low
+        high = self.subnode_high
+        step = self.subnode_step
 
         low = low.getIntegerValue()
 
@@ -642,24 +626,26 @@ class ExpressionBuiltinXrange3(
         return int(estimate)
 
     def getIterationValue(self, element_index):
-        low = self.getLow().getIntegerValue()
+        low = self.subnode_low.getIntegerValue()
 
         if low is None:
             return None
 
-        high = self.getHigh().getIntegerValue()
+        high = self.subnode_high.getIntegerValue()
 
         if high is None:
             return None
 
-        step = self.getStep().getIntegerValue()
+        step = self.subnode_step.getIntegerValue()
 
         result = low + step * element_index
 
         if result >= high:
             return None
         else:
-            return makeConstantReplacementNode(constant=result, node=self)
+            return makeConstantReplacementNode(
+                constant=result, node=self, user_provided=False
+            )
 
 
 def makeExpressionBuiltinXrange(low, high, step, source_ref):

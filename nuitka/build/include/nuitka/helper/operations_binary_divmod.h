@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -24,17 +24,17 @@
 
 /* C helpers for type specialized "divmod" (DIVMOD) operations */
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 extern PyObject *BINARY_OPERATION_DIVMOD_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 extern PyObject *BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 extern PyObject *BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2);
 #endif

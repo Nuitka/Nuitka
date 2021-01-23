@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,7 +25,6 @@ import os
 import re
 import subprocess
 import sys
-from logging import warning
 
 from nuitka.tools.quality.Git import (
     getFileHashContent,
@@ -33,18 +32,20 @@ from nuitka.tools.quality.Git import (
     updateFileIndex,
     updateWorkingFile,
 )
-from nuitka.Tracing import my_print
+from nuitka.tools.quality.ScanSources import isPythonFile
+from nuitka.Tracing import general, my_print
 from nuitka.utils.Execution import (
     check_call,
+    check_output,
     getExecutablePath,
     withEnvironmentPathAdded,
 )
 from nuitka.utils.FileOperations import (
+    getFileContentByLine,
     getFileContents,
     renameFile,
     withPreserveFileMode,
 )
-from nuitka.utils.Shebang import getShebangFromFile
 from nuitka.utils.Utils import getOS
 
 
@@ -79,6 +80,65 @@ def _cleanupTrailingWhitespace(filename):
     if clean_lines != source_lines:
         with open(filename, "w") as out_file:
             out_file.write("\n".join(clean_lines) + "\n")
+
+
+def _getRequirementsContentsByLine():
+    return getFileContentByLine(
+        os.path.join(
+            os.path.dirname(__file__), "..", "..", "..", "..", "requirements-devel.txt"
+        )
+    )
+
+
+def _getRequiredVersion(tool):
+    for line in _getRequirementsContentsByLine():
+        if line.startswith(tool + " =="):
+            return line.split()[2]
+
+    sys.exit("Error, cannot find %r in requirements-devel.txt" % tool)
+
+
+def _checkRequiredVersion(tool, tool_call):
+    required_version = _getRequiredVersion(tool)
+
+    for line in _getRequirementsContentsByLine():
+        if line.startswith(tool + " =="):
+            required_version = line.split()[2]
+            break
+    else:
+        sys.exit("Error, cannot find %r in requirements-devel.txt" % tool)
+
+    tool_call = list(tool_call) + ["--version"]
+
+    version_output = check_output(tool_call)
+
+    if str is not bytes:
+        version_output = version_output.decode("utf8")
+
+    for line in version_output.splitlines():
+        line = line.strip()
+
+        if line.startswith(("black, version", "__main__.py, version ")):
+            actual_version = line.split()[-1]
+            break
+        if line.startswith("VERSION "):
+            actual_version = line.split()[-1]
+            break
+
+    else:
+        sys.exit(
+            "Error, couldn't determine version output of %r (%r)"
+            % (tool, " ".join(tool_call))
+        )
+
+    message = "Version of %r via %r is required to be %r and not %r." % (
+        tool,
+        " ".join(tool_call),
+        required_version,
+        actual_version,
+    )
+
+    return required_version == actual_version, message
 
 
 def _updateCommentNode(comment_node):
@@ -199,22 +259,46 @@ _binary_calls = {}
 
 def _getPythonBinaryCall(binary_name):
     if binary_name not in _binary_calls:
+        messages = []
+
         # Try running Python installation.
         try:
             __import__(binary_name)
-            _binary_calls[binary_name] = [sys.executable, "-m", binary_name]
-
-            return _binary_calls[binary_name]
         except ImportError:
             pass
+        else:
+            call = [sys.executable, "-m", binary_name]
+
+            ok, message = _checkRequiredVersion(binary_name, call)
+
+            if ok:
+                _binary_calls[binary_name] = call
+                return _binary_calls[binary_name]
+            else:
+                messages.append(message)
 
         binary_path = getExecutablePath(binary_name)
 
         if binary_path:
-            _binary_calls[binary_name] = [binary_path]
-            return _binary_calls[binary_name]
+            call = [binary_path]
 
-        sys.exit("Error, cannot find %s, not installed for this Python?" % binary_name)
+            ok, message = _checkRequiredVersion(binary_name, call)
+
+            if ok:
+                _binary_calls[binary_name] = call
+                return _binary_calls[binary_name]
+            else:
+                messages.append(message)
+
+        if messages:
+            my_print("ERROR")
+        for message in messages:
+            my_print(message, style="red")
+
+        sys.exit(
+            "Error, cannot find %r version %r, not installed or wrong version for this Python?"
+            % (binary_name, _getRequiredVersion(binary_name))
+        )
 
     return _binary_calls[binary_name]
 
@@ -303,8 +387,7 @@ def _cleanupClangFormat(filename):
         )
     else:
         if not warned_clang_format:
-
-            warning("Need to install LLVM for C files format.")
+            general.warning("Need to install LLVM for C files format.")
             warned_clang_format = True
 
 
@@ -322,25 +405,10 @@ def _shouldNotFormatCode(filename):
             "compile_python_modules.py",
             "compile_extension_modules.py",
         )
-    else:
-        return False
-
-
-def _isPythonFile(filename):
-    if filename.endswith((".py", ".pyw", ".scons")):
+    elif parts[-1] in ("incbin.h", "hedley.h"):
         return True
     else:
-        shebang = getShebangFromFile(filename)
-
-        if shebang is not None:
-            shebang = shebang[2:].lstrip()
-            if shebang.startswith("/usr/bin/env"):
-                shebang = shebang[12:].lstrip()
-
-            if shebang.startswith("python"):
-                return True
-
-    return False
+        return False
 
 
 def _transferBOM(source_filename, target_filename):
@@ -357,7 +425,7 @@ def _transferBOM(source_filename, target_filename):
                 f.write(source_code)
 
 
-def autoformat(filename, git_stage, abort, effective_filename=None):
+def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
     """Format source code with external tools
 
     Args:
@@ -385,9 +453,10 @@ def autoformat(filename, git_stage, abort, effective_filename=None):
     filename = os.path.normpath(filename)
     effective_filename = os.path.normpath(effective_filename)
 
-    my_print("Consider", filename, end=": ")
+    if trace:
+        my_print("Consider", filename, end=": ")
 
-    is_python = _isPythonFile(effective_filename)
+    is_python = isPythonFile(filename, effective_filename)
 
     is_c = effective_filename.endswith((".c", ".h"))
 
@@ -399,6 +468,8 @@ def autoformat(filename, git_stage, abort, effective_filename=None):
             ".sh",
             ".in",
             ".md",
+            ".asciidoc",
+            ".nuspec",
             ".yml",
             ".stylesheet",
             ".j2",
@@ -411,6 +482,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None):
         "changelog",
         "compat",
         "control",
+        "copyright",
         "lintian-overrides",
     )
 
@@ -446,8 +518,9 @@ def autoformat(filename, git_stage, abort, effective_filename=None):
 
         elif is_c:
             cleanupWindowsNewlines(tmp_filename)
-            _cleanupClangFormat(tmp_filename)
-            cleanupWindowsNewlines(tmp_filename)
+            if not _shouldNotFormatCode(effective_filename):
+                _cleanupClangFormat(tmp_filename)
+                cleanupWindowsNewlines(tmp_filename)
         elif is_txt:
             cleanupWindowsNewlines(tmp_filename)
             _cleanupTrailingWhitespace(tmp_filename)
@@ -457,7 +530,8 @@ def autoformat(filename, git_stage, abort, effective_filename=None):
 
         changed = False
         if old_code != getFileContents(tmp_filename, "rb"):
-            my_print("Updated.")
+            if trace:
+                my_print("Updated.")
 
             with withPreserveFileMode(filename):
                 if git_stage:
@@ -469,7 +543,8 @@ def autoformat(filename, git_stage, abort, effective_filename=None):
 
             changed = True
         else:
-            my_print("OK.")
+            if trace:
+                my_print("OK.")
 
         return changed
     finally:

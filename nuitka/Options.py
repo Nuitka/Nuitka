@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,7 +17,6 @@
 #
 """ Options module """
 
-import logging
 import os
 import sys
 
@@ -25,7 +24,8 @@ from nuitka import Tracing
 from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import parseOptions
 from nuitka.PythonVersions import isUninstalledPython
-from nuitka.utils import Utils
+from nuitka.utils.FileOperations import resolveShellPatternToFilenames
+from nuitka.utils.Utils import getOS, hasOnefileSupportedOS, isWin32Windows
 
 options = None
 positional_args = None
@@ -40,15 +40,12 @@ def parseArgs():
     # singleton with many cases, pylint: disable=global-statement,too-many-branches,too-many-statements
     global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat
 
-    is_nuitka_run, options, positional_args, extra_args = parseOptions()
-
-    # TODO: The logging impact should go away.
-    if options.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-    else:
-        logging.getLogger().setLevel(logging.INFO)
+    is_nuitka_run, options, positional_args, extra_args = parseOptions(
+        logger=Tracing.general
+    )
 
     Tracing.is_quiet = options.quiet or int(os.environ.get("NUITKA_QUIET", "0"))
+    Tracing.use_progressbar = isExperimental("progress")
 
     if options.verbose_output:
         Tracing.optimization_logger.setFileHandle(
@@ -75,15 +72,13 @@ def parseArgs():
     # standard library.
     if options.is_standalone:
         if not options.executable:
-            sys.exit(
+            Tracing.general.sysexit(
                 """\
 Error, conflicting options, cannot make standalone module, only executable."""
             )
 
-        options.recurse_all = True
-
-        if Utils.getOS() == "NetBSD":
-            logging.warning(
+        if getOS() == "NetBSD":
+            Tracing.general.warning(
                 "Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported."
             )
 
@@ -99,7 +94,7 @@ Error, conflicting options, cannot make standalone module, only executable."""
                 bad = False
 
         if bad:
-            sys.exit(
+            Tracing.general.sysexit(
                 """\
 Error, '--follow-import-to' takes only module names, not directory path '%s'."""
                 % any_case_module
@@ -117,7 +112,7 @@ Error, '--follow-import-to' takes only module names, not directory path '%s'."""
                 bad = False
 
         if bad:
-            sys.exit(
+            Tracing.general.sysexit(
                 """\
 Error, '--nofollow-import-to' takes only module names, not directory path '%s'."""
                 % no_case_module
@@ -126,55 +121,163 @@ Error, '--nofollow-import-to' takes only module names, not directory path '%s'."
     scons_python = getPythonPathForScons()
 
     if scons_python is not None and not os.path.isfile(scons_python):
-        sys.exit("Error, no such Python binary '%s'." % scons_python)
+        Tracing.scons_logger.sysexit(
+            "Error, no such Python binary %r, should be full path." % scons_python
+        )
 
     if options.output_filename is not None and (
         isStandaloneMode() or shallMakeModule()
     ):
-        sys.exit(
+        Tracing.general.sysexit(
             """\
 Error, can only specify output filename for acceleration mode, not for module
 mode where filenames are mandatory, and not for standalone where there is a
 sane default used inside the dist folder."""
         )
 
+    if getOS() == "Linux":
+        if len(getIconPaths()) > 1:
+            Tracing.general.sysexit("Error, can only use one icon on Linux.")
+
     for icon_path in getIconPaths():
         if not os.path.exists(icon_path):
-            sys.exit("Error, icon path %r does not exist." % icon_path)
+            Tracing.general.sysexit("Error, icon path %r does not exist." % icon_path)
 
         if getWindowsIconExecutablePath():
-            sys.exit(
+            Tracing.general.sysexit(
                 "Error, can only use icons from template executable or from icon files, but not both."
             )
 
     icon_exe_path = getWindowsIconExecutablePath()
     if icon_exe_path is not None and not os.path.exists(icon_exe_path):
-        sys.exit("Error, icon path %r does not exist." % icon_exe_path)
+        Tracing.general.sysexit("Error, icon path %r does not exist." % icon_exe_path)
 
     try:
         file_version = getWindowsFileVersion()
     except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
-        sys.exit("Error, file version must be a tuple of up to 4 integer values.")
+        Tracing.general.sysexit(
+            "Error, file version must be a tuple of up to 4 integer values."
+        )
 
     try:
         product_version = getWindowsProductVersion()
     except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
-        sys.exit("Error, product version must be a tuple of up to 4 integer values.")
+        Tracing.general.sysexit(
+            "Error, product version must be a tuple of up to 4 integer values."
+        )
 
     if file_version or product_version or getWindowsVersionInfoStrings():
         if not (file_version or product_version) and getWindowsCompanyName():
-            sys.exit(
+            Tracing.general.sysexit(
                 "Error, company name and file or product version need to be given when any version information is given."
             )
 
-    if isOnefileMode() and os.name == "nt" and not getWindowsCompanyName():
-        sys.exit(
-            "Error, onefile on Windows requires company name and file or product version to be given."
+    if isOnefileMode() and not hasOnefileSupportedOS():
+        Tracing.general.sysexit("Error, unsupported OS for onefile %r" % getOS())
+
+    if isOnefileMode() and os.name == "nt":
+        if not getWindowsCompanyName() and not isWindowsOnefileTempDirMode():
+            Tracing.general.sysexit(
+                "Error, onefile on Windows requires company name and file or product version to be given or temp dir mode."
+            )
+
+    if options.recurse_none and options.recurse_all:
+        Tracing.general.sysexit(
+            "Conflicting options '--follow-imports' and '--nofollow-imports' given."
         )
+
+    if getShallIncludePackageData() and not isStandaloneMode():
+        Tracing.general.sysexit(
+            "Error, package data files are only included in standalone or onefile mode."
+        )
+
+    for data_file in options.data_files:
+        if "=" not in data_file:
+            Tracing.general.sysexit(
+                "Error, malformed data file description, must specify relative target path with =."
+            )
+
+        src, dst = data_file.split("=", 1)
+
+        if os.path.isabs(dst):
+            Tracing.general.sysexit(
+                "Error, must specify relative target path for data file, not %r."
+                % data_file
+            )
+
+        if not resolveShellPatternToFilenames(src):
+            Tracing.general.sysexit("Error, %r does not match any files." % src)
+
+    if options.data_files and not isStandaloneMode():
+        Tracing.general.sysexit(
+            "Error, data files are only included in standalone or onefile mode."
+        )
+
+    for pattern in getShallFollowExtraFilePatterns():
+        if os.path.isdir(pattern):
+            sys.exit(
+                "Error, pattern %r given to --include-plugin-files cannot be a directory name."
+                % pattern
+            )
 
     is_debug = _isDebug()
     is_nondebug = not is_debug
     is_fullcompat = _isFullCompat()
+
+
+def commentArgs():
+    default_reference_mode = (
+        "runtime" if shallMakeModule() or isStandaloneMode() else "original"
+    )
+
+    if getFileReferenceMode() is None:
+        options.file_reference_mode = default_reference_mode
+    else:
+        if options.file_reference_mode != default_reference_mode:
+            Tracing.options_logger.warning(
+                "Using non-default file reference mode %r rather than %r may cause runtime issues."
+                % (getFileReferenceMode(), default_reference_mode)
+            )
+        else:
+            Tracing.options_logger.info(
+                "Using default file reference mode %r need not be specified."
+                % default_reference_mode
+            )
+
+    if getOS() != "Windows":
+        if (
+            getWindowsIconExecutablePath()
+            or shallAskForWindowsAdminRights()
+            or shallAskForWindowsUIAccessRights()
+            or getWindowsCompanyName()
+            or getWindowsProductName()
+            or getWindowsProductVersion()
+            or getWindowsFileVersion()
+        ):
+            Tracing.options_logger.warning(
+                "Using Windows specific options has no effect."
+            )
+
+    if isOnefileMode():
+        standalone_mode = "onefile"
+    elif isStandaloneMode():
+        standalone_mode = "standalone"
+    else:
+        standalone_mode = None
+
+    if options.recurse_all and standalone_mode:
+        if standalone_mode:
+            Tracing.options_logger.info(
+                "Recursing all is the default for %s mode and need not be specified."
+                % standalone_mode
+            )
+
+    if options.recurse_none and standalone_mode:
+        if standalone_mode:
+            Tracing.options_logger.warning(
+                "Recursing none is unlikely to work for %s mode and should not be specified."
+                % standalone_mode
+            )
 
 
 def isVerbose():
@@ -219,12 +322,8 @@ def getFileReferenceMode():
         Defaults to runtime for modules and packages, as well as standalone binaries,
         otherwise original is kept.
     """
-    if options.file_reference_mode is None:
-        value = "runtime" if shallMakeModule() or isStandaloneMode() else "original"
-    else:
-        value = options.file_reference_mode
 
-    return value
+    return options.file_reference_mode
 
 
 def shallMakeModule():
@@ -243,18 +342,18 @@ def isAllowedToReexecute():
 
 
 def shallFollowStandardLibrary():
-    """*bool* = "--follow-stdlib" / "--recurse-stdlib" """
+    """*bool* = "--follow-stdlib" """
     return options.recurse_stdlib
 
 
 def shallFollowNoImports():
-    """*bool* = "--nofollow-imports" / "--recurse-none" """
+    """*bool* = "--nofollow-imports" """
     return options.recurse_none
 
 
 def shallFollowAllImports():
-    """*bool* = "--follow-imports" / "--recurse-all" """
-    return options.recurse_all
+    """*bool* = "--follow-imports" """
+    return options.is_standalone or options.recurse_all
 
 
 def _splitShellPattern(value):
@@ -262,12 +361,12 @@ def _splitShellPattern(value):
 
 
 def getShallFollowInNoCase():
-    """*list*, items of "--nofollow-import-to=" / "--recurse-not-to=" """
+    """*list*, items of "--nofollow-import-to=" """
     return sum([_splitShellPattern(x) for x in options.recurse_not_modules], [])
 
 
 def getShallFollowModules():
-    """*list*, items of "--follow-import-to=" / "--recurse-to=" """
+    """*list*, items of "--follow-import-to=" """
     return sum(
         [
             _splitShellPattern(x)
@@ -297,6 +396,20 @@ def getMustIncludeModules():
 def getMustIncludePackages():
     """*list*, items of "--include-package=" """
     return sum([_splitShellPattern(x) for x in options.include_packages], [])
+
+
+def getShallIncludePackageData():
+    """*list*, items of "--include-package-data=" """
+    return sum([_splitShellPattern(x) for x in options.package_data], [])
+
+
+def getShallIncludeDataFiles():
+    """*list*, items of "--include-data-file=" """
+    for data_file in options.data_files:
+        src, dest = data_file.split("=", 1)
+
+        for pattern in _splitShellPattern(src):
+            yield pattern, dest, data_file
 
 
 def shallWarnImplicitRaises():
@@ -384,17 +497,15 @@ def shallUseStaticLibPython():
         Currently only Anaconda on non-Windows can do this.
     """
 
-    if Utils.isWin32Windows() and os.path.exists(
-        os.path.join(sys.prefix, "etc/config.site")
-    ):
+    if isWin32Windows() and os.path.exists(os.path.join(sys.prefix, "etc/config.site")):
         return True
 
     # For Anaconda default to trying static lib python library, which
     # normally is just not available or if it is even unusable.
     return (
         os.path.exists(os.path.join(sys.prefix, "conda-meta"))
-        and not Utils.isWin32Windows()
-        and not Utils.getOS() == "Darwin"
+        and not isWin32Windows()
+        and not getOS() == "Darwin"
     )
 
 
@@ -533,13 +644,31 @@ def isStandaloneMode():
 
 
 def isOnefileMode():
-    """*bool* = "--standalone" """
+    """*bool* = "--onefile" """
     return options.is_onefile
 
 
+def isWindowsOnefileTempDirMode():
+    """*bool* = "--windows-onefile-tempdir" """
+    return options.is_windows_onefile_tempdir
+
+
 def getIconPaths():
-    """*list of str*, values of "--windows-icon-from-ico" """
-    return options.icon_path
+    """*list of str*, values of "--windows-icon-from-ico" and "--linux-onefile-icon """
+
+    result = options.icon_path
+
+    # Check if Linux icon requirement is met.
+    if getOS() == "Linux" and not result and isOnefileMode():
+        default_icon = "/usr/share/pixmaps/python.xpm"
+        if os.path.exists(default_icon):
+            result.append(default_icon)
+        else:
+            Tracing.general.sysexit(
+                "Error, on the default icon '%s' does not exist, making --linux-onefile-icon required."
+            )
+
+    return result
 
 
 def getWindowsIconExecutablePath():
@@ -589,7 +718,6 @@ def _parseWindowsVersionNumber(value):
         assert min(r) >= 0
         assert max(r) < 2 ** 16
         return r
-
     else:
         return None
 
@@ -643,9 +771,7 @@ def getPythonFlags():
                     _python_flags.add("no_docstrings")
                     _python_flags.add("no_asserts")
                 else:
-                    # Do not warn before executing in final context.
-                    if "PYTHONHASHSEED" in os.environ:
-                        logging.warning("Unsupported flag '%s'.", part)
+                    Tracing.general.sysexit("Unsupported python flag %r.", part)
 
     return _python_flags
 

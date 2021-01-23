@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -71,6 +71,24 @@ def getStagedFileChangeDesc():
             line = line.decode("utf8")
 
         yield _parseIndexDiffLine(line)
+
+
+def getModifiedPaths():
+    output = check_output(["git", "diff", "--name-only"])
+
+    for line in output.splitlines():
+        if str is not bytes:
+            line = line.decode("utf8")
+
+        yield line
+
+    output = check_output(["git", "diff", "--cached", "--name-only"])
+
+    for line in output.splitlines():
+        if str is not bytes:
+            line = line.decode("utf8")
+
+        yield line
 
 
 def getFileHashContent(object_hash):

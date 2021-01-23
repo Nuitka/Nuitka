@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,9 +28,15 @@ import sys
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import check_output
 from nuitka.utils.FileOperations import getFileContentByLine, withTemporaryFile
+from nuitka.utils.Utils import isWin32Windows
 
 
 def runValgrind(descr, tool, args, include_startup, save_logfilename=None):
+    # Many cases to deal with, pylint: disable=too-many-branches
+
+    if isWin32Windows():
+        sys.exit("Error, valgrind is not available on Windows.")
+
     if descr:
         my_print(descr, tool, file=sys.stderr, end="... ")
 

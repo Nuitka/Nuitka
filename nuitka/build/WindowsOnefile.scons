@@ -1,5 +1,5 @@
 # -*- python -*-
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -46,23 +46,28 @@ from SCons.Script import (  # pylint: disable=import-error
     ARGUMENTS,
     CacheDir,
     Decider,
-    Default,
     Environment,
     GetOption,
 )
 
-from nuitka.Tracing import my_print, scons_logger
+from nuitka.Tracing import my_print, scons_details_logger, scons_logger
+from nuitka.utils.WindowsResources import (
+    RT_GROUP_ICON,
+    RT_ICON,
+    RT_VERSION,
+    copyResourcesFromFileToFile,
+)
 
 from .SconsCaching import enableCcache, enableClcache
-from .SconsCompilerSettings import enableC11Settings
+from .SconsCompilerSettings import checkWindowsCompilerFound, enableC11Settings
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
 from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
 from .SconsUtils import (
     addClangClPathFromMSVC,
     addToPATH,
     changeKeyboardInteruptToErrorExit,
-    cheapCopyFile,
     createDefinitionsFile,
+    createEnvironment,
     getArgumentBool,
     getArgumentDefaulted,
     getArgumentList,
@@ -72,6 +77,8 @@ from .SconsUtils import (
     getMsvcVersionString,
     initScons,
     isGccName,
+    provideStaticSourceFile,
+    raiseNoCompilerFoundErrorExit,
     setArguments,
     writeSconsReport,
 )
@@ -94,8 +101,11 @@ static_src = os.path.join(source_dir, "static")
 # The name of executable or extension module that we produce.
 result_basepath = getArgumentRequired("result_name")
 
-# The name of executable that we produce (in executable mode).
+# The name of executable that we produce
 result_exe = getArgumentDefaulted("result_exe", None)
+
+# The name of executable that we that copy resources from
+compiled_exe = getArgumentDefaulted("compiled_exe", None)
 
 # The suffix for an extension module (in module mode).
 module_suffix = getArgumentDefaulted("module_suffix", None)
@@ -151,39 +161,14 @@ mingw_mode = getArgumentBool("mingw_mode", False)
 
 # Show scons mode, output information about Scons operation
 show_scons_mode = getArgumentBool("show_scons", False)
+scons_details_logger.is_quiet = not show_scons_mode
 
 # Home of Python to be compiled against, used to find tools like clcache and
 # ccache.
 python_prefix = ARGUMENTS["python_prefix"]
 
 # Forced MSVC version (windows-only)
-msvc_version = ARGUMENTS.get("msvc_version", None)
-
-no_python_warnings = getArgumentBool("no_python_warnings", False)
-
-# sys.flags values to pass along
-# python_sysflag_py3k_warning
-python_sysflag_py3k_warning = getArgumentBool("python_sysflag_py3k_warning", False)
-# python_sysflag_division_warning
-python_sysflag_division_warning = getArgumentBool(
-    "python_sysflag_division_warning", False
-)
-# python_sysflag_division_warning
-python_sysflag_bytes_warning = getArgumentBool("python_sysflag_bytes_warning", False)
-# python_sysflag_no_site
-python_sysflag_no_site = getArgumentBool("python_sysflag_no_site", False)
-# python_sysflag_verbose
-python_sysflag_verbose = getArgumentBool("python_sysflag_verbose", False)
-# python_sysflag_unicode
-python_sysflag_unicode = getArgumentBool("python_sysflag_unicode", False)
-# python_sysflag_utf8
-python_sysflag_utf8 = getArgumentBool("python_sysflag_utf8", False)
-# python_sysflag_optimize
-python_sysflag_optimize = getArgumentBool("python_sysflag_optimize", False)
-# python_sysflag_no_randomization
-python_sysflag_no_randomization = getArgumentBool(
-    "python_sysflag_no_randomization", False
-)
+msvc_version = ARGUMENTS.get("msvc_version")
 
 # Preprocessor defines from plugins
 cpp_defines = getArgumentList("cpp_defines", "")
@@ -248,38 +233,7 @@ if "CXX" in os.environ:
 
 gcc_version = None
 
-Environment.Detect = getEnhancedToolDetect(show_scons_mode)
-
-
-def createEnvironment(tools):
-    args = {}
-
-    # If we are on Windows, and MinGW is not enforced, lets see if we can
-    # find "cl.exe", and if we do, disable automatic scan.
-    if (
-        win_target
-        and not mingw_mode
-        and (
-            getExecutablePath("cl", env=None) is not None
-            or getExecutablePath("gcc", env=None) is not None
-        )
-    ):
-        args["MSVC_USE_SCRIPT"] = False
-
-    return Environment(
-        # We want the outside environment to be passed through.
-        ENV=os.environ,
-        # Extra tools configuration for scons.
-        tools=tools,
-        # The shared libraries should not be named "lib...", because CPython
-        # requires the filename "module_name.so" to load it.
-        SHLIBPREFIX="",
-        # Under windows, specify the target architecture is needed for Scons
-        # to pick up MSVC.
-        TARGET_ARCH=target_arch,
-        MSVC_VERSION=msvc_version,
-        **args
-    )
+Environment.Detect = getEnhancedToolDetect()
 
 
 def getCompilerTools():
@@ -302,32 +256,17 @@ def getCompilerTools():
 
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
-env = createEnvironment(tools=getCompilerTools())
+env = createEnvironment(
+    tools=getCompilerTools(),
+    mingw_mode=mingw_mode,
+    msvc_version=msvc_version,
+    target_arch=target_arch,
+)
 
-# On Windows, in case MSVC was not found and not previously forced, retry with
-# it and use that instead then as a fallback. Using both tools in one call
-# seems to not work in terms of fallback when both exist.
-if win_target and getExecutablePath(env["CC"], env=env) is None:
-
-    # This will succeed to find "gcc.exe" when conda install m2w64-gcc has
-    # been done.
-    anaconda_mingw_dir = os.path.join(python_prefix, r"Library\mingw-w64\bin")
-
-    if os.path.isdir(anaconda_mingw_dir):
-        os.environ["PATH"] = os.pathsep.join(
-            [anaconda_mingw_dir] + os.environ["PATH"].split(os.pathsep)
-        )
-
-        env = createEnvironment(tools=["mingw"])
-
-        if show_scons_mode:
-            my_print("Standard CC not found, attempting installed CondaCC")
-
-if show_scons_mode:
-    my_print("Scons: Initial CC:", env.get("CC", None))
-    my_print("Scons: Initial CCVERSION:", env.get("CCVERSION", None))
-    my_print("Scons: Initial CXX:", env.get("CXX", None))
-    my_print("Scons: Initial CXXVERSION:", env.get("CXXVERSION", None))
+scons_details_logger.info("Initial CC: %r" % env.get("CC"))
+scons_details_logger.info(
+    "Initial CCVERSION: %r" % (env.get("CCVERSION"),),
+)
 
 if "CC" in os.environ:
     # If the environment variable CC is set, use that.
@@ -335,9 +274,7 @@ if "CC" in os.environ:
     env["CCVERSION"] = None
 elif clangcl_mode:
     # If possible, add Clang directory from MSVC if available.
-    addClangClPathFromMSVC(
-        env=env, target_arch=target_arch, show_scons_mode=show_scons_mode
-    )
+    addClangClPathFromMSVC(env=env, target_arch=target_arch)
 
     env["CC"] = "clang-cl"
     env["LINK"] = "lld-link"
@@ -350,6 +287,11 @@ elif clang_mode:
     env["CC"] = "clang"
     env["CCVERSION"] = None
 
+# On Windows, in case MSVC was not found and not previously forced, use the
+# winlibs MinGW64 as a download, and use it as a fallback.
+env = checkWindowsCompilerFound(
+    env=env, target_arch=target_arch, assume_yes_for_downloads=assume_yes_for_downloads
+)
 
 the_compiler = env["CC"] or env["CXX"]
 the_cc_name = os.path.normcase(os.path.basename(the_compiler))
@@ -365,16 +307,6 @@ if "clang" in the_cc_name and "-cl" not in the_cc_name:
 # be compatible.
 gcc_mode = isGccName(the_cc_name) or clang_mode
 
-# Make a check, to discover the currently unsupported combination.
-if clangcl_mode and gcc_mode:
-    sys.exit(
-        """\
-Error, you cannot combine a gcc C compiler with clang on Windows with Nuitka
-yet. So far it was found to be only slower than pure MinGW64. If you want
-to use it, you need to install Visual Studio, and use it instead, then the
-clang mode will piggy back it.
-"""
-    )
 
 # Only use MSVC if not already clear, we are using MinGW.
 msvc_mode = win_target and not gcc_mode
@@ -383,59 +315,8 @@ mingw_mode = win_target and gcc_mode
 if gcc_mode and not clang_mode:
     gcc_version = myDetectVersion(env, the_compiler)
 
-    if gcc_version is None and "++" in the_cc_name:
-        sys.exit(
-            """\
-Error, compiler %s is apparently a C++ compiler, specify a C compiler instead.
-"""
-            % the_cc_name
-        )
-
-    if gcc_version is not None and gcc_version < (5,):
-        # Switch to g++ from gcc then if possible, when C11 mode is false.
-        the_gpp_compiler = os.path.join(
-            os.path.dirname(the_compiler),
-            os.path.basename(the_compiler).replace("gcc", "g++"),
-        )
-
-        if getExecutablePath(the_gpp_compiler, env=env):
-            the_compiler = the_gpp_compiler
-            the_cc_name = the_cc_name.replace("gcc", "g++")
-        else:
-            sys.exit(
-                "Error, you gcc is too old for C11 support, and no related g++ to workaround that is found."
-            )
-
 if the_compiler is None or getExecutablePath(the_compiler, env=env) is None:
-    if win_target:
-        sys.exit(
-            """\
-Error, cannot locate suitable C compiler. You have the following options:
-
-a) If a suitable Visual Studio version is installed, it will not be located
-   automatically, unless you install pywin32 for the Python installation
-   below "%s".
-
-b) To make it find Visual Studio without registry execute from Start Menu
-   the 'Visual Studio Command Prompt' or "vcvarsall.bat". That will add
-   Visual Studio to the "PATH". And it then will be detected.
-
-c) Install MinGW64 to "C:\\MinGW64" or "\\MinGW64", where then it is
-   automatically detected or manually add it to PATH before executing
-   Nuitka. But be sure to pick the proper variant (32/64 bits, your
-   Python arch is %r), or else cryptic errors will be shown.
-
-Normal MinGW will not work! MinGW64 does *not* mean 64 bits, just better
-Windows compatibility.
-Cygwin based gcc will not work.
-MSYS2 based gcc will not work.
-
-Note: The clang-cl will only work if MSVC already works for you.
-"""
-            % (sys.exec_prefix, target_arch)
-        )
-    else:
-        sys.exit("Error, cannot locate suitable C compiler.")
+    raiseNoCompilerFoundErrorExit()
 
 # Do we use C11 for source files, or pretend to be C++ as a workaround.
 c11_mode = enableC11Settings(
@@ -447,8 +328,7 @@ c11_mode = enableC11Settings(
     gcc_version=gcc_version,
 )
 
-if show_scons_mode:
-    my_print("Scons: Using C11 mode:", c11_mode)
+scons_details_logger.info("Using C11 mode: %s" % c11_mode)
 
 if show_scons_mode:
     my_print("Scons: Compiler used", end=" ")
@@ -755,18 +635,6 @@ def discoverSourceFiles():
     # If we use C11 capable compiler, all good. Otherwise use C++, which Scons
     # needs to derive from filenames, so make copies (or links) with a different
     # name.
-
-    def provideStatic(sub_path):
-        source_file = os.path.join(nuitka_src, "static_src", sub_path)
-        target_file = os.path.join(source_dir, "static_src", os.path.basename(sub_path))
-
-        if target_file.endswith(".c") and not c11_mode:
-            target_file += "pp"
-
-        cheapCopyFile(source_file, target_file)
-
-        return target_file
-
     def _scanSourcekDir(dirname):
         if not os.path.exists(dirname):
             return
@@ -798,7 +666,14 @@ def discoverSourceFiles():
     _scanSourcekDir(os.path.join(source_dir, "plugins"))
 
     # Main onefile bootstrap program
-    result.append(provideStatic("WindowsOnefile.c"))
+    result.append(
+        provideStaticSourceFile(
+            sub_path="WindowsOnefile.c",
+            nuitka_src=nuitka_src,
+            source_dir=source_dir,
+            c11_mode=c11_mode,
+        )
+    )
 
     return result
 
@@ -873,7 +748,6 @@ if gcc_mode:
         env=env,
         source_dir=source_dir,
         python_prefix=python_prefix,
-        show_scons_mode=show_scons_mode,
         assume_yes_for_downloads=assume_yes_for_downloads,
     ):
         cache_mode = False
@@ -883,16 +757,20 @@ if msvc_mode:
         the_compiler=the_compiler,
         env=env,
         source_dir=source_dir,
-        python_prefix=python_prefix,
-        show_scons_mode=show_scons_mode,
     ):
         cache_mode = False
 
-onefile_definitions = {
-    "ONEFILE_COMPANY": os.environ["ONEFILE_COMPANY"],
-    "ONEFILE_PRODUCT": os.environ["ONEFILE_PRODUCT"],
-    "ONEFILE_VERSION": os.environ["ONEFILE_VERSION"],
-}
+onefile_definitions = {}
+
+if "ONEFILE_COMPANY" in os.environ:
+    onefile_definitions["ONEFILE_TEMPFILE"] = 0
+
+    onefile_definitions["ONEFILE_COMPANY"] = os.environ["ONEFILE_COMPANY"]
+    onefile_definitions["ONEFILE_PRODUCT"] = os.environ["ONEFILE_PRODUCT"]
+    onefile_definitions["ONEFILE_VERSION"] = os.environ["ONEFILE_VERSION"]
+else:
+    onefile_definitions["ONEFILE_TEMPFILE"] = 1
+
 
 createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
 
@@ -912,8 +790,24 @@ writeSconsReport(
     source_dir=source_dir,
     env=env,
     gcc_mode=gcc_mode,
-    msvc_mode=msvc_mode,
     clang_mode=clang_mode,
+    msvc_mode=msvc_mode,
+    clangcl_mode=clangcl_mode,
 )
 
-Default(target)
+
+def copyResources(target, source, env):
+    # Not needing the arguments, but signature is required, pylint: disable= redefined-outer-name,unused-argument
+
+    # Make sure to copy the resources from the created binary to the bootstrap binary, these
+    # are icons and version information.
+    copyResourcesFromFileToFile(
+        source_filename=compiled_exe,
+        target_filename=result_exe,
+        resource_kinds=(RT_ICON, RT_GROUP_ICON, RT_VERSION),
+    )
+
+
+env.AddPostAction(target, copyResources)
+
+env.Default(target)

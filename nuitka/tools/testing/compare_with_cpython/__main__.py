@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -138,7 +138,7 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update):
             hash_salt = hash_salt.encode("utf8")
         command_hash.update(hash_salt)
 
-        if os.name == "nt" and python_version < 300:
+        if os.name == "nt" and python_version < 0x300:
             curdir = os.getcwdu()
         else:
             curdir = os.getcwd()
@@ -204,7 +204,8 @@ def main():
         hasArg("trace_command") or os.environ.get("NUITKA_TRACE_COMMANDS", "0") != "0"
     )
     remove_output = hasArg("remove_output")
-    standalone_mode = hasArg("standalone")
+    standalone_mode = hasArg("--standalone")
+    onefile_mode = hasArg("--onefile")
     no_site = hasArg("no_site")
     recurse_none = hasArg("recurse_none")
     recurse_all = hasArg("recurse_all")
@@ -454,6 +455,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     if not two_step_execution:
         if module_mode:
             nuitka_cmd = nuitka_call + extra_options + ["--run", "--module", filename]
+        elif onefile_mode:
+            nuitka_cmd = nuitka_call + extra_options + ["--run", "--onefile", filename]
         elif standalone_mode:
             nuitka_cmd = (
                 nuitka_call + extra_options + ["--run", "--standalone", filename]

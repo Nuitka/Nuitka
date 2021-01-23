@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -44,12 +44,12 @@ def generateTryCode(statement, emit, context):
     # Get the statement sequences involved. All except the tried block can be
     # None. For the tried block it would be a missed optimization. Also not all
     # the handlers must be None, then it's also a missed optimization.
-    tried_block = statement.getBlockTry()
+    tried_block = statement.subnode_tried
 
-    except_handler = statement.getBlockExceptHandler()
-    continue_handler = statement.getBlockContinueHandler()
-    break_handler = statement.getBlockBreakHandler()
-    return_handler = statement.getBlockReturnHandler()
+    except_handler = statement.subnode_except_handler
+    continue_handler = statement.subnode_continue_handler
+    break_handler = statement.subnode_break_handler
+    return_handler = statement.subnode_return_handler
 
     tried_block_may_raise = tried_block.mayRaiseException(BaseException)
 
@@ -245,26 +245,26 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
     # This has many branches which mean this optimized code generation is not
     # applicable, we return each time. pylint: disable=too-many-branches,too-many-return-statements
 
-    except_handler = statement.getBlockExceptHandler()
+    except_handler = statement.subnode_except_handler
 
     if except_handler is None:
         return False
 
-    if statement.getBlockBreakHandler() is not None:
+    if statement.subnode_break_handler is not None:
         return False
 
-    if statement.getBlockContinueHandler() is not None:
+    if statement.subnode_continue_handler is not None:
         return False
 
-    if statement.getBlockReturnHandler() is not None:
+    if statement.subnode_return_handler is not None:
         return False
 
-    tried_statements = statement.getBlockTry().getStatements()
+    tried_statements = statement.subnode_tried.subnode_statements
 
     if len(tried_statements) != 1:
         return False
 
-    handling_statements = except_handler.getStatements()
+    handling_statements = except_handler.subnode_statements
 
     if len(handling_statements) != 1:
         return False
@@ -284,8 +284,8 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
     if not handling_statement.isStatementConditional():
         return False
 
-    yes_statements = handling_statement.getBranchYes().getStatements()
-    no_statements = handling_statement.getBranchNo().getStatements()
+    yes_statements = handling_statement.subnode_yes_branch.subnode_statements
+    no_statements = handling_statement.subnode_no_branch.subnode_statements
 
     if len(yes_statements) != 1:
         return False
@@ -302,7 +302,7 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
     tmp_name = context.allocateTempName("next_source")
 
     generateExpressionCode(
-        expression=assign_source.getValue(),
+        expression=assign_source.subnode_value,
         to_name=tmp_name,
         emit=emit,
         context=context,

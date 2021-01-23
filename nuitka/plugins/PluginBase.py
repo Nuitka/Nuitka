@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,6 @@ it being used.
 
 import os
 import shutil
-import sys
 
 from nuitka import Options, OutputDirectories
 from nuitka.Errors import NuitkaPluginError
@@ -241,7 +240,7 @@ class NuitkaPluginBase(object):
         Returns:
             dict
         """
-        return self.module_aliases.get(module_name, None)
+        return self.module_aliases.get(module_name)
 
     def onModuleSourceCode(self, module_name, source_code):
         """Inspect or modify source code.
@@ -393,14 +392,18 @@ class NuitkaPluginBase(object):
         Returns:
             None
         """
+
         full_name = module.getFullName()
 
         pre_code, reason = self.createPreModuleLoadCode(module)
 
         if pre_code:
-            # TODO: We could find a way to handle this.
+            # Note: We could find a way to handle this if needed.
             if full_name in pre_modules:
-                sys.exit("Error, conflicting plug-ins for %s" % full_name)
+                plugins_logger.sysexit(
+                    "Error, conflicting pre module code from plug-ins for %s"
+                    % full_name
+                )
 
             self.info("Injecting pre-module load code for module '%s':" % full_name)
             for line in reason.split("\n"):
@@ -413,9 +416,12 @@ class NuitkaPluginBase(object):
         post_code, reason = self.createPostModuleLoadCode(module)
 
         if post_code:
-            # TODO: We could find a way to handle this.
+            # Note: We could find a way to handle this if needed.
             if full_name is post_modules:
-                sys.exit("Error, conflicting plug-ins for %s" % full_name)
+                plugins_logger.sysexit(
+                    "Error, conflicting post module code from plug-ins for %s"
+                    % full_name
+                )
 
             self.info("Injecting post-module load code for module '%s':" % full_name)
             for line in reason.split("\n"):
@@ -681,6 +687,10 @@ class NuitkaPluginBase(object):
     @classmethod
     def info(cls, message):
         plugins_logger.info(cls.plugin_name + ": " + message)
+
+    @classmethod
+    def sysexit(cls, message):
+        plugins_logger.sysexit(cls.plugin_name + ": " + message)
 
 
 def isTriggerModule(module):

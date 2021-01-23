@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -34,39 +34,32 @@ from .ExpressionBases import (
 class ExpressionCall(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CALL"
 
-    named_children = ("called", "args", "kw")
-    getCalled = ExpressionChildrenHavingBase.childGetter("called")
-    setCalled = ExpressionChildrenHavingBase.childSetter("called")
-    getCallArgs = ExpressionChildrenHavingBase.childGetter("args")
-    getCallKw = ExpressionChildrenHavingBase.childGetter("kw")
+    named_children = ("called", "args", "kwargs")
 
-    def __init__(self, called, args, kw, source_ref):
-        assert called.isExpression()
-        assert args.isExpression()
-        assert kw.isExpression()
-
+    def __init__(self, called, args, kwargs, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values={"called": called, "args": args, "kw": kw},
+            values={"called": called, "args": args, "kwargs": kwargs},
             source_ref=source_ref,
         )
 
-    def isExpressionCall(self):
+    @staticmethod
+    def isExpressionCall():
         return True
 
     def computeExpression(self, trace_collection):
-        called = self.getCalled()
+        called = self.subnode_called
 
         return called.computeExpressionCall(
             call_node=self,
-            call_args=self.getCallArgs(),
-            call_kw=self.getCallKw(),
+            call_args=self.subnode_args,
+            call_kw=self.subnode_kwargs,
             trace_collection=trace_collection,
         )
 
     def extractSideEffectsPreCall(self):
-        args = self.getCallArgs()
-        kw = self.getCallKw()
+        args = self.subnode_args
+        kw = self.subnode_kwargs
 
         return args.extractSideEffects() + kw.extractSideEffects()
 
@@ -75,35 +68,30 @@ class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CALL_NO_KEYWORDS"
 
     named_children = ("called", "args")
-    getCalled = ExpressionChildrenHavingBase.childGetter("called")
-    setCalled = ExpressionChildrenHavingBase.childSetter("called")
-    getCallArgs = ExpressionChildrenHavingBase.childGetter("args")
+
+    subnode_kwargs = None
 
     def __init__(self, called, args, source_ref):
-        assert called.isExpression()
-        assert args.isExpression()
-
         ExpressionChildrenHavingBase.__init__(
             self, values={"called": called, "args": args}, source_ref=source_ref
         )
 
     def computeExpression(self, trace_collection):
-        return self.getCalled().computeExpressionCall(
+        called = self.subnode_called
+
+        return called.computeExpressionCall(
             call_node=self,
-            call_args=self.getCallArgs(),
+            call_args=self.subnode_args,
             call_kw=None,
             trace_collection=trace_collection,
         )
 
     @staticmethod
-    def getCallKw():
-        return None
-
-    def isExpressionCall(self):
+    def isExpressionCall():
         return True
 
     def extractSideEffectsPreCall(self):
-        args = self.getCallArgs()
+        args = self.subnode_args
 
         return args.extractSideEffects()
 
@@ -111,38 +99,31 @@ class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
 class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CALL_KEYWORDS_ONLY"
 
-    named_children = ("called", "kw")
-    getCalled = ExpressionChildrenHavingBase.childGetter("called")
-    setCalled = ExpressionChildrenHavingBase.childSetter("called")
-    getCallKw = ExpressionChildrenHavingBase.childGetter("kw")
+    named_children = ("called", "kwargs")
 
-    def __init__(self, called, kw, source_ref):
-        assert called.isExpression()
-        assert kw.isExpression()
+    subnode_args = None
 
+    def __init__(self, called, kwargs, source_ref):
         ExpressionChildrenHavingBase.__init__(
-            self, values={"called": called, "kw": kw}, source_ref=source_ref
+            self, values={"called": called, "kwargs": kwargs}, source_ref=source_ref
         )
 
     def computeExpression(self, trace_collection):
-        called = self.getCalled()
+        called = self.subnode_called
 
         return called.computeExpressionCall(
             call_node=self,
             call_args=None,
-            call_kw=self.getCallKw(),
+            call_kw=self.subnode_kwargs,
             trace_collection=trace_collection,
         )
 
     @staticmethod
-    def getCallArgs():
-        return None
-
-    def isExpressionCall(self):
+    def isExpressionCall():
         return True
 
     def extractSideEffectsPreCall(self):
-        kw = self.getCallKw()
+        kw = self.subnode_kwargs
 
         return kw.extractSideEffects()
 
@@ -151,16 +132,15 @@ class ExpressionCallEmpty(ExpressionChildHavingBase):
     kind = "EXPRESSION_CALL_EMPTY"
 
     named_child = "called"
-    getCalled = ExpressionChildHavingBase.childGetter("called")
-    setCalled = ExpressionChildHavingBase.childSetter("called")
+
+    subnode_args = None
+    subnode_kwargs = None
 
     def __init__(self, called, source_ref):
-        assert called.isExpression()
-
         ExpressionChildHavingBase.__init__(self, value=called, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
-        called = self.getCalled()
+        called = self.subnode_called
 
         return called.computeExpressionCall(
             call_node=self,
@@ -170,14 +150,7 @@ class ExpressionCallEmpty(ExpressionChildHavingBase):
         )
 
     @staticmethod
-    def getCallKw():
-        return None
-
-    @staticmethod
-    def getCallArgs():
-        return None
-
-    def isExpressionCall(self):
+    def isExpressionCall():
         return True
 
     @staticmethod

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,6 +30,7 @@ from nuitka.PythonVersions import (
     getPythonABI,
     getTargetPythonDLLPath,
     python_version,
+    python_version_str,
 )
 from nuitka.Tracing import postprocessing_logger
 from nuitka.utils.FileOperations import (
@@ -144,6 +145,7 @@ def addWindowsIconFromIcons():
             resource_kind=RT_GROUP_ICON,
             lang_id=0,
             res_name=icon_group,
+            logger=postprocessing_logger,
         )
 
     for count, image in enumerate(images, 1):
@@ -153,6 +155,7 @@ def addWindowsIconFromIcons():
             resource_kind=RT_ICON,
             lang_id=0,
             res_name=count,
+            logger=postprocessing_logger,
         )
 
 
@@ -160,13 +163,13 @@ version_resources = {}
 
 
 def executePostProcessing():
-    # These is a bunch of stuff to consider, pylint: disable=too-many-branches,too-many-statements
+    # These is a bunch of stuff to consider, pylint: disable=too-many-branches
 
     result_filename = OutputDirectories.getResultFullpath()
 
     if not os.path.exists(result_filename):
-        sys.exit(
-            "Error, scons failed to create the expected file '%s'. " % result_filename
+        postprocessing_logger.sysexit(
+            "Error, scons failed to create the expected file %r. " % result_filename
         )
 
     if isWin32Windows():
@@ -174,7 +177,7 @@ def executePostProcessing():
             needs_manifest = False
             manifest = None
 
-            if python_version < 300:
+            if python_version < 0x300:
                 # Copy the Windows manifest from the CPython binary to the created
                 # executable, so it finds "MSCRT.DLL". This is needed for Python2
                 # only, for Python3 newer MSVC doesn't hide the C runtime.
@@ -199,7 +202,9 @@ def executePostProcessing():
                     manifest.addUacUiAccess()
 
             if needs_manifest:
-                manifest.addResourceToFile(result_filename)
+                manifest.addResourceToFile(
+                    result_filename, logger=postprocessing_logger
+                )
 
         if (
             Options.getWindowsVersionInfoStrings()
@@ -214,6 +219,7 @@ def executePostProcessing():
                     file_date=(0, 0),
                     is_exe=not Options.shallMakeModule(),
                     result_filename=result_filename,
+                    logger=postprocessing_logger,
                 )
             )
 
@@ -226,6 +232,7 @@ def executePostProcessing():
             resource_kind=RT_RCDATA,
             res_name=3,
             lang_id=0,
+            logger=postprocessing_logger,
         )
 
         # Attach icons from template file if given.
@@ -256,7 +263,6 @@ def executePostProcessing():
         and not Options.shallMakeModule()
         and not Options.shallUseStaticLibPython()
     ):
-        python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
         python_abi_version = python_version_str + getPythonABI()
         python_dll_filename = "libpython" + python_abi_version + ".dylib"
         python_lib_path = os.path.join(sys.prefix, "lib")

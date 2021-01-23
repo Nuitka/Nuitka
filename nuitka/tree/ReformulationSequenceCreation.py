@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -87,10 +87,10 @@ def _raiseStarredSyntaxError(element, source_ref):
 
 
 def buildTupleCreationNode(provider, node, source_ref):
-    if python_version >= 300:
+    if python_version >= 0x300:
         for element in node.elts:
             if getKind(element) == "Starred":
-                if python_version < 350:
+                if python_version < 0x350:
                     _raiseStarredSyntaxError(element, source_ref)
                 else:
                     return buildTupleUnpacking(
@@ -105,10 +105,10 @@ def buildTupleCreationNode(provider, node, source_ref):
 
 
 def buildListCreationNode(provider, node, source_ref):
-    if python_version >= 300:
+    if python_version >= 0x300:
         for element in node.elts:
             if getKind(element) == "Starred":
-                if python_version < 350:
+                if python_version < 0x350:
                     _raiseStarredSyntaxError(element, source_ref)
                 else:
                     return buildListUnpacking(
@@ -123,10 +123,10 @@ def buildListCreationNode(provider, node, source_ref):
 
 
 def buildSetCreationNode(provider, node, source_ref):
-    if python_version >= 300:
+    if python_version >= 0x300:
         for element in node.elts:
             if getKind(element) == "Starred":
-                if python_version < 350:
+                if python_version < 0x350:
                     _raiseStarredSyntaxError(element, source_ref)
                 else:
                     return _buildSetUnpacking(
@@ -163,7 +163,7 @@ def getListUnpackingHelper():
     tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
     tmp_item_variable = result.allocateTempVariable(temp_scope, "keys")
 
-    if python_version < 390:
+    if python_version < 0x390:
         list_operation_extend = ExpressionListOperationExtend
     else:
         list_operation_extend = ExpressionListOperationExtendForUnpack
@@ -228,7 +228,7 @@ def getListUnpackingHelper():
             source=makeConstantRefNode(constant=[], source_ref=internal_source_ref),
             source_ref=internal_source_ref,
         ),
-        StatementLoop(body=loop_body, source_ref=internal_source_ref),
+        StatementLoop(loop_body=loop_body, source_ref=internal_source_ref),
         StatementReturn(
             expression=ExpressionTempVariableRef(
                 variable=tmp_result_variable, source_ref=internal_source_ref
@@ -237,7 +237,8 @@ def getListUnpackingHelper():
         ),
     )
 
-    result.setBody(
+    result.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
                 provider=result,
@@ -245,7 +246,7 @@ def getListUnpackingHelper():
                 final=final,
                 source_ref=internal_source_ref,
             )
-        )
+        ),
     )
 
     return result
@@ -334,7 +335,7 @@ def getSetUnpackingHelper():
             source=makeConstantRefNode(constant=set(), source_ref=internal_source_ref),
             source_ref=internal_source_ref,
         ),
-        StatementLoop(body=loop_body, source_ref=internal_source_ref),
+        StatementLoop(loop_body=loop_body, source_ref=internal_source_ref),
         StatementReturn(
             expression=ExpressionTempVariableRef(
                 variable=tmp_result_variable, source_ref=internal_source_ref
@@ -343,7 +344,8 @@ def getSetUnpackingHelper():
         ),
     )
 
-    result.setBody(
+    result.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
                 provider=result,
@@ -351,7 +353,7 @@ def getSetUnpackingHelper():
                 final=final,
                 source_ref=internal_source_ref,
             )
-        )
+        ),
     )
 
     return result

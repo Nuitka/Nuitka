@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -35,7 +35,7 @@
 
 #include "nuitka/prelude.h"
 // Include definition of PyInterpreterState, hidden since Python 3.8
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
 #define Py_BUILD_CORE
 #include "internal/pycore_pystate.h"
 #undef Py_BUILD_CORE
@@ -398,7 +398,7 @@ static bool scanModuleInPackagePath(PyObject *module_name, char const *parent_mo
 
 // Force path to unicode, to have easier consumption, as we need a wchar_t or char *
 // from it later, and we don't want to test there.
-#if PYTHON_VERSION < 300 && defined(_WIN32)
+#if PYTHON_VERSION < 0x300 && defined(_WIN32)
                 PyObject *tmp = PyUnicode_FromObject(fullpath);
                 Py_DECREF(fullpath);
                 fullpath = tmp;
@@ -430,7 +430,7 @@ static PyObject *callIntoInstalledShlibModule(PyObject *module_name, PyObject *e
     // create the string needed.
     assert(PyUnicode_CheckExact(extension_module_filename));
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     wchar_t const *extension_module_filename_str = PyUnicode_AS_UNICODE(extension_module_filename);
 #else
     wchar_t const *extension_module_filename_str = PyUnicode_AsWideCharString(extension_module_filename, NULL);
@@ -520,7 +520,7 @@ static PyObject *_path_unfreezer_get_data(PyObject *self, PyObject *args, PyObje
         return NULL;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyObject *data_file = BUILTIN_OPEN(filename, const_str_plain_rb, NULL);
 #else
     PyObject *data_file = BUILTIN_OPEN(filename, const_str_plain_rb, NULL, NULL, NULL, NULL, NULL, NULL);
@@ -542,7 +542,7 @@ static PyObject *_path_unfreezer_get_data(PyObject *self, PyObject *args, PyObje
     return result;
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 typedef void (*entrypoint_t)(void);
 #else
 typedef PyObject *(*entrypoint_t)(void);
@@ -553,7 +553,7 @@ typedef PyObject *(*entrypoint_t)(void);
 #include <dlfcn.h>
 #endif
 
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
 static PyObject *createModuleSpec(PyObject *module_name, bool is_package);
 #endif
 
@@ -578,7 +578,7 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
 
     char entry_function_name[1024];
     snprintf(entry_function_name, sizeof(entry_function_name),
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
              "init%s",
 #else
              "PyInit_%s",
@@ -625,7 +625,7 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
 
     entrypoint_t entrypoint = (entrypoint_t)GetProcAddress(hDLL, entry_function_name);
 #else
-#if PYTHON_VERSION < 390
+#if PYTHON_VERSION < 0x390
     int dlopenflags = PyThreadState_GET()->interp->dlopenflags;
 #else
     // This code would work for all versions, but we are avoiding it where possible.
@@ -654,7 +654,7 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
 #endif
     assert(entrypoint);
 
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     char *old_context = _Py_PackageContext;
 #else
     char const *old_context = _Py_PackageContext;
@@ -663,7 +663,7 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
     _Py_PackageContext = (char *)package;
 
     // Finally call into the DLL.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     (*entrypoint)();
 #else
     PyObject *module = (*entrypoint)();
@@ -671,7 +671,7 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
 
     _Py_PackageContext = old_context;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyObject *module = Nuitka_GetModuleString(full_name);
 #endif
 
@@ -683,8 +683,8 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
         return NULL;
     }
 
-#if PYTHON_VERSION >= 300
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION >= 0x350
     PyModuleDef *def;
 
     if (Py_TYPE(module) == &PyModuleDef_Type) {
@@ -747,7 +747,7 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
 
     // Call the standard import fix-ups for extension modules. Their interface
     // changed over releases.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyObject *res2 = _PyImport_FixupExtension((char *)full_name, (char *)filename);
 
     if (unlikely(res2 == NULL)) {
@@ -764,7 +764,7 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
     CHECK_OBJECT(filename_obj);
 
     res = _PyImport_FixupExtensionObject(module, full_name_obj, filename_obj
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
                                          ,
                                          PyImport_GetModuleDict()
 #endif
@@ -782,7 +782,7 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
     return module;
 }
 
-static bool loadTriggeredModule(char const *name, char const *trigger_name) {
+static void loadTriggeredModule(char const *name, char const *trigger_name) {
     char trigger_module_name[2048];
 
     copyStringSafe(trigger_module_name, name, sizeof(trigger_module_name));
@@ -798,14 +798,14 @@ static bool loadTriggeredModule(char const *name, char const *trigger_name) {
         IMPORT_EMBEDDED_MODULE(trigger_module_name);
 
         if (unlikely(ERROR_OCCURRED())) {
-            return false;
+            PyObject *trigger_module_name_str = Nuitka_String_FromString(trigger_module_name);
+            PyErr_WriteUnraisable(trigger_module_name_str);
+            Py_DECREF(trigger_module_name_str);
         }
     }
-
-    return true;
 }
 
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
 static void _fixupSpecAttribute(PyObject *module) {
     PyObject *spec_value = LOOKUP_ATTRIBUTE(module, const_str_plain___spec__);
 
@@ -873,7 +873,7 @@ static PyObject *loadModule(PyObject *module, PyObject *module_name,
         PyObject *result = entry->python_initfunc(module, entry);
         CHECK_OBJECT_X(result);
 
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
         if (result != NULL) {
             _fixupSpecAttribute(result);
         }
@@ -903,9 +903,7 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyObject *module, PyObject *module_nam
         // is from plug-ins typically, that want to modify things for the the
         // module before loading, to e.g. set a plug-in path, or do some monkey
         // patching in order to make things compatible.
-        if (loadTriggeredModule(name, "-preLoad") == false) {
-            return NULL;
-        }
+        loadTriggeredModule(name, "-preLoad");
     }
 
     PyObject *result = NULL;
@@ -935,9 +933,7 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyObject *module, PyObject *module_nam
         // is from plug-ins typically, that want to modify the module immediately
         // after loading, to e.g. set a plug-in path, or do some monkey patching
         // in order to make things compatible.
-        if (loadTriggeredModule(name, "-postLoad") == false) {
-            return NULL;
-        }
+        loadTriggeredModule(name, "-postLoad");
 
         return result;
     }
@@ -951,7 +947,7 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyObject *module, PyObject *module_nam
 PyObject *IMPORT_EMBEDDED_MODULE(char const *name) {
 
     PyObject *module_name = Nuitka_String_FromString(name);
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyObject *module = PyModule_New(name);
 #else
     PyObject *module = PyModule_NewObject(module_name);
@@ -1092,7 +1088,7 @@ static PyObject *_path_unfreezer_iter_modules(struct Nuitka_LoaderObject *self, 
     return result;
 }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 // Used in module template too, therefore exported.
 PyObject *getImportLibBootstrapModule() {
     static PyObject *importlib = NULL;
@@ -1104,7 +1100,7 @@ PyObject *getImportLibBootstrapModule() {
 }
 #endif
 
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
 static PyObject *_path_unfreezer_repr_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module;
     PyObject *unused;
@@ -1238,7 +1234,7 @@ static PyObject *_path_unfreezer_find_spec(PyObject *self, PyObject *args, PyObj
     return createModuleSpec(module_name, (entry->flags & NUITKA_PACKAGE_FLAG) != 0);
 }
 
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
 static char const *_kwlist_create_module[] = {"spec", NULL};
 
 static PyObject *_path_unfreezer_create_module(PyObject *self, PyObject *args, PyObject *kwds) {
@@ -1313,7 +1309,7 @@ static void Nuitka_Distribution_tp_dealloc(struct Nuitka_DistributionObject *dis
 }
 
 static PyObject *Nuitka_Distribution_tp_repr(struct Nuitka_DistributionObject *loader) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     return PyString_FromFormat(
 #else
     return PyUnicode_FromFormat(
@@ -1436,11 +1432,11 @@ static PyMethodDef Nuitka_Loader_methods[] = {
     {"find_module", (PyCFunction)_path_unfreezer_find_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
     {"load_module", (PyCFunction)_path_unfreezer_load_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
     {"is_package", (PyCFunction)_path_unfreezer_is_package, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
     {"module_repr", (PyCFunction)_path_unfreezer_repr_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
     {"find_spec", (PyCFunction)_path_unfreezer_find_spec, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 #endif
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
     {"create_module", (PyCFunction)_path_unfreezer_create_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
     {"exec_module", (PyCFunction)_path_unfreezer_exec_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 #endif
@@ -1453,7 +1449,7 @@ static PyMethodDef Nuitka_Loader_methods[] = {
 };
 
 static PyObject *Nuitka_Loader_tp_repr(struct Nuitka_LoaderObject *loader) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     return PyString_FromFormat(
 #else
     return PyUnicode_FromFormat(
@@ -1577,7 +1573,7 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 
     // Register it as a meta path loader.
     int res = PyList_Insert(PySys_GetObject((char *)"meta_path"),
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
                             0,
 #else
                             2,
@@ -1591,7 +1587,7 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 // This is called for the technical module imported early on during interpreter
 // into, to still get compatible "__file__" attributes.
 void setEarlyFrozenModulesFileAttribute(void) {
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     // Make sure the importlib fully bootstraps before doing this.
     PyObject *importlib_module = getImportLibBootstrapModule();
     CHECK_OBJECT(importlib_module);

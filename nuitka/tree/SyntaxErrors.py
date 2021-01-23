@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -47,7 +47,7 @@ def formatOutput(e):
         reason = e.msg
 
     if colno is not None and (
-        not e.__class__ is IndentationError or python_version < 390
+        not e.__class__ is IndentationError or python_version < 0x390
     ):
         colno = colno - len(message) + len(message.lstrip())
 

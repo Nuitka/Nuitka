@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -33,7 +33,7 @@ from nuitka.finalizations.FinalizeMarkups import getImportedNames
 from nuitka.freezer.IncludedEntryPoints import (
     addIncludedEntryPoints,
     addShlibEntryPoint,
-    getStandardEntryPoints,
+    getStandaloneEntryPoints,
     setMainEntryPoint,
 )
 from nuitka.freezer.Standalone import copyDataFiles
@@ -70,7 +70,7 @@ from .optimizations import Optimization
 from .tree import Building
 
 
-def createNodeTree(filename):
+def _createNodeTree(filename):
     """Create a node tree.
 
     Turn that source code into a node tree structure. If recursion into
@@ -120,7 +120,10 @@ def createNodeTree(filename):
         )
 
         if kind != "absolute":
-            sys.exit("Error, failed to locate package %r." % package_name)
+            inclusion_logger.sysexit(
+                "Error, failed to locate package %r you asked to include."
+                % package_name
+            )
 
         Recursion.checkPluginPath(
             plugin_filename=package_directory, module_package=package_package
@@ -136,7 +139,9 @@ def createNodeTree(filename):
         )
 
         if kind != "absolute":
-            sys.exit("Error, failed to locate module %r." % module_name)
+            inclusion_logger.sysexit(
+                "Error, failed to locate module %r you asked to include." % module_name
+            )
 
         Recursion.checkPluginSinglePath(
             plugin_filename=module_filename, module_package=module_package
@@ -239,12 +244,10 @@ def pickSourceFilenames(source_dir, modules):
 standalone_entry_points = []
 
 
-def makeSourceDirectory(main_module):
+def makeSourceDirectory():
     """Get the full list of modules imported, create code for all of them."""
     # We deal with a lot of details here, but rather one by one, and split makes
     # no sense, pylint: disable=too-many-branches
-
-    assert main_module.isCompiledPythonModule()
 
     # assert main_module in ModuleRegistry.getDoneModules()
 
@@ -452,10 +455,12 @@ def runSconsBackend(quiet):
     if "no_asserts" in getPythonFlags():
         options["python_sysflag_optimize"] = asBoolStr(True)
 
-    if python_version < 300 and sys.flags.py3k_warning:
+    if python_version < 0x300 and sys.flags.py3k_warning:
         options["python_sysflag_py3k_warning"] = asBoolStr(True)
 
-    if python_version < 300 and (sys.flags.division_warning or sys.flags.py3k_warning):
+    if python_version < 0x300 and (
+        sys.flags.division_warning or sys.flags.py3k_warning
+    ):
         options["python_sysflag_division_warning"] = asBoolStr(True)
 
     if sys.flags.bytes_warning:
@@ -470,10 +475,10 @@ def runSconsBackend(quiet):
     if "no_randomization" in Options.getPythonFlags():
         options["python_sysflag_no_randomization"] = asBoolStr(True)
 
-    if python_version < 300 and sys.flags.unicode:
+    if python_version < 0x300 and sys.flags.unicode:
         options["python_sysflag_unicode"] = asBoolStr(True)
 
-    if python_version >= 370 and sys.flags.utf8_mode:
+    if python_version >= 0x370 and sys.flags.utf8_mode:
         options["python_sysflag_utf8"] = asBoolStr(True)
 
     abiflags = getPythonABI()
@@ -528,7 +533,7 @@ def writeBinaryData(filename, binary_data):
 
 
 def callExecPython(args, clean_path, add_path):
-    old_python_path = os.environ.get("PYTHONPATH", None)
+    old_python_path = os.environ.get("PYTHONPATH")
 
     if clean_path and old_python_path is not None:
         os.environ["PYTHONPATH"] = ""
@@ -571,13 +576,13 @@ def executeModule(tree, clean_path):
     callExecPython(clean_path=clean_path, add_path=True, args=args)
 
 
-def compileTree(main_module):
+def compileTree():
     source_dir = OutputDirectories.getSourceDirectoryPath()
 
     general.info("Completed Python level compilation and optimization.")
 
     if not Options.shallOnlyExecCCompilerCall():
-        general.info("Generating C source code for backend compiler.")
+        general.info("Generating source code for C backend compiler.")
 
         if Options.isShowProgress() or Options.isShowMemory():
             general.info(
@@ -586,7 +591,7 @@ def compileTree(main_module):
                 )
             )
         # Now build the target language code for the whole tree.
-        makeSourceDirectory(main_module=main_module)
+        makeSourceDirectory()
 
         bytecode_accessor = ConstantAccessor(
             data_filename="__bytecode.const", top_level_name="bytecode_data"
@@ -604,7 +609,7 @@ def compileTree(main_module):
         source_dir = OutputDirectories.getSourceDirectoryPath()
 
         if not os.path.isfile(os.path.join(source_dir, "__helpers.h")):
-            sys.exit("Error, no previous build directory exists.")
+            general.sysexit("Error, no previous build directory exists.")
 
     if Options.isShowProgress() or Options.isShowMemory():
         general.info(
@@ -643,7 +648,7 @@ def handleSyntaxError(e):
     error_message = SyntaxErrors.formatOutput(e)
 
     if not Options.is_fullcompat:
-        if python_version < 300:
+        if python_version < 0x300:
             suggested_python_version_str = getSupportedPythonVersions()[-1]
         else:
             suggested_python_version_str = "2.7"
@@ -674,9 +679,9 @@ def main():
     """
 
     # Main has to fulfill many options, leading to many branches and statements
-    # to deal with them.  pylint: disable=too-many-branches
-
-    general.info("Starting Python compilation.")
+    # to deal with them.  pylint: disable=too-many-branches,too-many-statements
+    if not Options.shallDumpBuiltTreeXML():
+        general.info("Starting Python compilation.")
 
     filename = Options.getPositionalArgs()[0]
 
@@ -688,7 +693,7 @@ def main():
 
     # Turn that source code into a node tree structure.
     try:
-        main_module = createNodeTree(filename=filename)
+        main_module = _createNodeTree(filename=filename)
     except (SyntaxError, IndentationError) as e:
         handleSyntaxError(e)
 
@@ -698,7 +703,7 @@ def main():
             dumpTreeXML(module)
     else:
         # Make the actual compilation.
-        result, options = compileTree(main_module=main_module)
+        result, options = compileTree()
 
         # Exit if compilation failed.
         if not result:
@@ -711,12 +716,6 @@ def main():
             sys.exit(0)
 
         executePostProcessing()
-
-        # Remove the source directory (now build directory too) if asked to.
-        if Options.isRemoveBuildDir():
-            removeDirectory(
-                path=OutputDirectories.getSourceDirectoryPath(), ignore_errors=False
-            )
 
         if Options.shallMakeModule() and Options.shallCreatePyiFile():
             pyi_filename = OutputDirectories.getResultBasepath() + ".pyi"
@@ -763,7 +762,7 @@ __name__ = ...
             copyUsedDLLs(
                 source_dir=OutputDirectories.getSourceDirectoryPath(),
                 dist_dir=dist_dir,
-                standalone_entry_points=getStandardEntryPoints(),
+                standalone_entry_points=getStandaloneEntryPoints(),
             )
 
             copyDataFiles(dist_dir=dist_dir)
@@ -772,6 +771,27 @@ __name__ = ...
 
             if Options.isOnefileMode():
                 packDistFolderToOnefile(dist_dir, binary_filename)
+
+                if Options.isRemoveBuildDir():
+                    general.info("Removing dist folder %r." % dist_dir)
+
+                    removeDirectory(path=dist_dir, ignore_errors=False)
+                else:
+                    general.info(
+                        "Keeping dist folder %r for inspection, no need to use it."
+                        % dist_dir
+                    )
+
+        # Remove the source directory (now build directory too) if asked to.
+        source_dir = OutputDirectories.getSourceDirectoryPath()
+
+        if Options.isRemoveBuildDir():
+            general.info("Removing build directory %r." % source_dir)
+
+            removeDirectory(path=source_dir, ignore_errors=False)
+            assert not os.path.exists(source_dir)
+        else:
+            general.info("Keeping build directory %r." % source_dir)
 
         general.info(
             "Successfully created %r."

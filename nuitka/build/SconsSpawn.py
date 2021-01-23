@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,7 @@ import threading
 from nuitka.Tracing import my_print, scons_logger
 from nuitka.utils.Timing import TimerReport
 
-from .SconsCaching import extractClcacheLogFromOutput
+from .SconsCaching import runClCache
 from .SconsUtils import decodeData
 
 
@@ -115,7 +115,11 @@ def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
         newargs = " ".join(removeTrailingSlashQuote(arg) for arg in args[1:])
         cmdline = cmd + " " + newargs
 
-        data, err, rv = runProcessMonitored(cmdline, env)
+        # Special hook for clcache inline copy
+        if cmd == "<clcache>":
+            data, err, rv = runClCache(args, env)
+        else:
+            data, err, rv = runProcessMonitored(cmdline, env)
 
         if cmd == "link":
             # Training newline in some cases, esp. LTO it seems.
@@ -136,10 +140,7 @@ def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
                 if len(data.split(b"\r\n")) == 2:
                     data = b""
 
-        elif cmd == "cl" or os.path.basename(cmd).lower() == "clcache.exe":
-            # Remove clcache debug output if present:
-            data = extractClcacheLogFromOutput(data)
-
+        elif cmd in ("cl", "<clcache>"):
             # Skip forced output from cl.exe
             data = data[data.find(b"\r\n") + 2 :]
 
@@ -155,10 +156,9 @@ def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
                 + b"\r\n"
             )
 
-        if data.rstrip():
-            if data:
-                my_print("Unexpected output from this command:", style="yellow")
-                my_print(cmdline, style="yellow")
+        if data is not None and data.rstrip():
+            my_print("Unexpected output from this command:", style="yellow")
+            my_print(cmdline, style="yellow")
 
             if str is not bytes:
                 data = decodeData(data)
@@ -176,6 +176,20 @@ def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
     return spawnWindowsCommand
 
 
+def _unescape(arg):
+    # Undo the damage that scons did to pass it to "sh"
+    arg = arg.strip('"')
+
+    slash = "\\"
+    special = '"$()'
+
+    arg = arg.replace(slash + slash, slash)
+    for c in special:
+        arg = arg.replace(slash + c, c)
+
+    return arg
+
+
 class SpawnThread(threading.Thread):
     def __init__(self, spawn, *args):
         threading.Thread.__init__(self)
@@ -185,7 +199,7 @@ class SpawnThread(threading.Thread):
 
         self.timer_report = TimerReport(
             message="Running %s took %%.2f seconds"
-            % (repr(self.args).replace("%", "%%"),),
+            % (" ".join(_unescape(arg) for arg in self.args[3]).replace("%", "%%"),),
             min_report_time=60,
             logger=scons_logger,
         )
@@ -221,6 +235,12 @@ def runSpawnMonitored(spawn, sh, escape, cmd, args, env):
 
 def getWrappedSpawnFunction(spawn):
     def spawnCommand(sh, escape, cmd, args, env):
+        # Avoid using ccache on binary constants blob, not useful and not working
+        # with old ccache.
+        if '"__constants_data.o"' in args or '"__constants_data.os"' in args:
+            env = dict(env)
+            env["CCACHE_DISABLE"] = "1"
+
         return runSpawnMonitored(spawn, sh, escape, cmd, args, env)
 
     return spawnCommand

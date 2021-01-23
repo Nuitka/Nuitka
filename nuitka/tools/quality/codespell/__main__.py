@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,7 +21,6 @@
 
 """
 
-import glob
 import os
 import subprocess
 import sys
@@ -31,17 +30,26 @@ from nuitka.tools.Basics import goHome
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import withEnvironmentPathAdded
+from nuitka.utils.FileOperations import resolveShellPatternToFilenames
 
 
-def resolveShellPatternToFilenames(pattern):
-    return glob.glob(pattern)
-
-
-def codespell(filenames, verbose, write):
+def runCodespell(filenames, verbose, write):
     if verbose:
         my_print("Consider", " ".join(filenames))
 
-    command = ["codespell", "-I", "misc/codespell-ignore.txt"]
+    command = [
+        "codespell",
+        "-f",
+        "-I",
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "..",
+            "misc/codespell-ignore.txt",
+        ),
+    ]
     if write:
         command.append("-w")
     command += filenames
@@ -76,6 +84,7 @@ def main():
 
     parser.add_option(
         "--write",
+        "-w",
         action="store_true",
         dest="write",
         default=False,
@@ -85,7 +94,15 @@ def main():
     options, positional_args = parser.parse_args()
 
     if not positional_args:
-        positional_args = ["bin", "nuitka", "rpm", "misc", "tests/*/run_all.py"]
+        positional_args = [
+            "bin",
+            "nuitka",
+            "rpm",
+            "misc",
+            "tests/*/run_all.py",
+            "*.rst",
+        ]
+        goHome()
 
     my_print("Working on:", positional_args)
 
@@ -97,8 +114,6 @@ def main():
         [],
     )
 
-    goHome()
-
     filenames = list(
         scanTargets(
             positional_args, (".py", ".scons", ".rst", ".txt", ".j2", ".md", ".c", ".h")
@@ -107,7 +122,16 @@ def main():
     if not filenames:
         sys.exit("No files found.")
 
-    codespell(filenames=filenames, verbose=options.verbose, write=options.write)
+    result = runCodespell(
+        filenames=filenames, verbose=options.verbose, write=options.write
+    )
+
+    if result:
+        my_print("OK.")
+    else:
+        sys.exit(
+            "\nError, please correct the spelling problems found or extend 'misc/codespell-ignore.txt' if applicable."
+        )
 
 
 if __name__ == "__main__":

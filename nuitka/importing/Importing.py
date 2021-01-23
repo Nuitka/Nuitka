@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -89,7 +89,7 @@ def isPackageDir(dirname):
         "." not in os.path.basename(dirname)
         and os.path.isdir(dirname)
         and (
-            python_version >= 300
+            python_version >= 0x300
             or os.path.isfile(os.path.join(dirname, "__init__.py"))
             or isPreloadedPackagePath(dirname)
         )
@@ -232,7 +232,10 @@ def findModule(importing, module_name, parent_package, level, warn):
         # TODO: Should give a warning and return not found if the levels
         # exceed the package name.
         if parent_package is not None:
-            parent_package = ".".join(parent_package.split(".")[: -level + 1])
+            # TODO: This should be done with the API instead.
+            parent_package = ModuleName(
+                ".".join(parent_package.asString().split(".")[: -level + 1])
+            )
 
             if parent_package == "":
                 parent_package = None
@@ -361,7 +364,7 @@ def _findModuleInPath2(module_name, search_path):
             continue
         considered.add(os.path.normcase(entry))
 
-        package_directory = os.path.join(entry, module_name)
+        package_directory = os.path.join(entry, module_name.asPath())
 
         # First, check for a package with an init file, that would be the
         # first choice.
@@ -387,7 +390,7 @@ def _findModuleInPath2(module_name, search_path):
                     )
                     found = True
 
-            if not found and python_version >= 300:
+            if not found and python_version >= 0x300:
                 candidates.add(
                     ImportScanFinding(
                         found_in=entry,
@@ -475,11 +478,11 @@ def getPackageSearchPath(package_name):
             _unpackPathElement(path_element) for path_element in sys.path
         ]
     elif "." in package_name:
-        parent_package_name, child_package_name = package_name.rsplit(".", 1)
+        parent_package_name, child_package_name = package_name.splitModuleBasename()
 
         result = []
         for element in getPackageSearchPath(parent_package_name):
-            package_dir = os.path.join(element, child_package_name)
+            package_dir = os.path.join(element, child_package_name.asPath())
 
             if isPackageDir(package_dir):
                 result.append(package_dir)
@@ -497,7 +500,7 @@ def getPackageSearchPath(package_name):
             return preloaded_path
 
         def getPackageDirCandidates(element):
-            yield os.path.join(element, package_name), False
+            yield os.path.join(element, package_name.asPath()), False
 
             # Hack for PyWin32. TODO: Move this "__path__" extensions to be
             # plug-in decisions.
@@ -563,7 +566,7 @@ def _findModule(module_name):
     if _debug_module_finding:
         print("_findModule: Enter to search '%s'." % (module_name,))
 
-    assert not module_name.endswith("."), module_name
+    assert module_name.getBasename(), module_name
 
     key = module_name
 

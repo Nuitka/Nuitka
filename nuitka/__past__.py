@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -48,10 +48,15 @@ else:
     unicode = str
 
 
-def iterItems(d):
-    try:
+if str is bytes:
+
+    def iterItems(d):
         return d.iteritems()
-    except AttributeError:
+
+
+else:
+
+    def iterItems(d):
         return d.items()
 
 

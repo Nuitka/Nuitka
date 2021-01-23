@@ -120,8 +120,8 @@ getPythonFlags                        *list*, value of ``--python-flag``
 getPythonPathForScons                 *str*, value of ``--python-for-scons``
 getShallFollowExtra                   *list*, items of ``--include-plugin-directory=``
 getShallFollowExtraFilePatterns       *list*, items of ``--include-plugin-files=``
-getShallFollowInNoCase                *list*, items of ``--nofollow-import-to=`` / ``--recurse-not-to=``
-getShallFollowModules                 *list*, items of ``--follow-import-to=`` / ``--recurse-to=``
+getShallFollowInNoCase                *list*, items of ``--nofollow-import-to=``
+getShallFollowModules                 *list*, items of ``--follow-import-to=``
 getUserPlugins                        *tuple*, items of ``--user-plugin=``
 isAllowedToReexecute                  *bool* = **not** ``--must-not-re-execute``
 isClang                               *bool* = ``--clang``
@@ -148,9 +148,9 @@ shallDisableConsoleWindow             *bool* = ``--win-disable-console``
 shallDumpBuiltTreeXML                 *bool* = ``--xml``
 shallExecuteImmediately               *bool* = ``--run``
 shallExplainImports                   *bool* = ``--explain-imports``
-shallFollowAllImports                 *bool* = ``--follow-imports`` / ``--recurse-all``
-shallFollowNoImports                  *bool* = ``--nofollow-imports`` / ``--recurse-none``
-shallFollowStandardLibrary            *bool* = ``--follow-stdlib`` / ``--recurse-stdlib``
+shallFollowAllImports                 *bool* = ``--follow-imports``
+shallFollowNoImports                  *bool* = ``--nofollow-imports``
+shallFollowStandardLibrary            *bool* = ``--follow-stdlib``
 shallFreezeAllStdlib                  *bool* = **not** shallFollowStandardLibrary
 shallListPlugins                      *bool* = ``--plugin-list``
 shallMakeModule                       *bool* = ``--module``

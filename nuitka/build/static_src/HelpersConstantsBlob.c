@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -15,7 +15,6 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-
 /** Providing access to the constants binary blob.
  *
  * There are multiple ways, the constants binary is accessed, and its
@@ -31,129 +30,178 @@
 #include "nuitka/prelude.h"
 #endif
 
-// Loading of constants binary at run time from Windows resource is preferred method
-// for that OS.
-#if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
+#include <stdint.h>
+
+#if defined(_NUITKA_CONSTANTS_FROM_LINKER)
+// Symbol as provided by the linker, different for C++ and C11 mode.
+#ifdef __cplusplus
+extern "C" const unsigned char constant_bin[];
+#else
+extern const unsigned char constant_bin[0];
+#endif
+#else
+// Symbol to be assigned locally.
 unsigned char const *constant_bin = NULL;
+#endif
 
-void loadConstantsResource() {
-#ifdef _NUITKA_EXE
-    // Using NULL as this indicates running program.
-    HMODULE handle = NULL;
+#if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
+extern unsigned const char *getConstantsBlobData();
+#endif
+
+// No Python runtime yet, need to do this manually.
+static uint32_t calcCRC32(unsigned char const *message, uint32_t size) {
+    uint32_t crc = 0xFFFFFFFF;
+
+    for (uint32_t i = 0; i < size; i++) {
+        unsigned int c = message[i];
+        crc = crc ^ c;
+
+        for (int j = 7; j >= 0; j--) {
+            uint32_t mask = ((crc & 1) != 0) ? 0xFFFFFFFF : 0;
+            crc = (crc >> 1) ^ (0xEDB88320 & mask);
+        }
+    }
+
+    return ~crc;
+}
+
+#if PYTHON_VERSION < 0x300
+static PyObject *int_cache = NULL;
+#endif
+
+static PyObject *long_cache = NULL;
+
+static PyObject *float_cache = NULL;
+
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_cache = NULL;
+#endif
+
+#if PYTHON_VERSION < 0x300
+static PyObject *unicode_cache = NULL;
+#endif
+
+static PyObject *tuple_cache = NULL;
+
+static PyObject *list_cache = NULL;
+
+static PyObject *dict_cache = NULL;
+
+static PyObject *set_cache = NULL;
+
+static PyObject *frozenset_cache = NULL;
+
+// Use our own non-random hash for some of the things to be fast. This is inspired
+// from the original Python2 hash func, but we are mostly using it on pointer values
+static Py_hash_t Nuitka_FastHashBytes(const void *value, Py_ssize_t size) {
+    if (unlikely(size == 0)) {
+        return 0;
+    }
+
+    unsigned char *w = (unsigned char *)value;
+    long x = *w << 7;
+
+    while (--size >= 0) {
+        x = (1000003 * x) ^ *w++;
+    }
+
+    x ^= size;
+
+    // The value -1 is reserved for errors.
+    if (x == -1) {
+        x = -2;
+    }
+
+    return x;
+}
+
+static Py_hash_t our_list_hash(PyListObject *list) {
+    return Nuitka_FastHashBytes(&list->ob_item[0], Py_SIZE(list) * sizeof(PyObject *));
+}
+
+static PyObject *our_list_richcompare(PyListObject *list1, PyListObject *list2, int op) {
+    assert(op == Py_EQ);
+
+    PyObject *result;
+
+    if (list1 == list2) {
+        result = Py_True;
+    } else if (Py_SIZE(list1) != Py_SIZE(list2)) {
+        result = Py_False;
+    } else if (memcmp(&list1->ob_item[0], &list2->ob_item[0], Py_SIZE(list1) * sizeof(PyObject *)) == 0) {
+        result = Py_True;
+    } else {
+        result = Py_False;
+    }
+
+    Py_INCREF(result);
+    return result;
+}
+
+static Py_hash_t our_tuple_hash(PyTupleObject *tuple) {
+    return Nuitka_FastHashBytes(&tuple->ob_item[0], Py_SIZE(tuple) * sizeof(PyObject *));
+}
+
+static PyObject *our_tuple_richcompare(PyTupleObject *tuple1, PyTupleObject *tuple2, int op) {
+    assert(op == Py_EQ);
+
+    PyObject *result;
+
+    if (tuple1 == tuple2) {
+        result = Py_True;
+    } else if (Py_SIZE(tuple1) != Py_SIZE(tuple2)) {
+        result = Py_False;
+    } else if (memcmp(&tuple1->ob_item[0], &tuple2->ob_item[0], Py_SIZE(tuple1) * sizeof(PyObject *)) == 0) {
+        result = Py_True;
+    } else {
+        result = Py_False;
+    }
+
+    Py_INCREF(result);
+    return result;
+}
+
+static Py_hash_t our_set_hash(PyObject *set) {
+    Py_hash_t result = 0;
+    PyObject *key;
+    Py_ssize_t pos = 0;
+
+#if PYTHON_VERSION < 0x300
+    // Same sized set, simply check if values are identical. Other reductions should
+    // make it identical, or else this won't have the effect intended.
+    while (_PySet_Next(set, &pos, &key)) {
+        result *= 1000003;
+        result ^= Nuitka_FastHashBytes(key, sizeof(PyObject *));
+    }
 #else
-    HMODULE handle = getDllModuleHandle();
-#endif
+    Py_hash_t unused;
 
-    constant_bin =
-        (const unsigned char *)LockResource(LoadResource(handle, FindResource(handle, MAKEINTRESOURCE(3), RT_RCDATA)));
-
-    assert(constant_bin);
-}
-#endif
-
-typedef bool (*value_compare)(PyObject *a, PyObject *b);
-
-struct ValueCache {
-    PyObject **values;
-    int used;
-    int size;
-    value_compare comparator;
-};
-
-#if PYTHON_VERSION < 300
-#define INT_START_SIZE (512)
-static struct ValueCache int_cache;
-#endif
-
-#define LONG_START_SIZE (512)
-static struct ValueCache long_cache;
-
-#define FLOAT_START_SIZE (512)
-static struct ValueCache float_cache;
-
-#if PYTHON_VERSION >= 300
-#define BYTES_START_SIZE (512)
-static struct ValueCache bytes_cache;
-#endif
-
-#if PYTHON_VERSION < 300
-#define UNICODE_START_SIZE (512)
-static struct ValueCache unicode_cache;
-#endif
-
-#define TUPLE_START_SIZE (64)
-static struct ValueCache tuple_cache;
-
-#define LIST_START_SIZE (64)
-static struct ValueCache list_cache;
-
-#define DICT_START_SIZE (64)
-static struct ValueCache dict_cache;
-
-#define SET_START_SIZE (64)
-static struct ValueCache set_cache;
-
-#define FROZENSET_START_SIZE (64)
-static struct ValueCache frozenset_cache;
-
-#if PYTHON_VERSION < 300
-static bool compareIntValues(PyIntObject *a, PyIntObject *b) { return a->ob_ival == b->ob_ival; }
-#endif
-
-static bool compareLongValues(PyObject *a, PyObject *b) { return PyObject_RichCompareBool(a, b, Py_EQ) == 1; }
-
-static bool compareFloatValues(PyFloatObject *a, PyFloatObject *b) {
-    // Avoid the C math when comparing, for it makes too many values equal or unequal.
-    return memcmp(&a->ob_fval, &b->ob_fval, sizeof(b->ob_fval)) == 0;
-}
-
-#if PYTHON_VERSION >= 300
-static bool compareBytesValues(PyBytesObject *a, PyBytesObject *b) {
-    if (Py_SIZE(a) != Py_SIZE(b)) {
-        return false;
+    while (_PySet_NextEntry(set, &pos, &key, &unused)) {
+        result *= 1000003;
+        result ^= Nuitka_FastHashBytes(key, sizeof(PyObject *));
     }
-
-    return memcmp(&a->ob_sval[0], &b->ob_sval[0], Py_SIZE(a)) == 0;
-}
-#else
-static bool compareUnicodeValues(PyUnicodeObject *a, PyUnicodeObject *b) {
-    if (Py_SIZE(a) != Py_SIZE(b)) {
-        return false;
-    }
-
-    return memcmp(&a->str[0], &b->str[0], Py_SIZE(a) * sizeof(Py_UNICODE)) == 0;
-}
 #endif
 
-static bool compareTupleValues(PyTupleObject *a, PyTupleObject *b) {
-    if (Py_SIZE(a) != Py_SIZE(b)) {
-        return false;
-    }
-
-    return memcmp(&a->ob_item[0], &b->ob_item[0], Py_SIZE(a) * sizeof(PyObject *)) == 0;
+    return result;
 }
 
-static bool compareListValues(PyListObject *a, PyTupleObject *b) {
-    if (Py_SIZE(a) != Py_SIZE(b)) {
-        return false;
-    }
+static PyObject *our_set_richcompare(PyObject *set1, PyObject *set2, int op) {
+    assert(op == Py_EQ);
 
-    return memcmp(&a->ob_item[0], &b->ob_item[0], Py_SIZE(a) * sizeof(PyObject *)) == 0;
-}
-
-static bool _compareSetItems(PyObject *a, PyObject *b) {
     Py_ssize_t pos1 = 0, pos2 = 0;
     PyObject *key1, *key2;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // Same sized set, simply check if values are identical. Other reductions should
     // make it identical, or else this won't have the effect intended.
-    while (_PySet_Next(a, &pos1, &key1)) {
-        int res = _PySet_Next(b, &pos2, &key2);
+    while (_PySet_Next(set1, &pos1, &key1)) {
+        int res = _PySet_Next(set2, &pos2, &key2);
         assert(res != 0);
 
         if (key1 != key2) {
-            return false;
+            PyObject *result = Py_False;
+            Py_INCREF(result);
+            return result;
         }
     }
 #else
@@ -161,66 +209,84 @@ static bool _compareSetItems(PyObject *a, PyObject *b) {
 
     // Same sized dictionary, simply check if values are identical. Other reductions should
     // make it identical, or else this won't have the effect intended.
-    while (_PySet_NextEntry(a, &pos1, &key1, &unused)) {
-        int res = _PySet_NextEntry(b, &pos2, &key2, &unused);
+    while (_PySet_NextEntry(set1, &pos1, &key1, &unused)) {
+        int res = _PySet_NextEntry(set2, &pos2, &key2, &unused);
         assert(res != 0);
 
         if (key1 != key2) {
-            return false;
+            PyObject *result = Py_False;
+            Py_INCREF(result);
+            return result;
         }
     }
 
 #endif
 
-    return true;
+    PyObject *result = Py_True;
+    Py_INCREF(result);
+    return result;
 }
 
-static bool compareFrozensetValues(PyObject *a, PyObject *b) {
-    if (Py_SIZE(a) != Py_SIZE(b)) {
-        return false;
+static PyObject *our_float_richcompare(PyFloatObject *a, PyFloatObject *b, int op) {
+    assert(op == Py_EQ);
+
+    PyObject *result;
+
+    // Avoid the C math when comparing, for it makes too many values equal or unequal.
+    if (memcmp(&a->ob_fval, &b->ob_fval, sizeof(b->ob_fval)) == 0) {
+        result = Py_True;
+    } else {
+        result = Py_False;
     }
 
-    // Shortcut for frozensets, they are known to be hashable.
-    if (HASH_VALUE_WITHOUT_ERROR(a) != HASH_VALUE_WITHOUT_ERROR(b)) {
-        return false;
-    }
-
-    return _compareSetItems(a, b);
+    Py_INCREF(result);
+    return result;
 }
 
-static bool compareSetValues(PyObject *a, PyObject *b) {
-    if (Py_SIZE(a) != Py_SIZE(b)) {
-        return false;
+static Py_hash_t our_dict_hash(PyObject *dict) {
+    Py_hash_t result = 0;
+
+    Py_ssize_t ppos = 0;
+    PyObject *key, *value;
+
+    while (PyDict_Next(dict, &ppos, &key, &value)) {
+        result *= 1000003;
+        result ^= Nuitka_FastHashBytes(key, sizeof(PyObject *));
+        result *= 1000003;
+        result ^= Nuitka_FastHashBytes(value, sizeof(PyObject *));
     }
 
-    return _compareSetItems(a, b);
+    return result;
 }
 
-static bool compareDictValues(PyObject *a, PyObject *b) {
+static PyObject *our_dict_richcompare(PyObject *a, PyObject *b, int op) {
+    PyObject *result;
+
     if (Py_SIZE(a) != Py_SIZE(b)) {
-        return false;
-    }
+        result = Py_False;
+    } else {
+        result = Py_True;
 
-    Py_ssize_t ppos1 = 0, ppos2 = 0;
-    PyObject *key1, *value1;
-    PyObject *key2, *value2;
+        Py_ssize_t ppos1 = 0, ppos2 = 0;
+        PyObject *key1, *value1;
+        PyObject *key2, *value2;
 
-    // Same sized dictionary, simply check if key and values are identical.
-    // Other reductions should make it identical, or else this won't have the
-    // effect intended.
-    while (PyDict_Next(a, &ppos1, &key1, &value1)) {
-        int res = PyDict_Next(b, &ppos2, &key2, &value2);
-        assert(res != 0);
+        // Same sized dictionary, simply check if key and values are identical.
+        // Other reductions should make it identical, or else this won't have the
+        // effect intended.
+        while (PyDict_Next(a, &ppos1, &key1, &value1)) {
+            int res = PyDict_Next(b, &ppos2, &key2, &value2);
+            assert(res != 0);
 
-        if (key1 != key2) {
-            return false;
+            if (key1 != key2 || value1 != value2) {
+                result = Py_False;
+                break;
+            }
         }
-        if (value1 != value2) {
-            return false;
-        }
     }
 
-    return true;
+    Py_INCREF(result);
+    return result;
 }
 
 static void initCaches(void) {
@@ -229,81 +295,73 @@ static void initCaches(void) {
         return;
     }
 
-#if PYTHON_VERSION < 300
-    int_cache.values = (PyObject **)malloc(sizeof(PyObject *) * INT_START_SIZE);
-    int_cache.used = 0;
-    int_cache.size = INT_START_SIZE;
-    int_cache.comparator = (value_compare)compareIntValues;
+#if PYTHON_VERSION < 0x300
+    int_cache = PyDict_New();
 #endif
 
-    long_cache.values = (PyObject **)malloc(sizeof(PyObject *) * LONG_START_SIZE);
-    long_cache.used = 0;
-    long_cache.size = LONG_START_SIZE;
-    long_cache.comparator = compareLongValues;
+    long_cache = PyDict_New();
 
-    float_cache.values = (PyObject **)malloc(sizeof(PyObject *) * FLOAT_START_SIZE);
-    float_cache.used = 0;
-    float_cache.size = FLOAT_START_SIZE;
-    float_cache.comparator = (value_compare)compareFloatValues;
+    float_cache = PyDict_New();
 
-#if PYTHON_VERSION >= 300
-    bytes_cache.values = (PyObject **)malloc(sizeof(PyObject *) * BYTES_START_SIZE);
-    bytes_cache.used = 0;
-    bytes_cache.size = BYTES_START_SIZE;
-    bytes_cache.comparator = (value_compare)compareBytesValues;
+#if PYTHON_VERSION >= 0x300
+    bytes_cache = PyDict_New();
 #endif
 
-#if PYTHON_VERSION < 300
-    unicode_cache.values = (PyObject **)malloc(sizeof(PyObject *) * UNICODE_START_SIZE);
-    unicode_cache.used = 0;
-    unicode_cache.size = UNICODE_START_SIZE;
-    unicode_cache.comparator = (value_compare)compareUnicodeValues;
+#if PYTHON_VERSION < 0x300
+    unicode_cache = PyDict_New();
 #endif
 
-    tuple_cache.values = (PyObject **)malloc(sizeof(PyObject *) * TUPLE_START_SIZE);
-    tuple_cache.used = 0;
-    tuple_cache.size = TUPLE_START_SIZE;
-    tuple_cache.comparator = (value_compare)compareTupleValues;
+    tuple_cache = PyDict_New();
 
-    list_cache.values = (PyObject **)malloc(sizeof(PyObject *) * LIST_START_SIZE);
-    list_cache.used = 0;
-    list_cache.size = LIST_START_SIZE;
-    list_cache.comparator = (value_compare)compareListValues;
+    list_cache = PyDict_New();
 
-    dict_cache.values = (PyObject **)malloc(sizeof(PyObject *) * DICT_START_SIZE);
-    dict_cache.used = 0;
-    dict_cache.size = DICT_START_SIZE;
-    dict_cache.comparator = compareDictValues;
+    dict_cache = PyDict_New();
 
-    set_cache.values = (PyObject **)malloc(sizeof(PyObject *) * SET_START_SIZE);
-    set_cache.used = 0;
-    set_cache.size = SET_START_SIZE;
-    set_cache.comparator = compareSetValues;
+    set_cache = PyDict_New();
 
-    frozenset_cache.values = (PyObject **)malloc(sizeof(PyObject *) * FROZENSET_START_SIZE);
-    frozenset_cache.used = 0;
-    frozenset_cache.size = FROZENSET_START_SIZE;
-    frozenset_cache.comparator = compareFrozensetValues;
+    frozenset_cache = PyDict_New();
 
     init_done = true;
 }
 
-static void insertToValueCache(struct ValueCache *cache, PyObject **value) {
-    for (int i = 0; i < cache->used; i++) {
-        if (cache->comparator(*value, cache->values[i])) {
-            Py_DECREF(*value);
+static void insertToDictCache(PyObject *dict, PyObject **value) {
+    PyObject *item = PyDict_GetItem(dict, *value);
 
-            *value = cache->values[i];
-            return;
-        }
+    if (item != NULL) {
+        *value = item;
+    } else {
+        PyDict_SetItem(dict, *value, *value);
     }
+}
 
-    if (cache->used == cache->size) {
-        cache->size = cache->size * 2;
-        cache->values = (PyObject **)realloc(cache->values, sizeof(PyObject *) * cache->size);
+static void insertToDictCacheForcedHash(PyObject *dict, PyObject **value, hashfunc tp_hash,
+                                        richcmpfunc tp_richcompare) {
+    hashfunc old_hash = Py_TYPE(*value)->tp_hash;
+    richcmpfunc old_richcmp = Py_TYPE(*value)->tp_richcompare;
+
+    // Hash is optional, e.g. for floats we can spare us doing our own hash,
+    // but we do equality
+    if (tp_hash != NULL) {
+        Py_TYPE(*value)->tp_hash = tp_hash;
     }
+    Py_TYPE(*value)->tp_richcompare = tp_richcompare;
 
-    cache->values[cache->used++] = *value;
+    insertToDictCache(dict, value);
+
+    Py_TYPE(*value)->tp_hash = old_hash;
+    Py_TYPE(*value)->tp_richcompare = old_richcmp;
+}
+
+static uint32_t unpackValueUint32(unsigned char const **data) {
+    uint32_t size;
+
+    memcpy(&size, *data, sizeof(size));
+
+    assert(sizeof(size) == 4);
+
+    *data += sizeof(size);
+
+    return size;
 }
 
 static int unpackValueInt(unsigned char const **data) {
@@ -375,7 +433,7 @@ static PyObject *_unpackAnonValue(unsigned char anon_index) {
     case 6:
         return (PyObject *)&PyCode_Type;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     case 7:
         return (PyObject *)&PyFile_Type;
     case 8:
@@ -410,9 +468,10 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         bool is_object;
 
         char c = *((char const *)data++);
-        // unsigned char const *data_old = data;
-        // printf("Type %c for %d of %d:\n", c, _i, count);
-
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+        unsigned char const *data_old = data;
+        PRINT_FORMAT("Type %c for %d of %d:\n", c, _i, count);
+#endif
         switch (c) {
         case 'T': {
             // TODO: Use fixed sizes
@@ -425,7 +484,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
                 data = _unpackBlobConstants(&PyTuple_GET_ITEM(t, 0), data, size);
             }
 
-            insertToValueCache(&tuple_cache, &t);
+            insertToDictCacheForcedHash(tuple_cache, &t, (hashfunc)our_tuple_hash, (richcmpfunc)our_tuple_richcompare);
 
             *output = t;
             is_object = true;
@@ -443,7 +502,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
                 data = _unpackBlobConstants(&PyList_GET_ITEM(l, 0), data, size);
             }
 
-            insertToValueCache(&list_cache, &l);
+            insertToDictCacheForcedHash(list_cache, &l, (hashfunc)our_list_hash, (richcmpfunc)our_list_richcompare);
 
             *output = l;
             is_object = true;
@@ -465,7 +524,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
                 PyDict_SetItem(d, items[0], items[1]);
             }
 
-            insertToValueCache(&dict_cache, &d);
+            insertToDictCacheForcedHash(dict_cache, &d, (hashfunc)our_dict_hash, (richcmpfunc)our_dict_richcompare);
 
             *output = d;
             is_object = true;
@@ -508,9 +567,10 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
             // sets are cached globally too.
             if (c == 'S') {
-                insertToValueCache(&set_cache, &s);
+                insertToDictCacheForcedHash(set_cache, &s, (hashfunc)our_set_hash, (richcmpfunc)our_set_richcompare);
             } else {
-                insertToValueCache(&frozenset_cache, &s);
+                insertToDictCacheForcedHash(frozenset_cache, &s, (hashfunc)our_set_hash,
+                                            (richcmpfunc)our_set_richcompare);
             }
 
             *output = s;
@@ -518,14 +578,14 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
             break;
         }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         case 'i': {
             // TODO: Use fixed sizes for small values, e.g. byte sized.
             long value = unpackValueLong(&data);
 
             PyObject *i = PyInt_FromLong(value);
 
-            insertToValueCache(&int_cache, &i);
+            insertToDictCache(int_cache, &i);
 
             *output = i;
             is_object = true;
@@ -539,7 +599,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
             PyObject *l = PyLong_FromLong(value);
 
-            insertToValueCache(&long_cache, &l);
+            insertToDictCache(long_cache, &l);
 
             *output = l;
             is_object = true;
@@ -551,7 +611,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
             PyObject *l = PyLong_FromLongLong(value);
 
-            insertToValueCache(&long_cache, &l);
+            insertToDictCache(long_cache, &l);
 
             *output = l;
             is_object = true;
@@ -584,7 +644,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
                 Py_DECREF(neg);
             }
 
-            insertToValueCache(&long_cache, &result);
+            insertToDictCache(long_cache, &result);
 
             *output = result;
             is_object = true;
@@ -597,7 +657,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             PyObject *f = PyFloat_FromDouble(value);
 
             // Floats are cached globally too.
-            insertToValueCache(&float_cache, &f);
+            insertToDictCacheForcedHash(float_cache, &f, NULL, (richcmpfunc)our_float_richcompare);
 
             *output = f;
             is_object = true;
@@ -613,22 +673,35 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
             break;
         }
-#if PYTHON_VERSION < 300
+        case 'J': {
+            PyObject *parts[2];
+
+            // Complex via float is done for ones that are 0, nan, float.
+            data = _unpackBlobConstants(&parts[0], data, 2);
+
+            *output = BUILTIN_COMPLEX2(parts[0], parts[1]);
+            is_object = true;
+
+            break;
+        }
+#if PYTHON_VERSION < 0x300
         case 'a':
 #endif
         case 'c': {
             // Python2 str, potentially attributes, or Python3 bytes, zero terminated.
 
-            // TODO: Make this zero copy for non-interned with fake objects?
-            PyObject *b = PyBytes_FromString((const char *)data);
-            data += PyBytes_GET_SIZE(b) + 1;
+            size_t size = strlen((const char *)data);
 
-#if PYTHON_VERSION < 300
+            // TODO: Make this zero copy for non-interned with fake objects?
+            PyObject *b = PyBytes_FromStringAndSize((const char *)data, size);
+            data += size + 1;
+
+#if PYTHON_VERSION < 0x300
             if (c == 'a') {
                 PyString_InternInPlace(&b);
             }
 #else
-            insertToValueCache(&bytes_cache, &b);
+            insertToDictCache(bytes_cache, &b);
 #endif
 
             *output = b;
@@ -642,10 +715,10 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             PyObject *b = PyBytes_FromStringAndSize((const char *)data, 1);
             data += 1;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             PyString_InternInPlace(&b);
 #else
-            insertToValueCache(&bytes_cache, &b);
+            insertToDictCache(bytes_cache, &b);
 #endif
 
             *output = b;
@@ -659,10 +732,10 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             PyObject *u = PyUnicode_FromStringAndSize((const char *)data, 1);
             data += 1;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
             PyUnicode_InternInPlace(&u);
 #else
-            insertToValueCache(&unicode_cache, &u);
+            insertToDictCache(unicode_cache, &u);
 #endif
 
             *output = u;
@@ -682,8 +755,8 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             PyObject *b = PyBytes_FromStringAndSize((const char *)data, size);
             data += size;
 
-#if PYTHON_VERSION >= 300
-            insertToValueCache(&bytes_cache, &b);
+#if PYTHON_VERSION >= 0x300
+            insertToDictCache(bytes_cache, &b);
 #endif
 
             *output = b;
@@ -706,24 +779,24 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
             break;
         }
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         case 'a': // Python3 attributes
 #endif
         case 'u': { // Python2 unicode, Python3 str, zero terminated.
             size_t size = strlen((const char *)data);
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);
 #else
             PyObject *u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
 #endif
             data += size + 1;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
             if (c == 'a') {
                 PyUnicode_InternInPlace(&u);
             }
 #else
-            insertToValueCache(&unicode_cache, &u);
+            insertToDictCache(unicode_cache, &u);
 #endif
 
             *output = u;
@@ -734,15 +807,15 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         case 'v': {
             int size = unpackValueInt(&data);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);
 #else
             PyObject *u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
 #endif
             data += size;
 
-#if PYTHON_VERSION < 300
-            insertToValueCache(&unicode_cache, &u);
+#if PYTHON_VERSION < 0x300
+            insertToDictCache(unicode_cache, &u);
 #endif
 
             *output = u;
@@ -782,7 +855,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         }
         case ';': {
             // (x)range objects
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             int start = unpackValueInt(&data);
             int stop = unpackValueInt(&data);
             int step = unpackValueInt(&data);
@@ -856,6 +929,21 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
                 break;
             }
             case 1: {
+                static PyObject *_const_float_minus_0_0 = NULL;
+
+                if (_const_float_minus_0_0 == NULL) {
+                    _const_float_minus_0_0 = PyFloat_FromDouble(0.0);
+
+                    // Older Python3 has variable signs from C, so be explicit about it.
+                    PyFloat_AS_DOUBLE(_const_float_minus_0_0) =
+                        copysign(PyFloat_AS_DOUBLE(_const_float_minus_0_0), -1.0);
+                }
+                z = _const_float_minus_0_0;
+
+                break;
+            }
+
+            case 2: {
                 static PyObject *_const_float_plus_nan = NULL;
 
                 if (_const_float_plus_nan == NULL) {
@@ -868,7 +956,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
                 break;
             }
-            case 2: {
+            case 3: {
                 static PyObject *_const_float_minus_nan = NULL;
 
                 if (_const_float_minus_nan == NULL) {
@@ -882,26 +970,26 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
                 break;
             }
-            case 3: {
+            case 4: {
                 static PyObject *_const_float_plus_inf = NULL;
 
                 if (_const_float_plus_inf == NULL) {
                     _const_float_plus_inf = PyFloat_FromDouble(Py_HUGE_VAL);
 
-                    // Older Python3 has variable signs for NaN from C, so be explicit about it.
+                    // Older Python3 has variable signs from C, so be explicit about it.
                     PyFloat_AS_DOUBLE(_const_float_plus_inf) = copysign(PyFloat_AS_DOUBLE(_const_float_plus_inf), 1.0);
                 }
                 z = _const_float_plus_inf;
 
                 break;
             }
-            case 4: {
+            case 5: {
                 static PyObject *_const_float_minus_inf = NULL;
 
                 if (_const_float_minus_inf == NULL) {
                     _const_float_minus_inf = PyFloat_FromDouble(Py_HUGE_VAL);
 
-                    // Older Python3 has variable signs for NaN from C, so be explicit about it.
+                    // Older Python3 has variable signs from C, so be explicit about it.
                     PyFloat_AS_DOUBLE(_const_float_minus_inf) =
                         copysign(PyFloat_AS_DOUBLE(_const_float_minus_inf), -1.0);
                 }
@@ -916,7 +1004,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             }
 
             // Floats are cached globally too.
-            insertToValueCache(&float_cache, &z);
+            insertToDictCacheForcedHash(float_cache, &z, NULL, (richcmpfunc)our_float_richcompare);
 
             *output = z;
             is_object = true;
@@ -934,6 +1022,10 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
             break;
         }
+        case '.': {
+            PRINT_FORMAT("Missing values %d\n", count - _i);
+            NUITKA_CANNOT_GET_HERE("Corrupt constants blob");
+        }
         default:
             PRINT_FORMAT("Missing decoding for %d\n", (int)c);
             NUITKA_CANNOT_GET_HERE("Corrupt constants blob");
@@ -941,7 +1033,9 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
         CHECK_OBJECT(*output);
 
-        // printf("Size for %c was %d\n", c, data - data_old);
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+        printf("Size for %c was %d\n", c, data - data_old);
+#endif
 
         // Discourage in-place operations from modifying these. These
         // might be put into containers, therefore take 2 refs to be
@@ -965,17 +1059,68 @@ static void unpackBlobConstants(PyObject **output, unsigned char const *data, in
 }
 
 void loadConstantsBlob(PyObject **output, char const *name, int count) {
-    initCaches();
+
+    static bool init_done = false;
+
+    if (init_done == false) {
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+        PRINT_STRING("loadConstantsBlob one time init\n");
+#endif
+
+#if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
+        constant_bin = getConstantsBlobData();
+#elif defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
+#ifdef _NUITKA_EXE
+        // Using NULL as this indicates running program.
+        HMODULE handle = NULL;
+#else
+        HMODULE handle = getDllModuleHandle();
+#endif
+
+        constant_bin = (const unsigned char *)LockResource(
+            LoadResource(handle, FindResource(handle, MAKEINTRESOURCE(3), RT_RCDATA)));
+
+        assert(constant_bin);
+#endif
+        uint32_t hash = unpackValueUint32(&constant_bin);
+        uint32_t size = unpackValueUint32(&constant_bin);
+
+        if (calcCRC32(constant_bin, size) != hash) {
+            puts("Error, corrupted constants object");
+            abort();
+        }
+
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+        PRINT_FORMAT("Checked CRC32 to match hash %u size %u\n", hash, size);
+#endif
+
+        init_done = true;
+    }
+
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+    PRINT_FORMAT("Loading blob named '%s' with %d values\n", name, count);
+#endif
+    // Python 3.9 or higher cannot create dictionary before calling init so avoid it.
+    if (strcmp(name, ".bytecode") != 0) {
+        initCaches();
+    }
 
     unsigned char const *w = constant_bin;
 
     for (;;) {
         int match = strcmp(name, (char const *)w);
         w += strlen((char const *)w) + 1;
-        int size = *((int *)w);
-        w += sizeof(size);
+
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+        PRINT_FORMAT("offset of blob size %d\n", w - constant_bin);
+#endif
+
+        uint32_t size = unpackValueUint32(&w);
 
         if (match == 0) {
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+            PRINT_FORMAT("Loading blob named '%s' with %d values and size %d\n", name, count, size);
+#endif
             break;
         }
 

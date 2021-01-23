@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -96,7 +96,7 @@ from .TreeHelpers import (
 
 
 def orderArgs(*args):
-    if python_version >= 350:
+    if python_version >= 0x350:
 
         def weight(arg):
             result = args.index(arg)
@@ -131,9 +131,9 @@ def getCallableNameDescBody():
     #
     # if ininstance( called, (FunctionType, MethodType, BuiltinFunctionType) ):
     #     return called.__name__
-    # elif python_version < 3 and isinstance(called, ClassType):
+    # elif python_version < 0x3 and isinstance(called, ClassType):
     #     return called_type.__name__ + " constructor"
-    # elif python_version < 3 and isinstance(called, InstanceType):
+    # elif python_version < 0x3 and isinstance(called, InstanceType):
     #     return called_type.__name__ + " instance"
     # else:
     #     return called_type.__name__ + " object"
@@ -153,7 +153,7 @@ def getCallableNameDescBody():
 
     called_variable = result.getVariableForAssignment(variable_name="called")
 
-    if python_version < 390:
+    if python_version < 0x390:
         function_name = makeBinaryOperationNode(
             operator="Add",
             left=_makeNameAttributeLookup(
@@ -187,8 +187,8 @@ def getCallableNameDescBody():
         )
     )
 
-    if python_version >= 390:
-        result.setBody(functions_case)
+    if python_version >= 0x390:
+        result.setChild("body", functions_case)
 
         return result
 
@@ -211,7 +211,7 @@ def getCallableNameDescBody():
         source_ref=internal_source_ref,
     )
 
-    if python_version < 300:
+    if python_version < 0x300:
         instance_case = StatementReturn(
             expression=makeBinaryOperationNode(
                 operator="Add",
@@ -281,12 +281,13 @@ def getCallableNameDescBody():
             source_ref=internal_source_ref,
         )
 
-    if python_version < 300:
+    if python_version < 0x300:
         normal_cases = ("function", "builtin_function_or_method", "instancemethod")
     else:
         normal_cases = ("function", "builtin_function_or_method")
 
-    result.setBody(
+    result.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             statement=makeStatementConditional(
                 condition=ExpressionBuiltinIsinstance(
@@ -309,7 +310,7 @@ def getCallableNameDescBody():
                 no_branch=no_branch,
                 source_ref=internal_source_ref,
             )
-        )
+        ),
     )
 
     return result
@@ -373,7 +374,7 @@ def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
 
 
 def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
-    if python_version >= 350:
+    if python_version >= 0x350:
         non_tuple_code = makeStatementConditional(
             condition=ExpressionConditionalOr(
                 left=ExpressionAttributeCheck(
@@ -523,7 +524,7 @@ def _makeIteratingLoopStatement(tmp_iter_variable, tmp_item_variable, statements
         *statements
     )
 
-    return StatementLoop(body=loop_body, source_ref=internal_source_ref)
+    return StatementLoop(loop_body=loop_body, source_ref=internal_source_ref)
 
 
 def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_variable):
@@ -536,7 +537,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
 
     loop_body = []
 
-    if python_version >= 380:
+    if python_version >= 0x380:
         loop_body.append(
             makeStatementConditional(
                 condition=ExpressionComparisonIn(
@@ -558,7 +559,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
 
     loop_body.append(
         StatementAssignmentSubscript(
-            expression=ExpressionTempVariableRef(
+            subscribed=ExpressionTempVariableRef(
                 variable=tmp_dict_variable, source_ref=internal_source_ref
             ),
             subscript=ExpressionTempVariableRef(
@@ -668,7 +669,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
 
 
 def _makeRaiseNoStringItem(called_variable):
-    if python_version < 390:
+    if python_version < 0x390:
         raise_arg = makeBinaryOperationNode(
             operator="Mod",
             left=makeConstantRefNode(
@@ -813,7 +814,7 @@ def _makeStarDictArgumentMergeToKwStatement(
             source_ref=internal_source_ref,
         ),
         StatementAssignmentSubscript(
-            expression=ExpressionVariableRef(
+            subscribed=ExpressionVariableRef(
                 variable=kw_variable, source_ref=internal_source_ref
             ),
             subscript=ExpressionTempVariableRef(
@@ -926,7 +927,7 @@ def _makeStarDictArgumentMergeToKwStatement(
             source_ref=internal_source_ref,
         ),
         StatementAssignmentSubscript(
-            expression=ExpressionVariableRef(
+            subscribed=ExpressionVariableRef(
                 variable=kw_variable, source_ref=internal_source_ref
             ),
             subscript=ExpressionTempVariableRef(
@@ -965,7 +966,9 @@ def _makeStarDictArgumentMergeToKwStatement(
                         ExpressionVariableRef(
                             variable=star_dict_variable, source_ref=internal_source_ref
                         ),
-                        attribute_name="iteritems" if python_version < 300 else "items",
+                        attribute_name="iteritems"
+                        if python_version < 0x300
+                        else "items",
                     ),
                     internal_source_ref,
                 ),
@@ -1070,7 +1073,7 @@ def getFunctionCallHelperStarList():
         ),
     )
 
-    result.setBody(body)
+    result.setChild("body", body)
 
     return result
 
@@ -1139,7 +1142,7 @@ def getFunctionCallHelperKeywordsStarList():
         ),
     )
 
-    result.setBody(body)
+    result.setChild("body", body)
 
     return result
 
@@ -1213,7 +1216,7 @@ def getFunctionCallHelperPosStarList():
         ),
     )
 
-    result.setBody(body)
+    result.setChild("body", body)
 
     return result
 
@@ -1290,7 +1293,7 @@ def getFunctionCallHelperPosKeywordsStarList():
         ),
     )
 
-    result.setBody(body)
+    result.setChild("body", body)
 
     return result
 
@@ -1369,7 +1372,7 @@ def getFunctionCallHelperStarDict():
         ),
     )
 
-    result.setBody(body)
+    result.setChild("body", body)
 
     return result
 
@@ -1453,7 +1456,7 @@ def getFunctionCallHelperPosStarDict():
         ),
     )
 
-    result.setBody(body)
+    result.setChild("body", body)
 
     return result
 
@@ -1561,7 +1564,7 @@ def getFunctionCallHelperKeywordsStarDict():
         ),
     )
 
-    result.setBody(body)
+    result.setChild("body", body)
 
     return result
 
@@ -1673,7 +1676,7 @@ def getFunctionCallHelperPosKeywordsStarDict():
         ),
     )
 
-    result.setBody(body)
+    result.setChild("body", body)
 
     return result
 
@@ -1768,7 +1771,7 @@ def getFunctionCallHelperStarListStarDict():
 
     body = makeStatementsSequenceFromStatements(*statements)
 
-    result.setBody(body)
+    result.setChild("body", body)
 
     return result
 
@@ -1812,7 +1815,7 @@ def getFunctionCallHelperPosStarListStarDict():
         star_arg_dict_variable=star_arg_dict_variable,
     )
 
-    if python_version >= 360:
+    if python_version >= 0x360:
         statements.reverse()
 
     statements.append(
@@ -1842,7 +1845,7 @@ def getFunctionCallHelperPosStarListStarDict():
 
     body = makeStatementsSequenceFromStatements(*statements)
 
-    result.setBody(body)
+    result.setChild("body", body)
 
     return result
 
@@ -1906,7 +1909,7 @@ def getFunctionCallHelperKeywordsStarListStarDict():
 
     body = makeStatementsSequenceFromStatements(*statements)
 
-    result.setBody(body)
+    result.setChild("body", body)
 
     return result
 
@@ -1954,7 +1957,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
         star_arg_dict_variable=star_arg_dict_variable,
     )
 
-    if python_version >= 360:
+    if python_version >= 0x360:
         statements.reverse()
 
     statements.append(
@@ -1984,7 +1987,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
 
     body = makeStatementsSequenceFromStatements(*statements)
 
-    result.setBody(body)
+    result.setChild("body", body)
 
     return result
 
@@ -2152,15 +2155,15 @@ def getFunctionCallHelperDictionaryUnpacking():
         ),
     )
 
-    result.setBody(
-        makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
-                provider=result,
-                tried=tried,
-                final=final,
-                source_ref=internal_source_ref,
-            )
+    body = makeStatementsSequenceFromStatement(
+        makeTryFinallyStatement(
+            provider=result,
+            tried=tried,
+            final=final,
+            source_ref=internal_source_ref,
         )
     )
+
+    result.setChild("body", body)
 
     return result

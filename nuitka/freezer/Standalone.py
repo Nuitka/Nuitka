@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -60,14 +60,17 @@ from nuitka.utils.FileOperations import (
     getExternalUsePath,
     getFileContentByLine,
     getFileContents,
+    getFileList,
     getSubDirectories,
     haveSameFileContents,
     isPathBelow,
     listDir,
     makePath,
     putTextFileContents,
+    resolveShellPatternToFilenames,
     withFileLock,
 )
+from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
@@ -81,6 +84,7 @@ from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import getArchitecture
 
 from .DependsExe import getDependsExePath
+from .IncludedDataFiles import IncludedDataFile
 
 
 def loadCodeObjectData(precompiled_filename):
@@ -225,7 +229,7 @@ def _detectImports(command, user_provided, technical):
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     # Print statements for stuff to show, the modules loaded.
-    if python_version >= 300:
+    if python_version >= 0x300:
         command += (
             '\nprint("\\n".join(sorted("import " + module.__name__ + " # sourcefile " + '
             'module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and '
@@ -252,7 +256,7 @@ def _detectImports(command, user_provided, technical):
     tmp_file, tmp_filename = tempfile.mkstemp()
 
     try:
-        if python_version >= 300:
+        if python_version >= 0x300:
             command = command.encode("utf8")
         os.write(tmp_file, command)
         os.close(tmp_file)
@@ -272,7 +276,7 @@ def _detectImports(command, user_provided, technical):
         general.warning("There is a problem with detecting imports, CPython said:")
         for line in stderr.split(b"\n"):
             printError(line)
-        sys.exit("Error, please report the issue with above output.")
+        general.sysexit("Error, please report the issue with above output.")
 
     result = []
 
@@ -287,7 +291,7 @@ def _detectImports(command, user_provided, technical):
             module_name = parts[0].split(b" ", 2)[1]
             origin = parts[1].split()[0]
 
-            if python_version >= 300:
+            if python_version >= 0x300:
                 module_name = module_name.decode("utf-8")
 
             module_name = ModuleName(module_name)
@@ -296,7 +300,7 @@ def _detectImports(command, user_provided, technical):
                 # This is a ".pyc" file that was imported, even before we have a
                 # chance to do anything, we need to preserve it.
                 filename = parts[1][len(b"precompiled from ") :]
-                if python_version >= 300:
+                if python_version >= 0x300:
                     filename = filename.decode("utf-8")
 
                 # Do not leave standard library when freezing.
@@ -306,7 +310,7 @@ def _detectImports(command, user_provided, technical):
                 detections.append((module_name, 3, "precompiled", filename))
             elif origin == b"sourcefile":
                 filename = parts[1][len(b"sourcefile ") :]
-                if python_version >= 300:
+                if python_version >= 0x300:
                     filename = filename.decode("utf-8")
 
                 # Do not leave standard library when freezing.
@@ -315,11 +319,13 @@ def _detectImports(command, user_provided, technical):
 
                 if filename.endswith(".py"):
                     detections.append((module_name, 2, "sourcefile", filename))
+                elif filename.endswith(".pyc"):
+                    detections.append((module_name, 3, "precompiled", filename))
                 elif not filename.endswith("<frozen>"):
                     # Python3 started lying in "__name__" for the "_decimal"
                     # calls itself "decimal", which then is wrong and also
                     # clashes with "decimal" proper
-                    if python_version >= 300:
+                    if python_version >= 0x300:
                         if module_name == "decimal":
                             module_name = ModuleName("_decimal")
 
@@ -328,7 +334,7 @@ def _detectImports(command, user_provided, technical):
                 # Shared library in early load, happens on RPM based systems and
                 # or self compiled Python installations.
                 filename = parts[1][len(b"dynamically loaded from ") :]
-                if python_version >= 300:
+                if python_version >= 0x300:
                     filename = filename.decode("utf-8")
 
                 # Do not leave standard library when freezing.
@@ -432,13 +438,13 @@ def scanStandardLibraryPath(stdlib_dir):
             if "test_utils.py" in filenames:
                 filenames.remove("test_utils.py")
 
-        if python_version >= 340 and Utils.isWin32Windows():
+        if python_version >= 0x340 and Utils.isWin32Windows():
             if import_path == "multiprocessing":
                 filenames.remove("popen_fork.py")
                 filenames.remove("popen_forkserver.py")
                 filenames.remove("popen_spawn_posix.py")
 
-        if python_version >= 300 and Utils.isPosixWindows():
+        if python_version >= 0x300 and Utils.isPosixWindows():
             if import_path == "curses":
                 filenames.remove("has_key.py")
 
@@ -454,7 +460,7 @@ def scanStandardLibraryPath(stdlib_dir):
                 else:
                     yield import_path + "." + module_name
 
-        if python_version >= 300:
+        if python_version >= 0x300:
             if "__pycache__" in dirs:
                 dirs.remove("__pycache__")
 
@@ -485,7 +491,7 @@ def _detectEarlyImports():
     import_code += ";import locale;"
 
     # For Python3 we patch inspect without knowing if it is used.
-    if python_version >= 300:
+    if python_version >= 0x300:
         import_code += "import inspect;"
 
     result = _detectImports(command=import_code, user_provided=False, technical=True)
@@ -622,7 +628,7 @@ def _detectBinaryPathDLLsPosix(dll_filename):
             if not filename:
                 continue
 
-            if python_version >= 300:
+            if python_version >= 0x300:
                 filename = filename.decode("utf-8")
 
             # Sometimes might use stuff not found or supplied by ldd itself.
@@ -718,7 +724,7 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename, keep_unresolved):
                 stop = True
                 break
         if not stop:
-            if python_version >= 300:
+            if python_version >= 0x300:
                 filename = filename.decode("utf-8")
 
             # print("adding", filename)
@@ -774,7 +780,7 @@ def _detectBinaryRPathsMacOS(original_dir, binary_filename):
     for i, o in enumerate(lines):
         if o.endswith(b"cmd LC_RPATH"):
             line = lines[i + 2]
-            if python_version >= 300:
+            if python_version >= 0x300:
                 line = line.decode("utf-8")
 
             line = line.split("path ")[1]
@@ -1044,7 +1050,7 @@ SxS
     depends_exe_process.wait()
 
     if not os.path.exists(output_filename):
-        sys.exit("Error, depends.exe failed to product output.")
+        inclusion_logger.sysexit("Error, depends.exe failed to product output.")
 
     # Opening the result under lock, so it is not getting locked by new processes.
 
@@ -1349,7 +1355,7 @@ def getSharedLibraryRPATH(filename):
     retcode = process.poll()
 
     if retcode != 0:
-        sys.exit(
+        inclusion_logger.sysexit(
             "Error reading shared library path for %s, tool said %r"
             % (filename, stderr)
         )
@@ -1376,7 +1382,7 @@ def removeSharedLibraryRPATH(filename):
             )
 
         if not Utils.isExecutableCommand("chrpath"):
-            sys.exit(
+            inclusion_logger.sysexit(
                 """\
 Error, needs 'chrpath' on your system, due to 'RPATH' settings in used shared
 libraries that need to be removed."""
@@ -1557,13 +1563,69 @@ different from
         for _original_path, dll_filename in dll_map:
             removeSharedLibraryRPATH(os.path.join(dist_dir, dll_filename))
     elif Utils.isWin32Windows():
-        if python_version < 300:
+        if python_version < 0x300:
             # For Win32, we might have to remove SXS paths
             for standalone_entry_point in standalone_entry_points[1:]:
                 removeSxsFromDLL(standalone_entry_point.dest_path)
 
             for _original_path, dll_filename in dll_map:
                 removeSxsFromDLL(os.path.join(dist_dir, dll_filename))
+
+
+def _handleDataFile(dist_dir, tracer, included_datafile):
+    """Handle a data file."""
+    if isinstance(included_datafile, IncludedDataFile):
+        if included_datafile.kind == "empty_dirs":
+            tracer.info(
+                "Included empty directories %s due to %s."
+                % (
+                    ",".join(included_datafile.dest_path),
+                    included_datafile.reason,
+                )
+            )
+
+            for sub_dir in included_datafile.dest_path:
+                makePath(os.path.join(dist_dir, sub_dir))
+        elif included_datafile.kind == "datafile":
+            dest_path = os.path.join(dist_dir, included_datafile.dest_path)
+
+            tracer.info(
+                "Included data file %r due to %s."
+                % (
+                    included_datafile.dest_path,
+                    included_datafile.reason,
+                )
+            )
+
+            makePath(os.path.dirname(dest_path))
+            shutil.copyfile(included_datafile.source_path, dest_path)
+        else:
+            assert False, included_datafile
+    else:
+        # TODO: Goal is have this unused.
+        source_desc, target_filename = included_datafile
+
+        target_filename = os.path.join(dist_dir, target_filename)
+        assert isPathBelow(dist_dir, target_filename)
+
+        makePath(os.path.dirname(target_filename))
+
+        if inspect.isfunction(source_desc):
+            content = source_desc(target_filename)
+
+            if content is not None:  # support creation of empty directories
+                with open(
+                    target_filename, "wb" if type(content) is bytes else "w"
+                ) as output:
+                    output.write(content)
+        else:
+            # TODO: Goal is have this unused.
+            target_filename = os.path.join(dist_dir, target_filename)
+            assert isPathBelow(dist_dir, target_filename)
+
+            makePath(os.path.dirname(target_filename))
+
+            shutil.copy2(source_desc, target_filename)
 
 
 def copyDataFiles(dist_dir):
@@ -1577,25 +1639,71 @@ def copyDataFiles(dist_dir):
         necessary handling if provided like this.
     """
 
+    # Many details to deal with, pylint: disable=too-many-locals
+
+    for pattern, dest, arg in Options.getShallIncludeDataFiles():
+        filenames = resolveShellPatternToFilenames(pattern)
+
+        if not filenames:
+            inclusion_logger.warning("No match data file to be included: %r" % pattern)
+
+        for filename in filenames:
+            file_reason = "specified data file %r on command line" % arg
+
+            rel_path = dest
+
+            if rel_path.endswith(("/", os.path.sep)):
+                rel_path = os.path.join(rel_path, os.path.basename(filename))
+
+            _handleDataFile(
+                dist_dir,
+                inclusion_logger,
+                makeIncludedDataFile(filename, rel_path, file_reason),
+            )
+
     # Cyclic dependency
     from nuitka import ModuleRegistry
 
     for module in ModuleRegistry.getDoneModules():
-        for _plugin_name, (source_desc, target_filename) in Plugins.considerDataFiles(
-            module
-        ):
-            target_filename = os.path.join(dist_dir, target_filename)
-            assert isPathBelow(dist_dir, target_filename)
+        for plugin, included_datafile in Plugins.considerDataFiles(module):
+            _handleDataFile(
+                dist_dir=dist_dir, tracer=plugin, included_datafile=included_datafile
+            )
 
-            makePath(os.path.dirname(target_filename))
+    for module in ModuleRegistry.getDoneModules():
+        if module.isCompiledPythonPackage() or module.isUncompiledPythonPackage():
+            package_name = module.getFullName()
 
-            if inspect.isfunction(source_desc):
-                content = source_desc(target_filename)
+            match, reason = package_name.matchesToShellPatterns(
+                patterns=Options.getShallIncludePackageData()
+            )
 
-                if content is not None:  # support creation of empty directories
-                    with open(
-                        target_filename, "wb" if type(content) is bytes else "w"
-                    ) as output:
-                        output.write(content)
-            else:
-                shutil.copy2(source_desc, target_filename)
+            if match:
+                package_directory = module.getCompileTimeDirectory()
+
+                pkg_filenames = getFileList(
+                    package_directory,
+                    ignore_dirs=("__pycache__",),
+                    ignore_suffixes=(".py", ".pyw", ".pyc", ".pyo", ".dll")
+                    + getSharedLibrarySuffixes(),
+                )
+
+                if pkg_filenames:
+                    file_reason = "package '%s' %s" % (package_name, reason)
+
+                    for pkg_filename in pkg_filenames:
+                        rel_path = os.path.join(
+                            package_name.asPath(),
+                            os.path.relpath(pkg_filename, package_directory),
+                        )
+
+                        _handleDataFile(
+                            dist_dir,
+                            inclusion_logger,
+                            makeIncludedDataFile(pkg_filename, rel_path, file_reason),
+                        )
+
+                # assert False, (module.getCompileTimeDirectory(), pkg_files)
+
+
+from .IncludedDataFiles import makeIncludedDataFile

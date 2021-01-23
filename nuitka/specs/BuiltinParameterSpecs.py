@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,10 +21,10 @@
 from __future__ import print_function
 
 import math
-import sys
 
 from nuitka.__past__ import builtins
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import optimization_logger
 
 from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 
@@ -106,8 +106,10 @@ class BuiltinParameterSpec(ParameterSpec):
 
             if given_dict_star_args:
                 for given_dict_star_arg in reversed(given_dict_star_args):
-                    arg_name = given_dict_star_arg.getKey().getCompileTimeConstant()
-                    arg_value = given_dict_star_arg.getValue().getCompileTimeConstant()
+                    arg_name = given_dict_star_arg.subnode_key.getCompileTimeConstant()
+                    arg_value = (
+                        given_dict_star_arg.subnode_value.getCompileTimeConstant()
+                    )
 
                     arg_dict[arg_name] = arg_value
 
@@ -121,7 +123,7 @@ class BuiltinParameterSpec(ParameterSpec):
                 del arg_dict[arg_name]
 
         except Exception as e:
-            sys.exit("Fatal problem: %r" % e)
+            optimization_logger.sysexit_exception("Fatal optimization problem", e)
 
         if given_list_star_args:
             return self.builtin(
@@ -175,11 +177,7 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
                     value.getCompileTimeConstant() for value in given_list_star_arg
                 ]
         except Exception as e:
-            print("Fatal error: ", end=" ", file=sys.stderr)
-            import traceback
-
-            traceback.print_exc()
-            sys.exit(repr(e))
+            optimization_logger.sysexit_exception("matching call", e)
 
         return self.builtin(*arg_list)
 
@@ -225,7 +223,7 @@ def makeBuiltinExceptionParameterSpec(exception_name):
     Returns:
         ParameterSpec that can be used to evaluate calls of these exceptions.
     """
-    if exception_name == "ImportError" and python_version >= 300:
+    if exception_name == "ImportError" and python_version >= 0x300:
         # This is currently the only known built-in exception that does it, but let's
         # be general, as surely that list is going to expand only.
 
@@ -257,7 +255,7 @@ class BuiltinParameterSpecPosArgs(BuiltinParameterSpec):
         )
 
 
-if python_version < 370:
+if python_version < 0x370:
     builtin_int_spec = BuiltinParameterSpec("int", ("x", "base"), default_count=2)
 else:
     builtin_int_spec = BuiltinParameterSpecPosArgs(
@@ -266,7 +264,7 @@ else:
 
 
 # These builtins are only available for Python2
-if python_version < 300:
+if python_version < 0x300:
     builtin_long_spec = BuiltinParameterSpec("long", ("x", "base"), default_count=2)
     builtin_execfile_spec = BuiltinParameterSpecNoKeywords(
         "execfile", ("filename", "globals", "locals"), default_count=2
@@ -277,18 +275,18 @@ builtin_unicode_p2_spec = BuiltinParameterSpec(
 )
 
 builtin_xrange_spec = BuiltinParameterSpecNoKeywords(
-    "xrange" if python_version < 300 else "range",
+    "xrange" if python_version < 0x300 else "range",
     ("start", "stop", "step"),
     default_count=2,
 )
 
 
-if python_version < 370:
+if python_version < 0x370:
     builtin_bool_spec = BuiltinParameterSpec("bool", ("x",), default_count=1)
 else:
     builtin_bool_spec = BuiltinParameterSpecNoKeywords("bool", ("x",), default_count=1)
 
-if python_version < 370:
+if python_version < 0x370:
     builtin_float_spec = BuiltinParameterSpec("float", ("x",), default_count=1)
 else:
     builtin_float_spec = BuiltinParameterSpecNoKeywords(
@@ -300,7 +298,7 @@ builtin_complex_spec = BuiltinParameterSpec(
 )
 
 # This built-in have variable parameters for Python2/3
-if python_version < 300:
+if python_version < 0x300:
     builtin_str_spec = BuiltinParameterSpec("str", ("object",), default_count=1)
 else:
     builtin_str_spec = BuiltinParameterSpec(
@@ -315,7 +313,7 @@ builtin_any_spec = BuiltinParameterSpecNoKeywords("any", ("object",), default_co
 builtin_abs_spec = BuiltinParameterSpecNoKeywords("abs", ("object",), default_count=0)
 builtin_all_spec = BuiltinParameterSpecNoKeywords("all", ("object",), default_count=0)
 
-if python_version < 370:
+if python_version < 0x370:
     builtin_tuple_spec = BuiltinParameterSpec("tuple", ("sequence",), default_count=1)
     builtin_list_spec = BuiltinParameterSpec("list", ("sequence",), default_count=1)
 else:
@@ -335,7 +333,7 @@ builtin_import_spec = BuiltinParameterSpec(
     "__import__", ("name", "globals", "locals", "fromlist", "level"), default_count=4
 )
 
-if python_version < 300:
+if python_version < 0x300:
     builtin_open_spec = BuiltinParameterSpec(
         "open", ("name", "mode", "buffering"), default_count=3
     )
@@ -371,7 +369,7 @@ builtin_globals_spec = BuiltinParameterSpecNoKeywords("globals", (), default_cou
 builtin_eval_spec = BuiltinParameterSpecNoKeywords(
     "eval", ("source", "globals", "locals"), 2
 )
-if python_version < 300:
+if python_version < 0x300:
     builtin_compile_spec = BuiltinParameterSpec(
         "compile",
         ("source", "filename", "mode", "flags", "dont_inherit"),
@@ -383,7 +381,7 @@ else:
         ("source", "filename", "mode", "flags", "dont_inherit", "optimize"),
         default_count=3,
     )
-if python_version >= 300:
+if python_version >= 0x300:
     builtin_exec_spec = BuiltinParameterSpecNoKeywords(
         "exec", ("source", "globals", "locals"), default_count=2
     )
@@ -406,7 +404,7 @@ builtin_type3_spec = BuiltinParameterSpecNoKeywords(
 )
 
 builtin_super_spec = BuiltinParameterSpecNoKeywords(
-    "super", ("type", "object"), default_count=1 if python_version < 300 else 2
+    "super", ("type", "object"), default_count=1 if python_version < 0x300 else 2
 )
 
 builtin_hasattr_spec = BuiltinParameterSpecNoKeywords(
@@ -462,7 +460,7 @@ builtin_format_spec = BuiltinParameterSpecNoKeywords(
     "format", ("value", "format_spec"), default_count=1
 )
 
-if python_version < 380:
+if python_version < 0x380:
     builtin_sum_spec = BuiltinParameterSpecNoKeywords(
         "sum", ("sequence", "start"), default_count=1
     )
@@ -478,7 +476,7 @@ builtin_classmethod_spec = BuiltinParameterSpecNoKeywords(
     "classmethod", ("function",), default_count=0
 )
 
-if python_version < 300:
+if python_version < 0x300:
     builtin_sorted_spec = BuiltinParameterSpecNoKeywords(
         "sorted", ("iterable", "cmp", "key", "reverse"), default_count=2
     )
@@ -495,7 +493,7 @@ builtin_reversed_spec = BuiltinParameterSpecNoKeywords(
     "reversed", ("object",), default_count=0
 )
 
-if python_version < 300:
+if python_version < 0x300:
     builtin_enumerate_spec = BuiltinParameterSpec(
         "enumerate", ("sequence", "start"), default_count=1
     )
@@ -575,7 +573,7 @@ builtin_range_spec = BuiltinRangeSpec(
     "range", ("start", "stop", "step"), default_count=2
 )
 
-if python_version >= 300:
+if python_version >= 0x300:
     builtin_ascii_spec = BuiltinParameterSpecNoKeywords(
         "ascii", ("object",), default_count=0
     )
@@ -590,7 +588,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
     # Many cases to deal with, pylint: disable=too-many-branches
 
     try:
-        kw = node.getCallKw()
+        kw = node.subnode_kwargs
 
         # TODO: Could check for too many / too few, even if they are unknown, we
         # might raise that error, but that need not be optimized immediately.
@@ -605,7 +603,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
         else:
             pairs = ()
 
-        args = node.getCallArgs()
+        args = node.subnode_args
 
         if args:
             if not args.canPredictIterationValues():
@@ -662,7 +660,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
     # Using list reference for passing the arguments without names,
     result = builtin_class(*args_list, source_ref=node.getSourceReference())
 
-    if python_version < 380:
+    if python_version < 0x380:
         result.setCompatibleSourceReference(node.getCompatibleSourceReference())
 
     return result

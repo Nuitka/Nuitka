@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -35,16 +35,16 @@
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static inline PyObject *SLOT_nb_multiply_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -81,12 +81,12 @@ static inline PyObject *SLOT_nb_multiply_OBJECT_INT_INT(PyObject *operand1, PyOb
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -98,13 +98,13 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_INT(PyObject *operand1, PyObject *ope
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -163,7 +163,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_INT(PyObject *operand1, Py
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
         coercion c =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
@@ -262,12 +262,12 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -326,7 +326,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_OBJECT(PyObject *operand1, Py
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
         coercion c = PyInt_Type.tp_as_number->nb_coerce;
 
@@ -424,16 +424,16 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static inline nuitka_bool SLOT_nb_multiply_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -476,12 +476,12 @@ static inline nuitka_bool SLOT_nb_multiply_NBOOL_INT_INT(PyObject *operand1, PyO
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -493,13 +493,13 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_INT_INT(PyObject *operand1, PyObject *op
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -576,7 +576,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_INT(PyObject *operand1, P
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
         coercion c =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
@@ -699,12 +699,12 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject 
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -781,7 +781,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_OBJECT(PyObject *operand1, P
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
         coercion c = PyInt_Type.tp_as_number->nb_coerce;
 
@@ -912,12 +912,12 @@ static PyObject *SLOT_nb_multiply_OBJECT_LONG_LONG(PyObject *operand1, PyObject 
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -933,7 +933,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_LONG(PyObject *operand1, P
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -992,7 +992,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_LONG(PyObject *operand1, P
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
         coercion c =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
@@ -1082,7 +1082,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_LONG(PyObject *operand1, P
         return result;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'long'", type1->tp_name);
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'int'", type1->tp_name);
@@ -1098,7 +1098,7 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject 
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -1157,7 +1157,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_OBJECT(PyObject *operand1, P
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
         coercion c = PyLong_Type.tp_as_number->nb_coerce;
 
@@ -1246,7 +1246,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_OBJECT(PyObject *operand1, P
         return result;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and '%s'", type2->tp_name);
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and '%s'", type2->tp_name);
@@ -1273,12 +1273,12 @@ static nuitka_bool SLOT_nb_multiply_NBOOL_LONG_LONG(PyObject *operand1, PyObject
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1294,7 +1294,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_LONG(PyObject *operand1, 
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1371,7 +1371,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_LONG(PyObject *operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
         coercion c =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
@@ -1485,7 +1485,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_LONG(PyObject *operand1, 
         return r;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'long'", type1->tp_name);
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'int'", type1->tp_name);
@@ -1501,7 +1501,7 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -1578,7 +1578,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_OBJECT(PyObject *operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
         coercion c = PyLong_Type.tp_as_number->nb_coerce;
 
@@ -1691,7 +1691,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_OBJECT(PyObject *operand1, 
         return r;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and '%s'", type2->tp_name);
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and '%s'", type2->tp_name);
@@ -1706,12 +1706,12 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject
 static PyObject *SLOT_nb_multiply_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1725,12 +1725,12 @@ static PyObject *SLOT_nb_multiply_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObjec
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1746,7 +1746,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_FLOAT(PyObject *operand1, 
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -1805,7 +1805,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_FLOAT(PyObject *operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
         coercion c =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
@@ -1907,7 +1907,7 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -1966,7 +1966,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_OBJECT(PyObject *operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
         coercion c = PyFloat_Type.tp_as_number->nb_coerce;
 
@@ -2066,12 +2066,12 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject
 static nuitka_bool SLOT_nb_multiply_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -2085,12 +2085,12 @@ static nuitka_bool SLOT_nb_multiply_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObje
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -2106,7 +2106,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_FLOAT(PyObject *operand1,
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -2183,7 +2183,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_FLOAT(PyObject *operand1,
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
         coercion c =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
@@ -2309,7 +2309,7 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObjec
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -2386,7 +2386,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_OBJECT(PyObject *operand1,
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
         coercion c = PyFloat_Type.tp_as_number->nb_coerce;
 
@@ -2551,11 +2551,11 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_CLONG_CLONG(long operand1, long operand2)
     return _BINARY_OPERATION_MULT_OBJECT_CLONG_CLONG(operand1, operand2);
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static inline PyObject *SLOT_nb_multiply_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
 
@@ -2594,7 +2594,7 @@ static inline PyObject *SLOT_nb_multiply_OBJECT_INT_CLONG(PyObject *operand1, lo
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
 
@@ -2606,12 +2606,12 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_CLONG(PyObject *operand1, long operan
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static inline PyObject *SLOT_nb_multiply_OBJECT_CLONG_INT(long operand1, PyObject *operand2) {
 
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -2651,7 +2651,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_CLONG_INT(long operand1, PyObject
 
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -2663,11 +2663,11 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_CLONG_INT(long operand1, PyObject *operan
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static PyObject *SLOT_sq_repeat_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -2706,7 +2706,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_STR(PyObject *operand1, Py
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyString_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -2763,7 +2763,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_STR(PyObject *operand1, Py
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 0)
+#if PYTHON_VERSION < 0x300 && (1 || 0)
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
         coercion c =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
@@ -2855,12 +2855,12 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -2917,7 +2917,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_OBJECT(PyObject *operand1, Py
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (0 || 1)
+#if PYTHON_VERSION < 0x300 && (0 || 1)
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
         coercion c = NULL;
 
@@ -3000,16 +3000,16 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static PyObject *SLOT_sq_repeat_OBJECT_STR_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -3034,12 +3034,12 @@ static PyObject *SLOT_sq_repeat_OBJECT_STR_INT(PyObject *operand1, PyObject *ope
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyString_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -3097,7 +3097,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_STR(PyObject *operand1, PyObj
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 0)
+#if PYTHON_VERSION < 0x300 && (1 || 0)
     if (!1 || !1) {
         coercion c = PyInt_Type.tp_as_number->nb_coerce;
 
@@ -3188,17 +3188,17 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_STR(PyObject *operand1, PyObject *ope
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "STR" corresponds to Python2 'str' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -3254,7 +3254,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_INT(PyObject *operand1, PyObj
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (0 || 1)
+#if PYTHON_VERSION < 0x300 && (0 || 1)
     if (!1 || !1) {
         coercion c = NULL;
 
@@ -3337,16 +3337,16 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_STR_INT(PyObject *operand1, PyObject *ope
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static PyObject *SLOT_sq_repeat_OBJECT_STR_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -3377,12 +3377,12 @@ static PyObject *SLOT_sq_repeat_OBJECT_STR_LONG(PyObject *operand1, PyObject *op
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyString_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -3440,7 +3440,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_STR(PyObject *operand1, PyOb
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 0)
+#if PYTHON_VERSION < 0x300 && (1 || 0)
     if (!1 || !1) {
         coercion c = PyLong_Type.tp_as_number->nb_coerce;
 
@@ -3522,7 +3522,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_STR(PyObject *operand1, PyOb
     }
     return SLOT_sq_repeat_OBJECT_STR_LONG(operand2, operand1);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'str'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'str'");
@@ -3535,17 +3535,17 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LONG_STR(PyObject *operand1, PyObject *op
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "STR" corresponds to Python2 'str' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -3601,7 +3601,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_LONG(PyObject *operand1, PyOb
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (0 || 1)
+#if PYTHON_VERSION < 0x300 && (0 || 1)
     if (!1 || !1) {
         coercion c = NULL;
 
@@ -3675,7 +3675,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_LONG(PyObject *operand1, PyOb
 
     return SLOT_sq_repeat_OBJECT_STR_LONG(operand1, operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'str' and 'long'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'str' and 'int'");
@@ -3783,7 +3783,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_UNICODE(PyObject *operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 0)
+#if PYTHON_VERSION < 0x300 && (1 || 0)
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
         coercion c =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
@@ -3866,7 +3866,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_UNICODE(PyObject *operand1
     }
     return SLOT_sq_repeat_OBJECT_UNICODE_OBJECT(operand2, operand1);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'unicode'", type1->tp_name);
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'str'", type1->tp_name);
@@ -3937,7 +3937,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_OBJECT(PyObject *operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (0 || 1)
+#if PYTHON_VERSION < 0x300 && (0 || 1)
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
         coercion c = NULL;
 
@@ -4011,7 +4011,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_OBJECT(PyObject *operand1
 
     return SLOT_sq_repeat_OBJECT_UNICODE_OBJECT(operand1, operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'unicode' and '%s'", type2->tp_name);
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'str' and '%s'", type2->tp_name);
@@ -4023,14 +4023,14 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObje
     return _BINARY_OPERATION_MULT_OBJECT_UNICODE_OBJECT(operand1, operand2);
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static PyObject *SLOT_sq_repeat_OBJECT_UNICODE_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyUnicode_CheckExact(operand1));
     assert(NEW_STYLE_NUMBER(operand1));
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -4055,7 +4055,7 @@ static PyObject *SLOT_sq_repeat_OBJECT_UNICODE_INT(PyObject *operand1, PyObject 
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -4116,7 +4116,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_UNICODE(PyObject *operand1, P
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 0)
+#if PYTHON_VERSION < 0x300 && (1 || 0)
     if (!1 || !1) {
         coercion c = PyInt_Type.tp_as_number->nb_coerce;
 
@@ -4198,7 +4198,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_UNICODE(PyObject *operand1, P
     }
     return SLOT_sq_repeat_OBJECT_UNICODE_INT(operand2, operand1);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'unicode'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'str'");
@@ -4211,7 +4211,7 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_UNICODE(PyObject *operand1, PyObject 
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -4219,7 +4219,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_INT(PyObject *operand1, P
     assert(NEW_STYLE_NUMBER(operand1));
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -4275,7 +4275,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_INT(PyObject *operand1, P
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (0 || 1)
+#if PYTHON_VERSION < 0x300 && (0 || 1)
     if (!1 || !1) {
         coercion c = NULL;
 
@@ -4349,7 +4349,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_INT(PyObject *operand1, P
 
     return SLOT_sq_repeat_OBJECT_UNICODE_INT(operand1, operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'unicode' and 'int'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'str' and 'int'");
@@ -4368,7 +4368,7 @@ static PyObject *SLOT_sq_repeat_OBJECT_UNICODE_LONG(PyObject *operand1, PyObject
     assert(NEW_STYLE_NUMBER(operand1));
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -4400,7 +4400,7 @@ static PyObject *SLOT_sq_repeat_OBJECT_UNICODE_LONG(PyObject *operand1, PyObject
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -4461,7 +4461,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_UNICODE(PyObject *operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 0)
+#if PYTHON_VERSION < 0x300 && (1 || 0)
     if (!1 || !1) {
         coercion c = PyLong_Type.tp_as_number->nb_coerce;
 
@@ -4543,7 +4543,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_UNICODE(PyObject *operand1, 
     }
     return SLOT_sq_repeat_OBJECT_UNICODE_LONG(operand2, operand1);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'unicode'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'str'");
@@ -4563,7 +4563,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_LONG(PyObject *operand1, 
     assert(NEW_STYLE_NUMBER(operand1));
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -4619,7 +4619,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_LONG(PyObject *operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (0 || 1)
+#if PYTHON_VERSION < 0x300 && (0 || 1)
     if (!1 || !1) {
         coercion c = NULL;
 
@@ -4693,7 +4693,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_LONG(PyObject *operand1, 
 
     return SLOT_sq_repeat_OBJECT_UNICODE_LONG(operand1, operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'unicode' and 'long'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'str' and 'int'");
@@ -4708,7 +4708,7 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_UNICODE_LONG(PyObject *operand1, PyObject
 static PyObject *SLOT_sq_repeat_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -4747,7 +4747,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_TUPLE(PyObject *operand1, 
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -4804,7 +4804,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_TUPLE(PyObject *operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 0)
+#if PYTHON_VERSION < 0x300 && (1 || 0)
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
         coercion c =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
@@ -4899,7 +4899,7 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -4956,7 +4956,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_OBJECT(PyObject *operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (0 || 1)
+#if PYTHON_VERSION < 0x300 && (0 || 1)
     if (!0 || !NEW_STYLE_NUMBER_TYPE(type2)) {
         coercion c = NULL;
 
@@ -5038,16 +5038,16 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject
     return _BINARY_OPERATION_MULT_OBJECT_TUPLE_OBJECT(operand1, operand2);
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static PyObject *SLOT_sq_repeat_OBJECT_TUPLE_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -5072,12 +5072,12 @@ static PyObject *SLOT_sq_repeat_OBJECT_TUPLE_INT(PyObject *operand1, PyObject *o
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -5135,7 +5135,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_TUPLE(PyObject *operand1, PyO
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 0)
+#if PYTHON_VERSION < 0x300 && (1 || 0)
     if (!1 || !0) {
         coercion c = PyInt_Type.tp_as_number->nb_coerce;
 
@@ -5226,17 +5226,17 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_TUPLE(PyObject *operand1, PyObject *o
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "TUPLE" corresponds to Python 'tuple' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -5292,7 +5292,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_INT(PyObject *operand1, PyO
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (0 || 1)
+#if PYTHON_VERSION < 0x300 && (0 || 1)
     if (!0 || !1) {
         coercion c = NULL;
 
@@ -5378,12 +5378,12 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_TUPLE_INT(PyObject *operand1, PyObject *o
 static PyObject *SLOT_sq_repeat_OBJECT_TUPLE_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -5414,12 +5414,12 @@ static PyObject *SLOT_sq_repeat_OBJECT_TUPLE_LONG(PyObject *operand1, PyObject *
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -5477,7 +5477,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_TUPLE(PyObject *operand1, Py
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 0)
+#if PYTHON_VERSION < 0x300 && (1 || 0)
     if (!1 || !0) {
         coercion c = PyLong_Type.tp_as_number->nb_coerce;
 
@@ -5559,7 +5559,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_TUPLE(PyObject *operand1, Py
     }
     return SLOT_sq_repeat_OBJECT_TUPLE_LONG(operand2, operand1);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'tuple'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'tuple'");
@@ -5575,12 +5575,12 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LONG_TUPLE(PyObject *operand1, PyObject *
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -5636,7 +5636,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_LONG(PyObject *operand1, Py
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (0 || 1)
+#if PYTHON_VERSION < 0x300 && (0 || 1)
     if (!0 || !1) {
         coercion c = NULL;
 
@@ -5710,7 +5710,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_LONG(PyObject *operand1, Py
 
     return SLOT_sq_repeat_OBJECT_TUPLE_LONG(operand1, operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'tuple' and 'long'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'tuple' and 'int'");
@@ -5725,7 +5725,7 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_TUPLE_LONG(PyObject *operand1, PyObject *
 static PyObject *SLOT_sq_repeat_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -5764,7 +5764,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_LIST(PyObject *operand1, P
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyList_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -5821,7 +5821,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_LIST(PyObject *operand1, P
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 0)
+#if PYTHON_VERSION < 0x300 && (1 || 0)
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
         coercion c =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
@@ -5916,7 +5916,7 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject 
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -5973,7 +5973,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_OBJECT(PyObject *operand1, P
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (0 || 1)
+#if PYTHON_VERSION < 0x300 && (0 || 1)
     if (!0 || !NEW_STYLE_NUMBER_TYPE(type2)) {
         coercion c = NULL;
 
@@ -6055,16 +6055,16 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_MULT_OBJECT_LIST_OBJECT(operand1, operand2);
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static PyObject *SLOT_sq_repeat_OBJECT_LIST_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -6089,12 +6089,12 @@ static PyObject *SLOT_sq_repeat_OBJECT_LIST_INT(PyObject *operand1, PyObject *op
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyList_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -6152,7 +6152,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_LIST(PyObject *operand1, PyOb
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 0)
+#if PYTHON_VERSION < 0x300 && (1 || 0)
     if (!1 || !0) {
         coercion c = PyInt_Type.tp_as_number->nb_coerce;
 
@@ -6243,17 +6243,17 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_LIST(PyObject *operand1, PyObject *op
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "LIST" corresponds to Python 'list' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -6309,7 +6309,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_INT(PyObject *operand1, PyOb
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (0 || 1)
+#if PYTHON_VERSION < 0x300 && (0 || 1)
     if (!0 || !1) {
         coercion c = NULL;
 
@@ -6395,12 +6395,12 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LIST_INT(PyObject *operand1, PyObject *op
 static PyObject *SLOT_sq_repeat_OBJECT_LIST_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -6431,12 +6431,12 @@ static PyObject *SLOT_sq_repeat_OBJECT_LIST_LONG(PyObject *operand1, PyObject *o
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyList_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -6494,7 +6494,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_LIST(PyObject *operand1, PyO
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 0)
+#if PYTHON_VERSION < 0x300 && (1 || 0)
     if (!1 || !0) {
         coercion c = PyLong_Type.tp_as_number->nb_coerce;
 
@@ -6576,7 +6576,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_LIST(PyObject *operand1, PyO
     }
     return SLOT_sq_repeat_OBJECT_LIST_LONG(operand2, operand1);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'list'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'list'");
@@ -6592,12 +6592,12 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LONG_LIST(PyObject *operand1, PyObject *o
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -6653,7 +6653,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_LONG(PyObject *operand1, PyO
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (0 || 1)
+#if PYTHON_VERSION < 0x300 && (0 || 1)
     if (!0 || !1) {
         coercion c = NULL;
 
@@ -6727,7 +6727,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_LONG(PyObject *operand1, PyO
 
     return SLOT_sq_repeat_OBJECT_LIST_LONG(operand1, operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'list' and 'long'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'list' and 'int'");
@@ -6739,11 +6739,11 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LIST_LONG(PyObject *operand1, PyObject *o
     return _BINARY_OPERATION_MULT_OBJECT_LIST_LONG(operand1, operand2);
 }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 static PyObject *SLOT_sq_repeat_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -6782,7 +6782,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_BYTES(PyObject *operand1, 
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyBytes_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -6839,7 +6839,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_BYTES(PyObject *operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 0)
+#if PYTHON_VERSION < 0x300 && (1 || 0)
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
         coercion c =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
@@ -6931,12 +6931,12 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject
 }
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
@@ -6993,7 +6993,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_OBJECT(PyObject *operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (0 || 1)
+#if PYTHON_VERSION < 0x300 && (0 || 1)
     if (!0 || !NEW_STYLE_NUMBER_TYPE(type2)) {
         coercion c = NULL;
 
@@ -7076,16 +7076,16 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject
 }
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 static PyObject *SLOT_sq_repeat_OBJECT_BYTES_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -7116,12 +7116,12 @@ static PyObject *SLOT_sq_repeat_OBJECT_BYTES_LONG(PyObject *operand1, PyObject *
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_BYTES(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyBytes_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -7179,7 +7179,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_BYTES(PyObject *operand1, Py
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 0)
+#if PYTHON_VERSION < 0x300 && (1 || 0)
     if (!1 || !0) {
         coercion c = PyLong_Type.tp_as_number->nb_coerce;
 
@@ -7261,7 +7261,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_BYTES(PyObject *operand1, Py
     }
     return SLOT_sq_repeat_OBJECT_BYTES_LONG(operand2, operand1);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'bytes'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'bytes'");
@@ -7274,17 +7274,17 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LONG_BYTES(PyObject *operand1, PyObject *
 }
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -7340,7 +7340,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_LONG(PyObject *operand1, Py
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (0 || 1)
+#if PYTHON_VERSION < 0x300 && (0 || 1)
     if (!0 || !1) {
         coercion c = NULL;
 
@@ -7414,7 +7414,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_LONG(PyObject *operand1, Py
 
     return SLOT_sq_repeat_OBJECT_BYTES_LONG(operand1, operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'bytes' and 'long'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'bytes' and 'int'");
@@ -7427,17 +7427,17 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_BYTES_LONG(PyObject *operand1, PyObject *
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -7495,7 +7495,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_LONG(PyObject *operand1, PyOb
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !1) {
         coercion c = PyInt_Type.tp_as_number->nb_coerce;
 
@@ -7584,7 +7584,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_LONG(PyObject *operand1, PyOb
         return result;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'long'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'int'");
@@ -7597,17 +7597,17 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_LONG(PyObject *operand1, PyObject *op
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -7683,7 +7683,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_LONG(PyObject *operand1, PyO
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !1) {
         coercion c = PyInt_Type.tp_as_number->nb_coerce;
 
@@ -7796,7 +7796,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_LONG(PyObject *operand1, PyO
         return r;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'long'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'int'");
@@ -7809,17 +7809,17 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_INT_LONG(PyObject *operand1, PyObject *o
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -7877,7 +7877,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_FLOAT(PyObject *operand1, PyO
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !1) {
         coercion c = PyInt_Type.tp_as_number->nb_coerce;
 
@@ -7975,17 +7975,17 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *o
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -8061,7 +8061,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_FLOAT(PyObject *operand1, Py
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !1) {
         coercion c = PyInt_Type.tp_as_number->nb_coerce;
 
@@ -8183,17 +8183,17 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -8251,7 +8251,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_INT(PyObject *operand1, PyOb
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !1) {
         coercion c = PyLong_Type.tp_as_number->nb_coerce;
 
@@ -8340,7 +8340,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_INT(PyObject *operand1, PyOb
         return result;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'int'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'int'");
@@ -8353,17 +8353,17 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LONG_INT(PyObject *operand1, PyObject *op
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -8439,7 +8439,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_INT(PyObject *operand1, PyO
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !1) {
         coercion c = PyLong_Type.tp_as_number->nb_coerce;
 
@@ -8552,7 +8552,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_INT(PyObject *operand1, PyO
         return r;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'int'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'int'");
@@ -8569,12 +8569,12 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_LONG_INT(PyObject *operand1, PyObject *o
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -8632,7 +8632,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_FLOAT(PyObject *operand1, Py
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !1) {
         coercion c = PyLong_Type.tp_as_number->nb_coerce;
 
@@ -8721,7 +8721,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_FLOAT(PyObject *operand1, Py
         return result;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'float'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'float'");
@@ -8737,12 +8737,12 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -8818,7 +8818,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_FLOAT(PyObject *operand1, P
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !1) {
         coercion c = PyLong_Type.tp_as_number->nb_coerce;
 
@@ -8931,7 +8931,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_FLOAT(PyObject *operand1, P
         return r;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'float'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'float'");
@@ -8943,17 +8943,17 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_LONG_FLOAT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_MULT_NBOOL_LONG_FLOAT(operand1, operand2);
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -9011,7 +9011,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_INT(PyObject *operand1, PyO
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !1) {
         coercion c = PyFloat_Type.tp_as_number->nb_coerce;
 
@@ -9109,17 +9109,17 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *o
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -9195,7 +9195,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_INT(PyObject *operand1, Py
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !1) {
         coercion c = PyFloat_Type.tp_as_number->nb_coerce;
 
@@ -9321,12 +9321,12 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -9384,7 +9384,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_LONG(PyObject *operand1, Py
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !1) {
         coercion c = PyFloat_Type.tp_as_number->nb_coerce;
 
@@ -9473,7 +9473,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_LONG(PyObject *operand1, Py
         return result;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'long'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'int'");
@@ -9489,12 +9489,12 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *
 static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -9570,7 +9570,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_LONG(PyObject *operand1, P
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!1 || !1) {
         coercion c = PyFloat_Type.tp_as_number->nb_coerce;
 
@@ -9683,7 +9683,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_LONG(PyObject *operand1, P
         return r;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'long'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'int'");
@@ -9700,19 +9700,19 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_OBJECT(PyObject *operand1,
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
 
         PyObject *result;
 
         CHECK_OBJECT(operand1);
         assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(operand1));
 #endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -9816,7 +9816,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_OBJECT(PyObject *operand1,
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !NEW_STYLE_NUMBER_TYPE(type2)) {
         coercion c =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
@@ -9919,19 +9919,19 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_OBJECT(PyObject *operand1
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
 
         nuitka_bool result;
 
         CHECK_OBJECT(operand1);
         assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(operand1));
 #endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -10054,7 +10054,7 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_OBJECT(PyObject *operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 300 && (1 || 1)
+#if PYTHON_VERSION < 0x300 && (1 || 1)
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !NEW_STYLE_NUMBER_TYPE(type2)) {
         coercion c =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;

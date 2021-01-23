@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -333,7 +333,7 @@ def getConstantsDefinitionCode():
         sys_prefix = constant_accessor.getConstantCode(sys.prefix)
         sys_exec_prefix = constant_accessor.getConstantCode(sys.exec_prefix)
 
-        if python_version >= 300:
+        if python_version >= 0x300:
             sys_base_prefix = constant_accessor.getConstantCode(sys.base_prefix)
             sys_base_exec_prefix = constant_accessor.getConstantCode(
                 sys.base_exec_prefix

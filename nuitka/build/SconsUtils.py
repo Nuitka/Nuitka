@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,8 +27,11 @@ import signal
 import subprocess
 import sys
 
-from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
-from nuitka.Tracing import scons_logger
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    basestring,
+    unicode,
+)
+from nuitka.Tracing import scons_details_logger, scons_logger
 
 
 def initScons():
@@ -77,7 +80,43 @@ def getArgumentList(option_name, default=None):
     else:
         value = scons_arguments.get(option_name, default)
 
-    return value.split(",")
+    if value:
+        return value.split(",")
+    else:
+        return []
+
+
+def createEnvironment(tools, mingw_mode, msvc_version, target_arch):
+    from SCons.Script import Environment  # pylint: disable=I0021,import-error
+
+    args = {}
+
+    # If we are on Windows, and MinGW is not enforced, lets see if we can
+    # find "cl.exe", and if we do, disable automatic scan.
+    if (
+        os.name == "nt"
+        and not mingw_mode
+        and (
+            getExecutablePath("cl", env=None) is not None
+            or getExecutablePath("gcc", env=None) is not None
+        )
+    ):
+        args["MSVC_USE_SCRIPT"] = False
+
+    return Environment(
+        # We want the outside environment to be passed through.
+        ENV=os.environ,
+        # Extra tools configuration for scons.
+        tools=tools,
+        # The shared libraries should not be named "lib...", because CPython
+        # requires the filename "module_name.so" to load it.
+        SHLIBPREFIX="",
+        # Under windows, specify the target architecture is needed for Scons
+        # to pick up MSVC.
+        TARGET_ARCH=target_arch,
+        MSVC_VERSION=msvc_version,
+        **args
+    )
 
 
 def decodeData(data):
@@ -165,17 +204,20 @@ def addToPATH(env, dirname, prefix):
     setEnvironmentVariable(env, "PATH", os.pathsep.join(path_value))
 
 
-def writeSconsReport(source_dir, env, gcc_mode, clang_mode, msvc_mode):
+def writeSconsReport(source_dir, env, gcc_mode, clang_mode, msvc_mode, clangcl_mode):
     with open(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
         # We are friends to get at this debug info, pylint: disable=protected-access
         for key, value in sorted(env._dict.items()):
-            if type(value) is not str:
+            if type(value) is list and all(isinstance(v, basestring) for v in value):
+                value = repr(value)
+
+            if not isinstance(value, basestring):
                 continue
 
             if key.startswith(("_", "CONFIGURE")):
                 continue
 
-            if key in ("MSVSSCONS", "BUILD_DIR"):
+            if key in ("MSVSSCONS", "BUILD_DIR", "IDLSUFFIXES", "DSUFFIXES"):
                 continue
 
             print(key + "=" + value, file=report_file)
@@ -183,6 +225,7 @@ def writeSconsReport(source_dir, env, gcc_mode, clang_mode, msvc_mode):
         print("gcc_mode=%s" % gcc_mode, file=report_file)
         print("clang_mode=%s" % clang_mode, file=report_file)
         print("msvc_mode=%s" % msvc_mode, file=report_file)
+        print("clangcl_mode=%s" % clangcl_mode, file=report_file)
 
 
 scons_reports = {}
@@ -209,12 +252,13 @@ def getSconsReportValue(source_dir, key):
     return readSconsReport(source_dir).get(key)
 
 
-def addClangClPathFromMSVC(env, target_arch, show_scons_mode):
+def addClangClPathFromMSVC(env, target_arch):
     cl_exe = getExecutablePath("cl", env=env)
 
     if cl_exe is None:
-        scons_logger.warning("Visual Studio required for for Clang on Windows.")
-        return
+        scons_logger.sysexit(
+            "Error, Visual Studio required for using ClangCL on Windows."
+        )
 
     clang_dir = cl_exe = os.path.join(cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm")
 
@@ -224,13 +268,34 @@ def addClangClPathFromMSVC(env, target_arch, show_scons_mode):
         clang_dir = os.path.join(clang_dir, "bin")
 
     if os.path.exists(clang_dir):
-        if show_scons_mode:
-            scons_logger.info("Adding MSVC directory %r for Clang to PATH." % clang_dir)
+        scons_details_logger.info(
+            "Adding MSVC directory %r for Clang to PATH." % clang_dir
+        )
 
         addToPATH(env, clang_dir, prefix=True)
     else:
-        if show_scons_mode:
-            scons_logger.info("No Clang component for MSVC found." % clang_dir)
+        scons_details_logger.info("No Clang component for MSVC found." % clang_dir)
+
+
+def switchFromGccToGpp(gcc_version, the_compiler, the_cc_name, env):
+    if gcc_version is not None and gcc_version < (5,):
+        scons_logger.info("The provided gcc is too old, switching to g++ instead.")
+
+        # Switch to g++ from gcc then if possible, when C11 mode is false.
+        the_gpp_compiler = os.path.join(
+            os.path.dirname(the_compiler),
+            os.path.basename(the_compiler).replace("gcc", "g++"),
+        )
+
+        if getExecutablePath(the_gpp_compiler, env=env):
+            the_compiler = the_gpp_compiler
+            the_cc_name = the_cc_name.replace("gcc", "g++")
+        else:
+            scons_logger.sysexit(
+                "Error, your gcc is too old for C11 support, and no related g++ to workaround that is found."
+            )
+
+    return the_compiler, the_cc_name
 
 
 def isGccName(cc_name):
@@ -273,6 +338,18 @@ def cheapCopyFile(src, dst):
             os.symlink(src, dst)
         except OSError:
             shutil.copy(src, dst)
+
+
+def provideStaticSourceFile(sub_path, nuitka_src, source_dir, c11_mode):
+    source_filename = os.path.join(nuitka_src, "static_src", sub_path)
+    target_filename = os.path.join(source_dir, "static_src", os.path.basename(sub_path))
+
+    if target_filename.endswith(".c") and not c11_mode:
+        target_filename += "pp"  # .cpp suffix then.
+
+    cheapCopyFile(source_filename, target_filename)
+
+    return target_filename
 
 
 def makeCLiteral(value):
@@ -414,3 +491,25 @@ def decideArchMismatch(target_arch, mingw_mode, msvc_mode, the_cc_name, compiler
     )
 
     return linker_arch != compiler_arch, linker_arch, compiler_arch
+
+
+def raiseNoCompilerFoundErrorExit():
+    if os.name == "nt":
+        scons_logger.sysexit(
+            """\
+Error, cannot locate suitable C compiler. You have the following options:
+
+a) If a suitable Visual Studio version is installed, it will be located
+   automatically via registry.
+
+b) Using --mingw64 let Nuitka download MinGW64 for you.
+
+Note: Only MinGW64 will work! MinGW64 does *not* mean 64 bits, just better
+Windows compatibility, it is available for 32 and 64 bits. Cygwin based gcc
+will not work. MSYS2 based gcc will only work if you know what you are doing.
+
+Note: The clang-cl will only work if Visual Studio already works for you.
+"""
+        )
+    else:
+        scons_logger.sysexit("Error, cannot locate suitable C compiler.")

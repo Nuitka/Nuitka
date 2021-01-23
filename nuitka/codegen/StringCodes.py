@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -35,7 +35,7 @@ def generateBuiltinBytes1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_BYTES1",
-        arg_desc=(("bytes_arg", expression.getValue()),),
+        arg_desc=(("bytes_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -46,14 +46,14 @@ def generateBuiltinBytes1Code(to_name, expression, emit, context):
 
 
 def generateBuiltinBytes3Code(to_name, expression, emit, context):
-    encoding = expression.getEncoding()
-    errors = expression.getErrors()
+    encoding = expression.subnode_encoding
+    errors = expression.subnode_errors
 
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_BYTES3",
         arg_desc=(
-            ("bytes_arg", expression.getValue()),
+            ("bytes_arg", expression.subnode_value),
             ("bytes_encoding", encoding),
             ("bytes_errors", errors),
         ),
@@ -67,8 +67,8 @@ def generateBuiltinBytes3Code(to_name, expression, emit, context):
 
 
 def generateBuiltinUnicodeCode(to_name, expression, emit, context):
-    encoding = expression.getEncoding()
-    errors = expression.getErrors()
+    encoding = expression.subnode_encoding
+    errors = expression.subnode_errors
 
     if encoding is None and errors is None:
         generateCAPIObjectCode(
@@ -76,8 +76,8 @@ def generateBuiltinUnicodeCode(to_name, expression, emit, context):
             capi="PyObject_Unicode",
             arg_desc=(
                 (
-                    "str_arg" if python_version < 300 else "unicode_arg",
-                    expression.getValue(),
+                    "str_arg" if python_version < 0x300 else "unicode_arg",
+                    expression.subnode_value,
                 ),
             ),
             may_raise=expression.mayRaiseException(BaseException),
@@ -91,7 +91,7 @@ def generateBuiltinUnicodeCode(to_name, expression, emit, context):
             to_name=to_name,
             capi="TO_UNICODE3",
             arg_desc=(
-                ("unicode_arg", expression.getValue()),
+                ("unicode_arg", expression.subnode_value),
                 ("unicode_encoding", encoding),
                 ("unicode_errors", errors),
             ),
@@ -105,11 +105,11 @@ def generateBuiltinUnicodeCode(to_name, expression, emit, context):
 
 
 def generateBuiltinStrCode(to_name, expression, emit, context):
-    if python_version < 300:
+    if python_version < 0x300:
         generateCAPIObjectCode(
             to_name=to_name,
             capi="PyObject_Str",
-            arg_desc=(("str_arg", expression.getValue()),),
+            arg_desc=(("str_arg", expression.subnode_value),),
             may_raise=expression.mayRaiseException(BaseException),
             conversion_check=decideConversionCheckNeeded(to_name, expression),
             source_ref=expression.getCompatibleSourceReference(),
@@ -126,7 +126,7 @@ def generateBuiltinChrCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_CHR",
-        arg_desc=(("chr_arg", expression.getValue()),),
+        arg_desc=(("chr_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -139,7 +139,7 @@ def generateBuiltinOrdCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_ORD",
-        arg_desc=(("ord_arg", expression.getValue()),),
+        arg_desc=(("ord_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -149,7 +149,7 @@ def generateBuiltinOrdCode(to_name, expression, emit, context):
 
 
 def generateStringContenationCode(to_name, expression, emit, context):
-    values = expression.getValues()
+    values = expression.subnode_values
 
     with withObjectCodeTemporaryAssignment(
         to_name, "string_concat_result", expression, emit, context
@@ -182,12 +182,15 @@ def generateBuiltinFormatCode(to_name, expression, emit, context):
     value_name = context.allocateTempName("format_value")
 
     generateExpressionCode(
-        to_name=value_name, expression=expression.getValue(), emit=emit, context=context
+        to_name=value_name,
+        expression=expression.subnode_value,
+        emit=emit,
+        context=context,
     )
 
     format_spec_name = context.allocateTempName("format_spec")
 
-    format_spec = expression.getFormatSpec()
+    format_spec = expression.subnode_format_spec
 
     if format_spec is None:
         emit("%s = %s;" % (format_spec_name, context.getConstantCode("")))
@@ -218,7 +221,7 @@ def generateBuiltinAsciiCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PyObject_ASCII",
-        arg_desc=(("ascii_arg", expression.getValue()),),
+        arg_desc=(("ascii_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),

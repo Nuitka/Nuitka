@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -82,7 +82,7 @@ def buildSubscriptNode(provider, node, source_ref):
         # For Python3 there is no slicing operation, this is always done
         # with subscript using a slice object. For Python2, it is only done
         # if no "step" is provided.
-        use_sliceobj = step is not None or python_version >= 300
+        use_sliceobj = step is not None or python_version >= 0x300
 
         if use_sliceobj:
             return ExpressionSubscriptLookup(
@@ -111,7 +111,7 @@ def buildSubscriptNode(provider, node, source_ref):
             subscript=ExpressionConstantEllipsisRef(source_ref=source_ref),
             source_ref=source_ref,
         )
-    elif python_version >= 390:
+    elif python_version >= 0x390:
         return ExpressionSubscriptLookup(
             expression=buildNode(provider, node.value, source_ref),
             subscript=buildNode(provider, node.slice, source_ref),

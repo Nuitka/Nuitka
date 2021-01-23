@@ -184,7 +184,7 @@ In order to set up hooks, you need to execute these commands:
 
    # Where python is the one you use with Nuitka, this then gets all
    # development requirements, can be full PATH.
-   python -m pip install requirements-devel.txt
+   python -m pip install -r requirements-devel.txt
    python ./misc/install-git-hooks.py
 
 
@@ -621,6 +621,10 @@ For fine grained control, it has the following options::
                         The standard CPython3.8 test suite. Execute this for
                         all corner cases to be covered. With Python 2.x these
                         are not run. Default is True.
+  --skip-cpython39-tests
+                        The standard CPython3.8 test suite. Execute this for
+                        all corner cases to be covered. With Python 2.x these
+                        are not run. Default is True.
   --no-python2.6        Do not use Python 2.6 even if available on the system.
                         Default is False.
   --no-python2.7        Do not use Python 2.7 even if available on the system.
@@ -636,6 +640,8 @@ For fine grained control, it has the following options::
   --no-python3.7        Do not use Python 3.7 even if available on the system.
                         Default is False.
   --no-python3.8        Do not use Python 3.8 even if available on the system.
+                        Default is False.
+  --no-python3.9        Do not use Python 3.9 even if available on the system.
                         Default is False.
   --coverage            Make a coverage analysis, that does not really check.
                         Default is False.
@@ -1438,7 +1444,7 @@ computes to its argument.
 .. code-block:: python
 
     def computeExpression(self, trace_collection):
-        return self.getValue().computeExpressionLen(
+        return self.subnode_value.computeExpressionLen(
             len_node=self, trace_collection=trace_collection
         )
 
@@ -4031,10 +4037,10 @@ those the case, that they are not really required to be installed by the
 user, consider this snippet:
 
    # Folders to use for cache files.
-   appdirs == 1.4.3
+   appdirs == 1.4.4
 
    # Scons is the backend building tool to turn C files to binaries.
-   scons == 3.0.4
+   scons == 3.1.2
 
 For both these dependencies, there is either an inline copy (Scons) that we
 handle to use in case, Scons is not available (in fact we have a version that

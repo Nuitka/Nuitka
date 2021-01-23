@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,13 +31,13 @@ import sys
 def getSupportedPythonVersions():
     """Officially supported Python versions for Nuitka."""
 
-    return ("2.6", "2.7", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8")
+    return ("2.6", "2.7", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8", "3.9")
 
 
 def getPartiallySupportedPythonVersions():
     """Partially supported Python versions for Nuitka."""
 
-    return ("3.9",)
+    return ()
 
 
 def getSupportedPythonVersionStr():
@@ -55,7 +55,7 @@ def _getPythonVersion():
     big, major, minor = sys.version_info[0:3]
 
     # TODO: Give up on decimal versions already.
-    return big * 100 + major * 10 + min(9, minor)
+    return big * 256 + major * 16 + min(15, minor)
 
 
 python_version = _getPythonVersion()
@@ -64,22 +64,12 @@ python_version_full_str = ".".join(str(s) for s in sys.version_info[0:3])
 python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
 
 
-def isAtLeastSubVersion(version):
-    if version < 280 <= python_version < 300:
-        return True
-
-    if version // 10 != python_version // 10:
-        return False
-
-    return python_version >= version
-
-
 def getErrorMessageExecWithNestedFunction():
     """Error message of the concrete Python in case an exec occurs in a
     function that takes a closure variable.
     """
 
-    assert python_version < 300
+    assert python_version < 0x300
 
     # Need to use "exec" to detect the syntax error, pylint: disable=W0122
 
@@ -136,7 +126,7 @@ def needsSetLiteralReverseInsertion():
 
 
 def needsDuplicateArgumentColOffset():
-    if python_version < 353:
+    if python_version < 0x353:
         return False
     else:
         return True

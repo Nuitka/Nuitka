@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -46,13 +46,13 @@ extern bool SET_ATTRIBUTE_CLASS_SLOT(PyObject *target, PyObject *value);
 extern PyObject *LOOKUP_SPECIAL(PyObject *source, PyObject *attr_name);
 
 // Find an attribute in a class, Python2 only.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 extern PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name);
 #endif
 
 extern PyObject *LOOKUP_MODULE_VALUE(PyDictObject *module_dict, PyObject *var_name);
 extern PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK(PyObject *variable_name);
-#if PYTHON_VERSION < 340
+#if PYTHON_VERSION < 0x340
 extern PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK_IN_FUNCTION(PyObject *variable_name);
 #endif
 #endif

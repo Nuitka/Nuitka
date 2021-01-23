@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,8 +19,6 @@
 
 """
 
-from logging import warning
-
 from nuitka import Options
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     iterItems,
@@ -39,6 +37,7 @@ from nuitka.Constants import (
     isHashable,
     isMutable,
 )
+from nuitka.Tracing import optimization_logger
 
 from .ExpressionBases import CompileTimeConstantExpressionBase
 from .IterationHandles import (
@@ -270,11 +269,13 @@ class ExpressionConstantRefBase(ExpressionConstantUntrackedRefBase):
                     max_size = 256
 
                 if max_size is not None and len(constant) > max_size:
-                    warning(
-                        "Too large constant (%s %d) encountered at %s.",
-                        type(constant),
-                        len(constant),
-                        source_ref.getAsString(),
+                    optimization_logger.warning(
+                        "Too large constant (%s %d) encountered at %s."
+                        % (
+                            type(constant),
+                            len(constant),
+                            source_ref.getAsString(),
+                        )
                     )
             except TypeError:
                 pass
@@ -986,6 +987,20 @@ class ExpressionConstantStrRef(ExpressionConstantRefBase):
         return iter_node, None, None
 
 
+class ExpressionConstantStrEmptyRef(EmptyContainerMixin, ExpressionConstantStrRef):
+    kind = "EXPRESSION_CONSTANT_STR_EMPTY_REF"
+
+    __slots__ = ()
+
+    def __init__(self, user_provided, source_ref):
+        ExpressionConstantStrRef.__init__(
+            self,
+            constant="",
+            user_provided=user_provided,
+            source_ref=source_ref,
+        )
+
+
 class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_UNICODE_REF"
 
@@ -1027,6 +1042,22 @@ class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
         return iter_node, None, None
 
 
+class ExpressionConstantUnicodeEmptyRef(
+    EmptyContainerMixin, ExpressionConstantUnicodeRef
+):
+    kind = "EXPRESSION_CONSTANT_UNICODE_EMPTY_REF"
+
+    __slots__ = ()
+
+    def __init__(self, user_provided, source_ref):
+        ExpressionConstantUnicodeRef.__init__(
+            self,
+            constant=u"",
+            user_provided=user_provided,
+            source_ref=source_ref,
+        )
+
+
 class ExpressionConstantBytesRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_BYTES_REF"
 
@@ -1064,6 +1095,20 @@ class ExpressionConstantBytesRef(ExpressionConstantRefBase):
     def computeExpressionIter1(self, iter_node, trace_collection):
         # Note: bytes are as good as it gets
         return iter_node, None, None
+
+
+class ExpressionConstantBytesEmptyRef(EmptyContainerMixin, ExpressionConstantBytesRef):
+    kind = "EXPRESSION_CONSTANT_BYTES_EMPTY_REF"
+
+    __slots__ = ()
+
+    def __init__(self, user_provided, source_ref):
+        ExpressionConstantBytesRef.__init__(
+            self,
+            constant=b"",
+            user_provided=user_provided,
+            source_ref=source_ref,
+        )
 
 
 class ExpressionConstantBytearrayRef(ExpressionConstantRefBase):
@@ -1320,11 +1365,17 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
         if constant_type is int:
             return ExpressionConstantIntRef(constant=constant, source_ref=source_ref)
         elif constant_type is str:
-            return ExpressionConstantStrRef(
-                constant=constant,
-                user_provided=user_provided,
-                source_ref=source_ref,
-            )
+            if constant:
+                return ExpressionConstantStrRef(
+                    constant=constant,
+                    user_provided=user_provided,
+                    source_ref=source_ref,
+                )
+            else:
+                return ExpressionConstantStrEmptyRef(
+                    user_provided=user_provided,
+                    source_ref=source_ref,
+                )
         elif constant_type is float:
             return ExpressionConstantFloatRef(constant=constant, source_ref=source_ref)
         elif constant_type is long:
@@ -1334,17 +1385,29 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
                 source_ref=source_ref,
             )
         elif constant_type is unicode:
-            return ExpressionConstantUnicodeRef(
-                constant=constant,
-                user_provided=user_provided,
-                source_ref=source_ref,
-            )
+            if constant:
+                return ExpressionConstantUnicodeRef(
+                    constant=constant,
+                    user_provided=user_provided,
+                    source_ref=source_ref,
+                )
+            else:
+                return ExpressionConstantUnicodeEmptyRef(
+                    user_provided=user_provided,
+                    source_ref=source_ref,
+                )
         elif constant_type is bytes:
-            return ExpressionConstantBytesRef(
-                constant=constant,
-                user_provided=user_provided,
-                source_ref=source_ref,
-            )
+            if constant:
+                return ExpressionConstantBytesRef(
+                    constant=constant,
+                    user_provided=user_provided,
+                    source_ref=source_ref,
+                )
+            else:
+                return ExpressionConstantBytesEmptyRef(
+                    user_provided=user_provided,
+                    source_ref=source_ref,
+                )
         elif constant_type is dict:
             if constant:
                 assert isConstant(constant), repr(constant)

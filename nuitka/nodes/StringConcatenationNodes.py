@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,7 +31,6 @@ class ExpressionStringConcatenation(ExpressionChildHavingBase):
     kind = "EXPRESSION_STRING_CONCATENATION"
 
     named_child = "values"
-    getValues = ExpressionChildHavingBase.childGetter("values")
 
     def __init__(self, values, source_ref):
         assert values

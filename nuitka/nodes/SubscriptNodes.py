@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,14 +31,12 @@ from .NodeBases import StatementChildrenHavingBase
 class StatementAssignmentSubscript(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_SUBSCRIPT"
 
-    named_children = ("source", "expression", "subscript")
-    getSubscribed = StatementChildrenHavingBase.childGetter("expression")
-    getSubscript = StatementChildrenHavingBase.childGetter("subscript")
+    named_children = ("source", "subscribed", "subscript")
 
-    def __init__(self, expression, subscript, source, source_ref):
+    def __init__(self, subscribed, subscript, source, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
-            values={"source": source, "expression": expression, "subscript": subscript},
+            values={"source": source, "subscribed": subscribed, "subscript": subscript},
             source_ref=source_ref,
         )
 
@@ -50,9 +48,9 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
         if result is not self:
             return result, change_tags, change_desc
 
-        return self.getSubscribed().computeExpressionSetSubscript(
+        return self.subnode_subscribed.computeExpressionSetSubscript(
             set_node=self,
-            subscript=self.getSubscript(),
+            subscript=self.subnode_subscript,
             value_node=self.subnode_source,
             trace_collection=trace_collection,
         )
@@ -65,14 +63,12 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
 class StatementDelSubscript(StatementChildrenHavingBase):
     kind = "STATEMENT_DEL_SUBSCRIPT"
 
-    named_children = ("expression", "subscript")
-    getSubscribed = StatementChildrenHavingBase.childGetter("expression")
-    getSubscript = StatementChildrenHavingBase.childGetter("subscript")
+    named_children = ("subscribed", "subscript")
 
-    def __init__(self, expression, subscript, source_ref):
+    def __init__(self, subscribed, subscript, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
-            values={"expression": expression, "subscript": subscript},
+            values={"subscribed": subscribed, "subscript": subscript},
             source_ref=source_ref,
         )
 
@@ -84,9 +80,9 @@ class StatementDelSubscript(StatementChildrenHavingBase):
         if result is not self:
             return result, change_tags, change_desc
 
-        return self.getSubscribed().computeExpressionDelSubscript(
+        return self.subnode_subscribed.computeExpressionDelSubscript(
             del_node=self,
-            subscript=self.getSubscript(),
+            subscript=self.subnode_subscript,
             trace_collection=trace_collection,
         )
 

@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -18,7 +18,7 @@
 #ifndef __NUITKA_HELPER_RAISING_H__
 #define __NUITKA_HELPER_RAISING_H__
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 NUITKA_MAY_BE_UNUSED static void CHAIN_EXCEPTION(PyObject *exception_value) {
     // Implicit chain of exception already existing.
     PyThreadState *thread_state = PyThreadState_GET();
@@ -61,7 +61,7 @@ NUITKA_MAY_BE_UNUSED static void CHAIN_EXCEPTION(PyObject *exception_value) {
 extern void RAISE_EXCEPTION_WITH_TYPE(PyObject **exception_type, PyObject **exception_value,
                                       PyTracebackObject **exception_tb);
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 extern void RAISE_EXCEPTION_WITH_CAUSE(PyObject **exception_type, PyObject **exception_value,
                                        PyTracebackObject **exception_tb, PyObject *exception_cause);
 #endif

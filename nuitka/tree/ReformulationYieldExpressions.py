@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -41,7 +41,7 @@ def _checkInsideGenerator(provider, node, source_ref):
     # This yield is forbidden in 3.5, but allowed in 3.6, but yield_from
     # is neither.
     if provider.isExpressionAsyncgenObjectBody() and (
-        node.__class__ is not ast.Yield or python_version < 360
+        node.__class__ is not ast.Yield or python_version < 0x360
     ):
         raiseSyntaxError(
             "'%s' inside async function"
@@ -50,7 +50,7 @@ def _checkInsideGenerator(provider, node, source_ref):
         )
 
     if (
-        python_version >= 380
+        python_version >= 0x380
         and provider.isExpressionGeneratorObjectBody()
         and provider.name == "<genexpr>"
     ):
@@ -82,7 +82,7 @@ def buildYieldNode(provider, node, source_ref):
 
 
 def buildYieldFromNode(provider, node, source_ref):
-    assert python_version >= 300
+    assert python_version >= 0x300
 
     _checkInsideGenerator(provider, node, source_ref)
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -43,79 +43,37 @@ sys.path.insert(
 
 # isort:start
 
-import subprocess
-
 from nuitka.tools.testing.Common import (
+    checkRequirements,
     compareWithCPython,
     createSearchMode,
     decideFilenameVersionSkip,
+    displayFileContents,
+    displayFolderContents,
     getPythonVendor,
     getRuntimeTraceOfLoadedFiles,
-    hasModule,
     reportSkip,
     setup,
     test_logger,
 )
-from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.FileOperations import areSamePaths, removeDirectory
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import getOS
 
 
-# checks requirements needed to run each test module, according to the specified special comment
-# special comments are in the following formats:
-#     "# nuitka-skip-unless-expression: expression to be evaluated"
-#       OR
-#     "# nuitka-skip-unless-imports: module1,module2,..."
-def checkRequirements(filename):
-    for line in readSourceCodeFromFilename(None, filename).splitlines():
-        if line.startswith("# nuitka-skip-unless-"):
-            if line[21:33] == "expression: ":
-                expression = line[33:]
-                with open(os.devnull, "w") as devnull:
-                    result = subprocess.call(
-                        (
-                            os.environ["PYTHON"],
-                            "-c",
-                            "import sys, os; sys.exit(not bool(%s))" % expression,
-                        ),
-                        stdout=devnull,
-                        stderr=subprocess.STDOUT,
-                    )
-                if result != 0:
-                    return (False, "Expression '%s' evaluated to false" % expression)
-
-            elif line[21:30] == "imports: ":
-                imports_needed = line[30:].rstrip().split(",")
-                for i in imports_needed:
-                    if not hasModule(i):
-                        return (
-                            False,
-                            i
-                            + " not installed for this Python version, but test needs it",
-                        )
-    # default return value
-    return (True, "")
-
-
 def displayError(dirname, filename):
     assert dirname is None
 
-    filename = filename[:-3] + ".dist"
+    dist_path = filename[:-3] + ".dist"
+    displayFolderContents("dist folder", dist_path)
 
-    test_logger.info("Listing of dist folder '%s':" % filename)
-
-    if os.name == "nt":
-        command = "dir /b /s /a:-D %s" % filename
-    else:
-        command = "ls -Rla %s" % filename
-
-    os.system(command)
+    inclusion_log_path = filename[:-3] + ".py.inclusion.log"
+    displayFileContents("inclusion log", inclusion_log_path)
 
 
 def main():
     # Complex stuff, even more should become common code though.
-    # pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     python_version = setup(needs_io_encoding=True)
 
@@ -136,7 +94,7 @@ def main():
 
         extra_flags = [
             "expect_success",
-            "standalone",
+            "--standalone",
             "remove_output",
             # Cache the CPython results for re-use, they will normally not change.
             "cpython_cache",
@@ -157,7 +115,7 @@ def main():
 
         if "Idna" in filename:
             # For the warnings of Python2.
-            if python_version.startswith("2"):
+            if python_version < (3,):
                 extra_flags.append("ignore_stderr")
 
         if filename == "CtypesUsing.py":
@@ -166,7 +124,7 @@ def main():
         if filename == "GtkUsing.py":
             # Don't test on platforms not supported by current Debian testing, and
             # which should be considered irrelevant by now.
-            if python_version.startswith("2.6"):
+            if python_version < (2, 7):
                 reportSkip("irrelevant Python version", ".", filename)
                 continue
 
@@ -223,7 +181,9 @@ def main():
             extra_flags.append("ignore_warnings")
 
         if filename.startswith(("PySide", "PyQt")):
-            if python_version.startswith("2.6"):
+            # Don't test on platforms not supported by current Debian testing, and
+            # which should be considered irrelevant by now.
+            if python_version < (2, 7):
                 reportSkip("irrelevant Python version", ".", filename)
                 continue
 
@@ -534,33 +494,27 @@ def main():
             if loaded_filename.startswith("/var/cache/"):
                 continue
 
+            lib_prefix_dir = "/usr/lib/python%d.%s" % (
+                python_version[0],
+                python_version[1],
+            )
+
             # PySide accesses its directory.
-            if (
-                loaded_filename
-                == "/usr/lib/python" + python_version[:3] + "/dist-packages/PySide"
-            ):
+            if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/PySide"):
                 continue
 
             # GTK accesses package directories only.
-            if (
-                loaded_filename
-                == "/usr/lib/python" + python_version[:3] + "/dist-packages/gtk-2.0/gtk"
+            if loaded_filename == os.path.join(
+                lib_prefix_dir, "dist-packages/gtk-2.0/gtk"
             ):
                 continue
-            if (
-                loaded_filename
-                == "/usr/lib/python" + python_version[:3] + "/dist-packages/glib"
+            if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/glib"):
+                continue
+            if loaded_filename == os.path.join(
+                lib_prefix_dir, "dist-packages/gtk-2.0/gio"
             ):
                 continue
-            if (
-                loaded_filename
-                == "/usr/lib/python" + python_version[:3] + "/dist-packages/gtk-2.0/gio"
-            ):
-                continue
-            if (
-                loaded_filename
-                == "/usr/lib/python" + python_version[:3] + "/dist-packages/gobject"
-            ):
+            if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/gobject"):
                 continue
 
             # PyQt5 seems to do this, but won't use contents then.
@@ -591,6 +545,10 @@ def main():
 
             # Accessing SE-Linux is OK.
             if loaded_filename in ("/sys/fs/selinux", "/selinux"):
+                continue
+
+            # Looking at device is OK.
+            if loaded_filename.startswith("/sys/devices/"):
                 continue
 
             # Allow reading time zone info of local system.
@@ -626,11 +584,7 @@ def main():
 
         if illegal_access:
             if os.name != "nt":
-                test_logger.info("Listing of dist folder:")
-                os.system("ls -Rla %s" % filename[:-3] + ".dist")
-
-                test_logger.info("Inclusion log:")
-                os.system("cat %s" % filename[:-3] + ".py.inclusion.log")
+                displayError(None, filename)
 
                 # Run with traces to help debugging, specifically in CI environment.
                 if sys.platform == "darwin" or sys.platform.startswith("freebsd"):

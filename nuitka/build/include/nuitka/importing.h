@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -45,17 +45,17 @@ extern PyObject *EXECUTE_EMBEDDED_MODULE(PyObject *module);
 extern PyObject *IMPORT_NAME(PyObject *module, PyObject *import_name);
 
 // import a name from a module, potentially making an import of it if necessary.
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
 extern PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyObject *import_name, PyObject *level);
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 extern PyObject *getImportLibBootstrapModule();
 #endif
 
 // Replacement for PyImport_GetModule working across all versions and less checks.
 NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModule(PyObject *module_name) {
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     return LOOKUP_SUBSCRIPT(PyImport_GetModuleDict(), module_name);
 #else
     return PyImport_GetModule(module_name);

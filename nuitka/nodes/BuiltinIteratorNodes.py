@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,7 +24,6 @@ The length of things is an important optimization issue for these to be
 good.
 """
 
-from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import (
@@ -168,7 +167,6 @@ class StatementSpecialUnpackCheck(StatementChildHavingBase):
     kind = "STATEMENT_SPECIAL_UNPACK_CHECK"
 
     named_child = "iterator"
-    getIterator = StatementChildHavingBase.childGetter("iterator")
 
     __slots__ = ("count",)
 
@@ -184,7 +182,7 @@ class StatementSpecialUnpackCheck(StatementChildHavingBase):
         return self.count
 
     def computeStatement(self, trace_collection):
-        iterator = trace_collection.onExpression(self.getIterator())
+        iterator = trace_collection.onExpression(self.subnode_iterator)
 
         if iterator.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -233,7 +231,7 @@ Determined iteration end check to be always true.""",
                         statement=self,
                         exception_type="ValueError",
                         exception_value="too many values to unpack"
-                        if python_version < 300
+                        if python_version < 0x300
                         else "too many values to unpack (expected %d)"
                         % self.getCount(),
                     )
@@ -259,15 +257,12 @@ Determined iteration end check to always raise.""",
 class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_ITER2"
 
-    named_children = ("callable", "sentinel")
-    getCallable = ExpressionChildrenHavingBase.childGetter("callable")
-    getSentinel = ExpressionChildrenHavingBase.childGetter("sentinel")
+    named_children = ("callable_arg", "sentinel")
 
-    @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, callable_arg, sentinel, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values={"callable": callable_arg, "sentinel": sentinel},
+            values={"callable_arg": callable_arg, "sentinel": sentinel},
             source_ref=source_ref,
         )
 

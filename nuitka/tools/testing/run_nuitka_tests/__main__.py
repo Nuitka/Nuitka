@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -41,6 +41,7 @@ from nuitka.utils.Execution import (
     getPythonExePathWindows,
 )
 from nuitka.utils.Timing import TimerReport
+from nuitka.utils.Utils import getOS, hasOnefileSupportedOS
 
 
 def parseOptions():
@@ -113,9 +114,20 @@ constructs fully away. Default is %default.""",
         "--skip-standalone-tests",
         action="store_false",
         dest="standalone_tests",
-        default=os.name != "posix" or os.uname()[0] != "NetBSD",
+        default=getOS() != "NetBSD",
         help="""\
 The standalone tests, execute these to check if Nuitka standalone mode, e.g.
+not referring to outside, important 3rd library packages like PyQt fine.
+Default is %default.""",
+    )
+
+    parser.add_option(
+        "--skip-onefile-tests",
+        action="store_false",
+        dest="onefile_tests",
+        default=hasOnefileSupportedOS(),
+        help="""\
+The onefile tests, execute these to check if Nuitka works in onefile mode, e.g.
 not referring to outside, important 3rd library packages like PyQt fine.
 Default is %default.""",
     )
@@ -447,7 +459,7 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
 
 def publishCoverageData():
     def copyToGlobalCoverageData(source, target):
-        coverage_dir = os.environ.get("COVERAGE_DIR", None)
+        coverage_dir = os.environ.get("COVERAGE_DIR")
 
         if coverage_dir is None:
             return
@@ -719,6 +731,14 @@ def main():
             )
             with withExtendedExtraOptions(*getExtraFlags(None, "standalone", flags)):
                 executeSubTest("./tests/standalone/run_all.py search")
+
+        if options.onefile_tests and not options.coverage:
+            my_print(
+                "Running the standalone tests with options '%s' with '%s':"
+                % (flags, use_python)
+            )
+            with withExtendedExtraOptions(*getExtraFlags(None, "standalone", flags)):
+                executeSubTest("./tests/onefile/run_all.py search")
 
         if options.reflection_test and not options.coverage:
             my_print(

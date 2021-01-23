@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -75,3 +75,23 @@ def scanTargets(positional_args, suffixes, blacklist=()):
                 yield value
         else:
             yield positional_arg
+
+
+def isPythonFile(filename, effective_filename=None):
+    if effective_filename is None:
+        effective_filename = filename
+
+    if effective_filename.endswith((".py", ".pyw", ".scons")):
+        return True
+    else:
+        shebang = getShebangFromFile(filename)
+
+        if shebang is not None:
+            shebang = shebang[2:].lstrip()
+            if shebang.startswith("/usr/bin/env"):
+                shebang = shebang[12:].lstrip()
+
+            if shebang.startswith("python"):
+                return True
+
+    return False

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,7 +36,7 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
     builtin_spec = BuiltinParameterSpecs.builtin_len_spec
 
     def getIntegerValue(self):
-        value = self.getValue()
+        value = self.subnode_value
 
         if value.hasShapeSlotLen():
             return value.getIterationLength()
@@ -44,7 +44,7 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
             return None
 
     def computeExpression(self, trace_collection):
-        return self.getValue().computeExpressionLen(
+        return self.subnode_value.computeExpressionLen(
             len_node=self, trace_collection=trace_collection
         )
 
@@ -54,7 +54,7 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
         return tshape_int_or_long
 
     def mayRaiseException(self, exception_type):
-        value = self.getValue()
+        value = self.subnode_value
 
         if value.mayRaiseException(exception_type):
             return True

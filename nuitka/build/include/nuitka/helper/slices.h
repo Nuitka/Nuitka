@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -38,14 +38,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ1(PyObject *stop) {
     return PySlice_New(Py_None, stop, Py_None);
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 // Note: It appears that Python3 has no index slicing operations anymore, but
 // uses slice objects all the time. That's fine and make sure we adhere to it by
 // guarding the presence of the helpers.
 
 static inline bool IS_INDEXABLE(PyObject *value) {
     return value == Py_None ||
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
            PyInt_Check(value) ||
 #endif
            PyLong_Check(value) || PyIndex_Check(value);

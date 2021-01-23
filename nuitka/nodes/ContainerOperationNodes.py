@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -47,6 +47,7 @@ class StatementListOperationAppend(StatementChildrenHavingBase):
         if result is not self:
             return result, change_tags, change_desc
 
+        # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
 
         return self, None, None
@@ -66,6 +67,7 @@ class ExpressionListOperationExtend(ExpressionChildrenHavingBase):
         )
 
     def computeExpression(self, trace_collection):
+        # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
 
         return self, None, None
@@ -89,6 +91,7 @@ class ExpressionListOperationPop(ExpressionChildHavingBase):
         if not self.subnode_list_arg.isKnownToBeIterableAtMin(1):
             trace_collection.onExceptionRaiseExit(IndexError)
 
+        # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
 
         return self, None, None

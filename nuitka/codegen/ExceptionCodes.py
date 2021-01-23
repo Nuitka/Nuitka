@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -79,7 +79,7 @@ def generateExceptionCaughtValueCode(to_name, expression, emit, context):
         if keeper_variables[1] is None:
             emit("%s = EXC_VALUE(PyThreadState_GET());" % (value_name,))
         else:
-            if python_version >= 270:
+            if python_version >= 0x270:
                 emit("%s = %s;" % (value_name, keeper_variables[1]))
             else:
                 emit(
@@ -165,7 +165,7 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
 
     exception_arg_names = []
 
-    for exception_arg in expression.getArgs():
+    for exception_arg in expression.subnode_args:
         exception_arg_name = context.allocateTempName("make_exception_arg")
 
         generateExpressionCode(
@@ -202,10 +202,10 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
                 context=context,
             )
 
-        if expression.getExceptionName() == "ImportError" and python_version >= 300:
+        if expression.getExceptionName() == "ImportError" and python_version >= 0x300:
             from .PythonAPICodes import getReferenceExportCode
 
-            import_error_name_expression = expression.getImportErrorName()
+            import_error_name_expression = expression.subnode_name
 
             if import_error_name_expression is not None:
                 exception_importerror_name = context.allocateTempName(
@@ -229,7 +229,7 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
                     % (to_name, exception_importerror_name)
                 )
 
-            import_error_path_expression = expression.getImportErrorPath()
+            import_error_path_expression = expression.subnode_path
 
             if import_error_path_expression is not None:
                 exception_importerror_path = context.allocateTempName(

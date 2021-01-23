@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -132,8 +132,7 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
     ) as value_name:
-
-        emit("""%s = PyImport_ImportModule("%s");""" % (value_name, module_name))
+        emit("""%s = IMPORT_HARD_%s();""" % (value_name, module_name.upper()))
 
         getErrorExitCode(
             check_name=value_name, needs_check=needs_check, emit=emit, context=context
@@ -184,7 +183,7 @@ def generateImportStarCode(statement, emit, context):
 
     generateExpressionCode(
         to_name=module_name,
-        expression=statement.getSourceModule(),
+        expression=statement.subnode_module,
         emit=emit,
         context=context,
     )
@@ -231,7 +230,7 @@ def generateImportNameCode(to_name, expression, emit, context):
 
     generateExpressionCode(
         to_name=from_arg_name,
-        expression=expression.getModule(),
+        expression=expression.subnode_module,
         emit=emit,
         context=context,
     )
@@ -240,7 +239,7 @@ def generateImportNameCode(to_name, expression, emit, context):
         to_name, "imported_value", expression, emit, context
     ) as value_name:
 
-        if python_version >= 350:
+        if python_version >= 0x350:
             emit(
                 """\
 if (PyModule_Check(%(from_arg_name)s)) {

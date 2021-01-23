@@ -41,7 +41,7 @@ Starting with Python 3.6, we can safely use the built-in dictionary.
 from nuitka.PythonVersions import python_version
 
 try:
-    if python_version >= 360:
+    if python_version >= 0x360:
         OrderedDict = dict
     else:
         from collections import OrderedDict
@@ -50,7 +50,7 @@ except ImportError:
     # This is for Python 2.6 only.
     # pylint: disable=I0021,protected-access,undefined-variable
 
-    assert python_version < 270
+    assert python_version < 0x270
 
     from copy import deepcopy
     from itertools import imap, izip

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -80,7 +80,7 @@ from .TreeHelpers import (
 
 
 def buildDictionaryNode(provider, node, source_ref):
-    if python_version >= 350:
+    if python_version >= 0x350:
         for key in node.keys:
             if key is None:
                 return buildDictionaryUnpacking(
@@ -219,7 +219,7 @@ def getDictUnpackingHelper():
             source=makeConstantRefNode(constant={}, source_ref=internal_source_ref),
             source_ref=internal_source_ref,
         ),
-        StatementLoop(body=loop_body, source_ref=internal_source_ref),
+        StatementLoop(loop_body=loop_body, source_ref=internal_source_ref),
         StatementReturn(
             expression=ExpressionTempVariableRef(
                 variable=tmp_result_variable, source_ref=internal_source_ref
@@ -228,7 +228,8 @@ def getDictUnpackingHelper():
         ),
     )
 
-    result.setBody(
+    result.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
                 provider=result,
@@ -236,7 +237,7 @@ def getDictUnpackingHelper():
                 final=final,
                 source_ref=internal_source_ref,
             )
-        )
+        ),
     )
 
     return result

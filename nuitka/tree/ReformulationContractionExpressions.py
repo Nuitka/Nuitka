@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -98,7 +98,7 @@ def _makeIteratorCreation(provider, qual, for_asyncgen, source_ref):
             source_ref=source_ref,
         )
 
-        if not for_asyncgen or python_version < 370:
+        if not for_asyncgen or python_version < 0x370:
             result = ExpressionYieldFromWaitable(
                 expression=result, source_ref=source_ref
             )
@@ -175,14 +175,16 @@ def _buildPython2ListContraction(provider, node, source_ref):
         source_ref=source_ref.atInternal(),
     )
 
-    function_body.setBody(makeStatementsSequenceFromStatement(statement=statement))
+    function_body.setChild(
+        "body", makeStatementsSequenceFromStatement(statement=statement)
+    )
 
     return function_body
 
 
 def buildListContractionNode(provider, node, source_ref):
     # List contractions are dealt with by general code.
-    if python_version < 300:
+    if python_version < 0x300:
         return _buildPython2ListContraction(
             provider=provider, node=node, source_ref=source_ref
         )
@@ -218,7 +220,7 @@ def buildDictContractionNode(provider, node, source_ref):
         node=node,
         name="<dictcontraction>",
         emit_class=StatementDictOperationSet
-        if python_version < 380
+        if python_version < 0x380
         else StatementDictOperationSetKeyValue,
         start_value={},
         source_ref=source_ref,
@@ -256,7 +258,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
     is_async = any(getattr(qual, "is_async", 0) for qual in node.generators)
 
     # Some of the newly allowed stuff in 3.7 fails to set the async flag.
-    if not is_async and python_version >= 370:
+    if not is_async and python_version >= 0x370:
         is_async = detectFunctionBodyKind(nodes=node.generators)[0] in (
             "Asyncgen",
             "Coroutine",
@@ -285,7 +287,8 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 
         maker_class = ExpressionMakeGeneratorObject
 
-    function_body.setBody(
+    function_body.setChild(
+        "body",
         makeStatementsSequenceFromStatements(
             StatementAssignmentVariable(
                 variable=iter_tmp,
@@ -313,7 +316,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
                 ),
                 source_ref=source_ref,
             ),
-        )
+        ),
     )
 
     statements, release_statements = _buildContractionBodyNode(
@@ -342,14 +345,15 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         ),
     )
 
-    code_body.setBody(
+    code_body.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             statement=StatementsFrameGenerator(
                 statements=mergeStatements(statements, False),
                 code_object=code_object,
                 source_ref=source_ref,
             )
-        )
+        ),
     )
 
     return function_body
@@ -400,7 +404,7 @@ def _buildContractionBodyNode(
             )
         )
 
-    if for_asyncgen and python_version >= 370 and node.generators[0].is_async:
+    if for_asyncgen and python_version >= 0x370 and node.generators[0].is_async:
         statements.append(
             StatementAssignmentVariable(
                 variable=iter_tmp,
@@ -477,7 +481,7 @@ def _buildContractionBodyNode(
         if qual is node.generators[0]:
             iterator_ref = makeVariableRefNode(variable=iter_tmp, source_ref=source_ref)
 
-            if for_asyncgen and python_version >= 370:
+            if for_asyncgen and python_version >= 0x370:
                 iterator_ref = ExpressionYieldFromWaitable(
                     expression=iterator_ref, source_ref=source_ref
                 )
@@ -556,7 +560,7 @@ def _buildContractionBodyNode(
 
         nested_statements.append(
             StatementLoop(
-                body=StatementsSequence(
+                loop_body=StatementsSequence(
                     statements=mergeStatements(loop_statements), source_ref=source_ref
                 ),
                 source_ref=source_ref,
@@ -643,7 +647,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
         ),
     )
 
-    if python_version < 300:
+    if python_version < 0x300:
         body = makeStatementsSequenceFromStatements(assign_iter_statement, statements)
     else:
         parent_module = provider.getParentModule()
@@ -672,6 +676,6 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
             ),
         )
 
-    function_body.setBody(body)
+    function_body.setChild("body", body)
 
     return function_body

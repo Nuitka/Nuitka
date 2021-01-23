@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -93,12 +93,12 @@ def getConstantDefaultPopulation():
     ]
 
     # Pickling of instance methods.
-    if python_version < 340:
+    if python_version < 0x340:
         result += ("__newobj__",)
     else:
         result += ("getattr",)
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         # For Python3 modules
         result += ("__cached__", "__loader__")
 
@@ -112,24 +112,24 @@ def getConstantDefaultPopulation():
     # "__package__" parsing
     result.append(".")
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         # Modules have that attribute starting with Python3
         result.append("__loader__")
 
-    if python_version >= 340:
+    if python_version >= 0x340:
         result.append(
             # YIELD_FROM uses this starting 3.4, with 3.3 other code is used.
             "send"
         )
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         result += (
             # YIELD_FROM uses this
             "throw",
             "close",
         )
 
-    if python_version < 300:
+    if python_version < 0x300:
         # For patching Python2 internal class type
         result += ("__getattr__", "__setattr__", "__delattr__")
 
@@ -137,7 +137,7 @@ def getConstantDefaultPopulation():
         result += ("exc_type", "exc_value", "exc_traceback")
 
     # The xrange built-in is Python2 only.
-    if python_version < 300:
+    if python_version < 0x300:
         result.append("xrange")
 
     # Executables only
@@ -149,21 +149,21 @@ def getConstantDefaultPopulation():
     if not Options.shallMakeModule():
         result += ("type", "len", "range", "repr", "int", "iter")
 
-        if python_version < 300:
+        if python_version < 0x300:
             result.append("long")
 
-    if python_version >= 340:
+    if python_version >= 0x340:
         # Work with the __spec__ module attribute.
         result += ("__spec__", "_initializing", "parent")
 
-    if python_version >= 350:
+    if python_version >= 0x350:
         # Patching the types module.
         result.append("types")
 
     if not Options.shallMakeModule():
         result.append("__main__")
 
-    if python_version >= 370:
+    if python_version >= 0x370:
         result.append("__class_getitem__")
 
     return result

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -86,7 +86,7 @@ def setMainEntryPoint(binary_filename):
 
 def addShlibEntryPoint(module):
     target_filename = os.path.join(
-        getStandaloneDirectoryPath(), *module.getFullName().split(".")
+        getStandaloneDirectoryPath(), module.getFullName().asPath()
     )
     target_filename += getSharedLibrarySuffix(preferred=False)
 
@@ -106,5 +106,5 @@ def addShlibEntryPoint(module):
     )
 
 
-def getStandardEntryPoints():
+def getStandaloneEntryPoints():
     return standalone_entry_points

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Tommy Li, mailto:<tommyli3318@gmail.com>
+#     Copyright 2021, Tommy Li, mailto:<tommyli3318@gmail.com>
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -82,7 +82,7 @@ def gitClone(package, url, directory):
 def main():
     # pylint: disable=broad-except,too-many-branches,too-many-locals,too-many-statements
 
-    _python_version = setup()
+    setup()
 
     # cache_dir is where the git clones are cached
     cache_dir = os.path.join(getCacheDir(), "pypi-git-clones")

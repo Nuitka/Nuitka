@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -48,10 +48,10 @@ def generateReraiseCode(statement, emit, context):
 
 
 def generateRaiseCode(statement, emit, context):
-    exception_type = statement.getExceptionType()
-    exception_value = statement.getExceptionValue()
-    exception_tb = statement.getExceptionTrace()
-    exception_cause = statement.getExceptionCause()
+    exception_type = statement.subnode_exception_type
+    exception_value = statement.subnode_exception_value
+    exception_tb = statement.subnode_exception_trace
+    exception_cause = statement.subnode_exception_cause
 
     # Exception cause is only possible with simple raise form.
     if exception_cause is not None:

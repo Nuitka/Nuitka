@@ -1,4 +1,4 @@
-#     Copyright 2020, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2021, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -95,7 +95,7 @@ class TkinterPlugin(NuitkaPluginBase):
         # The following code will be executed before importing the module.
         # If required we set the respective environment values.
         code = """import os
-if not os.environ.get("TCL_LIBRARY", None):
+if not os.environ.get("TCL_LIBRARY"):
     os.environ["TCL_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tcl")
     os.environ["TK_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tk")"""
         return code, "Need to make sure we set environment variables for TCL."
@@ -175,7 +175,7 @@ The Tcl library dir. See comments for Tk library dir.""",
                     break
 
         if tcl is None or not os.path.exists(tcl):
-            sys.exit("Could not find Tcl. Aborting standalone generation.")
+            self.sysexit("Could not find Tcl. Aborting standalone generation.")
 
         tk = self.tk_library_dir
         if tk is None:
@@ -184,7 +184,7 @@ The Tcl library dir. See comments for Tk library dir.""",
                     break
 
         if tk is None or not os.path.exists(tcl):
-            sys.exit("Could not find Tk. Aborting standalone generation.")
+            self.sysexit("Could not find Tk. Aborting standalone generation.")
 
         # survived the above, now do the copying to following locations
         target_tk = os.path.join(dist_dir, "tk")

@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -24,13 +24,13 @@ extern struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObje
 
 // Create a code object for the given filename and function name
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #define MAKE_CODEOBJECT(filename, line, flags, function_name, argnames, freevars, arg_count, kw_only_count,            \
                         pos_only_count)                                                                                \
     makeCodeObject(filename, line, flags, function_name, argnames, freevars, arg_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
                                     PyObject *argnames, PyObject *freevars, int arg_count);
-#elif PYTHON_VERSION < 380
+#elif PYTHON_VERSION < 0x380
 #define MAKE_CODEOBJECT(filename, line, flags, function_name, argnames, freevars, arg_count, kw_only_count,            \
                         pos_only_count)                                                                                \
     makeCodeObject(filename, line, flags, function_name, argnames, freevars, arg_count, kw_only_count)
@@ -67,7 +67,7 @@ NUITKA_MAY_BE_UNUSED static inline bool isFrameUnusable(struct Nuitka_FrameObjec
         frame_object == NULL ||
         // Still in use
         Py_REFCNT(frame_object) > 1 ||
-#if PYTHON_VERSION < 340
+#if PYTHON_VERSION < 0x340
         // Last used by another thread (TODO: Could just set it when re-using)
         frame_object->m_frame.f_tstate != PyThreadState_GET() ||
 #endif
@@ -107,13 +107,13 @@ inline static void assertFrameObject(struct Nuitka_FrameObject *frame_object) {
 // can or cannot be cleared, or should lead to a generator close. For Python2
 // this is a no-op. Using a define to spare the compile from inlining an empty
 // function.
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
 static inline void Nuitka_Frame_MarkAsExecuting(struct Nuitka_FrameObject *frame) { frame->m_frame.f_executing = 1; }
 #else
 #define Nuitka_Frame_MarkAsExecuting(frame) ;
 #endif
 
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
 static inline void Nuitka_Frame_MarkAsNotExecuting(struct Nuitka_FrameObject *frame) { frame->m_frame.f_executing = 0; }
 #else
 #define Nuitka_Frame_MarkAsNotExecuting(frame) ;

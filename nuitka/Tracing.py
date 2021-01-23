@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,15 +28,18 @@ to "print for_debug" without much hassle (braces).
 
 from __future__ import print_function
 
-import logging
 import os
 import sys
+import traceback
 from contextlib import contextmanager
 
 from nuitka.utils.ThreadedExecutor import RLock
 
 # Written by Options module.
 is_quiet = False
+
+# Written by Options module
+use_progressbar = False
 
 
 def printIndented(level, *what):
@@ -122,6 +125,11 @@ def my_print(*args, **kwargs):
 
     Use kwarg style=[option] to print in a style listed below
     """
+
+    global progress  # singleton, pylint: disable=global-statement
+    if progress is not None:
+        progress.clear()
+
     with withTraceLock():
         if "style" in kwargs:
             style = kwargs["style"]
@@ -156,14 +164,11 @@ def my_print(*args, **kwargs):
         kwargs.get("file", sys.stdout).flush()
 
 
-# TODO: Stop using logging at all, and only OurLogger.
-logging.basicConfig(format="Nuitka:%(levelname)s:%(message)s")
-
-
 class OurLogger(object):
     def __init__(self, name, base_style=None):
         self.name = name
         self.base_style = base_style
+        self.is_quiet = False
 
     def my_print(self, message, **kwargs):
         # For overload, pylint: disable=no-self-use
@@ -175,8 +180,22 @@ class OurLogger(object):
         style = style or self.base_style
         self.my_print(message, style=style, file=sys.stderr)
 
+    def sysexit(self, message, exit_code=1):
+        self.my_print("FATAL: %s" % message, style="red", file=sys.stderr)
+
+        sys.exit(exit_code)
+
+    def sysexit_exception(self, message, exception, exit_code=1):
+        self.my_print("FATAL: %s" % message, style="red", file=sys.stderr)
+
+        traceback.print_exc()
+        self.sysexit("FATAL:" + repr(exception), exit_code=exit_code)
+
+    def isQuiet(self):
+        return is_quiet or self.is_quiet
+
     def info(self, message, style=None):
-        if not is_quiet:
+        if not self.isQuiet():
             if self.name:
                 message = "%s:INFO: %s" % (self.name, message)
 
@@ -200,7 +219,7 @@ class FileLogger(OurLogger):
         self.file_handle = file_handle
 
     def info(self, message, style=None):
-        if not is_quiet or self.file_handle is not sys.stdout:
+        if not self.isQuiet() or self.file_handle is not sys.stdout:
             message = "%s:INFO: %s" % (self.name, message)
 
             style = style or self.base_style
@@ -225,4 +244,29 @@ optimization_logger = FileLogger("Nuitka-Optimization")
 codegen_logger = OurLogger("Nuitka-Codegen")
 inclusion_logger = FileLogger("Nuitka-Inclusion")
 scons_logger = OurLogger("Nuitka-Scons")
+scons_details_logger = OurLogger("Nuitka-Scons")
 postprocessing_logger = OurLogger("Nuitka-Postprocessing")
+options_logger = OurLogger("Nuitka-Options")
+unusual_logger = OurLogger("Nuitka-Unusual")
+datacomposer_logger = OurLogger("Nuitka-Datacomposer")
+
+progress = None
+
+
+def reportProgressBar(stage, unit, item, total):
+    global progress  # singleton, pylint: disable=global-statement
+
+    if progress is None and use_progressbar:
+        try:
+            from tqdm import tqdm
+
+            progress = tqdm(initial=1, total=total, unit=unit)
+        except ImportError:
+            return
+
+    if progress is not None:
+        progress.set_description(stage)
+        progress.set_postfix(item=item)
+        progress.unit = unit
+        progress.total = total
+        progress.update(1)

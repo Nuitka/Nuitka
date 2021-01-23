@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -194,14 +194,14 @@ def _generateStatementSequenceCode(statement_sequence, emit, context):
     if statement_sequence is None:
         return
 
-    for statement in statement_sequence.getStatements():
+    for statement in statement_sequence.subnode_statements:
         if shallTraceExecution():
             source_ref = statement.getSourceReference()
 
             statement_repr = repr(statement)
             source_repr = source_ref.getAsString()
 
-            if python_version >= 300:
+            if python_version >= 0x300:
                 statement_repr = statement_repr.encode("utf8")
                 source_repr = source_repr.encode("utf8")
 

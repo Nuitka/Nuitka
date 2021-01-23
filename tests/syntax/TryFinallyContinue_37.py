@@ -1,8 +1,7 @@
-#!/bin/sh
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
+#     Python tests originally created or extracted from other peoples work. The
+#     parts were too small to be protected.
 #
 #     Licensed under the Apache License, Version 2.0 (the "License");
 #     you may not use this file except in compliance with the License.
@@ -16,15 +15,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-cd `dirname $0`/..
-
-find nuitka -name \*.py -a \! -path *inline_copy*
-find bin -name \*.py
-find nuitka/build/static_src -name \*.c
-find nuitka/build/include/nuitka -name \*.h
-find nuitka/build/ -name \*.scons
-find misc -name \*.sh
-find bin -name \*.sh
-echo Developer_Manual.rst
-echo Changelog.rst
+def f():
+    for i in range(10):
+        try:
+            undefined
+        finally:
+            continue

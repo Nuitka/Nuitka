@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,52 +24,54 @@ is not installed, we use our own code for best effort.
 from __future__ import absolute_import
 
 import os
-import sys
 import tempfile
 
 from .FileOperations import makePath
+from .Importing import importFromInlineCopy
 
 try:
     import appdirs  # pylint: disable=I0021,import-error
 except ImportError:
-    # Temporarily add the inline copy of appdir to the import path.
-    sys.path.append(
-        os.path.join(os.path.dirname(__file__), "..", "build", "inline_copy", "appdirs")
-    )
+    # We handle the case without inline copy too.
+    appdirs = importFromInlineCopy("appdirs", must_exist=False)
 
-    # Handle case without inline copy too.
-    try:
-        import appdirs  # pylint: disable=I0021,import-error
-    except ImportError:
-        appdirs = None
-
-    # Do not forget to remove it again.
-    del sys.path[-1]
+_cache_dir = None
 
 
 def getCacheDir():
-    if appdirs is not None:
-        result = appdirs.user_cache_dir("Nuitka", None)
-    else:
-        result = os.path.join(os.path.expanduser("~"), ".cache", "Nuitka")
+    global _cache_dir  # singleton, pylint: disable=global-statement
 
-    # For people that build with HOME set this, e.g. Debian.
-    if result.startswith(("/nonexistent/", "/sbuild-nonexistent/")):
-        result = os.path.join(tempfile.gettempdir(), "Nuitka")
+    if _cache_dir is None:
+        if appdirs is not None:
+            _cache_dir = appdirs.user_cache_dir("Nuitka", None)
+        else:
+            _cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "Nuitka")
 
-    makePath(result)
-    return result
+        # For people that build with HOME set this, e.g. Debian.
+        if _cache_dir.startswith(("/nonexistent/", "/sbuild-nonexistent/")):
+            _cache_dir = os.path.join(tempfile.gettempdir(), "Nuitka")
+
+        makePath(_cache_dir)
+
+    return _cache_dir
+
+
+_app_dir = None
 
 
 def getAppDir():
-    if appdirs is not None:
-        result = appdirs.user_data_dir("Nuitka", None)
-    else:
-        result = os.path.join(os.path.expanduser("~"), ".config", "Nuitka")
+    global _app_dir  # singleton, pylint: disable=global-statement
 
-    # For people that build with HOME set this, e.g. Debian.
-    if result.startswith(("/nonexistent/", "/sbuild-nonexistent/")):
-        result = os.path.join(tempfile.gettempdir(), "Nuitka")
+    if _app_dir is None:
+        if appdirs is not None:
+            _app_dir = appdirs.user_data_dir("Nuitka", None)
+        else:
+            _app_dir = os.path.join(os.path.expanduser("~"), ".config", "Nuitka")
 
-    makePath(result)
-    return result
+        # For people that build with HOME set this, e.g. Debian.
+        if _app_dir.startswith(("/nonexistent/", "/sbuild-nonexistent/")):
+            _app_dir = os.path.join(tempfile.gettempdir(), "Nuitka")
+
+        makePath(_app_dir)
+
+    return _app_dir

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -69,13 +69,13 @@ static bool constants_created = false;
 
 /* Function to create module private constants. */
 static void createModuleConstants(void) {
-    loadConstantsBlob(&mod_consts[0], "%(module_name)s", %(constants_count)d);
+    loadConstantsBlob(&mod_consts[0], "%(module_const_blob_name)s", %(constants_count)d);
 
     constants_created = true;
 }
 
 /* For multiprocessing, we want to be able to initialize the __main__ constants. */
-#if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED && %(is_main_module)s
+#if (_NUITKA_PLUGIN_MULTIPROCESSING_ENABLED || _NUITKA_PLUGIN_TRACEBACK_ENCRYPTION_ENABLED) && %(is_main_module)s
 void createMainModuleConstants(void) {
     createModuleConstants();
 }
@@ -242,12 +242,12 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
     struct Nuitka_FunctionObject *result = Nuitka_Function_New(
         functable_%(module_identifier)s[offset],
         code_object->co_name,
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         NULL, // TODO: Not transferring qualname yet
 #endif
         code_object,
         defaults,
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
         NULL, // kwdefaults are done on the outside currently
         NULL, // TODO: Not transferring annotations
 #endif
@@ -276,7 +276,7 @@ NUITKA_MAY_BE_UNUSED static char const *module_full_name = "%(module_name)s";
 PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *module_entry) {
     module_%(module_identifier)s = module;
 
-#if defined(_NUITKA_EXE) || PYTHON_VERSION >= 300
+#if defined(_NUITKA_EXE) || PYTHON_VERSION >= 0x300
     static bool _init_done = false;
 
     // Modules might be imported repeatedly, which is to be ignored.
@@ -296,11 +296,6 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
     // the init here because that's the first and only time we are going to get
     // called here.
 
-    // May have to activate constants blob.
-#if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
-    loadConstantsResource();
-#endif
-
     // Initialize the constant values used.
     _initBuiltinModule();
     createGlobalConstants();
@@ -312,10 +307,10 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
     _initCompiledMethodType();
     _initCompiledFrameType();
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     _initSlotCompare();
 #endif
-#if PYTHON_VERSION >= 270
+#if PYTHON_VERSION >= 0x270
     _initSlotIternext();
 #endif
 
@@ -328,7 +323,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
 #endif
     setupMetaPathBasedLoader();
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     patchInspectModule();
 #endif
 
@@ -396,7 +391,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         );
 #else
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
         char const *module_name_cstr = PyString_AS_STRING(module_name);
 
@@ -441,11 +436,11 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__, value);
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, (PyObject *)&Nuitka_Loader_Type);
 #endif
 
-#if PYTHON_VERSION >= 340
+#if PYTHON_VERSION >= 0x340
 // Set the "__spec__" value
 
 #if %(is_main_module)s
@@ -455,13 +450,21 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
     // Other modules get a "ModuleSpec" from the standard mechanism.
     {
         PyObject *bootstrap_module = getImportLibBootstrapModule();
+        CHECK_OBJECT(bootstrap_module);
+
         PyObject *_spec_from_module = PyObject_GetAttrString(bootstrap_module, "_spec_from_module");
+        CHECK_OBJECT(_spec_from_module);
 
         PyObject *spec_value = CALL_FUNCTION_WITH_SINGLE_ARG(_spec_from_module, module_%(module_identifier)s);
         Py_DECREF(_spec_from_module);
 
         // We can assume this to never fail, or else we are in trouble anyway.
-        CHECK_OBJECT(spec_value);
+        // CHECK_OBJECT(spec_value);
+
+        if (spec_value == NULL) {
+            PyErr_PrintEx(0);
+            abort();
+        }
 
 // Mark the execution in the "__spec__" value.
         SET_ATTRIBUTE(spec_value, const_str_plain__initializing, Py_True);
@@ -486,9 +489,18 @@ template_module_external_entry_point = r"""
 /* Visibility definitions to make the DLL entry point exported */
 #if defined(__GNUC__)
 
-#if PYTHON_VERSION < 300
-#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility("default")))
+#if PYTHON_VERSION < 0x300
 
+#if defined(_WIN32)
+#define NUITKA_MODULE_INIT_FUNCTION __declspec(dllexport) PyMODINIT_FUNC
+#else
+#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility("default")))
+#endif
+
+#else
+
+#if defined(_WIN32)
+#define NUITKA_MODULE_INIT_FUNCTION __declspec(dllexport) PyObject *
 #else
 
 #ifdef __cplusplus
@@ -498,6 +510,7 @@ template_module_external_entry_point = r"""
 #endif
 
 #endif
+#endif
 
 #else
 #define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC
@@ -506,13 +519,13 @@ template_module_external_entry_point = r"""
 /* The name of the entry point for DLLs changed between CPython versions, and
  * this is here to hide that.
  */
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION init##name(void)
 #else
 #define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION PyInit_##name(void)
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 static struct PyModuleDef mdef_%(module_identifier)s = {
     PyModuleDef_HEAD_INIT,
     NULL,                /* m_name, filled later */
@@ -536,7 +549,7 @@ MOD_INIT_DECL(%(module_identifier)s) {
         module_full_name = _Py_PackageContext;
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyObject *module = Py_InitModule4(
         module_full_name,        // Module Name
         NULL,                    // No methods initially, all are added
@@ -556,7 +569,7 @@ MOD_INIT_DECL(%(module_identifier)s) {
     assert(res != false);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     modulecode_%(module_identifier)s(module, NULL);
 #else
     PyObject *result = modulecode_%(module_identifier)s(module, NULL);

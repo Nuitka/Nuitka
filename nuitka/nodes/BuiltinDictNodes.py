@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -33,8 +33,6 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_DICT"
 
     named_children = ("pos_arg", "pairs")
-    getPositionalArgument = ExpressionChildrenHavingBase.childGetter("pos_arg")
-    getNamedArgumentPairs = ExpressionChildrenHavingBase.childGetter("pairs")
 
     def __init__(self, pos_arg, pairs, source_ref):
         assert type(pos_arg) not in (tuple, list), source_ref
@@ -65,26 +63,26 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
         return True
 
     def hasOnlyConstantArguments(self):
-        pos_arg = self.getPositionalArgument()
+        pos_arg = self.subnode_pos_arg
 
         if pos_arg is not None and not pos_arg.isCompileTimeConstant():
             return False
 
-        for arg_pair in self.getNamedArgumentPairs():
-            if not arg_pair.getKey().isCompileTimeConstant():
+        for arg_pair in self.subnode_pairs:
+            if not arg_pair.subnode_key.isCompileTimeConstant():
                 return False
-            if not arg_pair.getValue().isCompileTimeConstant():
+            if not arg_pair.subnode_value.isCompileTimeConstant():
                 return False
 
         return True
 
     def computeExpression(self, trace_collection):
-        pos_arg = self.getPositionalArgument()
-        pairs = self.getNamedArgumentPairs()
+        pos_arg = self.subnode_pos_arg
+        pairs = self.subnode_pairs
 
         if pos_arg is None:
             new_node = makeExpressionMakeDict(
-                pairs=self.getNamedArgumentPairs(), source_ref=self.source_ref
+                pairs=self.subnode_pairs, source_ref=self.source_ref
             )
 
             # This cannot raise anymore than its arguments, as the keys will
@@ -100,7 +98,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
 
         if pos_iteration_length == 0:
             new_node = makeExpressionMakeDict(
-                pairs=self.getNamedArgumentPairs(), source_ref=self.source_ref
+                pairs=self.subnode_pairs, source_ref=self.source_ref
             )
 
             # Maintain potential side effects from the positional arguments.
@@ -134,7 +132,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             return trace_collection.getCompileTimeComputationResult(
                 node=self,
                 computation=lambda: builtin_dict_spec.simulateCall(
-                    (pos_args, self.getNamedArgumentPairs())
+                    (pos_args, self.subnode_pairs)
                 ),
                 description="Replace 'dict' call with constant arguments.",
             )
@@ -144,13 +142,13 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             return self, None, None
 
     def mayRaiseException(self, exception_type):
-        pos_arg = self.getPositionalArgument()
+        pos_arg = self.subnode_pos_arg
 
         # TODO: Determining if it's sufficient is not easy but possible.
         if pos_arg is not None:
             return True
 
-        for arg_pair in self.getNamedArgumentPairs():
+        for arg_pair in self.subnode_pairs:
             if arg_pair.mayRaiseException(exception_type):
                 return True
 

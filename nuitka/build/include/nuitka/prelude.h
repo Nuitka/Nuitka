@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -27,20 +27,17 @@
  */
 #include <patchlevel.h>
 
-// TODO: Switch to using hex format version of standard Python or change our
-// to use that too, to avoid overflows more generally. For now we to out at
-// e.g. 369 for 3.6.10 or higher, but behavior changes are really rare at that
-// point.
-#if PY_MICRO_VERSION < 10
-#define PYTHON_VERSION (PY_MAJOR_VERSION * 100 + PY_MINOR_VERSION * 10 + PY_MICRO_VERSION)
+/* Use a hex version of our own to compare for versions. We do not care about pre-releases */
+#if PY_MICRO_VERSION < 16
+#define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + PY_MICRO_VERSION)
 #else
-#define PYTHON_VERSION (PY_MAJOR_VERSION * 100 + PY_MINOR_VERSION * 10 + 9)
+#define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + 15)
 #endif
 
 /* This is needed or else we can't create modules name "proc" or "func". For
  * Python3, the name collision can't happen, so we can limit it to Python2.
  */
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #define initproc python_initproc
 #define initfunc python_initfunc
 #define initstate system_initstate
@@ -54,7 +51,7 @@
 #include "pydebug.h"
 
 /* See above. */
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #undef initproc
 #undef initfunc
 #undef initstate
@@ -75,19 +72,20 @@
 #include <malloc.h>
 #endif
 
-/* An idea I first saw used with Cython, hint the compiler about branches
- * that are more or less likely to be taken. And hint the compiler about
- * things that we assume to be normally true. If other compilers can do
- * similar, I would be grateful for instructions.
+#include "hedley.h"
+
+/* Use annotations for branch prediction. They still make sense as the L1
+ * cache space is saved.
  */
 
-#ifdef __GNUC__
-#define likely(x) __builtin_expect(!!(x), 1)
-#define unlikely(x) __builtin_expect(!!(x), 0)
-#else
-#define likely(x) (x)
-#define unlikely(x) (x)
-#endif
+#define likely(x) HEDLEY_LIKELY(x)
+#define unlikely(x) HEDLEY_UNLIKELY(x)
+
+/* A way to indicate that a specific function won't return, so the C compiler
+ * can create better code.
+ */
+
+#define NUITKA_NO_RETURN HEDLEY_NO_RETURN
 
 /* A way to not give warnings about things that are declared, but might not
  * be used like in-line helper functions in headers or static per module
@@ -97,17 +95,6 @@
 #define NUITKA_MAY_BE_UNUSED __attribute__((__unused__))
 #else
 #define NUITKA_MAY_BE_UNUSED
-#endif
-
-/* A way to indicate that a specific function won't return, so the C compiler
- * can create better code.
- */
-#ifdef __GNUC__
-#define NUITKA_NO_RETURN __attribute__((__noreturn__))
-#elif defined(_MSC_VER)
-#define NUITKA_NO_RETURN __declspec(noreturn)
-#else
-#define NUITKA_NO_RETURN
 #endif
 
 /* This is used to indicate code control flows we know cannot happen. */
@@ -120,16 +107,10 @@
 #define NUITKA_CANNOT_GET_HERE(NAME) abort();
 #endif
 
-#ifdef __GNUC__
-#define NUITKA_FORCE_INLINE __attribute__((always_inline))
-#else
-#define NUITKA_FORCE_INLINE
-#endif
-
 /* Python3 removed PyInt instead of renaming PyLong, and PyObject_Str instead
  * of renaming PyObject_Unicode. Define this to be easily portable.
  */
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 #define PyInt_FromLong PyLong_FromLong
 #define PyInt_AsLong PyLong_AsLong
 #define PyInt_FromSsize_t PyLong_FromSsize_t
@@ -143,7 +124,7 @@
 /* String handling that uses the proper version of strings for Python3 or not,
  * which makes it easier to write portable code.
  */
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #define Nuitka_String_AsString PyString_AsString
 #define Nuitka_String_AsString_Unchecked PyString_AS_STRING
 #define Nuitka_String_Check PyString_Check
@@ -171,7 +152,7 @@
 #define Nuitka_String_FromFormat PyUnicode_FromFormat
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #define PyUnicode_GET_LENGTH(x) (PyUnicode_GET_SIZE(x))
 #endif
 
@@ -180,7 +161,7 @@
  * for executable, where we call it ourselves from the main code.
  */
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #define NUITKA_MODULE_ENTRY_FUNCTION void
 #else
 #define NUITKA_MODULE_ENTRY_FUNCTION PyObject *
@@ -192,7 +173,7 @@
  * fixed for Python 2.x only later. We could include more versions. This is
  * only a problem with debug mode and therefore not too important maybe.
  */
-#if PYTHON_VERSION >= 300 && PYTHON_VERSION < 340
+#if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x340
 
 #undef PyMem_MALLOC
 #define PyMem_MALLOC(n) ((size_t)(n) > (size_t)PY_SSIZE_T_MAX ? NULL : malloc(((n) != 0) ? (n) : 1))
@@ -202,7 +183,7 @@
 
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 typedef long Py_hash_t;
 #endif
 
@@ -218,7 +199,7 @@ typedef long Py_hash_t;
  *
  * TODO: Make it work for 3.7 too.
  */
-#if defined(_WIN32) || defined(__MSYS__) || PYTHON_VERSION >= 370
+#if defined(_WIN32) || defined(__MSYS__) || PYTHON_VERSION >= 0x370
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #else
@@ -226,7 +207,7 @@ typedef long Py_hash_t;
 #define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
 #endif
 
-#if _NUITKA_EXPERIMENTAL_FAST_THREAD_GET && PYTHON_VERSION >= 300 && PYTHON_VERSION < 370
+#if _NUITKA_EXPERIMENTAL_FAST_THREAD_GET && PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x370
 // We are careful, access without locking under the assumption that we hold
 // the GIL over uses of this or the same thread continues to execute code of
 // ours.
@@ -244,7 +225,7 @@ extern PyThreadState *_PyThreadState_Current;
 #define Py_LeaveRecursiveCall()
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #define RICHCOMPARE(t) (PyType_HasFeature((t), Py_TPFLAGS_HAVE_RICHCOMPARE) ? (t)->tp_richcompare : NULL)
 #else
 #define RICHCOMPARE(t) ((t)->tp_richcompare)
@@ -395,6 +376,8 @@ extern PyObject **global_constants;
 // '__loader__'
 #define const_str_plain___loader__ global_constants[67]
 
+#define _NUITKA_CONSTANTS_SIZE 27
+#define _NUITKA_CONSTANTS_HASH 0x27272727
 #else
 #include "__constants.h"
 #endif
@@ -417,11 +400,11 @@ extern PyObject *Nuitka_dunder_compiled_value;
 
 #include "nuitka/compiled_method.h"
 
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
 #include "nuitka/compiled_coroutine.h"
 #endif
 
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
 #include "nuitka/compiled_asyncgen.h"
 #endif
 

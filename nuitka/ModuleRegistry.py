@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -101,7 +101,7 @@ def getUncompiledNonTechnicalModules():
 
 
 def _normalizeModuleFilename(filename):
-    if python_version >= 300:
+    if python_version >= 0x300:
         filename = filename.replace("__pycache__", "")
 
         suffix = ".cpython-%d.pyc" % (python_version // 10)
@@ -163,8 +163,12 @@ def nextModule():
         return None
 
 
-def remainingCount():
+def getRemainingModulesCount():
     return len(active_modules)
+
+
+def getDoneModulesCount():
+    return len(done_modules)
 
 
 def getDoneModules():

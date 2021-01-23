@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -221,7 +221,7 @@ tests_stderr = ()
 # Disabled tests
 tests_skipped = {}
 
-if python_version < 380:
+if python_version < 0x380:
     tests_skipped[10] = "Incompatible refcount bugs of asyncio with python prior 3.8"
 
 result = executeReferenceChecked(

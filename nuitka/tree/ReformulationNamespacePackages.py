@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,6 +36,7 @@ from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModuleNameHard,
     ExpressionImportName,
+    makeExpressionAbsoluteImportNode,
 )
 from nuitka.nodes.ModuleAttributeNodes import (
     ExpressionModuleAttributeFileRef,
@@ -47,10 +48,7 @@ from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 
-from .TreeHelpers import (
-    makeAbsoluteImportNode,
-    makeStatementsSequenceFromStatement,
-)
+from .TreeHelpers import makeStatementsSequenceFromStatement
 from .VariableClosure import completeVariableClosures
 
 
@@ -145,9 +143,9 @@ def createPython3NamespacePath(package, module_relpath, source_ref):
         variable_name="__path__",
         source=ExpressionCallNoKeywords(
             called=ExpressionImportName(
-                module=makeAbsoluteImportNode(
+                module=makeExpressionAbsoluteImportNode(
                     module_name="_frozen_importlib"
-                    if python_version < 350
+                    if python_version < 0x350
                     else "_frozen_importlib_external",
                     source_ref=source_ref,
                 ),
@@ -179,14 +177,14 @@ def createNamespacePackage(module_name, is_top, module_relpath):
         source_ref=source_ref,
     )
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         statement = createPython3NamespacePath(
             package=package, module_relpath=module_relpath, source_ref=source_ref
         )
     else:
         statement = createPathAssignment(package, source_ref)
 
-    package.setBody(makeStatementsSequenceFromStatement(statement=statement))
+    package.setChild("body", makeStatementsSequenceFromStatement(statement=statement))
 
     completeVariableClosures(package)
 

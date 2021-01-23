@@ -1,4 +1,4 @@
-#     Copyright 2020, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2021, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -39,7 +39,6 @@ class GeventPlugin(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
-
         if module_name.hasNamespace("gevent"):
             return True, "everything from gevent"
 
@@ -89,6 +88,5 @@ class GeventPluginDetector(NuitkaPluginBase):
         Returns:
             None
         """
-        full_name = module.getFullName()
-        if full_name.startswith("gevent"):
+        if module.getFullName().hasNamespace("gevent"):
             self.warnUnusedPlugin("gevent support.")
