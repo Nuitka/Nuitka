@@ -19,6 +19,11 @@
 
 """
 
+from .ControlFlowDescriptions import (
+    ControlFlowDescriptionElementBasedEscape,
+    ControlFlowDescriptionNoEscape,
+)
+
 
 class ShapeContainerMixin(object):
     """Mixin that defines the common container shape functions."""
@@ -46,6 +51,10 @@ class ShapeContainerMixin(object):
     @staticmethod
     def hasShapeModule():
         return False
+
+    @staticmethod
+    def getOperationUnaryReprEscape():
+        return ControlFlowDescriptionElementBasedEscape
 
 
 class ShapeContainerMutableMixin(ShapeContainerMixin):
@@ -84,6 +93,10 @@ class ShapeNotContainerMixin(object):
     @staticmethod
     def hasShapeModule():
         return False
+
+    @staticmethod
+    def getOperationUnaryReprEscape():
+        return ControlFlowDescriptionNoEscape
 
 
 class ShapeNotNumberMixin(object):
@@ -152,6 +165,10 @@ class ShapeNumberMixin(object):
     @staticmethod
     def hasShapeModule():
         return False
+
+    @staticmethod
+    def getOperationUnaryReprEscape():
+        return ControlFlowDescriptionNoEscape
 
 
 class ShapeIteratorMixin(ShapeNotContainerMixin):

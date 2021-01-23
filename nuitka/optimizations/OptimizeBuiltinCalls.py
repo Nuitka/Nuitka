@@ -126,11 +126,11 @@ from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
 )
-from nuitka.nodes.OperatorNodes import (
-    ExpressionOperationAbs,
-    ExpressionOperationBinaryDivmod,
+from nuitka.nodes.OperatorNodes import ExpressionOperationBinaryDivmod
+from nuitka.nodes.OperatorNodesUnary import (
     ExpressionOperationNot,
-    ExpressionOperationUnary,
+    ExpressionOperationUnaryAbs,
+    ExpressionOperationUnaryRepr,
 )
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import makeStatementReturn
@@ -399,14 +399,9 @@ def id_extractor(node):
 
 
 def repr_extractor(node):
-    def makeReprOperator(operand, source_ref):
-        return ExpressionOperationUnary(
-            operator="Repr", operand=operand, source_ref=source_ref
-        )
-
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
-        builtin_class=makeReprOperator,
+        builtin_class=ExpressionOperationUnaryRepr,
         builtin_spec=BuiltinParameterSpecs.builtin_repr_spec,
     )
 
@@ -509,7 +504,7 @@ def all_extractor(node):
 def abs_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
-        builtin_class=ExpressionOperationAbs,
+        builtin_class=ExpressionOperationUnaryAbs,
         builtin_spec=BuiltinParameterSpecs.builtin_abs_spec,
     )
 

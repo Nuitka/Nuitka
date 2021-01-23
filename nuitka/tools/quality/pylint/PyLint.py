@@ -202,6 +202,13 @@ similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
             "\n"
         )
 
+    if pylint_version < "2.0":
+        default_pylint_options += """\
+--disable=slots-on-old-class\
+""".split(
+            "\n"
+        )
+
     if os.name != "nt":
         default_pylint_options.append("--rcfile=%s" % os.devnull)
 

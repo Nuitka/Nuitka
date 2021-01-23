@@ -104,9 +104,12 @@ from nuitka.nodes.ModuleNodes import (
     PythonMainModule,
     PythonShlibModule,
 )
-from nuitka.nodes.OperatorNodes import (
-    ExpressionOperationUnary,
-    makeBinaryOperationNode,
+from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
+from nuitka.nodes.OperatorNodesUnary import (
+    ExpressionOperationUnaryAdd,
+    ExpressionOperationUnaryInvert,
+    ExpressionOperationUnaryRepr,
+    ExpressionOperationUnarySub,
 )
 from nuitka.nodes.ReturnNodes import makeStatementReturn
 from nuitka.nodes.SliceNodes import makeExpressionBuiltinSlice
@@ -550,14 +553,24 @@ def buildExprOnlyNode(provider, node, source_ref):
 
 
 def buildUnaryOpNode(provider, node, source_ref):
-    if getKind(node.op) == "Not":
+    operator = getKind(node.op)
+
+    # Delegate this one to existing code.
+    if operator == "Not":
         return buildBoolOpNode(provider=provider, node=node, source_ref=source_ref)
+
+    operand = buildNode(provider, node.operand, source_ref)
+
+    if operator == "Repr":
+        return ExpressionOperationUnaryRepr(operand=operand, source_ref=source_ref)
+    elif operator == "USub":
+        return ExpressionOperationUnarySub(operand=operand, source_ref=source_ref)
+    elif operator == "UAdd":
+        return ExpressionOperationUnaryAdd(operand=operand, source_ref=source_ref)
+    elif operator == "Invert":
+        return ExpressionOperationUnaryInvert(operand=operand, source_ref=source_ref)
     else:
-        return ExpressionOperationUnary(
-            operator=getKind(node.op),
-            operand=buildNode(provider, node.operand, source_ref),
-            source_ref=source_ref,
-        )
+        assert False, operand
 
 
 def buildBinaryOpNode(provider, node, source_ref):
@@ -579,8 +592,7 @@ def buildBinaryOpNode(provider, node, source_ref):
 
 
 def buildReprNode(provider, node, source_ref):
-    return ExpressionOperationUnary(
-        operator="Repr",
+    return ExpressionOperationUnaryRepr(
         operand=buildNode(provider, node.value, source_ref),
         source_ref=source_ref,
     )
@@ -620,9 +632,7 @@ def buildFormattedValueNode(provider, node, source_ref):
             value=value, encoding=None, errors=None, source_ref=source_ref
         )
     elif conversion == 2:
-        value = ExpressionOperationUnary(
-            operator="Repr", operand=value, source_ref=source_ref
-        )
+        value = ExpressionOperationUnaryRepr(operand=value, source_ref=source_ref)
     elif conversion == 1:
         value = ExpressionBuiltinAscii(value=value, source_ref=source_ref)
     else:

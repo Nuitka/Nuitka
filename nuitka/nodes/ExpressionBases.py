@@ -586,6 +586,28 @@ class ExpressionBase(NodeBase):
 
         return not_node, None, None
 
+    def computeExpressionOperationRepr(self, repr_node, trace_collection):
+        type_shape = self.getTypeShape()
+
+        escape_desc = type_shape.getOperationUnaryReprEscape()
+
+        # Annotate if exceptions might be raised.
+        exception_raise_exit = escape_desc.getExceptionExit()
+        if exception_raise_exit is not None:
+            trace_collection.onExceptionRaiseExit(exception_raise_exit)
+
+        if escape_desc.isValueEscaping():
+            # The value of that node escapes and could change its contents during repr
+            # only, which might be more limited.
+            # trace_collection.onValueEscapeRepr(self)
+            trace_collection.removeKnowledge(self)
+
+        if escape_desc.isControlFlowEscape():
+            # Any code could be run, note that.
+            trace_collection.onControlFlowEscape(self)
+
+        return (repr_node, None, None), escape_desc
+
     def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
         # Virtual method, pylint: disable=unused-argument
 
@@ -874,6 +896,17 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
             computation=lambda: not self.getCompileTimeConstant(),
             description="""\
 Compile time constant negation truth value pre-computed.""",
+        )
+
+    def computeExpressionOperationRepr(self, repr_node, trace_collection):
+        return (
+            trace_collection.getCompileTimeComputationResult(
+                node=repr_node,
+                computation=lambda: repr(self.getCompileTimeConstant()),
+                description="""\
+Compile time constant repr value pre-computed.""",
+            ),
+            None,
         )
 
     def computeExpressionLen(self, len_node, trace_collection):

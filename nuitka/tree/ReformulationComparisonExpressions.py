@@ -28,7 +28,7 @@ from nuitka.nodes.AssignNodes import (
 )
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.OperatorNodes import ExpressionOperationNot
+from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef

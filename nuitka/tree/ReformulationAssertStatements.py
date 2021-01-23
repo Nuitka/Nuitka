@@ -25,7 +25,7 @@ from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.OperatorNodes import ExpressionOperationNot
+from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
 from nuitka.Options import getPythonFlags
 from nuitka.PythonVersions import python_version
 

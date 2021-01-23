@@ -338,6 +338,10 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
+    def isExpressionOperationUnary():
+        return False
+
+    @staticmethod
     def isExpressionOperationBinary():
         return False
 

@@ -33,7 +33,7 @@ from .NodeMakingHelpers import (
     wrapExpressionWithNodeSideEffects,
     wrapStatementWithSideEffects,
 )
-from .OperatorNodes import ExpressionOperationNot
+from .OperatorNodesUnary import ExpressionOperationNot
 from .StatementNodes import StatementsSequence
 
 

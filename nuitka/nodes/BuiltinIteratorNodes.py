@@ -268,7 +268,7 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
 
     @staticmethod
     def getTypeShape():
-        # TODO: This could be more specific.
+        # TODO: This could be more specific, this one is a fixed thing!
         return tshape_iterator
 
     def computeExpression(self, trace_collection):
