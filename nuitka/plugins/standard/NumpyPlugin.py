@@ -21,6 +21,7 @@ import os
 import re
 import shutil
 import sys
+from collections import namedtuple
 
 from nuitka import Options
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
@@ -95,37 +96,6 @@ def getNumpyCoreBinaries(module):
     return binaries
 
 
-def _getMatplotlibInfo():
-    """Determine the filename of matplotlibrc and the default backend.
-
-    Notes:
-        There might exist a local version outside 'matplotlib/mpl-data' which
-        we then must use instead. Determine its name by aksing matplotlib.
-    """
-    cmd = """\
-from __future__ import print_function
-from matplotlib import matplotlib_fname, get_backend, _get_data_path, __version__
-print(matplotlib_fname())
-print(get_backend())
-print(_get_data_path())
-print(__version__)
-"""
-
-    feedback = Execution.check_output([sys.executable, "-c", cmd])
-
-    if str is not bytes:  # ensure str in Py3 and up
-        feedback = feedback.decode("utf8")
-
-    feedback = feedback.replace("\r", "")
-    (
-        matplotlibrc_filename,
-        backend,
-        data_path,
-        matplotlib_version,
-    ) = feedback.splitlines()
-    return matplotlibrc_filename, backend, data_path, matplotlib_version
-
-
 class NumpyPlugin(NuitkaPluginBase):
     """This class represents the main logic of the plugin.
 
@@ -154,6 +124,9 @@ class NumpyPlugin(NuitkaPluginBase):
             self.scipy_copied = False
 
         self.mpl_data_copied = False  # indicator: matplotlib data copied
+
+        # Information about matplotlib install.
+        self.matplotlib_info = None
 
     @classmethod
     def isRelevant(cls):
@@ -235,43 +208,91 @@ Should matplotlib not be be included with numpy, Default is %default.""",
                 )
                 self.info(msg)
 
+        # TODO: Ouch, do not copy data files when asked to copy DLLs.
         if self.matplotlib and full_name == "matplotlib" and not self.mpl_data_copied:
             self.mpl_data_copied = True
 
-            self.copyMplDataFiles(module, dist_dir)
+            self.copyMplDataFiles(dist_dir)
 
-    def copyMplDataFiles(self, data_dir, dist_dir):
+    def _getMatplotlibInfo(self):
+        """Determine the filename of matplotlibrc and the default backend, etc.
+
+        Notes:
+            There might exist a local version outside 'matplotlib/mpl-data' which
+            we then must use instead. Determine its name by aksing matplotlib.
+        """
+        if self.matplotlib_info is None:
+            cmd = r"""\
+from __future__ import print_function
+from matplotlib import matplotlib_fname, get_backend, _get_data_path, __version__
+from inspect import getsource
+print(repr(matplotlib_fname()))
+print(repr(get_backend()))
+print(repr(_get_data_path()))
+print(repr(__version__))
+print(repr("MATPLOTLIBDATA" in getsource(_get_data_path)))
+"""
+
+            # TODO: Make this is a re-usable pattern, output from a script with values per line
+            feedback = Execution.check_output([sys.executable, "-c", cmd])
+
+            if str is not bytes:  # ensure str in Py3 and up
+                feedback = feedback.decode("utf8")
+
+            # Ignore Windows newlines difference.
+            feedback = feedback.replace("\r", "")
+
+            MatplotlibInfo = namedtuple(
+                "MatplotlibInfo",
+                (
+                    "matplotlibrc_filename",
+                    "backend",
+                    "data_path",
+                    "matplotlib_version",
+                    "needs_matplotlibdata_env",
+                ),
+            )
+
+            # We are being lazy here, the code is trusted, pylint: disable=eval-used
+            self.matplotlib_info = MatplotlibInfo(
+                *(eval(value) for value in feedback.splitlines())
+            )
+
+        return self.matplotlib_info
+
+    def copyMplDataFiles(self, dist_dir):
         """ Write matplotlib data files ('mpl-data')."""
 
-        matplotlibrc, backend, data_dir, matplotlib_version = _getMatplotlibInfo()
-        if not os.path.isdir(data_dir):
+        matplotlib_info = self._getMatplotlibInfo()
+
+        if not os.path.isdir(matplotlib_info.data_path):
             self.sysexit(
                 "mpl-data missing, matplotlib installation appears to be broken"
             )
 
-        for fullname in getFileList(data_dir):  # copy data files to dist folder
-            filename = os.path.relpath(fullname, data_dir)
+        # Copy data files to dist folder
+        for fullname in getFileList(matplotlib_info.data_path):
+            filename = os.path.relpath(fullname, matplotlib_info.data_path)
 
             if filename.endswith("matplotlibrc"):  # handle config separately
                 continue
 
-            target_filename = os.path.join(dist_dir, "mpl-data", filename)
+            target_filename = os.path.join(dist_dir, "matplotlib", "mpl-data", filename)
 
             makePath(os.path.dirname(target_filename))  # create intermediate folders
             shutil.copyfile(fullname, target_filename)
 
-        old_lines = open(matplotlibrc).read().splitlines()  # old config file lines
+        old_lines = (
+            open(matplotlib_info.matplotlibrc_filename).read().splitlines()
+        )  # old config file lines
         new_lines = []  # new config file lines
 
         found = False  # checks whether backend definition encountered
         for line in old_lines:
-            line = line.strip()
-
-            if line == "":
-                continue
+            line = line.rstrip()
 
             # omit meaningless lines
-            if line.startswith("#") and matplotlib_version < "3":
+            if line.startswith("#") and matplotlib_info.matplotlib_version < "3":
                 continue
 
             new_lines.append(line)
@@ -280,11 +301,13 @@ Should matplotlib not be be included with numpy, Default is %default.""",
                 # old config file has a backend definition
                 found = True
 
-        if not found and matplotlib_version < "3":
+        if not found and matplotlib_info.matplotlib_version < "3":
             # Set the backend, so even if it was run time determined, we now enforce it.
-            new_lines.append("backend: %s" % backend)
+            new_lines.append("backend: %s" % matplotlib_info.backend)
 
-        matplotlibrc_filename = os.path.join(dist_dir, "mpl-data", "matplotlibrc")
+        matplotlibrc_filename = os.path.join(
+            dist_dir, "matplotlib", "mpl-data", "matplotlibrc"
+        )
 
         putTextFileContents(filename=matplotlibrc_filename, contents=new_lines)
 
@@ -390,7 +413,7 @@ Should matplotlib not be be included with numpy, Default is %default.""",
 
         Notes:
             If full name equals "matplotlib" we insert code to set the
-            environment variable that Debian versions of matplotlib
+            environment variable that e.g. Debian versions of matplotlib
             use.
 
         Args:
@@ -399,12 +422,17 @@ Should matplotlib not be be included with numpy, Default is %default.""",
             Code to insert and descriptive text (tuple), or (None, None).
         """
 
-        if not self.matplotlib or module.getFullName() != "matplotlib":
-            return None, None  # not for us
+        # Matplotlib might be off, or not need the environment variable.
+        if (
+            not self.matplotlib
+            or module.getFullName() != "matplotlib"
+            or not self._getMatplotlibInfo().needs_matplotlibdata_env
+        ):
+            return None, None
 
         code = r"""
 import os
-os.environ["MATPLOTLIBDATA"] = os.path.join(__nuitka_binary_dir, "mpl-data")
+os.environ["MATPLOTLIBDATA"] = os.path.join(__nuitka_binary_dir, "matplotlib", "mpl-data")
 """
         return (
             code,
