@@ -1,6 +1,6 @@
-###############################
- Nuitka Release 0.6.11 (Draft)
-###############################
+#######################
+ Nuitka Release 0.6.11
+#######################
 
 This release is a massive improvement in many ways with lots of bug
 fixes and new features.
