@@ -1542,7 +1542,10 @@ def displayFileContents(name, path):
     test_logger.info("Contents of %s %r:" % (name, path))
 
     if os.path.exists(path):
-        os.system("cat %r" % path)
+        if os.name == "nt":
+            os.system("type %r" % path)
+        else:
+            os.system("cat %r" % path)
     else:
         test_logger.info("Does not exist.")
 
