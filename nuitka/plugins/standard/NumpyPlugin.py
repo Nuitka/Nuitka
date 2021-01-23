@@ -402,7 +402,7 @@ Should matplotlib not be be included with numpy, Default is %default.""",
         if not self.matplotlib or module.getFullName() != "matplotlib":
             return None, None  # not for us
 
-        code = """\
+        code = r"""
 import os
 os.environ["MATPLOTLIBDATA"] = os.path.join(__nuitka_binary_dir, "mpl-data")
 """

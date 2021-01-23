@@ -71,7 +71,7 @@ class TkinterPlugin(NuitkaPluginBase):
         """This method is called one time only to check, whether the plugin might make sense at all.
 
         Returns:
-            True if this is a standalone compilation on Windows, else False.
+            True if this is a standalone, else False.
         """
         return Options.isStandaloneMode()
 
