@@ -793,10 +793,13 @@ __name__ = ...
         else:
             general.info("Keeping build directory %r." % source_dir)
 
-        general.info(
-            "Successfully created %r."
-            % OutputDirectories.getResultFullpath(onefile=Options.isOnefileMode())
+        final_filename = OutputDirectories.getResultFullpath(
+            onefile=Options.isOnefileMode()
         )
+
+        Plugins.onFinalResult(final_filename)
+
+        general.info("Successfully created %r." % final_filename)
 
         # Execute the module immediately if option was given.
         if Options.shallExecuteImmediately():

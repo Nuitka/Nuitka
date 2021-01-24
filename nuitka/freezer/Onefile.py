@@ -45,14 +45,18 @@ from nuitka.utils.Utils import getArchitecture, getOS
 def packDistFolderToOnefile(dist_dir, binary_filename):
     """Pack distribution to onefile, i.e. a single file that is directly executable."""
 
+    onefile_output_filename = getResultFullpath(onefile=True)
+
     if getOS() == "Linux":
-        packDistFolderToOnefileLinux(dist_dir, binary_filename)
+        packDistFolderToOnefileLinux(onefile_output_filename, dist_dir, binary_filename)
     elif getOS() == "Windows":
-        packDistFolderToOnefileWindows(dist_dir)
+        packDistFolderToOnefileWindows(onefile_output_filename, dist_dir)
     else:
         postprocessing_logger.sysexit(
             "Onefile mode is not yet available on %r." % getOS()
         )
+
+    Plugins.onOnefileFinished(onefile_output_filename)
 
 
 def getAppImageToolPath():
@@ -81,7 +85,7 @@ to combine Nuitka dist folder to onefile binary.""",
     )
 
 
-def packDistFolderToOnefileLinux(dist_dir, binary_filename):
+def packDistFolderToOnefileLinux(onefile_output_filename, dist_dir, binary_filename):
     """Pack to onefile binary on Linux.
 
     Notes: This is mostly a wrapper around AppImage, which does all the heavy
@@ -127,8 +131,6 @@ Categories=Utility;"""
     postprocessing_logger.info(
         "Creating single file from dist folder, this may take a while."
     )
-
-    onefile_output_filename = getResultFullpath(onefile=True)
 
     # Starting the process while locked, so file handles are not duplicated.
     appimagetool_process = subprocess.Popen(
@@ -281,12 +283,10 @@ def _pickCompressor():
         return b"X", lambda data: data
 
 
-def packDistFolderToOnefileWindows(dist_dir):
+def packDistFolderToOnefileWindows(onefile_output_filename, dist_dir):
     postprocessing_logger.info(
         "Creating single file from dist folder, this may take a while."
     )
-
-    onefile_output_filename = getResultFullpath(onefile=True)
 
     general.info("Running bootstrap binary compilation via Scons.")
 

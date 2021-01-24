@@ -574,7 +574,7 @@ class NuitkaPluginBase(object):
         return ()
 
     def onStandaloneDistributionFinished(self, dist_dir):
-        """Called after successfully finishing a standalone compile.
+        """Called after successfully creating a standalone distribution.
 
         Note:
             It is up to the plugin to take subsequent action. Examples are:
@@ -584,6 +584,41 @@ class NuitkaPluginBase(object):
 
         Args:
             dist_dir: the created distribution folder
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def onOnefileFinished(self, filename):
+        """Called after successfully creating a onefile executable.
+
+        Note:
+            It is up to the plugin to take subsequent action. Examples are:
+            insert additional information (license, copyright, company or
+            application description), create installation material, further
+            folder clean-up, start downstream applications etc.
+
+        Args:
+            filename: the created onefile executable
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def onFinalResult(self, filename):
+        """Called after successfully finishing a compilation.
+
+        Note:
+            Plugins normally don't need this, and what filename is will be
+            heavily dependent on compilation modes. Actions can be take here,
+            e.g. commercial plugins output generated keys near that executable
+            path.
+        Args:
+            filename: the created binary (module, accelerated exe, dist exe, onefile exe)
 
         Returns:
             None

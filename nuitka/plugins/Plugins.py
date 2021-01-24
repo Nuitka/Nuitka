@@ -213,11 +213,21 @@ class Plugins(object):
 
     @staticmethod
     def onStandaloneDistributionFinished(dist_dir):
-        """Let plugins postprocess the distribution folder if standalone"""
+        """Let plugins postprocess the distribution folder in standalone mode"""
         for plugin in getActivePlugins():
             plugin.onStandaloneDistributionFinished(dist_dir)
 
-        return None
+    @staticmethod
+    def onOnefileFinished(filename):
+        """Let plugins postprocess the onefile executable in onefile mode"""
+        for plugin in getActivePlugins():
+            plugin.onStandaloneDistributionFinished(filename)
+
+    @staticmethod
+    def onFinalResult(filename):
+        """Let plugins add to final binary in some way"""
+        for plugin in getActivePlugins():
+            plugin.onFinalResult(filename)
 
     @staticmethod
     def considerExtraDlls(dist_dir, module):
