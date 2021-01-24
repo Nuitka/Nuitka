@@ -27,6 +27,11 @@ import os
 
 
 class ModuleName(str):
+    def __init__(self, value):
+        assert ".." not in str(value), value
+
+        str.__init__(value)
+
     @staticmethod
     def makeModuleNameInPackage(module_name, package_name):
         """Create a module name in a package.

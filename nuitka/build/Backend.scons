@@ -484,7 +484,7 @@ if lto_mode and mingw_mode:
 
     lto_mode = False
 
-# Support details for real g++, not clang++.
+# Support details for real gcc, not clang.
 if gcc_mode and not clang_mode:
     # Enforce the minimum version, selecting a potentially existing g++-4.5
     # binary if it's not high enough. This is esp. useful under Debian which
@@ -547,6 +547,9 @@ version (>= 5.3)."""
     # The var-tracking does not scale, disable it. Should we really need it, we
     # can enable it. TODO: Does this cause a performance loss?
     env.Append(CCFLAGS=["-fno-var-tracking"])
+
+    # This disables output of notes, e.g. on struct alignment layout changes
+    env.Append(CCFLAGS=["-fcompare-debug-second"])
 
 if gcc_mode and lto_mode:
     env.Append(CCFLAGS=["-flto"])
