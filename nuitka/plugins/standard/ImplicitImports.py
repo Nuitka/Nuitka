@@ -111,7 +111,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "_QOpenGLFunctions_2_1",
                 "_QOpenGLFunctions_4_1_Core",
             ):
-                yield getChildNamed(".QtCore")
+                yield getChildNamed("QtCore")
 
             if child in (
                 "QtDeclarative",
@@ -127,14 +127,14 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "QtWebSockets",
                 "QtWebEngineWidgets",
             ):
-                yield getChildNamed(".QtNetwork")
+                yield getChildNamed("QtNetwork")
 
             if child == "QtWebEngineWidgets":
-                yield getChildNamed(".QtWebEngineCore")
-                yield getChildNamed(".QtWebChannel")
-                yield getChildNamed(".QtPrintSupport")
+                yield getChildNamed("QtWebEngineCore")
+                yield getChildNamed("QtWebChannel")
+                yield getChildNamed("QtPrintSupport")
             elif child == "QtScriptTools":
-                yield getChildNamed(".QtScript")
+                yield getChildNamed("QtScript")
             elif child in (
                 "QtWidgets",
                 "QtDeclarative",
@@ -156,7 +156,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "_QOpenGLFunctions_2_1",
                 "_QOpenGLFunctions_4_1_Core",
             ):
-                yield getChildNamed(".QtGui")
+                yield getChildNamed("QtGui")
 
             if full_name in (
                 "PyQt5.QtDesigner",

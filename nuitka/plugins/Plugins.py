@@ -135,14 +135,15 @@ def _loadPluginClassesFromPath(scan_path):
 
         try:
             plugin_module = module_loader.load_module(name)
-        except Exception:  # need to catch everything, pylint: disable=broad-except
+        except Exception:
             if Options.is_nondebug:
                 plugins_logger.warning(
                     "Problem loading plugin %r (%s), ignored. Use --debug to make it visible."
                     % (name, module_loader.get_filename())
                 )
-            else:
-                raise
+                continue
+
+            raise
 
         plugin_classes = set(
             obj
@@ -212,11 +213,21 @@ class Plugins(object):
 
     @staticmethod
     def onStandaloneDistributionFinished(dist_dir):
-        """Let plugins postprocess the distribution folder if standalone"""
+        """Let plugins postprocess the distribution folder in standalone mode"""
         for plugin in getActivePlugins():
             plugin.onStandaloneDistributionFinished(dist_dir)
 
-        return None
+    @staticmethod
+    def onOnefileFinished(filename):
+        """Let plugins postprocess the onefile executable in onefile mode"""
+        for plugin in getActivePlugins():
+            plugin.onStandaloneDistributionFinished(filename)
+
+    @staticmethod
+    def onFinalResult(filename):
+        """Let plugins add to final binary in some way"""
+        for plugin in getActivePlugins():
+            plugin.onFinalResult(filename)
 
     @staticmethod
     def considerExtraDlls(dist_dir, module):
@@ -399,7 +410,7 @@ class Plugins(object):
 
     @staticmethod
     def decideCompilation(module_name, source_ref):
-        """Let plugins decide whether to compile a module.
+        """Let plugins decide whether to C compile a module or include as bytecode.
 
         Notes:
             The decision is made by the first plugin not returning None.
