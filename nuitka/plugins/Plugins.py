@@ -135,14 +135,15 @@ def _loadPluginClassesFromPath(scan_path):
 
         try:
             plugin_module = module_loader.load_module(name)
-        except Exception:  # need to catch everything, pylint: disable=broad-except
+        except Exception:
             if Options.is_nondebug:
                 plugins_logger.warning(
                     "Problem loading plugin %r (%s), ignored. Use --debug to make it visible."
                     % (name, module_loader.get_filename())
                 )
-            else:
-                raise
+                continue
+
+            raise
 
         plugin_classes = set(
             obj
@@ -399,7 +400,7 @@ class Plugins(object):
 
     @staticmethod
     def decideCompilation(module_name, source_ref):
-        """Let plugins decide whether to compile a module.
+        """Let plugins decide whether to C compile a module or include as bytecode.
 
         Notes:
             The decision is made by the first plugin not returning None.
