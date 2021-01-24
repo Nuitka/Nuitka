@@ -24,6 +24,7 @@ import os
 import sys
 
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import general
 
 
 def _importFilePy3NewWay(filename):
@@ -116,7 +117,7 @@ def getSharedLibrarySuffix(preferred):
     return result
 
 
-def importFromFolder(module_name, path, must_exist):
+def importFromFolder(logger, module_name, path, must_exist, message):
     """Import a module from a folder by adding it temporarily to sys.path"""
     # May already be loaded
     if module_name in sys.modules:
@@ -128,13 +129,19 @@ def importFromFolder(module_name, path, must_exist):
     # Handle case without inline copy too.
     try:
         return __import__(module_name)
-    except ImportError:
+    except ImportError as e:
         if not must_exist:
             return None
 
-        sys.exit(
-            "Error, excepted inline copy of %r is in %r there." % (module_name, path)
+        exit_message = (
+            "Error, expected inline copy of %r is in %r there, error was: %r."
+            % (module_name, path, e)
         )
+
+        if message is not None:
+            exit_message += "\n" + message
+
+        logger.sysexit(exit_message)
     finally:
         # Do not forget to remove it from sys.path again.
         del sys.path[0]
@@ -149,4 +156,6 @@ def importFromInlineCopy(module_name, must_exist):
             os.path.dirname(__file__), "..", "build", "inline_copy", module_name
         ),
         must_exist=must_exist,
+        message=None,
+        logger=general,
     )
