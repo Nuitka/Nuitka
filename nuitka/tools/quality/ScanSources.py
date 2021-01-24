@@ -23,16 +23,16 @@ import os
 
 from nuitka.utils.Shebang import getShebangFromFile
 
+ignore_list = ("inline_copy", "tblib", "__pycache__")
+
 
 def addFromDirectory(path, suffixes, blacklist):
     for dirpath, dirnames, filenames in os.walk(path):
         dirnames.sort()
 
-        if "inline_copy" in dirnames:
-            dirnames.remove("inline_copy")
-
-        if "__pycache__" in dirnames:
-            dirnames.remove("__pycache__")
+        for entry in ignore_list:
+            if entry in dirnames:
+                dirnames.remove(entry)
 
         filenames.sort()
 
