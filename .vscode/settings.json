@@ -53,6 +53,8 @@
         "tests/CPython??/test/**",
         "tests/syntax/**"
     ],
+    "python.analysis.autoSearchPaths": false,
+    "python.analysis.extraPaths": ["nuitka/build/inline_copy/lib/scons-3.1.2"],
     "python.formatting.provider": "black",
     "restructuredtext.confPath": "",
 }
