@@ -190,49 +190,7 @@ def _runOnefileScons(quiet):
     if not Options.isRemoveBuildDir() and getOS() == "Windows":
         options["cache_mode"] = "true"
 
-    if Options.isLto():
-        options["lto_mode"] = "true"
-
-    if Options.shallDisableConsoleWindow():
-        options["win_disable_console"] = "true"
-
-    if Options.isShowScons():
-        options["show_scons"] = "true"
-
-    if Options.isMingw64():
-        options["mingw_mode"] = "true"
-
-    if Options.getMsvcVersion():
-        msvc_version = Options.getMsvcVersion()
-
-        msvc_version = msvc_version.replace("exp", "Exp")
-        if "." not in msvc_version:
-            msvc_version += ".0"
-
-        options["msvc_version"] = msvc_version
-
-    if getOS() == "Windows":
-        options["noelf_mode"] = "true"
-
-    if Options.isClang():
-        options["clang_mode"] = "true"
-
-    cpp_defines = Plugins.getPreprocessorSymbols()
-    if cpp_defines:
-        options["cpp_defines"] = ",".join(
-            "%s%s%s" % (key, "=" if value else "", value or "")
-            for key, value in cpp_defines.items()
-        )
-
-    link_libraries = Plugins.getExtraLinkLibraries()
-    if link_libraries:
-        options["link_libraries"] = ",".join(link_libraries)
-
-    if Options.shallRunInDebugger():
-        options["full_names"] = "true"
-
-    if Options.assumeYesForDownloads():
-        options["assume_yes_for_downloads"] = "true"
+    SconsInterface.setCommonOptions(options)
 
     onefile_env_values = {}
 

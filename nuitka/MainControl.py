@@ -421,19 +421,8 @@ def runSconsBackend(quiet):
     if not Options.shallMakeModule():
         options["result_exe"] = OutputDirectories.getResultFullpath()
 
-    # Ask Scons to cache on Windows, except where the directory is thrown
-    # away. On non-Windows you can should use ccache instead.
-    if not Options.isRemoveBuildDir() and Utils.getOS() == "Windows":
-        options["cache_mode"] = "true"
-
-    if Options.isLto():
-        options["lto_mode"] = asBoolStr(True)
-
     if Options.shallUseStaticLibPython():
         options["static_libpython"] = asBoolStr(True)
-
-    if Options.shallDisableConsoleWindow():
-        options["win_disable_console"] = asBoolStr(True)
 
     if Options.isStandaloneMode():
         options["standalone_mode"] = asBoolStr(True)
@@ -446,26 +435,8 @@ def runSconsBackend(quiet):
             len(ModuleRegistry.getUncompiledTechnicalModules())
         )
 
-    if Options.isShowScons():
-        options["show_scons"] = asBoolStr(True)
-
-    if Options.isMingw64():
-        options["mingw_mode"] = asBoolStr(True)
-
-    if Options.getMsvcVersion():
-        msvc_version = Options.getMsvcVersion()
-
-        msvc_version = msvc_version.replace("exp", "Exp")
-        if "." not in msvc_version:
-            msvc_version += ".0"
-
-        options["msvc_version"] = msvc_version
-
     if Utils.getOS() == "Windows":
         options["noelf_mode"] = asBoolStr(True)
-
-    if Options.isClang():
-        options["clang_mode"] = asBoolStr(True)
 
     if Options.isProfile():
         options["profile_mode"] = asBoolStr(True)
@@ -506,25 +477,10 @@ def runSconsBackend(quiet):
     if abiflags:
         options["abiflags"] = abiflags
 
-    cpp_defines = Plugins.getPreprocessorSymbols()
-    if cpp_defines:
-        options["cpp_defines"] = ",".join(
-            "%s%s%s" % (key, "=" if value else "", value or "")
-            for key, value in cpp_defines.items()
-        )
-
-    link_libraries = Plugins.getExtraLinkLibraries()
-    if link_libraries:
-        options["link_libraries"] = ",".join(link_libraries)
-
     if Options.shallMakeModule():
         options["module_suffix"] = getSharedLibrarySuffix(preferred=True)
 
-    if Options.shallRunInDebugger():
-        options["full_names"] = asBoolStr(True)
-
-    if Options.assumeYesForDownloads():
-        options["assume_yes_for_downloads"] = asBoolStr(True)
+    SconsInterface.setCommonOptions(options)
 
     return (
         SconsInterface.runScons(

@@ -22,7 +22,6 @@ options.
 
 """
 
-
 import contextlib
 import copy
 import os
@@ -31,6 +30,7 @@ import sys
 
 from nuitka import Options, Tracing
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Execution, Utils
 from nuitka.utils.FileOperations import (
@@ -344,3 +344,56 @@ def cleanSconsDirectory(source_dir):
         if os.path.exists(plugins_dir):
             for path, _filename in listDir(plugins_dir):
                 check(path)
+
+
+def setCommonOptions(options):
+    if Options.shallRunInDebugger():
+        options["full_names"] = "true"
+
+    if Options.assumeYesForDownloads():
+        options["assume_yes_for_downloads"] = asBoolStr(True)
+
+    if not Options.shallUseProgressBar():
+        options["progessbar"] = "false"
+
+    if Options.isClang():
+        options["clang_mode"] = "true"
+
+    if Options.isShowScons():
+        options["show_scons"] = "true"
+
+    if Options.isMingw64():
+        options["mingw_mode"] = "true"
+
+    if Options.getMsvcVersion():
+        msvc_version = Options.getMsvcVersion()
+
+        msvc_version = msvc_version.replace("exp", "Exp")
+        if "." not in msvc_version:
+            msvc_version += ".0"
+
+        options["msvc_version"] = msvc_version
+
+    if Options.shallDisableConsoleWindow():
+        options["win_disable_console"] = asBoolStr(True)
+
+    if Options.isLto():
+        options["lto_mode"] = asBoolStr(True)
+
+    cpp_defines = Plugins.getPreprocessorSymbols()
+    if cpp_defines:
+        options["cpp_defines"] = ",".join(
+            "%s%s%s" % (key, "=" if value else "", value or "")
+            for key, value in cpp_defines.items()
+        )
+
+    link_libraries = Plugins.getExtraLinkLibraries()
+    if link_libraries:
+        options["link_libraries"] = ",".join(link_libraries)
+
+    # TODO: Remove cache mode, no more useful.
+
+    # Ask Scons to cache on Windows, except where the directory is thrown
+    # away. On non-Windows you can should use ccache instead.
+    if not Options.isRemoveBuildDir() and Utils.getOS() == "Windows":
+        options["cache_mode"] = "true"
