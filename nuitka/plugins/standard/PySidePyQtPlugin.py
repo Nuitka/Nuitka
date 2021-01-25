@@ -188,7 +188,7 @@ if os.path.exists(guess_path):
                     "Error, failed to detect %s plugin directories." % full_name
                 )
 
-            target_plugin_dir = os.path.join(dist_dir, full_name, "qt-plugins")
+            target_plugin_dir = os.path.join(dist_dir, full_name.asPath(), "qt-plugins")
 
             plugin_options = set(self.qt_plugins.split(","))
 
