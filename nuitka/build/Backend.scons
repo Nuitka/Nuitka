@@ -65,6 +65,7 @@ from .SconsCompilerSettings import (
     enableC11Settings,
 )
 from .SconsHacks import (
+    enableSconsProgressBar,
     getEnhancedToolDetect,
     makeGccUseLinkerFile,
     myDetectVersion,
@@ -259,6 +260,9 @@ link_libraries = getArgumentList("link_libraries", "")
 compiler_version_mode = getArgumentBool("compiler_version", False)
 
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
+
+if getArgumentBool("progressbar", True):
+    enableSconsProgressBar()
 
 
 def printCompilerVersionOutput(*args):

@@ -162,9 +162,6 @@ Categories=Utility;"""
 
 
 def _runOnefileScons(quiet):
-    # Scons gets transported many details, that we express as variables, and
-    # have checks for them, leading to many branches and statements,
-    # pylint: disable=too-many-branches,too-many-statements
 
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True)
     SconsInterface.cleanSconsDirectory(source_dir)

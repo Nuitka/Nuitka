@@ -392,7 +392,7 @@ def makeSourceDirectory():
 def runSconsBackend(quiet):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
-    # pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches
 
     asBoolStr = SconsInterface.asBoolStr
 

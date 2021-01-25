@@ -60,7 +60,11 @@ from nuitka.utils.WindowsResources import (
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import checkWindowsCompilerFound, enableC11Settings
-from .SconsHacks import getEnhancedToolDetect, myDetectVersion
+from .SconsHacks import (
+    enableSconsProgressBar,
+    getEnhancedToolDetect,
+    myDetectVersion,
+)
 from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
 from .SconsUtils import (
     addClangClPathFromMSVC,
@@ -179,6 +183,9 @@ link_libraries = getArgumentList("link_libraries", "")
 compiler_version_mode = getArgumentBool("compiler_version", False)
 
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
+
+if getArgumentBool("progressbar", True):
+    enableSconsProgressBar()
 
 
 def printCompilerVersionOutput(*args):

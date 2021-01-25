@@ -347,6 +347,10 @@ def cleanSconsDirectory(source_dir):
 
 
 def setCommonOptions(options):
+    # Scons gets transported many details, that we express as variables, and
+    # have checks for them, leading to many branches and statements,
+    # pylint: disable=too-many-branches
+
     if Options.shallRunInDebugger():
         options["full_names"] = "true"
 
@@ -354,7 +358,7 @@ def setCommonOptions(options):
         options["assume_yes_for_downloads"] = asBoolStr(True)
 
     if not Options.shallUseProgressBar():
-        options["progessbar"] = "false"
+        options["progressbar"] = "false"
 
     if Options.isClang():
         options["clang_mode"] = "true"

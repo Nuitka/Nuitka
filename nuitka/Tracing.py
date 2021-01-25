@@ -38,9 +38,6 @@ from nuitka.utils.ThreadedExecutor import RLock
 # Written by Options module.
 is_quiet = False
 
-# Written by Options module
-use_progressbar = False
-
 
 def printIndented(level, *what):
     print("    " * level, *what)
@@ -254,6 +251,15 @@ try:
     from tqdm import tqdm
 except ImportError:
     tqdm = None
+
+# Written by enableProgressBar from nuitka.options or scons files.
+use_progressbar = False
+
+
+def enableProgressBar():
+    global use_progressbar  # singleton, pylint: disable=global-statement
+
+    use_progressbar = True
 
 
 def reportProgressBar(stage, unit, item, total):
