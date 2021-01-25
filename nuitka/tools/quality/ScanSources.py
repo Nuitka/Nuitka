@@ -81,6 +81,9 @@ def isPythonFile(filename, effective_filename=None):
     if effective_filename is None:
         effective_filename = filename
 
+    if os.path.isdir(filename):
+        return False
+
     if effective_filename.endswith((".py", ".pyw", ".scons")):
         return True
     else:
