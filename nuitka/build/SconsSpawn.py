@@ -29,6 +29,7 @@ from nuitka.Tracing import my_print, scons_logger
 from nuitka.utils.Timing import TimerReport
 
 from .SconsCaching import runClCache
+from .SconsProgress import updateSconsProgressBar
 from .SconsUtils import decodeData
 
 
@@ -84,6 +85,8 @@ def runProcessMonitored(cmdline, env):
         )
 
     thread.join()
+
+    updateSconsProgressBar()
 
     return thread.getProcessResult()
 
@@ -229,6 +232,8 @@ def runSpawnMonitored(spawn, sh, escape, cmd, args, env):
         )
 
     thread.join()
+
+    updateSconsProgressBar()
 
     return thread.getSpawnResult()
 

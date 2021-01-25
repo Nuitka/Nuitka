@@ -65,11 +65,11 @@ from .SconsCompilerSettings import (
     enableC11Settings,
 )
 from .SconsHacks import (
-    enableSconsProgressBar,
     getEnhancedToolDetect,
     makeGccUseLinkerFile,
     myDetectVersion,
 )
+from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
 from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
 from .SconsUtils import (
     addClangClPathFromMSVC,
@@ -1306,5 +1306,7 @@ writeSconsReport(
     msvc_mode=msvc_mode,
     clangcl_mode=clangcl_mode,
 )
+
+setSconsProgressBarTotal(len(source_files))
 
 Default(target)

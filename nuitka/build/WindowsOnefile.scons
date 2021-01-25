@@ -60,11 +60,8 @@ from nuitka.utils.WindowsResources import (
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import checkWindowsCompilerFound, enableC11Settings
-from .SconsHacks import (
-    enableSconsProgressBar,
-    getEnhancedToolDetect,
-    myDetectVersion,
-)
+from .SconsHacks import getEnhancedToolDetect, myDetectVersion
+from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
 from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
 from .SconsUtils import (
     addClangClPathFromMSVC,
@@ -816,5 +813,7 @@ def copyResources(target, source, env):
 
 
 env.AddPostAction(target, copyResources)
+
+setSconsProgressBarTotal(len(source_files))
 
 env.Default(target)

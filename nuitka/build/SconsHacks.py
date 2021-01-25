@@ -34,11 +34,7 @@ import subprocess
 import SCons.Tool.gcc  # pylint: disable=I0021,import-error
 from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
-from nuitka.Tracing import (
-    closeProgressBar,
-    enableProgressBar,
-    scons_details_logger,
-)
+from nuitka.Tracing import scons_details_logger
 
 from .SconsUtils import decodeData, isGccName
 
@@ -187,15 +183,3 @@ def makeGccUseLinkerFile(source_dir, source_files, env):
             tmpfile.write('"%s"\n' % filename)
 
         tmpfile.write(env.subst("$SOURCES"))
-
-
-def _closeSconsProgressBar():
-    closeProgressBar()
-
-
-def enableSconsProgressBar():
-    enableProgressBar()
-
-    import atexit
-
-    atexit.register(_closeSconsProgressBar)
