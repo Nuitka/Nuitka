@@ -1605,7 +1605,8 @@ def _handleDataFile(dist_dir, tracer, included_datafile):
         # TODO: Goal is have this unused.
         source_desc, target_filename = included_datafile
 
-        assert isPathBelow(dist_dir, target_filename)
+        if not isPathBelow(dist_dir, target_filename):
+            target_filename = os.path.join(dist_dir, target_filename)
 
         makePath(os.path.dirname(target_filename))
 
@@ -1618,12 +1619,6 @@ def _handleDataFile(dist_dir, tracer, included_datafile):
                 ) as output:
                     output.write(content)
         else:
-            # TODO: Goal is have this unused.
-            target_filename = os.path.join(dist_dir, target_filename)
-            assert isPathBelow(dist_dir, target_filename)
-
-            makePath(os.path.dirname(target_filename))
-
             shutil.copy2(source_desc, target_filename)
 
 

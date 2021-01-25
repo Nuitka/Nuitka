@@ -474,7 +474,7 @@ def isPathBelow(path, filename):
     path = os.path.abspath(path)
     filename = os.path.abspath(filename)
 
-    return os.path.relpath(filename, path)[:3].split(os.path.sep) != ".."
+    return os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
 
 
 def getWindowsShortPathName(filename):
