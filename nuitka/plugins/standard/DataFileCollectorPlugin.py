@@ -172,7 +172,7 @@ def _getSubDirectoryFiles(module, subdirs, folders_only):
         if package is None:
             package_part = ""
         else:
-            package_part = package.asPath
+            package_part = package.asPath()
 
     item_set = OrderedSet()
 
@@ -285,7 +285,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
 
                 if os.path.isfile(source_path):
                     if target_dir is None:
-                        target_dir = module_name.replace(".", os.path.sep)
+                        target_dir = module_name.asPath()
 
                     yield (
                         source_path,
