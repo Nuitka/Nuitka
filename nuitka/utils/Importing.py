@@ -119,9 +119,18 @@ def getSharedLibrarySuffix(preferred):
 
 def importFromFolder(logger, module_name, path, must_exist, message):
     """Import a module from a folder by adding it temporarily to sys.path"""
-    # May already be loaded
+
+    # Circular dependency here
+    from .FileOperations import isPathBelow
+
     if module_name in sys.modules:
-        return sys.modules[module_name]
+        # May already be loaded, but the wrong one from a pth of clcache
+        if module_name != "clcache" or isPathBelow(
+            path=path, filename=sys.modules[module_name].__file__
+        ):
+            return sys.modules[module_name]
+        else:
+            del sys.modules[module_name]
 
     # Temporarily add the inline path of the module to the import path.
     sys.path.insert(0, path)
@@ -152,8 +161,10 @@ def importFromInlineCopy(module_name, must_exist):
 
     return importFromFolder(
         module_name=module_name,
-        path=os.path.join(
-            os.path.dirname(__file__), "..", "build", "inline_copy", module_name
+        path=os.path.normpath(
+            os.path.join(
+                os.path.dirname(__file__), "..", "build", "inline_copy", module_name
+            )
         ),
         must_exist=must_exist,
         message=None,
