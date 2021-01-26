@@ -454,15 +454,16 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     # Now build the command to run Nuitka.
     if not two_step_execution:
         if module_mode:
-            nuitka_cmd = nuitka_call + extra_options + ["--run", "--module", filename]
+            extra_options.append("--module")
         elif onefile_mode:
-            nuitka_cmd = nuitka_call + extra_options + ["--run", "--onefile", filename]
+            extra_options.append("--onefile")
+
+            if os.name == "nt":
+                extra_options.append("--windows-onefile-tempdir")
         elif standalone_mode:
-            nuitka_cmd = (
-                nuitka_call + extra_options + ["--run", "--standalone", filename]
-            )
-        else:
-            nuitka_cmd = nuitka_call + extra_options + ["--run", filename]
+            extra_options.append("--standalone")
+
+        nuitka_cmd = nuitka_call + extra_options + ["--run", filename]
 
         if no_site:
             nuitka_cmd.insert(len(nuitka_cmd) - 1, "--python-flag=-S")

@@ -39,6 +39,7 @@ from nuitka.utils.FileOperations import (
     getFileList,
     removeDirectory,
 )
+from nuitka.utils.SharedLibraries import locateDLL
 from nuitka.utils.Utils import getArchitecture, getOS
 
 
@@ -91,6 +92,11 @@ def packDistFolderToOnefileLinux(onefile_output_filename, dist_dir, binary_filen
     Notes: This is mostly a wrapper around AppImage, which does all the heavy
     lifting.
     """
+
+    if not locateDLL("fuse"):
+        postprocessing_logger.sysexit(
+            "Error, the fuse library (libfuse.so.x) must be installed for onefile to work on Linux."
+        )
 
     # This might be possible to avoid being done with --runtime-file.
     apprun_filename = os.path.join(dist_dir, "AppRun")

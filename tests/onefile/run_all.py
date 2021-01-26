@@ -88,7 +88,7 @@ def main():
 
         extra_flags = [
             "expect_success",
-            "--oneline",
+            "--onefile",
             "remove_output",
             # Cache the CPython results for re-use, they will normally not change.
             "cpython_cache",
@@ -103,7 +103,7 @@ def main():
             continue
 
         test_logger.info(
-            "Consider output of standalone mode compiled program: %s" % filename
+            "Consider output of onefile mode compiled program: %s" % filename
         )
 
         # First compare so we know the program behaves identical.
