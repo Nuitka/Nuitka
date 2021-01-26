@@ -44,8 +44,6 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 
 from SCons.Script import (  # pylint: disable=import-error
     ARGUMENTS,
-    CacheDir,
-    Decider,
     Environment,
     GetOption,
 )
@@ -113,9 +111,6 @@ module_suffix = getArgumentDefaulted("module_suffix", None)
 
 # Full names shall be used, no remapping for cacheable filenames.
 full_names = getArgumentBool("full_names", False)
-
-# The directory to use for cache directory.
-cache_mode = getArgumentBool("cache_mode", False)
 
 # Module mode: Create a Python extension module, create an executable otherwise.
 module_mode = getArgumentBool("module_mode", False)
@@ -747,22 +742,20 @@ changeKeyboardInteruptToErrorExit()
 
 # Check if ccache is installed, and complain if it is not.
 if gcc_mode:
-    if enableCcache(
+    enableCcache(
         the_compiler=the_compiler,
         env=env,
         source_dir=source_dir,
         python_prefix=python_prefix,
         assume_yes_for_downloads=assume_yes_for_downloads,
-    ):
-        cache_mode = False
+    )
 
 if msvc_mode:
-    if enableClcache(
+    enableClcache(
         the_compiler=the_compiler,
         env=env,
         source_dir=source_dir,
-    ):
-        cache_mode = False
+    )
 
 onefile_definitions = {}
 
@@ -777,18 +770,6 @@ else:
 
 
 createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
-
-# Caching bv scons if necessary, i.e. no ccache available, when done, by the fastest
-# possible algorithm and right inside the build directory. Makes no sense of course,
-# if that is removed later on by Nuitka, so in that case, this is passed as false,
-# to begin with.
-if cache_mode:
-    if show_scons_mode:
-        my_print("Scons: Using scons cache inside build directory.")
-
-    CacheDir(os.path.join(source_dir, "cache-" + target_arch))
-    Decider("MD5-timestamp")
-
 
 writeSconsReport(
     source_dir=source_dir,

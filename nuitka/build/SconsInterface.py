@@ -349,7 +349,6 @@ def cleanSconsDirectory(source_dir):
 def setCommonOptions(options):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
-    # pylint: disable=too-many-branches
 
     if Options.shallRunInDebugger():
         options["full_names"] = "true"
@@ -394,10 +393,3 @@ def setCommonOptions(options):
     link_libraries = Plugins.getExtraLinkLibraries()
     if link_libraries:
         options["link_libraries"] = ",".join(link_libraries)
-
-    # TODO: Remove cache mode, no more useful.
-
-    # Ask Scons to cache on Windows, except where the directory is thrown
-    # away. On non-Windows you can should use ccache instead.
-    if not Options.isRemoveBuildDir() and Utils.getOS() == "Windows":
-        options["cache_mode"] = "true"

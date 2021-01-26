@@ -182,11 +182,6 @@ def _runOnefileScons(quiet):
         "compiled_exe": OutputDirectories.getResultFullpath(onefile=False),
     }
 
-    # Ask Scons to cache on Windows, except where the directory is thrown
-    # away. On non-Windows you can should use ccache instead.
-    if not Options.isRemoveBuildDir() and getOS() == "Windows":
-        options["cache_mode"] = "true"
-
     SconsInterface.setCommonOptions(options)
 
     onefile_env_values = {}
