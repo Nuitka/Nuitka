@@ -378,6 +378,16 @@ gcc_mode = isGccName(the_cc_name) or clang_mode
 msvc_mode = win_target and not gcc_mode
 mingw_mode = win_target and gcc_mode
 
+scons_details_logger.info(
+    "Modes for this compiler are: %r"
+    % {
+        "gcc_mode": gcc_mode,
+        "clang_mode": clang_mode,
+        "clangcl_mode": clangcl_mode,
+        "mingw_mode": mingw_mode,
+    }
+)
+
 if gcc_mode and not clang_mode:
     gcc_version = myDetectVersion(env, the_compiler)
 
