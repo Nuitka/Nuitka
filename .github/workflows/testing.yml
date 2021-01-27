@@ -37,7 +37,7 @@ jobs:
       - name: Install Nuitka dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install chrpath gdb ccache libfuse
+          sudo apt-get install chrpath gdb ccache libfuse2
           pip install -r requirements-devel.txt
 
       - name: Install Nuitka
