@@ -60,6 +60,7 @@ from .SconsCompilerSettings import (
     checkWindowsCompilerFound,
     decideConstantsBlobResourceMode,
     enableC11Settings,
+    enableWindowsStackSize,
 )
 from .SconsHacks import (
     getEnhancedToolDetect,
@@ -628,12 +629,12 @@ if msvc_mode:
                 "/IMPLIB:%s" % os.path.join(source_dir, "import.lib"),
             ]
         )
-    else:
-        # Stack size 4MB or 8MB, we need more than the default 1MB.
-        if target_arch == "x86_64":
-            env.Append(LINKFLAGS=["/STACK:8388608"])
-        else:
-            env.Append(LINKFLAGS=["/STACK:4194304"])
+
+if not module_mode:
+    enableWindowsStackSize(
+        env=env, msvc_mode=msvc_mode, mingw_mode=mingw_mode, target_arch=target_arch
+    )
+
 
 # The 32 bits MinGW does not default for API level properly, so help it.
 if mingw_mode:

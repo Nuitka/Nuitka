@@ -265,3 +265,17 @@ unsigned char const *getConstantsBlobData() {
         scons_logger.sysexit(
             "Error, illegal resource mode %r specified" % resource_mode
         )
+
+
+def enableWindowsStackSize(env, msvc_mode, mingw_mode, target_arch):
+    # Stack size 4MB or 8MB, we might need more than the default 1MB.
+    if target_arch == "x86_64":
+        stack_size = 1024 * 1204 * 8
+    else:
+        stack_size = 1024 * 1204 * 4
+
+    if msvc_mode:
+        env.Append(LINKFLAGS=["/STACK:%d" % stack_size])
+
+    if mingw_mode:
+        env.Append(LINKFLAGS=["-Wl,--stack,%d" % stack_size])
