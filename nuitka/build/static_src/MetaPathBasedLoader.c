@@ -829,10 +829,10 @@ static PyObject *loadModule(PyObject *module, PyObject *module_name,
 #ifdef _WIN32
         wchar_t filename[MAXPATHLEN + 1] = {0};
 
-        appendWStringSafeW(filename, getBinaryDirectoryWideChars(), sizeof(filename));
-        appendCharSafeW(filename, SEP, sizeof(filename));
-        appendModulenameAsPathW(filename, entry->name, sizeof(filename));
-        appendStringSafeW(filename, ".pyd", sizeof(filename));
+        appendWStringSafeW(filename, getBinaryDirectoryWideChars(), sizeof(filename) / sizeof(wchar_t));
+        appendCharSafeW(filename, SEP, sizeof(filename) / sizeof(wchar_t));
+        appendModulenameAsPathW(filename, entry->name, sizeof(filename) / sizeof(wchar_t));
+        appendStringSafeW(filename, ".pyd", sizeof(filename) / sizeof(wchar_t));
 #else
         char filename[MAXPATHLEN + 1] = {0};
 

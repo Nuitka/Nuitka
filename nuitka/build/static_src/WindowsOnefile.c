@@ -114,6 +114,16 @@ static unsigned long long readSizeValue(HANDLE exe_file) {
     return result;
 }
 
+static void printError(char const *message) {
+    LPCTSTR err_buffer;
+
+    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
+                  GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&err_buffer, 0, NULL);
+
+    puts(message);
+    puts(err_buffer);
+}
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
 #if defined(__MINGW32__) && !defined(_W64)
@@ -134,10 +144,11 @@ int main(int argc, char **argv) {
 
     static wchar_t exe_filename[4096] = {0};
 
-    DWORD res = GetModuleFileNameW(NULL, exe_filename, sizeof(exe_filename));
-    assert(res != 0);
-
-    // _putws(exe_filename);
+    DWORD res = GetModuleFileNameW(NULL, exe_filename, sizeof(exe_filename) / sizeof(wchar_t));
+    if (res == 0) {
+        printError("Error, failed to locate onefile filename.");
+        return 1;
+    }
 
     static wchar_t payload_path[4096] = {0};
 
@@ -166,24 +177,29 @@ int main(int argc, char **argv) {
             }
             printf("SHGetFolderPathW failed: %s\n", error_message);
         }
+
+        return 1;
     }
 
     // _putws(payload_path);
-    appendWCharSafeW(payload_path, L'\\', sizeof(payload_path));
-    appendWStringSafeW(payload_path, L"" ONEFILE_COMPANY, sizeof(payload_path));
+    appendWCharSafeW(payload_path, L'\\', sizeof(payload_path) / sizeof(wchar_t));
+    appendWStringSafeW(payload_path, L"" ONEFILE_COMPANY, sizeof(payload_path) / sizeof(wchar_t));
 
     bool_res = CreateDirectoryW(payload_path, NULL);
 
     appendWCharSafeW(payload_path, L'\\', sizeof(payload_path));
-    appendWStringSafeW(payload_path, L"" ONEFILE_PRODUCT, sizeof(payload_path));
+    appendWStringSafeW(payload_path, L"" ONEFILE_PRODUCT, sizeof(payload_path) / sizeof(wchar_t));
     bool_res = CreateDirectoryW(payload_path, NULL);
 
     appendWCharSafeW(payload_path, L'\\', sizeof(payload_path));
-    appendWStringSafeW(payload_path, L"" ONEFILE_VERSION, sizeof(payload_path));
+    appendWStringSafeW(payload_path, L"" ONEFILE_VERSION, sizeof(payload_path) / sizeof(wchar_t));
 
 #else
-    res = GetTempPathW(sizeof(payload_path), payload_path);
-    assert(res != 0);
+    res = GetTempPathW(sizeof(payload_path) / sizeof(wchar_t), payload_path);
+    if (res == 0) {
+        printError("Temporary path cannot be detected.");
+        return 1;
+    }
 
     // Best effort to make temp path unique by using PID and time.
     {
@@ -194,17 +210,16 @@ int main(int argc, char **argv) {
         GetSystemTimeAsFileTime((LPFILETIME)&time);
 
         swprintf(buffer, sizeof(buffer), L"\\onefile_%d_%lld", GetCurrentProcessId(), time);
-        appendWStringSafeW(payload_path, buffer, sizeof(payload_path));
+        appendWStringSafeW(payload_path, buffer, sizeof(payload_path) / sizeof(wchar_t));
     }
 #endif
-    // _putws(payload_path);
-
     bool_res = CreateDirectoryW(payload_path, NULL);
 
-    // _putws(payload_path);
-
     HANDLE exe_file = CreateFileW(exe_filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-    assert(exe_file != INVALID_HANDLE_VALUE);
+    if (exe_file == INVALID_HANDLE_VALUE) {
+        printError("Error, failed to access unpacked executable.");
+        return 1;
+    }
 
     res = SetFilePointer(exe_file, -8, NULL, FILE_END);
     assert(res != INVALID_SET_FILE_POINTER);
@@ -254,9 +269,9 @@ int main(int argc, char **argv) {
                 *w = 0;
 
                 target_path[0] = 0;
-                appendWStringSafeW(target_path, payload_path, sizeof(target_path));
-                appendWCharSafeW(target_path, L'\\', sizeof(target_path));
-                appendWStringSafeW(target_path, filename, sizeof(target_path));
+                appendWStringSafeW(target_path, payload_path, sizeof(target_path) / sizeof(wchar_t));
+                appendWCharSafeW(target_path, L'\\', sizeof(target_path) / sizeof(wchar_t));
+                appendWStringSafeW(target_path, filename, sizeof(target_path) / sizeof(wchar_t));
 
                 *w = L'\\';
 
@@ -268,12 +283,12 @@ int main(int argc, char **argv) {
         }
 
         target_path[0] = 0;
-        appendWStringSafeW(target_path, payload_path, sizeof(target_path));
-        appendWCharSafeW(target_path, L'\\', sizeof(target_path));
-        appendWStringSafeW(target_path, filename, sizeof(target_path));
+        appendWStringSafeW(target_path, payload_path, sizeof(target_path) / sizeof(wchar_t));
+        appendWCharSafeW(target_path, L'\\', sizeof(target_path) / sizeof(wchar_t));
+        appendWStringSafeW(target_path, filename, sizeof(target_path) / sizeof(wchar_t));
 
         if (first_filename[0] == 0) {
-            appendWStringSafeW(first_filename, target_path, sizeof(target_path));
+            appendWStringSafeW(first_filename, target_path, sizeof(target_path) / sizeof(wchar_t));
         }
 
         // _putws(target_path);
