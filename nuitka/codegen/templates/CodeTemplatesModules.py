@@ -233,12 +233,12 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
         flags_int,
         function_name,
         argnames,
+        NULL, // freevars
         arg_count_int,
         0, // TODO: Missing kw_only_count
         0 // TODO: Missing pos_only_count
     );
 
-    // TODO: More stuff needed for Python3, best to re-order arguments of MAKE_CODEOBJECT.
     struct Nuitka_FunctionObject *result = Nuitka_Function_New(
         functable_%(module_identifier)s[offset],
         code_object->co_name,
