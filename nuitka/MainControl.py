@@ -780,6 +780,8 @@ __name__ = ...
 
         # Execute the module immediately if option was given.
         if Options.shallExecuteImmediately():
+            general.info("Launching %r." % final_filename)
+
             if Options.shallMakeModule():
                 executeModule(
                     tree=main_module,
