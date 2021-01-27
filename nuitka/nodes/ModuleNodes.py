@@ -217,6 +217,29 @@ class CompiledPythonModule(
 
     kind = "COMPILED_PYTHON_MODULE"
 
+    __slots__ = (
+        "is_top",
+        "name",
+        "code_prefix",
+        "code_name",
+        "uids",
+        "temp_variables",
+        "temp_scopes",
+        "preserver_id",
+        "needs_annotations_dict",
+        "trace_collection",
+        "mode",
+        "variables",
+        "active_functions",
+        "visited_functions",
+        "cross_used_functions",
+        "used_modules",
+        "future_spec",
+        "source_code",
+        "module_dict_name",
+        "locals_scope",
+    )
+
     named_children = ("body", "functions")
 
     checkers = {"body": checkStatementsSequenceOrNone}
@@ -292,6 +315,9 @@ class CompiledPythonModule(
 
     def getFutureSpec(self):
         return self.future_spec
+
+    def setFutureSpec(self, future_spec):
+        self.future_spec = future_spec
 
     def isTopModule(self):
         return self.is_top
@@ -684,7 +710,10 @@ class UncompiledPythonPackage(UncompiledPythonModule):
 class PythonMainModule(CompiledPythonModule):
     kind = "PYTHON_MAIN_MODULE"
 
+    __slots__ = ("main_added",)
+
     def __init__(self, main_added, mode, future_spec, source_ref):
+        # Is this one from a "__main__.py" file.
         self.main_added = main_added
 
         CompiledPythonModule.__init__(

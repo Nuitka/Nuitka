@@ -29,6 +29,9 @@ from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
 
 class StatementRaiseExceptionMixin(object):
+    # Mixins are required to also specify slots
+    __slots__ = ()
+
     @staticmethod
     def isStatementAborting():
         return True
@@ -49,6 +52,8 @@ class StatementRaiseException(
         "exception_trace",
         "exception_cause",
     )
+
+    __slots__ = ("reraise_finally",)
 
     def __init__(
         self,

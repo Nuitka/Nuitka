@@ -32,6 +32,11 @@ from .OutlineNodes import ExpressionOutlineFunctionBase
 class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBase):
     kind = "EXPRESSION_CLASS_BODY"
 
+    __slots__ = ("needs_annotations_dict", "doc")
+
+    if python_version >= 0x340:
+        __slots__ += ("qualname_setup",)
+
     def __init__(self, provider, name, doc, source_ref):
         ExpressionOutlineFunctionBase.__init__(
             self,
@@ -57,6 +62,9 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBa
             locals_kind,
             self,
         )
+
+        if python_version >= 0x340:
+            self.qualname_setup = None
 
     def getDetails(self):
         return {

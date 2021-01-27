@@ -601,7 +601,7 @@ def main():
         return False
 
     def getExtraFlags(where, name, flags):
-        if os.name == "nt" and options.assume_yes_for_downloads:
+        if options.assume_yes_for_downloads:
             yield "--assume-yes-for-downloads"
 
         if os.name == "nt" and options.mingw64:

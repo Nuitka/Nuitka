@@ -74,7 +74,7 @@ class ExpressionMakeCoroutineObject(ExpressionChildHavingBase):
 class ExpressionCoroutineObjectBody(ExpressionFunctionEntryPointBase):
     kind = "EXPRESSION_COROUTINE_OBJECT_BODY"
 
-    qualname_setup = None
+    __slots__ = ("qualname_setup", "needs_generator_return_exit")
 
     def __init__(self, provider, name, code_object, flags, auto_release, source_ref):
         ExpressionFunctionEntryPointBase.__init__(
@@ -89,6 +89,8 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionEntryPointBase):
         )
 
         self.needs_generator_return_exit = False
+
+        self.qualname_setup = None
 
     def getFunctionName(self):
         return self.name

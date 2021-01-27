@@ -82,8 +82,15 @@ class ExpressionGeneratorObjectBody(
 ):
     kind = "EXPRESSION_GENERATOR_OBJECT_BODY"
 
+    __slots__ = (
+        "unoptimized_locals",
+        "unqualified_exec",
+        "needs_generator_return_exit",
+        "qualname_provider",
+    )
+
     if python_version >= 0x340:
-        qualname_setup = None
+        __slots__ += ("qualname_setup",)
 
     def __init__(self, provider, name, code_object, flags, auto_release, source_ref):
         ExpressionFunctionEntryPointBase.__init__(
@@ -102,6 +109,9 @@ class ExpressionGeneratorObjectBody(
         self.needs_generator_return_exit = False
 
         self.trace_collection = None
+
+        if python_version >= 0x340:
+            self.qualname_setup = None
 
     def getFunctionName(self):
         return self.name

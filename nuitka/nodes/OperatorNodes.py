@@ -45,6 +45,9 @@ from .shapes.StandardShapes import (
 class ExpressionPropertiesFromTypeShapeMixin(object):
     """Given a self.type_shape, this can derive default properties from there."""
 
+    # Mixins are required to slots
+    __slots__ = ()
+
     def isKnownToBeHashable(self):
         return self.type_shape.hasShapeSlotHash()
 
@@ -54,10 +57,10 @@ class ExpressionOperationBinaryBase(
 ):
     """Base class for all binary operation expression."""
 
+    __slots__ = ("type_shape", "escape_desc", "inplace_suspect", "shape")
+
     named_children = ("left", "right")
     nice_children = tuple(child_name + " operand" for child_name in named_children)
-
-    shape = vshape_unknown
 
     def __init__(self, left, right, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -67,14 +70,16 @@ class ExpressionOperationBinaryBase(
         self.type_shape = None
         self.escape_desc = None
 
+        self.inplace_suspect = False
+
+        self.shape = vshape_unknown
+
     @staticmethod
     def isExpressionOperationBinary():
         return True
 
     def getOperator(self):
         return self.operator
-
-    inplace_suspect = False
 
     def markAsInplaceSuspect(self):
         self.inplace_suspect = True
@@ -230,6 +235,9 @@ class ExpressionOperationBinaryBase(
 
 
 class ExpressionOperationAddMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def getValueShape(self):
         return self.shape
 
@@ -259,6 +267,11 @@ class ExpressionOperationBinaryAdd(
 ):
     kind = "EXPRESSION_OPERATION_BINARY_ADD"
 
+    def __init__(self, left, right, source_ref):
+        ExpressionOperationBinaryBase.__init__(
+            self, left=left, right=right, source_ref=source_ref
+        )
+
     operator = "Add"
     simulator = PythonOperators.binary_operator_functions[operator]
 
@@ -279,6 +292,9 @@ class ExpressionOperationBinarySub(ExpressionOperationBinaryBase):
 
 
 class ExpressionOperationMultMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def getValueShape(self):
         return self.shape
 
@@ -349,6 +365,11 @@ class ExpressionOperationBinaryMult(
 
     operator = "Mult"
     simulator = PythonOperators.binary_operator_functions[operator]
+
+    def __init__(self, left, right, source_ref):
+        ExpressionOperationBinaryBase.__init__(
+            self, left=left, right=right, source_ref=source_ref
+        )
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -529,9 +550,7 @@ class ExpressionOperationBinaryBitXor(ExpressionOperationBinaryBase):
 
 if python_version >= 0x350:
 
-    class ExpressionOperationBinaryMatMult(
-        ExpressionOperationMultMixin, ExpressionOperationBinaryBase
-    ):
+    class ExpressionOperationBinaryMatMult(ExpressionOperationBinaryBase):
         kind = "EXPRESSION_OPERATION_BINARY_MAT_MULT"
 
         operator = "MatMult"
@@ -575,12 +594,12 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
     # Base classes can be abstract, pylint: disable=abstract-method
     """Base class for all inplace operations."""
 
-    inplace_suspect = True
-
     def __init__(self, left, right, source_ref):
         ExpressionOperationBinaryBase.__init__(
             self, left=left, right=right, source_ref=source_ref
         )
+
+        self.inplace_suspect = True
 
     @staticmethod
     def isExpressionOperationInplace():
@@ -660,6 +679,11 @@ class ExpressionOperationInplaceAdd(
 
     operator = "IAdd"
     simulator = PythonOperators.binary_operator_functions[operator]
+
+    def __init__(self, left, right, source_ref):
+        ExpressionOperationBinaryInplaceBase.__init__(
+            self, left=left, right=right, source_ref=source_ref
+        )
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):

@@ -739,7 +739,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
     pushFutureSpec()
     if is_module:
-        provider.future_spec = getFutureSpec()
+        provider.setFutureSpec(getFutureSpec())
 
     body = parseSourceCodeToAst(
         source_code=source_code,

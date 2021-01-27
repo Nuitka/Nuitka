@@ -28,6 +28,9 @@ from .shapes.BuiltinTypeShapes import tshape_file
 
 
 class ExpressionBuiltinOpenMixin(object):
+    # Mixins are required to slots
+    __slots__ = ()
+
     @staticmethod
     def getTypeShape():
         return tshape_file

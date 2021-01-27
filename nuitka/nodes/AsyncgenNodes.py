@@ -72,7 +72,7 @@ class ExpressionMakeAsyncgenObject(ExpressionChildHavingBase):
 class ExpressionAsyncgenObjectBody(ExpressionFunctionEntryPointBase):
     kind = "EXPRESSION_ASYNCGEN_OBJECT_BODY"
 
-    qualname_setup = None
+    __slots__ = ("qualname_setup", "needs_generator_return_exit")
 
     def __init__(self, provider, name, code_object, flags, auto_release, source_ref):
         ExpressionFunctionEntryPointBase.__init__(
@@ -87,6 +87,8 @@ class ExpressionAsyncgenObjectBody(ExpressionFunctionEntryPointBase):
         )
 
         self.needs_generator_return_exit = False
+
+        self.qualname_setup = None
 
     def getFunctionName(self):
         return self.name
