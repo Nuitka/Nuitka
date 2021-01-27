@@ -486,9 +486,6 @@ if mingw_mode:
     # Windows XP
     env.Append(CPPDEFINES=["_WIN32_WINNT=0x0501"])
 
-# At least older MinGW64 has issues with this, so disable it.
-if mingw_mode and gcc_version < (6,) and not clang_mode:
-    env.Append(LINKFLAGS=["-Wl,--no-gc-sections"])
 
 if debug_mode:
     if gcc_mode:
