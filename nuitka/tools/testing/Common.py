@@ -1542,10 +1542,8 @@ def displayFileContents(name, path):
     test_logger.info("Contents of %s %r:" % (name, path))
 
     if os.path.exists(path):
-        if os.name == "nt":
-            os.system("type %r" % path)
-        else:
-            os.system("cat %r" % path)
+        for line in getFileContentByLine(path):
+            my_print(line)
     else:
         test_logger.info("Does not exist.")
 
