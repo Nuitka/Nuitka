@@ -129,3 +129,20 @@ x.f4()
 print("f5", x.f5())
 x.f6()
 print("f7", list(x.f7()))
+
+
+def makeSuperCall(arg1, arg2):
+    print("Calling super with args", arg1, arg2, end=": ")
+
+    try:
+        super(arg1, arg2)
+    except Exception as e:
+        print("Exception", e)
+    else:
+        print("Ok.")
+
+
+makeSuperCall(None, None)
+makeSuperCall(1, None)
+makeSuperCall(type, None)
+makeSuperCall(type, 1)

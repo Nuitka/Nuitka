@@ -119,15 +119,38 @@ Removed type taking for unused result.""",
         return self.subnode_value.mayHaveSideEffects()
 
 
-class ExpressionBuiltinSuper(ExpressionChildrenHavingBase):
-    kind = "EXPRESSION_BUILTIN_SUPER"
+class ExpressionBuiltinSuper2(ExpressionChildrenHavingBase):
+    """ Two arguments form of super. """
 
-    named_children = ("type", "object")
+    kind = "EXPRESSION_BUILTIN_SUPER2"
 
-    def __init__(self, super_type, super_object, source_ref):
+    named_children = ("type_arg", "object_arg")
+
+    def __init__(self, type_arg, object_arg, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values={"type": super_type, "object": super_object},
+            values={"type_arg": type_arg, "object_arg": object_arg},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: Quite some cases should be possible to predict.
+        return self, None, None
+
+
+class ExpressionBuiltinSuper0(ExpressionChildrenHavingBase):
+    """ Python3 form of super, arguments determined from cells and function arguments. """
+
+    kind = "EXPRESSION_BUILTIN_SUPER0"
+
+    named_children = ("type_arg", "object_arg")
+
+    def __init__(self, type_arg, object_arg, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"type_arg": type_arg, "object_arg": object_arg},
             source_ref=source_ref,
         )
 
