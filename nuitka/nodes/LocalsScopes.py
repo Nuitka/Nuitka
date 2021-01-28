@@ -54,11 +54,9 @@ def getLocalsDictHandle(locals_name, kind, owner):
     return locals_dict_handles[locals_name]
 
 
-def getLocalsDictHandles():
-    return locals_dict_handles
-
-
 class LocalsDictHandleBase(object):
+    # TODO: Might remove some of these later, pylint: disable=too-many-instance-attributes
+
     __slots__ = (
         "locals_name",
         # TODO: Specialize what the kinds really use.
@@ -68,6 +66,7 @@ class LocalsDictHandleBase(object):
         "mark_for_propagation",
         "propagation",
         "owner",
+        "complete",
     )
 
     @counted_init
@@ -86,6 +85,8 @@ class LocalsDictHandleBase(object):
         self.mark_for_propagation = False
 
         self.propagation = None
+
+        self.complete = False
 
     __del__ = counted_del()
 
@@ -251,6 +252,44 @@ class LocalsDictHandleBase(object):
         del self.variables
         del self.providing
 
+    def markAsComplete(self, trace_collection):
+        self.complete = True
+
+        self._considerUnusedUserLocalVariables(trace_collection)
+        self._considerPropagation(trace_collection)
+
+    # TODO: Limited to Python2 classes for now, more overloads need to be added, this
+    # ought to be abstract and have variants with TODOs for each of them.
+    @staticmethod
+    def _considerPropagation(trace_collection):
+        """For overload by scope type. Check if this can be replaced."""
+
+    def _considerUnusedUserLocalVariables(self, trace_collection):
+        """Check scope for unused variables."""
+
+        provided = self.getProvidedVariables()
+        removals = []
+
+        for variable in provided:
+            if (
+                variable.isLocalVariable()
+                and not variable.isParameterVariable()
+                and variable.getOwner() is self.owner
+            ):
+                empty = trace_collection.hasEmptyTraces(variable)
+
+                if empty:
+                    removals.append(variable)
+
+        for variable in removals:
+            self.unregisterProvidedVariable(variable)
+
+            trace_collection.signalChange(
+                "var_usage",
+                self.owner.getSourceReference(),
+                message="Remove unused local variable '%s'." % variable.getName(),
+            )
+
 
 class LocalsDictHandle(LocalsDictHandleBase):
     """ Locals dict for a Python class with mere dict. """
@@ -266,6 +305,48 @@ class LocalsDictHandle(LocalsDictHandleBase):
         # We don't yet track dictionaries, let alone mapping values.
         # pylint: disable=unused-argument
         return tshape_unknown
+
+    def _considerPropagation(self, trace_collection):
+        self.complete = True
+
+        propagate = True
+
+        for variable in self.variables.values():
+            for variable_trace in variable.traces:
+                if variable_trace.isAssignTrace():
+                    # For assign traces we want the value to not have a side effect,
+                    # then we can push it down the line. TODO: Once temporary
+                    # variables and dictionary building allows for unset values
+                    # remove this
+                    if (
+                        variable_trace.getAssignNode().subnode_source.mayHaveSideEffects()
+                    ):
+                        propagate = False
+                        break
+                elif variable_trace.isDeletedTrace():
+                    propagate = False
+                    break
+                elif variable_trace.isMergeTrace():
+                    propagate = False
+                    break
+                elif variable_trace.isUninitTrace():
+                    pass
+                elif variable_trace.isUnknownTrace():
+                    propagate = False
+                    break
+                else:
+                    assert False, (variable, variable_trace)
+
+        if propagate:
+            trace_collection.signalChange(
+                "var_usage",
+                self.owner.getSourceReference(),
+                message="Forward propagage locals dictionary.",
+            )
+
+            self.markForLocalsDictPropagation()
+
+        return propagate
 
 
 class LocalsMappingHandle(LocalsDictHandle):

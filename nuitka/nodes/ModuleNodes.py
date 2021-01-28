@@ -543,9 +543,44 @@ class CompiledPythonModule(
                 message="Recursed to module package.",
             )
 
+        # Finalize locals scopes previously determined for removal in last pass.
         self.trace_collection.updateVariablesFromCollection(
             old_collection, self.source_ref
         )
+
+        # Indicate if this is pass 1 for the module as return value.
+        was_complete = not self.locals_scope.complete
+
+        def markAsComplete(body, trace_collection):
+            if (
+                body.locals_scope is not None
+                and body.locals_scope.isMarkedForPropagation()
+            ):
+                body.locals_scope = None
+
+            if body.locals_scope is not None:
+                body.locals_scope.markAsComplete(trace_collection)
+
+        def markEntryPointAsComplete(body):
+            markAsComplete(body, body.trace_collection)
+
+            outline_bodies = body.trace_collection.getOutlineFunctions()
+
+            if outline_bodies is not None:
+                for outline_body in outline_bodies:
+                    markAsComplete(outline_body, body.trace_collection)
+
+            body.optimizeUnusedTempVariables()
+
+        markEntryPointAsComplete(self)
+
+        for function_body in self.getUsedFunctions():
+            markEntryPointAsComplete(function_body)
+
+            function_body.optimizeUnusedClosureVariables()
+            function_body.optimizeVariableReleases()
+
+        return was_complete
 
     def getTraceCollections(self):
         yield self.trace_collection

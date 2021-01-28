@@ -258,11 +258,6 @@ class ExpressionFunctionBodyBase(
     def hasClosureVariable(self, variable):
         return variable in self.taken
 
-    def removeUserVariable(self, variable):
-        assert not variable.isParameterVariable() or variable.getOwner() is not self
-
-        self.locals_scope.unregisterProvidedVariable(variable)
-
     def getVariableForAssignment(self, variable_name):
         # print("ASS func", self, variable_name)
 
@@ -394,6 +389,50 @@ class ExpressionFunctionBodyBase(
 
         # For overload, pylint: disable=no-self-use,unused-argument
         return None
+
+    def optimizeUnusedClosureVariables(self):
+        """Gets called once module is complete, to consider giving up on closure variables."""
+
+        changed = False
+
+        for closure_variable in self.getClosureVariables():
+
+            # Need to take closure of those either way
+            if (
+                closure_variable.isParameterVariable()
+                and self.isExpressionGeneratorObjectBody()
+            ):
+                continue
+
+            empty = self.trace_collection.hasEmptyTraces(closure_variable)
+
+            if empty:
+                changed = True
+
+                self.trace_collection.signalChange(
+                    "var_usage",
+                    self.source_ref,
+                    message="Remove unused closure variable '%s'."
+                    % closure_variable.getName(),
+                )
+
+                self.removeClosureVariable(closure_variable)
+
+        return changed
+
+    def optimizeVariableReleases(self):
+        for parameter_variable in self.getParameterVariablesWithManualRelease():
+            read_only = self.trace_collection.hasReadOnlyTraces(parameter_variable)
+
+            if read_only:
+                self.trace_collection.signalChange(
+                    "var_usage",
+                    self.source_ref,
+                    message="Schedule removal releases of unassigned parameter variable '%s'."
+                    % parameter_variable.getName(),
+                )
+
+                self.removeVariableReleases(parameter_variable)
 
 
 class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBase):
