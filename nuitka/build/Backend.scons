@@ -380,13 +380,22 @@ scons_details_logger.info(
         "clang_mode": clang_mode,
         "clangcl_mode": clangcl_mode,
         "mingw_mode": mingw_mode,
+        "msvc_mode": msvc_mode,
     }
 )
 
 if gcc_mode and not clang_mode:
     gcc_version = myDetectVersion(env, the_compiler)
 
-    if gcc_version is None and "++" in the_cc_name:
+    if gcc_version is None:
+        scons_logger.sysexit(
+            """\
+Error, failed to detect gcc version of backend compiler %r.
+"""
+            % the_compiler
+        )
+
+    if "++" in the_cc_name:
         scons_logger.sysexit(
             """\
 Error, compiler %s is apparently a C++ compiler, specify a C compiler instead.

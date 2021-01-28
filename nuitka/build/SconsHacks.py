@@ -36,7 +36,7 @@ from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
 from nuitka.Tracing import scons_details_logger
 
-from .SconsUtils import decodeData, isGccName
+from .SconsUtils import decodeData, getExecutablePath, isGccName
 
 # Cache for detected versions.
 v_cache = {}
@@ -86,28 +86,13 @@ blacklisted_tools = (
 )
 
 
-# From gcc.py of Scons
-def myDetectVersion(env, cc):
-    """Return the version of the GNU compiler, or None if it is not a GNU compiler."""
-    cc = env.subst(cc)
-    if not cc:
-        return None
-    if "++" in os.path.basename(cc):
-        return None
-
-    version = None
-
-    clvar = tuple(SCons.Util.CLVar(cc))
-
-    if clvar in v_cache:
-        return v_cache[clvar]
-
+def _myDetectVersion(env, clvar):
     clvar0 = os.path.basename(clvar[0])
 
     if isGccName(clvar0) or "clang" in clvar0:
-        command = list(clvar) + ["-dumpversion"]
+        command = clvar + ("-dumpversion",)
     else:
-        command = list(clvar) + ["--version"]
+        command = clvar + ("--version",)
 
     # pipe = SCons.Action._subproc(env, SCons.Util.CLVar(cc) + ['-dumpversion'],
     pipe = SCons.Action._subproc(  # pylint: disable=protected-access
@@ -138,12 +123,33 @@ def myDetectVersion(env, cc):
 
     version = tuple(int(part) for part in version.split("."))
 
-    scons_details_logger.info(
-        "CC %r version check gives %r from %r" % (cc, version, line)
-    )
-
-    v_cache[clvar] = version
     return version
+
+
+# From gcc.py of Scons
+def myDetectVersion(env, cc):
+    """Return the version of the GNU compiler, or None if it is not a GNU compiler."""
+    cc = env.subst(cc)
+    if not cc:
+        return None
+    if "++" in os.path.basename(cc):
+        return None
+
+    clvar = list(SCons.Util.CLVar(cc))
+
+    # Make path absolute, to improve cache hit rate.
+    command_path = getExecutablePath(clvar[0], env)
+    if command_path is not None:
+        clvar[0] = command_path
+
+    clvar = tuple(clvar)
+
+    if clvar not in v_cache:
+        v_cache[clvar] = _myDetectVersion(env, clvar)
+
+        scons_details_logger.info("CC %r version check gives %r" % (cc, v_cache[clvar]))
+
+    return v_cache[clvar]
 
 
 def myDetect(self, progs):
