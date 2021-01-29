@@ -649,7 +649,7 @@ static char const *TYPE_NAME_DESC(PyObject *type) {
 
 PyObject *BUILTIN_SUPER2(PyObject *type, PyObject *object) {
     CHECK_OBJECT(type);
-    CHECK_OBJECT(object);
+    CHECK_OBJECT_X(object);
 
     if (unlikely(PyType_Check(type) == false)) {
 #if PYTHON_VERSION < 0x300
