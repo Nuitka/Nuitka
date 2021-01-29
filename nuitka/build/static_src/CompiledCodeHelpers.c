@@ -1787,11 +1787,12 @@ wchar_t const *getBinaryDirectoryWideChars() {
         }
 
         binary_directory[0] = 0;
-        appendWStringSafeW(binary_directory, short_binary_directory, sizeof(binary_directory));
+        appendWStringSafeW(binary_directory, short_binary_directory, sizeof(binary_directory) / sizeof(wchar_t));
 
         free(short_binary_directory);
 #else
-        appendStringSafeW(binary_directory, getBinaryDirectoryHostEncoded(), sizeof(binary_directory));
+        appendStringSafeW(binary_directory, getBinaryDirectoryHostEncoded(),
+                          sizeof(binary_directory) / sizeof(wchar_t));
 #endif
 
         init_done = true;

@@ -311,6 +311,9 @@ def main():
             if loaded_filename.startswith("/etc/"):
                 continue
 
+            if loaded_filename.startswith("/usr/etc/"):
+                continue
+
             if loaded_filename.startswith("/proc/") or loaded_filename == "/proc":
                 continue
 
