@@ -601,7 +601,7 @@ def main():
         return False
 
     def getExtraFlags(where, name, flags):
-        if options.assume_yes_for_downloads:
+        if options.assume_yes_for_downloads and name in ("onefile", "standalone"):
             yield "--assume-yes-for-downloads"
 
         if os.name == "nt" and options.mingw64:
@@ -737,7 +737,7 @@ def main():
                 "Running the standalone tests with options '%s' with '%s':"
                 % (flags, use_python)
             )
-            with withExtendedExtraOptions(*getExtraFlags(None, "standalone", flags)):
+            with withExtendedExtraOptions(*getExtraFlags(None, "onefile", flags)):
                 executeSubTest("./tests/onefile/run_all.py search")
 
         if options.reflection_test and not options.coverage:

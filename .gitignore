@@ -18,6 +18,7 @@
 *.dist
 *.py.optimization.log
 *.py.inclusion.log
+*.strace
 .mypy_cache
 *.egg-info
 tests/reflected/nuitka/

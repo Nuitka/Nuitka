@@ -789,8 +789,6 @@ __name__ = ...
                 )
             else:
                 executeMain(
-                    binary_filename=OutputDirectories.getResultFullpath(
-                        onefile=Options.isOnefileMode()
-                    ),
+                    binary_filename=final_filename,
                     clean_path=Options.shallClearPythonPathEnvironment(),
                 )

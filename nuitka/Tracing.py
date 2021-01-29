@@ -170,7 +170,10 @@ class OurLogger(object):
         my_print(message, **kwargs)
 
     def warning(self, message, style="red"):
-        message = "%s:WARNING: %s" % (self.name, message)
+        if self.name:
+            message = "%s:WARNING: %s" % (self.name, message)
+        else:
+            message = "WARNING: %s" % message
 
         style = style or self.base_style
         self.my_print(message, style=style, file=sys.stderr)

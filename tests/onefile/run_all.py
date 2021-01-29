@@ -49,12 +49,13 @@ from nuitka.tools.testing.Common import (
     createSearchMode,
     decideFilenameVersionSkip,
     displayFileContents,
+    displayRuntimeTraces,
     getRuntimeTraceOfLoadedFiles,
     reportSkip,
     setup,
     test_logger,
 )
-from nuitka.utils.FileOperations import areSamePaths, removeDirectory
+from nuitka.utils.FileOperations import areSamePaths
 from nuitka.utils.Timing import TimerReport
 
 
@@ -90,6 +91,8 @@ def main():
             "expect_success",
             "--onefile",
             "remove_output",
+            # Keep the binary, normally "remove_output" includes that.
+            "--keep-binary",
             # Cache the CPython results for re-use, they will normally not change.
             "cpython_cache",
             # To understand what is slow.
@@ -122,7 +125,9 @@ def main():
         with TimerReport(
             "Determining run time loaded files took %.2f", logger=test_logger
         ):
-            loaded_filenames = getRuntimeTraceOfLoadedFiles(binary_filename)
+            loaded_filenames = getRuntimeTraceOfLoadedFiles(
+                logger=test_logger, path=binary_filename
+            )
 
         current_dir = os.path.normpath(os.getcwd())
         current_dir = os.path.normcase(current_dir)
@@ -176,7 +181,7 @@ def main():
             if loaded_filename.startswith("/dev/"):
                 continue
 
-            if loaded_filename.startswith("/tmp/"):
+            if loaded_filename.startswith("/tmp/") or loaded_filename == "/tmp":
                 continue
 
             if loaded_filename.startswith("/run/"):
@@ -434,7 +439,11 @@ def main():
             ):
                 continue
 
-            # MSVC run time DLLs, seem to sometimes come from system.
+            # Linux onefile uses this
+            if loaded_basename.startswith("libfuse.so."):
+                continue
+
+            # MSVC run time DLLs, due to SxS come from system.
             if loaded_basename.upper() in ("MSVCRT.DLL", "MSVCR90.DLL"):
                 continue
 
@@ -442,20 +451,12 @@ def main():
             illegal_access = True
 
         if illegal_access:
-            if os.name != "nt":
-                displayError(displayError, filename)
-
-                # Run with traces to help debugging, specifically in CI environment.
-                if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
-                    test_logger.info("dtruss:")
-                    os.system("sudo dtruss %s" % binary_filename)
-                else:
-                    test_logger.info("strace:")
-                    os.system("strace -s4096 -e file %s" % binary_filename)
+            displayError(None, filename)
+            displayRuntimeTraces(test_logger, binary_filename)
 
             search_mode.onErrorDetected(1)
 
-        removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
+        os.unlink(binary_filename)
 
         if search_mode.abortIfExecuted():
             break

@@ -54,6 +54,7 @@ from nuitka.tools.testing.Common import (
     decideFilenameVersionSkip,
     displayFileContents,
     displayFolderContents,
+    displayRuntimeTraces,
     getPythonVendor,
     getRuntimeTraceOfLoadedFiles,
     reportSkip,
@@ -263,7 +264,9 @@ def main():
         with TimerReport(
             "Determining run time loaded files took %.2f", logger=test_logger
         ):
-            loaded_filenames = getRuntimeTraceOfLoadedFiles(binary_filename)
+            loaded_filenames = getRuntimeTraceOfLoadedFiles(
+                logger=test_logger, path=binary_filename
+            )
 
         current_dir = os.path.normpath(os.getcwd())
         current_dir = os.path.normcase(current_dir)
@@ -599,14 +602,7 @@ def main():
         if illegal_access:
             if os.name != "nt":
                 displayError(None, filename)
-
-                # Run with traces to help debugging, specifically in CI environment.
-                if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
-                    test_logger.info("dtruss:")
-                    os.system("sudo dtruss %s" % binary_filename)
-                else:
-                    test_logger.info("strace:")
-                    os.system("strace -s4096 -e file %s" % binary_filename)
+                displayRuntimeTraces(test_logger, binary_filename)
 
             search_mode.onErrorDetected(1)
 

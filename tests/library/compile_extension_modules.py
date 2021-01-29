@@ -51,6 +51,7 @@ from nuitka.tools.testing.Common import (
     getRuntimeTraceOfLoadedFiles,
     my_print,
     setup,
+    test_logger,
 )
 
 setup(needs_io_encoding=True)
@@ -135,7 +136,8 @@ def action(stage_dir, root, path):
             assert os.path.exists(filename[:-3] + ".dist")
 
             loaded_filenames = getRuntimeTraceOfLoadedFiles(
-                path=os.path.join(filename[:-3] + ".dist", "importer.exe")
+                logger=test_logger,
+                path=os.path.join(filename[:-3] + ".dist", "importer.exe"),
             )
 
             outside_accesses = checkRuntimeLoadedFilesForOutsideAccesses(

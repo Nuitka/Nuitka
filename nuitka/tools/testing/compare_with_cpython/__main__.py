@@ -204,6 +204,7 @@ def main():
         hasArg("trace_command") or os.environ.get("NUITKA_TRACE_COMMANDS", "0") != "0"
     )
     remove_output = hasArg("remove_output")
+    remove_binary = not hasArg("--keep-binary")
     standalone_mode = hasArg("--standalone")
     onefile_mode = hasArg("--onefile")
     no_site = hasArg("no_site")
@@ -752,7 +753,7 @@ Stderr was:
 
     if remove_output:
         if not module_mode:
-            if os.path.exists(nuitka_cmd2[0]):
+            if os.path.exists(nuitka_cmd2[0]) and remove_binary:
                 if os.name == "nt":
                     # It appears there is a tiny lock race that we randomly cause,
                     # likely because --run spawns a subprocess that might still
@@ -785,7 +786,7 @@ Stderr was:
                 preferred=True
             )
 
-            if os.path.exists(module_filename):
+            if os.path.exists(module_filename) and remove_binary:
                 os.unlink(module_filename)
 
     if comparison_mode and timing:

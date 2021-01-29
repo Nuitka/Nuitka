@@ -481,11 +481,35 @@ def isExecutableCommand(command):
     return False
 
 
-def getRuntimeTraceOfLoadedFiles(path, trace_stderr=True):
+def displayRuntimeTraces(logger, path):
+    if not os.path.exists(path):
+        # TODO: Have a logger package passed.
+        logger.sysexit("Error, cannot find %r (%r)." % (path, os.path.abspath(path)))
+
+    path = os.path.abspath(path)
+
+    # TODO: Merge code for building command with below function, this is otherwise
+    # horribly bad.
+
+    if os.name == "posix":
+        # Run with traces to help debugging, specifically in CI environment.
+        if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
+            test_logger.info("dtruss:")
+            os.system("sudo dtruss %s" % path)
+        else:
+            test_logger.info("strace:")
+            os.system("strace -s4096 -e file %s" % path)
+
+
+def getRuntimeTraceOfLoadedFiles(logger, path):
     """ Returns the files loaded when executing a binary. """
 
     # This will make a crazy amount of work,
     # pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
+
+    if not os.path.exists(path):
+        # TODO: Have a logger package passed.
+        logger.sysexit("Error, cannot find %r (%r)." % (path, os.path.abspath(path)))
 
     result = []
 
@@ -515,13 +539,15 @@ Error, needs 'strace' on your system to scan used libraries."""
                 "strace",
                 "-e",
                 "file",
-                "-s4096",  # Some paths are truncated otherwise.
-                path,
+                "-s4096",  # Some paths are truncated in output otherwise
+                os.path.abspath(path),
             )
 
         # Ensure executable is not polluted with third party stuff,
         # tests may fail otherwise due to unexpected libs being loaded
         with withEnvironmentVarOverriden("LD_PRELOAD", None):
+            tracing_command = args[0] if args[0] != "sudo" else args[1]
+
             process = subprocess.Popen(
                 args=args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
@@ -533,15 +559,15 @@ Error, needs 'strace' on your system to scan used libraries."""
                 if str is not bytes:
                     stderr_strace = stderr_strace.decode("utf8")
 
-                my_print(stderr_strace, file=sys.stderr)
-                sys.exit("Failed to run strace.")
+                logger.warning(stderr_strace)
+                logger.sysexit("Failed to run %r." % tracing_command)
 
             with open(path + ".strace", "wb") as f:
                 f.write(stderr_strace)
 
             for line in stderr_strace.split(b"\n"):
-                if process.returncode != 0 and trace_stderr:
-                    my_print(line)
+                if process.returncode != 0:
+                    logger.my_print(line)
 
                 if not line:
                     continue
