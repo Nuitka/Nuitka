@@ -666,7 +666,9 @@ def getIconPaths():
             result.append(default_icon)
         else:
             Tracing.general.sysexit(
-                "Error, on the default icon '%s' does not exist, making --linux-onefile-icon required."
+                """\
+Error, the default icon %r does not exist, making --linux-onefile-icon required."""
+                % default_icon
             )
 
     return result

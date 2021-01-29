@@ -40,7 +40,7 @@ from nuitka.Tracing import my_print
 
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
-from .Utils import getOS
+from .Utils import getOS, isWin32Windows
 
 # Locking seems to be only required for Windows mostly, but we can keep
 # it for all.
@@ -470,9 +470,20 @@ def copyTree(source_path, dest_path):
     copy_tree(source_path, dest_path)
 
 
+def getWindowsDrive(path):
+    """Windows drive for a given path."""
+
+    drive, _ = os.path.splitdrive(os.path.abspath(path))
+    return os.path.normcase(drive)
+
+
 def isPathBelow(path, filename):
     path = os.path.abspath(path)
     filename = os.path.abspath(filename)
+
+    if isWin32Windows():
+        if getWindowsDrive(path) != getWindowsDrive(filename):
+            return False
 
     return os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
 
