@@ -15,20 +15,19 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Progressbar for Scons compilation part.
+""" Progress bar for Scons compilation part.
 
 This does only the interfacing with tracing and collection of information.
 
 """
 
 
-from nuitka.Tracing import (
+from nuitka.Progress import (
     closeProgressBar,
     enableProgressBar,
     reportProgressBar,
+    setupProgressBar,
 )
-
-_total_files = None
 
 
 def enableSconsProgressBar():
@@ -43,16 +42,8 @@ def enableSconsProgressBar():
 
 
 def setSconsProgressBarTotal(total):
-
-    global _total_files  # Singleton, pylint: disable=global-statement
-    _total_files = total
-
-    reportProgressBar(
-        stage="Backend C", unit="file", item=None, total=_total_files, update=False
-    )
+    setupProgressBar(stage="Backend C", unit="file", total=total)
 
 
 def updateSconsProgressBar():
-    reportProgressBar(
-        stage="Backend C", unit="file", item=None, total=_total_files, update=True
-    )
+    reportProgressBar(item=None, update=True)

@@ -41,18 +41,18 @@ from nuitka.importing import Importing, Recursion
 from nuitka.Options import getPythonFlags
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import executePostProcessing
+from nuitka.Progress import (
+    closeProgressBar,
+    reportProgressBar,
+    setupProgressBar,
+)
 from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
     python_version,
     python_version_str,
 )
-from nuitka.Tracing import (
-    closeProgressBar,
-    general,
-    inclusion_logger,
-    reportProgressBar,
-)
+from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
 from nuitka.utils.FileOperations import (
@@ -332,16 +332,19 @@ def makeSourceDirectory():
         source_dir=source_dir, modules=compiled_modules
     )
 
+    setupProgressBar(
+        stage="C Source Generation",
+        unit="module",
+        total=len(compiled_modules),
+    )
+
     # Generate code for compiled modules, this can be slow, so do it separately
     # with a progress bar.
     for module in compiled_modules:
         c_filename = module_filenames[module]
 
         reportProgressBar(
-            stage="C Source Generation",
-            unit="module",
             item=module.getFullName(),
-            total=len(compiled_modules),
         )
 
         source_code = CodeGeneration.generateModuleCode(

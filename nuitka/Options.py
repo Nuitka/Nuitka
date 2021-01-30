@@ -20,7 +20,7 @@
 import os
 import sys
 
-from nuitka import Tracing
+from nuitka import Progress, Tracing
 from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import parseOptions
 from nuitka.PythonVersions import isUninstalledPython
@@ -45,8 +45,8 @@ def parseArgs():
     )
 
     Tracing.is_quiet = options.quiet or int(os.environ.get("NUITKA_QUIET", "0"))
-    if options.progressbar:
-        Tracing.enableProgressBar()
+    if options.progress_bar:
+        Progress.enableProgressBar()
 
     if options.verbose_output:
         Tracing.optimization_logger.setFileHandle(
@@ -866,4 +866,4 @@ def shallPreferSourcecodeOverExtensionModules():
 
 def shallUseProgressBar():
     """*bool* prefer source code over extension modules if both are there"""
-    return options.progressbar
+    return options.progress_bar

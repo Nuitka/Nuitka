@@ -697,7 +697,7 @@ Defaults to off.""",
 tracing_group.add_option(
     "--no-progress",
     action="store_false",
-    dest="progressbar",
+    dest="progress_bar",
     default=True,
     help="""Disable progress bar outputs (if tqdm is installed).
 Defaults to off.""",

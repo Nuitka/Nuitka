@@ -38,6 +38,9 @@ from nuitka.utils.ThreadedExecutor import RLock
 # Written by Options module.
 is_quiet = False
 
+# We have to interact with displayed progress bars when doing out trace outputs.
+progress = None
+
 
 def printIndented(level, *what):
     print("    " * level, *what)
@@ -123,7 +126,8 @@ def my_print(*args, **kwargs):
     Use kwarg style=[option] to print in a style listed below
     """
 
-    closeProgressBar()
+    if progress:
+        progress.hideProgressBar()
 
     with withTraceLock():
         if "style" in kwargs:
@@ -157,6 +161,9 @@ def my_print(*args, **kwargs):
 
         # Flush the output.
         kwargs.get("file", sys.stdout).flush()
+
+    if progress:
+        progress.resumeProgressBar()
 
 
 class OurLogger(object):
@@ -247,60 +254,3 @@ postprocessing_logger = OurLogger("Nuitka-Postprocessing")
 options_logger = OurLogger("Nuitka-Options")
 unusual_logger = OurLogger("Nuitka-Unusual")
 datacomposer_logger = OurLogger("Nuitka-Datacomposer")
-
-progress = None
-
-try:
-    from tqdm import tqdm
-except ImportError:
-    tqdm = None
-else:
-    tqdm.set_lock(RLock())
-
-# Written by enableProgressBar from nuitka.options or scons files.
-use_progressbar = False
-
-
-def enableProgressBar():
-    global use_progressbar  # singleton, pylint: disable=global-statement
-
-    use_progressbar = True
-
-
-def reportProgressBar(stage, unit, item, total=None, update=True):
-    global progress  # singleton, pylint: disable=global-statement
-
-    # Tolerate the absence for now.
-    if tqdm is None:
-        return
-
-    if progress is None and use_progressbar:
-        try:
-            # Setting disable=None enables tty detection.
-            progress = tqdm(
-                initial=0,
-                total=total,
-                unit=unit,
-                disable=None,
-                leave=False,
-            )
-        except ImportError:
-            return
-
-    if progress is not None:
-        if stage is not None:
-            progress.set_description(stage)
-        if item is not None:
-            progress.set_postfix(item=item)
-        progress.unit = unit
-        progress.total = total
-        if update:
-            progress.update(1)
-
-
-def closeProgressBar():
-    global progress  # singleton, pylint: disable=global-statement
-
-    if progress is not None:
-        progress.clear()
-        progress = None

@@ -357,7 +357,7 @@ def setCommonOptions(options):
         options["assume_yes_for_downloads"] = asBoolStr(True)
 
     if not Options.shallUseProgressBar():
-        options["progressbar"] = "false"
+        options["progress_bar"] = "false"
 
     if Options.isClang():
         options["clang_mode"] = "true"

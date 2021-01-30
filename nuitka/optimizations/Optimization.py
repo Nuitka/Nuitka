@@ -29,14 +29,17 @@ import os
 from nuitka import ModuleRegistry, Options, Variables
 from nuitka.importing import ImportCache
 from nuitka.plugins.Plugins import Plugins
-from nuitka.Tracing import (
+from nuitka.Progress import (
     closeProgressBar,
+    reportProgressBar,
+    setupProgressBar,
+)
+from nuitka.Tracing import (
     general,
     memory_logger,
     optimization_logger,
     progress_logger,
     recursion_logger,
-    reportProgressBar,
 )
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import makePath
@@ -212,6 +215,13 @@ def _restartProgress():
     if _progress:
         progress_logger.info("PASS %d:" % pass_count)
 
+    setupProgressBar(
+        stage="PASS %d" % pass_count,
+        unit="module",
+        total=ModuleRegistry.getRemainingModulesCount()
+        + ModuleRegistry.getDoneModulesCount(),
+    )
+
 
 def _traceProgress(current_module):
     if _progress:
@@ -226,8 +236,6 @@ after that.""".format(
     # Progress bar and spammy tracing don't go along.
     if not _is_verbose:
         reportProgressBar(
-            stage="PASS %d" % pass_count,
-            unit="module",
             item=current_module.getFullName(),
             total=ModuleRegistry.getRemainingModulesCount()
             + ModuleRegistry.getDoneModulesCount(),

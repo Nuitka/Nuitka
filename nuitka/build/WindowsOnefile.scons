@@ -176,7 +176,7 @@ compiler_version_mode = getArgumentBool("compiler_version", False)
 
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 
-if getArgumentBool("progressbar", True):
+if getArgumentBool("progress_bar", True):
     enableSconsProgressBar()
 
 
