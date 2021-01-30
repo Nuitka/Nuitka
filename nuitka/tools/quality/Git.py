@@ -28,6 +28,7 @@ import os
 import re
 import subprocess
 
+from nuitka.containers.oset import OrderedSet
 from nuitka.utils.Execution import check_call, check_output
 
 
@@ -74,13 +75,15 @@ def getStagedFileChangeDesc():
 
 
 def getModifiedPaths():
+    result = OrderedSet()
+
     output = check_output(["git", "diff", "--name-only"])
 
     for line in output.splitlines():
         if str is not bytes:
             line = line.decode("utf8")
 
-        yield line
+        result.add(line)
 
     output = check_output(["git", "diff", "--cached", "--name-only"])
 
@@ -88,7 +91,9 @@ def getModifiedPaths():
         if str is not bytes:
             line = line.decode("utf8")
 
-        yield line
+        result.add(line)
+
+    return tuple(sorted(result))
 
 
 def getFileHashContent(object_hash):
