@@ -639,27 +639,17 @@ typedef struct {
     PyTypeObject *obj_type;
 } superobject;
 
-static char const *TYPE_NAME_DESC(PyObject *type) {
-    if (type == Py_None) {
-        return "None";
-    } else {
-        return Py_TYPE(type)->tp_name;
-    }
-}
-
 PyObject *BUILTIN_SUPER2(PyObject *type, PyObject *object) {
     CHECK_OBJECT(type);
     CHECK_OBJECT_X(object);
 
     if (unlikely(PyType_Check(type) == false)) {
 #if PYTHON_VERSION < 0x300
-        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "super() argument 1 must be type, not %s",
-                                            TYPE_NAME_DESC(type));
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("super() argument 1 must be type, not %s", type);
 #elif PYTHON_VERSION < 0x350
-        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "must be type, not %s", TYPE_NAME_DESC(type));
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("must be type, not %s", type);
 #else
-        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "super() argument 1 must be type, not %s",
-                                            TYPE_NAME_DESC(type));
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("super() argument 1 must be type, not %s", type);
 #endif
         return NULL;
     }

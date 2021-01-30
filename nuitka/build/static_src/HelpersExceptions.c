@@ -27,6 +27,31 @@
 #include "nuitka/prelude.h"
 #endif
 
+void SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyObject *exception_type, char const *format, char const *value) {
+    PyErr_Format(exception_type, format, value);
+}
+
+void SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyObject *exception_type, char const *format, char const *value1,
+                                         char const *value2) {
+    PyErr_Format(exception_type, format, value1, value2);
+}
+
+void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(char const *format, PyObject *mistyped) {
+    SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, Py_TYPE(mistyped)->tp_name);
+}
+
+static char const *TYPE_NAME_DESC(PyObject *type) {
+    if (type == Py_None) {
+        return "None";
+    } else {
+        return Py_TYPE(type)->tp_name;
+    }
+}
+
+void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE(char const *format, PyObject *mistyped) {
+    SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, TYPE_NAME_DESC(mistyped));
+}
+
 void FORMAT_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name) {
     *exception_type = PyExc_NameError;
     Py_INCREF(*exception_type);

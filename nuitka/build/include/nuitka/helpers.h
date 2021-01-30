@@ -152,7 +152,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *enc
     }
 #endif
     else {
-        PyErr_Format(PyExc_TypeError, "unicode() argument 2 must be string, not %s", Py_TYPE(encoding)->tp_name);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("unicode() argument 2 must be string, not %s", encoding);
         return NULL;
     }
 
@@ -172,7 +172,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *enc
     }
 #endif
     else {
-        PyErr_Format(PyExc_TypeError, "unicode() argument 3 must be string, not %s", Py_TYPE(errors)->tp_name);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("unicode() argument 3 must be string, not %s", errors);
         return NULL;
     }
 

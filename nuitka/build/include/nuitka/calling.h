@@ -31,7 +31,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION(PyObject *function_object, P
     ternaryfunc call_slot = Py_TYPE(function_object)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
-        PyErr_Format(PyExc_TypeError, "'%s' object is not callable", function_object->ob_type->tp_name);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object is not callable", function_object);
 
         return NULL;
     }
