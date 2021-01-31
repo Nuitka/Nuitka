@@ -107,6 +107,10 @@ def _myDetectVersion(env, clvar):
 
     ret = pipe.wait()
     if ret != 0:
+        scons_details_logger.info(
+            "Error, error exit from %r (%d) gave %r."
+            % (command, ret, pipe.stderr.read())
+        )
         return None
 
     if str is not bytes and type(line) is bytes:
