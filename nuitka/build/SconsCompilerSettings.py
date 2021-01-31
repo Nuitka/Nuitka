@@ -158,7 +158,6 @@ def checkWindowsCompilerFound(env, target_arch, assume_yes_for_downloads):
             addToPATH(env, os.path.dirname(compiler_path), prefix=True)
 
             env = createEnvironment(
-                tools=["mingw"],
                 mingw_mode=True,
                 msvc_version=None,
                 target_arch=target_arch,

@@ -256,7 +256,6 @@ def getCompilerTools():
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
 env = createEnvironment(
-    tools=getCompilerTools(),
     mingw_mode=mingw_mode,
     msvc_version=msvc_version,
     target_arch=target_arch,

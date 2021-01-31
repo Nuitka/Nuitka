@@ -86,7 +86,14 @@ def getArgumentList(option_name, default=None):
         return []
 
 
-def createEnvironment(tools, mingw_mode, msvc_version, target_arch):
+def createEnvironment(mingw_mode, msvc_version, target_arch):
+    if mingw_mode:
+        # Force usage of MinGW64, not using MSVC tools.
+        tools = ["mingw"]
+    else:
+        # Everything else should use default, that is MSVC tools, but not MinGW64.
+        tools = ["default"]
+
     from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
     args = {}
@@ -102,6 +109,14 @@ def createEnvironment(tools, mingw_mode, msvc_version, target_arch):
         )
     ):
         args["MSVC_USE_SCRIPT"] = False
+
+    if mingw_mode:
+        # Forced usage of MinGW, disable MSVC tools.
+        compiler_tools = ["mingw"]
+
+        import SCons.Tool.MSCommon.vc  # pylint: disable=import-error,redefined-outer-name
+
+        SCons.Tool.MSCommon.vc.msvc_setup_env = lambda *args: None
 
     return Environment(
         # We want the outside environment to be passed through.

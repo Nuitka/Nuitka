@@ -297,28 +297,9 @@ gcc_version = None
 Environment.Detect = getEnhancedToolDetect()
 
 
-def getCompilerTools():
-    if mingw_mode:
-        # Force usage of MinGW, disable MSVC tools.
-        compiler_tools = ["mingw"]
-
-        import SCons.Tool.MSCommon.vc  # pylint: disable=import-error,redefined-outer-name
-
-        SCons.Tool.MSCommon.vc.msvc_setup_env = lambda *args: None
-
-    else:
-        # Everything else should use default.
-        compiler_tools = ["default"]
-
-    printCompilerVersionOutput("Tools=", compiler_tools)
-
-    return compiler_tools
-
-
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
 env = createEnvironment(
-    tools=getCompilerTools(),
     mingw_mode=mingw_mode,
     msvc_version=msvc_version,
     target_arch=target_arch,
