@@ -29,7 +29,7 @@ import re
 import subprocess
 
 from nuitka.containers.oset import OrderedSet
-from nuitka.utils.Execution import check_call, check_output
+from nuitka.utils.Execution import check_call, check_output, getNullInput
 
 
 # Parse output from `git diff-index`
@@ -136,7 +136,7 @@ def updateWorkingFile(path, orig_object_hash, new_object_hash):
 
     apply_patch = subprocess.Popen(
         ["git", "apply", "-"],
-        stdin=subprocess.PIPE,
+        stdin=getNullInput(),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )

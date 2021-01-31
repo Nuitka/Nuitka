@@ -33,7 +33,11 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import version_resources
 from nuitka.Tracing import general, postprocessing_logger, scons_logger
 from nuitka.utils.Download import getCachedDownload
-from nuitka.utils.Execution import getNullOutput, withEnvironmentVarsOverriden
+from nuitka.utils.Execution import (
+    getNullInput,
+    getNullOutput,
+    withEnvironmentVarsOverriden,
+)
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
     getFileList,
@@ -149,6 +153,7 @@ Categories=Utility;"""
             onefile_output_filename,
         ),
         shell=False,
+        stdin=getNullInput(),
         stderr=getNullOutput(),
         stdout=getNullOutput(),
     )

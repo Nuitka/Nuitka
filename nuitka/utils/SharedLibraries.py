@@ -28,6 +28,7 @@ from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import postprocessing_logger
 
+from .Execution import getNullInput
 from .FileOperations import withMadeWritableFileMode
 from .Importing import importFromInlineCopy
 from .Utils import getArchitecture, getOS, isAlpineLinux, isWin32Windows
@@ -78,7 +79,10 @@ def locateDLL(dll_name):
         )
 
     process = subprocess.Popen(
-        args=["/sbin/ldconfig", "-p"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        args=["/sbin/ldconfig", "-p"],
+        stdin=getNullInput(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
     stdout, _stderr = process.communicate()
 

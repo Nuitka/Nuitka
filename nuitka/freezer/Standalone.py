@@ -52,7 +52,7 @@ from nuitka.Tracing import general, inclusion_logger, printError
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.Execution import withEnvironmentPathAdded
+from nuitka.utils.Execution import getNullInput, withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
     deleteFile,
@@ -263,6 +263,7 @@ def _detectImports(command, user_provided, technical):
 
         process = subprocess.Popen(
             args=[sys.executable, "-s", "-S", "-v", tmp_filename],
+            stdin=getNullInput(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=dict(os.environ, PYTHONIOENCODING="utf_8"),
@@ -602,7 +603,10 @@ def _detectBinaryPathDLLsPosix(dll_filename):
 
     with withEnvironmentPathAdded("LD_LIBRARY_PATH", _detected_python_rpath):
         process = subprocess.Popen(
-            args=["ldd", dll_filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            args=["ldd", dll_filename],
+            stdin=getNullInput(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
 
         stdout, _stderr = process.communicate()
@@ -706,6 +710,7 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename, keep_unresolved):
 
     process = subprocess.Popen(
         args=["otool", "-L", binary_filename],
+        stdin=getNullInput(),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -769,6 +774,7 @@ def _detectBinaryRPathsMacOS(original_dir, binary_filename):
 
     process = subprocess.Popen(
         args=["otool", "-l", binary_filename],
+        stdin=getNullInput(),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -1043,6 +1049,7 @@ SxS
             "-ps1",
             binary_filename,
         ),
+        stdin=getNullInput(),
         cwd=getExternalUsePath(os.getcwd()),
     )
 
@@ -1346,6 +1353,7 @@ def fixupBinaryDLLPathsMacOS(binary_filename, dll_map, original_location):
 def getSharedLibraryRPATH(filename):
     process = subprocess.Popen(
         ["readelf", "-d", filename],
+        stdin=getNullInput(),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         shell=False,
@@ -1391,6 +1399,7 @@ libraries that need to be removed."""
         os.chmod(filename, int("644", 8))
         process = subprocess.Popen(
             ["chrpath", "-d", filename],
+            stdin=getNullInput(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             shell=False,

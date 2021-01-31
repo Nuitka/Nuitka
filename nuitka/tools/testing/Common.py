@@ -36,7 +36,11 @@ from nuitka.freezer.DependsExe import getDependsExePath
 from nuitka.Tracing import OurLogger, my_print
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.Execution import check_output, withEnvironmentVarOverriden
+from nuitka.utils.Execution import (
+    check_output,
+    getNullInput,
+    withEnvironmentVarOverriden,
+)
 from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
@@ -1533,7 +1537,10 @@ def setupCacheHashSalt(test_code_path):
         git_cmd = ["git", "ls-tree", "-r", "HEAD", test_code_path]
 
         process = subprocess.Popen(
-            args=git_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            args=git_cmd,
+            stdin=getNullInput(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
 
         stdout_git, stderr_git = process.communicate()

@@ -32,6 +32,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     unicode,
 )
 from nuitka.Tracing import scons_details_logger, scons_logger
+from nuitka.utils.Execution import getNullInput
 
 
 def initScons():
@@ -405,7 +406,7 @@ def _getBinaryArch(binary, mingw_mode):
         try:
             proc = subprocess.Popen(
                 command,
-                stdin=subprocess.PIPE,
+                stdin=getNullInput(),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 shell=False,
@@ -471,7 +472,7 @@ def getCompilerArch(mingw_mode, msvc_mode, the_cc_name, compiler_path):
 
         proc = subprocess.Popen(
             cmdline,
-            stdin=subprocess.PIPE,
+            stdin=getNullInput(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             shell=False,

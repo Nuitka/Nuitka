@@ -364,3 +364,10 @@ def getNullOutput():
         return subprocess.NULLDEV
     except AttributeError:
         return open(os.devnull, "wb")
+
+
+def getNullInput():
+    try:
+        return subprocess.NULLDEV
+    except AttributeError:
+        return open(os.devnull, "rb")
