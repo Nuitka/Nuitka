@@ -91,6 +91,16 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, P
     } else {
 #if PYTHON_VERSION >= 0x370
         if (PyType_Check(source)) {
+#if PYTHON_VERSION >= 0x390
+            if (source == (PyObject *)&PyType_Type) {
+                PyObject *subscript = PyLong_FromSsize_t(int_subscript);
+                result = Py_GenericAlias(source, subscript);
+                Py_DECREF(subscript);
+
+                return result;
+            }
+#endif
+
             PyObject *meth = LOOKUP_ATTRIBUTE(source, const_str_plain___class_getitem__);
 
             if (meth) {
@@ -162,6 +172,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
 
 #if PYTHON_VERSION >= 0x370
     if (PyType_Check(source)) {
+#if PYTHON_VERSION >= 0x390
+        if (source == (PyObject *)&PyType_Type) {
+            return Py_GenericAlias(source, subscript);
+        }
+#endif
+
         PyObject *meth = LOOKUP_ATTRIBUTE(source, const_str_plain___class_getitem__);
 
         if (meth) {
