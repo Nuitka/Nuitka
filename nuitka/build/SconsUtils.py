@@ -87,13 +87,6 @@ def getArgumentList(option_name, default=None):
 
 
 def createEnvironment(mingw_mode, msvc_version, target_arch):
-    if mingw_mode:
-        # Force usage of MinGW64, not using MSVC tools.
-        tools = ["mingw"]
-    else:
-        # Everything else should use default, that is MSVC tools, but not MinGW64.
-        tools = ["default"]
-
     from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
     args = {}
@@ -103,6 +96,7 @@ def createEnvironment(mingw_mode, msvc_version, target_arch):
     if (
         os.name == "nt"
         and not mingw_mode
+        and msvc_version is None
         and (
             getExecutablePath("cl", env=None) is not None
             or getExecutablePath("gcc", env=None) is not None
@@ -111,12 +105,16 @@ def createEnvironment(mingw_mode, msvc_version, target_arch):
         args["MSVC_USE_SCRIPT"] = False
 
     if mingw_mode:
-        # Forced usage of MinGW, disable MSVC tools.
-        compiler_tools = ["mingw"]
+        # Force usage of MinGW64, not using MSVC tools.
+        tools = ["mingw"]
 
-        import SCons.Tool.MSCommon.vc  # pylint: disable=import-error,redefined-outer-name
+        # This code would be running anyway, make it do not thing by monkey patching.
+        import SCons.Tool.MSCommon.vc  # pylint: disable=import-error
 
         SCons.Tool.MSCommon.vc.msvc_setup_env = lambda *args: None
+    else:
+        # Everything else should use default, that is MSVC tools, but not MinGW64.
+        tools = ["default"]
 
     return Environment(
         # We want the outside environment to be passed through.
@@ -515,9 +513,9 @@ def raiseNoCompilerFoundErrorExit():
 Error, cannot locate suitable C compiler. You have the following options:
 
 a) If a suitable Visual Studio version is installed, it will be located
-   automatically via registry.
+   automatically via registry. But not if you activate the wrong prompt.
 
-b) Using --mingw64 let Nuitka download MinGW64 for you.
+b) Using --mingw64 lets Nuitka download MinGW64 for you.
 
 Note: Only MinGW64 will work! MinGW64 does *not* mean 64 bits, just better
 Windows compatibility, it is available for 32 and 64 bits. Cygwin based gcc

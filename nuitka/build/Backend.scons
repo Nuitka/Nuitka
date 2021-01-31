@@ -332,7 +332,10 @@ elif clang_mode:
 # On Windows, in case MSVC was not found and not previously forced, use the
 # winlibs MinGW64 as a download, and use it as a fallback.
 env = checkWindowsCompilerFound(
-    env=env, target_arch=target_arch, assume_yes_for_downloads=assume_yes_for_downloads
+    env=env,
+    target_arch=target_arch,
+    msvc_version=msvc_version,
+    assume_yes_for_downloads=assume_yes_for_downloads,
 )
 
 the_compiler = env["CC"]
