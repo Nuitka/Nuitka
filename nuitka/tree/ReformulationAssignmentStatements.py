@@ -643,6 +643,8 @@ def buildAnnAssignNode(provider, node, source_ref):
 
 
 def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
+    # This function is a case driven by returns, pylint: disable=too-many-return-statements
+
     if kind in ("Name", "Name_Exception"):
         # Note: Name_Exception is a "del" for exception handlers that doesn't
         # insist on the variable being defined, user code may do it too, and
@@ -700,9 +702,12 @@ def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
                 )
             )
 
-        return makeStatementsSequenceOrStatement(
-            statements=result, source_ref=source_ref
-        )
+        if result:
+            return makeStatementsSequenceOrStatement(
+                statements=result, source_ref=source_ref
+            )
+        else:
+            return None
     else:
         assert False, (kind, detail, source_ref)
 
