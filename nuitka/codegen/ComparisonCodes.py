@@ -253,3 +253,36 @@ def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
     to_name.getCType().emitAssignmentCodeFromBoolCondition(
         to_name=to_name, condition="%s != 0" % res_name, emit=emit
     )
+
+
+def generateBuiltinIssubclassCode(to_name, expression, emit, context):
+    cls_name = context.allocateTempName("issubclass_cls")
+    classes_name = context.allocateTempName("issubclass_classes")
+
+    generateExpressionCode(
+        to_name=cls_name,
+        expression=expression.subnode_cls,
+        emit=emit,
+        context=context,
+    )
+    generateExpressionCode(
+        to_name=classes_name,
+        expression=expression.subnode_classes,
+        emit=emit,
+        context=context,
+    )
+
+    res_name = context.getIntResName()
+
+    emit("%s = PyObject_IsSubclass(%s, %s);" % (res_name, cls_name, classes_name))
+
+    getErrorExitBoolCode(
+        condition="%s == -1" % res_name,
+        release_names=(cls_name, classes_name),
+        emit=emit,
+        context=context,
+    )
+
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name=to_name, condition="%s != 0" % res_name, emit=emit
+    )

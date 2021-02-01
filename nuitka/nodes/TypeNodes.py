@@ -185,9 +185,9 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
 
             return self, None, None
 
-        cls = self.subnode_classes
+        classes = self.subnode_classes
 
-        if not cls.isCompileTimeConstant():
+        if not classes.isCompileTimeConstant():
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return self, None, None
@@ -196,7 +196,48 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
         return trace_collection.getCompileTimeComputationResult(
             node=self,
             computation=lambda: isinstance(
-                instance.getCompileTimeConstant(), cls.getCompileTimeConstant()
+                instance.getCompileTimeConstant(), classes.getCompileTimeConstant()
             ),
             description="Built-in call to 'isinstance' computed.",
+        )
+
+
+class ExpressionBuiltinIssubclass(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_BUILTIN_ISSUBCLASS"
+
+    named_children = ("cls", "classes")
+
+    def __init__(self, cls, classes, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"cls": cls, "classes": classes},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        # TODO: Quite some cases should be possible to predict.
+
+        cls = self.subnode_cls
+
+        # TODO: Should be possible to query run time type instead, but we don't
+        # have that method yet. Later this will be essential.
+        if not cls.isCompileTimeConstant():
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        classes = self.subnode_classes
+
+        if not classes.isCompileTimeConstant():
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        # So if both are compile time constant, we are able to compute it.
+        return trace_collection.getCompileTimeComputationResult(
+            node=self,
+            computation=lambda: issubclass(
+                cls.getCompileTimeConstant(), classes.getCompileTimeConstant()
+            ),
+            description="Built-in call to 'issubclass' computed.",
         )

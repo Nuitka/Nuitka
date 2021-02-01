@@ -1031,8 +1031,6 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             NUITKA_CANNOT_GET_HERE("Corrupt constants blob");
         }
 
-        CHECK_OBJECT(*output);
-
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
         printf("Size for %c was %d\n", c, data - data_old);
 #endif
@@ -1041,6 +1039,8 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         // might be put into containers, therefore take 2 refs to be
         // accounting for the container too.
         if (is_object == true) {
+            CHECK_OBJECT(*output);
+
             Py_INCREF(*output);
             Py_INCREF(*output);
         }

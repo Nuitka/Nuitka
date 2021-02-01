@@ -28,6 +28,7 @@ import sys
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName
 from nuitka.tools.testing.Virtualenv import withVirtualenv
+from nuitka.Tracing import my_print
 from nuitka.Version import getNuitkaVersion
 
 
@@ -40,49 +41,33 @@ def main():
     assert branch_name == "master", branch_name
     assert "pre" not in nuitka_version and "rc" not in nuitka_version
 
-    print("Uploading Nuitka '%s'" % nuitka_version)
-
-    # Need to remove the contents from the Rest, or else PyPI will not render
-    # it. Stupid but true.
-    with open("README.rst", "rb") as f:
-        contents = f.read()
-    contents = contents.replace(b".. contents::\n", b"")
-    contents = contents.replace(b".. image:: doc/images/Nuitka-Logo-Symbol.png\n", b"")
-    contents = contents.replace(
-        b".. raw:: pdf\n\n   PageBreak oneColumn\n   SetPageCounter 1", b""
-    )
-
-    with open("README.rst", "wb") as f:
-        f.write(contents)
-
-    # Make sure it worked.
-    with open("README.rst", "rb") as f:
-        contents = f.read()
-    assert b".. contents" not in contents
+    my_print("Working on Nuitka %r." % nuitka_version)
 
     shutil.rmtree("check_nuitka", ignore_errors=True)
     shutil.rmtree("dist", ignore_errors=True)
 
-    print("Creating documentation.")
+    my_print("Creating documentation.")
     createReleaseDocumentation()
-    print("Creating source distribution.")
+    my_print("Creating source distribution.")
     assert os.system("umask 0022 && chmod -R a+rX . && python setup.py sdist") == 0
 
-    print("Creating a virtualenv for quick test:")
+    my_print("Creating a virtualenv for quick test:")
     with withVirtualenv("check_nuitka") as venv:
-        print("Installing Nuitka into virtualenv:")
-        print("*" * 40)
+        my_print("Installing Nuitka into virtualenv:", style="blue")
+        my_print("*" * 40, style="blue")
         venv.runCommand("python -m pip install ../dist/Nuitka*.tar.gz")
-        print("*" * 40)
+        my_print("*" * 40, style="blue")
 
         print("Compiling basic test:")
-        print("*" * 40)
+        my_print("*" * 40, style="blue")
         venv.runCommand("nuitka-run ../tests/basics/Asserts.py")
-        print("*" * 40)
+        my_print("*" * 40, style="blue")
 
-    if "check" not in sys.argv:
-        print("Uploading source dist")
+    assert os.system("twine check dist/*") == 0
+
+    if "--check" not in sys.argv:
+        my_print("Uploading source dist")
         assert os.system("twine upload dist/*") == 0
-        print("Uploaded.")
+        my_print("Uploaded.")
     else:
-        print("Checked OK, not uploaded.")
+        my_print("Checked OK, but not uploaded.")
