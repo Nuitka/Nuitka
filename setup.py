@@ -237,10 +237,25 @@ if sys.version_info[0] == 2:
 else:
     binary_suffix = "%d" % sys.version_info[0]
 
+with open("README.rst", "r") as input_file:
+    long_description = input_file.read()
+
+    # Need to remove the ..contents etc from the rest, or else PyPI will not render
+    # it.
+    long_description = long_description.replace(".. contents::\n", "")
+    long_description = long_description.replace(
+        ".. image:: doc/images/Nuitka-Logo-Symbol.png\n", ""
+    )
+    long_description = long_description.replace(
+        ".. raw:: pdf\n\n   PageBreak oneColumn\n   SetPageCounter 1", ""
+    )
+
 setup(
     name=project_name,
     license="Apache License, Version 2.0",
     version=version,
+    long_description=long_description,
+    long_description_content_type="text/x-rst",
     classifiers=[
         # Nuitka is mature even
         "Development Status :: 5 - Production/Stable",
@@ -264,6 +279,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         # We depend on CPython.
         "Programming Language :: Python :: Implementation :: CPython",
         # We generate C intermediate code and implement part of the

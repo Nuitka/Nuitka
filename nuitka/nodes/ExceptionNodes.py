@@ -318,54 +318,52 @@ class ExpressionBuiltinMakeExceptionImportError(ExpressionChildrenHavingBase):
         return False
 
 
-class ExpressionCaughtExceptionTypeRef(ExpressionBase):
+class ExpressionCaughtMixin(object):
+    """Common things for all caught exception references."""
+
+    __slots__ = ()
+
+    def finalize(self):
+        del self.parent
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        # Accessing the caught stuff has no side effect, pylint: disable=unused-argument
+        return False
+
+    @staticmethod
+    def mayHaveSideEffects():
+        # Referencing the caught stuff has no side effect
+        return False
+
+
+class ExpressionCaughtExceptionTypeRef(ExpressionCaughtMixin, ExpressionBase):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_TYPE_REF"
 
     def __init__(self, source_ref):
         ExpressionBase.__init__(self, source_ref=source_ref)
 
-    def finalize(self):
-        del self.parent
-
     def computeExpressionRaw(self, trace_collection):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
-    def mayHaveSideEffects(self):
-        # Referencing the expression type has no side effect
-        return False
 
-
-class ExpressionCaughtExceptionValueRef(ExpressionBase):
+class ExpressionCaughtExceptionValueRef(ExpressionCaughtMixin, ExpressionBase):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_VALUE_REF"
 
     def __init__(self, source_ref):
         ExpressionBase.__init__(self, source_ref=source_ref)
 
-    def finalize(self):
-        del self.parent
-
     def computeExpressionRaw(self, trace_collection):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
-    def mayHaveSideEffects(self):
-        # Referencing the expression type has no side effect
-        return False
 
-
-class ExpressionCaughtExceptionTracebackRef(ExpressionBase):
+class ExpressionCaughtExceptionTracebackRef(ExpressionCaughtMixin, ExpressionBase):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_TRACEBACK_REF"
 
     def __init__(self, source_ref):
         ExpressionBase.__init__(self, source_ref=source_ref)
 
-    def finalize(self):
-        del self.parent
-
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
-
-    def mayHaveSideEffects(self):
-        # Referencing the expression type has no side effect
-        return False

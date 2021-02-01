@@ -455,6 +455,14 @@ class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
 
         return PythonOperators.all_comparison_functions[self.comparator]
 
+    def mayRaiseException(self, exception_type):
+        # TODO: Match errors that exception comparisons might raise more accurately.
+        return (
+            self.subnode_left.mayRaiseException(exception_type)
+            or self.subnode_right.mayRaiseException(exception_type)
+            or self.mayRaiseExceptionComparison()
+        )
+
     def mayRaiseExceptionComparison(self):
         if python_version < 0x300:
             return False
@@ -466,6 +474,10 @@ class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
             return False
 
         return True
+
+    @staticmethod
+    def mayRaiseExceptionBool(exception_type):
+        return False
 
 
 class ExpressionComparisonExceptionMatch(ExpressionComparisonExceptionMatchBase):
