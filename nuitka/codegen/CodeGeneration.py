@@ -77,6 +77,7 @@ from .ClassCodes import generateBuiltinSuperCode, generateSelectMetaclassCode
 from .CodeHelpers import setExpressionDispatchDict, setStatementDispatchDict
 from .ComparisonCodes import (
     generateBuiltinIsinstanceCode,
+    generateBuiltinIssubclassCode,
     generateComparisonExpressionCode,
 )
 from .ConditionalCodes import (
@@ -545,6 +546,7 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_GLOBALS": generateBuiltinGlobalsCode,
         "EXPRESSION_BUILTIN_SUPER": generateBuiltinSuperCode,
         "EXPRESSION_BUILTIN_ISINSTANCE": generateBuiltinIsinstanceCode,
+        "EXPRESSION_BUILTIN_ISSUBCLASS": generateBuiltinIssubclassCode,
         "EXPRESSION_BUILTIN_DIR1": generateBuiltinDir1Code,
         "EXPRESSION_BUILTIN_VARS": generateBuiltinVarsCode,
         "EXPRESSION_BUILTIN_HASATTR": generateBuiltinHasattrCode,
