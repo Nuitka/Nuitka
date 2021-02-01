@@ -237,8 +237,8 @@ if sys.version_info[0] == 2:
 else:
     binary_suffix = "%d" % sys.version_info[0]
 
-with open("README.rst", "r") as input_file:
-    long_description = input_file.read()
+with open("README.rst", "rb") as input_file:
+    long_description = input_file.read().decode("utf8")
 
     # Need to remove the ..contents etc from the rest, or else PyPI will not render
     # it.
