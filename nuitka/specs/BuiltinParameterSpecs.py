@@ -421,6 +421,10 @@ builtin_isinstance_spec = BuiltinParameterSpecNoKeywords(
     "isinstance", ("instance", "classes"), default_count=0
 )
 
+builtin_issubclass_spec = BuiltinParameterSpecNoKeywords(
+    "issubclass", ("cls", "classes"), default_count=0
+)
+
 
 class BuiltinBytearraySpec(BuiltinParameterSpecPosArgs):
     def isCompileTimeComputable(self, values):

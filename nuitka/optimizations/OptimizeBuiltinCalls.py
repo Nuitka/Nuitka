@@ -137,6 +137,7 @@ from nuitka.nodes.ReturnNodes import makeStatementReturn
 from nuitka.nodes.SliceNodes import makeExpressionBuiltinSlice
 from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
+    ExpressionBuiltinIssubclass,
     ExpressionBuiltinSuper0,
     ExpressionBuiltinSuper2,
     ExpressionBuiltinType1,
@@ -1222,6 +1223,14 @@ def isinstance_extractor(node):
     )
 
 
+def issubclass_extractor(node):
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=ExpressionBuiltinIssubclass,
+        builtin_spec=BuiltinParameterSpecs.builtin_isinstance_spec,
+    )
+
+
 def bytearray_extractor(node):
     def makeBytearray0(source_ref):
         return makeConstantRefNode(constant=bytearray(), source_ref=source_ref)
@@ -1366,6 +1375,7 @@ _dispatch_dict = {
     "getattr": getattr_extractor,
     "setattr": setattr_extractor,
     "isinstance": isinstance_extractor,
+    "issubclass": issubclass_extractor,
     "bytearray": bytearray_extractor,
     "slice": slice_extractor,
     "hash": hash_extractor,
