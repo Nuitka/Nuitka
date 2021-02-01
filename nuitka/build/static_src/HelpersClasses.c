@@ -38,6 +38,12 @@ PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases) {
         Py_ssize_t nbases = PyTuple_GET_SIZE(bases);
         PyTypeObject *winner = (PyTypeObject *)metaclass;
 
+#if _DEBUG_CLASSES
+        PRINT_STRING("Bases:");
+        PRINT_ITEM((PyObject *)bases);
+        PRINT_NEW_LINE();
+#endif
+
         for (int i = 0; i < nbases; i++) {
             PyObject *base = PyTuple_GET_ITEM(bases, i);
 
