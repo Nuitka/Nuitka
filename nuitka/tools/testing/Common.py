@@ -26,9 +26,12 @@ import hashlib
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from contextlib import contextmanager
 from optparse import OptionGroup, OptionParser
 
@@ -1626,3 +1629,35 @@ def checkRequirements(filename):
                         )
     # default return value
     return (True, "")
+
+
+class DelayedExecutionThread(threading.Thread):
+    def __init__(self, timeout, func):
+        threading.Thread.__init__(self)
+        self.timeout = timeout
+
+        self.func = func
+
+    def run(self):
+        time.sleep(self.timeout)
+        self.func()
+
+
+def executeAfterTimePassed(timeout, func):
+    alarm = DelayedExecutionThread(timeout=timeout, func=func)
+    alarm.start()
+
+
+def killProcess(name, pid):
+    """Kill a process in a portable way.
+
+    Right now SIGINT is used, unclear what to do on Windows
+    with Python2 or non-related processes.
+    """
+
+    if str is bytes and os.name == "nt":
+        test_logger.info("Using taskkill on test process %r." % name)
+        os.system("taskkill.exe /PID %d" % pid)
+    else:
+        test_logger.info("Killing test process %r." % name)
+        os.kill(pid, signal.SIGINT)

@@ -76,7 +76,7 @@ def main():
 
     search_mode = createSearchMode()
 
-    if getOS == "Linux":
+    if getOS() == "Linux":
         addExtendedExtraOptions(
             "--linux-onefile-icon=../../doc/Logo/Nuitka-Logo-Symbol.svg"
         )
@@ -106,6 +106,25 @@ def main():
             "timing",
         ]
 
+        if filename == "KeyboardInteruptTest.py":
+            if python_version < (3,):
+                reportSkip(
+                    "Python2 reports KeyboardInterrupt, but too late",
+                    ".",
+                    filename,
+                )
+                continue
+
+            if os.name == "nt":
+                reportSkip(
+                    ".",
+                    filename,
+                    "Testing cannot send KeyboardInterrupt on Windows yet",
+                )
+                continue
+
+            extra_flags.append("--send-ctrl-c")
+
         # skip each test if their respective requirements are not met
         requirements_met, error_message = checkRequirements(filename)
         if not requirements_met:
@@ -127,6 +146,9 @@ def main():
         )
 
         binary_filename = filename[:-3] + (".exe" if os.name == "nt" else ".bin")
+
+        if filename == "KeyboardInteruptTest.py":
+            continue
 
         # Then use "strace" on the result.
         with TimerReport(

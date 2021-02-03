@@ -35,7 +35,9 @@ import time
 from nuitka.PythonVersions import python_version
 from nuitka.tools.testing.Common import (
     addToPythonPath,
+    executeAfterTimePassed,
     getTestingCPythonOutputsCacheDir,
+    killProcess,
     withPythonPathChange,
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
@@ -83,7 +85,7 @@ def checkNoPermissionError(output):
     return True
 
 
-def _getCPythonResults(cpython_cmd):
+def _getCPythonResults(cpython_cmd, send_kill):
     stop_watch = StopWatch()
 
     # Try a coupile of times for permission denied, on Windows it can
@@ -94,6 +96,12 @@ def _getCPythonResults(cpython_cmd):
         with withPythonPathChange(os.getcwd()):
             process = subprocess.Popen(
                 args=cpython_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+
+        if send_kill:
+            # Doing it per loop iteration hopefully, pylint: disable=cell-var-from-loop
+            executeAfterTimePassed(
+                1.0, lambda: killProcess("Uncompiled Python program", process.pid)
             )
 
         stdout_cpython, stderr_cpython = process.communicate()
@@ -114,7 +122,7 @@ def _getCPythonResults(cpython_cmd):
     return cpython_time, stdout_cpython, stderr_cpython, exit_cpython
 
 
-def getCPythonResults(cpython_cmd, cpython_cached, force_update):
+def getCPythonResults(cpython_cmd, cpython_cached, force_update, send_kill):
     # Many details, pylint: disable=too-many-locals
 
     cached = False
@@ -161,7 +169,7 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update):
 
     if not cached:
         cpython_time, stdout_cpython, stderr_cpython, exit_cpython = _getCPythonResults(
-            cpython_cmd
+            cpython_cmd=cpython_cmd, send_kill=send_kill
         )
 
         if cpython_cached:
@@ -221,6 +229,7 @@ def main():
     noprefer_source = hasArg("noprefer_source")
     noverbose_log = hasArg("noverbose_log")
     noinclusion_log = hasArg("noinclusion_log")
+    send_kill = hasArg("--send-ctrl-c")
 
     plugins_enabled = []
     for count, arg in reversed(tuple(enumerate(args))):
@@ -268,6 +277,10 @@ def main():
         python_debug = False
 
     comparison_mode = not coverage_mode
+
+    # We need to split it, so we know when to kill.
+    if send_kill:
+        two_step_execution = True
 
     assert not standalone_mode or not module_mode
     assert not recurse_all or not recurse_none
@@ -518,7 +531,10 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     if comparison_mode:
         cpython_time, stdout_cpython, stderr_cpython, exit_cpython = getCPythonResults(
-            cpython_cmd=cpython_cmd, cpython_cached=cpython_cached, force_update=False
+            cpython_cmd=cpython_cmd,
+            cpython_cached=cpython_cached,
+            force_update=False,
+            send_kill=send_kill,
         )
 
         if not silent_mode:
@@ -611,6 +627,12 @@ Stderr was:
                         args=nuitka_cmd2, stdout=subprocess.PIPE, stderr=subprocess.PIPE
                     )
 
+                    if send_kill:
+                        executeAfterTimePassed(
+                            1.0,
+                            lambda: killProcess("Nuitka compiled program", process.pid),
+                        )
+
                     stdout_nuitka2, stderr_nuitka2 = process.communicate()
                     stdout_nuitka = stdout_nuitka1 + stdout_nuitka2
                     stderr_nuitka = stderr_nuitka1 + stderr_nuitka2
@@ -699,6 +721,7 @@ Stderr was:
                     cpython_cmd=cpython_cmd,
                     cpython_cached=cpython_cached,
                     force_update=True,
+                    send_kill=send_kill,
                 )
 
                 if not silent_mode:
