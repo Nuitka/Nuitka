@@ -142,7 +142,11 @@ def makeSuperCall(arg1, arg2):
         print("Ok.")
 
 
-makeSuperCall(None, None)
-makeSuperCall(1, None)
+# Due to inconsistent backporting to Python2.6 and Python2.7 on various OSes,
+# this one gives varying results, ignore that
+
+if str is not bytes:
+    makeSuperCall(None, None)
+    makeSuperCall(1, None)
 makeSuperCall(type, None)
 makeSuperCall(type, 1)

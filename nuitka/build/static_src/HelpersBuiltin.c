@@ -646,7 +646,7 @@ PyObject *BUILTIN_SUPER2(PyObject *type, PyObject *object) {
     if (unlikely(PyType_Check(type) == false)) {
 #if PYTHON_VERSION < 0x300
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("super() argument 1 must be type, not %s", type);
-#elif PYTHON_VERSION < 0x350
+#elif PYTHON_VERSION < 0x352
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("must be type, not %s", type);
 #else
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("super() argument 1 must be type, not %s", type);
