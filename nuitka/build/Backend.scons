@@ -208,6 +208,9 @@ frozen_modules = int(ARGUMENTS.get("frozen_modules", 0))
 # Standalone mode
 standalone_mode = getArgumentBool("standalone_mode", False)
 
+# Onefile mode
+onefile_mode = getArgumentBool("onefile_mode", False)
+
 # Show scons mode, output information about Scons operation
 show_scons_mode = getArgumentBool("show_scons", False)
 scons_details_logger.is_quiet = not show_scons_mode
@@ -704,6 +707,9 @@ if trace_mode:
 
 if standalone_mode:
     env.Append(CPPDEFINES=["_NUITKA_STANDALONE"])
+
+if onefile_mode:
+    env.Append(CPPDEFINES=["_NUITKA_ONEFILE"])
 
 # We need "dl" in accelerated mode.
 if "linux" in sys.platform:

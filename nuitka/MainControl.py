@@ -430,6 +430,9 @@ def runSconsBackend(quiet):
     if Options.isStandaloneMode():
         options["standalone_mode"] = asBoolStr(True)
 
+    if Options.isOnefileMode():
+        options["onefile_mode"] = asBoolStr(True)
+
     if Options.shallTreatUninstalledPython():
         options["uninstalled_python"] = asBoolStr(True)
 

@@ -155,9 +155,7 @@ static void cleanupChildProcess() {
 
         SHFILEOPSTRUCTW fileop_struct = {
             NULL, FO_DELETE, payload_path, L"", FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT, false, 0, L""};
-        int del_result = SHFileOperationW(&fileop_struct);
-
-        assert(del_result == 0);
+        SHFileOperationW(&fileop_struct);
     }
 #endif
 }
@@ -291,10 +289,6 @@ int main(int argc, char **argv) {
     }
 
     bool_res = CreateDirectoryW(payload_path, NULL);
-    if (bool_res == false) {
-        printError("Error, failed to created payload path.");
-        return 1;
-    }
 
     payload_created = true;
 
@@ -410,6 +404,13 @@ int main(int argc, char **argv) {
     si.cb = sizeof(si);
 
     PROCESS_INFORMATION pi;
+
+    // Pass our pid by value to the child.
+    {
+        char buffer[128];
+        itoa(GetCurrentProcessId(), buffer, 10);
+        SetEnvironmentVariable("NUITKA_ONEFILE_PARENT", buffer);
+    }
 
     bool_res = CreateProcessW(first_filename,           // application name
                               GetCommandLineW(),        // command line
