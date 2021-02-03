@@ -29,7 +29,8 @@ import re
 import subprocess
 
 from nuitka.containers.oset import OrderedSet
-from nuitka.utils.Execution import check_call, check_output, getNullInput
+from nuitka.Tracing import my_print
+from nuitka.utils.Execution import check_call, check_output
 
 
 # Parse output from `git diff-index`
@@ -125,24 +126,41 @@ def updateFileIndex(diff_entry, new_object_hash):
 
 
 def updateWorkingFile(path, orig_object_hash, new_object_hash):
-    patch = check_output(["git", "diff", orig_object_hash, new_object_hash])
+    patch = check_output(
+        ["git", "diff", "--no-color", orig_object_hash, new_object_hash]
+    )
 
-    path = path.replace(os.path.sep, "/")
+    git_path = path.replace(os.path.sep, "/").encode("utf8")
+
+    def updateLine(line):
+        if line.startswith(b"diff --git"):
+            line = b"diff --git a/%s b/%s" % (git_path, git_path)
+        elif line.startswith(b"--- a/"):
+            line = b"--- a/" + git_path
+        elif line.startswith(b"+++ b/"):
+            line = b"+++ b/" + git_path
+
+        return line
 
     # Substitute object hashes in patch header with path to working tree file
-    patch_b = patch.replace(orig_object_hash.encode(), path.encode()).replace(
-        new_object_hash.encode(), path.encode()
-    )
+    patch = b"\n".join(updateLine(line) for line in patch.splitlines()) + b"\n"
 
     apply_patch = subprocess.Popen(
         ["git", "apply", "-"],
-        stdin=getNullInput(),
+        stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
 
-    _output, _err = apply_patch.communicate(input=patch_b)
+    output, err = apply_patch.communicate(input=patch)
+    success = apply_patch.returncode == 0
 
-    # TODO: In case of failure, do we need to abort?
+    if not success:
+        # TODO: In case of failure, do we need to abort, or what do we do.
 
-    return apply_patch.returncode != 0
+        if output:
+            my_print(output, style="yellow")
+        if err:
+            my_print(err, style="yellow")
+
+    return success
