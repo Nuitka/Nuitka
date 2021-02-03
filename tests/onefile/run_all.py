@@ -44,6 +44,7 @@ sys.path.insert(
 # isort:start
 
 from nuitka.tools.testing.Common import (
+    addExtendedExtraOptions,
     checkRequirements,
     compareWithCPython,
     createSearchMode,
@@ -57,6 +58,7 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.utils.FileOperations import areSamePaths
 from nuitka.utils.Timing import TimerReport
+from nuitka.utils.Utils import getOS
 
 
 def displayError(dirname, filename):
@@ -73,6 +75,11 @@ def main():
     python_version = setup(needs_io_encoding=True)
 
     search_mode = createSearchMode()
+
+    if getOS == "Linux":
+        addExtendedExtraOptions(
+            "--linux-onefile-icon=../../doc/Logo/Nuitka-Logo-Symbol.svg"
+        )
 
     for filename in sorted(os.listdir(".")):
         if not filename.endswith(".py"):
