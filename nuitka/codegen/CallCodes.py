@@ -376,17 +376,21 @@ def _getInstanceCallCodePosArgsQuick(
         emit(
             """\
 {
-    PyObject *call_args[] = {%s};
-    %s = CALL_METHOD_WITH_ARGS%d(%s, %s, call_args);
+    PyObject *call_args[] = {%(call_args)s};
+    %(to_name)s = CALL_METHOD_WITH_ARGS%(arg_size)d(
+        %(called_name)s,
+        %(called_attribute_name)s,
+        call_args
+    );
 }
 """
-            % (
-                ", ".join(str(arg_name) for arg_name in arg_names),
-                to_name,
-                arg_size,
-                called_name,
-                called_attribute_name,
-            )
+            % {
+                "call_args": ", ".join(str(arg_name) for arg_name in arg_names),
+                "to_name": to_name,
+                "arg_size": arg_size,
+                "called_name": called_name,
+                "called_attribute_name": called_attribute_name,
+            }
         )
 
     getErrorExitCode(
@@ -466,9 +470,19 @@ def _getInstanceCallCodeFromTuple(
 
     emit(
         """\
-%s = CALL_METHOD_WITH_ARGS%d(%s, %s, &PyTuple_GET_ITEM(%s, 0));
+%(to_name)s = CALL_METHOD_WITH_ARGS%(arg_size)d(
+    %(called_name)s,
+    %(called_attribute_name)s,
+    &PyTuple_GET_ITEM(%(arg_tuple)s, 0)
+);
 """
-        % (to_name, arg_size, called_name, called_attribute_name, arg_tuple)
+        % {
+            "to_name": to_name,
+            "arg_size": arg_size,
+            "called_name": called_name,
+            "called_attribute_name": called_attribute_name,
+            "arg_tuple": arg_tuple,
+        }
     )
 
     getErrorExitCode(
