@@ -239,6 +239,8 @@ def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
         context=context,
     )
 
+    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
+
     res_name = context.getIntResName()
 
     emit("%s = Nuitka_IsInstance(%s, %s);" % (res_name, inst_name, cls_name))
@@ -271,6 +273,8 @@ def generateBuiltinIssubclassCode(to_name, expression, emit, context):
         emit=emit,
         context=context,
     )
+
+    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
 
     res_name = context.getIntResName()
 
