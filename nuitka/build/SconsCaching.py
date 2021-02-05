@@ -186,6 +186,10 @@ def enableClcache(the_compiler, env, source_dir):
     importFromInlineCopy("atomicwrites", must_exist=True)
     importFromInlineCopy("clcache", must_exist=True)
 
+    # Avoid importing this in threads, triggers CPython 3.9 importing bugs at least,
+    # do it now, so it's not a race issue.
+    import concurrent.futures.thread  # pylint: disable=I0021,unused-import,unused-variable
+
     cl_binary = getExecutablePath(the_compiler, env)
 
     # The compiler is passed via environment.
