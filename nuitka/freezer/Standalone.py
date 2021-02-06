@@ -1347,6 +1347,7 @@ def fixupBinaryDLLPathsMacOS(binary_filename, dll_map, original_location):
             (original_path, "@executable_path/" + dist_path)
             for (original_path, dist_path) in dll_map
         ),
+        rpath=None,
     )
 
 

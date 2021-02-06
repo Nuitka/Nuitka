@@ -265,12 +265,17 @@ def getPEFileInformation(filename):
     return extracted
 
 
-def callInstallNameTool(filename, mapping):
+def callInstallNameTool(filename, mapping, rpath):
     """Update the macOS shared library information for a binary or shared library.
+
+    Adds the rpath path name `rpath` in the specified `filename` Mach-O
+    binary or shared library. If the Mach-O binary already contains the new
+    `rpath` path name, it is an error.
 
     Args:
         filename - The file to be modified.
         mapping  - old_path, new_path pairs of values that should be changed
+        rpath    - Set this as an rpath if not None
 
     Returns:
         None
@@ -281,41 +286,22 @@ def callInstallNameTool(filename, mapping):
     command = ["install_name_tool"]
     for old_path, new_path in mapping:
         command += ("-change", old_path, new_path)
+
+    if rpath is not None:
+        command += ("-add_rpath", os.path.join(rpath, "."))
+
     command.append(filename)
 
-    with withMadeWritableFileMode(filename):
-        result = subprocess.call(command, stdout=subprocess.PIPE)
 
-    if result != 0:
-        postprocessing_logger.sysexit(
-            "Error, call to 'install_name_tool' to fix shared library path failed."
-        )
-
-
-def callInstallNameToolAddRPath(filename, rpath):
-    """Adds the rpath path name `rpath` in the specified `filename` Mach-O
-    binary or shared library. If the Mach-O binary already contains the new
-    `rpath` path name, it is an error.
-
-    Args:
-        filename - Mach-O binary or shared library file name.
-        rpath  - rpath path name.
-
-    Returns:
-        None
-
-    Notes:
-        This is obviously macOS specific.
-    """
-    command = ["install_name_tool", "-add_rpath", os.path.join(rpath, "."), filename]
 
     with withMadeWritableFileMode(filename):
         result = subprocess.call(command, stdout=subprocess.PIPE)
 
     if result != 0:
         postprocessing_logger.sysexit(
-            "Error, call to 'install_name_tool' to add rpath failed."
+            "Error, call to 'install_name_tool' to change shared library paths failed."
         )
+
 
 
 def getPyWin32Dir():
