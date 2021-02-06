@@ -292,16 +292,35 @@ def callInstallNameTool(filename, mapping, rpath):
 
     command.append(filename)
 
-
-
     with withMadeWritableFileMode(filename):
-        result = subprocess.call(command, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(
+            command,
+            stdin=getNullInput(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False,
+        )
+
+        _stdout, stderr = proc.communicate()
+        result = proc.wait()
+
+    stderr = b"\n".join(
+        line
+        for line in stderr.splitlines()
+        if line
+        if b"invalidate the code signature" not in line
+    )
 
     if result != 0:
         postprocessing_logger.sysexit(
-            "Error, call to 'install_name_tool' to change shared library paths failed."
+            "Error, call to 'install_name_tool' to change shared library paths failed: %s"
+            % command
         )
-
+    elif stderr:
+        postprocessing_logger.sysexit(
+            "Error, call to 'install_name_tool' gave warnings: %s -> %s."
+            % (command, stderr)
+        )
 
 
 def getPyWin32Dir():
