@@ -160,7 +160,7 @@ version_resources = {}
 
 
 def executePostProcessing():
-    # These is a bunch of stuff to consider, pylint: disable=too-many-branches
+    # These is a bunch of stuff to consider, pylint: disable=too-many-branches,too-many-statements
 
     result_filename = OutputDirectories.getResultFullpath()
 

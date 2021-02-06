@@ -323,6 +323,44 @@ def callInstallNameTool(filename, mapping, rpath):
         )
 
 
+def removeMacOSCodeSignature(filename):
+    """Remove the code signature from a filename.
+
+    Args:
+        filename - The file to be modified.
+
+    Returns:
+        None
+
+    Notes:
+        This is macOS specific.
+    """
+
+    command = ["codesign", "--remove-signature", filename]
+
+    with withMadeWritableFileMode(filename):
+        proc = subprocess.Popen(
+            command,
+            stdin=getNullInput(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False,
+        )
+
+        _stdout, stderr = proc.communicate()
+        result = proc.wait()
+
+    if result != 0:
+        postprocessing_logger.sysexit(
+            "Error, call to 'codesign' to remove signature of Python library failed: %s"
+            % command
+        )
+    elif stderr:
+        postprocessing_logger.sysexit(
+            "Error, call to 'codesign' gave warnings: %s -> %s." % (command, stderr)
+        )
+
+
 def getPyWin32Dir():
     """Find the pywin32 DLL directory
 

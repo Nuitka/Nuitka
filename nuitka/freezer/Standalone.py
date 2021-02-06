@@ -77,6 +77,7 @@ from nuitka.utils.SharedLibraries import (
     getPEFileInformation,
     getPyWin32Dir,
     getWindowsDLLVersion,
+    removeMacOSCodeSignature,
     removeSxsFromDLL,
 )
 from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
@@ -1580,6 +1581,15 @@ different from
 
             for _original_path, dll_filename in dll_map:
                 removeSxsFromDLL(os.path.join(dist_dir, dll_filename))
+    elif Utils.getOS() == "Darwin":
+        # Remove code signature from Python library.
+        candidate = os.path.join(
+            dist_dir,
+            "Python",
+        )
+
+        if os.path.exists(candidate):
+            removeMacOSCodeSignature(candidate)
 
 
 def _handleDataFile(dist_dir, tracer, included_datafile):
