@@ -24,8 +24,7 @@
 #
 # To enable this hook, rename this file to "pre-commit".
 
-if git rev-parse --verify HEAD >/dev/null 2>&1
-then
+if git rev-parse --verify HEAD >/dev/null 2>&1; then
     against=HEAD
 else
     # Initial commit: diff against an empty tree object
@@ -37,13 +36,11 @@ exec 1>&2
 
 files=$(git diff --cached --name-only $against)
 
-if [ -z "$files" ]
-then
+if [ -z "$files" ]; then
     exit 0
 fi
 
 # Autoformat the files.
-if [ "$COMMIT_UNCECKED" != "1" ]
-then
+if [ "$COMMIT_UNCHECKED" != "1" ]; then
     exec ./bin/autoformat-nuitka-source --from-commit
 fi

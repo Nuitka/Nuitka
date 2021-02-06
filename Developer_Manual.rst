@@ -194,6 +194,9 @@ complain unavailability of ``clang-format``, follow it's advice. You may call
 the above tool at all times, without arguments to format call Nuitka source
 code.
 
+Should you encounter problems with applying the changes to the checked out
+file, you can always execute it with ``COMMIT_UNCHECKED=1`` environment set.
+
 Coding Rules Python
 ===================
 
