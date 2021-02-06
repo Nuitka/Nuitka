@@ -28,12 +28,15 @@ it being used.
 
 import os
 import shutil
+import sys
+from collections import namedtuple
 
 from nuitka import Options, OutputDirectories
 from nuitka.Errors import NuitkaPluginError
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.Tracing import plugins_logger
+from nuitka.utils.Execution import check_output
 from nuitka.utils.FileOperations import putTextFileContents, relpath
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -715,6 +718,65 @@ class NuitkaPluginBase(object):
             plugins_logger.warning(
                 "Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message)
             )
+
+    _runtime_information_cache = {}
+
+    def queryRuntimeInformationMultiple(self, info_name, setup_codes, values):
+        if info_name in self._runtime_information_cache:
+            return self._runtime_information_cache[info_name]
+
+        keys = []
+        query_codes = []
+
+        for key, value_expression in values:
+            keys.append(key)
+
+            query_codes.append("print(repr(%s))" % value_expression)
+            query_codes.append('print("-" * 27)')
+
+        if type(setup_codes) is str:
+            setup_codes = [setup_codes]
+
+        cmd = r"""\
+from __future__ import print_function
+
+%(setup_codes)s
+%(query_codes)s
+""" % {
+            "setup_codes": "\n".join(setup_codes),
+            "query_codes": "\n".join(query_codes),
+        }
+
+        feedback = check_output([sys.executable, "-c", cmd])
+
+        if str is not bytes:  # We want to work with strings, that's hopefully OK.
+            feedback = feedback.decode("utf8")
+
+        # Ignore Windows newlines difference.
+        feedback = [line.strip() for line in feedback.splitlines()]
+
+        if feedback.count("-" * 27) != len(keys):
+            self.sysexit(
+                "Error, mismatch in output retrieving %r information." % info_name
+            )
+
+        feedback = [line for line in feedback if line != "-" * 27]
+
+        NamedTupleResult = namedtuple(info_name, keys)
+
+        # We are being lazy here, the code is trusted, pylint: disable=eval-used
+        self._runtime_information_cache[info_name] = NamedTupleResult(
+            *(eval(value) for value in feedback)
+        )
+
+        return self._runtime_information_cache[info_name]
+
+    def queryRuntimeInformationSingle(self, setup_codes, value):
+        return self.queryRuntimeInformationMultiple(
+            info_name="temp_info_for_" + self.plugin_name,
+            setup_codes=setup_codes,
+            values=(("key", value),),
+        ).key
 
     @classmethod
     def warning(cls, message):

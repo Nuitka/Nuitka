@@ -219,6 +219,8 @@ Should matplotlib not be be included with numpy, Default is %default.""",
             There might exist a local version outside 'matplotlib/mpl-data' which
             we then must use instead. Determine its name by aksing matplotlib.
         """
+        # TODO: Replace this with using self.queryRuntimeInformationMultiple to remove
+        # code duplication.
         if self.matplotlib_info is None:
             cmd = r"""\
 from __future__ import print_function
