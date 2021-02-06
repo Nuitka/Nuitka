@@ -54,8 +54,13 @@ def makeExecutableEntryPoint(source_path, dest_path):
     return makeIncludedEntryPoint("executable", source_path, dest_path, None)
 
 
+# TODO: Get rid of makeDllEntryPointOld by doing this uniformly here.
+
+
 def makeDllEntryPoint(source_path, dest_path, package_name):
-    # TODO: Get rid of makeDllEntryPointOld by doing this uniformly here.
+    assert type(dest_path) not in (tuple, list)
+    assert type(source_path) not in (tuple, list)
+
     dest_path = os.path.join(getStandaloneDirectoryPath(), dest_path)
 
     return makeIncludedEntryPoint("dll", source_path, dest_path, package_name)

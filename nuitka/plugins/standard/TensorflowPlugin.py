@@ -29,8 +29,6 @@ class TensorflowPlugin(NuitkaPluginBase):
 
     This plugin copies any files required by tensorflow installations.
 
-    Args:
-        NuitkaPluginBase: plugin template class we are inheriting.
     """
 
     plugin_name = "tensorflow"

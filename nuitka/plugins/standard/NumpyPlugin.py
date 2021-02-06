@@ -106,8 +106,6 @@ class NumpyPlugin(NuitkaPluginBase):
     this plugin copies any additional binary or data files required by many
     installations.
 
-    Args:
-        NuitkaPluginBase: plugin template class we are inheriting.
     """
 
     plugin_name = "numpy"  # Nuitka knows us by this name
