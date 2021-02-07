@@ -160,7 +160,7 @@ version_resources = {}
 
 
 def executePostProcessing():
-    # These is a bunch of stuff to consider, pylint: disable=too-many-branches,too-many-statements
+    # These is a bunch of stuff to consider, pylint: disable=too-many-branches
 
     result_filename = OutputDirectories.getResultFullpath()
 
@@ -264,11 +264,8 @@ def executePostProcessing():
         python_dll_filename = "libpython" + python_abi_version + ".dylib"
         python_lib_path = os.path.join(sys.prefix, "lib")
 
-        # For Anaconda libs the rpath for the Python library needs to be set.
-        if os.path.exists(os.path.join(sys.prefix, "conda-meta")):
-            rpath = python_lib_path
-        else:
-            rpath = None
+        # Note: For CPython and potentially others, the rpath for the Python
+        # library needs to be set.
 
         callInstallNameTool(
             filename=result_filename,
@@ -277,8 +274,12 @@ def executePostProcessing():
                     python_dll_filename,
                     os.path.join(python_lib_path, python_dll_filename),
                 ),
+                (
+                    "@rpath/Python3.framework/Versions/%s/Python3" % python_version_str,
+                    os.path.join(python_lib_path, python_dll_filename),
+                ),
             ),
-            rpath=rpath,
+            rpath=python_lib_path,
         )
 
     # Modules should not be executable, but Scons creates them like it, fix

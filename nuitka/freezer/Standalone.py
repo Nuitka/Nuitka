@@ -76,8 +76,10 @@ from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     getPEFileInformation,
     getPyWin32Dir,
+    getSharedLibraryRPATH,
     getWindowsDLLVersion,
     removeMacOSCodeSignature,
+    removeSharedLibraryRPATH,
     removeSxsFromDLL,
 )
 from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
@@ -1352,67 +1354,6 @@ def fixupBinaryDLLPathsMacOS(binary_filename, dll_map, original_location):
     )
 
 
-def getSharedLibraryRPATH(filename):
-    process = subprocess.Popen(
-        ["readelf", "-d", filename],
-        stdin=getNullInput(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=False,
-    )
-
-    stdout, stderr = process.communicate()
-    retcode = process.poll()
-
-    if retcode != 0:
-        inclusion_logger.sysexit(
-            "Error reading shared library path for %s, tool said %r"
-            % (filename, stderr)
-        )
-
-    for line in stdout.split(b"\n"):
-        if b"RPATH" in line or b"RUNPATH" in line:
-            result = line[line.find(b"[") + 1 : line.rfind(b"]")]
-
-            if str is not bytes:
-                result = result.decode("utf-8")
-
-            return result
-
-    return None
-
-
-def removeSharedLibraryRPATH(filename):
-    rpath = getSharedLibraryRPATH(filename)
-
-    if rpath is not None:
-        if Options.isShowInclusion():
-            inclusion_logger.info(
-                "Removing 'RPATH' setting '%s' from '%s'." % (rpath, filename)
-            )
-
-        if not Utils.isExecutableCommand("chrpath"):
-            inclusion_logger.sysexit(
-                """\
-Error, needs 'chrpath' on your system, due to 'RPATH' settings in used shared
-libraries that need to be removed."""
-            )
-
-        os.chmod(filename, int("644", 8))
-        process = subprocess.Popen(
-            ["chrpath", "-d", filename],
-            stdin=getNullInput(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=False,
-        )
-        process.communicate()
-        retcode = process.poll()
-        os.chmod(filename, int("444", 8))
-
-        assert retcode == 0, filename
-
-
 # These DLLs are run time DLLs from Microsoft, and packages will depend on different
 # ones, but it will be OK to use the latest one.
 ms_runtime_dlls = (
@@ -1565,24 +1506,7 @@ different from
                 original_location=original_path,
             )
 
-    if Utils.getOS() == "Linux":
-        # For Linux, the "rpath" of libraries may be an issue and must be
-        # removed.
-        for standalone_entry_point in standalone_entry_points[1:]:
-            removeSharedLibraryRPATH(standalone_entry_point.dest_path)
-
-        for _original_path, dll_filename in dll_map:
-            removeSharedLibraryRPATH(os.path.join(dist_dir, dll_filename))
-    elif Utils.isWin32Windows():
-        if python_version < 0x300:
-            # For Win32, we might have to remove SXS paths
-            for standalone_entry_point in standalone_entry_points[1:]:
-                removeSxsFromDLL(standalone_entry_point.dest_path)
-
-            for _original_path, dll_filename in dll_map:
-                removeSxsFromDLL(os.path.join(dist_dir, dll_filename))
-    elif Utils.getOS() == "Darwin":
-        # Remove code signature from Python library.
+        # Remove code signature from CPython installed library
         candidate = os.path.join(
             dist_dir,
             "Python",
@@ -1590,6 +1514,30 @@ different from
 
         if os.path.exists(candidate):
             removeMacOSCodeSignature(candidate)
+
+    # Remove rpath settings.
+    if Utils.getOS() in ("Linux", "Darwin"):
+        # For Linux, the "rpath" of libraries may be an issue and must be
+        # removed.
+        if Utils.getOS() == "Darwin":
+            start = 0
+        else:
+            start = 1
+
+        for standalone_entry_point in standalone_entry_points[start:]:
+            removeSharedLibraryRPATH(standalone_entry_point.dest_path)
+
+        for _original_path, dll_filename in dll_map:
+            removeSharedLibraryRPATH(os.path.join(dist_dir, dll_filename))
+
+    if Utils.isWin32Windows():
+        if python_version < 0x300:
+            # For Win32, we might have to remove SXS paths
+            for standalone_entry_point in standalone_entry_points[1:]:
+                removeSxsFromDLL(standalone_entry_point.dest_path)
+
+            for _original_path, dll_filename in dll_map:
+                removeSxsFromDLL(os.path.join(dist_dir, dll_filename))
 
 
 def _handleDataFile(dist_dir, tracer, included_datafile):

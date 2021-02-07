@@ -42,6 +42,7 @@ from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import (
     check_output,
     getNullInput,
+    isExecutableCommand,
     withEnvironmentVarOverriden,
 )
 from nuitka.utils.FileOperations import (
@@ -469,22 +470,6 @@ def hasDebugPython():
         return True
 
     # Otherwise no.
-    return False
-
-
-def isExecutableCommand(command):
-    path = os.environ["PATH"]
-
-    suffixes = (".exe",) if os.name == "nt" else ("",)
-
-    for part in path.split(os.pathsep):
-        if not part:
-            continue
-
-        for suffix in suffixes:
-            if os.path.isfile(os.path.join(part, command + suffix)):
-                return True
-
     return False
 
 
