@@ -35,6 +35,7 @@ import sys
 
 from nuitka import Options, SourceCodeReferences
 from nuitka.__past__ import iterItems
+from nuitka.Bytecodes import compileSourceToBytecode
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing import ImportCache
@@ -176,17 +177,18 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
         )
 
     is_package = os.path.basename(filename) == "__init__.py"
+
+    # Plugins can modify source code:
     source_code = Plugins.onFrozenModuleSourceCode(
         module_name=module_name, is_package=is_package, source_code=source_code
     )
 
-    bytecode = compile(
-        source_code,
-        module_name.replace(".", os.path.sep) + ".py",
-        "exec",
-        dont_inherit=True,
+    bytecode = compileSourceToBytecode(
+        source_code=source_code,
+        filename=module_name.replace(".", os.path.sep) + ".py",
     )
 
+    # Plugins can modify bytecode code:
     bytecode = Plugins.onFrozenModuleBytecode(
         module_name=module_name, is_package=is_package, bytecode=bytecode
     )
