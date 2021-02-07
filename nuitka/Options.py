@@ -773,7 +773,7 @@ def getPythonFlags():
                     _python_flags.add("no_docstrings")
                     _python_flags.add("no_asserts")
                 else:
-                    Tracing.general.sysexit("Unsupported python flag %r.", part)
+                    Tracing.general.sysexit("Unsupported python flag %r." % part)
 
     return _python_flags
 
