@@ -89,16 +89,16 @@ class TkinterPlugin(NuitkaPluginBase):
             Code to insert and None (tuple)
         """
         # only insert code for tkinter related modules
-        if not _isTkInterModule(module):
-            return None, None
-
-        # The following code will be executed before importing the module.
-        # If required we set the respective environment values.
-        code = """import os
+        if _isTkInterModule(module):
+            # The following code will be executed before importing the module.
+            # If required we set the respective environment values.
+            code = r"""
+import os
 if not os.environ.get("TCL_LIBRARY"):
     os.environ["TCL_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tcl")
     os.environ["TK_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tk")"""
-        return code, "Need to make sure we set environment variables for TCL."
+
+            return code, "Need to make sure we set environment variables for TCL."
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):

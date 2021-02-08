@@ -81,8 +81,6 @@ os.environ["PYGLFW_LIBRARY"] = os.path.join(__nuitka_binary_dir, "glfw", "librar
                 code,
                 "Setting 'PYGLFW_LIBRARY' environment variable for glfw to find platform DLL.",
             )
-        else:
-            return None, None
 
 
 class GlfwPluginDetector(NuitkaPluginBase):

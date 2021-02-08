@@ -56,5 +56,3 @@ if not version:
                 """\
 Monkey patching "pbr" version number.""",
             )
-
-        return None, None

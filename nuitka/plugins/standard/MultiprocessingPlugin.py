@@ -73,8 +73,6 @@ else:
 Monkey patching "multiprocessing" load environment.""",
             )
 
-        return None, None
-
     @staticmethod
     def createPostModuleLoadCode(module):
         full_name = module.getFullName()
@@ -106,8 +104,6 @@ if str is bytes:
                 """\
 Monkey patching "multiprocessing" for compiled methods.""",
             )
-
-        return None, None
 
     def onModuleInitialSet(self):
         from nuitka.importing.ImportCache import addImportedModule

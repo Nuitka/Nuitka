@@ -58,5 +58,3 @@ except AttributeError:
                 """\
 Monkey patching "enum" for compiled '__new__' methods.""",
             )
-
-        return None, None

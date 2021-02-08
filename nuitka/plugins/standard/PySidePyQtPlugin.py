@@ -87,10 +87,10 @@ not exist, a list of all available will be given.""",
             Code to insert and descriptive text (tuple), or (None, None).
         """
         if not isWin32Windows():  # we are only relevant on Windows
-            return None, None
+            return None
 
         if module.getFullName() not in ("PyQt4", "PyQt5"):
-            return None, None  # not for us
+            return None
 
         code = """import os
 path = os.environ.get("PATH", "")
@@ -459,8 +459,6 @@ QCoreApplication.setLibraryPaths(
 Setting Qt library path to distribution folder. Need to avoid loading target
 system Qt plug-ins, which may be from another Qt version.""",
             )
-
-        return None, None
 
 
 class NuitkaPluginDetectorPyQtPySidePlugins(NuitkaPluginBase):
