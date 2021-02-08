@@ -95,12 +95,12 @@ TraceCollections.signalChange = signalChange
 
 
 def optimizeCompiledPythonModule(module):
-    if _progress:
-        progress_logger.info(
-            "Doing module local optimizations for '{module_name}'.".format(
-                module_name=module.getFullName()
-            )
-        )
+    optimization_logger.info_fileoutput(
+        "Doing module local optimizations for '{module_name}'.".format(
+            module_name=module.getFullName()
+        ),
+        other_logger=progress_logger,
+    )
 
     touched = False
 
@@ -129,18 +129,19 @@ def optimizeCompiledPythonModule(module):
 
             break
         else:
-            if _progress:
-                progress_logger.info("Finished with the module.")
+            optimization_logger.info_fileoutput(
+                "Finished with the module.", other_logger=progress_logger
+            )
             break
 
-        if _progress:
-            if "new_code" in tag_set:
-                tag_set.remove("new_code")
+        if "new_code" in tag_set:
+            tag_set.remove("new_code")
 
-            progress_logger.info(
-                "Not finished with the module due to following change kinds: %s"
-                % ",".join(sorted(tag_set))
-            )
+        optimization_logger.info_fileoutput(
+            "Not finished with the module due to following change kinds: %s"
+            % ",".join(sorted(tag_set)),
+            other_logger=progress_logger,
+        )
 
         # Otherwise we did stuff, so note that for return value.
         touched = True
@@ -160,12 +161,11 @@ def optimizeCompiledPythonModule(module):
 
 def optimizeUncompiledPythonModule(module):
     full_name = module.getFullName()
-    if _progress:
-        progress_logger.info(
-            "Doing module dependency considerations for '{module_name}':".format(
-                module_name=full_name
-            )
+    progress_logger.info(
+        "Doing module dependency considerations for '{module_name}':".format(
+            module_name=full_name
         )
+    )
 
     for used_module_name, used_module_path in module.getUsedModules():
         used_module = ImportCache.getImportedModuleByNameAndPath(
@@ -212,8 +212,9 @@ def _restartProgress():
 
     pass_count += 1
 
-    if _progress:
-        progress_logger.info("PASS %d:" % pass_count)
+    optimization_logger.info_fileoutput(
+        "PASS %d:" % pass_count, other_logger=progress_logger
+    )
 
     setupProgressBar(
         stage="PASS %d" % pass_count,
@@ -224,14 +225,15 @@ def _restartProgress():
 
 
 def _traceProgress(current_module):
-    if _progress:
-        output = """\
+    optimization_logger.info_fileoutput(
+        """\
 Optimizing module '{module_name}', {remaining:d} more modules to go \
 after that.""".format(
             module_name=current_module.getFullName(),
             remaining=ModuleRegistry.getRemainingModulesCount(),
-        )
-        progress_logger.info(output)
+        ),
+        other_logger=progress_logger,
+    )
 
     # Progress bar and spammy tracing don't go along.
     if not _is_verbose:

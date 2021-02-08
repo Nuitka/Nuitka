@@ -64,6 +64,9 @@ def parseArgs():
 
         options.show_inclusion = True
 
+    if options.show_progress:
+        Tracing.progress_logger.is_quiet = False
+
     # Onefile implies standalone build.
     if options.is_onefile:
         options.is_standalone = True

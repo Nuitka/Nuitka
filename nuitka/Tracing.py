@@ -167,10 +167,10 @@ def my_print(*args, **kwargs):
 
 
 class OurLogger(object):
-    def __init__(self, name, base_style=None):
+    def __init__(self, name, quiet=False, base_style=None):
         self.name = name
         self.base_style = base_style
-        self.is_quiet = False
+        self.is_quiet = quiet
 
     def my_print(self, message, **kwargs):
         # For overload, pylint: disable=no-self-use
@@ -209,8 +209,8 @@ class OurLogger(object):
 
 
 class FileLogger(OurLogger):
-    def __init__(self, name, base_style=None, file_handle=sys.stdout):
-        OurLogger.__init__(self, name=name, base_style=base_style)
+    def __init__(self, name, quiet=False, base_style=None, file_handle=sys.stdout):
+        OurLogger.__init__(self, name=name, quiet=quiet, base_style=base_style)
 
         self.file_handle = file_handle
 
@@ -237,12 +237,18 @@ class FileLogger(OurLogger):
             style = style or self.base_style
             self.my_print(message, style=style)
 
+    def info_fileoutput(self, message, other_logger, style=None):
+        if self.file_handle is not sys.stdout:
+            self.info(message, style=style)
+
+        other_logger.info(message, style=style)
+
 
 general = OurLogger("Nuitka")
 codegen_missing = OurLogger("Nuitka-codegen-missing")
 plugins_logger = OurLogger("Nuitka-Plugins")
 recursion_logger = OurLogger("Nuitka-Recursion")
-progress_logger = OurLogger("Nuitka-Progress")
+progress_logger = OurLogger("Nuitka-Progress", quiet=True)
 memory_logger = OurLogger("Nuitka-Memory")
 dependencies_logger = OurLogger("Nuitka-Dependencies")
 optimization_logger = FileLogger("Nuitka-Optimization")
