@@ -17,6 +17,8 @@
 #
 from __future__ import print_function
 
+import sys
+
 # Python2 will fallback to this variable, which Python3 will ignore.
 __class__ = "Using module level __class__ variable, would be wrong for Python3"
 
@@ -142,11 +144,11 @@ def makeSuperCall(arg1, arg2):
         print("Ok.")
 
 
-# Due to inconsistent backporting to Python2.6 and Python2.7 on various OSes,
+# Due to inconsistent backporting to Python2.6 and Python2.7, 3.5 on various OSes,
 # this one gives varying results, ignore that
-
-if str is not bytes:
+if sys.version_info >= (3, 6):
     makeSuperCall(None, None)
     makeSuperCall(1, None)
+
 makeSuperCall(type, None)
 makeSuperCall(type, 1)
