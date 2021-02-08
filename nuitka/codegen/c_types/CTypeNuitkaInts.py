@@ -119,7 +119,7 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
             % value_name
         )
 
-        # TODO: Have a slave C type that does it.
+        # TODO: Have a derived C type that does it.
 
         if needs_check:
             template = template_release_object_unclear

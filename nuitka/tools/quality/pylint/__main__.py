@@ -122,13 +122,15 @@ Insist on PyLint to be installed. Default is %default.""",
 
     print("Working on:", positional_args)
 
-    blacklist = []
+    ignore_list = []
 
     # Avoid checking the Python2 runner along with the one for Python3, it has name collisions.
     if python_version >= 0x300:
-        blacklist.append("nuitka")
+        ignore_list.append("nuitka")
 
-    filenames = list(scanTargets(positional_args, (".py",), blacklist))
+    filenames = list(
+        scanTargets(positional_args, suffixes=(".py",), ignore_list=ignore_list)
+    )
     PyLint.executePyLint(
         filenames=filenames,
         show_todos=options.todos,

@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Whitelist modules that are not found, but probably that's acceptable.
+""" Ignore listing of modules that are not found, but probably that's acceptable.
 
 """
 
@@ -24,7 +24,7 @@ import sys
 from nuitka.Errors import NuitkaOptimizationError
 
 
-def getModuleWhiteList():
+def getModuleIgnoreList():
     return (
         "mac",
         "nt",
@@ -434,13 +434,13 @@ areallylongpackageandmodulenametotestreprtruncation""",
     )
 
 
-def isWhiteListedNotExistingModule(module_name):
+def isIgnoreListedNotExistingModule(module_name):
     if module_name in sys.builtin_module_names:
         raise NuitkaOptimizationError(
             """
-Your CPython version has a built-in module '%s', that is not whitelisted
+Your CPython version has a built-in module '%s', that is not ignore listed
 please report this as a bug."""
             % module_name,
         )
 
-    return module_name.hasOneOfNamespaces(getModuleWhiteList())
+    return module_name.hasOneOfNamespaces(getModuleIgnoreList())

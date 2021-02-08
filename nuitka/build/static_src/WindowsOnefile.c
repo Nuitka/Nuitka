@@ -138,7 +138,7 @@ static void cleanupChildProcess() {
         BOOL res = GenerateConsoleCtrlEvent(CTRL_C_EVENT, GetProcessId(handle_process));
 
         if (res == false) {
-            printError("Failed to send CTRL-C to slave process.");
+            printError("Failed to send CTRL-C to child process.");
             // No error exit is done, we still want to cleanup when it does exit
         }
 

@@ -18,9 +18,9 @@
 """ Setup file for Nuitka.
 
 This applies a few tricks. First, the Nuitka version is read from
-the source code. Second, the packages are scanned from the filesystem
-with a black list. And third, the byte code compilation is avoided
-for inline copies of scons with mismatching Python major versions.
+the source code. Second, the packages are scanned from the filesystem,
+and third, the byte code compilation is avoided for inline copies of
+scons with mismatching Python major versions.
 
 """
 import os

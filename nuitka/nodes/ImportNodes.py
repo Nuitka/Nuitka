@@ -33,13 +33,13 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     unicode,
 )
 from nuitka.codegen.Reports import onMissingTrust
+from nuitka.importing.IgnoreListing import getModuleIgnoreList
 from nuitka.importing.Importing import (
     findModule,
     getModuleNameAndKindFromFilename,
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.importing.Whitelisting import getModuleWhiteList
 from nuitka.ModuleRegistry import getUncompiledModule
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.Tracing import inclusion_logger, unusual_logger
@@ -360,7 +360,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
             elif decision is None and module_kind == "py":
                 if (
                     module_filename not in self._warned_about
-                    and module_fullpath not in getModuleWhiteList()
+                    and module_fullpath not in getModuleIgnoreList()
                 ):
                     self._warned_about.add(module_filename)
 

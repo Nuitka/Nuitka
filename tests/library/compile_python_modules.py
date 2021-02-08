@@ -66,7 +66,7 @@ tmp_dir = tempfile.gettempdir()
 if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
     tmp_dir = "/var/tmp"
 
-blacklist = (
+ignore_list = (
     "__phello__.foo.py",  # Triggers error for "." in module name
     "idnadata",  # Avoid too complex code for main program.
     "joined_strings.py",
@@ -88,7 +88,7 @@ nosyntax_errors = (
 def decide(_root, filename):
     return (
         filename.endswith(".py")
-        and filename not in blacklist
+        and filename not in ignore_list
         and "(" not in filename
         and filename.count(".") == 1
     )

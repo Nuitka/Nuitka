@@ -372,19 +372,19 @@ def _detectImports(command, user_provided, technical):
     return result
 
 
-# Some modules we want to blacklist.
-ignore_modules = ["__main__.py", "__init__.py", "antigravity.py"]
+# Some modules we want to exclude.
+_excluded_stdlib_modules = ["__main__.py", "__init__.py", "antigravity.py"]
 
 if os.name != "nt":
     # On posix systems, and posix Python veriants on Windows, this won't
     # work.
-    ignore_modules.append("wintypes.py")
-    ignore_modules.append("cp65001.py")
+    _excluded_stdlib_modules.append("wintypes.py")
+    _excluded_stdlib_modules.append("cp65001.py")
 
 
 def scanStandardLibraryPath(stdlib_dir):
-    # There is a lot of black-listing here, done in branches, so there
-    # is many of them, but that's acceptable, pylint: disable=too-many-branches,too-many-statements
+    # There is a lot of filtering here, done in branches, so there # is many of
+    # them, but that's acceptable, pylint: disable=too-many-branches,too-many-statements
 
     for root, dirs, filenames in os.walk(stdlib_dir):
         import_path = root[len(stdlib_dir) :].strip("/\\")
@@ -457,7 +457,7 @@ def scanStandardLibraryPath(stdlib_dir):
                 filenames.remove("expatreader.py")
 
         for filename in filenames:
-            if filename.endswith(".py") and filename not in ignore_modules:
+            if filename.endswith(".py") and filename not in _excluded_stdlib_modules:
                 module_name = filename[:-3]
                 if import_path == "":
                     yield module_name

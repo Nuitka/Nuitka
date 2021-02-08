@@ -128,7 +128,7 @@ Monkey patching "multiprocessing" for compiled methods.""",
 
         mode = Plugins.decideCompilation(module_name, source_ref)
 
-        slave_main_module = CompiledPythonModule(
+        multiprocessing_main_module = CompiledPythonModule(
             module_name=module_name,
             is_top=False,
             mode=mode,
@@ -152,15 +152,15 @@ __import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
 __import__("multiprocessing.forking").forking.freeze_support()"""
 
         createModuleTree(
-            module=slave_main_module,
+            module=multiprocessing_main_module,
             source_ref=root_module.getSourceReference(),
             source_code=source_code,
             is_main=False,
         )
 
-        addImportedModule(imported_module=slave_main_module)
+        addImportedModule(imported_module=multiprocessing_main_module)
 
-        yield slave_main_module
+        yield multiprocessing_main_module
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         # Enforce recursion in to multiprocessing for accelerated mode, which

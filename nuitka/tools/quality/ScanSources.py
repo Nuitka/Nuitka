@@ -23,21 +23,21 @@ import os
 
 from nuitka.utils.Shebang import getShebangFromFile
 
-ignore_list = ("inline_copy", "tblib", "__pycache__")
+_default_ignore_list = ("inline_copy", "tblib", "__pycache__")
 
 
-def addFromDirectory(path, suffixes, blacklist):
+def _addFromDirectory(path, suffixes, ignore_list):
     for dirpath, dirnames, filenames in os.walk(path):
         dirnames.sort()
 
-        for entry in ignore_list:
+        for entry in _default_ignore_list:
             if entry in dirnames:
                 dirnames.remove(entry)
 
         filenames.sort()
 
         for filename in filenames:
-            if filename in blacklist:
+            if filename in ignore_list:
                 continue
 
             fullpath = os.path.join(dirpath, filename)
@@ -66,12 +66,12 @@ def addFromDirectory(path, suffixes, blacklist):
             yield fullpath
 
 
-def scanTargets(positional_args, suffixes, blacklist=()):
+def scanTargets(positional_args, suffixes, ignore_list=()):
     for positional_arg in positional_args:
         positional_arg = os.path.normpath(positional_arg)
 
         if os.path.isdir(positional_arg):
-            for value in addFromDirectory(positional_arg, suffixes, blacklist):
+            for value in _addFromDirectory(positional_arg, suffixes, ignore_list):
                 yield value
         else:
             yield positional_arg

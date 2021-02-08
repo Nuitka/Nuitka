@@ -51,7 +51,7 @@ def main():
 
     titles = osc_reader.next()[1:]
 
-    # Nuitka (follow git master branch)
+    # Nuitka (follow git main branch)
     row1 = osc_reader.next()
     # Nuitka-Unstable (follow git develop branch)
     row2 = osc_reader.next()

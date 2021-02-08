@@ -1413,7 +1413,7 @@ def check():
 
 check()
 
-_builtin_white_list = (
+_builtin_ignore_list = (
     # Not supporting 'print', because it could be replaced, and is not
     # worth the effort yet.
     "print",
@@ -1510,9 +1510,9 @@ def computeBuiltinCall(builtin_name, call_node):
 
         return new_node, tags, message
     else:
-        if False and builtin_name not in _builtin_white_list:
+        if False and builtin_name not in _builtin_ignore_list:
             optimization_logger.warning(
-                "Not handling built-in '%s', consider support." % builtin_name
+                "Not handling built-in %r, consider support." % builtin_name
             )
 
         return call_node, None, None

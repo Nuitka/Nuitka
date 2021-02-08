@@ -110,7 +110,7 @@ def createEnvironment(mingw_mode, msvc_version, target_arch):
         tools = ["mingw"]
 
         # This code would be running anyway, make it do not thing by monkey patching.
-        import SCons.Tool.MSCommon.vc  # pylint: disable=import-error
+        import SCons.Tool.MSCommon.vc  # pylint: disable=I0021,import-error
 
         SCons.Tool.MSCommon.vc.msvc_setup_env = lambda *args: None
     else:

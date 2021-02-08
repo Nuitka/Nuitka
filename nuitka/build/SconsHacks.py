@@ -17,7 +17,7 @@
 #
 """ Hacks for scons that we apply.
 
-We blacklist some tools from the standard scan, there is e.g. no need to ask
+We block some tools from the standard scan, there is e.g. no need to ask
 what fortran version we have installed to compile with Nuitka.
 
 Also we hack the gcc version detection to fix some bugs in it, and to avoid
@@ -42,7 +42,7 @@ from .SconsUtils import decodeData, getExecutablePath, isGccName
 v_cache = {}
 
 # Prevent these programs from being found, avoiding the burden of tool init.
-blacklisted_tools = (
+_blocked_tools = (
     # TODO: Where the fallback is needed, g++ needs to scanned or else it
     # cannot be used.
     #    "g++",
@@ -159,8 +159,8 @@ def myDetectVersion(env, cc):
 def myDetect(self, progs):
     # Don't consider Fortran, tar, D, c++, we don't need it. We do manual
     # fallback
-    for blacklisted_tool in blacklisted_tools:
-        if blacklisted_tool in progs:
+    for blocked_tool in _blocked_tools:
+        if blocked_tool in progs:
             return None
 
     return orig_detect(self, progs)
