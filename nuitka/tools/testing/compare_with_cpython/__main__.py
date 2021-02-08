@@ -158,13 +158,18 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update, send_kill):
         )
 
         if os.path.exists(cache_filename) and not force_update:
-            with open(cache_filename, "rb") as cache_file:
-                (
-                    cpython_time,
-                    stdout_cpython,
-                    stderr_cpython,
-                    exit_cpython,
-                ) = pickle.load(cache_file)
+            try:
+                with open(cache_filename, "rb") as cache_file:
+                    (
+                        cpython_time,
+                        stdout_cpython,
+                        stderr_cpython,
+                        exit_cpython,
+                    ) = pickle.load(cache_file)
+            except (IOError, EOFError):
+                # Broken cache content.
+                pass
+            else:
                 cached = True
 
     if not cached:
