@@ -144,6 +144,15 @@ sane default used inside the dist folder."""
             Tracing.general.sysexit("Error, can only use one icon on Linux.")
 
     for icon_path in getIconPaths():
+        if "#" in icon_path and isWin32Windows():
+            icon_path, icon_index = icon_path.rsplit("#", 1)
+
+            if not icon_index.isdigit() or int(icon_index) < 0:
+                Tracing.general.sysexit(
+                    "Error, icon number in %r not valid."
+                    % (icon_path + "#" + icon_index)
+                )
+
         if not os.path.exists(icon_path):
             Tracing.general.sysexit("Error, icon path %r does not exist." % icon_path)
 
