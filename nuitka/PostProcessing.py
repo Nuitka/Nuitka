@@ -82,7 +82,7 @@ class IconGroupDirectoryEntry(ctypes.Structure):
         ("planes", ctypes.c_short),
         ("bit_count", ctypes.c_short),
         ("image_size", ctypes.c_int),
-        ("id", ctypes.c_int),
+        ("id", ctypes.c_short),
     )
 
 
