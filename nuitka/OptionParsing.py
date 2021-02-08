@@ -781,7 +781,11 @@ windows_group.add_option(
     dest="icon_path",
     metavar="ICON_PATH",
     default=[],
-    help="Add executable icon. Can be given multiple times for different resolutions.",
+    help="""\
+Add executable icon. Can be given multiple times for different resolutions
+or files with multiple icons inside. In the later case, you may also suffix
+with #<n> where n is an integer index starting from 1, specifying a specific
+icon to be included, and all others to be ignored.""",
 )
 
 windows_group.add_option(
