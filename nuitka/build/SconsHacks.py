@@ -139,21 +139,17 @@ def myDetectVersion(env, cc):
     if "++" in os.path.basename(cc):
         return None
 
-    clvar = list(SCons.Util.CLVar(cc))
-
     # Make path absolute, to improve cache hit rate.
-    command_path = getExecutablePath(clvar[0], env)
-    if command_path is not None:
-        clvar[0] = command_path
+    cc = getExecutablePath(cc, env)
+    if cc is None:
+        return None
 
-    clvar = tuple(clvar)
+    if cc not in v_cache:
+        v_cache[cc] = _myDetectVersion(env, (cc,))
 
-    if clvar not in v_cache:
-        v_cache[clvar] = _myDetectVersion(env, clvar)
+        scons_details_logger.info("CC %r version check gives %r" % (cc, v_cache[cc]))
 
-        scons_details_logger.info("CC %r version check gives %r" % (cc, v_cache[clvar]))
-
-    return v_cache[clvar]
+    return v_cache[cc]
 
 
 def myDetect(self, progs):
