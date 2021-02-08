@@ -798,9 +798,14 @@ static void loadTriggeredModule(char const *name, char const *trigger_name) {
         IMPORT_EMBEDDED_MODULE(trigger_module_name);
 
         if (unlikely(ERROR_OCCURRED())) {
-            PyObject *trigger_module_name_str = Nuitka_String_FromString(trigger_module_name);
-            PyErr_WriteUnraisable(trigger_module_name_str);
-            Py_DECREF(trigger_module_name_str);
+            if ((entry->flags & NUITKA_ABORT_MODULE_FLAG) != 0) {
+                printf("Critical error loading %s.\n", trigger_module_name);
+                abort();
+            } else {
+                PyObject *trigger_module_name_str = Nuitka_String_FromString(trigger_module_name);
+                PyErr_WriteUnraisable(trigger_module_name_str);
+                Py_DECREF(trigger_module_name_str);
+            }
         }
     }
 }
