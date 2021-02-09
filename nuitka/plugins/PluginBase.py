@@ -432,11 +432,11 @@ class NuitkaPluginBase(object):
         post_desc = self.createPostModuleLoadCode(module)
 
         if post_desc:
-            if len(preload_desc) == 2:
-                post_code, reason = preload_desc
+            if len(post_desc) == 2:
+                post_code, reason = post_desc
                 flags = ()
             else:
-                post_code, reason, flags = preload_desc
+                post_code, reason, flags = post_desc
 
             if post_code:
                 # Note: We could find a way to handle this if needed.
