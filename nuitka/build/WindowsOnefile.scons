@@ -44,8 +44,6 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 
 from SCons.Script import (  # pylint: disable=import-error
     ARGUMENTS,
-    CacheDir,
-    Decider,
     Environment,
     GetOption,
 )
@@ -61,6 +59,7 @@ from nuitka.utils.WindowsResources import (
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import checkWindowsCompilerFound, enableC11Settings
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
+from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
 from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
 from .SconsUtils import (
     addClangClPathFromMSVC,
@@ -112,9 +111,6 @@ module_suffix = getArgumentDefaulted("module_suffix", None)
 
 # Full names shall be used, no remapping for cacheable filenames.
 full_names = getArgumentBool("full_names", False)
-
-# The directory to use for cache directory.
-cache_mode = getArgumentBool("cache_mode", False)
 
 # Module mode: Create a Python extension module, create an executable otherwise.
 module_mode = getArgumentBool("module_mode", False)
@@ -179,6 +175,9 @@ link_libraries = getArgumentList("link_libraries", "")
 compiler_version_mode = getArgumentBool("compiler_version", False)
 
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
+
+if getArgumentBool("progress_bar", True):
+    enableSconsProgressBar()
 
 
 def printCompilerVersionOutput(*args):
@@ -257,7 +256,6 @@ def getCompilerTools():
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
 env = createEnvironment(
-    tools=getCompilerTools(),
     mingw_mode=mingw_mode,
     msvc_version=msvc_version,
     target_arch=target_arch,
@@ -290,7 +288,10 @@ elif clang_mode:
 # On Windows, in case MSVC was not found and not previously forced, use the
 # winlibs MinGW64 as a download, and use it as a fallback.
 env = checkWindowsCompilerFound(
-    env=env, target_arch=target_arch, assume_yes_for_downloads=assume_yes_for_downloads
+    env=env,
+    target_arch=target_arch,
+    msvc_version=msvc_version,
+    assume_yes_for_downloads=assume_yes_for_downloads,
 )
 
 the_compiler = env["CC"] or env["CXX"]
@@ -487,9 +488,6 @@ if mingw_mode:
     # Windows XP
     env.Append(CPPDEFINES=["_WIN32_WINNT=0x0501"])
 
-# At least older MinGW64 has issues with this, so disable it.
-if mingw_mode and gcc_version < (6,) and not clang_mode:
-    env.Append(LINKFLAGS=["-Wl,--no-gc-sections"])
 
 if debug_mode:
     if gcc_mode:
@@ -743,22 +741,20 @@ changeKeyboardInteruptToErrorExit()
 
 # Check if ccache is installed, and complain if it is not.
 if gcc_mode:
-    if enableCcache(
+    enableCcache(
         the_compiler=the_compiler,
         env=env,
         source_dir=source_dir,
         python_prefix=python_prefix,
         assume_yes_for_downloads=assume_yes_for_downloads,
-    ):
-        cache_mode = False
+    )
 
 if msvc_mode:
-    if enableClcache(
+    enableClcache(
         the_compiler=the_compiler,
         env=env,
         source_dir=source_dir,
-    ):
-        cache_mode = False
+    )
 
 onefile_definitions = {}
 
@@ -773,18 +769,6 @@ else:
 
 
 createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
-
-# Caching bv scons if necessary, i.e. no ccache available, when done, by the fastest
-# possible algorithm and right inside the build directory. Makes no sense of course,
-# if that is removed later on by Nuitka, so in that case, this is passed as false,
-# to begin with.
-if cache_mode:
-    if show_scons_mode:
-        my_print("Scons: Using scons cache inside build directory.")
-
-    CacheDir(os.path.join(source_dir, "cache-" + target_arch))
-    Decider("MD5-timestamp")
-
 
 writeSconsReport(
     source_dir=source_dir,
@@ -809,5 +793,7 @@ def copyResources(target, source, env):
 
 
 env.AddPostAction(target, copyResources)
+
+setSconsProgressBarTotal(len(source_files))
 
 env.Default(target)

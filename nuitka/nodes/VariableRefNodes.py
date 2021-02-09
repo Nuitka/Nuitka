@@ -543,9 +543,8 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
         trace_collection.onControlFlowEscape(self)
 
         if (
-            not Variables.complete
-            and self.variable.getName() in _hard_names
-            and self.variable.isModuleVariable()
+            self.variable.getName() in _hard_names
+            and self.variable.isIncompleteModuleVariable()
         ):
             # Just inform the collection that all escaped.
             trace_collection.onLocalsUsage(locals_scope=self.getFunctionsLocalsScope())

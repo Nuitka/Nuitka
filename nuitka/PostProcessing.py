@@ -37,10 +37,7 @@ from nuitka.utils.FileOperations import (
     getFileContents,
     removeFileExecutablePermission,
 )
-from nuitka.utils.SharedLibraries import (
-    callInstallNameTool,
-    callInstallNameToolAddRPath,
-)
+from nuitka.utils.SharedLibraries import callInstallNameTool
 from nuitka.utils.Utils import getOS, isWin32Windows
 from nuitka.utils.WindowsResources import (
     RT_GROUP_ICON,
@@ -85,7 +82,7 @@ class IconGroupDirectoryEntry(ctypes.Structure):
         ("planes", ctypes.c_short),
         ("bit_count", ctypes.c_short),
         ("image_size", ctypes.c_int),
-        ("id", ctypes.c_int),
+        ("id", ctypes.c_short),
     )
 
 
@@ -105,14 +102,34 @@ def addWindowsIconFromIcons():
 
     result_filename = OutputDirectories.getResultFullpath()
 
-    for icon_path in Options.getIconPaths():
+    for icon_spec in Options.getIconPaths():
+        if "#" in icon_spec:
+            icon_path, icon_index = icon_spec.rsplit("#", 1)
+            icon_index = int(icon_index)
+        else:
+            icon_path = icon_spec
+            icon_index = None
+
         with open(icon_path, "rb") as icon_file:
             # Read header and icon entries.
             header = readFromFile(icon_file, IconDirectoryHeader)
             icons = [
                 readFromFile(icon_file, IconDirectoryEntry)
-                for icon in range(header.count)
+                for _i in range(header.count)
             ]
+
+            if icon_index is not None:
+                if icon_index > len(icons):
+                    postprocessing_logger.sysexit(
+                        "Error, referenced icon index %d in file %r with only %d icons."
+                        % (icon_index, icon_path, len(icons))
+                    )
+
+                icons[:] = icons[icon_index : icon_index + 1]
+
+            postprocessing_logger.info(
+                "Adding %d icon(s) from icon file %r." % (len(icons), icon_spec)
+            )
 
             # Image data are to be scanned from places specified icon entries
             for icon in icons:
@@ -267,8 +284,8 @@ def executePostProcessing():
         python_dll_filename = "libpython" + python_abi_version + ".dylib"
         python_lib_path = os.path.join(sys.prefix, "lib")
 
-        if os.path.exists(os.path.join(sys.prefix, "conda-meta")):
-            callInstallNameToolAddRPath(result_filename, python_lib_path)
+        # Note: For CPython and potentially others, the rpath for the Python
+        # library needs to be set.
 
         callInstallNameTool(
             filename=result_filename,
@@ -277,7 +294,12 @@ def executePostProcessing():
                     python_dll_filename,
                     os.path.join(python_lib_path, python_dll_filename),
                 ),
+                (
+                    "@rpath/Python3.framework/Versions/%s/Python3" % python_version_str,
+                    os.path.join(python_lib_path, python_dll_filename),
+                ),
             ),
+            rpath=python_lib_path,
         )
 
     # Modules should not be executable, but Scons creates them like it, fix

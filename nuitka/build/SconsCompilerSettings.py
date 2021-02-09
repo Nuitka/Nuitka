@@ -33,7 +33,9 @@ from .SconsUtils import (
     decideArchMismatch,
     getExecutablePath,
     getLinkerArch,
+    getMsvcVersionString,
     isGccName,
+    raiseNoCompilerFoundErrorExit,
 )
 
 
@@ -98,7 +100,7 @@ def getDownloadedGccPath(target_arch, assume_yes_for_downloads):
     return gcc_binary
 
 
-def checkWindowsCompilerFound(env, target_arch, assume_yes_for_downloads):
+def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_downloads):
     """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
 
     if os.name == "nt":
@@ -119,9 +121,6 @@ def checkWindowsCompilerFound(env, target_arch, assume_yes_for_downloads):
             )
 
             if decision:
-                # This will trigger using it to use our own gcc in branch below.
-                compiler_path = None
-
                 scons_logger.info(
                     "Mismatch between Python binary (%r -> %r) and C compiler (%r -> %r) arches, ignored!"
                     % (
@@ -132,6 +131,22 @@ def checkWindowsCompilerFound(env, target_arch, assume_yes_for_downloads):
                     )
                 )
 
+                # This will trigger using it to use our own gcc in branch below.
+                compiler_path = None
+                env["CC"] = None
+
+        if compiler_path is not None and msvc_version is not None:
+            # Requested a specific MSVC version, check if that worked.
+            if msvc_version != getMsvcVersionString(env):
+                scons_logger.info(
+                    "Failed to find requested MSVC version (%r != %r)."
+                    % (msvc_version, getMsvcVersionString(env))
+                )
+
+                # This will trigger error exit in branch below.
+                compiler_path = None
+                env["CC"] = None
+
         if compiler_path is not None:
             the_cc_name = os.path.basename(compiler_path)
 
@@ -140,15 +155,16 @@ def checkWindowsCompilerFound(env, target_arch, assume_yes_for_downloads):
 
                 min_version = (8,)
                 if gcc_version is not None and gcc_version < min_version:
-                    # This also will trigger using it to use our own gcc in branch below.
-                    compiler_path = None
-
                     scons_logger.info(
                         "Too old gcc %r (%r < %r) ignored!"
                         % (compiler_path, gcc_version, min_version)
                     )
 
-        if compiler_path is None:
+                    # This also will trigger using it to use our own gcc in branch below.
+                    compiler_path = None
+                    env["CC"] = None
+
+        if compiler_path is None and msvc_version is None:
             # This will succeed to find "gcc.exe" when conda install m2w64-gcc has
             # been done.
             compiler_path = getDownloadedGccPath(
@@ -158,13 +174,15 @@ def checkWindowsCompilerFound(env, target_arch, assume_yes_for_downloads):
             addToPATH(env, os.path.dirname(compiler_path), prefix=True)
 
             env = createEnvironment(
-                tools=["mingw"],
                 mingw_mode=True,
                 msvc_version=None,
                 target_arch=target_arch,
             )
 
             env["CC"] = compiler_path
+
+        if env["CC"] is None:
+            raiseNoCompilerFoundErrorExit()
 
     return env
 
@@ -265,3 +283,17 @@ unsigned char const *getConstantsBlobData() {
         scons_logger.sysexit(
             "Error, illegal resource mode %r specified" % resource_mode
         )
+
+
+def enableWindowsStackSize(env, msvc_mode, mingw_mode, target_arch):
+    # Stack size 4MB or 8MB, we might need more than the default 1MB.
+    if target_arch == "x86_64":
+        stack_size = 1024 * 1204 * 8
+    else:
+        stack_size = 1024 * 1204 * 4
+
+    if msvc_mode:
+        env.Append(LINKFLAGS=["/STACK:%d" % stack_size])
+
+    if mingw_mode:
+        env.Append(LINKFLAGS=["-Wl,--stack,%d" % stack_size])

@@ -131,18 +131,11 @@ def _injectCcache(the_compiler, cc_path, env, python_prefix, assume_yes_for_down
         scons_details_logger.info(
             "Providing real CC path '%s' via PATH extension." % cc_path
         )
-
-        # Do not consider scons cache anymore.
-        result = True
     else:
         if isWin32Windows():
             scons_logger.warning(
                 "Didn't find ccache for C level caching, follow Nuitka user manual description."
             )
-
-        result = False
-
-    return result
 
 
 def enableCcache(
@@ -193,6 +186,10 @@ def enableClcache(the_compiler, env, source_dir):
     importFromInlineCopy("atomicwrites", must_exist=True)
     importFromInlineCopy("clcache", must_exist=True)
 
+    # Avoid importing this in threads, triggers CPython 3.9 importing bugs at least,
+    # do it now, so it's not a race issue.
+    import concurrent.futures.thread  # pylint: disable=I0021,unused-import,unused-variable
+
     cl_binary = getExecutablePath(the_compiler, env)
 
     # The compiler is passed via environment.
@@ -220,9 +217,6 @@ def enableClcache(the_compiler, env, source_dir):
     scons_details_logger.info(
         "Using inline copy of clcache with %r cl binary." % cl_binary
     )
-
-    # Do not consider scons cache anymore.
-    return True
 
 
 def _getCcacheStatistics(ccache_logfile):

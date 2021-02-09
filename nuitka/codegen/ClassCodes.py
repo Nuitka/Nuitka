@@ -66,9 +66,10 @@ def generateBuiltinSuperCode(to_name, expression, emit, context):
     ) as value_name:
 
         emit(
-            "%s = BUILTIN_SUPER(%s, %s);"
+            "%s = BUILTIN_SUPER%d(%s, %s);"
             % (
                 value_name,
+                2 if expression.isExpressionBuiltinSuper2() else 0,
                 type_name if type_name is not None else "NULL",
                 object_name if object_name is not None else "NULL",
             )

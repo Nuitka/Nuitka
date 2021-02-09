@@ -258,11 +258,6 @@ class ExpressionFunctionBodyBase(
     def hasClosureVariable(self, variable):
         return variable in self.taken
 
-    def removeUserVariable(self, variable):
-        assert not variable.isParameterVariable() or variable.getOwner() is not self
-
-        self.locals_scope.unregisterProvidedVariable(variable)
-
     def getVariableForAssignment(self, variable_name):
         # print("ASS func", self, variable_name)
 
@@ -395,8 +390,54 @@ class ExpressionFunctionBodyBase(
         # For overload, pylint: disable=no-self-use,unused-argument
         return None
 
+    def optimizeUnusedClosureVariables(self):
+        """Gets called once module is complete, to consider giving up on closure variables."""
+
+        changed = False
+
+        for closure_variable in self.getClosureVariables():
+
+            # Need to take closure of those either way
+            if (
+                closure_variable.isParameterVariable()
+                and self.isExpressionGeneratorObjectBody()
+            ):
+                continue
+
+            empty = self.trace_collection.hasEmptyTraces(closure_variable)
+
+            if empty:
+                changed = True
+
+                self.trace_collection.signalChange(
+                    "var_usage",
+                    self.source_ref,
+                    message="Remove unused closure variable '%s'."
+                    % closure_variable.getName(),
+                )
+
+                self.removeClosureVariable(closure_variable)
+
+        return changed
+
+    def optimizeVariableReleases(self):
+        for parameter_variable in self.getParameterVariablesWithManualRelease():
+            read_only = self.trace_collection.hasReadOnlyTraces(parameter_variable)
+
+            if read_only:
+                self.trace_collection.signalChange(
+                    "var_usage",
+                    self.source_ref,
+                    message="Schedule removal releases of unassigned parameter variable '%s'."
+                    % parameter_variable.getName(),
+                )
+
+                self.removeVariableReleases(parameter_variable)
+
 
 class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBase):
+    __slots__ = ("trace_collection", "code_object", "locals_scope", "auto_release")
+
     def __init__(
         self, provider, name, code_object, code_prefix, flags, auto_release, source_ref
     ):
@@ -523,13 +564,25 @@ class ExpressionFunctionBody(
 ):
     kind = "EXPRESSION_FUNCTION_BODY"
 
+    # TODO: These should be more special than the general type in order to not cover exec ones.
+    __slots__ = (
+        "unoptimized_locals",
+        "unqualified_exec",
+        "doc",
+        "return_exception",
+        "needs_creation",
+        "needs_direct",
+        "cross_module_use",
+        "parameters",
+    )
+
+    if python_version >= 0x340:
+        __slots__ += ("qualname_setup",)
+
     checkers = {
         # TODO: Is "None" really an allowed value.
         "body": checkStatementsSequenceOrNone
     }
-
-    if python_version >= 0x340:
-        qualname_setup = None
 
     def __init__(
         self,
@@ -568,6 +621,9 @@ class ExpressionFunctionBody(
 
         # Indicator if the function is used outside of where it's defined.
         self.cross_module_use = False
+
+        if python_version >= 0x340:
+            self.qualname_setup = None
 
         self.parameters = parameters
         self.parameters.setOwner(self)

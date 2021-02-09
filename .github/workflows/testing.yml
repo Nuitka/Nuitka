@@ -37,7 +37,7 @@ jobs:
       - name: Install Nuitka dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install chrpath gdb ccache
+          sudo apt-get install chrpath gdb ccache libfuse2
           pip install -r requirements-devel.txt
 
       - name: Install Nuitka
@@ -53,7 +53,7 @@ jobs:
         run: |
           python -m nuitka --version
           env | sort
-          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
+          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
       - name: PyLint on Nuitka source code
         run: |

@@ -73,8 +73,6 @@ class TorchPlugin(NuitkaPluginBase):
 
     This plugin copies any files required by torch installations.
 
-    Args:
-        NuitkaPluginBase: plugin template class we are inheriting.
     """
 
     plugin_name = "torch"

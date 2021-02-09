@@ -121,6 +121,10 @@ class Variable(getMetaClassBase("Variable")):
         return False
 
     @staticmethod
+    def isIncompleteModuleVariable():
+        return False
+
+    @staticmethod
     def isTempVariable():
         return False
 
@@ -151,9 +155,6 @@ class Variable(getMetaClassBase("Variable")):
     def isSharedTechnically(self):
         if not self.shared_users:
             return False
-
-        if not complete:
-            return None
 
         if not self.users:
             return False
@@ -196,16 +197,8 @@ class Variable(getMetaClassBase("Variable")):
         self.writers = writers
         self.users = users
 
-    def hasWritesOutsideOf(self, user):
-        if not complete:
-            return None
-        elif self.writers is not None and user in self.writers:
-            return len(self.writers) > 1
-        else:
-            return bool(self.writers)
-
     def hasAccessesOutsideOf(self, provider):
-        if not complete:
+        if not self.owner.locals_scope.complete:
             return None
         elif self.users is None:
             return False
@@ -213,12 +206,6 @@ class Variable(getMetaClassBase("Variable")):
             return len(self.users) > 1
         else:
             return bool(self.users)
-
-    def hasDefiniteWrites(self):
-        if not complete:
-            return None
-        else:
-            return bool(self.writers)
 
     def getMatchingAssignTrace(self, assign_node):
         for trace in self.traces:
@@ -287,7 +274,7 @@ class ParameterVariable(LocalVariable):
 
 
 class ModuleVariable(Variable):
-    __slots__ = ("module",)
+    __slots__ = ()
 
     def __init__(self, module, variable_name):
         assert type(variable_name) is str, repr(variable_name)
@@ -295,12 +282,10 @@ class ModuleVariable(Variable):
 
         Variable.__init__(self, owner=module, variable_name=variable_name)
 
-        self.module = module
-
     def __repr__(self):
         return "<ModuleVariable '%s' of '%s'>" % (
             self.variable_name,
-            self.module.getFullName(),
+            self.owner.getFullName(),
         )
 
     def getDescription(self):
@@ -310,8 +295,17 @@ class ModuleVariable(Variable):
     def isModuleVariable():
         return True
 
+    def isIncompleteModuleVariable(self):
+        return not self.owner.locals_scope.complete
+
+    def hasDefiniteWrites(self):
+        if not self.owner.locals_scope.complete:
+            return None
+        else:
+            return bool(self.writers)
+
     def getModule(self):
-        return self.module
+        return self.owner
 
     @staticmethod
     def getVariableType():

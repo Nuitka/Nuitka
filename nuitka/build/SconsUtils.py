@@ -32,6 +32,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     unicode,
 )
 from nuitka.Tracing import scons_details_logger, scons_logger
+from nuitka.utils.Execution import getNullInput
 
 
 def initScons():
@@ -86,7 +87,7 @@ def getArgumentList(option_name, default=None):
         return []
 
 
-def createEnvironment(tools, mingw_mode, msvc_version, target_arch):
+def createEnvironment(mingw_mode, msvc_version, target_arch):
     from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
     args = {}
@@ -96,12 +97,25 @@ def createEnvironment(tools, mingw_mode, msvc_version, target_arch):
     if (
         os.name == "nt"
         and not mingw_mode
+        and msvc_version is None
         and (
             getExecutablePath("cl", env=None) is not None
             or getExecutablePath("gcc", env=None) is not None
         )
     ):
         args["MSVC_USE_SCRIPT"] = False
+
+    if mingw_mode:
+        # Force usage of MinGW64, not using MSVC tools.
+        tools = ["mingw"]
+
+        # This code would be running anyway, make it do not thing by monkey patching.
+        import SCons.Tool.MSCommon.vc  # pylint: disable=I0021,import-error
+
+        SCons.Tool.MSCommon.vc.msvc_setup_env = lambda *args: None
+    else:
+        # Everything else should use default, that is MSVC tools, but not MinGW64.
+        tools = ["default"]
 
     return Environment(
         # We want the outside environment to be passed through.
@@ -392,7 +406,7 @@ def _getBinaryArch(binary, mingw_mode):
         try:
             proc = subprocess.Popen(
                 command,
-                stdin=subprocess.PIPE,
+                stdin=getNullInput(),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 shell=False,
@@ -458,7 +472,7 @@ def getCompilerArch(mingw_mode, msvc_mode, the_cc_name, compiler_path):
 
         proc = subprocess.Popen(
             cmdline,
-            stdin=subprocess.PIPE,
+            stdin=getNullInput(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             shell=False,
@@ -500,9 +514,9 @@ def raiseNoCompilerFoundErrorExit():
 Error, cannot locate suitable C compiler. You have the following options:
 
 a) If a suitable Visual Studio version is installed, it will be located
-   automatically via registry.
+   automatically via registry. But not if you activate the wrong prompt.
 
-b) Using --mingw64 let Nuitka download MinGW64 for you.
+b) Using --mingw64 lets Nuitka download MinGW64 for you.
 
 Note: Only MinGW64 will work! MinGW64 does *not* mean 64 bits, just better
 Windows compatibility, it is available for 32 and 64 bits. Cygwin based gcc

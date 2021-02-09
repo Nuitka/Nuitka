@@ -35,6 +35,7 @@ import sys
 
 from nuitka import Options, SourceCodeReferences
 from nuitka.__past__ import iterItems
+from nuitka.Bytecodes import compileSourceToBytecode
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing import ImportCache
@@ -52,7 +53,7 @@ from nuitka.Tracing import general, inclusion_logger, printError
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.Execution import withEnvironmentPathAdded
+from nuitka.utils.Execution import getNullInput, withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
     deleteFile,
@@ -76,7 +77,10 @@ from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     getPEFileInformation,
     getPyWin32Dir,
+    getSharedLibraryRPATH,
     getWindowsDLLVersion,
+    removeMacOSCodeSignature,
+    removeSharedLibraryRPATH,
     removeSxsFromDLL,
 )
 from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
@@ -173,17 +177,18 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
         )
 
     is_package = os.path.basename(filename) == "__init__.py"
+
+    # Plugins can modify source code:
     source_code = Plugins.onFrozenModuleSourceCode(
         module_name=module_name, is_package=is_package, source_code=source_code
     )
 
-    bytecode = compile(
-        source_code,
-        module_name.replace(".", os.path.sep) + ".py",
-        "exec",
-        dont_inherit=True,
+    bytecode = compileSourceToBytecode(
+        source_code=source_code,
+        filename=module_name.replace(".", os.path.sep) + ".py",
     )
 
+    # Plugins can modify bytecode code:
     bytecode = Plugins.onFrozenModuleBytecode(
         module_name=module_name, is_package=is_package, bytecode=bytecode
     )
@@ -263,6 +268,7 @@ def _detectImports(command, user_provided, technical):
 
         process = subprocess.Popen(
             args=[sys.executable, "-s", "-S", "-v", tmp_filename],
+            stdin=getNullInput(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=dict(os.environ, PYTHONIOENCODING="utf_8"),
@@ -368,19 +374,19 @@ def _detectImports(command, user_provided, technical):
     return result
 
 
-# Some modules we want to blacklist.
-ignore_modules = ["__main__.py", "__init__.py", "antigravity.py"]
+# Some modules we want to exclude.
+_excluded_stdlib_modules = ["__main__.py", "__init__.py", "antigravity.py"]
 
 if os.name != "nt":
     # On posix systems, and posix Python veriants on Windows, this won't
     # work.
-    ignore_modules.append("wintypes.py")
-    ignore_modules.append("cp65001.py")
+    _excluded_stdlib_modules.append("wintypes.py")
+    _excluded_stdlib_modules.append("cp65001.py")
 
 
 def scanStandardLibraryPath(stdlib_dir):
-    # There is a lot of black-listing here, done in branches, so there
-    # is many of them, but that's acceptable, pylint: disable=too-many-branches,too-many-statements
+    # There is a lot of filtering here, done in branches, so there # is many of
+    # them, but that's acceptable, pylint: disable=too-many-branches,too-many-statements
 
     for root, dirs, filenames in os.walk(stdlib_dir):
         import_path = root[len(stdlib_dir) :].strip("/\\")
@@ -453,7 +459,7 @@ def scanStandardLibraryPath(stdlib_dir):
                 filenames.remove("expatreader.py")
 
         for filename in filenames:
-            if filename.endswith(".py") and filename not in ignore_modules:
+            if filename.endswith(".py") and filename not in _excluded_stdlib_modules:
                 module_name = filename[:-3]
                 if import_path == "":
                     yield module_name
@@ -602,7 +608,10 @@ def _detectBinaryPathDLLsPosix(dll_filename):
 
     with withEnvironmentPathAdded("LD_LIBRARY_PATH", _detected_python_rpath):
         process = subprocess.Popen(
-            args=["ldd", dll_filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            args=["ldd", dll_filename],
+            stdin=getNullInput(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
 
         stdout, _stderr = process.communicate()
@@ -706,6 +715,7 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename, keep_unresolved):
 
     process = subprocess.Popen(
         args=["otool", "-L", binary_filename],
+        stdin=getNullInput(),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -769,6 +779,7 @@ def _detectBinaryRPathsMacOS(original_dir, binary_filename):
 
     process = subprocess.Popen(
         args=["otool", "-l", binary_filename],
+        stdin=getNullInput(),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -1043,6 +1054,7 @@ SxS
             "-ps1",
             binary_filename,
         ),
+        stdin=getNullInput(),
         cwd=getExternalUsePath(os.getcwd()),
     )
 
@@ -1340,66 +1352,8 @@ def fixupBinaryDLLPathsMacOS(binary_filename, dll_map, original_location):
             (original_path, "@executable_path/" + dist_path)
             for (original_path, dist_path) in dll_map
         ),
+        rpath=None,
     )
-
-
-def getSharedLibraryRPATH(filename):
-    process = subprocess.Popen(
-        ["readelf", "-d", filename],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=False,
-    )
-
-    stdout, stderr = process.communicate()
-    retcode = process.poll()
-
-    if retcode != 0:
-        inclusion_logger.sysexit(
-            "Error reading shared library path for %s, tool said %r"
-            % (filename, stderr)
-        )
-
-    for line in stdout.split(b"\n"):
-        if b"RPATH" in line or b"RUNPATH" in line:
-            result = line[line.find(b"[") + 1 : line.rfind(b"]")]
-
-            if str is not bytes:
-                result = result.decode("utf-8")
-
-            return result
-
-    return None
-
-
-def removeSharedLibraryRPATH(filename):
-    rpath = getSharedLibraryRPATH(filename)
-
-    if rpath is not None:
-        if Options.isShowInclusion():
-            inclusion_logger.info(
-                "Removing 'RPATH' setting '%s' from '%s'." % (rpath, filename)
-            )
-
-        if not Utils.isExecutableCommand("chrpath"):
-            inclusion_logger.sysexit(
-                """\
-Error, needs 'chrpath' on your system, due to 'RPATH' settings in used shared
-libraries that need to be removed."""
-            )
-
-        os.chmod(filename, int("644", 8))
-        process = subprocess.Popen(
-            ["chrpath", "-d", filename],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=False,
-        )
-        process.communicate()
-        retcode = process.poll()
-        os.chmod(filename, int("444", 8))
-
-        assert retcode == 0, filename
 
 
 # These DLLs are run time DLLs from Microsoft, and packages will depend on different
@@ -1554,15 +1508,31 @@ different from
                 original_location=original_path,
             )
 
-    if Utils.getOS() == "Linux":
+        # Remove code signature from CPython installed library
+        candidate = os.path.join(
+            dist_dir,
+            "Python",
+        )
+
+        if os.path.exists(candidate):
+            removeMacOSCodeSignature(candidate)
+
+    # Remove rpath settings.
+    if Utils.getOS() in ("Linux", "Darwin"):
         # For Linux, the "rpath" of libraries may be an issue and must be
         # removed.
-        for standalone_entry_point in standalone_entry_points[1:]:
+        if Utils.getOS() == "Darwin":
+            start = 0
+        else:
+            start = 1
+
+        for standalone_entry_point in standalone_entry_points[start:]:
             removeSharedLibraryRPATH(standalone_entry_point.dest_path)
 
         for _original_path, dll_filename in dll_map:
             removeSharedLibraryRPATH(os.path.join(dist_dir, dll_filename))
-    elif Utils.isWin32Windows():
+
+    if Utils.isWin32Windows():
         if python_version < 0x300:
             # For Win32, we might have to remove SXS paths
             for standalone_entry_point in standalone_entry_points[1:]:

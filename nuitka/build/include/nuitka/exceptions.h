@@ -322,6 +322,14 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_STR(PyObject
     SET_CURRENT_EXCEPTION_TYPE0_VALUE1(exception_type, exception_value);
 }
 
+// Helper that sets the current thread exception with format of one or two arg, and has no reference passed.
+extern void SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyObject *exception_type, char const *format, char const *value);
+extern void SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyObject *exception_type, char const *format, char const *value1,
+                                                char const *value2);
+
+extern void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(char const *format, PyObject *mistyped);
+extern void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE(char const *format, PyObject *mistyped);
+
 #if PYTHON_VERSION < 0x300
 
 // Preserve the current exception as the frame to restore.

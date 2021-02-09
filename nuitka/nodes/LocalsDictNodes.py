@@ -22,7 +22,6 @@ fallback can be optimized to no fallback variants.
 
 """
 
-from nuitka import Variables
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 from nuitka.PythonVersions import python_version
 from nuitka.tree.TreeHelpers import makeStatementsSequence
@@ -134,11 +133,10 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
         trace_collection.onControlFlowEscape(self)
 
         if (
-            not Variables.complete
-            and self.variable.getName()
+            self.variable.getName()
             in ("dir", "eval", "exec", "execfile", "locals", "vars")
             and self.subnode_fallback.isExpressionVariableRef()
-            and self.subnode_fallback.getVariable().isModuleVariable()
+            and self.subnode_fallback.getVariable().isIncompleteModuleVariable()
         ):
             # Just inform the collection that all escaped.
             trace_collection.onLocalsUsage(self.getLocalsDictScope())

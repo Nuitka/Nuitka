@@ -338,6 +338,10 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
+    def isExpressionOperationUnary():
+        return False
+
+    @staticmethod
     def isExpressionOperationBinary():
         return False
 
@@ -769,8 +773,20 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
     def getTempVariables(self):
         return self.temp_variables.values()
 
-    def removeTempVariable(self, variable):
+    def _removeTempVariable(self, variable):
         del self.temp_variables[variable.getName()]
+
+    def optimizeUnusedTempVariables(self):
+        remove = []
+
+        for temp_variable in self.getTempVariables():
+            empty = self.trace_collection.hasEmptyTraces(variable=temp_variable)
+
+            if empty:
+                remove.append(temp_variable)
+
+        for temp_variable in remove:
+            self._removeTempVariable(temp_variable)
 
     def allocatePreserverId(self):
         if python_version >= 0x300:

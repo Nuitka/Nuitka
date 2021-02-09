@@ -23,7 +23,6 @@ binaries (needed for exec) and run them capturing outputs.
 
 
 import os
-import shutil
 import subprocess
 from contextlib import contextmanager
 
@@ -64,29 +63,42 @@ def callExec(args):
         os.execl(*args)
 
 
+# Cache, so we avoid repeated command lookups.
+_executable_command_cache = {}
+
+
+def _getExecutablePath(filename, search_path):
+    # Append ".exe" suffix  on Windows if not already present.
+    if getOS() == "Windows" and not filename.lower().endswith(".exe"):
+        filename += ".exe"
+
+    # Now check in each path element, much like the shell will.
+    path_elements = search_path.split(os.pathsep)
+
+    for path_element in path_elements:
+        path_element = path_element.strip('"')
+
+        full = os.path.join(path_element, filename)
+
+        if os.path.exists(full):
+            return full
+
+
 def getExecutablePath(filename):
     """ Find an execute in PATH environment. """
 
-    if python_version >= 0x300:
-        return shutil.which(filename)
-    else:
-        # Append ".exe" suffix  on Windows if not already present.
-        if getOS() == "Windows" and not filename.lower().endswith(".exe"):
-            filename += ".exe"
+    # Search in PATH environment.
+    search_path = os.environ.get("PATH", "")
 
-        # Search in PATH environment.
-        search_path = os.environ.get("PATH", "")
+    key = (filename, search_path)
+    if key not in _executable_command_cache:
+        _executable_command_cache[key] = _getExecutablePath(filename, search_path)
 
-        # Now check in each path element, much like the shell will.
-        path_elements = search_path.split(os.pathsep)
+    return _executable_command_cache[key]
 
-        for path_element in path_elements:
-            path_element = path_element.strip('"')
 
-            full = os.path.join(path_element, filename)
-
-            if os.path.exists(full):
-                return full
+def isExecutableCommand(command):
+    return getExecutablePath(command) is not None
 
 
 def getPythonExePathWindows(search, arch):
@@ -364,3 +376,48 @@ def getNullOutput():
         return subprocess.NULLDEV
     except AttributeError:
         return open(os.devnull, "wb")
+
+
+def getNullInput():
+    try:
+        return subprocess.NULLDEV
+    except AttributeError:
+        return open(os.devnull, "rb")
+
+
+def executeToolChecked(logger, command, absence_message, stderr_filter=None):
+    """Execute external tool, checking for success and no error outputs, returning result. """
+
+    tool = command[0]
+
+    if not isExecutableCommand(tool):
+        logger.sysexit(absence_message)
+
+    # Allow to avoid repeated scans in PATH for the tool.
+    command[0] = getExecutablePath(tool)
+
+    process = subprocess.Popen(
+        command,
+        stdin=getNullInput(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=False,
+    )
+
+    stdout, stderr = process.communicate()
+    result = process.poll()
+
+    if stderr_filter is not None:
+        stderr = stderr_filter(stderr)
+
+    if result != 0:
+        logger.sysexit(
+            "Error, call to %r to change shared library paths failed: %s -> %s."
+            % (tool, command, stderr)
+        )
+    elif stderr:
+        logger.sysexit(
+            "Error, call to %r gave warnings: %s -> %s." % (tool, command, stderr)
+        )
+
+    return stdout

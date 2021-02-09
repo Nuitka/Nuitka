@@ -124,6 +124,77 @@ static void printError(char const *message) {
     puts(err_buffer);
 }
 
+// Zero means, not yet created, created unsuccessfully, terminated already.
+HANDLE handle_process = 0;
+
+static wchar_t payload_path[4096] = {0};
+static bool payload_created = false;
+
+static void cleanupChildProcess() {
+
+    // Cause KeyboardInterrupt in the child process.
+    if (handle_process != 0) {
+        NUITKA_PRINT_TRACE("Sending CTRL-C to child\n");
+        BOOL res = GenerateConsoleCtrlEvent(CTRL_C_EVENT, GetProcessId(handle_process));
+
+        if (res == false) {
+            printError("Failed to send CTRL-C to child process.");
+            // No error exit is done, we still want to cleanup when it does exit
+        }
+
+        // We only need to wait if there is a need to cleanup files.
+#if ONEFILE_TEMPFILE == 1
+        WaitForSingleObject(handle_process, INFINITE);
+        CloseHandle(handle_process);
+#endif
+    }
+
+#if ONEFILE_TEMPFILE == 1
+    if (payload_created) {
+        // _putws(payload_path);
+
+        SHFILEOPSTRUCTW fileop_struct = {
+            NULL, FO_DELETE, payload_path, L"", FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT, false, 0, L""};
+        SHFileOperationW(&fileop_struct);
+    }
+#endif
+}
+
+BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
+    switch (fdwCtrlType) {
+        // Handle the CTRL-C signal.
+    case CTRL_C_EVENT:
+        NUITKA_PRINT_TRACE("Ctrl-C event");
+        cleanupChildProcess();
+        return FALSE;
+
+        // CTRL-CLOSE: confirm that the user wants to exit.
+    case CTRL_CLOSE_EVENT:
+        NUITKA_PRINT_TRACE("Ctrl-Close event");
+        cleanupChildProcess();
+        return FALSE;
+
+        // Pass other signals to the next handler.
+    case CTRL_BREAK_EVENT:
+        NUITKA_PRINT_TRACE("Ctrl-Break event");
+        cleanupChildProcess();
+        return FALSE;
+
+    case CTRL_LOGOFF_EVENT:
+        NUITKA_PRINT_TRACE("Ctrl-Logoff event");
+        cleanupChildProcess();
+        return FALSE;
+
+    case CTRL_SHUTDOWN_EVENT:
+        NUITKA_PRINT_TRACE("Ctrl-Shutdown event");
+        cleanupChildProcess();
+        return FALSE;
+
+    default:
+        return FALSE;
+    }
+}
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
 #if defined(__MINGW32__) && !defined(_W64)
@@ -149,8 +220,6 @@ int main(int argc, char **argv) {
         printError("Error, failed to locate onefile filename.");
         return 1;
     }
-
-    static wchar_t payload_path[4096] = {0};
 
     BOOL bool_res;
 
@@ -213,7 +282,15 @@ int main(int argc, char **argv) {
         appendWStringSafeW(payload_path, buffer, sizeof(payload_path) / sizeof(wchar_t));
     }
 #endif
+    bool_res = SetConsoleCtrlHandler(ourConsoleCtrlHandler, true);
+    if (bool_res == false) {
+        printError("Error, failed to register signal handler.");
+        return 1;
+    }
+
     bool_res = CreateDirectoryW(payload_path, NULL);
+
+    payload_created = true;
 
     HANDLE exe_file = CreateFileW(exe_filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
     if (exe_file == INVALID_HANDLE_VALUE) {
@@ -328,11 +405,24 @@ int main(int argc, char **argv) {
 
     PROCESS_INFORMATION pi;
 
-    bool_res = CreateProcessW(first_filename, GetCommandLineW(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+    // Pass our pid by value to the child.
+    {
+        char buffer[128];
+        itoa(GetCurrentProcessId(), buffer, 10);
+        SetEnvironmentVariable("NUITKA_ONEFILE_PARENT", buffer);
+    }
+
+    bool_res = CreateProcessW(first_filename,           // application name
+                              GetCommandLineW(),        // command line
+                              NULL,                     // process attributes
+                              NULL,                     // thread attributes
+                              FALSE,                    // inherit handles
+                              CREATE_NEW_PROCESS_GROUP, // creation flags
+                              NULL, NULL, &si, &pi);
     assert(bool_res);
 
     CloseHandle(pi.hThread);
-    HANDLE handle_process = pi.hProcess;
+    handle_process = pi.hProcess;
 
     DWORD exit_code = 0;
 
@@ -344,18 +434,11 @@ int main(int argc, char **argv) {
         }
 
         CloseHandle(handle_process);
+
+        handle_process = 0;
     }
 
-#if ONEFILE_TEMPFILE == 1
-    // _putws(payload_path);
-
-    SHFILEOPSTRUCTW fileop_struct = {
-        NULL, FO_DELETE, payload_path, L"", FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT, false, 0, L""};
-    int del_result = SHFileOperationW(&fileop_struct);
-
-    assert(del_result == 0);
-
-#endif
+    cleanupChildProcess();
 
     return exit_code;
 }

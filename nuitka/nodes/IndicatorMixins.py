@@ -31,6 +31,9 @@ class MarkUnoptimizedFunctionIndicatorMixin(object):
     first, because they do.
     """
 
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def __init__(self, flags):
         self.unoptimized_locals = flags is not None and "has_exec" in flags
         self.unqualified_exec = flags is not None and "has_unqualified_exec" in flags
@@ -43,6 +46,9 @@ class MarkUnoptimizedFunctionIndicatorMixin(object):
 
 
 class MarkNeedsAnnotationsMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def __init__(self):
         self.needs_annotations_dict = False
 
@@ -56,6 +62,9 @@ class MarkNeedsAnnotationsMixin(object):
 
 
 class EntryPointMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def __init__(self):
         self.trace_collection = None
 

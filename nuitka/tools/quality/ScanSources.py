@@ -23,21 +23,21 @@ import os
 
 from nuitka.utils.Shebang import getShebangFromFile
 
+_default_ignore_list = ("inline_copy", "tblib", "__pycache__")
 
-def addFromDirectory(path, suffixes, blacklist):
+
+def _addFromDirectory(path, suffixes, ignore_list):
     for dirpath, dirnames, filenames in os.walk(path):
         dirnames.sort()
 
-        if "inline_copy" in dirnames:
-            dirnames.remove("inline_copy")
-
-        if "__pycache__" in dirnames:
-            dirnames.remove("__pycache__")
+        for entry in _default_ignore_list:
+            if entry in dirnames:
+                dirnames.remove(entry)
 
         filenames.sort()
 
         for filename in filenames:
-            if filename in blacklist:
+            if filename in ignore_list:
                 continue
 
             fullpath = os.path.join(dirpath, filename)
@@ -66,12 +66,12 @@ def addFromDirectory(path, suffixes, blacklist):
             yield fullpath
 
 
-def scanTargets(positional_args, suffixes, blacklist=()):
+def scanTargets(positional_args, suffixes, ignore_list=()):
     for positional_arg in positional_args:
         positional_arg = os.path.normpath(positional_arg)
 
         if os.path.isdir(positional_arg):
-            for value in addFromDirectory(positional_arg, suffixes, blacklist):
+            for value in _addFromDirectory(positional_arg, suffixes, ignore_list):
                 yield value
         else:
             yield positional_arg
@@ -80,6 +80,9 @@ def scanTargets(positional_args, suffixes, blacklist=()):
 def isPythonFile(filename, effective_filename=None):
     if effective_filename is None:
         effective_filename = filename
+
+    if os.path.isdir(filename):
+        return False
 
     if effective_filename.endswith((".py", ".pyw", ".scons")):
         return True

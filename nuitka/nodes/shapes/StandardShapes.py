@@ -17,6 +17,9 @@
 #
 """ Standard shapes that commonly appear. """
 
+from abc import abstractmethod
+
+from nuitka.__past__ import getMetaClassBase
 from nuitka.codegen.c_types.CTypePyObjectPtrs import CTypePyObjectPtr
 from nuitka.codegen.Reports import onMissingOperation
 
@@ -24,7 +27,7 @@ from .ControlFlowDescriptions import ControlFlowDescriptionFullEscape
 from .ShapeMixins import ShapeIteratorMixin
 
 
-class ShapeBase(object):
+class ShapeBase(getMetaClassBase("Shape")):
     def __repr__(self):
         return "<%s %s %s>" % (
             self.__class__.__name__,
@@ -457,6 +460,10 @@ class ShapeBase(object):
     def getComparisonNeqShape(self, right_shape):
         return self.getComparisonLtShape(right_shape)
 
+    @abstractmethod
+    def getOperationUnaryReprEscape(self):
+        pass
+
     def emitAlternatives(self, emit):
         emit(self)
 
@@ -526,6 +533,10 @@ class ShapeTypeUnknown(ShapeBase):
     def getComparisonLtShape(right_shape):
         return operation_result_unknown
 
+    @staticmethod
+    def getOperationUnaryReprEscape():
+        return ControlFlowDescriptionFullEscape
+
 
 tshape_unknown = ShapeTypeUnknown()
 
@@ -589,6 +600,8 @@ class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
 
 
 class ShapeIterator(ShapeBase, ShapeIteratorMixin):
+    """Iterator created by iter with 2 arguments, TODO: could be way more specific."""
+
     @staticmethod
     def hasShapeSlotBool():
         return None
@@ -612,6 +625,10 @@ class ShapeIterator(ShapeBase, ShapeIteratorMixin):
     @staticmethod
     def getShapeIter():
         return tshape_iterator
+
+    @staticmethod
+    def getOperationUnaryReprEscape():
+        return ControlFlowDescriptionFullEscape
 
 
 tshape_iterator = ShapeIterator()
@@ -888,6 +905,10 @@ class ShapeLoopInitialAlternative(ShapeBase):
 
     def getComparisonNeqShape(self, right_shape):
         return self.getComparisonLtShape(right_shape)
+
+    @staticmethod
+    def getOperationUnaryReprEscape():
+        return ControlFlowDescriptionFullEscape
 
 
 class ShapeLoopCompleteAlternative(ShapeBase):
@@ -1259,6 +1280,11 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
     def getComparisonNeqShape(self, right_shape):
         return self.getComparisonLtShape(right_shape)
+
+    @staticmethod
+    def getOperationUnaryReprEscape():
+        # TODO: We could collect information.
+        return ControlFlowDescriptionFullEscape
 
     def _delegatedCheck(self, check):
         result = None

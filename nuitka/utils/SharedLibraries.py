@@ -20,14 +20,15 @@
 """
 
 import os
-import subprocess
 import sys
 
+from nuitka import Options
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import postprocessing_logger
+from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
+from .Execution import executeToolChecked
 from .FileOperations import withMadeWritableFileMode
 from .Importing import importFromInlineCopy
 from .Utils import getArchitecture, getOS, isAlpineLinux, isWin32Windows
@@ -44,6 +45,9 @@ def locateDLLFromFilesystem(name, paths):
         for root, _dirs, files in os.walk(path):
             if name in files:
                 return os.path.join(root, name)
+
+
+_ldconfig_usage = "The 'ldconfig' is used to analyse dependencies on ELF using systems and required to be found."
 
 
 def locateDLL(dll_name):
@@ -77,14 +81,16 @@ def locateDLL(dll_name):
             name=dll_name, paths=["/lib", "/usr/lib", "/usr/local/lib"]
         )
 
-    process = subprocess.Popen(
-        args=["/sbin/ldconfig", "-p"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    # TODO: Could cache ldconfig output
+    output = executeToolChecked(
+        logger=postprocessing_logger,
+        command=["/sbin/ldconfig", "-p"],
+        absence_message=_ldconfig_usage,
     )
-    stdout, _stderr = process.communicate()
 
     dll_map = {}
 
-    for line in stdout.splitlines()[1:]:
+    for line in output.splitlines()[1:]:
         assert line.count(b"=>") == 1, line
         left, right = line.strip().split(b" => ")
         assert b" (" in left, line
@@ -261,12 +267,130 @@ def getPEFileInformation(filename):
     return extracted
 
 
-def callInstallNameTool(filename, mapping):
+_readelf_usage = "The 'readelf' is used to analyse dependencies on ELF using systems and required to be found."
+
+
+def _getSharedLibraryRPATHElf(filename):
+    output = executeToolChecked(
+        logger=postprocessing_logger,
+        command=["readelf", "-d", filename],
+        absence_message=_readelf_usage,
+    )
+
+    for line in output.split(b"\n"):
+        if b"RPATH" in line or b"RUNPATH" in line:
+            result = line[line.find(b"[") + 1 : line.rfind(b"]")]
+
+            if str is not bytes:
+                result = result.decode("utf-8")
+
+            return result
+
+    return None
+
+
+_otool_usage = (
+    "The 'otool' is used to analyse dependencies on macOS and required to be found."
+)
+
+
+def _getSharedLibraryRPATHDarwin(filename):
+    output = executeToolChecked(
+        logger=postprocessing_logger,
+        command=["otool", "-l", filename],
+        absence_message=_otool_usage,
+    )
+
+    cmd = b""
+    last_was_load_command = False
+
+    for line in output.split(b"\n"):
+        line = line.strip()
+
+        if cmd == b"LC_RPATH":
+            if line.startswith(b"path "):
+                result = line[5 : line.rfind(b"(") - 1]
+
+                if str is not bytes:
+                    result = result.decode("utf-8")
+
+                return result
+
+        if last_was_load_command and line.startswith(b"cmd "):
+            cmd = line.split()[1]
+
+        last_was_load_command = line.startswith(b"Load command")
+
+    return None
+
+
+def getSharedLibraryRPATH(filename):
+    if getOS() == "Darwin":
+        return _getSharedLibraryRPATHDarwin(filename)
+    else:
+        return _getSharedLibraryRPATHElf(filename)
+
+
+def _removeSharedLibraryRPATHElf(filename):
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=["chrpath", "-d", filename],
+        absence_message="""\
+Error, needs 'chrpath' on your system, due to 'RPATH' settings in used shared
+libraries that need to be removed.""",
+    )
+
+
+def _filterInstallNameToolErrorOutput(stderr):
+    stderr = b"\n".join(
+        line
+        for line in stderr.splitlines()
+        if line
+        if b"invalidate the code signature" not in line
+    )
+
+    return stderr
+
+
+_installnametool_usage = "The 'install_name_tool' is used to make binaries portable on macOS and required to be found."
+
+
+def _removeSharedLibraryRPATHDarwin(filename, rpath):
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=["install_name_tool", "-delete_rpath", rpath, filename],
+        absence_message=_installnametool_usage,
+        stderr_filter=_filterInstallNameToolErrorOutput,
+    )
+
+
+def removeSharedLibraryRPATH(filename):
+    rpath = getSharedLibraryRPATH(filename)
+
+    if rpath is not None:
+        if Options.isShowInclusion():
+            inclusion_logger.info(
+                "Removing 'RPATH' setting '%s' from '%s'." % (rpath, filename)
+            )
+
+        with withMadeWritableFileMode(filename):
+            if getOS() == "Darwin":
+                return _removeSharedLibraryRPATHDarwin(filename, rpath)
+            else:
+                return _removeSharedLibraryRPATHElf(filename)
+
+
+def callInstallNameTool(filename, mapping, rpath):
     """Update the macOS shared library information for a binary or shared library.
+
+    Adds the rpath path name `rpath` in the specified `filename` Mach-O
+    binary or shared library. If the Mach-O binary already contains the new
+    `rpath` path name, it is an error.
 
     Args:
         filename - The file to be modified.
         mapping  - old_path, new_path pairs of values that should be changed
+        rpath    - Set this as an rpath if not None, delete if False
 
     Returns:
         None
@@ -277,40 +401,42 @@ def callInstallNameTool(filename, mapping):
     command = ["install_name_tool"]
     for old_path, new_path in mapping:
         command += ("-change", old_path, new_path)
+
+    if rpath is not None:
+        command += ("-add_rpath", os.path.join(rpath, "."))
+
     command.append(filename)
 
     with withMadeWritableFileMode(filename):
-        result = subprocess.call(command, stdout=subprocess.PIPE)
-
-    if result != 0:
-        postprocessing_logger.sysexit(
-            "Error, call to 'install_name_tool' to fix shared library path failed."
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=command,
+            absence_message=_installnametool_usage,
+            stderr_filter=_filterInstallNameToolErrorOutput,
         )
 
 
-def callInstallNameToolAddRPath(filename, rpath):
-    """Adds the rpath path name `rpath` in the specified `filename` Mach-O
-    binary or shared library. If the Mach-O binary already contains the new
-    `rpath` path name, it is an error.
+_codesign_usage = "The 'codesign' is used to remove invalidated signatures on macOS and required to be found."
+
+
+def removeMacOSCodeSignature(filename):
+    """Remove the code signature from a filename.
 
     Args:
-        filename - Mach-O binary or shared library file name.
-        rpath  - rpath path name.
+        filename - The file to be modified.
 
     Returns:
         None
 
     Notes:
-        This is obviously macOS specific.
+        This is macOS specific.
     """
-    command = ["install_name_tool", "-add_rpath", os.path.join(rpath, "."), filename]
 
     with withMadeWritableFileMode(filename):
-        result = subprocess.call(command, stdout=subprocess.PIPE)
-
-    if result != 0:
-        postprocessing_logger.sysexit(
-            "Error, call to 'install_name_tool' to add rpath failed."
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=["codesign", "--remove-signature", filename],
+            absence_message=_codesign_usage,
         )
 
 

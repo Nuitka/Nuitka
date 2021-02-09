@@ -137,8 +137,6 @@ def save_compiled_function(pickler, obj):
 Extending "dill" for compiled types to be pickable as well.""",
             )
 
-        return None, None
-
     @staticmethod
     def getPreprocessorSymbols():
         return {"_NUITKA_PLUGIN_DILL_ENABLED": "1"}

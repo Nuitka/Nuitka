@@ -35,7 +35,9 @@ import time
 from nuitka.PythonVersions import python_version
 from nuitka.tools.testing.Common import (
     addToPythonPath,
+    executeAfterTimePassed,
     getTestingCPythonOutputsCacheDir,
+    killProcess,
     withPythonPathChange,
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
@@ -83,7 +85,7 @@ def checkNoPermissionError(output):
     return True
 
 
-def _getCPythonResults(cpython_cmd):
+def _getCPythonResults(cpython_cmd, send_kill):
     stop_watch = StopWatch()
 
     # Try a coupile of times for permission denied, on Windows it can
@@ -94,6 +96,12 @@ def _getCPythonResults(cpython_cmd):
         with withPythonPathChange(os.getcwd()):
             process = subprocess.Popen(
                 args=cpython_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+
+        if send_kill:
+            # Doing it per loop iteration hopefully, pylint: disable=cell-var-from-loop
+            executeAfterTimePassed(
+                1.0, lambda: killProcess("Uncompiled Python program", process.pid)
             )
 
         stdout_cpython, stderr_cpython = process.communicate()
@@ -114,7 +122,7 @@ def _getCPythonResults(cpython_cmd):
     return cpython_time, stdout_cpython, stderr_cpython, exit_cpython
 
 
-def getCPythonResults(cpython_cmd, cpython_cached, force_update):
+def getCPythonResults(cpython_cmd, cpython_cached, force_update, send_kill):
     # Many details, pylint: disable=too-many-locals
 
     cached = False
@@ -150,18 +158,23 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update):
         )
 
         if os.path.exists(cache_filename) and not force_update:
-            with open(cache_filename, "rb") as cache_file:
-                (
-                    cpython_time,
-                    stdout_cpython,
-                    stderr_cpython,
-                    exit_cpython,
-                ) = pickle.load(cache_file)
+            try:
+                with open(cache_filename, "rb") as cache_file:
+                    (
+                        cpython_time,
+                        stdout_cpython,
+                        stderr_cpython,
+                        exit_cpython,
+                    ) = pickle.load(cache_file)
+            except (IOError, EOFError):
+                # Broken cache content.
+                pass
+            else:
                 cached = True
 
     if not cached:
         cpython_time, stdout_cpython, stderr_cpython, exit_cpython = _getCPythonResults(
-            cpython_cmd
+            cpython_cmd=cpython_cmd, send_kill=send_kill
         )
 
         if cpython_cached:
@@ -204,6 +217,7 @@ def main():
         hasArg("trace_command") or os.environ.get("NUITKA_TRACE_COMMANDS", "0") != "0"
     )
     remove_output = hasArg("remove_output")
+    remove_binary = not hasArg("--keep-binary")
     standalone_mode = hasArg("--standalone")
     onefile_mode = hasArg("--onefile")
     no_site = hasArg("no_site")
@@ -220,6 +234,7 @@ def main():
     noprefer_source = hasArg("noprefer_source")
     noverbose_log = hasArg("noverbose_log")
     noinclusion_log = hasArg("noinclusion_log")
+    send_kill = hasArg("--send-ctrl-c")
 
     plugins_enabled = []
     for count, arg in reversed(tuple(enumerate(args))):
@@ -267,6 +282,10 @@ def main():
         python_debug = False
 
     comparison_mode = not coverage_mode
+
+    # We need to split it, so we know when to kill.
+    if send_kill:
+        two_step_execution = True
 
     assert not standalone_mode or not module_mode
     assert not recurse_all or not recurse_none
@@ -454,15 +473,16 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     # Now build the command to run Nuitka.
     if not two_step_execution:
         if module_mode:
-            nuitka_cmd = nuitka_call + extra_options + ["--run", "--module", filename]
+            extra_options.append("--module")
         elif onefile_mode:
-            nuitka_cmd = nuitka_call + extra_options + ["--run", "--onefile", filename]
+            extra_options.append("--onefile")
+
+            if os.name == "nt":
+                extra_options.append("--windows-onefile-tempdir")
         elif standalone_mode:
-            nuitka_cmd = (
-                nuitka_call + extra_options + ["--run", "--standalone", filename]
-            )
-        else:
-            nuitka_cmd = nuitka_call + extra_options + ["--run", filename]
+            extra_options.append("--standalone")
+
+        nuitka_cmd = nuitka_call + extra_options + ["--run", filename]
 
         if no_site:
             nuitka_cmd.insert(len(nuitka_cmd) - 1, "--python-flag=-S")
@@ -516,7 +536,10 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     if comparison_mode:
         cpython_time, stdout_cpython, stderr_cpython, exit_cpython = getCPythonResults(
-            cpython_cmd=cpython_cmd, cpython_cached=cpython_cached, force_update=False
+            cpython_cmd=cpython_cmd,
+            cpython_cached=cpython_cached,
+            force_update=False,
+            send_kill=send_kill,
         )
 
         if not silent_mode:
@@ -609,6 +632,12 @@ Stderr was:
                         args=nuitka_cmd2, stdout=subprocess.PIPE, stderr=subprocess.PIPE
                     )
 
+                    if send_kill:
+                        executeAfterTimePassed(
+                            1.0,
+                            lambda: killProcess("Nuitka compiled program", process.pid),
+                        )
+
                     stdout_nuitka2, stderr_nuitka2 = process.communicate()
                     stdout_nuitka = stdout_nuitka1 + stdout_nuitka2
                     stderr_nuitka = stderr_nuitka1 + stderr_nuitka2
@@ -697,6 +726,7 @@ Stderr was:
                     cpython_cmd=cpython_cmd,
                     cpython_cached=cpython_cached,
                     force_update=True,
+                    send_kill=send_kill,
                 )
 
                 if not silent_mode:
@@ -751,7 +781,7 @@ Stderr was:
 
     if remove_output:
         if not module_mode:
-            if os.path.exists(nuitka_cmd2[0]):
+            if os.path.exists(nuitka_cmd2[0]) and remove_binary:
                 if os.name == "nt":
                     # It appears there is a tiny lock race that we randomly cause,
                     # likely because --run spawns a subprocess that might still
@@ -784,7 +814,7 @@ Stderr was:
                 preferred=True
             )
 
-            if os.path.exists(module_filename):
+            if os.path.exists(module_filename) and remove_binary:
                 os.unlink(module_filename)
 
     if comparison_mode and timing:

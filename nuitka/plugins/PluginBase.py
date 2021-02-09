@@ -28,12 +28,15 @@ it being used.
 
 import os
 import shutil
+import sys
+from collections import namedtuple
 
 from nuitka import Options, OutputDirectories
 from nuitka.Errors import NuitkaPluginError
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.Tracing import plugins_logger
+from nuitka.utils.Execution import check_output
 from nuitka.utils.FileOperations import putTextFileContents, relpath
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -296,7 +299,7 @@ class NuitkaPluginBase(object):
         return bytecode
 
     @staticmethod
-    def _createTriggerLoadedModule(module, trigger_name, code):
+    def _createTriggerLoadedModule(module, trigger_name, code, flags):
         """Create a "trigger" for a module to be imported.
 
         Notes:
@@ -339,7 +342,8 @@ class NuitkaPluginBase(object):
         if mode == "bytecode":
             trigger_module.setSourceCode(code)
 
-        if Options.is_debug:
+        # In debug mode, put the files in the build folder, so they can be looked up easily.
+        if Options.is_debug and "HIDE_SOURCE" not in flags:
             source_path = os.path.join(
                 OutputDirectories.getSourceDirectoryPath(), module_name + ".py"
             )
@@ -350,7 +354,7 @@ class NuitkaPluginBase(object):
 
     @staticmethod
     def createPreModuleLoadCode(module):
-        """Create code to prepend to a module.
+        """Create code to execute before importing a module.
 
         Notes:
             Called by @onModuleDiscovered.
@@ -358,25 +362,30 @@ class NuitkaPluginBase(object):
         Args:
             module: the module object
         Returns:
+            None (does not apply, default)
             tuple (code, documentary string)
+            tuple (code, documentary string, flags)
         """
         # Virtual method, pylint: disable=unused-argument
-        return None, None
+        return None
 
     @staticmethod
     def createPostModuleLoadCode(module):
-        """Create code to append to a module.
+        """Create code to execute after loading to a module.
 
         Notes:
             Called by @onModuleDiscovered.
 
         Args:
             module: the module object
+
         Returns:
+            None (does not apply, default)
             tuple (code, documentary string)
+            tuple (code, documentary string, flags)
         """
         # Virtual method, pylint: disable=unused-argument
-        return None, None
+        return None
 
     def onModuleDiscovered(self, module):
         """Called with a module to be loaded.
@@ -395,41 +404,57 @@ class NuitkaPluginBase(object):
 
         full_name = module.getFullName()
 
-        pre_code, reason = self.createPreModuleLoadCode(module)
+        preload_desc = self.createPreModuleLoadCode(module)
 
-        if pre_code:
-            # Note: We could find a way to handle this if needed.
-            if full_name in pre_modules:
-                plugins_logger.sysexit(
-                    "Error, conflicting pre module code from plug-ins for %s"
-                    % full_name
+        if preload_desc:
+            if len(preload_desc) == 2:
+                pre_code, reason = preload_desc
+                flags = ()
+            else:
+                pre_code, reason, flags = preload_desc
+
+            if pre_code:
+                # Note: We could find a way to handle this if needed.
+                if full_name in pre_modules:
+                    plugins_logger.sysexit(
+                        "Error, conflicting pre module code from plug-ins for %s"
+                        % full_name
+                    )
+
+                self.info("Injecting pre-module load code for module '%s':" % full_name)
+                for line in reason.split("\n"):
+                    self.info("    " + line)
+
+                pre_modules[full_name] = self._createTriggerLoadedModule(
+                    module=module, trigger_name="-preLoad", code=pre_code, flags=flags
                 )
 
-            self.info("Injecting pre-module load code for module '%s':" % full_name)
-            for line in reason.split("\n"):
-                self.info("    " + line)
+        post_desc = self.createPostModuleLoadCode(module)
 
-            pre_modules[full_name] = self._createTriggerLoadedModule(
-                module=module, trigger_name="-preLoad", code=pre_code
-            )
+        if post_desc:
+            if len(preload_desc) == 2:
+                post_code, reason = preload_desc
+                flags = ()
+            else:
+                post_code, reason, flags = preload_desc
 
-        post_code, reason = self.createPostModuleLoadCode(module)
+            if post_code:
+                # Note: We could find a way to handle this if needed.
+                if full_name is post_modules:
+                    plugins_logger.sysexit(
+                        "Error, conflicting post module code from plug-ins for %s"
+                        % full_name
+                    )
 
-        if post_code:
-            # Note: We could find a way to handle this if needed.
-            if full_name is post_modules:
-                plugins_logger.sysexit(
-                    "Error, conflicting post module code from plug-ins for %s"
-                    % full_name
+                self.info(
+                    "Injecting post-module load code for module '%s':" % full_name
                 )
+                for line in reason.split("\n"):
+                    self.info("    " + line)
 
-            self.info("Injecting post-module load code for module '%s':" % full_name)
-            for line in reason.split("\n"):
-                self.info("    " + line)
-
-            post_modules[full_name] = self._createTriggerLoadedModule(
-                module=module, trigger_name="-postLoad", code=post_code
-            )
+                post_modules[full_name] = self._createTriggerLoadedModule(
+                    module=module, trigger_name="-postLoad", code=post_code, flags=flags
+                )
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         """Help decide whether to include a module.
@@ -530,9 +555,10 @@ class NuitkaPluginBase(object):
         # TODO: This should no longer be here, as this API is obsolete, pylint: disable=unused-argument
 
         for included_entry_point in self.getExtraDlls(module):
-            # Copy to the dist directory.
-            target_path = (included_entry_point.dest_path,)
-            shutil.copyfile(included_entry_point.source_path, target_path)
+            # Copy to the dist directory, which normally should not be our task, but is for now.
+            shutil.copyfile(
+                included_entry_point.source_path, included_entry_point.dest_path
+            )
 
             yield included_entry_point
 
@@ -714,6 +740,65 @@ class NuitkaPluginBase(object):
             plugins_logger.warning(
                 "Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message)
             )
+
+    _runtime_information_cache = {}
+
+    def queryRuntimeInformationMultiple(self, info_name, setup_codes, values):
+        if info_name in self._runtime_information_cache:
+            return self._runtime_information_cache[info_name]
+
+        keys = []
+        query_codes = []
+
+        for key, value_expression in values:
+            keys.append(key)
+
+            query_codes.append("print(repr(%s))" % value_expression)
+            query_codes.append('print("-" * 27)')
+
+        if type(setup_codes) is str:
+            setup_codes = [setup_codes]
+
+        cmd = r"""\
+from __future__ import print_function
+
+%(setup_codes)s
+%(query_codes)s
+""" % {
+            "setup_codes": "\n".join(setup_codes),
+            "query_codes": "\n".join(query_codes),
+        }
+
+        feedback = check_output([sys.executable, "-c", cmd])
+
+        if str is not bytes:  # We want to work with strings, that's hopefully OK.
+            feedback = feedback.decode("utf8")
+
+        # Ignore Windows newlines difference.
+        feedback = [line.strip() for line in feedback.splitlines()]
+
+        if feedback.count("-" * 27) != len(keys):
+            self.sysexit(
+                "Error, mismatch in output retrieving %r information." % info_name
+            )
+
+        feedback = [line for line in feedback if line != "-" * 27]
+
+        NamedTupleResult = namedtuple(info_name, keys)
+
+        # We are being lazy here, the code is trusted, pylint: disable=eval-used
+        self._runtime_information_cache[info_name] = NamedTupleResult(
+            *(eval(value) for value in feedback)
+        )
+
+        return self._runtime_information_cache[info_name]
+
+    def queryRuntimeInformationSingle(self, setup_codes, value):
+        return self.queryRuntimeInformationMultiple(
+            info_name="temp_info_for_" + self.plugin_name,
+            setup_codes=setup_codes,
+            values=(("key", value),),
+        ).key
 
     @classmethod
     def warning(cls, message):

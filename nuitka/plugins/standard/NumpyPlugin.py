@@ -106,8 +106,6 @@ class NumpyPlugin(NuitkaPluginBase):
     this plugin copies any additional binary or data files required by many
     installations.
 
-    Args:
-        NuitkaPluginBase: plugin template class we are inheriting.
     """
 
     plugin_name = "numpy"  # Nuitka knows us by this name
@@ -221,6 +219,8 @@ Should matplotlib not be be included with numpy, Default is %default.""",
             There might exist a local version outside 'matplotlib/mpl-data' which
             we then must use instead. Determine its name by aksing matplotlib.
         """
+        # TODO: Replace this with using self.queryRuntimeInformationMultiple to remove
+        # code duplication.
         if self.matplotlib_info is None:
             cmd = r"""\
 from __future__ import print_function
@@ -422,22 +422,20 @@ print(repr("MATPLOTLIBDATA" in getsource(_get_data_path)))
             Code to insert and descriptive text (tuple), or (None, None).
         """
 
-        # Matplotlib might be off, or not need the environment variable.
+        # Matplotlib might be off, or the version may not need the environment variable.
         if (
-            not self.matplotlib
-            or module.getFullName() != "matplotlib"
-            or not self._getMatplotlibInfo().needs_matplotlibdata_env
+            self.matplotlib
+            and module.getFullName() == "matplotlib"
+            and self._getMatplotlibInfo().needs_matplotlibdata_env
         ):
-            return None, None
-
-        code = r"""
+            code = r"""
 import os
 os.environ["MATPLOTLIBDATA"] = os.path.join(__nuitka_binary_dir, "matplotlib", "mpl-data")
 """
-        return (
-            code,
-            "Setting 'MATPLOTLIBDATA' environment variable for matplotlib to find package data.",
-        )
+            return (
+                code,
+                "Setting 'MATPLOTLIBDATA' environment variable for matplotlib to find package data.",
+            )
 
 
 class NumpyPluginDetector(NuitkaPluginBase):

@@ -47,9 +47,6 @@ import subprocess
 import SCons  # pylint: disable=import-error
 from SCons.Script import (  # pylint: disable=import-error
     ARGUMENTS,
-    CacheDir,
-    Decider,
-    Default,
     Environment,
     File,
     GetOption,
@@ -63,12 +60,14 @@ from .SconsCompilerSettings import (
     checkWindowsCompilerFound,
     decideConstantsBlobResourceMode,
     enableC11Settings,
+    enableWindowsStackSize,
 )
 from .SconsHacks import (
     getEnhancedToolDetect,
     makeGccUseLinkerFile,
     myDetectVersion,
 )
+from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
 from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
 from .SconsUtils import (
     addClangClPathFromMSVC,
@@ -118,9 +117,6 @@ module_suffix = getArgumentDefaulted("module_suffix", None)
 
 # Full names shall be used, no remapping for cacheable filenames.
 full_names = getArgumentBool("full_names", False)
-
-# The directory to use for cache directory.
-cache_mode = getArgumentBool("cache_mode", False)
 
 # Module mode: Create a Python extension module, create an executable otherwise.
 module_mode = getArgumentBool("module_mode", False)
@@ -212,6 +208,9 @@ frozen_modules = int(ARGUMENTS.get("frozen_modules", 0))
 # Standalone mode
 standalone_mode = getArgumentBool("standalone_mode", False)
 
+# Onefile mode
+onefile_mode = getArgumentBool("onefile_mode", False)
+
 # Show scons mode, output information about Scons operation
 show_scons_mode = getArgumentBool("show_scons", False)
 scons_details_logger.is_quiet = not show_scons_mode
@@ -260,6 +259,9 @@ compiler_version_mode = getArgumentBool("compiler_version", False)
 
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 
+if getArgumentBool("progress_bar", True):
+    enableSconsProgressBar()
+
 
 def printCompilerVersionOutput(*args):
     if compiler_version_mode or show_scons_mode:
@@ -298,28 +300,9 @@ gcc_version = None
 Environment.Detect = getEnhancedToolDetect()
 
 
-def getCompilerTools():
-    if mingw_mode:
-        # Force usage of MinGW, disable MSVC tools.
-        compiler_tools = ["mingw"]
-
-        import SCons.Tool.MSCommon.vc  # pylint: disable=import-error,redefined-outer-name
-
-        SCons.Tool.MSCommon.vc.msvc_setup_env = lambda *args: None
-
-    else:
-        # Everything else should use default.
-        compiler_tools = ["default"]
-
-    printCompilerVersionOutput("Tools=", compiler_tools)
-
-    return compiler_tools
-
-
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
 env = createEnvironment(
-    tools=getCompilerTools(),
     mingw_mode=mingw_mode,
     msvc_version=msvc_version,
     target_arch=target_arch,
@@ -352,7 +335,10 @@ elif clang_mode:
 # On Windows, in case MSVC was not found and not previously forced, use the
 # winlibs MinGW64 as a download, and use it as a fallback.
 env = checkWindowsCompilerFound(
-    env=env, target_arch=target_arch, assume_yes_for_downloads=assume_yes_for_downloads
+    env=env,
+    target_arch=target_arch,
+    msvc_version=msvc_version,
+    assume_yes_for_downloads=assume_yes_for_downloads,
 )
 
 the_compiler = env["CC"]
@@ -374,10 +360,29 @@ gcc_mode = isGccName(the_cc_name) or clang_mode
 msvc_mode = win_target and not gcc_mode
 mingw_mode = win_target and gcc_mode
 
+scons_details_logger.info(
+    "Modes for this compiler are: %r"
+    % {
+        "gcc_mode": gcc_mode,
+        "clang_mode": clang_mode,
+        "clangcl_mode": clangcl_mode,
+        "mingw_mode": mingw_mode,
+        "msvc_mode": msvc_mode,
+    }
+)
+
 if gcc_mode and not clang_mode:
     gcc_version = myDetectVersion(env, the_compiler)
 
-    if gcc_version is None and "++" in the_cc_name:
+    if gcc_version is None:
+        scons_logger.sysexit(
+            """\
+Error, failed to detect gcc version of backend compiler %r.
+"""
+            % the_compiler
+        )
+
+    if "++" in the_cc_name:
         scons_logger.sysexit(
             """\
 Error, compiler %s is apparently a C++ compiler, specify a C compiler instead.
@@ -620,21 +625,17 @@ if msvc_mode:
                 "/IMPLIB:%s" % os.path.join(source_dir, "import.lib"),
             ]
         )
-    else:
-        # Stack size 4MB or 8MB, we need more than the default 1MB.
-        if target_arch == "x86_64":
-            env.Append(LINKFLAGS=["/STACK:8388608"])
-        else:
-            env.Append(LINKFLAGS=["/STACK:4194304"])
+
+if not module_mode:
+    enableWindowsStackSize(
+        env=env, msvc_mode=msvc_mode, mingw_mode=mingw_mode, target_arch=target_arch
+    )
+
 
 # The 32 bits MinGW does not default for API level properly, so help it.
 if mingw_mode:
     # Windows XP
     env.Append(CPPDEFINES=["_WIN32_WINNT=0x0501"])
-
-# At least older MinGW64 has issues with this, so disable it.
-if mingw_mode and not clang_mode and gcc_version < (6,):
-    env.Append(LINKFLAGS=["-Wl,--no-gc-sections"])
 
 if debug_mode:
 
@@ -706,6 +707,9 @@ if trace_mode:
 
 if standalone_mode:
     env.Append(CPPDEFINES=["_NUITKA_STANDALONE"])
+
+if onefile_mode:
+    env.Append(CPPDEFINES=["_NUITKA_ONEFILE"])
 
 # We need "dl" in accelerated mode.
 if "linux" in sys.platform:
@@ -1271,36 +1275,20 @@ changeKeyboardInteruptToErrorExit()
 
 # Check if ccache is installed, and complain if it is not.
 if gcc_mode:
-    if enableCcache(
+    enableCcache(
         the_compiler=the_compiler,
         env=env,
         source_dir=source_dir,
         python_prefix=python_prefix,
         assume_yes_for_downloads=assume_yes_for_downloads,
-    ):
-        cache_mode = False
+    )
 
 if msvc_mode:
-    if enableClcache(
+    enableClcache(
         the_compiler=the_compiler,
         env=env,
         source_dir=source_dir,
-    ):
-        cache_mode = False
-
-# Caching bv scons if necessary, i.e. no ccache available, when done, by the fastest
-# possible algorithm and right inside the build directory. Makes no sense of course,
-# if that is removed later on by Nuitka, so in that case, this is passed as false,
-# to begin with.
-if cache_mode:
-    if show_scons_mode:
-        my_print("Scons: Using scons cache inside build directory.")
-
-    CacheDir(
-        os.path.join(source_dir, "cache-" + target_arch + "-" + python_abi_version)
     )
-    Decider("MD5-timestamp")
-
 
 writeSconsReport(
     source_dir=source_dir,
@@ -1311,4 +1299,6 @@ writeSconsReport(
     clangcl_mode=clangcl_mode,
 )
 
-Default(target)
+setSconsProgressBarTotal(len(source_files))
+
+env.Default(target)

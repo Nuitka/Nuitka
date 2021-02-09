@@ -60,7 +60,7 @@ def extractDocFromBody(node):
     doc = None
 
     # Work around ast.get_docstring breakage.
-    if node.body and getKind(body[0]) == "Expr":
+    if body and getKind(body[0]) == "Expr":
         if getKind(body[0].value) == "Str":  # python3.7 or earlier
             doc = body[0].value.s
             body = body[1:]

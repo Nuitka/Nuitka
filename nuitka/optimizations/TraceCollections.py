@@ -165,6 +165,16 @@ class CollectionStartpointMixin(object):
 
         return result
 
+    def hasEmptyTraces(self, variable):
+        # TODO: Combine these steps into one for performance gains.
+        traces = self.getVariableTraces(variable)
+        return areEmptyTraces(traces)
+
+    def hasReadOnlyTraces(self, variable):
+        # TODO: Combine these steps into one for performance gains.
+        traces = self.getVariableTraces(variable)
+        return areReadOnlyTraces(traces)
+
     def getVariableTracesAll(self):
         return self.variable_traces
 
@@ -889,3 +899,70 @@ class TraceCollectionModule(CollectionStartpointMixin, TraceCollectionBase):
 
         module = getImportedModuleByNameAndPath(module_name, module_relpath)
         addUsedModule(module)
+
+
+# TODO: This should not exist, but be part of decision at the time these are collected.
+def areEmptyTraces(variable_traces):
+    """Do these traces contain any writes or accesses."""
+    # Many cases immediately return, that is how we do it here,
+    # pylint: disable=too-many-return-statements
+
+    for variable_trace in variable_traces:
+        if variable_trace.isAssignTrace():
+            return False
+        elif variable_trace.isInitTrace():
+            return False
+        elif variable_trace.isDeletedTrace():
+            # A "del" statement can do this, and needs to prevent variable
+            # from being removed.
+
+            return False
+        elif variable_trace.isUninitTrace():
+            if variable_trace.getUsageCount():
+                # Checking definite is enough, the merges, we shall see
+                # them as well.
+                return False
+        elif variable_trace.isUnknownTrace():
+            if variable_trace.getUsageCount():
+                # Checking definite is enough, the merges, we shall see
+                # them as well.
+                return False
+        elif variable_trace.isMergeTrace():
+            if variable_trace.getUsageCount():
+                # Checking definite is enough, the merges, we shall see
+                # them as well.
+                return False
+        elif variable_trace.isLoopTrace():
+            return False
+        else:
+            assert False, variable_trace
+
+    return True
+
+
+def areReadOnlyTraces(variable_traces):
+    """Do these traces contain any writes."""
+
+    # Many cases immediately return, that is how we do it here,
+    for variable_trace in variable_traces:
+        if variable_trace.isAssignTrace():
+            return False
+        elif variable_trace.isInitTrace():
+            pass
+        elif variable_trace.isDeletedTrace():
+            # A "del" statement can do this, and needs to prevent variable
+            # from being not released.
+
+            return False
+        elif variable_trace.isUninitTrace():
+            pass
+        elif variable_trace.isUnknownTrace():
+            return False
+        elif variable_trace.isMergeTrace():
+            pass
+        elif variable_trace.isLoopTrace():
+            pass
+        else:
+            assert False, variable_trace
+
+    return True

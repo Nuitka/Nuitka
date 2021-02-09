@@ -45,6 +45,9 @@ def _checkBases(name, bases):
 
         last_mixin = is_mixin
 
+        if base is not object and "__slots__" not in base.__dict__:
+            raise NuitkaNodeDesignError(name, "All bases must have __slots__.", base)
+
 
 class NodeCheckMetaClass(ABCMeta):
     kinds = {}

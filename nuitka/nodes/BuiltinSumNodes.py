@@ -31,6 +31,8 @@ from .ExpressionBases import (
 
 
 class ExpressionBuiltinSumMixin(object):
+    # Mixins are required to slots
+    __slots__ = ()
 
     builtin_spec = BuiltinParameterSpecs.builtin_sum_spec
 

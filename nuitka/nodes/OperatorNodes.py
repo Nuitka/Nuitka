@@ -29,10 +29,7 @@ from nuitka import PythonOperators
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
 
-from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
-)
+from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
@@ -48,6 +45,9 @@ from .shapes.StandardShapes import (
 class ExpressionPropertiesFromTypeShapeMixin(object):
     """Given a self.type_shape, this can derive default properties from there."""
 
+    # Mixins are required to slots
+    __slots__ = ()
+
     def isKnownToBeHashable(self):
         return self.type_shape.hasShapeSlotHash()
 
@@ -57,10 +57,10 @@ class ExpressionOperationBinaryBase(
 ):
     """Base class for all binary operation expression."""
 
+    __slots__ = ("type_shape", "escape_desc", "inplace_suspect", "shape")
+
     named_children = ("left", "right")
     nice_children = tuple(child_name + " operand" for child_name in named_children)
-
-    shape = vshape_unknown
 
     def __init__(self, left, right, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -70,9 +70,9 @@ class ExpressionOperationBinaryBase(
         self.type_shape = None
         self.escape_desc = None
 
-    @staticmethod
-    def getDetails():
-        return {}
+        self.inplace_suspect = False
+
+        self.shape = vshape_unknown
 
     @staticmethod
     def isExpressionOperationBinary():
@@ -80,8 +80,6 @@ class ExpressionOperationBinaryBase(
 
     def getOperator(self):
         return self.operator
-
-    inplace_suspect = False
 
     def markAsInplaceSuspect(self):
         self.inplace_suspect = True
@@ -96,9 +94,7 @@ class ExpressionOperationBinaryBase(
         return (self.subnode_left, self.subnode_right)
 
     def mayRaiseExceptionOperation(self):
-        return (
-            self.escape_desc is None or self.escape_desc.getExceptionExit() is not None
-        )
+        return self.escape_desc.getExceptionExit() is not None
 
     def mayRaiseException(self, exception_type):
         # TODO: Match getExceptionExit() more precisely against exception type given
@@ -239,6 +235,9 @@ class ExpressionOperationBinaryBase(
 
 
 class ExpressionOperationAddMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def getValueShape(self):
         return self.shape
 
@@ -268,6 +267,11 @@ class ExpressionOperationBinaryAdd(
 ):
     kind = "EXPRESSION_OPERATION_BINARY_ADD"
 
+    def __init__(self, left, right, source_ref):
+        ExpressionOperationBinaryBase.__init__(
+            self, left=left, right=right, source_ref=source_ref
+        )
+
     operator = "Add"
     simulator = PythonOperators.binary_operator_functions[operator]
 
@@ -288,6 +292,9 @@ class ExpressionOperationBinarySub(ExpressionOperationBinaryBase):
 
 
 class ExpressionOperationMultMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def getValueShape(self):
         return self.shape
 
@@ -358,6 +365,11 @@ class ExpressionOperationBinaryMult(
 
     operator = "Mult"
     simulator = PythonOperators.binary_operator_functions[operator]
+
+    def __init__(self, left, right, source_ref):
+        ExpressionOperationBinaryBase.__init__(
+            self, left=left, right=right, source_ref=source_ref
+        )
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -538,9 +550,7 @@ class ExpressionOperationBinaryBitXor(ExpressionOperationBinaryBase):
 
 if python_version >= 0x350:
 
-    class ExpressionOperationBinaryMatMult(
-        ExpressionOperationMultMixin, ExpressionOperationBinaryBase
-    ):
+    class ExpressionOperationBinaryMatMult(ExpressionOperationBinaryBase):
         kind = "EXPRESSION_OPERATION_BINARY_MAT_MULT"
 
         operator = "MatMult"
@@ -580,170 +590,16 @@ def makeBinaryOperationNode(operator, left, right, source_ref):
     return node_class(left=left, right=right, source_ref=source_ref)
 
 
-class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
-    named_child = "operand"
-
-    __slots__ = ("operator", "simulator")
-
-    def __init__(self, operator, operand, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=operand, source_ref=source_ref)
-
-        self.operator = operator
-
-        self.simulator = PythonOperators.unary_operator_functions[operator]
-
-    def getDetails(self):
-        return {"operator": self.operator}
-
-    def getOperator(self):
-        return self.operator
-
-    def computeExpression(self, trace_collection):
-        operator = self.getOperator()
-        operand = self.subnode_operand
-
-        if operand.isCompileTimeConstant():
-            operand_value = operand.getCompileTimeConstant()
-
-            return trace_collection.getCompileTimeComputationResult(
-                node=self,
-                computation=lambda: self.simulator(operand_value),
-                description="Operator '%s' with constant argument." % operator,
-            )
-        else:
-            # TODO: May go down to MemoryError for compile time constant overflow
-            # ones.
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-            # The value of that node escapes and could change its contents.
-            # TODO: The unary operations don't do much to an operator, add
-            # methods, that don't do stuff on common types though.
-            # trace_collection.onValueEscapeSomeUnaryOperator(operand)
-
-            # Any code could be run, note that.
-            trace_collection.onControlFlowEscape(self)
-
-            return self, None, None
-
-    def getOperands(self):
-        return (self.subnode_operand,)
-
-    @staticmethod
-    def isExpressionOperationUnary():
-        return True
-
-
-class ExpressionOperationUnary(ExpressionOperationUnaryBase):
-    kind = "EXPRESSION_OPERATION_UNARY"
-
-    def __init__(self, operator, operand, source_ref):
-        assert operand.isExpression(), operand
-
-        ExpressionOperationUnaryBase.__init__(
-            self, operator=operator, operand=operand, source_ref=source_ref
-        )
-
-
-class ExpressionOperationNot(ExpressionOperationUnaryBase):
-    kind = "EXPRESSION_OPERATION_NOT"
-
-    def __init__(self, operand, source_ref):
-        ExpressionOperationUnaryBase.__init__(
-            self, operator="Not", operand=operand, source_ref=source_ref
-        )
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_bool
-
-    @staticmethod
-    def getDetails():
-        return {}
-
-    def computeExpression(self, trace_collection):
-        return self.subnode_operand.computeExpressionOperationNot(
-            not_node=self, trace_collection=trace_collection
-        )
-
-    def mayRaiseException(self, exception_type):
-        return self.subnode_operand.mayRaiseException(
-            exception_type
-        ) or self.subnode_operand.mayRaiseExceptionBool(exception_type)
-
-    def mayRaiseExceptionBool(self, exception_type):
-        return self.subnode_operand.mayRaiseExceptionBool(exception_type)
-
-    def getTruthValue(self):
-        result = self.subnode_operand.getTruthValue()
-
-        # Need to invert the truth value of operand of course here.
-        return None if result is None else not result
-
-    def mayHaveSideEffects(self):
-        operand = self.subnode_operand
-
-        if operand.mayHaveSideEffects():
-            return True
-
-        return operand.mayHaveSideEffectsBool()
-
-    def mayHaveSideEffectsBool(self):
-        return self.subnode_operand.mayHaveSideEffectsBool()
-
-    def extractSideEffects(self):
-        operand = self.subnode_operand
-
-        # TODO: Find the common ground of these, and make it an expression
-        # method.
-        if operand.isExpressionMakeSequence():
-            return operand.extractSideEffects()
-
-        if operand.isExpressionMakeDict():
-            return operand.extractSideEffects()
-
-        return (self,)
-
-
-class ExpressionOperationAbs(ExpressionOperationUnaryBase):
-    kind = "EXPRESSION_OPERATION_ABS"
-
-    def __init__(self, operand, source_ref):
-        ExpressionOperationUnaryBase.__init__(
-            self, operator="Abs", operand=operand, source_ref=source_ref
-        )
-
-    def computeExpression(self, trace_collection):
-        return self.subnode_operand.computeExpressionAbs(
-            abs_node=self, trace_collection=trace_collection
-        )
-
-    def mayRaiseException(self, exception_type):
-        operand = self.subnode_operand
-
-        if operand.mayRaiseException(exception_type):
-            return True
-
-        return operand.mayRaiseExceptionAbs(exception_type)
-
-    def mayHaveSideEffects(self):
-        operand = self.subnode_operand
-
-        if operand.mayHaveSideEffects():
-            return True
-
-        return operand.mayHaveSideEffectsAbs()
-
-
 class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
     # Base classes can be abstract, pylint: disable=abstract-method
     """Base class for all inplace operations."""
-
-    inplace_suspect = True
 
     def __init__(self, left, right, source_ref):
         ExpressionOperationBinaryBase.__init__(
             self, left=left, right=right, source_ref=source_ref
         )
+
+        self.inplace_suspect = True
 
     @staticmethod
     def isExpressionOperationInplace():
@@ -823,6 +679,11 @@ class ExpressionOperationInplaceAdd(
 
     operator = "IAdd"
     simulator = PythonOperators.binary_operator_functions[operator]
+
+    def __init__(self, left, right, source_ref):
+        ExpressionOperationBinaryInplaceBase.__init__(
+            self, left=left, right=right, source_ref=source_ref
+        )
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):

@@ -51,8 +51,8 @@ nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
 
 tmp_dir = getTempDir()
 
-# Cannot detect this more automatic, either need whitelist or
-# blacklist not needed stuff.
+# Cannot detect this more automatic, so we need to list them, avoiding
+# the ones not needed.
 PACKAGE_LIST = (
     "nuitka",
     "nuitka/nodes",

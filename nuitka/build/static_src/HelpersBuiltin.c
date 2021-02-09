@@ -639,7 +639,80 @@ typedef struct {
     PyTypeObject *obj_type;
 } superobject;
 
-PyObject *BUILTIN_SUPER(PyObject *type, PyObject *object) {
+PyObject *BUILTIN_SUPER2(PyObject *type, PyObject *object) {
+    CHECK_OBJECT(type);
+    CHECK_OBJECT_X(object);
+
+    if (unlikely(PyType_Check(type) == false)) {
+#if PYTHON_VERSION < 0x300
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("super() argument 1 must be type, not %s", type);
+#elif PYTHON_VERSION < 0x352
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("must be type, not %s", type);
+#else
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("super() argument 1 must be type, not %s", type);
+#endif
+        return NULL;
+    }
+
+    if (object == Py_None) {
+        object = NULL;
+    }
+
+    PyTypeObject *obj_type = NULL;
+
+#if 0
+    PRINT_STRING("SUPER:");
+    PRINT_ITEM(type);
+    PRINT_ITEM(object);
+    PRINT_NEW_LINE();
+#endif
+
+    if (object != NULL) {
+
+        if (PyType_Check(object) && PyType_IsSubtype((PyTypeObject *)object, (PyTypeObject *)type)) {
+            obj_type = (PyTypeObject *)object;
+        } else if (object != NULL && PyType_IsSubtype(Py_TYPE(object), (PyTypeObject *)type)) {
+            obj_type = Py_TYPE(object);
+        } else {
+            PyObject *class_attr = PyObject_GetAttr(object, const_str_plain___class__);
+
+            if (likely(class_attr != NULL && PyType_Check(class_attr) &&
+                       (PyTypeObject *)class_attr != Py_TYPE(object) &&
+                       PyType_IsSubtype((PyTypeObject *)class_attr, (PyTypeObject *)type))) {
+
+                obj_type = (PyTypeObject *)class_attr;
+                Py_DECREF(class_attr);
+            } else {
+                Py_XDECREF(class_attr);
+
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
+                                                "super(type, obj): obj must be an instance or subtype of type");
+
+                return NULL;
+            }
+        }
+    }
+
+    superobject *result = PyObject_GC_New(superobject, &PySuper_Type);
+    assert(result);
+
+    result->type = (PyTypeObject *)type;
+    Py_INCREF(type);
+    result->obj = object;
+    Py_XINCREF(object);
+
+    result->obj_type = obj_type;
+    Py_XINCREF(obj_type);
+
+    Nuitka_GC_Track(result);
+
+    CHECK_OBJECT(result);
+    assert(Py_TYPE(result) == &PySuper_Type);
+
+    return (PyObject *)result;
+}
+
+PyObject *BUILTIN_SUPER0(PyObject *type, PyObject *object) {
     CHECK_OBJECT(type);
 
     superobject *result = PyObject_GC_New(superobject, &PySuper_Type);

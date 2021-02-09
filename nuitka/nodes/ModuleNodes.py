@@ -217,6 +217,29 @@ class CompiledPythonModule(
 
     kind = "COMPILED_PYTHON_MODULE"
 
+    __slots__ = (
+        "is_top",
+        "name",
+        "code_prefix",
+        "code_name",
+        "uids",
+        "temp_variables",
+        "temp_scopes",
+        "preserver_id",
+        "needs_annotations_dict",
+        "trace_collection",
+        "mode",
+        "variables",
+        "active_functions",
+        "visited_functions",
+        "cross_used_functions",
+        "used_modules",
+        "future_spec",
+        "source_code",
+        "module_dict_name",
+        "locals_scope",
+    )
+
     named_children = ("body", "functions")
 
     checkers = {"body": checkStatementsSequenceOrNone}
@@ -292,6 +315,9 @@ class CompiledPythonModule(
 
     def getFutureSpec(self):
         return self.future_spec
+
+    def setFutureSpec(self, future_spec):
+        self.future_spec = future_spec
 
     def isTopModule(self):
         return self.is_top
@@ -517,9 +543,44 @@ class CompiledPythonModule(
                 message="Recursed to module package.",
             )
 
+        # Finalize locals scopes previously determined for removal in last pass.
         self.trace_collection.updateVariablesFromCollection(
             old_collection, self.source_ref
         )
+
+        # Indicate if this is pass 1 for the module as return value.
+        was_complete = not self.locals_scope.complete
+
+        def markAsComplete(body, trace_collection):
+            if (
+                body.locals_scope is not None
+                and body.locals_scope.isMarkedForPropagation()
+            ):
+                body.locals_scope = None
+
+            if body.locals_scope is not None:
+                body.locals_scope.markAsComplete(trace_collection)
+
+        def markEntryPointAsComplete(body):
+            markAsComplete(body, body.trace_collection)
+
+            outline_bodies = body.trace_collection.getOutlineFunctions()
+
+            if outline_bodies is not None:
+                for outline_body in outline_bodies:
+                    markAsComplete(outline_body, body.trace_collection)
+
+            body.optimizeUnusedTempVariables()
+
+        markEntryPointAsComplete(self)
+
+        for function_body in self.getUsedFunctions():
+            markEntryPointAsComplete(function_body)
+
+            function_body.optimizeUnusedClosureVariables()
+            function_body.optimizeVariableReleases()
+
+        return was_complete
 
     def getTraceCollections(self):
         yield self.trace_collection
@@ -684,7 +745,10 @@ class UncompiledPythonPackage(UncompiledPythonModule):
 class PythonMainModule(CompiledPythonModule):
     kind = "PYTHON_MAIN_MODULE"
 
+    __slots__ = ("main_added",)
+
     def __init__(self, main_added, mode, future_spec, source_ref):
+        # Is this one from a "__main__.py" file.
         self.main_added = main_added
 
         CompiledPythonModule.__init__(

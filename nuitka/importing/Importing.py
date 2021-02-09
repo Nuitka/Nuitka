@@ -55,8 +55,8 @@ from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 
+from .IgnoreListing import isIgnoreListedNotExistingModule
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
-from .Whitelisting import isWhiteListedNotExistingModule
 
 _debug_module_finding = Options.shallExplainImports()
 
@@ -131,7 +131,7 @@ def getModuleNameAndKindFromFilename(module_filename):
     return module_name, module_kind
 
 
-def isWhiteListedImport(node):
+def isIgnoreListedImportMaker(node):
     module = node.getParentModule()
 
     return StandardLibrary.isStandardLibraryPath(module.getFilename())
@@ -142,7 +142,7 @@ def warnAbout(importing, module_name, parent_package, level, tried_names):
     if module_name == "":
         return
 
-    if not isWhiteListedImport(importing) and not isWhiteListedNotExistingModule(
+    if not isIgnoreListedImportMaker(importing) and not isIgnoreListedNotExistingModule(
         module_name
     ):
         key = module_name, parent_package, level

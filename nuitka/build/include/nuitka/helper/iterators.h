@@ -109,7 +109,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR(PyObject *iterated) {
         if (unlikely(result == NULL)) {
             return NULL;
         } else if (unlikely(!HAS_ITERNEXT(result))) {
-            PyErr_Format(PyExc_TypeError, "iter() returned non-iterator of type '%s'", Py_TYPE(result)->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("iter() returned non-iterator of type '%s'", result);
 
             Py_DECREF(result);
 
@@ -129,7 +129,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR(PyObject *iterated) {
 
         return (PyObject *)result;
     } else {
-        PyErr_Format(PyExc_TypeError, "'%s' object is not iterable", Py_TYPE(iterated)->tp_name);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object is not iterable", iterated);
 
         return NULL;
     }

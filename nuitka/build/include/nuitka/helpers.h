@@ -36,7 +36,11 @@
 #else
 #define _DEBUG_ASYNCGEN 0
 #endif
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CLASSES
+#define _DEBUG_CLASSES 1
+#else
 #define _DEBUG_CLASSES 0
+#endif
 
 #ifdef _NUITKA_EXPERIMENTAL_REPORT_REFCOUNTS
 #define _DEBUG_REFCOUNTS 1
@@ -152,7 +156,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *enc
     }
 #endif
     else {
-        PyErr_Format(PyExc_TypeError, "unicode() argument 2 must be string, not %s", Py_TYPE(encoding)->tp_name);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("unicode() argument 2 must be string, not %s", encoding);
         return NULL;
     }
 
@@ -172,7 +176,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *enc
     }
 #endif
     else {
-        PyErr_Format(PyExc_TypeError, "unicode() argument 3 must be string, not %s", Py_TYPE(errors)->tp_name);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("unicode() argument 3 must be string, not %s", errors);
         return NULL;
     }
 
@@ -271,8 +275,9 @@ extern PyObject *BUILTIN_LEN(PyObject *boundary);
 // For built-in built-in any() functionality.
 extern PyObject *BUILTIN_ANY(PyObject *value);
 
-// For built-in built-in super() functionality.
-extern PyObject *BUILTIN_SUPER(PyObject *type, PyObject *object);
+// For built-in built-in super() no args and 2 user args functionality.
+extern PyObject *BUILTIN_SUPER2(PyObject *type, PyObject *object);
+extern PyObject *BUILTIN_SUPER0(PyObject *type, PyObject *object);
 
 // For built-in built-in all() functionality.
 extern PyObject *BUILTIN_ALL(PyObject *value);
@@ -344,7 +349,7 @@ extern void checkGlobalConstants(void);
 #endif
 
 #if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED || _NUITKA_PLUGIN_TRACEBACK_ENCRYPTION_ENABLED
-// Call this to initialize __main__ constants in slave processes on Windows.
+// Call this to initialize __main__ constants in non-standard processes.
 extern void createMainModuleConstants(void);
 #endif
 

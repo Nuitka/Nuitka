@@ -418,6 +418,10 @@ class ShapeTypeNoneType(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
         def getComparisonNeqShape(self, right_shape):
             return self.getComparisonEqShape(right_shape)
 
+    @staticmethod
+    def getOperationUnaryReprEscape():
+        return ControlFlowDescriptionNoEscape
+
 
 tshape_none = ShapeTypeNoneType()
 
@@ -3924,48 +3928,10 @@ if python_version >= 0x390:
     ibitor_shapes_dict[tshape_bytearray] = operation_result_dict_valueerror
 
 
-class ShapeTypeBuiltinExceptionClass(ShapeBase):
+class ShapeTypeBuiltinExceptionClass(
+    ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase
+):
     typical_value = None
-
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return False
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return False
 
 
 tshape_exception_class = ShapeTypeBuiltinExceptionClass()

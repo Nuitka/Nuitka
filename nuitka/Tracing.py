@@ -38,8 +38,8 @@ from nuitka.utils.ThreadedExecutor import RLock
 # Written by Options module.
 is_quiet = False
 
-# Written by Options module
-use_progressbar = False
+# We have to interact with displayed progress bars when doing out trace outputs.
+progress = None
 
 
 def printIndented(level, *what):
@@ -126,9 +126,8 @@ def my_print(*args, **kwargs):
     Use kwarg style=[option] to print in a style listed below
     """
 
-    global progress  # singleton, pylint: disable=global-statement
-    if progress is not None:
-        progress.clear()
+    if progress:
+        progress.hideProgressBar()
 
     with withTraceLock():
         if "style" in kwargs:
@@ -163,19 +162,25 @@ def my_print(*args, **kwargs):
         # Flush the output.
         kwargs.get("file", sys.stdout).flush()
 
+    if progress:
+        progress.resumeProgressBar()
+
 
 class OurLogger(object):
-    def __init__(self, name, base_style=None):
+    def __init__(self, name, quiet=False, base_style=None):
         self.name = name
         self.base_style = base_style
-        self.is_quiet = False
+        self.is_quiet = quiet
 
     def my_print(self, message, **kwargs):
         # For overload, pylint: disable=no-self-use
         my_print(message, **kwargs)
 
     def warning(self, message, style="red"):
-        message = "%s:WARNING: %s" % (self.name, message)
+        if self.name:
+            message = "%s:WARNING: %s" % (self.name, message)
+        else:
+            message = "WARNING: %s" % message
 
         style = style or self.base_style
         self.my_print(message, style=style, file=sys.stderr)
@@ -204,8 +209,8 @@ class OurLogger(object):
 
 
 class FileLogger(OurLogger):
-    def __init__(self, name, base_style=None, file_handle=sys.stdout):
-        OurLogger.__init__(self, name=name, base_style=base_style)
+    def __init__(self, name, quiet=False, base_style=None, file_handle=sys.stdout):
+        OurLogger.__init__(self, name=name, quiet=quiet, base_style=base_style)
 
         self.file_handle = file_handle
 
@@ -232,12 +237,18 @@ class FileLogger(OurLogger):
             style = style or self.base_style
             self.my_print(message, style=style)
 
+    def info_fileoutput(self, message, other_logger, style=None):
+        if self.file_handle is not sys.stdout:
+            self.info(message, style=style)
+
+        other_logger.info(message, style=style)
+
 
 general = OurLogger("Nuitka")
 codegen_missing = OurLogger("Nuitka-codegen-missing")
 plugins_logger = OurLogger("Nuitka-Plugins")
 recursion_logger = OurLogger("Nuitka-Recursion")
-progress_logger = OurLogger("Nuitka-Progress")
+progress_logger = OurLogger("Nuitka-Progress", quiet=True)
 memory_logger = OurLogger("Nuitka-Memory")
 dependencies_logger = OurLogger("Nuitka-Dependencies")
 optimization_logger = FileLogger("Nuitka-Optimization")
@@ -249,24 +260,3 @@ postprocessing_logger = OurLogger("Nuitka-Postprocessing")
 options_logger = OurLogger("Nuitka-Options")
 unusual_logger = OurLogger("Nuitka-Unusual")
 datacomposer_logger = OurLogger("Nuitka-Datacomposer")
-
-progress = None
-
-
-def reportProgressBar(stage, unit, item, total):
-    global progress  # singleton, pylint: disable=global-statement
-
-    if progress is None and use_progressbar:
-        try:
-            from tqdm import tqdm
-
-            progress = tqdm(initial=1, total=total, unit=unit)
-        except ImportError:
-            return
-
-    if progress is not None:
-        progress.set_description(stage)
-        progress.set_postfix(item=item)
-        progress.unit = unit
-        progress.total = total
-        progress.update(1)

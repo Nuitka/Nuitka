@@ -297,6 +297,41 @@ static PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode) {
 #endif
 }
 
+#if defined(_NUITKA_ONEFILE) && defined(_WIN32)
+
+static long onefile_ppid;
+
+DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
+    for (;;) {
+        Sleep(1000);
+
+        HANDLE handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, onefile_ppid);
+
+        if (handle == NULL) {
+            if (GetLastError() == ERROR_INVALID_PARAMETER) {
+                break;
+            } else {
+                continue;
+            }
+        } else {
+            DWORD ret = WaitForSingleObject(handle, 0);
+
+            CloseHandle(handle);
+
+            if (ret == WAIT_OBJECT_0) {
+                break;
+            }
+        }
+    }
+
+    // puts("Onefile parent monitoring kicks in.");
+
+    PyErr_SetInterrupt();
+
+    return 0;
+}
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
 #if defined(__MINGW32__) && !defined(_W64)
@@ -608,6 +643,18 @@ int main(int argc, char **argv) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
         IMPORT_EMBEDDED_MODULE("__parents_main__");
     } else {
+#endif
+#if defined(_NUITKA_ONEFILE) && defined(_WIN32)
+        {
+            char buffer[128] = {0};
+            DWORD size = GetEnvironmentVariableA("NUITKA_ONEFILE_PARENT", buffer, sizeof(buffer));
+
+            if (size > 0 && size < 127) {
+                onefile_ppid = atol(buffer);
+
+                HANDLE onefile_thread = CreateThread(NULL, 0, doOnefileParentMonitoring, NULL, 0, NULL);
+            }
+        }
 #endif
         PyDict_DelItem(PyImport_GetModuleDict(), const_str_plain___main__);
 

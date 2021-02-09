@@ -51,6 +51,7 @@ from nuitka.tools.testing.Common import (
     getRuntimeTraceOfLoadedFiles,
     my_print,
     setup,
+    test_logger,
 )
 
 setup(needs_io_encoding=True)
@@ -61,11 +62,6 @@ tmp_dir = tempfile.gettempdir()
 # Try to avoid RAM disk /tmp and use the disk one instead.
 if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
     tmp_dir = "/var/tmp"
-
-blacklist = (
-    "__phello__.foo.py",  # Triggers error for "." in module name
-    "idnadata",  # Avoid too complex code for main program.
-)
 
 done = set()
 
@@ -135,7 +131,8 @@ def action(stage_dir, root, path):
             assert os.path.exists(filename[:-3] + ".dist")
 
             loaded_filenames = getRuntimeTraceOfLoadedFiles(
-                path=os.path.join(filename[:-3] + ".dist", "importer.exe")
+                logger=test_logger,
+                path=os.path.join(filename[:-3] + ".dist", "importer.exe"),
             )
 
             outside_accesses = checkRuntimeLoadedFilesForOutsideAccesses(

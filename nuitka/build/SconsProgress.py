@@ -15,24 +15,35 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Nuitka version related stuff.
+""" Progress bar for Scons compilation part.
+
+This does only the interfacing with tracing and collection of information.
 
 """
 
-version_string = """\
-Nuitka V0.6.12
-Copyright (C) 2021 Kay Hayen."""
+
+from nuitka.Progress import (
+    closeProgressBar,
+    enableProgressBar,
+    reportProgressBar,
+    setupProgressBar,
+)
 
 
-def getNuitkaVersion():
-    """Return Nuitka version as a string.
+def enableSconsProgressBar():
+    enableProgressBar()
 
-    This should not be used for >= comparisons directly.
-    """
-    return version_string.split()[1][1:]
+    def _closeSconsProgressBar():
+        closeProgressBar()
+
+    import atexit
+
+    atexit.register(_closeSconsProgressBar)
 
 
-def getNuitkaVersionYear():
-    """ The year of Nuitka copyright for use in generations. """
+def setSconsProgressBarTotal(total):
+    setupProgressBar(stage="Backend C", unit="file", total=total)
 
-    return int(version_string.split()[4])
+
+def updateSconsProgressBar():
+    reportProgressBar(item=None, update=True)

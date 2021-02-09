@@ -33,9 +33,9 @@ def getDependsExePath():
     directory for Nuitka.
     """
     if getArchitecture() == "x86":
-        depends_url = "http://dependencywalker.com/depends22_x86.zip"
+        depends_url = "https://dependencywalker.com/depends22_x86.zip"
     else:
-        depends_url = "http://dependencywalker.com/depends22_x64.zip"
+        depends_url = "https://dependencywalker.com/depends22_x64.zip"
 
     return getCachedDownload(
         url=depends_url,
@@ -44,8 +44,8 @@ def getDependsExePath():
         flatten=True,
         specifity="",  # Note: If there ever was an update, put version here.
         message="""\
-Nuitka will make use of Dependency Walker (http://dependencywalker.com) tool
+Nuitka will make use of Dependency Walker (https://dependencywalker.com) tool
 to analyze the dependencies of Python extension modules.""",
-        reject="Nuitka does not work in --standalone on Windows without.",
+        reject="Nuitka does not work in --standalone or --onefile on Windows without.",
         assume_yes_for_downloads=assumeYesForDownloads(),
     )

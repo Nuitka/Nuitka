@@ -20,7 +20,7 @@
 import os
 import sys
 
-from nuitka import Tracing
+from nuitka import Progress, Tracing
 from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import parseOptions
 from nuitka.PythonVersions import isUninstalledPython
@@ -45,7 +45,8 @@ def parseArgs():
     )
 
     Tracing.is_quiet = options.quiet or int(os.environ.get("NUITKA_QUIET", "0"))
-    Tracing.use_progressbar = isExperimental("progress")
+    if options.progress_bar:
+        Progress.enableProgressBar()
 
     if options.verbose_output:
         Tracing.optimization_logger.setFileHandle(
@@ -62,6 +63,9 @@ def parseArgs():
         )
 
         options.show_inclusion = True
+
+    if options.show_progress:
+        Tracing.progress_logger.is_quiet = False
 
     # Onefile implies standalone build.
     if options.is_onefile:
@@ -140,6 +144,15 @@ sane default used inside the dist folder."""
             Tracing.general.sysexit("Error, can only use one icon on Linux.")
 
     for icon_path in getIconPaths():
+        if "#" in icon_path and isWin32Windows():
+            icon_path, icon_index = icon_path.rsplit("#", 1)
+
+            if not icon_index.isdigit() or int(icon_index) < 0:
+                Tracing.general.sysexit(
+                    "Error, icon number in %r not valid."
+                    % (icon_path + "#" + icon_index)
+                )
+
         if not os.path.exists(icon_path):
             Tracing.general.sysexit("Error, icon path %r does not exist." % icon_path)
 
@@ -861,3 +874,8 @@ def shallCompileWithoutBuildDirectory():
 def shallPreferSourcecodeOverExtensionModules():
     """*bool* prefer source code over extension modules if both are there"""
     return options is not None and options.prefer_source_code
+
+
+def shallUseProgressBar():
+    """*bool* prefer source code over extension modules if both are there"""
+    return options.progress_bar

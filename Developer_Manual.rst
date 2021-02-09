@@ -194,6 +194,9 @@ complain unavailability of ``clang-format``, follow it's advice. You may call
 the above tool at all times, without arguments to format call Nuitka source
 code.
 
+Should you encounter problems with applying the changes to the checked out
+file, you can always execute it with ``COMMIT_UNCHECKED=1`` environment set.
+
 Coding Rules Python
 ===================
 
@@ -812,6 +815,9 @@ When adding a test suite, for a new version, proceed like this:
    git checkout origin/CPython38 -- .gitignore
    git commit --amend .gitignore
 
+   # Now cherry-pick all commits of test support, these disable network, audio, GUI, random filenames and more
+   # and are crucial for determistic outputs and non-reliance on outside stuff.
+   git log --reverse origin/CPython38 --oneline -- tests/support/__init__.py | cut -d' ' -f1 | xargs git cherry-pick
 
    git push
 

@@ -17,7 +17,7 @@
 #
 """ Hacks for scons that we apply.
 
-We blacklist some tools from the standard scan, there is e.g. no need to ask
+We block some tools from the standard scan, there is e.g. no need to ask
 what fortran version we have installed to compile with Nuitka.
 
 Also we hack the gcc version detection to fix some bugs in it, and to avoid
@@ -36,13 +36,13 @@ from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
 from nuitka.Tracing import scons_details_logger
 
-from .SconsUtils import decodeData, isGccName
+from .SconsUtils import decodeData, getExecutablePath, isGccName
 
 # Cache for detected versions.
 v_cache = {}
 
 # Prevent these programs from being found, avoiding the burden of tool init.
-blacklisted_tools = (
+_blocked_tools = (
     # TODO: Where the fallback is needed, g++ needs to scanned or else it
     # cannot be used.
     #    "g++",
@@ -86,28 +86,13 @@ blacklisted_tools = (
 )
 
 
-# From gcc.py of Scons
-def myDetectVersion(env, cc):
-    """Return the version of the GNU compiler, or None if it is not a GNU compiler."""
-    cc = env.subst(cc)
-    if not cc:
-        return None
-    if "++" in os.path.basename(cc):
-        return None
-
-    version = None
-
-    clvar = tuple(SCons.Util.CLVar(cc))
-
-    if clvar in v_cache:
-        return v_cache[clvar]
-
+def _myDetectVersion(env, clvar):
     clvar0 = os.path.basename(clvar[0])
 
     if isGccName(clvar0) or "clang" in clvar0:
-        command = list(clvar) + ["-dumpversion"]
+        command = clvar + ("-dumpversion",)
     else:
-        command = list(clvar) + ["--version"]
+        command = clvar + ("--version",)
 
     # pipe = SCons.Action._subproc(env, SCons.Util.CLVar(cc) + ['-dumpversion'],
     pipe = SCons.Action._subproc(  # pylint: disable=protected-access
@@ -122,6 +107,10 @@ def myDetectVersion(env, cc):
 
     ret = pipe.wait()
     if ret != 0:
+        scons_details_logger.info(
+            "Error, error exit from %r (%d) gave %r."
+            % (command, ret, pipe.stderr.read())
+        )
         return None
 
     if str is not bytes and type(line) is bytes:
@@ -138,19 +127,36 @@ def myDetectVersion(env, cc):
 
     version = tuple(int(part) for part in version.split("."))
 
-    scons_details_logger.info(
-        "CC %r version check gives %r from %r" % (cc, version, line)
-    )
-
-    v_cache[clvar] = version
     return version
+
+
+# From gcc.py of Scons
+def myDetectVersion(env, cc):
+    """Return the version of the GNU compiler, or None if it is not a GNU compiler."""
+    cc = env.subst(cc)
+    if not cc:
+        return None
+    if "++" in os.path.basename(cc):
+        return None
+
+    # Make path absolute, to improve cache hit rate.
+    cc = getExecutablePath(cc, env)
+    if cc is None:
+        return None
+
+    if cc not in v_cache:
+        v_cache[cc] = _myDetectVersion(env, (cc,))
+
+        scons_details_logger.info("CC %r version check gives %r" % (cc, v_cache[cc]))
+
+    return v_cache[cc]
 
 
 def myDetect(self, progs):
     # Don't consider Fortran, tar, D, c++, we don't need it. We do manual
     # fallback
-    for blacklisted_tool in blacklisted_tools:
-        if blacklisted_tool in progs:
+    for blocked_tool in _blocked_tools:
+        if blocked_tool in progs:
             return None
 
     return orig_detect(self, progs)

@@ -251,6 +251,9 @@ def makeExpressionBuiltinSlice(start, stop, step, source_ref):
 
 
 class ExpressionBuiltinSliceMixin(SideEffectsFromChildrenMixin):
+    # Mixins are required to slots
+    __slots__ = ()
+
     builtin_spec = BuiltinParameterSpecs.builtin_slice_spec
 
     @staticmethod

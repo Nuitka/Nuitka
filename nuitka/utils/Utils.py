@@ -116,21 +116,5 @@ def encodeNonAscii(var_name):
         return var_name.replace("&#", "$$").replace(";", "")
 
 
-def isExecutableCommand(command):
-    path = os.environ["PATH"]
-
-    suffixes = (".exe",) if getOS() == "Windows" else ("",)
-
-    for part in path.split(os.pathsep):
-        if not part:
-            continue
-
-        for suffix in suffixes:
-            if os.path.isfile(os.path.join(part, command + suffix)):
-                return True
-
-    return False
-
-
 def hasOnefileSupportedOS():
     return getOS() in ("Linux", "Windows")

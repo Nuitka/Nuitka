@@ -126,18 +126,20 @@ from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
 )
-from nuitka.nodes.OperatorNodes import (
-    ExpressionOperationAbs,
-    ExpressionOperationBinaryDivmod,
+from nuitka.nodes.OperatorNodes import ExpressionOperationBinaryDivmod
+from nuitka.nodes.OperatorNodesUnary import (
     ExpressionOperationNot,
-    ExpressionOperationUnary,
+    ExpressionOperationUnaryAbs,
+    ExpressionOperationUnaryRepr,
 )
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import makeStatementReturn
 from nuitka.nodes.SliceNodes import makeExpressionBuiltinSlice
 from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
-    ExpressionBuiltinSuper,
+    ExpressionBuiltinIssubclass,
+    ExpressionBuiltinSuper0,
+    ExpressionBuiltinSuper2,
     ExpressionBuiltinType1,
 )
 from nuitka.nodes.VariableRefNodes import (
@@ -399,14 +401,9 @@ def id_extractor(node):
 
 
 def repr_extractor(node):
-    def makeReprOperator(operand, source_ref):
-        return ExpressionOperationUnary(
-            operator="Repr", operand=operand, source_ref=source_ref
-        )
-
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
-        builtin_class=makeReprOperator,
+        builtin_class=ExpressionOperationUnaryRepr,
         builtin_spec=BuiltinParameterSpecs.builtin_repr_spec,
     )
 
@@ -509,7 +506,7 @@ def all_extractor(node):
 def abs_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
-        builtin_class=ExpressionOperationAbs,
+        builtin_class=ExpressionOperationUnaryAbs,
         builtin_spec=BuiltinParameterSpecs.builtin_abs_spec,
     )
 
@@ -1103,14 +1100,11 @@ def super_extractor(node):
 
             # If we already have this as a local variable, then use that
             # instead.
-            type_arg_owner = type_arg.getVariable().getOwner()
+            type_arg_owner = class_variable.getOwner()
             if type_arg_owner is provider or not (
                 type_arg_owner.isExpressionFunctionBody()
                 or type_arg_owner.isExpressionClassBody()
             ):
-                type_arg = None
-
-            if type_arg is None:
                 return makeRaiseExceptionReplacementExpression(
                     expression=node,
                     exception_type="SystemError"
@@ -1129,7 +1123,13 @@ def super_extractor(node):
                 else:
                     parameter_provider = provider
 
-                if parameter_provider.getParameters().getArgumentCount() > 0:
+                if parameter_provider.getParameters().getArgumentCount() == 0:
+                    return makeRaiseExceptionReplacementExpression(
+                        expression=node,
+                        exception_type="RuntimeError",
+                        exception_value="super(): no arguments",
+                    )
+                else:
                     par1_name = parameter_provider.getParameters().getArgumentNames()[0]
 
                     object_variable = provider.getVariableForReference(
@@ -1152,15 +1152,13 @@ def super_extractor(node):
                             else "RuntimeError",
                             exception_value="super(): __class__ cell not found",
                         )
-                else:
-                    return makeRaiseExceptionReplacementExpression(
-                        expression=node,
-                        exception_type="RuntimeError",
-                        exception_value="super(): no arguments",
-                    )
 
-        return ExpressionBuiltinSuper(
-            super_type=type_arg, super_object=object_arg, source_ref=source_ref
+            return ExpressionBuiltinSuper0(
+                type_arg=type_arg, object_arg=object_arg, source_ref=source_ref
+            )
+
+        return ExpressionBuiltinSuper2(
+            type_arg=type_arg, object_arg=object_arg, source_ref=source_ref
         )
 
     provider = node.getParentVariableProvider().getEntryPoint()
@@ -1221,6 +1219,14 @@ def isinstance_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
         builtin_class=ExpressionBuiltinIsinstance,
+        builtin_spec=BuiltinParameterSpecs.builtin_isinstance_spec,
+    )
+
+
+def issubclass_extractor(node):
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=ExpressionBuiltinIssubclass,
         builtin_spec=BuiltinParameterSpecs.builtin_isinstance_spec,
     )
 
@@ -1369,6 +1375,7 @@ _dispatch_dict = {
     "getattr": getattr_extractor,
     "setattr": setattr_extractor,
     "isinstance": isinstance_extractor,
+    "issubclass": issubclass_extractor,
     "bytearray": bytearray_extractor,
     "slice": slice_extractor,
     "hash": hash_extractor,
@@ -1406,7 +1413,7 @@ def check():
 
 check()
 
-_builtin_white_list = (
+_builtin_ignore_list = (
     # Not supporting 'print', because it could be replaced, and is not
     # worth the effort yet.
     "print",
@@ -1503,9 +1510,9 @@ def computeBuiltinCall(builtin_name, call_node):
 
         return new_node, tags, message
     else:
-        if False and builtin_name not in _builtin_white_list:
+        if False and builtin_name not in _builtin_ignore_list:
             optimization_logger.warning(
-                "Not handling built-in '%s', consider support." % builtin_name
+                "Not handling built-in %r, consider support." % builtin_name
             )
 
         return call_node, None, None

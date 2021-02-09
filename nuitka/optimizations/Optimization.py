@@ -28,15 +28,18 @@ import os
 
 from nuitka import ModuleRegistry, Options, Variables
 from nuitka.importing import ImportCache
-from nuitka.nodes.LocalsScopes import LocalsDictHandle, getLocalsDictHandles
 from nuitka.plugins.Plugins import Plugins
+from nuitka.Progress import (
+    closeProgressBar,
+    reportProgressBar,
+    setupProgressBar,
+)
 from nuitka.Tracing import (
     general,
     memory_logger,
     optimization_logger,
     progress_logger,
     recursion_logger,
-    reportProgressBar,
 )
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import makePath
@@ -92,12 +95,12 @@ TraceCollections.signalChange = signalChange
 
 
 def optimizeCompiledPythonModule(module):
-    if _progress:
-        progress_logger.info(
-            "Doing module local optimizations for '{module_name}'.".format(
-                module_name=module.getFullName()
-            )
-        )
+    optimization_logger.info_fileoutput(
+        "Doing module local optimizations for '{module_name}'.".format(
+            module_name=module.getFullName()
+        ),
+        other_logger=progress_logger,
+    )
 
     touched = False
 
@@ -109,10 +112,13 @@ def optimizeCompiledPythonModule(module):
 
         try:
             # print("Compute module")
-            module.computeModule()
+            changed = module.computeModule()
         except BaseException:
             general.info("Interrupted while working on '%s'." % module)
             raise
+
+        if changed:
+            tag_set.add("var_usage")
 
         Graphs.onModuleOptimizationStep(module)
 
@@ -123,18 +129,19 @@ def optimizeCompiledPythonModule(module):
 
             break
         else:
-            if _progress:
-                progress_logger.info("Finished with the module.")
+            optimization_logger.info_fileoutput(
+                "Finished with the module.", other_logger=progress_logger
+            )
             break
 
-        if _progress:
-            if "new_code" in tag_set:
-                tag_set.remove("new_code")
+        if "new_code" in tag_set:
+            tag_set.remove("new_code")
 
-            progress_logger.info(
-                "Not finished with the module due to following change kinds: %s"
-                % ",".join(sorted(tag_set))
-            )
+        optimization_logger.info_fileoutput(
+            "Not finished with the module due to following change kinds: %s"
+            % ",".join(sorted(tag_set)),
+            other_logger=progress_logger,
+        )
 
         # Otherwise we did stuff, so note that for return value.
         touched = True
@@ -154,12 +161,11 @@ def optimizeCompiledPythonModule(module):
 
 def optimizeUncompiledPythonModule(module):
     full_name = module.getFullName()
-    if _progress:
-        progress_logger.info(
-            "Doing module dependency considerations for '{module_name}':".format(
-                module_name=full_name
-            )
+    progress_logger.info(
+        "Doing module dependency considerations for '{module_name}':".format(
+            module_name=full_name
         )
+    )
 
     for used_module_name, used_module_path in module.getUsedModules():
         used_module = ImportCache.getImportedModuleByNameAndPath(
@@ -196,317 +202,46 @@ def optimizeModule(module):
     return changed
 
 
-def areReadOnlyTraces(variable_traces):
-    """Do these traces contain any writes."""
+pass_count = 0
 
-    # Many cases immediately return, that is how we do it here,
-    for variable_trace in variable_traces:
-        if variable_trace.isAssignTrace():
-            return False
-        elif variable_trace.isInitTrace():
-            pass
-        elif variable_trace.isDeletedTrace():
-            # A "del" statement can do this, and needs to prevent variable
-            # from being not released.
 
-            return False
-        elif variable_trace.isUninitTrace():
-            pass
-        elif variable_trace.isUnknownTrace():
-            return False
-        elif variable_trace.isMergeTrace():
-            pass
-        elif variable_trace.isLoopTrace():
-            pass
-        else:
-            assert False, variable_trace
+def _restartProgress():
+    closeProgressBar()
 
-    return True
+    global pass_count  # Singleton, pylint: disable=global-statement
 
+    pass_count += 1
 
-def areEmptyTraces(variable_traces):
-    """Do these traces contain any writes or accesses."""
-    # Many cases immediately return, that is how we do it here,
-    # pylint: disable=too-many-return-statements
+    optimization_logger.info_fileoutput(
+        "PASS %d:" % pass_count, other_logger=progress_logger
+    )
 
-    for variable_trace in variable_traces:
-        if variable_trace.isAssignTrace():
-            return False
-        elif variable_trace.isInitTrace():
-            return False
-        elif variable_trace.isDeletedTrace():
-            # A "del" statement can do this, and needs to prevent variable
-            # from being removed.
-
-            return False
-        elif variable_trace.isUninitTrace():
-            if variable_trace.getUsageCount():
-                # Checking definite is enough, the merges, we shall see
-                # them as well.
-                return False
-        elif variable_trace.isUnknownTrace():
-            if variable_trace.getUsageCount():
-                # Checking definite is enough, the merges, we shall see
-                # them as well.
-                return False
-        elif variable_trace.isMergeTrace():
-            if variable_trace.getUsageCount():
-                # Checking definite is enough, the merges, we shall see
-                # them as well.
-                return False
-        elif variable_trace.isLoopTrace():
-            return False
-        else:
-            assert False, variable_trace
-
-    return True
-
-
-def optimizeUnusedClosureVariables(function_body):
-    changed = False
-
-    for closure_variable in function_body.getClosureVariables():
-        # print "VAR", closure_variable
-
-        # Need to take closure of those.
-        if (
-            closure_variable.isParameterVariable()
-            and function_body.isExpressionGeneratorObjectBody()
-        ):
-            continue
-
-        variable_traces = function_body.trace_collection.getVariableTraces(
-            variable=closure_variable
-        )
-
-        empty = areEmptyTraces(variable_traces)
-        if empty:
-            changed = True
-
-            signalChange(
-                "var_usage",
-                function_body.getSourceReference(),
-                message="Remove unused closure variable '%s'."
-                % closure_variable.getName(),
-            )
-
-            function_body.removeClosureVariable(closure_variable)
-
-    return changed
-
-
-def optimizeVariableReleases(function_body):
-    changed = False
-
-    for parameter_variable in function_body.getParameterVariablesWithManualRelease():
-
-        variable_traces = function_body.trace_collection.getVariableTraces(
-            variable=parameter_variable
-        )
-
-        read_only = areReadOnlyTraces(variable_traces)
-        if read_only:
-            changed = True
-
-            signalChange(
-                "var_usage",
-                function_body.getSourceReference(),
-                message="Schedule removal releases of unassigned parameter variable '%s'."
-                % parameter_variable.getName(),
-            )
-
-            function_body.removeVariableReleases(parameter_variable)
-
-    return changed
-
-
-def optimizeLocalsDictsHandles():
-    # Lots of cases, pylint: disable=too-many-branches
-
-    changed = False
-
-    locals_scopes = getLocalsDictHandles()
-
-    for locals_scope_name, locals_scope in locals_scopes.items():
-        # Limit to Python2 classes for now:
-        if type(locals_scope) is not LocalsDictHandle:
-            continue
-
-        if locals_scope.isMarkedForPropagation():
-            locals_scope.finalize()
-
-            del locals_scopes[locals_scope_name]
-
-            assert locals_scope not in locals_scopes
-            continue
-
-        propagate = True
-
-        for variable in locals_scope.variables.values():
-            for variable_trace in variable.traces:
-                if variable_trace.isAssignTrace():
-                    # For assign traces we want the value to not have a side effect,
-                    # then we can push it down the line. TODO: Once temporary
-                    # variables and dictionary building allows for unset values
-                    # remove this
-                    if (
-                        variable_trace.getAssignNode().subnode_source.mayHaveSideEffects()
-                    ):
-                        propagate = False
-                        break
-                elif variable_trace.isDeletedTrace():
-                    propagate = False
-                    break
-                elif variable_trace.isMergeTrace():
-                    propagate = False
-                    break
-                elif variable_trace.isUninitTrace():
-                    pass
-                elif variable_trace.isUnknownTrace():
-                    propagate = False
-                    break
-                else:
-                    assert False, (variable, variable_trace)
-
-        if propagate:
-            locals_scope.markForLocalsDictPropagation()
-
-    return changed
-
-
-def optimizeUnusedUserVariables(function_body):
-    changed = False
-
-    for local_variable in function_body.getUserLocalVariables():
-        variable_traces = function_body.trace_collection.getVariableTraces(
-            variable=local_variable
-        )
-
-        empty = areEmptyTraces(variable_traces)
-        if empty:
-            function_body.removeUserVariable(local_variable)
-
-            signalChange(
-                "var_usage",
-                function_body.getSourceReference(),
-                message="Remove unused local variable '%s'." % local_variable.getName(),
-            )
-
-            changed = True
-
-    outlines = function_body.trace_collection.getOutlineFunctions()
-
-    if outlines is not None:
-        for outline in outlines:
-            for local_variable in outline.getUserLocalVariables():
-                variable_traces = function_body.trace_collection.getVariableTraces(
-                    variable=local_variable
-                )
-
-                empty = areEmptyTraces(variable_traces)
-                if empty:
-                    outline.removeUserVariable(local_variable)
-
-                    signalChange(
-                        "var_usage",
-                        outline.getSourceReference(),
-                        message="Remove unused local variable '%s'."
-                        % local_variable.getName(),
-                    )
-
-                    changed = True
-
-    return changed
-
-
-def optimizeUnusedTempVariables(provider):
-    remove = None
-
-    for temp_variable in provider.getTempVariables():
-        variable_traces = provider.trace_collection.getVariableTraces(
-            variable=temp_variable
-        )
-
-        empty = areEmptyTraces(variable_traces)
-        if empty:
-            if remove is None:
-                remove = []
-
-            remove.append(temp_variable)
-
-    if remove:
-        for temp_variable in remove:
-            provider.removeTempVariable(temp_variable)
-
-        return True
-    else:
-        return False
-
-
-def optimizeUnusedAssignments(provider):
-    for _trace_collection in provider.getTraceCollections():
-        # TODO: Find things to do here.
-        pass
-
-    return False
-
-
-def optimizeVariables(module):
-    changed = False
-
-    try:
-        try:
-            for function_body in module.getUsedFunctions():
-                if Variables.complete:
-                    if optimizeUnusedUserVariables(function_body):
-                        changed = True
-
-                    if optimizeUnusedClosureVariables(function_body):
-                        changed = True
-
-                    if optimizeVariableReleases(function_body):
-                        changed = True
-
-                if optimizeUnusedTempVariables(function_body):
-                    changed = True
-        except Exception:
-            print("Problem with", function_body)
-            raise  #
-
-        if optimizeUnusedUserVariables(module):
-            changed = True
-
-        if optimizeUnusedTempVariables(module):
-            changed = True
-
-    #        TODO: Global optimizations could go here maybe, so far we can do all
-    #        the things in assign nodes themselves based on last trace.
-    #        if optimizeUnusedAssignments(module):
-    #            changed = True
-    except Exception:
-        print("Problem with", module)
-        raise
-
-    return changed
+    setupProgressBar(
+        stage="PASS %d" % pass_count,
+        unit="module",
+        total=ModuleRegistry.getRemainingModulesCount()
+        + ModuleRegistry.getDoneModulesCount(),
+    )
 
 
 def _traceProgress(current_module):
-    if _progress:
-        output = """\
+    optimization_logger.info_fileoutput(
+        """\
 Optimizing module '{module_name}', {remaining:d} more modules to go \
 after that.""".format(
             module_name=current_module.getFullName(),
             remaining=ModuleRegistry.getRemainingModulesCount(),
-        )
-        progress_logger.info(output)
-
-    reportProgressBar(
-        stage="Optimization",
-        unit=" modules",
-        item=current_module.getFullName(),
-        total=ModuleRegistry.getRemainingModulesCount()
-        + ModuleRegistry.getDoneModulesCount(),
+        ),
+        other_logger=progress_logger,
     )
+
+    # Progress bar and spammy tracing don't go along.
+    if not _is_verbose:
+        reportProgressBar(
+            item=current_module.getFullName(),
+            total=ModuleRegistry.getRemainingModulesCount()
+            + ModuleRegistry.getDoneModulesCount(),
+        )
 
     if _progress and Options.isShowMemory():
         output = "Memory usage {memory}:".format(
@@ -514,6 +249,10 @@ after that.""".format(
         )
 
         memory_logger.info(output)
+
+
+def _endProgress():
+    closeProgressBar()
 
 
 def restoreFromXML(text):
@@ -536,6 +275,8 @@ def makeOptimizationPass():
 
     ModuleRegistry.startTraversal()
 
+    _restartProgress()
+
     while True:
         current_module = ModuleRegistry.nextModule()
 
@@ -555,7 +296,8 @@ def makeOptimizationPass():
             finished = False
 
     # Unregister collection traces from now unused code, dropping the trace
-    # collections of functions no longer used.
+    # collections of functions no longer used. This must be done after global
+    # optimization due to cross module usages.
     for current_module in ModuleRegistry.getDoneModules():
         if current_module.isCompiledPythonModule():
             for unused_function in current_module.getUnusedFunctions():
@@ -567,27 +309,15 @@ def makeOptimizationPass():
 
                 unused_function.trace_collection = None
 
-    for current_module in ModuleRegistry.getDoneModules():
-        if current_module.isCompiledPythonModule():
-            if optimizeVariables(current_module):
-                finished = False
-
-            used_functions = current_module.getUsedFunctions()
-
-            for unused_function in current_module.getUnusedFunctions():
-                unused_function.trace_collection = None
-
             used_functions = tuple(
                 function
                 for function in current_module.subnode_functions
-                if function in used_functions
+                if function in current_module.getUsedFunctions()
             )
 
             current_module.setChild("functions", used_functions)
 
-    if Variables.complete:
-        if optimizeLocalsDictsHandles():
-            finished = False
+    _endProgress()
 
     return finished
 
@@ -612,16 +342,6 @@ def _checkXMLPersistence():
 def optimize(output_filename):
     Graphs.startGraph()
 
-    # First pass.
-    if _progress:
-        progress_logger.info("PASS 1:")
-
-    makeOptimizationPass()
-    Variables.complete = True
-
-    if _progress:
-        progress_logger.info("PASS 2:")
-
     finished = makeOptimizationPass()
 
     if Options.isExperimental("check_xml_persistence"):
@@ -636,14 +356,10 @@ def optimize(output_filename):
         ):
             demoteCompiledModuleToBytecode(module)
 
-    pass_count = 2
+    global pass_count  # Singleton, pylint: disable=global-statement
+
     # Second, "endless" pass.
     while not finished:
-        pass_count += 1
-
-        if _progress:
-            progress_logger.info("PASS %d:" % pass_count)
-
         finished = makeOptimizationPass()
 
     Graphs.endGraph(output_filename)

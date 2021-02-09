@@ -185,7 +185,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
                 return NULL;
             }
 #else
-            PyErr_Format(
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(
                 PyExc_TypeError,
                 "%%s() takes no arguments (%(args_count)d given)",
                 ((PyCFunctionObject *)called)->m_ml->ml_name
@@ -230,7 +230,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
                 return NULL;
             }
 #else
-            PyErr_Format(PyExc_TypeError,
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError,
                 "%%s() takes exactly one argument (%(args_count)d given)",
                  ((PyCFunctionObject *)called)->m_ml->ml_name
             );
@@ -454,11 +454,11 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
         }
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(
             PyExc_AttributeError,
             "'%%s' object has no attribute '%%s'",
             type->tp_name,
-            PyString_AS_STRING( attr_name )
+            PyString_AS_STRING(attr_name)
         );
 #else
         PyErr_Format(
@@ -528,7 +528,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
             }
 
         } else if (unlikely(source_instance->in_class->cl_getattr == NULL)) {
-            PyErr_Format(
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(
                 PyExc_AttributeError,
                 "%%s instance has no attribute '%%s'",
                 PyString_AS_STRING(source_instance->in_class->cl_name),
@@ -596,7 +596,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
         Py_DECREF(called_object);
         return result;
     } else {
-        PyErr_Format(
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(
             PyExc_AttributeError,
             "'%%s' object has no attribute '%%s'",
             type->tp_name,

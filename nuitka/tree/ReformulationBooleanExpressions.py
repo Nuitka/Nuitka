@@ -26,7 +26,7 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditionalAnd,
     ExpressionConditionalOr,
 )
-from nuitka.nodes.OperatorNodes import ExpressionOperationNot
+from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
 
 from .TreeHelpers import buildNode, buildNodeList, getKind
 

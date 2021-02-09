@@ -44,18 +44,21 @@ sys.path.insert(
 # isort:start
 
 from nuitka.tools.testing.Common import (
+    addExtendedExtraOptions,
     checkRequirements,
     compareWithCPython,
     createSearchMode,
     decideFilenameVersionSkip,
     displayFileContents,
+    displayRuntimeTraces,
     getRuntimeTraceOfLoadedFiles,
     reportSkip,
     setup,
     test_logger,
 )
-from nuitka.utils.FileOperations import areSamePaths, removeDirectory
+from nuitka.utils.FileOperations import areSamePaths
 from nuitka.utils.Timing import TimerReport
+from nuitka.utils.Utils import getOS
 
 
 def displayError(dirname, filename):
@@ -73,6 +76,11 @@ def main():
 
     search_mode = createSearchMode()
 
+    if getOS() == "Linux":
+        addExtendedExtraOptions(
+            "--linux-onefile-icon=../../doc/Logo/Nuitka-Logo-Symbol.svg"
+        )
+
     for filename in sorted(os.listdir(".")):
         if not filename.endswith(".py"):
             continue
@@ -88,13 +96,34 @@ def main():
 
         extra_flags = [
             "expect_success",
-            "--oneline",
+            "--onefile",
             "remove_output",
+            # Keep the binary, normally "remove_output" includes that.
+            "--keep-binary",
             # Cache the CPython results for re-use, they will normally not change.
             "cpython_cache",
             # To understand what is slow.
             "timing",
         ]
+
+        if filename == "KeyboardInteruptTest.py":
+            if python_version < (3,):
+                reportSkip(
+                    "Python2 reports KeyboardInterrupt, but too late",
+                    ".",
+                    filename,
+                )
+                continue
+
+            if os.name == "nt":
+                reportSkip(
+                    ".",
+                    filename,
+                    "Testing cannot send KeyboardInterrupt on Windows yet",
+                )
+                continue
+
+            extra_flags.append("--send-ctrl-c")
 
         # skip each test if their respective requirements are not met
         requirements_met, error_message = checkRequirements(filename)
@@ -103,7 +132,7 @@ def main():
             continue
 
         test_logger.info(
-            "Consider output of standalone mode compiled program: %s" % filename
+            "Consider output of onefile mode compiled program: %s" % filename
         )
 
         # First compare so we know the program behaves identical.
@@ -118,11 +147,16 @@ def main():
 
         binary_filename = filename[:-3] + (".exe" if os.name == "nt" else ".bin")
 
+        if filename == "KeyboardInteruptTest.py":
+            continue
+
         # Then use "strace" on the result.
         with TimerReport(
             "Determining run time loaded files took %.2f", logger=test_logger
         ):
-            loaded_filenames = getRuntimeTraceOfLoadedFiles(binary_filename)
+            loaded_filenames = getRuntimeTraceOfLoadedFiles(
+                logger=test_logger, path=binary_filename
+            )
 
         current_dir = os.path.normpath(os.getcwd())
         current_dir = os.path.normcase(current_dir)
@@ -176,7 +210,7 @@ def main():
             if loaded_filename.startswith("/dev/"):
                 continue
 
-            if loaded_filename.startswith("/tmp/"):
+            if loaded_filename.startswith("/tmp/") or loaded_filename == "/tmp":
                 continue
 
             if loaded_filename.startswith("/run/"):
@@ -434,7 +468,11 @@ def main():
             ):
                 continue
 
-            # MSVC run time DLLs, seem to sometimes come from system.
+            # Linux onefile uses this
+            if loaded_basename.startswith("libfuse.so."):
+                continue
+
+            # MSVC run time DLLs, due to SxS come from system.
             if loaded_basename.upper() in ("MSVCRT.DLL", "MSVCR90.DLL"):
                 continue
 
@@ -442,20 +480,12 @@ def main():
             illegal_access = True
 
         if illegal_access:
-            if os.name != "nt":
-                displayError(displayError, filename)
-
-                # Run with traces to help debugging, specifically in CI environment.
-                if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
-                    test_logger.info("dtruss:")
-                    os.system("sudo dtruss %s" % binary_filename)
-                else:
-                    test_logger.info("strace:")
-                    os.system("strace -s4096 -e file %s" % binary_filename)
+            displayError(None, filename)
+            displayRuntimeTraces(test_logger, binary_filename)
 
             search_mode.onErrorDetected(1)
 
-        removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
+        os.unlink(binary_filename)
 
         if search_mode.abortIfExecuted():
             break

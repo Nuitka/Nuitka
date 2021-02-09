@@ -27,7 +27,7 @@ import subprocess
 import sys
 
 from nuitka.tools.testing.Common import hasModule, my_print
-from nuitka.utils import Execution
+from nuitka.utils.Execution import check_output, getNullInput
 
 pylint_version = None
 
@@ -44,7 +44,7 @@ def checkVersion():
 
     if pylint_version is None:
         with open(os.devnull, "w") as devnull:
-            pylint_version = Execution.check_output(
+            pylint_version = check_output(
                 [os.environ["PYTHON"], "-m", "pylint", "--version"], stderr=devnull
             )
 
@@ -202,6 +202,13 @@ similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
             "\n"
         )
 
+    if pylint_version < "2.0":
+        default_pylint_options += """\
+--disable=slots-on-old-class\
+""".split(
+            "\n"
+        )
+
     if os.name != "nt":
         default_pylint_options.append("--rcfile=%s" % os.devnull)
 
@@ -251,7 +258,11 @@ def _executePylint(filenames, pylint_options, extra_options):
     )
 
     process = subprocess.Popen(
-        args=command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False
+        args=command,
+        stdin=getNullInput(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=False,
     )
 
     stdout, stderr = process.communicate()
@@ -283,6 +294,30 @@ def _executePylint(filenames, pylint_options, extra_options):
     sys.stdout.flush()
 
 
+def hasPyLintBugTrigger(filename):
+    # Stack overflow core dumps with 1.9.x unfortunately.
+    if pylint_version < "2.0.0":
+        if os.path.basename(filename) in (
+            "ReformulationContractionExpressions.py",
+            "TreeHelpers.py",
+        ):
+            return True
+
+    # Slot warning that is impossible to disable
+    if pylint_version < "2.0.0":
+        if os.path.basename(filename) in ("Variables.py",):
+            return True
+
+    return False
+
+
+def isSpecificPythonOnly(filename):
+    """ Decide if something is not used for this specific Python. """
+
+    # Currently everything is portable, but it's a good hook, pylint: disable=unused-argument
+    return False
+
+
 def executePyLint(filenames, show_todos, verbose, one_by_one):
     filenames = list(filenames)
 
@@ -292,29 +327,6 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
     pylint_options = getOptions()
     if not show_todos:
         pylint_options.append("--notes=")
-
-    def hasPyLintBugTrigger(filename):
-        # Stack overflow core dumps with 1.9.x unfortunately.
-        if pylint_version < "2.0.0":
-            if os.path.basename(filename) in (
-                "ReformulationContractionExpressions.py",
-                "TreeHelpers.py",
-            ):
-                return True
-
-        # Slot warning that is impossible to disable
-        if pylint_version < "2.0.0":
-            if os.path.basename(filename) in ("Variables.py",):
-                return True
-
-        return False
-
-    def isSpecificPythonOnly(filename):
-        if str is bytes and "TracebackEncryptionPlugin" in filename:
-            # This is Python3 only code.
-            return True
-
-        return False
 
     filenames = [
         filename
