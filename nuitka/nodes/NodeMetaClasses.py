@@ -93,7 +93,7 @@ class NodeCheckMetaClass(ABCMeta):
             kind = dictionary["kind"]
 
             assert type(kind) is str, name
-            assert kind not in NodeCheckMetaClass.kinds, name
+            assert kind not in NodeCheckMetaClass.kinds, (name, kind)
 
             NodeCheckMetaClass.kinds[kind] = cls
             NodeCheckMetaClass.kinds[name] = cls
