@@ -89,6 +89,7 @@ else
     # Remove files mot needed for Python 2.6, they only cause errors during
     # compilation with Python 2.6.
     rm -rf nuitka/build/inline_copy/lib/scons-3*
+    rm -rf nuitka/build/inline_copy/tqdm
 fi
 
 # This is Windows only
