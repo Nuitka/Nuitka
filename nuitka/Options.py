@@ -56,6 +56,8 @@ def parseArgs():
 
         options.verbose = True
 
+    Tracing.optimization_logger.is_quiet = not options.verbose
+
     if options.show_inclusion_output:
         Tracing.inclusion_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
@@ -64,8 +66,7 @@ def parseArgs():
 
         options.show_inclusion = True
 
-    if options.show_progress:
-        Tracing.progress_logger.is_quiet = False
+    Tracing.progress_logger.is_quiet = not options.show_progress
 
     # Onefile implies standalone build.
     if options.is_onefile:
