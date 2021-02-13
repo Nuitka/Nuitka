@@ -26,6 +26,7 @@ deeper that what it normally could. The import expression node can recurse.
 """
 
 import os
+import pkgutil
 import sys
 
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
@@ -41,7 +42,8 @@ from nuitka.importing.Importing import (
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.ModuleRegistry import getUncompiledModule
-from nuitka.Options import shallWarnUnusualCode
+from nuitka.Options import isStandaloneMode, shallWarnUnusualCode
+from nuitka.PythonOperators import python_version
 from nuitka.Tracing import inclusion_logger, unusual_logger
 from nuitka.utils.FileOperations import relpath
 from nuitka.utils.ModuleNames import ModuleName
@@ -54,6 +56,7 @@ from .ExpressionBases import (
 )
 from .LocalsScopes import GlobalsDictHandle
 from .NodeBases import StatementChildHavingBase
+from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
 from .shapes.BuiltinTypeShapes import tshape_module, tshape_module_builtin
 
 # These module are supported in code generation to be imported the hard way.
@@ -70,8 +73,11 @@ hard_modules = frozenset(
     )
 )
 
+trust_undefined = 0
 trust_constant = 1
 trust_exist = 2
+trust_future = trust_exist
+trust_importable = 3
 
 hard_modules_trust = {
     "os": {},
@@ -83,6 +89,30 @@ hard_modules_trust = {
     "_frozen_importlib": {},
     "_frozen_importlib_external": {},
 }
+
+hard_modules_trust["__future__"] = {
+    "unicode_literals": trust_future,
+    "absolute_import": trust_future,
+    "division": trust_future,
+    "print_function": trust_future,
+    "generator_stop": trust_future,
+    "nested_scopes": trust_future,
+    "generators": trust_future,
+    "with_statement": trust_future,
+}
+
+if python_version >= 0x270:
+    import importlib
+
+    for module_info in pkgutil.walk_packages(importlib.__path__):
+        hard_modules_trust["importlib"][module_info[1]] = trust_importable
+
+import __future__
+
+if hasattr(__future__, "barry_as_FLUFL"):
+    hard_modules_trust["__future__"]["barry_as_FLUFL"] = trust_future
+if hasattr(__future__, "annotations"):
+    hard_modules_trust["__future__"]["annotations"] = trust_future
 
 
 def isHardModuleWithoutSideEffect(module_name):
@@ -148,33 +178,69 @@ class ExpressionImportModuleHard(ExpressionBase):
 
         return self, None, None
 
+    def computeExpressionImportName(self, import_node, import_name, trace_collection):
+        return self.computeExpressionAttribute(
+            import_node, import_name, trace_collection
+        )
+
+    @staticmethod
+    def _getImportNameErrorString(module, module_name, name):
+        if python_version < 0x340:
+            return "cannot import name %s" % name
+        if python_version < 0x370:
+            return "cannot import name %r" % name
+        elif isStandaloneMode():
+            return "cannot import name %r from %r" % (name, module_name)
+        else:
+            return "cannot import name %r from %r (%s)" % (
+                name,
+                module_name,
+                module.__file__ if hasattr(module, "__file__") else "unknown location",
+            )
+
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # By default, an attribute lookup may change everything about the lookup
         # source.
 
         if self.module is not None:
-            if not hasattr(self.module, attribute_name):
-                # We want exceptions from actual lookup, pylint: disable=eval-used
-                return trace_collection.getCompileTimeComputationResult(
-                    node=lookup_node,
-                    computation=lambda: eval(
-                        "__import__('%s').%s" % (self.module_name, attribute_name)
+            trust = hard_modules_trust[self.module_name].get(
+                attribute_name, trust_undefined
+            )
+
+            if trust is trust_importable:
+                # TODO: Change this is a hard module import itself, currently these are not all trusted
+                # themselves yet. We do not have to indicate exception, but it makes no sense to annotate
+                # that here at this point.
+                trace_collection.onExceptionRaiseExit(BaseException)
+            elif not hasattr(self.module, attribute_name) and hard_modules_trust[
+                self.module_name
+            ].get(attribute_name, attribute_name):
+                new_node = makeRaiseExceptionReplacementExpression(
+                    expression=lookup_node,
+                    exception_type="ImportError",
+                    exception_value=self._getImportNameErrorString(
+                        self.module, self.module_name, attribute_name
                     ),
-                    description="Hard module %r attribute missing %r pre-computed."
+                )
+
+                trace_collection.onExceptionRaiseExit(ImportError)
+
+                return (
+                    new_node,
+                    "new_raise",
+                    "Hard module %r attribute missing %r pre-computed."
                     % (self.module_name, attribute_name),
                 )
             else:
-                trust = hard_modules_trust[self.module_name].get(attribute_name)
-
-                if trust is None:
+                if trust is trust_undefined:
                     onMissingTrust(
-                        "Hard module %r attribute %r missing trust config",
+                        "Hard module %r attribute %r missing trust config for existing value.",
                         lookup_node.getSourceReference(),
                         self.module_name,
                         attribute_name,
                     )
 
-                    trace_collection.onExceptionRaiseExit(AttributeError)
+                    trace_collection.onExceptionRaiseExit(ImportError)
                 elif trust is trust_constant:
                     # Make sure it's actually there, and not becoming the getattr default by accident.
                     assert hasattr(self.module, self.import_name), self
