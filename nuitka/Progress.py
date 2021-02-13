@@ -26,22 +26,9 @@ from nuitka import Tracing
 from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.ThreadedExecutor import RLock
 
-try:
-    from tqdm import tqdm  # pylint: disable=I0021,import-error
-except ImportError:
-    # We handle the case without inline copy too, but it may be removed, e.g. on
-    # Debian it's only a recommended install, and not included that way.
-    try:
-        tqdm = importFromInlineCopy("tqdm", must_exist=False)
-    except SyntaxError:
-        # Python 2.6 is not supported by our inline copy version
-        tqdm = None
-
-    if tqdm is not None:
-        tqdm = tqdm.tqdm
-
-if tqdm is not None:
-    tqdm.set_lock(RLock())
+# Late import and optional to be there.
+use_progress_bar = False
+tqdm = None
 
 
 class NuitkaProgessBar(object):
@@ -103,15 +90,27 @@ class NuitkaProgessBar(object):
         self.tqdm.close()
 
 
-# Written by enableProgressBar from nuitka.options or Scons files in their processes.
-use_progress_bar = False
-
-
 def enableProgressBar():
     global use_progress_bar  # singleton, pylint: disable=global-statement
+    global tqdm  # singleton, pylint: disable=global-statement
+
+    try:
+        from tqdm import tqdm  # pylint: disable=I0021,import-error,redefined-outer-name
+    except ImportError:
+        # We handle the case without inline copy too, but it may be removed, e.g. on
+        # Debian it's only a recommended install, and not included that way.
+        try:
+            tqdm = importFromInlineCopy("tqdm", must_exist=False)
+        except SyntaxError:
+            # Python 2.6 is not supported by our inline copy version
+            tqdm = None
+
+        if tqdm is not None:
+            tqdm = tqdm.tqdm
 
     # Tolerate the absence for now and ignore the progress bar
     if tqdm is not None:
+        tqdm.set_lock(RLock())
         use_progress_bar = True
 
 
