@@ -427,10 +427,26 @@ When that is working, you can use the onefile if you so desire.
     python -m nuitka --onefile program.py
 
 This will create a single binary, which on Linux will not even unpack itself,
-but instead loop back mount its contents as a filesystem and use that. On
-Windows, there are two modes, one which is copying it to the AppData of your
+but instead loop back mount its contents as a filesystem and use that.
+
+On Windows, there are two modes, one which is copying it to the AppData of your
 company specified, to also use it as a cache, and one which does it in the
-temporary directory.
+temporary directory. You need to do one this this.
+
+.. code-block:: bash
+
+    # Create a binary that unpacks into a temporary folder
+    python -m nuitka --onefile --windows-onefile-tempdir program.py
+
+    # Create a binary that unpacks to your company Appdata folder on the system
+    # and is not deleted, there are more options.
+    python -m nuitka --onefile --windows-company-name=Change_This --windows-product-version=1.2.3.4 program.py
+
+.. note::
+
+   There are more Windows specific options, e.g. related to icons, but also
+   more version information, consider the ``--help`` output for the details of these.
+
 
 Typical Problems
 ================
