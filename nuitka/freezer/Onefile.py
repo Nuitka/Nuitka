@@ -30,7 +30,10 @@ from nuitka.build import SconsInterface
 from nuitka.Options import assumeYesForDownloads, getIconPaths, getJobLimit
 from nuitka.OutputDirectories import getResultBasepath, getResultFullpath
 from nuitka.plugins.Plugins import Plugins
-from nuitka.PostProcessing import version_resources
+from nuitka.PostProcessing import (
+    executePostProcessingResources,
+    version_resources,
+)
 from nuitka.Tracing import general, postprocessing_logger, scons_logger
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import (
@@ -44,7 +47,7 @@ from nuitka.utils.FileOperations import (
     removeDirectory,
 )
 from nuitka.utils.SharedLibraries import locateDLL
-from nuitka.utils.Utils import getArchitecture, getOS
+from nuitka.utils.Utils import getArchitecture, getOS, hasOnefileSupportedOS
 
 
 def packDistFolderToOnefile(dist_dir, binary_filename):
@@ -64,7 +67,7 @@ def packDistFolderToOnefile(dist_dir, binary_filename):
     Plugins.onOnefileFinished(onefile_output_filename)
 
 
-def getAppImageToolPath():
+def _getAppImageToolPath(for_operation, assume_yes_for_downloads):
     """Return the path of appimagetool (for Linux).
 
     Will prompt the user to download if not already cached in AppData
@@ -85,8 +88,10 @@ def getAppImageToolPath():
         message="""\
 Nuitka will make use of AppImage (https://appimage.org/) tool
 to combine Nuitka dist folder to onefile binary.""",
-        reject="Nuitka does not work in --onefile on Linux without.",
-        assume_yes_for_downloads=assumeYesForDownloads(),
+        reject="Nuitka does not work in --onefile on Linux without."
+        if for_operation
+        else None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
     )
 
 
@@ -99,7 +104,9 @@ def packDistFolderToOnefileLinux(onefile_output_filename, dist_dir, binary_filen
 
     if not locateDLL("fuse"):
         postprocessing_logger.sysexit(
-            "Error, the fuse library (libfuse.so.x) must be installed for onefile to work on Linux."
+            """\
+Error, the fuse library (libfuse.so.x from fuse2, *not* fuse3) must be installed
+for onefile creation to work on Linux."""
         )
 
     # This might be possible to avoid being done with --runtime-file.
@@ -145,7 +152,9 @@ Categories=Utility;"""
     # Starting the process while locked, so file handles are not duplicated.
     appimagetool_process = subprocess.Popen(
         (
-            getAppImageToolPath(),
+            _getAppImageToolPath(
+                for_operation=True, assume_yes_for_downloads=assumeYesForDownloads()
+            ),
             dist_dir,
             "--comp",
             "xz",
@@ -254,6 +263,8 @@ def packDistFolderToOnefileWindows(onefile_output_filename, dist_dir):
     # First need to create the bootstrap binary for unpacking.
     _runOnefileScons(quiet=not Options.isShowScons())
 
+    executePostProcessingResources(manifest=None, onefile=True)
+
     # Now need to append to payload it, potentially compressing it.
     compression_indicator, compressor = _pickCompressor()
 
@@ -288,3 +299,14 @@ def packDistFolderToOnefileWindows(onefile_output_filename, dist_dir):
         output_file.write(b"\0\0")
 
         output_file.write(struct.pack("Q", start_pos))
+
+
+def checkOnefileReadiness(assume_yes_for_downloads):
+    if getOS() == "Linux":
+        app_image_path = _getAppImageToolPath(
+            for_operation=False, assume_yes_for_downloads=assume_yes_for_downloads
+        )
+
+        return app_image_path is not None
+    else:
+        return hasOnefileSupportedOS()

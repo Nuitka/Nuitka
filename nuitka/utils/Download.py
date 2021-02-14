@@ -79,7 +79,10 @@ Proceed and download? [Yes]/No """
             )
             Tracing.flushStandardOutputs()
 
-            reply = raw_input()
+            try:
+                reply = raw_input()
+            except EOFError:
+                reply = "no"
 
         if reply.lower() in ("no", "n"):
             if reject is not None:

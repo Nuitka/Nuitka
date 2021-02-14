@@ -28,6 +28,7 @@ import sys
 import tempfile
 from optparse import OptionParser
 
+from nuitka.freezer.Onefile import checkOnefileReadiness
 from nuitka.tools.Basics import goHome
 from nuitka.tools.testing.Common import (
     my_print,
@@ -733,12 +734,17 @@ def main():
                 executeSubTest("./tests/standalone/run_all.py search")
 
         if options.onefile_tests and not options.coverage:
-            my_print(
-                "Running the standalone tests with options '%s' with '%s':"
-                % (flags, use_python)
-            )
-            with withExtendedExtraOptions(*getExtraFlags(None, "onefile", flags)):
-                executeSubTest("./tests/onefile/run_all.py search")
+            if checkOnefileReadiness(
+                assume_yes_for_downloads=options.assume_yes_for_downloads
+            ):
+                my_print(
+                    "Running the onefile tests with options '%s' with '%s':"
+                    % (flags, use_python)
+                )
+                with withExtendedExtraOptions(*getExtraFlags(None, "onefile", flags)):
+                    executeSubTest("./tests/onefile/run_all.py search")
+            else:
+                my_print("The onefile tests are not run due to missing requirements.")
 
         if options.reflection_test and not options.coverage:
             my_print(

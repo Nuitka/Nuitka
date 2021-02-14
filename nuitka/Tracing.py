@@ -209,7 +209,7 @@ class OurLogger(object):
 
 
 class FileLogger(OurLogger):
-    def __init__(self, name, quiet=False, base_style=None, file_handle=sys.stdout):
+    def __init__(self, name, quiet=False, base_style=None, file_handle=None):
         OurLogger.__init__(self, name=name, quiet=quiet, base_style=base_style)
 
         self.file_handle = file_handle
@@ -217,31 +217,33 @@ class FileLogger(OurLogger):
     def my_print(self, message, **kwargs):
         message = message + "\n"
 
-        self.file_handle.write(message)
-        self.file_handle.flush()
+        file_handle = self.file_handle or sys.stdout
+
+        file_handle.write(message)
+        file_handle.flush()
 
     def setFileHandle(self, file_handle):
         self.file_handle = file_handle
 
     def info(self, message, style=None):
-        if not self.isQuiet() or self.file_handle is not sys.stdout:
+        if not self.isQuiet() or self.file_handle:
             message = "%s:INFO: %s" % (self.name, message)
 
             style = style or self.base_style
             self.my_print(message, style=style)
 
     def debug(self, message, style=None):
-        if self.file_handle is not sys.stdout:
+        if self.file_handle:
             message = "%s:DEBUG: %s" % (self.name, message)
 
             style = style or self.base_style
             self.my_print(message, style=style)
 
     def info_fileoutput(self, message, other_logger, style=None):
-        if self.file_handle is not sys.stdout:
+        if self.file_handle:
             self.info(message, style=style)
-
-        other_logger.info(message, style=style)
+        else:
+            other_logger.info(message, style=style)
 
 
 general = OurLogger("Nuitka")

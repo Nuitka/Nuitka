@@ -779,21 +779,6 @@ writeSconsReport(
     clangcl_mode=clangcl_mode,
 )
 
-
-def copyResources(target, source, env):
-    # Not needing the arguments, but signature is required, pylint: disable= redefined-outer-name,unused-argument
-
-    # Make sure to copy the resources from the created binary to the bootstrap binary, these
-    # are icons and version information.
-    copyResourcesFromFileToFile(
-        source_filename=compiled_exe,
-        target_filename=result_exe,
-        resource_kinds=(RT_ICON, RT_GROUP_ICON, RT_VERSION),
-    )
-
-
-env.AddPostAction(target, copyResources)
-
 setSconsProgressBarTotal(len(source_files))
 
 env.Default(target)

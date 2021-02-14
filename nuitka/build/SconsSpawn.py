@@ -29,7 +29,7 @@ from nuitka.Tracing import my_print, scons_logger
 from nuitka.utils.Timing import TimerReport
 
 from .SconsCaching import runClCache
-from .SconsProgress import updateSconsProgressBar
+from .SconsProgress import closeSconsProgressBar, updateSconsProgressBar
 from .SconsUtils import decodeData
 
 
@@ -44,6 +44,7 @@ class SubprocessThread(threading.Thread):
         self.data = None
         self.err = None
         self.exit_code = None
+        self.exception = None
 
         self.timer_report = TimerReport(
             message="Running %s took %%.2f seconds"
@@ -53,22 +54,25 @@ class SubprocessThread(threading.Thread):
         )
 
     def run(self):
-        # execute the command, queue the result
-        with self.timer_report:
-            proc = subprocess.Popen(
-                self.cmdline,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                shell=False,
-                env=self.env,
-            )
+        try:
+            # execute the command, queue the result
+            with self.timer_report:
+                proc = subprocess.Popen(
+                    self.cmdline,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    shell=False,
+                    env=self.env,
+                )
 
-            self.data, self.err = proc.communicate()
-            self.exit_code = proc.wait()
+                self.data, self.err = proc.communicate()
+                self.exit_code = proc.wait()
+        except Exception as e:  # will rethrow all, pylint: disable=broad-except
+            self.exception = e
 
     def getProcessResult(self):
-        return self.data, self.err, self.exit_code
+        return self.data, self.err, self.exit_code, self.exception
 
 
 def runProcessMonitored(cmdline, env):
@@ -89,6 +93,28 @@ def runProcessMonitored(cmdline, env):
     updateSconsProgressBar()
 
     return thread.getProcessResult()
+
+
+def _filterLinkOutput(module_mode, lto_mode, data):
+    # Training newline in some cases, esp. LTO it seems.
+    data = data.rstrip()
+
+    if module_mode:
+        data = b"\r\n".join(
+            line
+            for line in data.split(b"\r\n")
+            if b"   Creating library" not in line
+            # On localized compilers, the message to ignore is not as clear.
+            if not (module_mode and b".exp" in line)
+        )
+
+    # The linker will say generating code at the end, due to localization
+    # we don't know.
+    if lto_mode:
+        if len(data.split(b"\r\n")) == 2:
+            data = b""
+
+    return data
 
 
 # To work around Windows not supporting command lines of greater than 10K by
@@ -122,26 +148,14 @@ def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
         if cmd == "<clcache>":
             data, err, rv = runClCache(args, env)
         else:
-            data, err, rv = runProcessMonitored(cmdline, env)
+            data, err, rv, exception = runProcessMonitored(cmdline, env)
+
+            if exception:
+                closeSconsProgressBar()
+                raise exception
 
         if cmd == "link":
-            # Training newline in some cases, esp. LTO it seems.
-            data = data.rstrip()
-
-            if module_mode:
-                data = b"\r\n".join(
-                    line
-                    for line in data.split(b"\r\n")
-                    if b"   Creating library" not in line
-                    # On localized compilers, the message to ignore is not as clear.
-                    if not (module_mode and b".exp" in line)
-                )
-
-            # The linker will say generating code at the end, due to localization
-            # we don't know.
-            if lto_mode:
-                if len(data.split(b"\r\n")) == 2:
-                    data = b""
+            data = _filterLinkOutput(module_mode, lto_mode, data)
 
         elif cmd in ("cl", "<clcache>"):
             # Skip forced output from cl.exe
@@ -208,14 +222,18 @@ class SpawnThread(threading.Thread):
         )
 
         self.result = None
+        self.exception = None
 
     def run(self):
-        # execute the command, queue the result
-        with self.timer_report:
-            self.result = self.spawn(*self.args)
+        try:
+            # execute the command, queue the result
+            with self.timer_report:
+                self.result = self.spawn(*self.args)
+        except Exception as e:  # will rethrow all, pylint: disable=broad-except
+            self.exception = e
 
     def getSpawnResult(self):
-        return self.result
+        return self.result, self.exception
 
 
 def runSpawnMonitored(spawn, sh, escape, cmd, args, env):
@@ -246,6 +264,13 @@ def getWrappedSpawnFunction(spawn):
             env = dict(env)
             env["CCACHE_DISABLE"] = "1"
 
-        return runSpawnMonitored(spawn, sh, escape, cmd, args, env)
+        result, exception = runSpawnMonitored(spawn, sh, escape, cmd, args, env)
+
+        if exception:
+            closeSconsProgressBar()
+
+            raise exception
+
+        return result
 
     return spawnCommand

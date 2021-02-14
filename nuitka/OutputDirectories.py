@@ -80,7 +80,7 @@ def getResultBasepath(onefile=False):
         )
 
 
-def getResultFullpath(onefile=False):
+def getResultFullpath(onefile):
     """Get the final output binary result full path."""
 
     result = getResultBasepath(onefile=onefile)
