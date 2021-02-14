@@ -68,8 +68,14 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 {% endif %}
 
 {# Floats are very good for in-place operations. TODO: Probably a lot more could be added. #}
-{% if operator in ("+", "-", "*") and left.hasOneOrBothType(right, "float") %}
+{% if operator in ("+", "-", "*", "/") and left.hasOneOrBothType(right, "float") %}
         if ({{left.getFloatCheckExpression("*operand1")}} && {{right.getFloatCheckExpression("operand2")}}) {
+{% if operator == "/" %}
+            if (PyFloat_AS_DOUBLE(operand2) == 0.0) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
+                return false;
+            }
+{% endif %}
             PyFloat_AS_DOUBLE(*operand1) {{operator}}= PyFloat_AS_DOUBLE(operand2);
             return true;
         }

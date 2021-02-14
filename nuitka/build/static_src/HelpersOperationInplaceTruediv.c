@@ -528,6 +528,15 @@ static inline bool _BINARY_OPERATION_TRUEDIV_FLOAT_FLOAT_INPLACE(PyObject **oper
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
+
+        if (1 && 1) {
+            if (PyFloat_AS_DOUBLE(operand2) == 0.0) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
+                return false;
+            }
+            PyFloat_AS_DOUBLE(*operand1) /= PyFloat_AS_DOUBLE(operand2);
+            return true;
+        }
     }
 
     PyObject *result = PyNumber_InPlaceTruediv(*operand1, operand2);
@@ -564,6 +573,15 @@ static inline bool _BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_INPLACE(PyObject **ope
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
+
+        if (PyFloat_CheckExact(*operand1) && 1) {
+            if (PyFloat_AS_DOUBLE(operand2) == 0.0) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
+                return false;
+            }
+            PyFloat_AS_DOUBLE(*operand1) /= PyFloat_AS_DOUBLE(operand2);
+            return true;
+        }
     }
 
     PyObject *result = PyNumber_InPlaceTruediv(*operand1, operand2);
@@ -600,6 +618,15 @@ static inline bool _BINARY_OPERATION_TRUEDIV_FLOAT_OBJECT_INPLACE(PyObject **ope
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
+
+        if (1 && PyFloat_CheckExact(operand2)) {
+            if (PyFloat_AS_DOUBLE(operand2) == 0.0) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
+                return false;
+            }
+            PyFloat_AS_DOUBLE(*operand1) /= PyFloat_AS_DOUBLE(operand2);
+            return true;
+        }
     }
 
     PyObject *result = PyNumber_InPlaceTruediv(*operand1, operand2);
