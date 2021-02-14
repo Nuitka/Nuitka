@@ -74,6 +74,9 @@ class IconDirectoryEntry(ctypes.Structure):
 
 
 class IconGroupDirectoryEntry(ctypes.Structure):
+    # Make sure the don't have padding issues.
+    _pack_ = 2
+
     _fields_ = (
         ("width", ctypes.c_char),
         ("height", ctypes.c_char),
