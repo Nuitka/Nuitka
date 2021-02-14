@@ -58,7 +58,7 @@ jobs:
       - name: PyLint on Nuitka source code
         run: |
           ./bin/check-nuitka-with-pylint
-        if: matrix.python_version == '3.7' || matrix.python_version == '2.7'
+        if: matrix.python_version == '3.7'
 
       - name: RestLint on Nuitka source code
         run: |
