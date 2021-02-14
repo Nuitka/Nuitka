@@ -30,7 +30,10 @@ from nuitka.build import SconsInterface
 from nuitka.Options import assumeYesForDownloads, getIconPaths, getJobLimit
 from nuitka.OutputDirectories import getResultBasepath, getResultFullpath
 from nuitka.plugins.Plugins import Plugins
-from nuitka.PostProcessing import version_resources
+from nuitka.PostProcessing import (
+    executePostProcessingResources,
+    version_resources,
+)
 from nuitka.Tracing import general, postprocessing_logger, scons_logger
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import (
@@ -99,7 +102,7 @@ def packDistFolderToOnefileLinux(onefile_output_filename, dist_dir, binary_filen
 
     if not locateDLL("fuse"):
         postprocessing_logger.sysexit(
-            "Error, the fuse library (libfuse.so.x) must be installed for onefile to work on Linux."
+            "Error, the fuse library (libfuse.so.x) must be installed for onefile creation to work on Linux."
         )
 
     # This might be possible to avoid being done with --runtime-file.
@@ -253,6 +256,8 @@ def packDistFolderToOnefileWindows(onefile_output_filename, dist_dir):
 
     # First need to create the bootstrap binary for unpacking.
     _runOnefileScons(quiet=not Options.isShowScons())
+
+    executePostProcessingResources(manifest=None, onefile=True)
 
     # Now need to append to payload it, potentially compressing it.
     compression_indicator, compressor = _pickCompressor()

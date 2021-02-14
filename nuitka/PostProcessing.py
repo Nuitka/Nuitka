@@ -98,12 +98,12 @@ def readFromFile(readable, c_struct):
     return result
 
 
-def addWindowsIconFromIcons():
+def _addWindowsIconFromIcons(onefile):
     icon_group = 1
     image_id = 1
     images = []
 
-    result_filename = OutputDirectories.getResultFullpath()
+    result_filename = OutputDirectories.getResultFullpath(onefile=onefile)
 
     for icon_spec in Options.getIconPaths():
         if "#" in icon_spec:
@@ -182,10 +182,76 @@ def addWindowsIconFromIcons():
 version_resources = {}
 
 
-def executePostProcessing():
-    # These is a bunch of stuff to consider, pylint: disable=too-many-branches
+def executePostProcessingResources(manifest, onefile):
+    """Adding Windows resources to the binary.
 
-    result_filename = OutputDirectories.getResultFullpath()
+    Used for both onefile and not onefile binary, potentially two times.
+    """
+    result_filename = OutputDirectories.getResultFullpath(onefile=onefile)
+
+    # TODO: Maybe make these different for onefile and not onefile.
+    if (
+        Options.shallAskForWindowsAdminRights()
+        or Options.shallAskForWindowsUIAccessRights()
+    ):
+        if manifest is None:
+            manifest = getDefaultWindowsExecutableManifest()
+
+        if Options.shallAskForWindowsAdminRights():
+            manifest.addUacAdmin()
+
+        if Options.shallAskForWindowsUIAccessRights():
+            manifest.addUacUiAccess()
+
+    if manifest is not None:
+        manifest.addResourceToFile(result_filename, logger=postprocessing_logger)
+
+    if (
+        Options.getWindowsVersionInfoStrings()
+        or Options.getWindowsProductVersion()
+        or Options.getWindowsFileVersion()
+    ):
+        version_resources.update(
+            addVersionInfoResource(
+                string_values=Options.getWindowsVersionInfoStrings(),
+                product_version=Options.getWindowsProductVersion(),
+                file_version=Options.getWindowsFileVersion(),
+                file_date=(0, 0),
+                is_exe=not Options.shallMakeModule(),
+                result_filename=result_filename,
+                logger=postprocessing_logger,
+            )
+        )
+
+    # Attach icons from template file if given.
+    template_exe = Options.getWindowsIconExecutablePath()
+    if template_exe is not None:
+        res_copied = copyResourcesFromFileToFile(
+            template_exe,
+            target_filename=result_filename,
+            resource_kinds=(RT_ICON, RT_GROUP_ICON),
+        )
+
+        if res_copied == 0:
+            postprocessing_logger.warning(
+                "The specified icon template executable %r didn't contain anything to copy."
+                % template_exe
+            )
+        else:
+            postprocessing_logger.warning(
+                "Copied %d icon resources from %r." % (res_copied, template_exe)
+            )
+    else:
+        _addWindowsIconFromIcons(onefile=onefile)
+
+
+def executePostProcessing():
+    """Postprocessing of the resulting binary.
+
+    These are in part required steps, not usable after failure.
+    """
+
+    result_filename = OutputDirectories.getResultFullpath(onefile=False)
 
     if not os.path.exists(result_filename):
         postprocessing_logger.sysexit(
@@ -194,54 +260,15 @@ def executePostProcessing():
 
     if isWin32Windows():
         if not Options.shallMakeModule():
-            needs_manifest = False
-            manifest = None
-
             if python_version < 0x300:
                 # Copy the Windows manifest from the CPython binary to the created
                 # executable, so it finds "MSCRT.DLL". This is needed for Python2
                 # only, for Python3 newer MSVC doesn't hide the C runtime.
                 manifest = getWindowsExecutableManifest(sys.executable)
+            else:
+                manifest = None
 
-                if manifest is not None:
-                    needs_manifest = True
-
-            if (
-                Options.shallAskForWindowsAdminRights()
-                or Options.shallAskForWindowsUIAccessRights()
-            ):
-                needs_manifest = True
-
-                if manifest is None:
-                    manifest = getDefaultWindowsExecutableManifest()
-
-                if Options.shallAskForWindowsAdminRights():
-                    manifest.addUacAdmin()
-
-                if Options.shallAskForWindowsUIAccessRights():
-                    manifest.addUacUiAccess()
-
-            if needs_manifest:
-                manifest.addResourceToFile(
-                    result_filename, logger=postprocessing_logger
-                )
-
-        if (
-            Options.getWindowsVersionInfoStrings()
-            or Options.getWindowsProductVersion()
-            or Options.getWindowsFileVersion()
-        ):
-            version_resources.update(
-                addVersionInfoResource(
-                    string_values=Options.getWindowsVersionInfoStrings(),
-                    product_version=Options.getWindowsProductVersion(),
-                    file_version=Options.getWindowsFileVersion(),
-                    file_date=(0, 0),
-                    is_exe=not Options.shallMakeModule(),
-                    result_filename=result_filename,
-                    logger=postprocessing_logger,
-                )
-            )
+            executePostProcessingResources(manifest=manifest, onefile=False)
 
         source_dir = OutputDirectories.getSourceDirectoryPath()
 
@@ -254,27 +281,6 @@ def executePostProcessing():
             lang_id=0,
             logger=postprocessing_logger,
         )
-
-        # Attach icons from template file if given.
-        template_exe = Options.getWindowsIconExecutablePath()
-        if template_exe is not None:
-            res_copied = copyResourcesFromFileToFile(
-                template_exe,
-                target_filename=result_filename,
-                resource_kinds=(RT_ICON, RT_GROUP_ICON),
-            )
-
-            if res_copied == 0:
-                postprocessing_logger.warning(
-                    "The specified icon template executable %r didn't contain anything to copy."
-                    % template_exe
-                )
-            else:
-                postprocessing_logger.warning(
-                    "Copied %d icon resources from %r." % (res_copied, template_exe)
-                )
-        else:
-            addWindowsIconFromIcons()
 
     # On macOS, we update the executable path for searching the "libpython"
     # library.

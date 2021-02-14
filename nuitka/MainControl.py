@@ -106,7 +106,9 @@ def _createNodeTree(filename):
         removeDirectory(path=standalone_dir, ignore_errors=True)
         makePath(standalone_dir)
 
-    deleteFile(path=OutputDirectories.getResultFullpath(), must_exist=False)
+    deleteFile(
+        path=OutputDirectories.getResultFullpath(onefile=False), must_exist=False
+    )
 
     # Second, do it for the directories given.
     for plugin_filename in Options.getShallFollowExtra():
@@ -422,7 +424,7 @@ def runSconsBackend(quiet):
     }
 
     if not Options.shallMakeModule():
-        options["result_exe"] = OutputDirectories.getResultFullpath()
+        options["result_exe"] = OutputDirectories.getResultFullpath(onefile=False)
 
     if Options.shallUseStaticLibPython():
         options["static_libpython"] = asBoolStr(True)
