@@ -102,7 +102,9 @@ def packDistFolderToOnefileLinux(onefile_output_filename, dist_dir, binary_filen
 
     if not locateDLL("fuse"):
         postprocessing_logger.sysexit(
-            "Error, the fuse library (libfuse.so.x) must be installed for onefile creation to work on Linux."
+            """\
+Error, the fuse library (libfuse.so.x from fuse2, *not* fuse3) must be installed
+for onefile creation to work on Linux."""
         )
 
     # This might be possible to avoid being done with --runtime-file.
