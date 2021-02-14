@@ -172,18 +172,22 @@ class OurLogger(object):
         self.base_style = base_style
         self.is_quiet = quiet
 
+        # Can disable warnings, we do that for options parsing during re-execution.
+        self.is_no_warnings = False
+
     def my_print(self, message, **kwargs):
         # For overload, pylint: disable=no-self-use
         my_print(message, **kwargs)
 
     def warning(self, message, style="red"):
-        if self.name:
-            message = "%s:WARNING: %s" % (self.name, message)
-        else:
-            message = "WARNING: %s" % message
+        if not self.is_no_warnings:
+            if self.name:
+                message = "%s:WARNING: %s" % (self.name, message)
+            else:
+                message = "WARNING: %s" % message
 
-        style = style or self.base_style
-        self.my_print(message, style=style, file=sys.stderr)
+            style = style or self.base_style
+            self.my_print(message, style=style, file=sys.stderr)
 
     def sysexit(self, message, exit_code=1):
         self.my_print("FATAL: %s" % message, style="red", file=sys.stderr)
