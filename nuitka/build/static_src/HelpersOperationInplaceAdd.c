@@ -1405,11 +1405,6 @@ static inline bool _BINARY_OPERATION_ADD_INT_FLOAT_INPLACE(PyObject **operand1, 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-
-        if (0 && 1) {
-            PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
-            return true;
-        }
     }
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
@@ -1493,11 +1488,6 @@ static inline bool _BINARY_OPERATION_ADD_LONG_FLOAT_INPLACE(PyObject **operand1,
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-
-        if (0 && 1) {
-            PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
-            return true;
-        }
     }
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
@@ -1539,11 +1529,6 @@ static inline bool _BINARY_OPERATION_ADD_FLOAT_INT_INPLACE(PyObject **operand1, 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-
-        if (1 && 0) {
-            PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
-            return true;
-        }
     }
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
@@ -1585,11 +1570,6 @@ static inline bool _BINARY_OPERATION_ADD_FLOAT_LONG_INPLACE(PyObject **operand1,
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-
-        if (1 && 0) {
-            PyFloat_AS_DOUBLE(*operand1) += PyFloat_AS_DOUBLE(operand2);
-            return true;
-        }
     }
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
@@ -1835,10 +1815,6 @@ static inline bool _BINARY_OPERATION_ADD_LIST_TUPLE_INPLACE(PyObject **operand1,
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-    }
-
-    if (1 && 0) {
-        return LIST_EXTEND_FROM_LIST(*operand1, operand2);
     }
 
     if (1 && 1) {

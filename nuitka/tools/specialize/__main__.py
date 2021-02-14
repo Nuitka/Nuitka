@@ -117,7 +117,18 @@ class TypeDescBase(getMetaClassBase("Type")):
 
     @classmethod
     def hasOneOrBothType(cls, right, type_name):
-        return type_name in (cls.type_name, right.type_name)
+        # At least one match
+        if type_name not in (cls.type_name, right.type_name):
+            return False
+
+        # Two matches perfect.
+        if cls.type_name == right.type_name:
+            return True
+
+        if "object" not in (cls.type_name, right.type_name):
+            return False
+
+        return True
 
     @classmethod
     def mayBothHaveType(cls, right, type_name):
