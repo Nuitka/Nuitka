@@ -33,12 +33,9 @@ from nuitka.Progress import (
 def enableSconsProgressBar():
     enableProgressBar()
 
-    def _closeSconsProgressBar():
-        closeProgressBar()
-
     import atexit
 
-    atexit.register(_closeSconsProgressBar)
+    atexit.register(closeSconsProgressBar)
 
 
 def setSconsProgressBarTotal(total):
@@ -47,3 +44,7 @@ def setSconsProgressBarTotal(total):
 
 def updateSconsProgressBar():
     reportProgressBar(item=None, update=True)
+
+
+def closeSconsProgressBar():
+    closeProgressBar()

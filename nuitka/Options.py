@@ -56,6 +56,8 @@ def parseArgs():
 
         options.verbose = True
 
+    Tracing.optimization_logger.is_quiet = not options.verbose
+
     if options.show_inclusion_output:
         Tracing.inclusion_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
@@ -64,8 +66,7 @@ def parseArgs():
 
         options.show_inclusion = True
 
-    if options.show_progress:
-        Tracing.progress_logger.is_quiet = False
+    Tracing.progress_logger.is_quiet = not options.show_progress
 
     # Onefile implies standalone build.
     if options.is_onefile:
@@ -177,6 +178,16 @@ sane default used inside the dist folder."""
     except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
         Tracing.general.sysexit(
             "Error, product version must be a tuple of up to 4 integer values."
+        )
+
+    if getWindowsCompanyName() == "":
+        Tracing.options_logger.sysexit(
+            """Error, empty string is not an acceptable company name."""
+        )
+
+    if getWindowsProductName() == "":
+        Tracing.options_logger.sysexit(
+            """Error, empty string is not an acceptable product name."""
         )
 
     if file_version or product_version or getWindowsVersionInfoStrings():
@@ -707,11 +718,11 @@ def getWindowsVersionInfoStrings():
     result = {}
 
     company_name = getWindowsCompanyName()
-    if company_name is not None:
+    if company_name:
         result["CompanyName"] = company_name
 
     product_name = getWindowsProductName()
-    if product_name is not None:
+    if product_name:
         result["ProductName"] = product_name
 
     if options.windows_file_description:
@@ -721,7 +732,7 @@ def getWindowsVersionInfoStrings():
 
 
 def _parseWindowsVersionNumber(value):
-    if value is not None:
+    if value:
         parts = value.split(".")
 
         assert len(parts) <= 4

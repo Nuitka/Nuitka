@@ -79,6 +79,7 @@ from .ComparisonCodes import (
     generateBuiltinIsinstanceCode,
     generateBuiltinIssubclassCode,
     generateComparisonExpressionCode,
+    generateTypeCheckCode,
 )
 from .ConditionalCodes import (
     generateConditionalAndOrCode,
@@ -548,6 +549,7 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_SUPER2": generateBuiltinSuperCode,
         "EXPRESSION_BUILTIN_ISINSTANCE": generateBuiltinIsinstanceCode,
         "EXPRESSION_BUILTIN_ISSUBCLASS": generateBuiltinIssubclassCode,
+        "EXPRESSION_TYPE_CHECK": generateTypeCheckCode,
         "EXPRESSION_BUILTIN_DIR1": generateBuiltinDir1Code,
         "EXPRESSION_BUILTIN_VARS": generateBuiltinVarsCode,
         "EXPRESSION_BUILTIN_HASATTR": generateBuiltinHasattrCode,

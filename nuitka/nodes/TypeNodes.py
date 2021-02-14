@@ -33,10 +33,12 @@ from .BuiltinRefNodes import (
 )
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
+    ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
 )
+from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
-from .shapes.BuiltinTypeShapes import tshape_type
+from .shapes.BuiltinTypeShapes import tshape_bool, tshape_type
 
 
 class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
@@ -241,3 +243,25 @@ class ExpressionBuiltinIssubclass(ExpressionChildrenHavingBase):
             ),
             description="Built-in call to 'issubclass' computed.",
         )
+
+
+class ExpressionTypeCheck(SideEffectsFromChildrenMixin, ExpressionChildHavingBase):
+    kind = "EXPRESSION_TYPE_CHECK"
+
+    named_child = "cls"
+
+    def __init__(self, cls, source_ref):
+        ExpressionChildHavingBase.__init__(
+            self,
+            value=cls,
+            source_ref=source_ref,
+        )
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_bool
+
+    def computeExpression(self, trace_collection):
+        # TODO: Quite some cases should be possible to predict, but I am not aware of
+        # 100% true Python equivalent at this time.
+        return self, None, None
