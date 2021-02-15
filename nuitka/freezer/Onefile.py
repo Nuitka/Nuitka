@@ -36,11 +36,7 @@ from nuitka.PostProcessing import (
 )
 from nuitka.Tracing import general, postprocessing_logger, scons_logger
 from nuitka.utils.Download import getCachedDownload
-from nuitka.utils.Execution import (
-    getNullInput,
-    getNullOutput,
-    withEnvironmentVarsOverriden,
-)
+from nuitka.utils.Execution import getNullInput, withEnvironmentVarsOverriden
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
     getFileList,
@@ -149,6 +145,12 @@ Categories=Utility;"""
         "Creating single file from dist folder, this may take a while."
     )
 
+    stdout_filename = binary_filename + ".appimage.stdout.txt"
+    stderr_filename = binary_filename + ".appimage.stderr.txt"
+
+    stdout_file = open(stdout_filename, "wb")
+    stderr_file = open(stderr_filename, "wb")
+
     # Starting the process while locked, so file handles are not duplicated.
     appimagetool_process = subprocess.Popen(
         (
@@ -163,18 +165,24 @@ Categories=Utility;"""
         ),
         shell=False,
         stdin=getNullInput(),
-        stderr=getNullOutput(),
-        stdout=getNullOutput(),
+        stdout=stdout_file,
+        stderr=stderr_file,
     )
 
     # TODO: Exit code should be checked.
     result = appimagetool_process.wait()
 
+    stdout_file.close()
+    stderr_file.close()
+
     if not os.path.exists(onefile_output_filename):
         postprocessing_logger.sysexit(
-            "Error, expected output file %s not created by AppImage."
-            % onefile_output_filename
+            "Error, expected output file %r not created by AppImage, check its outputs %r and %r."
+            % (onefile_output_filename, stdout_filename, stderr_filename)
         )
+
+    os.unlink(stdout_filename)
+    os.unlink(stderr_filename)
 
     postprocessing_logger.info("Completed onefile creation.")
 
