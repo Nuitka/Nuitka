@@ -4,6 +4,56 @@
 
 This release is not done yet.
 
+***********
+ Bug Fixes
+***********
+
+-  Windows: Icon group entries were not still not working properly in
+   some cases, leading to no icon or too small icons being displayed.
+   Fixed in 0.6.12.2 already.
+
+-  Windows: Icons and version information was copied from the standalone
+   executable, but that could fail in race situations, sometimes
+   reproducible. Instead we now apply things differently. Fixed in
+   0.6.12.2 already.
+
+-  Standalone: Fixup scanning with ldconfig and newer versions making
+   unexpected outputs. Fixed in 0.6.12.2 already.
+
+-  UI: When there is no standard input, prompts were crashing with
+   ``EOFError`` when ``--assume-yes-for-downloads`` is not given, change
+   that to defaulting to ``"no"`` instead. Fixed in 0.6.12.2 already.
+
+-  Windows: Detect empty strings for company name, product name, product
+   and file versions rather than crashing on them later. Fixed in
+   0.6.12.2 already.
+
+-  Scons: Pass on exceptions during execution in worker threads and
+   abort compilation immediately. Fixed in 0.6.12.2 already.
+
+-  Python3.9: Still not fully compatible with typing subclasses, the
+   enhanced check is now closely matching the CPython code. Fixed in
+   0.6.12.2 already.
+
+****************
+ Organisational
+****************
+
+-  Added example for onefile on Windows with the version information and
+   with the temporary directory mode.
+
+*******
+ Tests
+*******
+
+-  Detect if onefile has required downloads or if there is user consent,
+   otherwise skip onefile tests in the test runner.
+
+*********
+ Summary
+*********
+
+This release is not done yet.
 
 #######################
  Nuitka Release 0.6.12
@@ -525,7 +575,7 @@ fixes and new features.
 *******
 
 -  New option to display executed commands during comparisons.
--
+
 -  Added test suite for onefile testing.
 
 *********
