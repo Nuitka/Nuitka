@@ -285,15 +285,24 @@ class Plugins(object):
         """
         dll_filenames = tuple(sorted(dll_filenames))
 
-        result = []
+        to_remove = OrderedSet()
 
         for plugin in getActivePlugins():
-            for removed_dll in plugin.removeDllDependencies(
-                dll_filename, dll_filenames
-            ):
-                result.append(removed_dll)
+            removed_dlls = tuple(
+                plugin.removeDllDependencies(dll_filename, dll_filenames)
+            )
 
-        return result
+            if removed_dlls and Options.isShowInclusion():
+                plugin.info(
+                    "Removing DLLs %s of %s by plugin decision."
+                    % (dll_filename, removed_dlls)
+                )
+
+            for removed_dll in removed_dlls:
+                to_remove.add(removed_dll)
+
+        for removed in to_remove:
+            dll_filenames.discard(removed)
 
     @staticmethod
     def considerDataFiles(module):
