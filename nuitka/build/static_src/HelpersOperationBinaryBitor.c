@@ -744,6 +744,8 @@ nuitka_bool BINARY_OPERATION_BITOR_NBOOL_LONG_OBJECT(PyObject *operand1, PyObjec
 
 #if PYTHON_VERSION < 0x300
 static inline PyObject *SLOT_nb_or_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
+    PyObject *result;
+
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 0x300
@@ -758,18 +760,33 @@ static inline PyObject *SLOT_nb_or_OBJECT_INT_INT(PyObject *operand1, PyObject *
     const long a = PyInt_AS_LONG(operand1);
     const long b = PyInt_AS_LONG(operand2);
 
-    const long result = a | b;
-    return PyInt_FromLong(result);
-    {
-        PyObject *op1 = operand1;
-        PyObject *op2 = operand2;
+    const long r = a | b;
+    result = PyInt_FromLong(r);
+    goto exit_result_ok;
 
-        // TODO: Could in-line and specialize these as well.
-        PyObject *o = PyLong_Type.tp_as_number->nb_or(op1, op2);
+    {
+        PyObject *operand1_object = operand1;
+        PyObject *operand2_object = operand2;
+
+        PyObject *o = PyLong_Type.tp_as_number->nb_or(operand1_object, operand2_object);
         assert(o != Py_NotImplemented);
 
-        return o;
+        result = o;
+        goto exit_result;
     }
+
+exit_result:
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+exit_result_ok:
+
+    return result;
+
+exit_result_exception:
+    return NULL;
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_BITOR_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
@@ -1086,6 +1103,8 @@ PyObject *BINARY_OPERATION_BITOR_OBJECT_INT_OBJECT(PyObject *operand1, PyObject 
 
 #if PYTHON_VERSION < 0x300
 static inline nuitka_bool SLOT_nb_or_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
+    nuitka_bool result;
+
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 0x300
@@ -1100,24 +1119,34 @@ static inline nuitka_bool SLOT_nb_or_NBOOL_INT_INT(PyObject *operand1, PyObject 
     const long a = PyInt_AS_LONG(operand1);
     const long b = PyInt_AS_LONG(operand2);
 
-    const long result = a | b;
-    return result != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    {
-        PyObject *op1 = operand1;
-        PyObject *op2 = operand2;
+    const long r = a | b;
+    result = r != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    goto exit_result_ok;
 
-        // TODO: Could in-line and specialize these as well.
-        PyObject *o = PyLong_Type.tp_as_number->nb_or(op1, op2);
+    {
+        PyObject *operand1_object = operand1;
+        PyObject *operand2_object = operand2;
+
+        PyObject *o = PyLong_Type.tp_as_number->nb_or(operand1_object, operand2_object);
         assert(o != Py_NotImplemented);
 
-        if (unlikely(o == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
         Py_DECREF(o);
-        return r;
+        goto exit_result;
     }
+
+exit_result:
+
+    if (unlikely(result == NUITKA_BOOL_EXCEPTION)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+exit_result_ok:
+
+    return result;
+
+exit_result_exception:
+    return NUITKA_BOOL_EXCEPTION;
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_BITOR_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {

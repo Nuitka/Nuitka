@@ -36,6 +36,8 @@
 
 #if PYTHON_VERSION < 0x300
 static inline PyObject *SLOT_nb_true_divide_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
+    PyObject *result;
+
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 0x300
@@ -52,17 +54,18 @@ static inline PyObject *SLOT_nb_true_divide_OBJECT_INT_INT(PyObject *operand1, P
 
     if (unlikely(b == 0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "division by zero");
-        return NULL;
+        goto exit_result_exception;
     }
 
     if (a == 0) {
         if (b < 0) {
             Py_INCREF(const_float_minus_0_0);
-            return const_float_minus_0_0;
+            result = const_float_minus_0_0;
         } else {
             Py_INCREF(const_float_0_0);
-            return const_float_0_0;
+            result = const_float_0_0;
         }
+        goto exit_result_ok;
     }
 
 /* May need to resort to LONG code, which we currently do not
@@ -73,19 +76,34 @@ static inline PyObject *SLOT_nb_true_divide_OBJECT_INT_INT(PyObject *operand1, P
     } else
 #endif
     {
-        double result = (double)a / (double)b;
-        return PyFloat_FromDouble(result);
+        double r = (double)a / (double)b;
+        result = PyFloat_FromDouble(r);
+        goto exit_result_ok;
     }
-    {
-        PyObject *op1 = operand1;
-        PyObject *op2 = operand2;
 
-        // TODO: Could in-line and specialize these as well.
-        PyObject *o = PyLong_Type.tp_as_number->nb_true_divide(op1, op2);
+    {
+        PyObject *operand1_object = operand1;
+        PyObject *operand2_object = operand2;
+
+        PyObject *o = PyLong_Type.tp_as_number->nb_true_divide(operand1_object, operand2_object);
         assert(o != Py_NotImplemented);
 
-        return o;
+        result = o;
+        goto exit_result;
     }
+
+exit_result:
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+exit_result_ok:
+
+    return result;
+
+exit_result_exception:
+    return NULL;
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
@@ -403,6 +421,8 @@ PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_INT_OBJECT(PyObject *operand1, PyObjec
 
 #if PYTHON_VERSION < 0x300
 static inline nuitka_bool SLOT_nb_true_divide_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
+    nuitka_bool result;
+
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 0x300
@@ -419,15 +439,16 @@ static inline nuitka_bool SLOT_nb_true_divide_NBOOL_INT_INT(PyObject *operand1, 
 
     if (unlikely(b == 0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "division by zero");
-        return NUITKA_BOOL_EXCEPTION;
+        goto exit_result_exception;
     }
 
     if (a == 0) {
         if (b < 0) {
-            return -0.0 == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            result = -0.0 == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
         } else {
-            return 0.0 == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            result = 0.0 == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
         }
+        goto exit_result_ok;
     }
 
 /* May need to resort to LONG code, which we currently do not
@@ -438,25 +459,35 @@ static inline nuitka_bool SLOT_nb_true_divide_NBOOL_INT_INT(PyObject *operand1, 
     } else
 #endif
     {
-        double result = (double)a / (double)b;
-        return result == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        double r = (double)a / (double)b;
+        result = r == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
     }
-    {
-        PyObject *op1 = operand1;
-        PyObject *op2 = operand2;
 
-        // TODO: Could in-line and specialize these as well.
-        PyObject *o = PyLong_Type.tp_as_number->nb_true_divide(op1, op2);
+    {
+        PyObject *operand1_object = operand1;
+        PyObject *operand2_object = operand2;
+
+        PyObject *o = PyLong_Type.tp_as_number->nb_true_divide(operand1_object, operand2_object);
         assert(o != Py_NotImplemented);
 
-        if (unlikely(o == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
         Py_DECREF(o);
-        return r;
+        goto exit_result;
     }
+
+exit_result:
+
+    if (unlikely(result == NUITKA_BOOL_EXCEPTION)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+exit_result_ok:
+
+    return result;
+
+exit_result_exception:
+    return NUITKA_BOOL_EXCEPTION;
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_TRUEDIV_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {

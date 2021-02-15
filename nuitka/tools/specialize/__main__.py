@@ -503,15 +503,25 @@ return %(return_value)s;""" % {
 
         # We sometimes fake these, e.g. for CLONG. Maybe we should make it more
         # distinct function names in those cases and use cand.hasSlot there.
+        if target is not None:
+            return "return SLOT_%s_%s_%s_%s(%s, %s);" % (
+                slot,
+                target.getHelperCodeName(),
+                cand.getHelperCodeName(),
+                cand.getHelperCodeName(),
+                operand1,
+                operand2,
+            )
+        else:
+            return
 
-        return "return SLOT_%s_%s_%s_%s(%s, %s);" % (
-            slot,
-            target.getHelperCodeName(),
-            cand.getHelperCodeName(),
-            cand.getHelperCodeName(),
-            operand1,
-            operand2,
-        )
+            # return "return ISLOT_%s_%s_%s(%s, %s);" % (
+            #     slot,
+            #     cand.getHelperCodeName(),
+            #     cand.getHelperCodeName(),
+            #     operand1,
+            #     operand2,
+            # )
 
     def getSimilarTypeSpecializationCode(
         self, target, other, nb_slot, operand1, operand2
@@ -1443,7 +1453,10 @@ def makeNbSlotCode(operand, op_code, target, left, right, emit):
         return
 
     if left in (int_desc, clong_desc):
-        template = env.get_template("HelperOperationBinaryInt.c.j2")
+        if target is None:
+            template = env.get_template("HelperOperationInplaceInt.c.j2")
+        else:
+            template = env.get_template("HelperOperationBinaryInt.c.j2")
     elif left == long_desc:
         template = env.get_template("HelperOperationBinaryLong.c.j2")
     elif left == float_desc:
@@ -1460,12 +1473,14 @@ def makeNbSlotCode(operand, op_code, target, left, right, emit):
         return
 
     code = template.render(
+        operator=operand,  # TODO: Rename operand to operator
         operand=operand,
         target=target,
         left=left,
         right=right,
         nb_slot=_getNbSlotFromOperand(operand, op_code),
         name=template.name,
+        int_desc=int_desc,
     )
 
     emit(code)
@@ -1657,19 +1672,18 @@ def makeHelperOperations(
 
         nb_slot = _getNbSlotFromOperand(operand, op_code)
 
-        if not inplace:
-            code = left.getSameTypeOperationSpecializationCode(
-                target=target,
-                other=right,
-                nb_slot=nb_slot,
-                sq_slot=None,
-                operand1="operand1",
-                operand2="operand2",
-            )
+        code = left.getSameTypeOperationSpecializationCode(
+            target=target,
+            other=right,
+            nb_slot=nb_slot,
+            sq_slot=None,
+            operand1="operand1",
+            operand2="operand2",
+        )
 
-            if code:
-                cand = left if left is not object_desc else right
-                makeNbSlotCode(operand, op_code, target, cand, cand, emit_c)
+        if code:
+            cand = left if left is not object_desc else right
+            makeNbSlotCode(operand, op_code, target, cand, cand, emit_c)
 
         if (
             target is not None
@@ -2075,6 +2089,8 @@ def main():
     makeHelpersImportHard()
 
     makeHelpersBinaryOperation("+", "ADD")
+    makeHelpersInplaceOperation("+", "ADD")
+
     makeHelpersBinaryOperation("-", "SUB")
     makeHelpersBinaryOperation("*", "MULT")
     makeHelpersBinaryOperation("%", "MOD")
@@ -2090,7 +2106,6 @@ def main():
     makeHelpersBinaryOperation("**", "POW")
     makeHelpersBinaryOperation("@", "MATMULT")
 
-    makeHelpersInplaceOperation("+", "ADD")
     makeHelpersInplaceOperation("-", "SUB")
     makeHelpersInplaceOperation("*", "MULT")
     makeHelpersInplaceOperation("%", "MOD")

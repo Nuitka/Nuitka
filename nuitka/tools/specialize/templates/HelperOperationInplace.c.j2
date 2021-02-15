@@ -150,6 +150,9 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     }
 {% endif %}
 
+{% if left.getTypeSpecializationCode(None, right, nb_slot, sq_slot1, "operand1", "operand2") %}
+    {{left.getTypeSpecializationCode(None, right, nb_slot, sq_slot1, "operand1", "operand2")}}
+{% else %}
     {# TODO: There are major improvements possible by inlining this as well. #}
     PyObject *result = PyNumber_InPlace{{op_code.title()}}(*operand1, operand2);
 
@@ -165,6 +168,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     *operand1 = result;
 
     return true;
+{% endif %}
 }
 
 bool BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {

@@ -307,7 +307,6 @@ static inline bool _BINARY_OPERATION_POW_INT_INT_INPLACE(PyObject **operand1, Py
             result = r;
             goto exit_result;
         } else {
-
             long temp = a;
             long ix = 1;
             long bb = b;
@@ -461,7 +460,6 @@ static inline bool _BINARY_OPERATION_POW_OBJECT_INT_INPLACE(PyObject **operand1,
             result = r;
             goto exit_result;
         } else {
-
             long temp = a;
             long ix = 1;
             long bb = b;
@@ -615,7 +613,6 @@ static inline bool _BINARY_OPERATION_POW_INT_OBJECT_INPLACE(PyObject **operand1,
             result = r;
             goto exit_result;
         } else {
-
             long temp = a;
             long ix = 1;
             long bb = b;
@@ -848,7 +845,6 @@ static inline bool _BINARY_OPERATION_POW_OBJECT_OBJECT_INPLACE(PyObject **operan
             result = r;
             goto exit_result;
         } else {
-
             long temp = a;
             long ix = 1;
             long bb = b;

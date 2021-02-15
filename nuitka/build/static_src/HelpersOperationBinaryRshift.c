@@ -744,6 +744,8 @@ nuitka_bool BINARY_OPERATION_RSHIFT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObje
 
 #if PYTHON_VERSION < 0x300
 static inline PyObject *SLOT_nb_rshift_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
+    PyObject *result;
+
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 0x300
@@ -760,36 +762,52 @@ static inline PyObject *SLOT_nb_rshift_OBJECT_INT_INT(PyObject *operand1, PyObje
 
     if (unlikely(b < 0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
-        return NULL;
+        goto exit_result_exception;
     }
 
     /* Short cut for zero shift or shifting zero. */
     if (a == 0 || b == 0) {
         Py_INCREF(operand1);
-        return operand1;
+        result = operand1;
+        goto exit_result_ok;
     } else if (b >= LONG_BIT) {
         if (a < 0) {
             Py_INCREF(const_int_neg_1);
-            return const_int_neg_1;
+            result = const_int_neg_1;
         } else {
             Py_INCREF(const_int_0);
-            return const_int_0;
+            result = const_int_0;
         }
+        goto exit_result_ok;
     } else {
         long r = Py_ARITHMETIC_RIGHT_SHIFT(long, a, b);
-        return PyInt_FromLong(r);
+        result = PyInt_FromLong(r);
+        goto exit_result_ok;
     }
 
     {
-        PyObject *op1 = operand1;
-        PyObject *op2 = operand2;
+        PyObject *operand1_object = operand1;
+        PyObject *operand2_object = operand2;
 
-        // TODO: Could in-line and specialize these as well.
-        PyObject *o = PyLong_Type.tp_as_number->nb_rshift(op1, op2);
+        PyObject *o = PyLong_Type.tp_as_number->nb_rshift(operand1_object, operand2_object);
         assert(o != Py_NotImplemented);
 
-        return o;
+        result = o;
+        goto exit_result;
     }
+
+exit_result:
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+exit_result_ok:
+
+    return result;
+
+exit_result_exception:
+    return NULL;
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_RSHIFT_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
@@ -1106,6 +1124,8 @@ PyObject *BINARY_OPERATION_RSHIFT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject
 
 #if PYTHON_VERSION < 0x300
 static inline nuitka_bool SLOT_nb_rshift_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
+    nuitka_bool result;
+
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 0x300
@@ -1122,40 +1142,50 @@ static inline nuitka_bool SLOT_nb_rshift_NBOOL_INT_INT(PyObject *operand1, PyObj
 
     if (unlikely(b < 0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
-        return NUITKA_BOOL_EXCEPTION;
+        goto exit_result_exception;
     }
 
     /* Short cut for zero shift or shifting zero. */
     if (a == 0 || b == 0) {
-        nuitka_bool r = CHECK_IF_TRUE(operand1) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        return r;
+        result = CHECK_IF_TRUE(operand1) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
     } else if (b >= LONG_BIT) {
         if (a < 0) {
-            return -1 != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            result = -1 != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
         } else {
-            return 0 != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            result = 0 != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
         }
+        goto exit_result_ok;
     } else {
         long r = Py_ARITHMETIC_RIGHT_SHIFT(long, a, b);
-        return r != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = r != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
     }
 
     {
-        PyObject *op1 = operand1;
-        PyObject *op2 = operand2;
+        PyObject *operand1_object = operand1;
+        PyObject *operand2_object = operand2;
 
-        // TODO: Could in-line and specialize these as well.
-        PyObject *o = PyLong_Type.tp_as_number->nb_rshift(op1, op2);
+        PyObject *o = PyLong_Type.tp_as_number->nb_rshift(operand1_object, operand2_object);
         assert(o != Py_NotImplemented);
 
-        if (unlikely(o == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        result = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
         Py_DECREF(o);
-        return r;
+        goto exit_result;
     }
+
+exit_result:
+
+    if (unlikely(result == NUITKA_BOOL_EXCEPTION)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+exit_result_ok:
+
+    return result;
+
+exit_result_exception:
+    return NUITKA_BOOL_EXCEPTION;
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_RSHIFT_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {

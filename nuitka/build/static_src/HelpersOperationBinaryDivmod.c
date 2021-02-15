@@ -37,6 +37,8 @@
 
 #if PYTHON_VERSION < 0x300
 static inline PyObject *SLOT_nb_divmod_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
+    PyObject *result;
+
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
 #if PYTHON_VERSION < 0x300
@@ -53,7 +55,7 @@ static inline PyObject *SLOT_nb_divmod_OBJECT_INT_INT(PyObject *operand1, PyObje
 
     if (unlikely(b == 0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
-        return NULL;
+        goto exit_result_exception;
     }
 
     if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
@@ -65,18 +67,33 @@ static inline PyObject *SLOT_nb_divmod_OBJECT_INT_INT(PyObject *operand1, PyObje
             a_div_b -= 1;
         }
 
-        return Py_BuildValue("(ll)", a_div_b, a_mod_b);
+        result = Py_BuildValue("(ll)", a_div_b, a_mod_b);
+        goto exit_result_ok;
     }
-    {
-        PyObject *op1 = operand1;
-        PyObject *op2 = operand2;
 
-        // TODO: Could in-line and specialize these as well.
-        PyObject *o = PyLong_Type.tp_as_number->nb_divmod(op1, op2);
+    {
+        PyObject *operand1_object = operand1;
+        PyObject *operand2_object = operand2;
+
+        PyObject *o = PyLong_Type.tp_as_number->nb_divmod(operand1_object, operand2_object);
         assert(o != Py_NotImplemented);
 
-        return o;
+        result = o;
+        goto exit_result;
     }
+
+exit_result:
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+exit_result_ok:
+
+    return result;
+
+exit_result_exception:
+    return NULL;
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
