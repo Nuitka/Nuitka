@@ -614,11 +614,20 @@ def _detectBinaryPathDLLsPosix(dll_filename):
             stderr=subprocess.PIPE,
         )
 
-        stdout, _stderr = process.communicate()
+        stdout, stderr = process.communicate()
 
-        inclusion_logger.debug(
-            "ldd output for %s is %s and %s" % (dll_filename, stdout, _stderr)
+        stderr = b"\n".join(
+            line
+            for line in stderr.splitlines()
+            if not line.startswith(
+                b"ldd: warning: you do not have execution permission for"
+            )
         )
+
+        inclusion_logger.debug("ldd output for %s is:\n%s" % (dll_filename, stdout))
+
+        if stderr:
+            inclusion_logger.debug("ldd error for %s is:\n%s" % (dll_filename, stderr))
 
         for line in stdout.split(b"\n"):
             if not line:
