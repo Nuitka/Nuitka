@@ -26,6 +26,7 @@
 
 /* Disable warnings about unused goto targets for compilers */
 
+#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4102)
@@ -33,10 +34,36 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
+#endif
 
 #if PYTHON_VERSION < 0x300
-static inline PyObject *SLOT_nb_subtract_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
+/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
+static PyObject *_BINARY_OPERATION_SUB_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
     PyObject *result;
+
+    // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -55,48 +82,36 @@ static inline PyObject *SLOT_nb_subtract_OBJECT_INT_INT(PyObject *operand1, PyOb
     const long x = (long)((unsigned long)a - b);
     bool no_overflow = ((x ^ a) >= 0 || (x ^ ~b) >= 0);
     if (likely(no_overflow)) {
-        result = PyInt_FromLong(x);
-        goto exit_result_ok;
+        clong_result = x;
+        goto exit_result_ok_clong;
     }
-
     {
         PyObject *operand1_object = operand1;
         PyObject *operand2_object = operand2;
 
-        PyObject *o = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
-        assert(o != Py_NotImplemented);
+        PyObject *r = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
+        assert(r != Py_NotImplemented);
 
-        result = o;
-        goto exit_result;
+        obj_result = r;
+        goto exit_result_object;
     }
 
-exit_result:
+exit_result_ok_clong:
+    result = PyInt_FromLong(clong_result);
+    goto exit_result_ok;
 
-    if (unlikely(result == NULL)) {
-        return NULL;
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
     }
+    result = obj_result;
+    goto exit_result_ok;
 
 exit_result_ok:
-
     return result;
 
 exit_result_exception:
     return NULL;
-}
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
-static PyObject *_BINARY_OPERATION_SUB_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    return SLOT_nb_subtract_OBJECT_INT_INT(operand1, operand2);
 }
 
 PyObject *BINARY_OPERATION_SUB_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
@@ -133,7 +148,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_INT(PyObject *operand1, PyO
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_OBJECT_INT_INT(operand1, operand2);
+        return _BINARY_OPERATION_SUB_OBJECT_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -279,7 +294,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_INT_OBJECT(PyObject *operand1, PyO
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_OBJECT_INT_INT(operand1, operand2);
+        return _BINARY_OPERATION_SUB_OBJECT_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -397,8 +412,33 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
-static inline nuitka_bool SLOT_nb_subtract_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
+/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
+static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
     nuitka_bool result;
+
+    // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -418,48 +458,15 @@ static inline nuitka_bool SLOT_nb_subtract_NBOOL_INT_INT(PyObject *operand1, PyO
     bool no_overflow = ((x ^ a) >= 0 || (x ^ ~b) >= 0);
     bool t = !no_overflow || x != 0;
 
-    result = t ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    cbool_result = t;
+    goto exit_result_ok_cbool;
+
+exit_result_ok_cbool:
+    result = cbool_result ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
     goto exit_result_ok;
 
-    {
-        PyObject *operand1_object = operand1;
-        PyObject *operand2_object = operand2;
-
-        PyObject *o = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
-        assert(o != Py_NotImplemented);
-
-        result = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(o);
-        goto exit_result;
-    }
-
-exit_result:
-
-    if (unlikely(result == NUITKA_BOOL_EXCEPTION)) {
-        return NUITKA_BOOL_EXCEPTION;
-    }
-
 exit_result_ok:
-
     return result;
-
-exit_result_exception:
-    return NUITKA_BOOL_EXCEPTION;
-}
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
-static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    return SLOT_nb_subtract_NBOOL_INT_INT(operand1, operand2);
 }
 
 nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
@@ -496,7 +503,7 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_INT(PyObject *operand1, Py
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_NBOOL_INT_INT(operand1, operand2);
+        return _BINARY_OPERATION_SUB_NBOOL_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -672,7 +679,7 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_INT_OBJECT(PyObject *operand1, Py
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_NBOOL_INT_INT(operand1, operand2);
+        return _BINARY_OPERATION_SUB_NBOOL_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -819,11 +826,6 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *
 }
 #endif
 
-static PyObject *SLOT_nb_subtract_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
-    PyObject *x = PyLong_Type.tp_as_number->nb_subtract(operand1, operand2);
-    assert(x != Py_NotImplemented);
-    return x;
-}
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -837,7 +839,29 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_LONG(PyObject *operand1, PyOb
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-    return SLOT_nb_subtract_OBJECT_LONG_LONG(operand1, operand2);
+    PyObject *result;
+
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+    PyObject *x = PyLong_Type.tp_as_number->nb_subtract(operand1, operand2);
+    assert(x != Py_NotImplemented);
+
+    obj_result = x;
+    goto exit_result_object;
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    result = obj_result;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+
+exit_result_exception:
+    return NULL;
 }
 
 PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
@@ -872,7 +896,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_LONG(PyObject *operand1, Py
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_OBJECT_LONG_LONG(operand1, operand2);
+        return _BINARY_OPERATION_SUB_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1020,7 +1044,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_OBJECT(PyObject *operand1, Py
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_OBJECT_LONG_LONG(operand1, operand2);
+        return _BINARY_OPERATION_SUB_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1140,17 +1164,6 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_SUB_OBJECT_LONG_OBJECT(operand1, operand2);
 }
 
-static nuitka_bool SLOT_nb_subtract_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
-    PyObject *x = PyLong_Type.tp_as_number->nb_subtract(operand1, operand2);
-    assert(x != Py_NotImplemented);
-    if (unlikely(x == NULL)) {
-        return NUITKA_BOOL_EXCEPTION;
-    }
-
-    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(x);
-    return r;
-}
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -1164,7 +1177,30 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_LONG(PyObject *operand1, PyO
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-    return SLOT_nb_subtract_NBOOL_LONG_LONG(operand1, operand2);
+    nuitka_bool result;
+
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+    PyObject *x = PyLong_Type.tp_as_number->nb_subtract(operand1, operand2);
+    assert(x != Py_NotImplemented);
+
+    obj_result = x;
+    goto exit_result_object;
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+
+exit_result_exception:
+    return NUITKA_BOOL_EXCEPTION;
 }
 
 nuitka_bool BINARY_OPERATION_SUB_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
@@ -1199,7 +1235,7 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_LONG(PyObject *operand1, P
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_NBOOL_LONG_LONG(operand1, operand2);
+        return _BINARY_OPERATION_SUB_NBOOL_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1377,7 +1413,7 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_OBJECT(PyObject *operand1, P
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_NBOOL_LONG_LONG(operand1, operand2);
+        return _BINARY_OPERATION_SUB_NBOOL_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1527,7 +1563,33 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_SUB_NBOOL_LONG_OBJECT(operand1, operand2);
 }
 
-static PyObject *SLOT_nb_subtract_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
+/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
+static PyObject *_BINARY_OPERATION_SUB_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyObject *result;
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
 #if PYTHON_VERSION < 0x300
@@ -1542,23 +1604,17 @@ static PyObject *SLOT_nb_subtract_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObjec
     double a = PyFloat_AS_DOUBLE(operand1);
     double b = PyFloat_AS_DOUBLE(operand2);
 
-    double result = a - b;
-    return PyFloat_FromDouble(result);
-}
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
-static PyObject *_BINARY_OPERATION_SUB_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
+    double r = a - b;
 
-    return SLOT_nb_subtract_OBJECT_FLOAT_FLOAT(operand1, operand2);
+    cfloat_result = r;
+    goto exit_result_ok_cfloat;
+
+exit_result_ok_cfloat:
+    result = PyFloat_FromDouble(cfloat_result);
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
 }
 
 PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
@@ -1593,7 +1649,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_OBJECT_FLOAT_FLOAT(operand1, operand2);
+        return _BINARY_OPERATION_SUB_OBJECT_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1737,7 +1793,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_OBJECT_FLOAT_FLOAT(operand1, operand2);
+        return _BINARY_OPERATION_SUB_OBJECT_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1853,7 +1909,33 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject 
     return _BINARY_OPERATION_SUB_OBJECT_FLOAT_OBJECT(operand1, operand2);
 }
 
-static nuitka_bool SLOT_nb_subtract_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
+/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
+static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    nuitka_bool result;
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
 #if PYTHON_VERSION < 0x300
@@ -1868,23 +1950,17 @@ static nuitka_bool SLOT_nb_subtract_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObje
     double a = PyFloat_AS_DOUBLE(operand1);
     double b = PyFloat_AS_DOUBLE(operand2);
 
-    double result = a - b;
-    return result == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-}
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
-static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
+    double r = a - b;
 
-    return SLOT_nb_subtract_NBOOL_FLOAT_FLOAT(operand1, operand2);
+    cfloat_result = r;
+    goto exit_result_ok_cfloat;
+
+exit_result_ok_cfloat:
+    result = cfloat_result != 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
 }
 
 nuitka_bool BINARY_OPERATION_SUB_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
@@ -1919,7 +1995,7 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_NBOOL_FLOAT_FLOAT(operand1, operand2);
+        return _BINARY_OPERATION_SUB_NBOOL_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2093,7 +2169,7 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_subtract_NBOOL_FLOAT_FLOAT(operand1, operand2);
+        return _BINARY_OPERATION_SUB_NBOOL_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2270,8 +2346,6 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_INT_LONG(PyObject *operand1, PyObj
         }
     } else {
         assert(type1 == type2);
-
-        return SLOT_nb_subtract_OBJECT_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2393,6 +2467,157 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_INT_LONG(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION < 0x300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = &PyLong_Type;
+    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_subtract;
+
+    PyTypeObject *type2 = &PyInt_Type;
+    binaryfunc slot2 = NULL;
+
+    if (!(0)) {
+        assert(type1 != type2);
+        /* Different types, need to consider second value slot. */
+
+        slot2 = PyInt_Type.tp_as_number->nb_subtract;
+
+        if (0) {
+            slot2 = NULL;
+        }
+    } else {
+        assert(type1 == type2);
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 != NULL) {
+            if (0) {
+                PyObject *x = slot2(operand1, operand2);
+
+                if (x != Py_NotImplemented) {
+                    return x;
+                }
+
+                Py_DECREF(x);
+                slot2 = NULL;
+            }
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 0x300 && (1 || 1)
+    if (!1 || !1) {
+        coercion c = PyLong_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced1, &coerced2);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_subtract;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+
+        c = PyInt_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced2, &coerced1);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_subtract;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+    }
+#endif
+
+#if PYTHON_VERSION < 0x300
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'long' and 'int'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'int' and 'int'");
+#endif
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_SUB_OBJECT_LONG_INT(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -2423,8 +2648,6 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_INT_LONG(PyObject *operand1, PyOb
         }
     } else {
         assert(type1 == type2);
-
-        return SLOT_nb_subtract_NBOOL_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2576,487 +2799,6 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_LONG(PyObject *operand1, PyObject *op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
-static PyObject *_BINARY_OPERATION_SUB_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    PyTypeObject *type1 = &PyInt_Type;
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_subtract;
-
-    PyTypeObject *type2 = &PyFloat_Type;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyFloat_Type.tp_as_number->nb_subtract;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    } else {
-        assert(type1 == type2);
-
-        return SLOT_nb_subtract_OBJECT_INT_INT(operand1, operand2);
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    return x;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300 && (1 || 1)
-    if (!1 || !1) {
-        coercion c = PyInt_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'int' and 'float'");
-    return NULL;
-}
-
-PyObject *BINARY_OPERATION_SUB_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_SUB_OBJECT_INT_FLOAT(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
-static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    PyTypeObject *type1 = &PyInt_Type;
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_subtract;
-
-    PyTypeObject *type2 = &PyFloat_Type;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyFloat_Type.tp_as_number->nb_subtract;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    } else {
-        assert(type1 == type2);
-
-        return SLOT_nb_subtract_NBOOL_INT_INT(operand1, operand2);
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300 && (1 || 1)
-    if (!1 || !1) {
-        coercion c = PyInt_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'int' and 'float'");
-    return NUITKA_BOOL_EXCEPTION;
-}
-
-nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_SUB_NBOOL_INT_FLOAT(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    PyTypeObject *type1 = &PyLong_Type;
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_subtract;
-
-    PyTypeObject *type2 = &PyInt_Type;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyInt_Type.tp_as_number->nb_subtract;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    } else {
-        assert(type1 == type2);
-
-        return SLOT_nb_subtract_OBJECT_LONG_LONG(operand1, operand2);
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    return x;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300 && (1 || 1)
-    if (!1 || !1) {
-        coercion c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyInt_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
-
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'long' and 'int'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'int' and 'int'");
-#endif
-    return NULL;
-}
-
-PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_SUB_OBJECT_LONG_INT(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -3087,8 +2829,6 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_INT(PyObject *operand1, PyOb
         }
     } else {
         assert(type1 == type2);
-
-        return SLOT_nb_subtract_NBOOL_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -3239,6 +2979,654 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_LONG_INT(PyObject *operand1, PyObject *op
 }
 #endif
 
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
+static PyObject *_BINARY_OPERATION_SUB_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = &PyInt_Type;
+    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_subtract;
+
+    PyTypeObject *type2 = &PyFloat_Type;
+    binaryfunc slot2 = NULL;
+
+    if (!(0)) {
+        assert(type1 != type2);
+        /* Different types, need to consider second value slot. */
+
+        slot2 = PyFloat_Type.tp_as_number->nb_subtract;
+
+        if (0) {
+            slot2 = NULL;
+        }
+    } else {
+        assert(type1 == type2);
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 != NULL) {
+            if (0) {
+                PyObject *x = slot2(operand1, operand2);
+
+                if (x != Py_NotImplemented) {
+                    return x;
+                }
+
+                Py_DECREF(x);
+                slot2 = NULL;
+            }
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 0x300 && (1 || 1)
+    if (!1 || !1) {
+        coercion c = PyInt_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced1, &coerced2);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_subtract;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+
+        c = PyFloat_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced2, &coerced1);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_subtract;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+    }
+#endif
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'int' and 'float'");
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_SUB_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_SUB_OBJECT_INT_FLOAT(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
+static PyObject *_BINARY_OPERATION_SUB_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = &PyFloat_Type;
+    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_subtract;
+
+    PyTypeObject *type2 = &PyInt_Type;
+    binaryfunc slot2 = NULL;
+
+    if (!(0)) {
+        assert(type1 != type2);
+        /* Different types, need to consider second value slot. */
+
+        slot2 = PyInt_Type.tp_as_number->nb_subtract;
+
+        if (0) {
+            slot2 = NULL;
+        }
+    } else {
+        assert(type1 == type2);
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 != NULL) {
+            if (0) {
+                PyObject *x = slot2(operand1, operand2);
+
+                if (x != Py_NotImplemented) {
+                    return x;
+                }
+
+                Py_DECREF(x);
+                slot2 = NULL;
+            }
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 0x300 && (1 || 1)
+    if (!1 || !1) {
+        coercion c = PyFloat_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced1, &coerced2);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_subtract;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+
+        c = PyInt_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced2, &coerced1);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_subtract;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+    }
+#endif
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'float' and 'int'");
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_SUB_OBJECT_FLOAT_INT(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
+static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = &PyInt_Type;
+    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_subtract;
+
+    PyTypeObject *type2 = &PyFloat_Type;
+    binaryfunc slot2 = NULL;
+
+    if (!(0)) {
+        assert(type1 != type2);
+        /* Different types, need to consider second value slot. */
+
+        slot2 = PyFloat_Type.tp_as_number->nb_subtract;
+
+        if (0) {
+            slot2 = NULL;
+        }
+    } else {
+        assert(type1 == type2);
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 != NULL) {
+            if (0) {
+                PyObject *x = slot2(operand1, operand2);
+
+                if (x != Py_NotImplemented) {
+                    if (unlikely(x == NULL)) {
+                        return NUITKA_BOOL_EXCEPTION;
+                    }
+
+                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(x);
+                    return r;
+                }
+
+                Py_DECREF(x);
+                slot2 = NULL;
+            }
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            Py_DECREF(x);
+            return r;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            Py_DECREF(x);
+            return r;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 0x300 && (1 || 1)
+    if (!1 || !1) {
+        coercion c = PyInt_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced1, &coerced2);
+
+            if (unlikely(err < 0)) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_subtract;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        if (unlikely(x == NULL)) {
+                            return NUITKA_BOOL_EXCEPTION;
+                        }
+
+                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                        Py_DECREF(x);
+                        return r;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+
+        c = PyFloat_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced2, &coerced1);
+
+            if (unlikely(err < 0)) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_subtract;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        if (unlikely(x == NULL)) {
+                            return NUITKA_BOOL_EXCEPTION;
+                        }
+
+                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                        Py_DECREF(x);
+                        return r;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+    }
+#endif
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'int' and 'float'");
+    return NUITKA_BOOL_EXCEPTION;
+}
+
+nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_SUB_NBOOL_INT_FLOAT(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
+static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = &PyFloat_Type;
+    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_subtract;
+
+    PyTypeObject *type2 = &PyInt_Type;
+    binaryfunc slot2 = NULL;
+
+    if (!(0)) {
+        assert(type1 != type2);
+        /* Different types, need to consider second value slot. */
+
+        slot2 = PyInt_Type.tp_as_number->nb_subtract;
+
+        if (0) {
+            slot2 = NULL;
+        }
+    } else {
+        assert(type1 == type2);
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 != NULL) {
+            if (0) {
+                PyObject *x = slot2(operand1, operand2);
+
+                if (x != Py_NotImplemented) {
+                    if (unlikely(x == NULL)) {
+                        return NUITKA_BOOL_EXCEPTION;
+                    }
+
+                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(x);
+                    return r;
+                }
+
+                Py_DECREF(x);
+                slot2 = NULL;
+            }
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            Py_DECREF(x);
+            return r;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            Py_DECREF(x);
+            return r;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 0x300 && (1 || 1)
+    if (!1 || !1) {
+        coercion c = PyFloat_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced1, &coerced2);
+
+            if (unlikely(err < 0)) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_subtract;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        if (unlikely(x == NULL)) {
+                            return NUITKA_BOOL_EXCEPTION;
+                        }
+
+                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                        Py_DECREF(x);
+                        return r;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+
+        c = PyInt_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced2, &coerced1);
+
+            if (unlikely(err < 0)) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_subtract;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        if (unlikely(x == NULL)) {
+                            return NUITKA_BOOL_EXCEPTION;
+                        }
+
+                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                        Py_DECREF(x);
+                        return r;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+    }
+#endif
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'float' and 'int'");
+    return NUITKA_BOOL_EXCEPTION;
+}
+
+nuitka_bool BINARY_OPERATION_SUB_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_SUB_NBOOL_FLOAT_INT(operand1, operand2);
+}
+#endif
+
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -3269,8 +3657,6 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
         }
     } else {
         assert(type1 == type2);
-
-        return SLOT_nb_subtract_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -3390,6 +3776,155 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *o
     return _BINARY_OPERATION_SUB_OBJECT_LONG_FLOAT(operand1, operand2);
 }
 
+/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
+static PyObject *_BINARY_OPERATION_SUB_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = &PyFloat_Type;
+    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_subtract;
+
+    PyTypeObject *type2 = &PyLong_Type;
+    binaryfunc slot2 = NULL;
+
+    if (!(0)) {
+        assert(type1 != type2);
+        /* Different types, need to consider second value slot. */
+
+        slot2 = PyLong_Type.tp_as_number->nb_subtract;
+
+        if (0) {
+            slot2 = NULL;
+        }
+    } else {
+        assert(type1 == type2);
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 != NULL) {
+            if (0) {
+                PyObject *x = slot2(operand1, operand2);
+
+                if (x != Py_NotImplemented) {
+                    return x;
+                }
+
+                Py_DECREF(x);
+                slot2 = NULL;
+            }
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 0x300 && (1 || 1)
+    if (!1 || !1) {
+        coercion c = PyFloat_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced1, &coerced2);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_subtract;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+
+        c = PyLong_Type.tp_as_number->nb_coerce;
+
+        if (c != NULL) {
+            PyObject *coerced1 = operand1;
+            PyObject *coerced2 = operand2;
+
+            int err = c(&coerced2, &coerced1);
+
+            if (unlikely(err < 0)) {
+                return NULL;
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    binaryfunc slot = mv->nb_subtract;
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = slot(coerced1, coerced2);
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        return x;
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+    }
+#endif
+
+#if PYTHON_VERSION < 0x300
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'float' and 'long'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'float' and 'int'");
+#endif
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_SUB_OBJECT_FLOAT_LONG(operand1, operand2);
+}
+
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -3420,8 +3955,6 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_FLOAT(PyObject *operand1, Py
         }
     } else {
         assert(type1 == type2);
-
-        return SLOT_nb_subtract_NBOOL_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -3571,485 +4104,6 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_LONG_FLOAT(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_SUB_NBOOL_LONG_FLOAT(operand1, operand2);
 }
 
-#if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
-static PyObject *_BINARY_OPERATION_SUB_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    PyTypeObject *type1 = &PyFloat_Type;
-    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_subtract;
-
-    PyTypeObject *type2 = &PyInt_Type;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyInt_Type.tp_as_number->nb_subtract;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    } else {
-        assert(type1 == type2);
-
-        return SLOT_nb_subtract_OBJECT_FLOAT_FLOAT(operand1, operand2);
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    return x;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300 && (1 || 1)
-    if (!1 || !1) {
-        coercion c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyInt_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'float' and 'int'");
-    return NULL;
-}
-
-PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_SUB_OBJECT_FLOAT_INT(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
-static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    PyTypeObject *type1 = &PyFloat_Type;
-    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_subtract;
-
-    PyTypeObject *type2 = &PyInt_Type;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyInt_Type.tp_as_number->nb_subtract;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    } else {
-        assert(type1 == type2);
-
-        return SLOT_nb_subtract_NBOOL_FLOAT_FLOAT(operand1, operand2);
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300 && (1 || 1)
-    if (!1 || !1) {
-        coercion c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyInt_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'float' and 'int'");
-    return NUITKA_BOOL_EXCEPTION;
-}
-
-nuitka_bool BINARY_OPERATION_SUB_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_SUB_NBOOL_FLOAT_INT(operand1, operand2);
-}
-#endif
-
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
-static PyObject *_BINARY_OPERATION_SUB_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    PyTypeObject *type1 = &PyFloat_Type;
-    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_subtract;
-
-    PyTypeObject *type2 = &PyLong_Type;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyLong_Type.tp_as_number->nb_subtract;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    } else {
-        assert(type1 == type2);
-
-        return SLOT_nb_subtract_OBJECT_FLOAT_FLOAT(operand1, operand2);
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    return x;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300 && (1 || 1)
-    if (!1 || !1) {
-        coercion c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                return NULL;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_subtract;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        return x;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
-
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'float' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for -: 'float' and 'int'");
-#endif
-    return NULL;
-}
-
-PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_SUB_OBJECT_FLOAT_LONG(operand1, operand2);
-}
-
 /* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -4080,8 +4134,6 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_FLOAT_LONG(PyObject *operand1, Py
         }
     } else {
         assert(type1 == type2);
-
-        return SLOT_nb_subtract_NBOOL_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -4238,8 +4290,20 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
 
 #if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
-
         PyObject *result;
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         CHECK_OBJECT(operand1);
         assert(PyInt_CheckExact(operand1));
@@ -4258,29 +4322,32 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
         const long x = (long)((unsigned long)a - b);
         bool no_overflow = ((x ^ a) >= 0 || (x ^ ~b) >= 0);
         if (likely(no_overflow)) {
-            result = PyInt_FromLong(x);
-            goto exit_result_ok;
+            clong_result = x;
+            goto exit_result_ok_clong;
         }
-
         {
             PyObject *operand1_object = operand1;
             PyObject *operand2_object = operand2;
 
-            PyObject *o = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
-            assert(o != Py_NotImplemented);
+            PyObject *r = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
+            assert(r != Py_NotImplemented);
 
-            result = o;
-            goto exit_result;
+            obj_result = r;
+            goto exit_result_object;
         }
 
-    exit_result:
+    exit_result_ok_clong:
+        result = PyInt_FromLong(clong_result);
+        goto exit_result_ok;
 
-        if (unlikely(result == NULL)) {
-            return NULL;
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
         }
+        result = obj_result;
+        goto exit_result_ok;
 
     exit_result_ok:
-
         return result;
 
     exit_result_exception:
@@ -4429,8 +4496,20 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_OBJECT(PyObject *operand1,
 
 #if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
-
         nuitka_bool result;
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         CHECK_OBJECT(operand1);
         assert(PyInt_CheckExact(operand1));
@@ -4450,33 +4529,15 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_OBJECT(PyObject *operand1,
         bool no_overflow = ((x ^ a) >= 0 || (x ^ ~b) >= 0);
         bool t = !no_overflow || x != 0;
 
-        result = t ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        cbool_result = t;
+        goto exit_result_ok_cbool;
+
+    exit_result_ok_cbool:
+        result = cbool_result ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
         goto exit_result_ok;
 
-        {
-            PyObject *operand1_object = operand1;
-            PyObject *operand2_object = operand2;
-
-            PyObject *o = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
-            assert(o != Py_NotImplemented);
-
-            result = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(o);
-            goto exit_result;
-        }
-
-    exit_result:
-
-        if (unlikely(result == NUITKA_BOOL_EXCEPTION)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
     exit_result_ok:
-
         return result;
-
-    exit_result_exception:
-        return NUITKA_BOOL_EXCEPTION;
     }
 #endif
 
@@ -4645,9 +4706,11 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObjec
 }
 
 /* Reneable warnings about unused goto targets for compilers */
+#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic warning "-Wunused-label"
+#endif
 #endif

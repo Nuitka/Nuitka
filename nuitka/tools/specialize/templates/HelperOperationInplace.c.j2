@@ -25,28 +25,12 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 {% if left.mayBothHaveType(right, "int") %}
 #if PYTHON_VERSION < 0x300
     if ({{left.getIntCheckExpression("*operand1")}} && {{right.getIntCheckExpression("operand2")}}) {
-        {% import 'HelperSlotsInt.c.j2' as int_slots %}
+        {% from 'HelperSlotsInt.c.j2' import int_slot %}
 
-        PyObject *result;
-        PyObject *op1 = *operand1;
-
-        {{ int_slots.int_slot(operator, nb_slot, object_desc, int_desc, int_desc, "result", "op1", "operand2", "exit_result", "exit_result_ok", "exit_result_exception") }}
-
-        exit_result:
-
-        if (unlikely(result == NULL)) {
-            return false;
-        }
+        {% set props = {"exits": []} %}
+        {{ int_slot(props, operator, nb_slot, None, int_desc, int_desc, "result", "*operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
 
         exit_result_ok:
-
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        // That's our return value then. As we use a dedicated variable, it's
-        // OK that way.
-        *operand1 = result;
-
         return true;
 
 {# Not all operations have defined a definite exception exit, so this can be unused #}
@@ -150,9 +134,6 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     }
 {% endif %}
 
-{% if left.getTypeSpecializationCode(None, right, nb_slot, sq_slot1, "operand1", "operand2") %}
-    {{left.getTypeSpecializationCode(None, right, nb_slot, sq_slot1, "operand1", "operand2")}}
-{% else %}
     {# TODO: There are major improvements possible by inlining this as well. #}
     PyObject *result = PyNumber_InPlace{{op_code.title()}}(*operand1, operand2);
 
@@ -168,7 +149,6 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     *operand1 = result;
 
     return true;
-{% endif %}
 }
 
 bool BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {

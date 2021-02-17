@@ -27,6 +27,7 @@
 
 /* Disable warnings about unused goto targets for compilers */
 
+#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4102)
@@ -34,10 +35,36 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
+#endif
 
 #if PYTHON_VERSION < 0x300
-static inline PyObject *SLOT_nb_divmod_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
+/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
+static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
     PyObject *result;
+
+    // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -67,48 +94,33 @@ static inline PyObject *SLOT_nb_divmod_OBJECT_INT_INT(PyObject *operand1, PyObje
             a_div_b -= 1;
         }
 
-        result = Py_BuildValue("(ll)", a_div_b, a_mod_b);
-        goto exit_result_ok;
+        PyObject *r = Py_BuildValue("(ll)", a_div_b, a_mod_b);
+        obj_result = r;
+        goto exit_result_object;
     }
-
     {
         PyObject *operand1_object = operand1;
         PyObject *operand2_object = operand2;
 
-        PyObject *o = PyLong_Type.tp_as_number->nb_divmod(operand1_object, operand2_object);
-        assert(o != Py_NotImplemented);
+        PyObject *r = PyLong_Type.tp_as_number->nb_divmod(operand1_object, operand2_object);
+        assert(r != Py_NotImplemented);
 
-        result = o;
-        goto exit_result;
+        obj_result = r;
+        goto exit_result_object;
     }
 
-exit_result:
-
-    if (unlikely(result == NULL)) {
-        return NULL;
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
     }
+    result = obj_result;
+    goto exit_result_ok;
 
 exit_result_ok:
-
     return result;
 
 exit_result_exception:
     return NULL;
-}
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
-static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    return SLOT_nb_divmod_OBJECT_INT_INT(operand1, operand2);
 }
 
 PyObject *BINARY_OPERATION_DIVMOD_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
@@ -145,7 +157,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_INT(PyObject *operand1, 
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_divmod_OBJECT_INT_INT(operand1, operand2);
+        return _BINARY_OPERATION_DIVMOD_OBJECT_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -291,7 +303,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, 
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_divmod_OBJECT_INT_INT(operand1, operand2);
+        return _BINARY_OPERATION_DIVMOD_OBJECT_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -408,11 +420,6 @@ PyObject *BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, PyObject
 }
 #endif
 
-static PyObject *SLOT_nb_divmod_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
-    PyObject *x = PyLong_Type.tp_as_number->nb_divmod(operand1, operand2);
-    assert(x != Py_NotImplemented);
-    return x;
-}
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -426,7 +433,29 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_LONG(PyObject *operand1, P
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-    return SLOT_nb_divmod_OBJECT_LONG_LONG(operand1, operand2);
+    PyObject *result;
+
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+    PyObject *x = PyLong_Type.tp_as_number->nb_divmod(operand1, operand2);
+    assert(x != Py_NotImplemented);
+
+    obj_result = x;
+    goto exit_result_object;
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    result = obj_result;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+
+exit_result_exception:
+    return NULL;
 }
 
 PyObject *BINARY_OPERATION_DIVMOD_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
@@ -461,7 +490,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_LONG(PyObject *operand1,
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_divmod_OBJECT_LONG_LONG(operand1, operand2);
+        return _BINARY_OPERATION_DIVMOD_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -609,7 +638,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(PyObject *operand1,
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_divmod_OBJECT_LONG_LONG(operand1, operand2);
+        return _BINARY_OPERATION_DIVMOD_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -729,7 +758,33 @@ PyObject *BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(PyObject *operand1, PyObjec
     return _BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(operand1, operand2);
 }
 
-static PyObject *SLOT_nb_divmod_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
+/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
+static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyObject *result;
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
 #if PYTHON_VERSION < 0x300
@@ -744,9 +799,9 @@ static PyObject *SLOT_nb_divmod_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject 
     double a = PyFloat_AS_DOUBLE(operand1);
     double b = PyFloat_AS_DOUBLE(operand2);
 
-    if (b == 0.0) {
+    if (unlikely(b == 0.0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
-        return NULL;
+        goto exit_result_exception;
     }
 
     double mod = fmod(a, b);
@@ -771,22 +826,23 @@ static PyObject *SLOT_nb_divmod_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject 
         floordiv = copysign(0.0, a / b);
     }
 
-    return Py_BuildValue("(dd)", floordiv, mod);
-}
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
-static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
+    PyObject *r = Py_BuildValue("(dd)", floordiv, mod);
 
-    return SLOT_nb_divmod_OBJECT_FLOAT_FLOAT(operand1, operand2);
+    obj_result = r;
+    goto exit_result_object;
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    result = obj_result;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+
+exit_result_exception:
+    return NULL;
 }
 
 PyObject *BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
@@ -821,7 +877,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_divmod_OBJECT_FLOAT_FLOAT(operand1, operand2);
+        return _BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -965,7 +1021,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_divmod_OBJECT_FLOAT_FLOAT(operand1, operand2);
+        return _BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1088,8 +1144,20 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
 
 #if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
-
         PyObject *result;
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         CHECK_OBJECT(operand1);
         assert(PyInt_CheckExact(operand1));
@@ -1119,29 +1187,29 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
                 a_div_b -= 1;
             }
 
-            result = Py_BuildValue("(ll)", a_div_b, a_mod_b);
-            goto exit_result_ok;
+            PyObject *r = Py_BuildValue("(ll)", a_div_b, a_mod_b);
+            obj_result = r;
+            goto exit_result_object;
         }
-
         {
             PyObject *operand1_object = operand1;
             PyObject *operand2_object = operand2;
 
-            PyObject *o = PyLong_Type.tp_as_number->nb_divmod(operand1_object, operand2_object);
-            assert(o != Py_NotImplemented);
+            PyObject *r = PyLong_Type.tp_as_number->nb_divmod(operand1_object, operand2_object);
+            assert(r != Py_NotImplemented);
 
-            result = o;
-            goto exit_result;
+            obj_result = r;
+            goto exit_result_object;
         }
 
-    exit_result:
-
-        if (unlikely(result == NULL)) {
-            return NULL;
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
         }
+        result = obj_result;
+        goto exit_result_ok;
 
     exit_result_ok:
-
         return result;
 
     exit_result_exception:
@@ -1285,9 +1353,11 @@ PyObject *BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObj
 }
 
 /* Reneable warnings about unused goto targets for compilers */
+#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic warning "-Wunused-label"
+#endif
 #endif

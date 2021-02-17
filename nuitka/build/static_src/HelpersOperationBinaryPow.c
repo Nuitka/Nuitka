@@ -27,6 +27,7 @@
 
 /* Disable warnings about unused goto targets for compilers */
 
+#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4102)
@@ -34,105 +35,8 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wunused-label"
 #endif
-
-static PyObject *SLOT_nb_power_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-    double a = PyFloat_AS_DOUBLE(operand1);
-    double b = PyFloat_AS_DOUBLE(operand2);
-
-    if (b == 0) {
-        Py_INCREF(const_float_1_0);
-        return const_float_1_0;
-    }
-
-    if (Py_IS_NAN(a)) {
-        Py_INCREF(operand1);
-        return operand1;
-    }
-
-    if (Py_IS_NAN(b)) {
-        if (a == 1.0) {
-            Py_INCREF(const_float_1_0);
-            return const_float_1_0;
-        } else {
-            Py_INCREF(operand2);
-            return operand2;
-        }
-    }
-
-    if (Py_IS_INFINITY(b)) {
-        a = fabs(a);
-        if (a == 1.0) {
-            Py_INCREF(const_float_1_0);
-            return const_float_1_0;
-        } else if ((b > 0.0) == (a > 1.0)) {
-            return PyFloat_FromDouble(fabs(b));
-        } else {
-            Py_INCREF(const_float_0_0);
-            return const_float_0_0;
-        }
-    }
-
-    if (Py_IS_INFINITY(a)) {
-        bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
-        if (b > 0.0) {
-            return PyFloat_FromDouble((b_is_odd ? a : fabs(a)));
-        } else {
-            return PyFloat_FromDouble((b_is_odd ? copysign(0.0, a) : 0.0));
-        }
-    }
-
-    if (a == 0.0) {
-        if (b < 0.0) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
-            return NULL;
-        }
-
-        bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
-        return PyFloat_FromDouble((b_is_odd ? a : 0.0));
-    }
-
-    bool negate_result = false;
-
-    if (a < 0.0) {
-        if (b != floor(b)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative number cannot be raised to a fractional power");
-            return NULL;
-        }
-        a = -a;
-        negate_result = DOUBLE_IS_ODD_INTEGER(b);
-    }
-
-    if (a == 1.0) {
-        if (negate_result) {
-            Py_INCREF(const_float_minus_1_0);
-            return const_float_minus_1_0;
-        } else {
-            Py_INCREF(const_float_1_0);
-            return const_float_1_0;
-        }
-    } else {
-        errno = 0;
-        const double r = pow(a, b);
-
-        if (unlikely(errno != 0)) {
-            PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
-            return NULL;
-        }
-
-        return PyFloat_FromDouble((negate_result ? -r : r));
-    }
-}
 /* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -146,14 +50,20 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-    return SLOT_nb_power_OBJECT_FLOAT_FLOAT(operand1, operand2);
-}
+    PyObject *result;
 
-PyObject *BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1, operand2);
-}
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
-static nuitka_bool SLOT_nb_power_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
 #if PYTHON_VERSION < 0x300
@@ -169,80 +79,135 @@ static nuitka_bool SLOT_nb_power_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject 
     double b = PyFloat_AS_DOUBLE(operand2);
 
     if (b == 0) {
-        return 1.0 == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok_const_float_1_0;
     }
 
     if (Py_IS_NAN(a)) {
-        return Py_NAN == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok_left;
     }
 
     if (Py_IS_NAN(b)) {
         if (a == 1.0) {
-            return 1.0 == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            goto exit_result_ok_const_float_1_0;
         } else {
-            return Py_NAN == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            goto exit_result_ok_right;
         }
     }
 
     if (Py_IS_INFINITY(b)) {
         a = fabs(a);
         if (a == 1.0) {
-            return 1.0 == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            goto exit_result_ok_const_float_1_0;
         } else if ((b > 0.0) == (a > 1.0)) {
-            return fabs(b) == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            long r = (long)fabs(b);
+
+            cfloat_result = r;
+            goto exit_result_ok_cfloat;
         } else {
-            return 0.0 == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            goto exit_result_ok_const_float_0_0;
         }
     }
 
     if (Py_IS_INFINITY(a)) {
         bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
+        double r;
+
         if (b > 0.0) {
-            return (b_is_odd ? a : fabs(a)) == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            r = b_is_odd ? a : fabs(a);
         } else {
-            return (b_is_odd ? copysign(0.0, a) : 0.0) == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            r = b_is_odd ? copysign(0.0, a) : 0.0;
         }
+
+        cfloat_result = r;
+        goto exit_result_ok_cfloat;
     }
 
     if (a == 0.0) {
-        if (b < 0.0) {
+        if (unlikely(b < 0.0)) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
-            return NUITKA_BOOL_EXCEPTION;
+            goto exit_result_exception;
         }
 
         bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
-        return (b_is_odd ? a : 0.0) == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        double r = b_is_odd ? a : 0.0;
+
+        cfloat_result = r;
+        goto exit_result_ok_cfloat;
     }
 
     bool negate_result = false;
 
     if (a < 0.0) {
-        if (b != floor(b)) {
+        if (unlikely(b != floor(b))) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative number cannot be raised to a fractional power");
-            return NUITKA_BOOL_EXCEPTION;
+            goto exit_result_exception;
         }
+
         a = -a;
         negate_result = DOUBLE_IS_ODD_INTEGER(b);
     }
 
     if (a == 1.0) {
         if (negate_result) {
-            return -1.0 == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            goto exit_result_ok_const_float_minus_1_0;
         } else {
-            return 1.0 == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+            goto exit_result_ok_const_float_1_0;
         }
     } else {
         errno = 0;
-        const double r = pow(a, b);
+        double r = pow(a, b);
 
         if (unlikely(errno != 0)) {
             PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
-            return NUITKA_BOOL_EXCEPTION;
+            goto exit_result_exception;
         }
 
-        return (negate_result ? -r : r) == 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        r = negate_result ? -r : r;
+
+        cfloat_result = r;
+        goto exit_result_ok_cfloat;
     }
+
+exit_result_ok_cfloat:
+    result = PyFloat_FromDouble(cfloat_result);
+    goto exit_result_ok;
+
+exit_result_ok_left:
+    result = operand1;
+    Py_INCREF(result);
+    goto exit_result_ok;
+
+exit_result_ok_right:
+    result = operand2;
+    Py_INCREF(result);
+    goto exit_result_ok;
+
+exit_result_ok_const_float_0_0:
+    Py_INCREF(const_float_0_0);
+    result = const_float_0_0;
+    goto exit_result_ok;
+
+exit_result_ok_const_float_1_0:
+    Py_INCREF(const_float_1_0);
+    result = const_float_1_0;
+    goto exit_result_ok;
+
+exit_result_ok_const_float_minus_1_0:
+    Py_INCREF(const_float_minus_1_0);
+    result = const_float_minus_1_0;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+
+exit_result_exception:
+    return NULL;
 }
+
+PyObject *BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1, operand2);
+}
+
 /* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 static nuitka_bool _BINARY_OPERATION_POW_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -256,7 +221,153 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_FLOAT_FLOAT(PyObject *operand1, P
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-    return SLOT_nb_power_NBOOL_FLOAT_FLOAT(operand1, operand2);
+    nuitka_bool result;
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    double a = PyFloat_AS_DOUBLE(operand1);
+    double b = PyFloat_AS_DOUBLE(operand2);
+
+    if (b == 0) {
+        goto exit_result_ok_const_float_1_0;
+    }
+
+    if (Py_IS_NAN(a)) {
+        goto exit_result_ok_left;
+    }
+
+    if (Py_IS_NAN(b)) {
+        if (a == 1.0) {
+            goto exit_result_ok_const_float_1_0;
+        } else {
+            goto exit_result_ok_right;
+        }
+    }
+
+    if (Py_IS_INFINITY(b)) {
+        a = fabs(a);
+        if (a == 1.0) {
+            goto exit_result_ok_const_float_1_0;
+        } else if ((b > 0.0) == (a > 1.0)) {
+            long r = (long)fabs(b);
+
+            cfloat_result = r;
+            goto exit_result_ok_cfloat;
+        } else {
+            goto exit_result_ok_const_float_0_0;
+        }
+    }
+
+    if (Py_IS_INFINITY(a)) {
+        bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
+        double r;
+
+        if (b > 0.0) {
+            r = b_is_odd ? a : fabs(a);
+        } else {
+            r = b_is_odd ? copysign(0.0, a) : 0.0;
+        }
+
+        cfloat_result = r;
+        goto exit_result_ok_cfloat;
+    }
+
+    if (a == 0.0) {
+        if (unlikely(b < 0.0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
+            goto exit_result_exception;
+        }
+
+        bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
+        double r = b_is_odd ? a : 0.0;
+
+        cfloat_result = r;
+        goto exit_result_ok_cfloat;
+    }
+
+    bool negate_result = false;
+
+    if (a < 0.0) {
+        if (unlikely(b != floor(b))) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative number cannot be raised to a fractional power");
+            goto exit_result_exception;
+        }
+
+        a = -a;
+        negate_result = DOUBLE_IS_ODD_INTEGER(b);
+    }
+
+    if (a == 1.0) {
+        if (negate_result) {
+            goto exit_result_ok_const_float_minus_1_0;
+        } else {
+            goto exit_result_ok_const_float_1_0;
+        }
+    } else {
+        errno = 0;
+        double r = pow(a, b);
+
+        if (unlikely(errno != 0)) {
+            PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
+            goto exit_result_exception;
+        }
+
+        r = negate_result ? -r : r;
+
+        cfloat_result = r;
+        goto exit_result_ok_cfloat;
+    }
+
+exit_result_ok_cfloat:
+    result = cfloat_result != 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    goto exit_result_ok;
+
+exit_result_ok_left:
+    result = PyFloat_AS_DOUBLE(operand1) != 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    goto exit_result_ok;
+
+exit_result_ok_right:
+    result = PyFloat_AS_DOUBLE(operand2) != 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    goto exit_result_ok;
+
+exit_result_ok_const_float_0_0:
+    result = 0.0 != 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    goto exit_result_ok;
+
+exit_result_ok_const_float_1_0:
+    result = 1.0 != 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    goto exit_result_ok;
+
+exit_result_ok_const_float_minus_1_0:
+    result = -1.0 != 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+
+exit_result_exception:
+    return NUITKA_BOOL_EXCEPTION;
 }
 
 nuitka_bool BINARY_OPERATION_POW_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
@@ -291,7 +402,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_power_OBJECT_FLOAT_FLOAT(operand1, operand2);
+        return _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -436,7 +547,7 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_power_NBOOL_FLOAT_FLOAT(operand1, operand2);
+        return _BINARY_OPERATION_POW_NBOOL_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -610,7 +721,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_power_OBJECT_FLOAT_FLOAT(operand1, operand2);
+        return _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -753,7 +864,7 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_power_NBOOL_FLOAT_FLOAT(operand1, operand2);
+        return _BINARY_OPERATION_POW_NBOOL_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -899,11 +1010,6 @@ nuitka_bool BINARY_OPERATION_POW_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject
     return _BINARY_OPERATION_POW_NBOOL_FLOAT_OBJECT(operand1, operand2);
 }
 
-static PyObject *SLOT_nb_power_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
-    PyObject *x = PyLong_Type.tp_as_number->nb_power(operand1, operand2, Py_None);
-    assert(x != Py_NotImplemented);
-    return x;
-}
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_POW_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -917,24 +1023,35 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_LONG_LONG(PyObject *operand1, PyOb
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-    return SLOT_nb_power_OBJECT_LONG_LONG(operand1, operand2);
+    PyObject *result;
+
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+    PyObject *x = PyLong_Type.tp_as_number->nb_power(operand1, operand2, Py_None);
+    assert(x != Py_NotImplemented);
+
+    obj_result = x;
+    goto exit_result_object;
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    result = obj_result;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+
+exit_result_exception:
+    return NULL;
 }
 
 PyObject *BINARY_OPERATION_POW_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1, operand2);
 }
 
-static nuitka_bool SLOT_nb_power_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
-    PyObject *x = PyLong_Type.tp_as_number->nb_power(operand1, operand2, Py_None);
-    assert(x != Py_NotImplemented);
-    if (unlikely(x == NULL)) {
-        return NUITKA_BOOL_EXCEPTION;
-    }
-
-    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(x);
-    return r;
-}
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static nuitka_bool _BINARY_OPERATION_POW_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -948,7 +1065,30 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_LONG_LONG(PyObject *operand1, PyO
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-    return SLOT_nb_power_NBOOL_LONG_LONG(operand1, operand2);
+    nuitka_bool result;
+
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+    PyObject *x = PyLong_Type.tp_as_number->nb_power(operand1, operand2, Py_None);
+    assert(x != Py_NotImplemented);
+
+    obj_result = x;
+    goto exit_result_object;
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+
+exit_result_exception:
+    return NUITKA_BOOL_EXCEPTION;
 }
 
 nuitka_bool BINARY_OPERATION_POW_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
@@ -983,7 +1123,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_LONG(PyObject *operand1, Py
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_power_OBJECT_LONG_LONG(operand1, operand2);
+        return _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1132,7 +1272,7 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_OBJECT_LONG(PyObject *operand1, P
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_power_NBOOL_LONG_LONG(operand1, operand2);
+        return _BINARY_OPERATION_POW_NBOOL_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1310,7 +1450,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_LONG_OBJECT(PyObject *operand1, Py
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_power_OBJECT_LONG_LONG(operand1, operand2);
+        return _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1457,7 +1597,7 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_LONG_OBJECT(PyObject *operand1, P
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_power_NBOOL_LONG_LONG(operand1, operand2);
+        return _BINARY_OPERATION_POW_NBOOL_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1608,109 +1748,6 @@ nuitka_bool BINARY_OPERATION_POW_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject 
 }
 
 #if PYTHON_VERSION < 0x300
-static inline PyObject *SLOT_nb_power_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
-    PyObject *result;
-
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    const long a = PyInt_AS_LONG(operand1);
-    const long b = PyInt_AS_LONG(operand2);
-
-    if (b < 0) {
-        // TODO: Use CFLOAT once available.
-        PyObject *operand1_float = PyFloat_FromDouble(a);
-        PyObject *operand2_float = PyFloat_FromDouble(b);
-
-        PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
-
-        Py_DECREF(operand1_float);
-        Py_DECREF(operand2_float);
-
-        result = r;
-        goto exit_result;
-    } else {
-        long temp = a;
-        long ix = 1;
-        long bb = b;
-
-        while (bb > 0) {
-            long prev = ix;
-            if (bb & 1) {
-                ix = (unsigned long)ix * temp;
-                if (temp == 0) {
-                    break;
-                }
-                if (ix / temp != prev) {
-                    PyObject *operand1_long = PyLong_FromLong(a);
-                    PyObject *operand2_long = PyLong_FromLong(b);
-
-                    PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
-
-                    Py_DECREF(operand1_long);
-                    Py_DECREF(operand2_long);
-
-                    result = r;
-                    goto exit_result;
-                }
-            }
-            bb >>= 1;
-            if (bb == 0) {
-                break;
-            }
-            prev = temp;
-            temp = (unsigned long)temp * temp;
-
-            if (prev != 0 && temp / prev != prev) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
-
-                PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
-
-                Py_DECREF(operand1_long);
-                Py_DECREF(operand2_long);
-
-                result = r;
-                goto exit_result;
-            }
-        }
-
-        result = PyInt_FromLong(ix);
-        goto exit_result_ok;
-    }
-
-    {
-        PyObject *operand1_object = operand1;
-        PyObject *operand2_object = operand2;
-
-        PyObject *o = PyLong_Type.tp_as_number->nb_power(operand1_object, operand2_object, Py_None);
-        assert(o != Py_NotImplemented);
-
-        result = o;
-        goto exit_result;
-    }
-
-exit_result:
-
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
-
-exit_result_ok:
-
-    return result;
-
-exit_result_exception:
-    return NULL;
-}
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -1724,17 +1761,20 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_INT(PyObject *operand1, PyObje
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-    return SLOT_nb_power_OBJECT_INT_INT(operand1, operand2);
-}
+    PyObject *result;
 
-PyObject *BINARY_OPERATION_POW_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_POW_OBJECT_INT_INT(operand1, operand2);
-}
+    // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
 #endif
-
-#if PYTHON_VERSION < 0x300
-static inline nuitka_bool SLOT_nb_power_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
-    nuitka_bool result;
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
@@ -1760,9 +1800,8 @@ static inline nuitka_bool SLOT_nb_power_NBOOL_INT_INT(PyObject *operand1, PyObje
         Py_DECREF(operand1_float);
         Py_DECREF(operand2_float);
 
-        result = CHECK_IF_TRUE(r) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(r);
-        goto exit_result;
+        obj_result = r;
+        goto exit_result_object;
     } else {
         long temp = a;
         long ix = 1;
@@ -1784,9 +1823,8 @@ static inline nuitka_bool SLOT_nb_power_NBOOL_INT_INT(PyObject *operand1, PyObje
                     Py_DECREF(operand1_long);
                     Py_DECREF(operand2_long);
 
-                    result = CHECK_IF_TRUE(r) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(r);
-                    goto exit_result;
+                    obj_result = r;
+                    goto exit_result_object;
                 }
             }
             bb >>= 1;
@@ -1805,41 +1843,39 @@ static inline nuitka_bool SLOT_nb_power_NBOOL_INT_INT(PyObject *operand1, PyObje
                 Py_DECREF(operand1_long);
                 Py_DECREF(operand2_long);
 
-                result = CHECK_IF_TRUE(r) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(r);
-                goto exit_result;
+                obj_result = r;
+                goto exit_result_object;
             }
         }
 
-        result = ix != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        goto exit_result_ok;
+        clong_result = ix;
+        goto exit_result_ok_clong;
     }
 
-    {
-        PyObject *operand1_object = operand1;
-        PyObject *operand2_object = operand2;
+exit_result_ok_clong:
+    result = PyInt_FromLong(clong_result);
+    goto exit_result_ok;
 
-        PyObject *o = PyLong_Type.tp_as_number->nb_power(operand1_object, operand2_object, Py_None);
-        assert(o != Py_NotImplemented);
-
-        result = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(o);
-        goto exit_result;
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
     }
-
-exit_result:
-
-    if (unlikely(result == NUITKA_BOOL_EXCEPTION)) {
-        return NUITKA_BOOL_EXCEPTION;
-    }
+    result = obj_result;
+    goto exit_result_ok;
 
 exit_result_ok:
-
     return result;
 
 exit_result_exception:
-    return NUITKA_BOOL_EXCEPTION;
+    return NULL;
 }
+
+PyObject *BINARY_OPERATION_POW_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_POW_OBJECT_INT_INT(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static nuitka_bool _BINARY_OPERATION_POW_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -1853,7 +1889,114 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_INT_INT(PyObject *operand1, PyObj
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-    return SLOT_nb_power_NBOOL_INT_INT(operand1, operand2);
+    nuitka_bool result;
+
+    // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    const long a = PyInt_AS_LONG(operand1);
+    const long b = PyInt_AS_LONG(operand2);
+
+    if (b < 0) {
+        // TODO: Use CFLOAT once available.
+        PyObject *operand1_float = PyFloat_FromDouble(a);
+        PyObject *operand2_float = PyFloat_FromDouble(b);
+
+        PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
+
+        Py_DECREF(operand1_float);
+        Py_DECREF(operand2_float);
+
+        obj_result = r;
+        goto exit_result_object;
+    } else {
+        long temp = a;
+        long ix = 1;
+        long bb = b;
+
+        while (bb > 0) {
+            long prev = ix;
+            if (bb & 1) {
+                ix = (unsigned long)ix * temp;
+                if (temp == 0) {
+                    break;
+                }
+                if (ix / temp != prev) {
+                    PyObject *operand1_long = PyLong_FromLong(a);
+                    PyObject *operand2_long = PyLong_FromLong(b);
+
+                    PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                    Py_DECREF(operand1_long);
+                    Py_DECREF(operand2_long);
+
+                    obj_result = r;
+                    goto exit_result_object;
+                }
+            }
+            bb >>= 1;
+            if (bb == 0) {
+                break;
+            }
+            prev = temp;
+            temp = (unsigned long)temp * temp;
+
+            if (prev != 0 && temp / prev != prev) {
+                PyObject *operand1_long = PyLong_FromLong(a);
+                PyObject *operand2_long = PyLong_FromLong(b);
+
+                PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                Py_DECREF(operand1_long);
+                Py_DECREF(operand2_long);
+
+                obj_result = r;
+                goto exit_result_object;
+            }
+        }
+
+        clong_result = ix;
+        goto exit_result_ok_clong;
+    }
+
+exit_result_ok_clong:
+    result = clong_result != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    goto exit_result_ok;
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+
+exit_result_exception:
+    return NUITKA_BOOL_EXCEPTION;
 }
 
 nuitka_bool BINARY_OPERATION_POW_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
@@ -1890,7 +2033,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_INT(PyObject *operand1, PyO
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_power_OBJECT_INT_INT(operand1, operand2);
+        return _BINARY_OPERATION_POW_OBJECT_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2037,7 +2180,7 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_OBJECT_INT(PyObject *operand1, Py
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_power_NBOOL_INT_INT(operand1, operand2);
+        return _BINARY_OPERATION_POW_NBOOL_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2213,7 +2356,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_OBJECT(PyObject *operand1, PyO
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_power_OBJECT_INT_INT(operand1, operand2);
+        return _BINARY_OPERATION_POW_OBJECT_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2358,7 +2501,7 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_INT_OBJECT(PyObject *operand1, Py
     } else {
         assert(type1 == type2);
 
-        return SLOT_nb_power_NBOOL_INT_INT(operand1, operand2);
+        return _BINARY_OPERATION_POW_NBOOL_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2536,8 +2679,6 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_LONG_INT(PyObject *operand1, PyObj
         }
     } else {
         assert(type1 == type2);
-
-        return SLOT_nb_power_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2689,8 +2830,6 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_LONG_INT(PyObject *operand1, PyOb
         }
     } else {
         assert(type1 == type2);
-
-        return SLOT_nb_power_NBOOL_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2872,8 +3011,6 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_LONG(PyObject *operand1, PyObj
         }
     } else {
         assert(type1 == type2);
-
-        return SLOT_nb_power_OBJECT_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -3025,8 +3162,6 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_INT_LONG(PyObject *operand1, PyOb
         }
     } else {
         assert(type1 == type2);
-
-        return SLOT_nb_power_NBOOL_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -3184,8 +3319,20 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
 
 #if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
-
         PyObject *result;
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         CHECK_OBJECT(operand1);
         assert(PyInt_CheckExact(operand1));
@@ -3211,8 +3358,8 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
             Py_DECREF(operand1_float);
             Py_DECREF(operand2_float);
 
-            result = r;
-            goto exit_result;
+            obj_result = r;
+            goto exit_result_object;
         } else {
             long temp = a;
             long ix = 1;
@@ -3234,8 +3381,8 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
                         Py_DECREF(operand1_long);
                         Py_DECREF(operand2_long);
 
-                        result = r;
-                        goto exit_result;
+                        obj_result = r;
+                        goto exit_result_object;
                     }
                 }
                 bb >>= 1;
@@ -3254,34 +3401,27 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
                     Py_DECREF(operand1_long);
                     Py_DECREF(operand2_long);
 
-                    result = r;
-                    goto exit_result;
+                    obj_result = r;
+                    goto exit_result_object;
                 }
             }
 
-            result = PyInt_FromLong(ix);
-            goto exit_result_ok;
+            clong_result = ix;
+            goto exit_result_ok_clong;
         }
 
-        {
-            PyObject *operand1_object = operand1;
-            PyObject *operand2_object = operand2;
+    exit_result_ok_clong:
+        result = PyInt_FromLong(clong_result);
+        goto exit_result_ok;
 
-            PyObject *o = PyLong_Type.tp_as_number->nb_power(operand1_object, operand2_object, Py_None);
-            assert(o != Py_NotImplemented);
-
-            result = o;
-            goto exit_result;
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
         }
-
-    exit_result:
-
-        if (unlikely(result == NULL)) {
-            return NULL;
-        }
+        result = obj_result;
+        goto exit_result_ok;
 
     exit_result_ok:
-
         return result;
 
     exit_result_exception:
@@ -3431,8 +3571,20 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_OBJECT_OBJECT(PyObject *operand1,
 
 #if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
-
         nuitka_bool result;
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         CHECK_OBJECT(operand1);
         assert(PyInt_CheckExact(operand1));
@@ -3458,9 +3610,8 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_OBJECT_OBJECT(PyObject *operand1,
             Py_DECREF(operand1_float);
             Py_DECREF(operand2_float);
 
-            result = CHECK_IF_TRUE(r) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(r);
-            goto exit_result;
+            obj_result = r;
+            goto exit_result_object;
         } else {
             long temp = a;
             long ix = 1;
@@ -3482,9 +3633,8 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_OBJECT_OBJECT(PyObject *operand1,
                         Py_DECREF(operand1_long);
                         Py_DECREF(operand2_long);
 
-                        result = CHECK_IF_TRUE(r) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(r);
-                        goto exit_result;
+                        obj_result = r;
+                        goto exit_result_object;
                     }
                 }
                 bb >>= 1;
@@ -3503,36 +3653,28 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_OBJECT_OBJECT(PyObject *operand1,
                     Py_DECREF(operand1_long);
                     Py_DECREF(operand2_long);
 
-                    result = CHECK_IF_TRUE(r) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(r);
-                    goto exit_result;
+                    obj_result = r;
+                    goto exit_result_object;
                 }
             }
 
-            result = ix != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            goto exit_result_ok;
+            clong_result = ix;
+            goto exit_result_ok_clong;
         }
 
-        {
-            PyObject *operand1_object = operand1;
-            PyObject *operand2_object = operand2;
+    exit_result_ok_clong:
+        result = clong_result != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
 
-            PyObject *o = PyLong_Type.tp_as_number->nb_power(operand1_object, operand2_object, Py_None);
-            assert(o != Py_NotImplemented);
-
-            result = CHECK_IF_TRUE(o) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(o);
-            goto exit_result;
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
         }
-
-    exit_result:
-
-        if (unlikely(result == NUITKA_BOOL_EXCEPTION)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
+        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        goto exit_result_ok;
 
     exit_result_ok:
-
         return result;
 
     exit_result_exception:
@@ -3706,9 +3848,11 @@ nuitka_bool BINARY_OPERATION_POW_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObjec
 }
 
 /* Reneable warnings about unused goto targets for compilers */
+#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic warning "-Wunused-label"
+#endif
 #endif

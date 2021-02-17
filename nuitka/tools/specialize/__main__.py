@@ -22,6 +22,7 @@
 from __future__ import print_function
 
 import contextlib
+import math
 import os
 import shutil
 from abc import abstractmethod
@@ -417,15 +418,16 @@ return %(return_value)s;""" % {
                 "return_value": self.getExceptionResultIndicatorValue(),
             }
 
-    def getSameTypeOperationSpecializationCode(
-        self, target, other, nb_slot, sq_slot, operand1, operand2
-    ):
+    def hasSameTypeOperationSpecializationCode(self, other, nb_slot, sq_slot):
         # Many cases, pylint: disable=too-many-branches,too-many-return-statements
 
         cand = self if self is not object_desc else other
 
+        # Both are objects, nothing to be done.
         if cand is object_desc:
-            return ""
+            assert self is object_desc
+            assert other is object_desc
+            return False
 
         # Special case for sequence concats/repeats.
         if sq_slot is not None and not cand.hasSlot(nb_slot) and cand.hasSlot(sq_slot):
@@ -444,7 +446,99 @@ return %(return_value)s;""" % {
                 bytes_desc,
             ):
                 # No repeat with themselves.
-                return ""
+                return False
+
+        if slot == "nb_remainder":
+            if cand in (list_desc, tuple_desc, set_desc, dict_desc):
+                # No remainder with themselves.
+                return False
+
+        if slot == "nb_multiply":
+            if cand in (
+                str_desc,
+                bytes_desc,
+                list_desc,
+                tuple_desc,
+                set_desc,
+                dict_desc,
+            ):
+                # No multiply with themselves.
+                return False
+
+        if slot == "nb_add":
+            # Tuple and list, etc. use sq_concat.
+            # TODO: What about unicode_desc
+            if cand in (
+                str_desc,
+                bytes_desc,
+                tuple_desc,
+                list_desc,
+                set_desc,
+                dict_desc,
+            ):
+                # No add with themselves.
+                return False
+
+        if slot in ("nb_and", "nb_or", "nb_xor"):
+            if cand in (
+                str_desc,
+                bytes_desc,
+                unicode_desc,
+                list_desc,
+                tuple_desc,
+                dict_desc,
+            ):
+                return False
+
+        if slot in ("nb_lshift", "nb_rshift"):
+            if cand in (
+                str_desc,
+                bytes_desc,
+                unicode_desc,
+                tuple_desc,
+                list_desc,
+                set_desc,
+                dict_desc,
+            ):
+                return False
+
+        if slot == "nb_matrix_multiply":
+            # Nobody has it for anything
+            return False
+
+        return True
+
+    def getSameTypeOperationSpecializationCode(
+        self, target, other, nb_slot, sq_slot, operand1, operand2
+    ):
+        # Many cases, pylint: disable=too-many-branches,too-many-return-statements
+
+        cand = self if self is not object_desc else other
+
+        # no_code = "// %s, %s" % (self.type_name, other.type_name)
+        no_code = ""
+
+        if cand is object_desc:
+            return no_code
+
+        # Special case for sequence concats/repeats.
+        if sq_slot is not None and not cand.hasSlot(nb_slot) and cand.hasSlot(sq_slot):
+            slot = sq_slot
+        else:
+            slot = nb_slot
+
+        if slot == "sq_repeat":
+            if cand in (
+                list_desc,
+                tuple_desc,
+                set_desc,
+                dict_desc,
+                unicode_desc,
+                str_desc,
+                bytes_desc,
+            ):
+                # No repeat with themselves.
+                return no_code
 
         if slot == "nb_remainder":
             if cand in (list_desc, tuple_desc, set_desc, dict_desc):
@@ -459,7 +553,7 @@ return %(return_value)s;""" % {
                 set_desc,
                 dict_desc,
             ):
-                return ""
+                return no_code
 
         if slot == "nb_add":
             # Tuple and list, etc. use sq_concat.
@@ -472,7 +566,7 @@ return %(return_value)s;""" % {
                 set_desc,
                 dict_desc,
             ):
-                return ""
+                return no_code
 
         if slot in ("nb_and", "nb_or", "nb_xor"):
             if cand in (
@@ -483,7 +577,7 @@ return %(return_value)s;""" % {
                 tuple_desc,
                 dict_desc,
             ):
-                return ""
+                return no_code
 
         if slot in ("nb_lshift", "nb_rshift"):
             if cand in (
@@ -495,7 +589,7 @@ return %(return_value)s;""" % {
                 set_desc,
                 dict_desc,
             ):
-                return ""
+                return no_code
 
         # Nobody has it.
         if slot == "nb_matrix_multiply":
@@ -513,7 +607,7 @@ return %(return_value)s;""" % {
                 operand2,
             )
         else:
-            return
+            return no_code
 
             # return "return ISLOT_%s_%s_%s(%s, %s);" % (
             #     slot,
@@ -522,6 +616,26 @@ return %(return_value)s;""" % {
             #     operand1,
             #     operand2,
             # )
+
+    def hasSimilarTypeSpecializationCode(self, other):
+        return other in related_types.get(self, ())
+
+    def getSameTypeType(self, other):
+        if self is object_desc:
+            return other
+        elif other is object_desc:
+            return self
+        else:
+            return object_desc
+
+    def isSimilarOrSameTypesAsOneOf(self, *others):
+        for other in others:
+            assert other is not None
+
+            if self is other or other in related_types.get(self, ()):
+                return True
+
+        return False
 
     def getSimilarTypeSpecializationCode(
         self, target, other, nb_slot, operand1, operand2
@@ -533,6 +647,21 @@ return %(return_value)s;""" % {
             other.getHelperCodeName(),
             operand1,
             operand2,
+        )
+
+    def hasTypeSpecializationCode(self, other, nb_slot, sq_slot):
+        if self is object_desc and other is object_desc:
+            return False
+
+        if self is other:
+            return self.hasSameTypeOperationSpecializationCode(
+                other=other,
+                nb_slot=nb_slot,
+                sq_slot=sq_slot,
+            )
+
+        return self.hasSimilarTypeSpecializationCode(
+            other=other,
         )
 
     def getTypeSpecializationCode(
@@ -551,7 +680,7 @@ return %(return_value)s;""" % {
                 operand2=operand2,
             )
 
-        if other in related_types.get(self, ()):
+        if self.hasSimilarTypeSpecializationCode(other):
             return self.getSimilarTypeSpecializationCode(
                 target=target,
                 other=other,
@@ -686,37 +815,6 @@ return %(return_value)s;""" % {
             assert False, cls
 
     @classmethod
-    def getAssignTupleFromLongExpressionsCode(cls, result, *operands):
-        if cls.type_name == "object":
-            return '%s = Py_BuildValue("(%s)", %s);' % (
-                result,
-                "l" * len(operands),
-                ", ".join(operands),
-            )
-        else:
-            assert False, cls
-
-    @classmethod
-    def getReturnTupleFromLongExpressionsCode(cls, *operands):
-        if cls.type_name == "object":
-            return 'return Py_BuildValue("(%s)", %s);' % (
-                "l" * len(operands),
-                ", ".join(operands),
-            )
-        else:
-            assert False, cls
-
-    @classmethod
-    def getReturnTupleFromFloatExpressionsCode(cls, *operands):
-        if cls.type_name == "object":
-            return 'return Py_BuildValue("(%s)", %s);' % (
-                "d" * len(operands),
-                ", ".join(operands),
-            )
-        else:
-            assert False, cls
-
-    @classmethod
     def getReturnFromFloatExpressionCode(cls, operand):
         if cls.type_name == "object":
             return "return PyFloat_FromDouble(%s);" % operand
@@ -731,12 +829,12 @@ return %(return_value)s;""" % {
 
     @classmethod
     def getAssignFromFloatExpressionCode(cls, result, operand):
-        if cls.type_name == "object":
+        if cls.type_name in ("object", "int"):
             return "%s = PyFloat_FromDouble(%s);" % (result, operand)
         elif cls.type_name == "nbool":
             return "%s = %s;" % (
                 result,
-                cls.getToValueFromBoolExpression("%s == 0.0" % operand),
+                cls.getToValueFromBoolExpression("%s != 0.0" % operand),
             )
         elif cls.type_name == "float":
             return "%s = %s;" % (result, operand)
@@ -758,7 +856,12 @@ return %(return_value)s;""" % {
 
     @classmethod
     def getAssignFromFloatConstantCode(cls, result, value):
-        if cls.type_name == "object":
+        if value == "nan":
+            value = float(value)
+
+        if cls.type_name in ("object", "int"):
+            # TODO: Type checks for value are needed for "int".
+
             const_name = "const_" + nuitka.codegen.Namify.namifyConstant(value)
 
             return "Py_INCREF(%(const_name)s); %(result)s = %(const_name)s;" % {
@@ -766,6 +869,9 @@ return %(return_value)s;""" % {
                 "const_name": const_name,
             }
         elif cls.type_name in ("nbool", "float"):
+            if math.isnan(value):
+                value = "Py_NAN"
+
             return cls.getAssignFromFloatExpressionCode(result, value)
         else:
             assert False, cls
@@ -785,7 +891,7 @@ return %(return_value)s;""" % {
 
     @classmethod
     def getAssignFromIntConstantCode(cls, result, value):
-        if cls.type_name == "object":
+        if cls.type_name in ("object", "int"):
             const_name = "const_" + nuitka.codegen.Namify.namifyConstant(value)
 
             return "Py_INCREF(%(const_name)s); %(result)s = %(const_name)s;" % {
@@ -795,7 +901,46 @@ return %(return_value)s;""" % {
         elif cls.type_name in ("nbool", "float"):
             return cls.getAssignFromLongExpressionCode(result, value)
         else:
-            assert False, cls
+            assert False, (cls, cls.type_name)
+
+    @classmethod
+    def getAssignConversionCode(cls, result, left, value):
+        def _getObjectObject():
+            code = "%s = %s;" % (result, value)
+            code += cls.getTakeReferenceStatement(result)
+
+            return code
+
+        if cls is left:
+            return _getObjectObject()
+        else:
+            if cls.type_name in ("object", "float"):
+                if left.type_name in ("int", "float"):
+                    return _getObjectObject()
+                elif left.type_name == "clong":
+                    return cls.getAssignFromLongExpressionCode(result, value)
+                else:
+                    assert False, left.type_name
+            elif cls.type_name == "nbool":
+
+                if left.type_name == "int":
+                    return "%s = %s;" % (
+                        result,
+                        cls.getToValueFromBoolExpression(
+                            "%s != 0" % left.getAsLongValueExpression(value)
+                        ),
+                    )
+                elif left.type_name == "float":
+                    return "%s = %s;" % (
+                        result,
+                        cls.getToValueFromBoolExpression(
+                            "%s != 0.0" % left.getAsDoubleValueExpression(value)
+                        ),
+                    )
+                else:
+                    assert False, left.type_name
+            else:
+                assert False, cls.type_name
 
 
 class ConcreteTypeBase(TypeDescBase):
@@ -1414,6 +1559,7 @@ class AlternativeIntOrClong(AlternativeTypeBase):
 
 env = jinja2.Environment(
     loader=jinja2.PackageLoader("nuitka.tools.specialize", "templates"),
+    extensions=["jinja2.ext.do"],
     trim_blocks=True,
     lstrip_blocks=True,
 )
@@ -1452,13 +1598,12 @@ def makeNbSlotCode(operand, op_code, target, left, right, emit):
     if key in op_slot_codes:
         return
 
+    assert target is not None
+
     if left in (int_desc, clong_desc):
-        if target is None:
-            template = env.get_template("HelperOperationInplaceInt.c.j2")
-        else:
-            template = env.get_template("HelperOperationBinaryInt.c.j2")
+        return
     elif left == long_desc:
-        template = env.get_template("HelperOperationBinaryLong.c.j2")
+        return
     elif left == float_desc:
         template = env.get_template("HelperOperationBinaryFloat.c.j2")
     elif left == list_desc:
@@ -1481,6 +1626,7 @@ def makeNbSlotCode(operand, op_code, target, left, right, emit):
         nb_slot=_getNbSlotFromOperand(operand, op_code),
         name=template.name,
         int_desc=int_desc,
+        long_desc=long_desc,
     )
 
     emit(code)
@@ -1629,25 +1775,27 @@ def _parseRequirements(target, left, right, emit):
 
 
 def makeHelperOperations(
-    template, inplace, helpers_set, operand, op_code, emit_h, emit_c, emit
+    template, inplace, helpers_set, operator, op_code, emit_h, emit_c, emit
 ):
-    # Complexity comes natural, pylint: disable=too-many-branches,too-many-locals
+    # Complexity comes natural, pylint: disable=too-many-locals
 
     emit(
         '/* C helpers for type %s "%s" (%s) operations */'
-        % ("in-place" if inplace else "specialized", operand, op_code)
+        % ("in-place" if inplace else "specialized", operator, op_code)
     )
     emit()
 
     emit_c(
         """/* Disable warnings about unused goto targets for compilers */
 
+#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4102)
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wunused-label"
+#endif
 #endif
 """
     )
@@ -1670,38 +1818,7 @@ def makeHelperOperations(
 
         python_requirement = _parseRequirements(target, left, right, emit)
 
-        nb_slot = _getNbSlotFromOperand(operand, op_code)
-
-        code = left.getSameTypeOperationSpecializationCode(
-            target=target,
-            other=right,
-            nb_slot=nb_slot,
-            sq_slot=None,
-            operand1="operand1",
-            operand2="operand2",
-        )
-
-        if code:
-            cand = left if left is not object_desc else right
-            makeNbSlotCode(operand, op_code, target, cand, cand, emit_c)
-
-        if (
-            target is not None
-            and left is not right
-            and right in related_types.get(left, ())
-        ):
-            code = left.getSimilarTypeSpecializationCode(
-                target=target,
-                other=right,
-                nb_slot=nb_slot,
-                operand1="operand1",
-                operand2="operand2",
-            )
-
-            if code:
-                makeNbSlotCode(operand, op_code, target, left, right, emit_c)
-
-        if operand == "*" and target is not None:
+        if operator == "*" and target is not None:
             repeat = left.getSqConcatSlotSpecializationCode(
                 target, right, "sq_repeat", "operand2", "operand1"
             )
@@ -1726,9 +1843,9 @@ def makeHelperOperations(
             )
         )
 
-        if operand == "+":
+        if operator == "+":
             sq_slot = "sq_concat"
-        elif operand == "*":
+        elif operator == "*":
             sq_slot = "sq_repeat"
         else:
             sq_slot = None
@@ -1738,11 +1855,17 @@ def makeHelperOperations(
             left=left,
             right=right,
             op_code=op_code,
-            operator=operand,  # TODO: Rename operand to operator
-            nb_slot=_getNbSlotFromOperand(operand, op_code),
+            operator=operator,
+            nb_slot=_getNbSlotFromOperand(operator, op_code),
             sq_slot1=sq_slot,
             object_desc=object_desc,
             int_desc=int_desc,
+            long_desc=long_desc,
+            float_desc=float_desc,
+            list_desc=list_desc,
+            tuple_desc=tuple_desc,
+            set_desc=set_desc,
+            bytes_desc=bytes_desc,
         )
 
         emit_c(code)
@@ -1762,11 +1885,13 @@ def makeHelperOperations(
 
     emit_c(
         """/* Reneable warnings about unused goto targets for compilers */
+#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic warning "-Wunused-label"
+#endif
 #endif
     """
     )
@@ -2086,10 +2211,11 @@ def writeline(output, *args):
 
 
 def main():
-    makeHelpersImportHard()
-
+    # Cover many things once first, then cover all for quicker turnaround during development.
     makeHelpersBinaryOperation("+", "ADD")
     makeHelpersInplaceOperation("+", "ADD")
+
+    makeHelpersImportHard()
 
     makeHelpersBinaryOperation("-", "SUB")
     makeHelpersBinaryOperation("*", "MULT")

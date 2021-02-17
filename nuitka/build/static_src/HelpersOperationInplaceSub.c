@@ -26,12 +26,14 @@
 
 /* Disable warnings about unused goto targets for compilers */
 
+#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4102)
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wunused-label"
+#endif
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -53,13 +55,23 @@ static inline bool _BINARY_OPERATION_SUB_INT_INT_INPLACE(PyObject **operand1, Py
 #if PYTHON_VERSION < 0x300
     if (1 && 1) {
 
-        PyObject *result;
-        PyObject *op1 = *operand1;
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
-        CHECK_OBJECT(op1);
-        assert(PyInt_CheckExact(op1));
+        CHECK_OBJECT(*operand1);
+        assert(PyInt_CheckExact(*operand1));
 #if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(op1));
+        assert(NEW_STYLE_NUMBER(*operand1));
 #endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
@@ -67,42 +79,48 @@ static inline bool _BINARY_OPERATION_SUB_INT_INT_INPLACE(PyObject **operand1, Py
         assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-        const long a = PyInt_AS_LONG(op1);
+        const long a = PyInt_AS_LONG(*operand1);
         const long b = PyInt_AS_LONG(operand2);
 
         const long x = (long)((unsigned long)a - b);
         bool no_overflow = ((x ^ a) >= 0 || (x ^ ~b) >= 0);
         if (likely(no_overflow)) {
-            result = PyInt_FromLong(x);
-            goto exit_result_ok;
+            clong_result = x;
+            goto exit_result_ok_clong;
         }
-
         {
-            PyObject *operand1_object = op1;
+            PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
 
-            PyObject *o = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
-            assert(o != Py_NotImplemented);
+            PyObject *r = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
+            assert(r != Py_NotImplemented);
 
-            result = o;
-            goto exit_result;
+            obj_result = r;
+            goto exit_result_object;
         }
 
-    exit_result:
-
-        if (unlikely(result == NULL)) {
-            return false;
-        }
-
-    exit_result_ok:
+    exit_result_ok_clong:
 
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = result;
+        *operand1 = PyInt_FromLong(clong_result);
+        goto exit_result_ok;
 
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = obj_result;
+        Py_INCREF(obj_result);
+        goto exit_result_ok;
+
+    exit_result_ok:
         return true;
 
     exit_result_exception:
@@ -151,13 +169,23 @@ static inline bool _BINARY_OPERATION_SUB_OBJECT_INT_INPLACE(PyObject **operand1,
 #if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(*operand1) && 1) {
 
-        PyObject *result;
-        PyObject *op1 = *operand1;
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
-        CHECK_OBJECT(op1);
-        assert(PyInt_CheckExact(op1));
+        CHECK_OBJECT(*operand1);
+        assert(PyInt_CheckExact(*operand1));
 #if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(op1));
+        assert(NEW_STYLE_NUMBER(*operand1));
 #endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
@@ -165,42 +193,48 @@ static inline bool _BINARY_OPERATION_SUB_OBJECT_INT_INPLACE(PyObject **operand1,
         assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-        const long a = PyInt_AS_LONG(op1);
+        const long a = PyInt_AS_LONG(*operand1);
         const long b = PyInt_AS_LONG(operand2);
 
         const long x = (long)((unsigned long)a - b);
         bool no_overflow = ((x ^ a) >= 0 || (x ^ ~b) >= 0);
         if (likely(no_overflow)) {
-            result = PyInt_FromLong(x);
-            goto exit_result_ok;
+            clong_result = x;
+            goto exit_result_ok_clong;
         }
-
         {
-            PyObject *operand1_object = op1;
+            PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
 
-            PyObject *o = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
-            assert(o != Py_NotImplemented);
+            PyObject *r = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
+            assert(r != Py_NotImplemented);
 
-            result = o;
-            goto exit_result;
+            obj_result = r;
+            goto exit_result_object;
         }
 
-    exit_result:
-
-        if (unlikely(result == NULL)) {
-            return false;
-        }
-
-    exit_result_ok:
+    exit_result_ok_clong:
 
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = result;
+        *operand1 = PyInt_FromLong(clong_result);
+        goto exit_result_ok;
 
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = obj_result;
+        Py_INCREF(obj_result);
+        goto exit_result_ok;
+
+    exit_result_ok:
         return true;
 
     exit_result_exception:
@@ -249,13 +283,23 @@ static inline bool _BINARY_OPERATION_SUB_INT_OBJECT_INPLACE(PyObject **operand1,
 #if PYTHON_VERSION < 0x300
     if (1 && PyInt_CheckExact(operand2)) {
 
-        PyObject *result;
-        PyObject *op1 = *operand1;
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
-        CHECK_OBJECT(op1);
-        assert(PyInt_CheckExact(op1));
+        CHECK_OBJECT(*operand1);
+        assert(PyInt_CheckExact(*operand1));
 #if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(op1));
+        assert(NEW_STYLE_NUMBER(*operand1));
 #endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
@@ -263,42 +307,48 @@ static inline bool _BINARY_OPERATION_SUB_INT_OBJECT_INPLACE(PyObject **operand1,
         assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-        const long a = PyInt_AS_LONG(op1);
+        const long a = PyInt_AS_LONG(*operand1);
         const long b = PyInt_AS_LONG(operand2);
 
         const long x = (long)((unsigned long)a - b);
         bool no_overflow = ((x ^ a) >= 0 || (x ^ ~b) >= 0);
         if (likely(no_overflow)) {
-            result = PyInt_FromLong(x);
-            goto exit_result_ok;
+            clong_result = x;
+            goto exit_result_ok_clong;
         }
-
         {
-            PyObject *operand1_object = op1;
+            PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
 
-            PyObject *o = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
-            assert(o != Py_NotImplemented);
+            PyObject *r = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
+            assert(r != Py_NotImplemented);
 
-            result = o;
-            goto exit_result;
+            obj_result = r;
+            goto exit_result_object;
         }
 
-    exit_result:
-
-        if (unlikely(result == NULL)) {
-            return false;
-        }
-
-    exit_result_ok:
+    exit_result_ok_clong:
 
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = result;
+        *operand1 = PyInt_FromLong(clong_result);
+        goto exit_result_ok;
 
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = obj_result;
+        Py_INCREF(obj_result);
+        goto exit_result_ok;
+
+    exit_result_ok:
         return true;
 
     exit_result_exception:
@@ -614,6 +664,48 @@ bool BINARY_OPERATION_SUB_INT_LONG_INPLACE(PyObject **operand1, PyObject *operan
 #endif
 
 #if PYTHON_VERSION < 0x300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+static inline bool _BINARY_OPERATION_SUB_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyLong_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    PyObject *result = PyNumber_InPlaceSub(*operand1, operand2);
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
+bool BINARY_OPERATION_SUB_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_SUB_LONG_INT_INPLACE(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
 static inline bool _BINARY_OPERATION_SUB_INT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
@@ -656,12 +748,12 @@ bool BINARY_OPERATION_SUB_INT_FLOAT_INPLACE(PyObject **operand1, PyObject *opera
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-static inline bool _BINARY_OPERATION_SUB_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
+static inline bool _BINARY_OPERATION_SUB_FLOAT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
-    assert(PyLong_CheckExact(*operand1));
+    assert(PyFloat_CheckExact(*operand1));
 #if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
@@ -692,8 +784,8 @@ static inline bool _BINARY_OPERATION_SUB_LONG_INT_INPLACE(PyObject **operand1, P
     return true;
 }
 
-bool BINARY_OPERATION_SUB_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_SUB_LONG_INT_INPLACE(operand1, operand2);
+bool BINARY_OPERATION_SUB_FLOAT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_SUB_FLOAT_INT_INPLACE(operand1, operand2);
 }
 #endif
 
@@ -736,48 +828,6 @@ static inline bool _BINARY_OPERATION_SUB_LONG_FLOAT_INPLACE(PyObject **operand1,
 bool BINARY_OPERATION_SUB_LONG_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_SUB_LONG_FLOAT_INPLACE(operand1, operand2);
 }
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
-static inline bool _BINARY_OPERATION_SUB_FLOAT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-    PyObject *result = PyNumber_InPlaceSub(*operand1, operand2);
-
-    if (unlikely(result == NULL)) {
-        return false;
-    }
-
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = result;
-
-    return true;
-}
-
-bool BINARY_OPERATION_SUB_FLOAT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_SUB_FLOAT_INT_INPLACE(operand1, operand2);
-}
-#endif
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _BINARY_OPERATION_SUB_FLOAT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
@@ -829,13 +879,23 @@ static inline bool _BINARY_OPERATION_SUB_OBJECT_OBJECT_INPLACE(PyObject **operan
 #if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(*operand1) && PyInt_CheckExact(operand2)) {
 
-        PyObject *result;
-        PyObject *op1 = *operand1;
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
-        CHECK_OBJECT(op1);
-        assert(PyInt_CheckExact(op1));
+        CHECK_OBJECT(*operand1);
+        assert(PyInt_CheckExact(*operand1));
 #if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(op1));
+        assert(NEW_STYLE_NUMBER(*operand1));
 #endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
@@ -843,42 +903,48 @@ static inline bool _BINARY_OPERATION_SUB_OBJECT_OBJECT_INPLACE(PyObject **operan
         assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-        const long a = PyInt_AS_LONG(op1);
+        const long a = PyInt_AS_LONG(*operand1);
         const long b = PyInt_AS_LONG(operand2);
 
         const long x = (long)((unsigned long)a - b);
         bool no_overflow = ((x ^ a) >= 0 || (x ^ ~b) >= 0);
         if (likely(no_overflow)) {
-            result = PyInt_FromLong(x);
-            goto exit_result_ok;
+            clong_result = x;
+            goto exit_result_ok_clong;
         }
-
         {
-            PyObject *operand1_object = op1;
+            PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
 
-            PyObject *o = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
-            assert(o != Py_NotImplemented);
+            PyObject *r = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
+            assert(r != Py_NotImplemented);
 
-            result = o;
-            goto exit_result;
+            obj_result = r;
+            goto exit_result_object;
         }
 
-    exit_result:
-
-        if (unlikely(result == NULL)) {
-            return false;
-        }
-
-    exit_result_ok:
+    exit_result_ok_clong:
 
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = result;
+        *operand1 = PyInt_FromLong(clong_result);
+        goto exit_result_ok;
 
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = obj_result;
+        Py_INCREF(obj_result);
+        goto exit_result_ok;
+
+    exit_result_ok:
         return true;
 
     exit_result_exception:
@@ -912,9 +978,11 @@ bool BINARY_OPERATION_SUB_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *o
 }
 
 /* Reneable warnings about unused goto targets for compilers */
+#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic warning "-Wunused-label"
+#endif
 #endif

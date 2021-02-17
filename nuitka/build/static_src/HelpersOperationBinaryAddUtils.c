@@ -49,16 +49,6 @@ static PyObject *SLOT_sq_concat_OBJECT_STR_STR(PyObject *operand1, PyObject *ope
     return SLOT_sq_concat_OBJECT_STR_OBJECT(operand1, operand2);
 }
 
-static nuitka_bool SLOT_sq_concat_NBOOL_STR_STR(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyString_CheckExact(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyString_CheckExact(operand2));
-
-    return (PyString_GET_SIZE(operand1) != 0 || PyString_GET_SIZE(operand2) != 0) ? NUITKA_BOOL_TRUE
-                                                                                  : NUITKA_BOOL_FALSE;
-}
-
 #else
 
 static PyObject *SLOT_sq_concat_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) {
@@ -90,18 +80,6 @@ static PyObject *SLOT_sq_concat_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObj
 
     return UNICODE_CONCAT(operand1, operand2);
 }
-
-#if PYTHON_VERSION < 0x300
-static nuitka_bool SLOT_sq_concat_NBOOL_UNICODE_UNICODE(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyUnicode_CheckExact(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyUnicode_CheckExact(operand2));
-
-    return (PyUnicode_GET_LENGTH(operand1) != 0 || PyUnicode_GET_LENGTH(operand2) != 0) ? NUITKA_BOOL_TRUE
-                                                                                        : NUITKA_BOOL_FALSE;
-}
-#endif
 
 static PyObject *SLOT_sq_concat_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -156,7 +134,7 @@ static nuitka_bool SLOT_sq_concat_NBOOL_UNICODE_STR(PyObject *operand1, PyObject
 
 #endif
 
-static PyObject *SLOT_sq_concat_OBJECT_LIST_LIST(PyObject *operand1, PyObject *operand2) {
+static PyObject *LIST_CONCAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
     CHECK_OBJECT(operand2);
@@ -187,15 +165,6 @@ static PyObject *SLOT_sq_concat_OBJECT_LIST_LIST(PyObject *operand1, PyObject *o
     return (PyObject *)result;
 }
 
-static nuitka_bool SLOT_sq_concat_NBOOL_LIST_LIST(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyList_CheckExact(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyList_CheckExact(operand2));
-
-    return (PyList_GET_SIZE(operand1) || PyList_GET_SIZE(operand2)) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-}
-
 static PyObject *SLOT_sq_concat_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
@@ -221,15 +190,6 @@ static nuitka_bool SLOT_sq_concat_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject
     nuitka_bool result = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
     Py_DECREF(x);
     return result;
-}
-
-static PyObject *SLOT_sq_concat_OBJECT_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyTuple_CheckExact(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyTuple_CheckExact(operand2));
-
-    return TUPLE_CONCAT(operand1, operand2);
 }
 
 static PyObject *SLOT_sq_concat_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) {

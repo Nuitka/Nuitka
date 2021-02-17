@@ -78,13 +78,13 @@ extern PyObject *BINARY_OPERATION_BITAND_OBJECT_INT_LONG(PyObject *operand1, PyO
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern nuitka_bool BINARY_OPERATION_BITAND_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2);
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+extern PyObject *BINARY_OPERATION_BITAND_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-extern PyObject *BINARY_OPERATION_BITAND_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2);
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+extern nuitka_bool BINARY_OPERATION_BITAND_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
