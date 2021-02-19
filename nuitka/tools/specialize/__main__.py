@@ -309,9 +309,8 @@ class TypeDescBase(getMetaClassBase("Type")):
         # Virtual method, pylint: disable=unused-argument
         return "true" if self.hasSlot(slot) else "false"
 
-    def getReturnUnsupportedTypeErrorCode(
-        self, operator, left, right, operand1, operand2
-    ):
+    def getUnsupportedTypeErrorCode(self, operator, right, operand1, operand2):
+        left = self
         args = []
 
         if left is object_desc:
@@ -343,8 +342,7 @@ class TypeDescBase(getMetaClassBase("Type")):
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
-#endif
-return %s;""" % (
+#endif""" % (
                 formatOperation(operator),
                 "%s" if left is object_desc else left.getTypeName2(),
                 "%s" if right is object_desc else right.getTypeName2(),
@@ -353,17 +351,14 @@ return %s;""" % (
                 "%s" if left is object_desc else left.getTypeName3(),
                 "%s" if right is object_desc else right.getTypeName3(),
                 args,
-                self.getExceptionResultIndicatorValue(),
             )
         else:
             return """\
-PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
-return %s;""" % (
+PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);""" % (
                 formatOperation(operator),
                 "%s" if left is object_desc else left.getTypeName2(),
                 "%s" if right is object_desc else right.getTypeName2(),
                 args,
-                self.getExceptionResultIndicatorValue(),
             )
 
     def getReturnUnorderableTypeErrorCode(
@@ -691,7 +686,6 @@ return %(return_value)s;""" % {
 
         return ""
 
-    @abstractmethod
     def getSqConcatSlotSpecializationCode(
         self, target, other, slot, operand1, operand2
     ):
@@ -980,7 +974,6 @@ assert(%(is_newstyle)sNEW_STYLE_NUMBER(%(operand)s));
         if not self.hasSlot(slot):
             return ""
 
-        # TODO: Use second type eventually when we specialize those too.
         return "return SLOT_%s_%s_%s_%s(%s, %s);" % (
             slot,
             target.getHelperCodeName(),
@@ -1317,11 +1310,6 @@ class ObjectDesc(TypeDescBase):
     def getSlotValueCheckExpression(self, operand, slot):
         return "(%s) != NULL" % self._getSlotValueExpression(operand, slot)
 
-    def getSqConcatSlotSpecializationCode(
-        self, target, other, slot, operand1, operand2
-    ):
-        return ""
-
     @staticmethod
     def getToValueFromBoolExpression(operand):
         return "BOOL_FROM(%s)" % operand
@@ -1358,11 +1346,6 @@ class CLongDesc(TypeDescBase):
     def hasSlot(self, slot):
         return False
 
-    def getSqConcatSlotSpecializationCode(
-        self, target, other, slot, operand1, operand2
-    ):
-        return ""
-
     @staticmethod
     def getAsLongValueExpression(operand):
         return operand
@@ -1398,11 +1381,6 @@ class CBoolDesc(TypeDescBase):
 
     def hasSlot(self, slot):
         return False
-
-    def getSqConcatSlotSpecializationCode(
-        self, target, other, slot, operand1, operand2
-    ):
-        return ""
 
     @staticmethod
     def getAsLongValueExpression(operand):
@@ -1452,11 +1430,6 @@ class NBoolDesc(TypeDescBase):
     def hasSlot(self, slot):
         return False
 
-    def getSqConcatSlotSpecializationCode(
-        self, target, other, slot, operand1, operand2
-    ):
-        return ""
-
     @staticmethod
     def getAsLongValueExpression(operand):
         return operand
@@ -1504,11 +1477,6 @@ class NVoidDesc(TypeDescBase):
 
     def hasSlot(self, slot):
         return False
-
-    def getSqConcatSlotSpecializationCode(
-        self, target, other, slot, operand1, operand2
-    ):
-        return ""
 
     @staticmethod
     def getAsLongValueExpression(operand):

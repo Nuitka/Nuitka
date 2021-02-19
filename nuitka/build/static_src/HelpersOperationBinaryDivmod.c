@@ -145,6 +145,23 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_INT(PyObject *operand1, 
     PyTypeObject *type2 = &PyInt_Type;
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_DIVMOD_OBJECT_INT_INT(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -154,10 +171,6 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_INT(PyObject *operand1, 
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_DIVMOD_OBJECT_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -166,7 +179,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_INT(PyObject *operand1, 
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -177,7 +191,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_INT(PyObject *operand1, 
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -187,7 +202,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_INT(PyObject *operand1, 
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -205,7 +221,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_INT(PyObject *operand1, 
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -220,7 +236,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_INT(PyObject *operand1, 
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -239,7 +256,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_INT(PyObject *operand1, 
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -254,7 +271,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_INT(PyObject *operand1, 
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -267,6 +285,12 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_INT(PyObject *operand1, 
 #endif
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for divmod(): '%s' and 'int'", type1->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -291,6 +315,23 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, 
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_DIVMOD_OBJECT_INT_INT(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -300,10 +341,6 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, 
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_DIVMOD_OBJECT_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -312,7 +349,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, 
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -323,7 +361,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, 
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -333,7 +372,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, 
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -350,7 +390,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, 
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -365,7 +405,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, 
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -384,7 +425,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, 
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -399,7 +440,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, 
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -412,6 +454,12 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, 
 #endif
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for divmod(): 'int' and '%s'", type2->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -478,6 +526,23 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_LONG(PyObject *operand1,
     PyTypeObject *type2 = &PyLong_Type;
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_DIVMOD_OBJECT_LONG_LONG(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -487,10 +552,6 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_LONG(PyObject *operand1,
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_DIVMOD_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -499,7 +560,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_LONG(PyObject *operand1,
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -510,7 +572,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_LONG(PyObject *operand1,
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -520,7 +583,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_LONG(PyObject *operand1,
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -538,7 +602,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_LONG(PyObject *operand1,
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -553,7 +617,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_LONG(PyObject *operand1,
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -572,7 +637,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_LONG(PyObject *operand1,
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -587,7 +652,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_LONG(PyObject *operand1,
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -604,6 +670,12 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_LONG(PyObject *operand1,
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for divmod(): '%s' and 'int'", type1->tp_name);
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -626,6 +698,23 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(PyObject *operand1,
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_DIVMOD_OBJECT_LONG_LONG(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -635,10 +724,6 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(PyObject *operand1,
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_DIVMOD_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -647,7 +732,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(PyObject *operand1,
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -658,7 +744,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(PyObject *operand1,
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -668,7 +755,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(PyObject *operand1,
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -685,7 +773,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(PyObject *operand1,
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -700,7 +788,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(PyObject *operand1,
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -719,7 +808,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(PyObject *operand1,
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -734,7 +823,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(PyObject *operand1,
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -751,6 +841,12 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(PyObject *operand1,
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for divmod(): 'int' and '%s'", type2->tp_name);
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -865,6 +961,23 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1
     PyTypeObject *type2 = &PyFloat_Type;
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_FLOAT(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -874,10 +987,6 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -886,7 +995,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -897,7 +1007,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -907,7 +1018,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -925,7 +1037,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -940,7 +1052,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -959,7 +1072,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -974,7 +1087,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -987,6 +1101,12 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1
 #endif
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for divmod(): '%s' and 'float'", type1->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -1009,6 +1129,23 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_FLOAT(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -1018,10 +1155,6 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1030,7 +1163,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -1041,7 +1175,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -1051,7 +1186,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -1068,7 +1204,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1083,7 +1219,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -1102,7 +1239,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1117,7 +1254,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -1130,6 +1268,12 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1
 #endif
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for divmod(): 'float' and '%s'", type2->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -1224,6 +1368,21 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -1233,8 +1392,6 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -1243,7 +1400,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -1254,7 +1412,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -1264,7 +1423,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -1282,7 +1442,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1297,7 +1457,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -1316,7 +1477,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1331,7 +1492,8 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -1345,6 +1507,12 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for divmod(): '%s' and '%s'", type1->tp_name,
                  type2->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 

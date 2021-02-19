@@ -20,6 +20,8 @@
 {% if target.endswith(("_exception", "_left", "_right")) or "_const_" in target or target == "exit_result_ok" %}
 {% elif target.endswith("_cbool") %}
     cbool_result = {{ result }};
+{% elif target.endswith("_nbool") %}
+    nbool_result = {{ result }};
 {% elif target.endswith("_clong") %}
     clong_result = {{ result }};
 {% elif target.endswith("_cfloat") %}

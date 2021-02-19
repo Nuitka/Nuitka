@@ -29,13 +29,16 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNICODE_CONCAT(PyObject *left, PyObject *r
 #endif
 
 // This macro is necessary for Python2 to determine if the "coerce" slot
-// will have to be considered or not.
+// will have to be considered or not, and if in-place operations are
+// allowed to be there or not.
 #if PYTHON_VERSION < 0x300
 #define NEW_STYLE_NUMBER(o) PyType_HasFeature(Py_TYPE(o), Py_TPFLAGS_CHECKTYPES)
 #define NEW_STYLE_NUMBER_TYPE(t) PyType_HasFeature(t, Py_TPFLAGS_CHECKTYPES)
+#define CAN_HAVE_INPLACE(t) PyType_HasFeature(t, Py_TPFLAGS_HAVE_INPLACEOPS)
 #else
 #define NEW_STYLE_NUMBER(o) (true)
 #define NEW_STYLE_NUMBER_TYPE(t) (true)
+#define CAN_HAVE_INPLACE(t) (true)
 #endif
 
 typedef PyObject *(unary_api)(PyObject *);

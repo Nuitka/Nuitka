@@ -137,6 +137,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
     PyTypeObject *type2 = &PyInt_Type;
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_INT_INT(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -146,10 +163,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -158,7 +171,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -169,7 +183,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -179,7 +194,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -197,7 +213,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -212,7 +228,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -231,7 +248,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -246,7 +263,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -264,10 +282,17 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'int'", type1->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -292,6 +317,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_INT_INT(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -301,10 +343,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -313,7 +351,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -324,7 +363,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -334,7 +374,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -351,7 +392,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -366,7 +407,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -385,7 +427,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -400,7 +442,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -418,10 +461,17 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and '%s'", type2->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -510,6 +560,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(PyObject *operand1, Py
     PyTypeObject *type2 = &PyInt_Type;
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_NBOOL_INT_INT(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -519,10 +586,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(PyObject *operand1, Py
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_NBOOL_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -531,13 +594,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(PyObject *operand1, Py
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -548,13 +606,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(PyObject *operand1, Py
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -564,13 +617,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(PyObject *operand1, Py
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -588,7 +636,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(PyObject *operand1, Py
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -603,13 +651,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -628,7 +671,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(PyObject *operand1, Py
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -643,13 +686,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -667,16 +705,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(PyObject *operand1, Py
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        if (unlikely(result == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(result);
-        return r;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'int'", type1->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -701,6 +746,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, Py
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_NBOOL_INT_INT(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -710,10 +772,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, Py
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_NBOOL_INT_INT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -722,13 +780,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, Py
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -739,13 +792,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, Py
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -755,13 +803,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, Py
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -778,7 +821,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, Py
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -793,13 +836,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -818,7 +856,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, Py
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -833,13 +871,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -857,16 +890,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, Py
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        if (unlikely(result == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(result);
-        return r;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and '%s'", type2->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -933,6 +973,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
     PyTypeObject *type2 = &PyLong_Type;
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_LONG_LONG(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -942,10 +999,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -954,7 +1007,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -965,7 +1019,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -975,7 +1030,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -993,7 +1049,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1008,7 +1064,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -1027,7 +1084,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1042,7 +1099,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -1060,7 +1118,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1068,6 +1127,12 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'int'", type1->tp_name);
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -1090,6 +1155,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_LONG_LONG(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -1099,10 +1181,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1111,7 +1189,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -1122,7 +1201,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -1132,7 +1212,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -1149,7 +1230,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1164,7 +1245,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -1183,7 +1265,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1198,7 +1280,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -1216,7 +1299,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1224,6 +1308,12 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and '%s'", type2->tp_name);
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -1290,6 +1380,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
     PyTypeObject *type2 = &PyLong_Type;
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_NBOOL_LONG_LONG(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -1299,10 +1406,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_NBOOL_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1311,13 +1414,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -1328,13 +1426,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -1344,13 +1437,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -1368,7 +1456,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1383,13 +1471,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -1408,7 +1491,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1423,13 +1506,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -1447,13 +1525,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        if (unlikely(result == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(result);
-        return r;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1461,6 +1534,18 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'int'", type1->tp_name);
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -1483,6 +1568,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_NBOOL_LONG_LONG(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -1492,10 +1594,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_NBOOL_LONG_LONG(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1504,13 +1602,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -1521,13 +1614,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -1537,13 +1625,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -1560,7 +1643,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1575,13 +1658,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -1600,7 +1678,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1615,13 +1693,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -1639,13 +1712,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        if (unlikely(result == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(result);
-        return r;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1653,6 +1721,18 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and '%s'", type2->tp_name);
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -1734,6 +1814,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
     PyTypeObject *type2 = &PyFloat_Type;
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_FLOAT_FLOAT(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -1743,10 +1840,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1755,7 +1848,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -1766,7 +1860,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -1776,7 +1871,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -1794,7 +1890,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1809,7 +1905,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -1828,7 +1925,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1843,7 +1940,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -1861,10 +1959,17 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'float'", type1->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -1887,6 +1992,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_FLOAT_FLOAT(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -1896,10 +2018,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -1908,7 +2026,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -1919,7 +2038,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -1929,7 +2049,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -1946,7 +2067,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1961,7 +2082,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -1980,7 +2102,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -1995,7 +2117,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -2013,10 +2136,17 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and '%s'", type2->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -2098,6 +2228,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
     PyTypeObject *type2 = &PyFloat_Type;
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_NBOOL_FLOAT_FLOAT(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -2107,10 +2254,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_NBOOL_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2119,13 +2262,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -2136,13 +2274,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -2152,13 +2285,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -2176,7 +2304,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -2191,13 +2319,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -2216,7 +2339,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -2231,13 +2354,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -2255,16 +2373,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        if (unlikely(result == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(result);
-        return r;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'float'", type1->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -2287,6 +2412,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_NBOOL_FLOAT_FLOAT(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -2296,10 +2438,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_NBOOL_FLOAT_FLOAT(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2308,13 +2446,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -2325,13 +2458,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -2341,13 +2469,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -2364,7 +2487,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -2379,13 +2502,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -2404,7 +2522,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -2419,13 +2537,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -2443,16 +2556,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        if (unlikely(result == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(result);
-        return r;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and '%s'", type2->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -2499,6 +2619,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(PyObject *operand1, PyO
     PyTypeObject *type2 = &PyString_Type;
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_STR_STR(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -2508,10 +2645,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(PyObject *operand1, PyO
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_STR_STR(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2520,7 +2653,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(PyObject *operand1, PyO
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -2531,7 +2665,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(PyObject *operand1, PyO
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -2541,7 +2676,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(PyObject *operand1, PyO
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -2559,7 +2695,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(PyObject *operand1, PyO
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -2574,7 +2710,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -2593,7 +2730,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(PyObject *operand1, PyO
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -2608,7 +2745,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -2626,10 +2764,17 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(PyObject *operand1, PyO
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'str'", type1->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -2654,6 +2799,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyO
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_STR_STR(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -2663,10 +2825,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyO
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_STR_STR(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2675,7 +2833,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyO
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -2686,7 +2845,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyO
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -2696,7 +2856,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyO
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -2713,7 +2874,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyO
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -2728,7 +2889,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -2747,7 +2909,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyO
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -2762,7 +2924,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -2774,9 +2937,17 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyO
     }
 #endif
 
-    return SLOT_sq_concat_OBJECT_STR_OBJECT(operand1, operand2);
+    PyObject *x = SLOT_sq_concat_OBJECT_STR_OBJECT(operand1, operand2);
+    obj_result = x;
+    goto exit_binary_result_object;
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and '%s'", type2->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -2816,6 +2987,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
     PyTypeObject *type2 = &PyUnicode_Type;
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -2825,10 +3013,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2837,7 +3021,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -2848,7 +3033,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -2858,7 +3044,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -2876,7 +3063,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -2891,7 +3078,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -2910,7 +3098,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -2925,7 +3113,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -2943,7 +3132,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
 #if PYTHON_VERSION < 0x300
@@ -2951,6 +3141,12 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'str'", type1->tp_name);
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -2971,6 +3167,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -2980,10 +3193,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -2992,7 +3201,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -3003,7 +3213,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -3013,7 +3224,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -3030,7 +3242,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -3045,7 +3257,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -3064,7 +3277,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -3079,7 +3292,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -3091,13 +3305,21 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
     }
 #endif
 
-    return SLOT_sq_concat_OBJECT_UNICODE_OBJECT(operand1, operand2);
+    PyObject *x = SLOT_sq_concat_OBJECT_UNICODE_OBJECT(operand1, operand2);
+    obj_result = x;
+    goto exit_binary_result_object;
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'unicode' and '%s'", type2->tp_name);
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and '%s'", type2->tp_name);
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -3166,6 +3388,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(PyObject *operand1, P
     PyTypeObject *type2 = &PyBytes_Type;
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_BYTES_BYTES(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -3175,10 +3414,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(PyObject *operand1, P
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_BYTES_BYTES(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -3187,7 +3422,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(PyObject *operand1, P
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -3198,7 +3434,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(PyObject *operand1, P
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -3208,7 +3445,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(PyObject *operand1, P
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -3226,7 +3464,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(PyObject *operand1, P
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -3241,7 +3479,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -3260,7 +3499,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(PyObject *operand1, P
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -3275,7 +3514,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -3293,10 +3533,17 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(PyObject *operand1, P
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'bytes'", type1->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -3321,6 +3568,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1, P
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_BYTES_BYTES(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -3330,10 +3594,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1, P
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_BYTES_BYTES(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -3342,7 +3602,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1, P
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -3353,7 +3614,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1, P
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -3363,7 +3625,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1, P
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -3380,7 +3643,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1, P
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -3395,7 +3658,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -3414,7 +3678,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1, P
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -3429,7 +3693,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -3441,9 +3706,17 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1, P
     }
 #endif
 
-    return SLOT_sq_concat_OBJECT_BYTES_OBJECT(operand1, operand2);
+    PyObject *x = SLOT_sq_concat_OBJECT_BYTES_OBJECT(operand1, operand2);
+    obj_result = x;
+    goto exit_binary_result_object;
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'bytes' and '%s'", type2->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -3510,6 +3783,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(PyObject *operand1, P
     PyTypeObject *type2 = &PyTuple_Type;
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_TUPLE_TUPLE(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -3519,10 +3809,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(PyObject *operand1, P
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_TUPLE_TUPLE(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -3531,7 +3817,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(PyObject *operand1, P
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -3542,7 +3829,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(PyObject *operand1, P
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -3552,7 +3840,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(PyObject *operand1, P
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -3570,7 +3859,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(PyObject *operand1, P
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -3585,7 +3874,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -3604,7 +3894,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(PyObject *operand1, P
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -3619,7 +3909,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -3637,10 +3928,17 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(PyObject *operand1, P
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'tuple'", type1->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -3663,6 +3961,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1, P
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_TUPLE_TUPLE(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -3672,10 +3987,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1, P
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_TUPLE_TUPLE(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -3684,7 +3995,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1, P
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -3695,7 +4007,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1, P
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -3705,7 +4018,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1, P
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -3722,7 +4036,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1, P
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -3737,7 +4051,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -3756,7 +4071,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1, P
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -3771,7 +4086,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -3783,9 +4099,17 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1, P
     }
 #endif
 
-    return SLOT_sq_concat_OBJECT_TUPLE_OBJECT(operand1, operand2);
+    PyObject *x = SLOT_sq_concat_OBJECT_TUPLE_OBJECT(operand1, operand2);
+    obj_result = x;
+    goto exit_binary_result_object;
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'tuple' and '%s'", type2->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -3851,6 +4175,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(PyObject *operand1, Py
     PyTypeObject *type2 = &PyList_Type;
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_LIST_LIST(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -3860,10 +4201,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(PyObject *operand1, Py
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_LIST_LIST(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -3872,7 +4209,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(PyObject *operand1, Py
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -3883,7 +4221,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(PyObject *operand1, Py
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -3893,7 +4232,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(PyObject *operand1, Py
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -3911,7 +4251,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(PyObject *operand1, Py
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -3926,7 +4266,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -3945,7 +4286,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(PyObject *operand1, Py
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -3960,7 +4301,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -3978,10 +4320,17 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(PyObject *operand1, Py
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'list'", type1->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -4004,6 +4353,23 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, Py
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_OBJECT_LIST_LIST(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -4013,10 +4379,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, Py
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_OBJECT_LIST_LIST(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -4025,7 +4387,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, Py
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -4036,7 +4399,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, Py
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -4046,7 +4410,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, Py
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -4063,7 +4428,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, Py
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -4078,7 +4443,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -4097,7 +4463,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, Py
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -4112,7 +4478,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -4124,9 +4491,17 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, Py
     }
 #endif
 
-    return SLOT_sq_concat_OBJECT_LIST_OBJECT(operand1, operand2);
+    PyObject *x = SLOT_sq_concat_OBJECT_LIST_OBJECT(operand1, operand2);
+    obj_result = x;
+    goto exit_binary_result_object;
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'list' and '%s'", type2->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -4193,6 +4568,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1, P
     PyTypeObject *type2 = &PyList_Type;
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_NBOOL_LIST_LIST(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -4202,10 +4594,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1, P
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_NBOOL_LIST_LIST(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -4214,13 +4602,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1, P
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -4231,13 +4614,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1, P
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -4247,13 +4625,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1, P
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -4271,7 +4644,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1, P
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -4286,13 +4659,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -4311,7 +4679,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1, P
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -4326,13 +4694,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -4350,16 +4713,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1, P
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        if (unlikely(result == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(result);
-        return r;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'list'", type1->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -4382,6 +4752,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, P
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        return _BINARY_OPERATION_ADD_NBOOL_LIST_LIST(operand1, operand2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -4391,10 +4778,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, P
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_ADD_NBOOL_LIST_LIST(operand1, operand2);
     }
 
     if (slot1 != NULL) {
@@ -4403,13 +4786,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, P
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -4420,13 +4798,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, P
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -4436,13 +4809,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, P
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -4459,7 +4827,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, P
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -4474,13 +4842,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -4499,7 +4862,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, P
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -4514,13 +4877,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -4532,9 +4890,26 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, P
     }
 #endif
 
-    return SLOT_sq_concat_NBOOL_LIST_OBJECT(operand1, operand2);
+    nuitka_bool x = SLOT_sq_concat_NBOOL_LIST_OBJECT(operand1, operand2);
+    nbool_result = x;
+    goto exit_binary_result_nbool;
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'list' and '%s'", type2->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_result_nbool:
+    return nbool_result;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -4562,6 +4937,21 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_LONG(PyObject *operand1, PyObj
     PyTypeObject *type2 = &PyLong_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -4571,8 +4961,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_LONG(PyObject *operand1, PyObj
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -4581,7 +4969,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_LONG(PyObject *operand1, PyObj
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -4592,7 +4981,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_LONG(PyObject *operand1, PyObj
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -4602,7 +4992,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_LONG(PyObject *operand1, PyObj
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -4619,7 +5010,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_LONG(PyObject *operand1, PyObj
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -4634,7 +5025,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_LONG(PyObject *operand1, PyObj
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -4653,7 +5045,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_LONG(PyObject *operand1, PyObj
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -4668,7 +5060,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_LONG(PyObject *operand1, PyObj
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -4686,7 +5079,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_LONG(PyObject *operand1, PyObj
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
 #if PYTHON_VERSION < 0x300
@@ -4694,6 +5088,12 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_LONG(PyObject *operand1, PyObj
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'int'");
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -4722,6 +5122,21 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
     PyTypeObject *type2 = &PyInt_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -4731,8 +5146,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -4741,7 +5154,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -4752,7 +5166,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -4762,7 +5177,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -4779,7 +5195,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -4794,7 +5210,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -4813,7 +5230,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -4828,7 +5245,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -4846,7 +5264,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
 #if PYTHON_VERSION < 0x300
@@ -4854,6 +5273,12 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'int'");
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -4882,6 +5307,21 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_LONG(PyObject *operand1, PyOb
     PyTypeObject *type2 = &PyLong_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -4891,8 +5331,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_LONG(PyObject *operand1, PyOb
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -4901,13 +5339,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_LONG(PyObject *operand1, PyOb
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -4918,13 +5351,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_LONG(PyObject *operand1, PyOb
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -4934,13 +5362,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_LONG(PyObject *operand1, PyOb
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -4957,7 +5380,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_LONG(PyObject *operand1, PyOb
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -4972,13 +5395,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_LONG(PyObject *operand1, PyOb
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -4997,7 +5415,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_LONG(PyObject *operand1, PyOb
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -5012,13 +5430,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_LONG(PyObject *operand1, PyOb
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -5036,13 +5449,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_LONG(PyObject *operand1, PyOb
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        if (unlikely(result == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(result);
-        return r;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
 #if PYTHON_VERSION < 0x300
@@ -5050,6 +5458,18 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_LONG(PyObject *operand1, PyOb
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'int'");
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -5078,6 +5498,21 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
     PyTypeObject *type2 = &PyInt_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -5087,8 +5522,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -5097,13 +5530,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -5114,13 +5542,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -5130,13 +5553,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -5153,7 +5571,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -5168,13 +5586,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -5193,7 +5606,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -5208,13 +5621,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -5232,13 +5640,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        if (unlikely(result == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(result);
-        return r;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
 #if PYTHON_VERSION < 0x300
@@ -5246,6 +5649,18 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'int'");
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -5274,6 +5689,21 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_FLOAT(PyObject *operand1, PyOb
     PyTypeObject *type2 = &PyFloat_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -5283,8 +5713,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_FLOAT(PyObject *operand1, PyOb
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -5293,7 +5721,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_FLOAT(PyObject *operand1, PyOb
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -5304,7 +5733,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_FLOAT(PyObject *operand1, PyOb
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -5314,7 +5744,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_FLOAT(PyObject *operand1, PyOb
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -5331,7 +5762,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_FLOAT(PyObject *operand1, PyOb
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -5346,7 +5777,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_FLOAT(PyObject *operand1, PyOb
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -5365,7 +5797,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_FLOAT(PyObject *operand1, PyOb
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -5380,7 +5812,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_FLOAT(PyObject *operand1, PyOb
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -5398,10 +5831,17 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_FLOAT(PyObject *operand1, PyOb
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'float'");
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -5430,6 +5870,21 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
     PyTypeObject *type2 = &PyInt_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -5439,8 +5894,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -5449,7 +5902,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -5460,7 +5914,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -5470,7 +5925,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -5487,7 +5943,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -5502,7 +5958,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -5521,7 +5978,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -5536,7 +5993,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -5554,10 +6012,17 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and 'int'");
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -5586,6 +6051,21 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_FLOAT(PyObject *operand1, PyO
     PyTypeObject *type2 = &PyFloat_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -5595,8 +6075,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_FLOAT(PyObject *operand1, PyO
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -5605,13 +6083,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_FLOAT(PyObject *operand1, PyO
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -5622,13 +6095,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_FLOAT(PyObject *operand1, PyO
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -5638,13 +6106,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_FLOAT(PyObject *operand1, PyO
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -5661,7 +6124,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_FLOAT(PyObject *operand1, PyO
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -5676,13 +6139,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_FLOAT(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -5701,7 +6159,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_FLOAT(PyObject *operand1, PyO
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -5716,13 +6174,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_FLOAT(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -5740,16 +6193,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_FLOAT(PyObject *operand1, PyO
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        if (unlikely(result == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(result);
-        return r;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'float'");
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -5778,6 +6238,21 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
     PyTypeObject *type2 = &PyInt_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -5787,8 +6262,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -5797,13 +6270,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -5814,13 +6282,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -5830,13 +6293,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -5853,7 +6311,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -5868,13 +6326,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -5893,7 +6346,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -5908,13 +6361,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -5932,16 +6380,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        if (unlikely(result == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(result);
-        return r;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and 'int'");
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -5969,6 +6424,21 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
     PyTypeObject *type2 = &PyFloat_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -5978,8 +6448,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -5988,7 +6456,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -5999,7 +6468,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -6009,7 +6479,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -6026,7 +6497,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -6041,7 +6512,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -6060,7 +6532,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -6075,7 +6547,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -6093,7 +6566,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
 #if PYTHON_VERSION < 0x300
@@ -6101,6 +6575,12 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'float'");
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -6127,6 +6607,21 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
     PyTypeObject *type2 = &PyLong_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -6136,8 +6631,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -6146,7 +6639,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -6157,7 +6651,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -6167,7 +6662,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -6184,7 +6680,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -6199,7 +6695,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -6218,7 +6715,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -6233,7 +6730,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -6251,7 +6749,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
 #if PYTHON_VERSION < 0x300
@@ -6259,6 +6758,12 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and 'int'");
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -6285,6 +6790,21 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
     PyTypeObject *type2 = &PyFloat_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -6294,8 +6814,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -6304,13 +6822,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -6321,13 +6834,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -6337,13 +6845,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -6360,7 +6863,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -6375,13 +6878,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -6400,7 +6898,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -6415,13 +6913,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -6439,13 +6932,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        if (unlikely(result == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(result);
-        return r;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
 #if PYTHON_VERSION < 0x300
@@ -6453,6 +6941,18 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'float'");
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -6479,6 +6979,21 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
     PyTypeObject *type2 = &PyLong_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -6488,8 +7003,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -6498,13 +7011,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -6515,13 +7023,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -6531,13 +7034,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -6554,7 +7052,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -6569,13 +7067,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -6594,7 +7087,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -6609,13 +7102,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -6633,13 +7121,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        if (unlikely(result == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(result);
-        return r;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
 #if PYTHON_VERSION < 0x300
@@ -6647,6 +7130,18 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and 'int'");
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -6672,6 +7167,21 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, Py
     PyTypeObject *type2 = &PyUnicode_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -6681,8 +7191,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, Py
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -6691,7 +7199,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, Py
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -6702,7 +7211,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, Py
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -6712,7 +7222,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, Py
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -6729,7 +7240,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, Py
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -6744,7 +7255,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -6763,7 +7275,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, Py
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -6778,7 +7290,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -6790,13 +7303,21 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, Py
     }
 #endif
 
-    return SLOT_sq_concat_OBJECT_STR_UNICODE(operand1, operand2);
+    PyObject *x = SLOT_sq_concat_OBJECT_STR_UNICODE(operand1, operand2);
+    obj_result = x;
+    goto exit_binary_result_object;
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and 'unicode'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and 'str'");
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -6823,6 +7344,21 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, Py
     PyTypeObject *type2 = &PyString_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -6832,8 +7368,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, Py
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -6842,7 +7376,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, Py
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -6853,7 +7388,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, Py
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -6863,7 +7399,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, Py
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -6880,7 +7417,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, Py
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -6895,7 +7432,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -6914,7 +7452,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, Py
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -6929,7 +7467,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, Py
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -6941,13 +7480,21 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, Py
     }
 #endif
 
-    return SLOT_sq_concat_OBJECT_UNICODE_STR(operand1, operand2);
+    PyObject *x = SLOT_sq_concat_OBJECT_UNICODE_STR(operand1, operand2);
+    obj_result = x;
+    goto exit_binary_result_object;
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'unicode' and 'str'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and 'str'");
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -6974,6 +7521,21 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, P
     PyTypeObject *type2 = &PyUnicode_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -6983,8 +7545,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, P
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -6993,13 +7553,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, P
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -7010,13 +7565,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, P
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -7026,13 +7576,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, P
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -7049,7 +7594,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, P
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -7064,13 +7609,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -7089,7 +7629,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, P
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -7104,13 +7644,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -7122,13 +7657,30 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, P
     }
 #endif
 
-    return SLOT_sq_concat_NBOOL_STR_UNICODE(operand1, operand2);
+    nuitka_bool x = SLOT_sq_concat_NBOOL_STR_UNICODE(operand1, operand2);
+    nbool_result = x;
+    goto exit_binary_result_nbool;
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and 'unicode'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and 'str'");
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_result_nbool:
+    return nbool_result;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -7155,6 +7707,21 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, P
     PyTypeObject *type2 = &PyString_Type;
     binaryfunc slot2 = NULL;
 
+    if (0) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -7164,8 +7731,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, P
         if (0) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -7174,13 +7739,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, P
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -7191,13 +7751,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, P
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -7207,13 +7762,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, P
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -7230,7 +7780,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, P
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -7245,13 +7795,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -7270,7 +7815,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, P
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -7285,13 +7830,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, P
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -7303,13 +7843,30 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, P
     }
 #endif
 
-    return SLOT_sq_concat_NBOOL_UNICODE_STR(operand1, operand2);
+    nuitka_bool x = SLOT_sq_concat_NBOOL_UNICODE_STR(operand1, operand2);
+    nbool_result = x;
+    goto exit_binary_result_nbool;
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'unicode' and 'str'");
 #else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and 'str'");
 #endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_result_nbool:
+    return nbool_result;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
@@ -7397,6 +7954,21 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -7406,8 +7978,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -7416,7 +7986,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    return x;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -7427,7 +7998,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -7437,7 +8009,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            return x;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -7455,7 +8028,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -7470,7 +8043,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -7489,7 +8063,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NULL;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -7504,7 +8078,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        return x;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -7522,10 +8097,17 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        return result;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
     return NULL;
 }
 
@@ -7592,6 +8174,21 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;
 
+    if (type1 == type2) {
+        assert(type1 == type2);
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -7601,8 +8198,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
         if (slot1 == slot2) {
             slot2 = NULL;
         }
-    } else {
-        assert(type1 == type2);
     }
 
     if (slot1 != NULL) {
@@ -7611,13 +8206,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
-                    if (unlikely(x == NULL)) {
-                        return NUITKA_BOOL_EXCEPTION;
-                    }
-
-                    nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                    Py_DECREF(x);
-                    return r;
+                    obj_result = x;
+                    goto exit_binary_result_object;
                 }
 
                 Py_DECREF(x);
@@ -7628,13 +8218,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -7644,13 +8229,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
         PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NUITKA_BOOL_EXCEPTION;
-            }
-
-            nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(x);
-            return r;
+            obj_result = x;
+            goto exit_binary_result_object;
         }
 
         Py_DECREF(x);
@@ -7668,7 +8248,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
             int err = c(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -7683,13 +8263,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -7708,7 +8283,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
             int err = c(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                return NUITKA_BOOL_EXCEPTION;
+                goto exit_binary_exception;
             }
 
             if (err == 0) {
@@ -7723,13 +8298,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
                         Py_DECREF(coerced1);
                         Py_DECREF(coerced2);
 
-                        if (unlikely(x == NULL)) {
-                            return NUITKA_BOOL_EXCEPTION;
-                        }
-
-                        nuitka_bool r = CHECK_IF_TRUE(x) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                        Py_DECREF(x);
-                        return r;
+                        obj_result = x;
+                        goto exit_binary_result_object;
                     }
                 }
 
@@ -7747,16 +8317,23 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
     if (sq_slot != NULL) {
         PyObject *result = sq_slot(operand1, operand2);
 
-        if (unlikely(result == NULL)) {
-            return NUITKA_BOOL_EXCEPTION;
-        }
-
-        nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(result);
-        return r;
+        obj_result = result;
+        goto exit_binary_result_object;
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    Py_DECREF(obj_result);
+    return r;
+
+exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
