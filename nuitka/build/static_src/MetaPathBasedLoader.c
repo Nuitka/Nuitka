@@ -1588,7 +1588,7 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
     assert(res == 0);
 }
 
-#if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
+#if defined(_NUITKA_STANDALONE)
 // This is called for the technical module imported early on during interpreter
 // into, to still get compatible "__file__" attributes.
 void setEarlyFrozenModulesFileAttribute(void) {

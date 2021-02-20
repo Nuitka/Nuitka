@@ -352,16 +352,28 @@ static void insertToDictCacheForcedHash(PyObject *dict, PyObject **value, hashfu
     Py_TYPE(*value)->tp_richcompare = old_richcmp;
 }
 
+static uint16_t unpackValueUint16(unsigned char const **data) {
+    uint16_t value;
+
+    memcpy(&value, *data, sizeof(value));
+
+    assert(sizeof(value) == 2);
+
+    *data += sizeof(value);
+
+    return value;
+}
+
 static uint32_t unpackValueUint32(unsigned char const **data) {
-    uint32_t size;
+    uint32_t value;
 
-    memcpy(&size, *data, sizeof(size));
+    memcpy(&value, *data, sizeof(value));
 
-    assert(sizeof(size) == 4);
+    assert(sizeof(value) == 4);
 
-    *data += sizeof(size);
+    *data += sizeof(value);
 
-    return size;
+    return value;
 }
 
 static int unpackValueInt(unsigned char const **data) {
@@ -1054,11 +1066,13 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
     return data;
 }
 
-static void unpackBlobConstants(PyObject **output, unsigned char const *data, int count) {
+static void unpackBlobConstants(PyObject **output, unsigned char const *data) {
+    int count = (int)unpackValueUint16(&data);
+
     _unpackBlobConstants(output, data, count);
 }
 
-void loadConstantsBlob(PyObject **output, char const *name, int count) {
+void loadConstantsBlob(PyObject **output, char const *name) {
 
     static bool init_done = false;
 
@@ -1128,11 +1142,11 @@ void loadConstantsBlob(PyObject **output, char const *name, int count) {
         w += size;
     }
 
-    unpackBlobConstants(output, w, count);
+    unpackBlobConstants(output, w);
 }
 
 #ifndef __NUITKA_NO_ASSERT__
-void checkConstantsBlob(PyObject **output, char const *name, int count) {
+void checkConstantsBlob(PyObject **output, char const *name) {
     // TODO: Unpack and check for correct values in output only.
 }
 #endif

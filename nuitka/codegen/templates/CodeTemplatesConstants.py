@@ -40,7 +40,7 @@ extern PyObject *getStandaloneSysExecutablePath(PyObject *basename);
 
 static void _createGlobalConstants(void) {
     // The empty name means global.
-    loadConstantsBlob(&global_constants[0], "", %(global_constants_count)d);
+    loadConstantsBlob(&global_constants[0], "");
 
 #if _NUITKA_EXE
     /* Set the "sys.executable" path to the original CPython executable or point to inside the

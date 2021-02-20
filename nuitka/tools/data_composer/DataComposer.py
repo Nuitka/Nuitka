@@ -303,10 +303,11 @@ def _writeConstantStream(constants_reader):
 
         count += 1
 
-    # Dirty end of things marker.
+    # Dirty end of things marker that would trigger an assertion in the decoder.
+    # TODO: Debug mode only?
     result.write(b".")
 
-    return count, result.getvalue()
+    return count, struct.pack("h", count) + result.getvalue()
 
 
 crc32 = 0
