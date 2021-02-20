@@ -233,11 +233,12 @@ def _detectImports(command, user_provided, technical):
 
     # Print statements for stuff to show, the modules loaded.
     if python_version >= 0x300:
-        command += (
-            '\nprint("\\n".join(sorted("import " + module.__name__ + " # sourcefile " + '
-            'module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and '
-            'module.__file__ not in (None, "<frozen>"))), file = sys.stderr)'
-        )  # do not read it
+        command += """
+print("\\n".join(sorted(
+    "import %s # sourcefile %s" % (module.__name__, module.__file__)
+    for module in sys.modules.values()
+    if getattr(module, "__file__", None) not in (None, "<frozen>"
+))), file = sys.stderr)"""
 
     reduced_path = [
         path_element
