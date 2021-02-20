@@ -148,7 +148,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -276,14 +275,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'int'", type1->tp_name);
@@ -328,7 +329,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -455,14 +455,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and '%s'", type2->tp_name);
@@ -571,7 +573,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -699,14 +700,16 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_INT(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'int'", type1->tp_name);
@@ -717,9 +720,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -757,7 +762,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -884,14 +888,16 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and '%s'", type2->tp_name);
@@ -902,9 +908,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -984,7 +992,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1112,14 +1119,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1166,7 +1175,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1293,14 +1301,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1391,7 +1401,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1519,14 +1528,16 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1541,9 +1552,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -1579,7 +1592,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1706,14 +1718,16 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1728,9 +1742,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -1825,7 +1841,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1953,14 +1968,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'float'", type1->tp_name);
@@ -2003,7 +2020,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -2130,14 +2146,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and '%s'", type2->tp_name);
@@ -2239,7 +2257,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -2367,14 +2384,16 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'float'", type1->tp_name);
@@ -2385,9 +2404,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -2423,7 +2444,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -2550,14 +2570,16 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and '%s'", type2->tp_name);
@@ -2568,9 +2590,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -2594,7 +2618,29 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_STR(PyObject *operand1, PyObje
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-    return SLOT_sq_concat_OBJECT_STR_STR(operand1, operand2);
+    PyObject *result;
+
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+    PyObject *x = PyString_Type.tp_as_sequence->sq_concat(operand1, operand2);
+    assert(x != Py_NotImplemented);
+
+    obj_result = x;
+    goto exit_result_object;
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    result = obj_result;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+
+exit_result_exception:
+    return NULL;
 }
 
 PyObject *BINARY_OPERATION_ADD_OBJECT_STR_STR(PyObject *operand1, PyObject *operand2) {
@@ -2630,7 +2676,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -2758,14 +2803,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_STR(PyObject *operand1, PyO
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'str'", type1->tp_name);
@@ -2810,7 +2857,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -2937,12 +2983,13 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyO
     }
 #endif
 
-    PyObject *x = SLOT_sq_concat_OBJECT_STR_OBJECT(operand1, operand2);
-    obj_result = x;
-    goto exit_binary_result_object;
+    {
+        PyObject *o = PyString_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        obj_result = o;
+        goto exit_binary_result_object;
+    }
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and '%s'", type2->tp_name);
-    goto exit_binary_exception;
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -2966,7 +3013,28 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(PyObject *operand1
     assert(PyUnicode_CheckExact(operand2));
     assert(NEW_STYLE_NUMBER(operand2));
 
-    return SLOT_sq_concat_OBJECT_UNICODE_UNICODE(operand1, operand2);
+    PyObject *result;
+
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+    PyObject *x = UNICODE_CONCAT(operand1, operand2);
+
+    obj_result = x;
+    goto exit_result_object;
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    result = obj_result;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+
+exit_result_exception:
+    return NULL;
 }
 
 PyObject *BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObject *operand2) {
@@ -2998,7 +3066,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -3126,14 +3193,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -3178,7 +3247,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -3305,16 +3373,13 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
     }
 #endif
 
-    PyObject *x = SLOT_sq_concat_OBJECT_UNICODE_OBJECT(operand1, operand2);
-    obj_result = x;
-    goto exit_binary_result_object;
+    {
+        PyObject *o = PyUnicode_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        obj_result = o;
+        goto exit_binary_result_object;
+    }
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'unicode' and '%s'", type2->tp_name);
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and '%s'", type2->tp_name);
-#endif
-    goto exit_binary_exception;
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -3399,7 +3464,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -3527,14 +3591,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_BYTES(PyObject *operand1, P
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'bytes'", type1->tp_name);
@@ -3579,7 +3645,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -3706,12 +3771,13 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1, P
     }
 #endif
 
-    PyObject *x = SLOT_sq_concat_OBJECT_BYTES_OBJECT(operand1, operand2);
-    obj_result = x;
-    goto exit_binary_result_object;
+    {
+        PyObject *o = PyBytes_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        obj_result = o;
+        goto exit_binary_result_object;
+    }
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'bytes' and '%s'", type2->tp_name);
-    goto exit_binary_exception;
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -3794,7 +3860,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -3922,14 +3987,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_TUPLE(PyObject *operand1, P
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'tuple'", type1->tp_name);
@@ -3972,7 +4039,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -4099,12 +4165,13 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1, P
     }
 #endif
 
-    PyObject *x = SLOT_sq_concat_OBJECT_TUPLE_OBJECT(operand1, operand2);
-    obj_result = x;
-    goto exit_binary_result_object;
+    {
+        PyObject *o = PyTuple_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        obj_result = o;
+        goto exit_binary_result_object;
+    }
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'tuple' and '%s'", type2->tp_name);
-    goto exit_binary_exception;
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -4186,7 +4253,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -4314,14 +4380,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LIST(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'list'", type1->tp_name);
@@ -4364,7 +4432,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -4491,12 +4558,13 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, Py
     }
 #endif
 
-    PyObject *x = SLOT_sq_concat_OBJECT_LIST_OBJECT(operand1, operand2);
-    obj_result = x;
-    goto exit_binary_result_object;
+    {
+        PyObject *o = PyList_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        obj_result = o;
+        goto exit_binary_result_object;
+    }
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'list' and '%s'", type2->tp_name);
-    goto exit_binary_exception;
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -4579,7 +4647,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -4707,14 +4774,16 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LIST(PyObject *operand1, P
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and 'list'", type1->tp_name);
@@ -4725,9 +4794,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -4763,7 +4834,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -4890,24 +4960,24 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, P
     }
 #endif
 
-    nuitka_bool x = SLOT_sq_concat_NBOOL_LIST_OBJECT(operand1, operand2);
-    nbool_result = x;
-    goto exit_binary_result_nbool;
+    {
+        PyObject *o = PyList_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        obj_result = o;
+        goto exit_binary_result_object;
+    }
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'list' and '%s'", type2->tp_name);
-    goto exit_binary_exception;
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     if (unlikely(obj_result == NULL)) {
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
-
-exit_binary_result_nbool:
-    return nbool_result;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -4946,7 +5016,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_LONG(PyObject *operand1, PyObj
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -5073,14 +5142,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_LONG(PyObject *operand1, PyObj
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -5131,7 +5202,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -5258,14 +5328,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -5316,7 +5388,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_LONG(PyObject *operand1, PyOb
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -5443,14 +5514,16 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_LONG(PyObject *operand1, PyOb
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -5465,9 +5538,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -5507,7 +5582,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -5634,14 +5708,16 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -5656,9 +5732,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -5698,7 +5776,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_FLOAT(PyObject *operand1, PyOb
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -5825,14 +5902,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_FLOAT(PyObject *operand1, PyOb
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'float'");
@@ -5879,7 +5958,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -6006,14 +6084,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and 'int'");
@@ -6060,7 +6140,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_FLOAT(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -6187,14 +6266,16 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_FLOAT(PyObject *operand1, PyO
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'float'");
@@ -6205,9 +6286,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -6247,7 +6330,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -6374,14 +6456,16 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and 'int'");
@@ -6392,9 +6476,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -6433,7 +6519,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -6560,14 +6645,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -6616,7 +6703,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -6743,14 +6829,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -6799,7 +6887,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -6926,14 +7013,16 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -6948,9 +7037,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -6988,7 +7079,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -7115,14 +7205,16 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -7137,9 +7229,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -7176,7 +7270,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -7303,16 +7396,13 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, Py
     }
 #endif
 
-    PyObject *x = SLOT_sq_concat_OBJECT_STR_UNICODE(operand1, operand2);
-    obj_result = x;
-    goto exit_binary_result_object;
+    {
+        PyObject *o = PyString_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        obj_result = o;
+        goto exit_binary_result_object;
+    }
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and 'unicode'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and 'str'");
-#endif
-    goto exit_binary_exception;
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -7353,7 +7443,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -7480,16 +7569,13 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, Py
     }
 #endif
 
-    PyObject *x = SLOT_sq_concat_OBJECT_UNICODE_STR(operand1, operand2);
-    obj_result = x;
-    goto exit_binary_result_object;
+    {
+        PyObject *o = PyUnicode_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        obj_result = o;
+        goto exit_binary_result_object;
+    }
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'unicode' and 'str'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and 'str'");
-#endif
-    goto exit_binary_exception;
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -7530,7 +7616,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -7657,28 +7742,24 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, P
     }
 #endif
 
-    nuitka_bool x = SLOT_sq_concat_NBOOL_STR_UNICODE(operand1, operand2);
-    nbool_result = x;
-    goto exit_binary_result_nbool;
+    {
+        PyObject *o = PyString_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        obj_result = o;
+        goto exit_binary_result_object;
+    }
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and 'unicode'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and 'str'");
-#endif
-    goto exit_binary_exception;
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     if (unlikely(obj_result == NULL)) {
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
-
-exit_binary_result_nbool:
-    return nbool_result;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -7716,7 +7797,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -7843,28 +7923,24 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, P
     }
 #endif
 
-    nuitka_bool x = SLOT_sq_concat_NBOOL_UNICODE_STR(operand1, operand2);
-    nbool_result = x;
-    goto exit_binary_result_nbool;
+    {
+        PyObject *o = PyUnicode_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        obj_result = o;
+        goto exit_binary_result_object;
+    }
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'unicode' and 'str'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'str' and 'str'");
-#endif
-    goto exit_binary_exception;
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     if (unlikely(obj_result == NULL)) {
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
-
-exit_binary_result_nbool:
-    return nbool_result;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -7963,7 +8039,6 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -8091,14 +8166,16 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
@@ -8183,7 +8260,6 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -8311,14 +8387,16 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        binaryfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_concat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = sq_slot(operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = sq_slot(operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
@@ -8329,9 +8407,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;

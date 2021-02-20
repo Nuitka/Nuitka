@@ -156,7 +156,6 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_INT(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -326,7 +325,6 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -537,7 +535,6 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_LONG(PyObject *operand1,
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -709,7 +706,6 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(PyObject *operand1,
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -900,32 +896,34 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_FLOAT(PyObject *operand1,
         goto exit_result_exception;
     }
 
-    double mod = fmod(a, b);
-    double div = (a - mod) / b;
+    {
+        double mod = fmod(a, b);
+        double div = (a - mod) / b;
 
-    if (mod) {
-        if ((a < 0) != (mod < 0)) {
-            mod += b;
-            div -= 1.0;
+        if (mod) {
+            if ((a < 0) != (mod < 0)) {
+                mod += b;
+                div -= 1.0;
+            }
+        } else {
+            mod = copysign(0.0, b);
         }
-    } else {
-        mod = copysign(0.0, b);
-    }
 
-    double floordiv;
-    if (div) {
-        floordiv = floor(div);
-        if (div - floordiv > 0.5) {
-            floordiv += 1.0;
+        double floordiv;
+        if (div) {
+            floordiv = floor(div);
+            if (div - floordiv > 0.5) {
+                floordiv += 1.0;
+            }
+        } else {
+            floordiv = copysign(0.0, a / b);
         }
-    } else {
-        floordiv = copysign(0.0, a / b);
+
+        PyObject *r = Py_BuildValue("(dd)", floordiv, mod);
+
+        obj_result = r;
+        goto exit_result_object;
     }
-
-    PyObject *r = Py_BuildValue("(dd)", floordiv, mod);
-
-    obj_result = r;
-    goto exit_result_object;
 
 exit_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -972,7 +970,6 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1140,7 +1137,6 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1377,7 +1373,6 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)

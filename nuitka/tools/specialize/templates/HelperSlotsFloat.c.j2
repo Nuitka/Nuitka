@@ -34,82 +34,90 @@
         {{ goto_exit(props, exit_result_exception) }}
     }
 
-    double mod = fmod(a, b);
-    double div = (a - mod) / b;
+    {
+        double mod = fmod(a, b);
+        double div = (a - mod) / b;
 
-    if (mod) {
-        if ((a < 0) != (mod < 0)) {
-            div -= 1.0;
+        if (mod) {
+            if ((a < 0) != (mod < 0)) {
+                div -= 1.0;
+            }
         }
-    }
 
-    double floordiv;
-    if (div) {
-        floordiv = floor(div);
-        if (div - floordiv > 0.5) {
-            floordiv += 1.0;
+        double floordiv;
+        if (div) {
+            floordiv = floor(div);
+            if (div - floordiv > 0.5) {
+                floordiv += 1.0;
+            }
+        } else {
+            floordiv = copysign(0.0, a/b);
         }
-    } else {
-        floordiv = copysign(0.0, a/b);
-    }
 
-    {{ goto_exit(props, exit_result_ok_cfloat, "floordiv") }}
+        {{ goto_exit(props, exit_result_ok_cfloat, "floordiv") }}
+    }
 {% elif operator == "/" %}
     if (unlikely(b == 0.0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
         {{ goto_exit(props, exit_result_exception) }}
     }
 
-    double r = a {{operator}} b;
+    {
+        double r = a {{operator}} b;
 
-    {{ goto_exit(props, exit_result_ok_cfloat, "r") }}
+        {{ goto_exit(props, exit_result_ok_cfloat, "r") }}
+    }
 {% elif operator == "%" %}
     if (unlikely(b == 0.0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
         {{ goto_exit(props, exit_result_exception) }}
     }
 
-    double mod = fmod(a, b);
-    if (mod) {
-        if ((a < 0) != (mod < 0)) {
-            mod += b;
+    {
+        double mod = fmod(a, b);
+        if (mod) {
+            if ((a < 0) != (mod < 0)) {
+                mod += b;
+            }
+        } else {
+            mod = copysign(0.0, b);
         }
-    } else {
-        mod = copysign(0.0, b);
-    }
 
-    {{ goto_exit(props, exit_result_ok_cfloat, "mod") }}
+        {{ goto_exit(props, exit_result_ok_cfloat, "mod") }}
+    }
 {% elif operator == "divmod" %}
     if (unlikely(b == 0.0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
         {{ goto_exit(props, exit_result_exception) }}
     }
 
-    double mod = fmod(a, b);
-    double div = (a - mod) / b;
+    {
+        double mod = fmod(a, b);
+        double div = (a - mod) / b;
 
-    if (mod) {
-        if ((a < 0) != (mod < 0)) {
-            mod += b;
-            div -= 1.0;
+        if (mod) {
+            if ((a < 0) != (mod < 0)) {
+                mod += b;
+                div -= 1.0;
+            }
+        } else {
+            mod = copysign(0.0, b);
         }
-    } else {
-        mod = copysign(0.0, b);
-    }
 
-    double floordiv;
-    if (div) {
-        floordiv = floor(div);
-        if (div - floordiv > 0.5) {
-            floordiv += 1.0;
+        double floordiv;
+        if (div) {
+            floordiv = floor(div);
+            if (div - floordiv > 0.5) {
+                floordiv += 1.0;
+            }
+        } else {
+            floordiv = copysign(0.0, a/b);
         }
-    } else {
-        floordiv = copysign(0.0, a/b);
+
+        PyObject *r = Py_BuildValue("(dd)", floordiv, mod);
+
+        {{ goto_exit(props, exit_result_object, "r") }}
     }
-
-    PyObject *r = Py_BuildValue("(dd)", floordiv, mod);
-
-    {{ goto_exit(props, exit_result_object, "r") }}
 {% elif operator == "**" %}
     if (b == 0) {
         {{ goto_exit(props, exit_result_ok_const_float_1_0) }}
@@ -166,36 +174,38 @@
         {{ goto_exit(props, exit_result_ok_cfloat, "r") }}
     }
 
-    bool negate_result = false;
+    {
+        bool negate_result = false;
 
-    if (a < 0.0) {
-        if (unlikely(b != floor(b))) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative number cannot be raised to a fractional power");
-            {{ goto_exit(props, exit_result_exception) }}
+        if (a < 0.0) {
+            if (unlikely(b != floor(b))) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative number cannot be raised to a fractional power");
+                {{ goto_exit(props, exit_result_exception) }}
+            }
+
+            a = -a;
+            negate_result = DOUBLE_IS_ODD_INTEGER(b);
         }
 
-        a = -a;
-        negate_result = DOUBLE_IS_ODD_INTEGER(b);
-    }
-
-    if (a == 1.0) {
-        if (negate_result) {
-            {{ goto_exit(props, exit_result_ok_const_float_minus_1_0) }}
+        if (a == 1.0) {
+            if (negate_result) {
+                {{ goto_exit(props, exit_result_ok_const_float_minus_1_0) }}
+            } else {
+                {{ goto_exit(props, exit_result_ok_const_float_1_0) }}
+            }
         } else {
-            {{ goto_exit(props, exit_result_ok_const_float_1_0) }}
+            errno = 0;
+            double r = pow(a, b);
+
+            if (unlikely(errno != 0)) {
+                PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
+                {{ goto_exit(props, exit_result_exception) }}
+            }
+
+            r = negate_result ? -r : r;
+
+            {{ goto_exit(props, exit_result_ok_cfloat, "r") }}
         }
-    } else {
-        errno = 0;
-        double r = pow(a, b);
-
-        if (unlikely(errno != 0)) {
-            PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
-            {{ goto_exit(props, exit_result_exception) }}
-        }
-
-        r = negate_result ? -r : r;
-
-        {{ goto_exit(props, exit_result_ok_cfloat, "r") }}
     }
 {% else %}
 #error Operator {{operator}} not implemented in {{name}}

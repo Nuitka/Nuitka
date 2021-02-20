@@ -503,115 +503,6 @@ return %(return_value)s;""" % {
 
         return True
 
-    def getSameTypeOperationSpecializationCode(
-        self, target, other, nb_slot, sq_slot, operand1, operand2
-    ):
-        # Many cases, pylint: disable=too-many-branches,too-many-return-statements
-
-        cand = self if self is not object_desc else other
-
-        # no_code = "// %s, %s" % (self.type_name, other.type_name)
-        no_code = ""
-
-        if cand is object_desc:
-            return no_code
-
-        # Special case for sequence concats/repeats.
-        if sq_slot is not None and not cand.hasSlot(nb_slot) and cand.hasSlot(sq_slot):
-            slot = sq_slot
-        else:
-            slot = nb_slot
-
-        if slot == "sq_repeat":
-            if cand in (
-                list_desc,
-                tuple_desc,
-                set_desc,
-                dict_desc,
-                unicode_desc,
-                str_desc,
-                bytes_desc,
-            ):
-                # No repeat with themselves.
-                return no_code
-
-        if slot == "nb_remainder":
-            if cand in (list_desc, tuple_desc, set_desc, dict_desc):
-                return ""
-
-        if slot == "nb_multiply":
-            if cand in (
-                str_desc,
-                bytes_desc,
-                list_desc,
-                tuple_desc,
-                set_desc,
-                dict_desc,
-            ):
-                return no_code
-
-        if slot == "nb_add":
-            # Tuple and list, etc. use sq_concat.
-            # TODO: What about unicode_desc
-            if cand in (
-                str_desc,
-                bytes_desc,
-                tuple_desc,
-                list_desc,
-                set_desc,
-                dict_desc,
-            ):
-                return no_code
-
-        if slot in ("nb_and", "nb_or", "nb_xor"):
-            if cand in (
-                str_desc,
-                bytes_desc,
-                unicode_desc,
-                list_desc,
-                tuple_desc,
-                dict_desc,
-            ):
-                return no_code
-
-        if slot in ("nb_lshift", "nb_rshift"):
-            if cand in (
-                str_desc,
-                bytes_desc,
-                unicode_desc,
-                tuple_desc,
-                list_desc,
-                set_desc,
-                dict_desc,
-            ):
-                return no_code
-
-        # Nobody has it.
-        if slot == "nb_matrix_multiply":
-            return ""
-
-        # We sometimes fake these, e.g. for CLONG. Maybe we should make it more
-        # distinct function names in those cases and use cand.hasSlot there.
-        if target is not None:
-            return "return SLOT_%s_%s_%s_%s(%s, %s);" % (
-                slot,
-                target.getHelperCodeName(),
-                cand.getHelperCodeName(),
-                cand.getHelperCodeName(),
-                operand1,
-                operand2,
-            )
-        else:
-            return no_code
-
-            # return "return ISLOT_%s_%s_%s(%s, %s);" % (
-            #     slot,
-            #     cand.getHelperCodeName(),
-            #     cand.getHelperCodeName(),
-            #     operand1,
-            #     operand2,
-            # )
-
     def hasSimilarTypeSpecializationCode(self, other):
         return other in related_types.get(self, ())
 
@@ -632,18 +523,6 @@ return %(return_value)s;""" % {
 
         return False
 
-    def getSimilarTypeSpecializationCode(
-        self, target, other, nb_slot, operand1, operand2
-    ):
-        return "return SLOT_%s_%s_%s_%s(%s, %s);" % (
-            nb_slot,
-            target.getHelperCodeName(),
-            self.getHelperCodeName(),
-            other.getHelperCodeName(),
-            operand1,
-            operand2,
-        )
-
     def hasTypeSpecializationCode(self, other, nb_slot, sq_slot):
         if self is object_desc and other is object_desc:
             return False
@@ -658,38 +537,6 @@ return %(return_value)s;""" % {
         return self.hasSimilarTypeSpecializationCode(
             other=other,
         )
-
-    def getTypeSpecializationCode(
-        self, target, other, nb_slot, sq_slot, operand1, operand2
-    ):
-        if self is object_desc or other is object_desc:
-            return ""
-
-        if self is other:
-            return self.getSameTypeOperationSpecializationCode(
-                target=target,
-                other=other,
-                nb_slot=nb_slot,
-                sq_slot=sq_slot,
-                operand1=operand1,
-                operand2=operand2,
-            )
-
-        if self.hasSimilarTypeSpecializationCode(other):
-            return self.getSimilarTypeSpecializationCode(
-                target=target,
-                other=other,
-                nb_slot=nb_slot,
-                operand1=operand1,
-                operand2=operand2,
-            )
-
-        return ""
-
-    def getSqConcatSlotSpecializationCode(
-        self, target, other, slot, operand1, operand2
-    ):
-        pass
 
     def getSameTypeComparisonSpecializationCode(
         self, other, op_code, target, operand1, operand2
@@ -757,12 +604,12 @@ return %(return_value)s;""" % {
                 return "return %s;" % operand
         else:
             if take_ref:
-                return """%s r = %s; return r; """ % (
+                return """{ %s r = %s; return r; }""" % (
                     cls.getTypeDecl(),
                     cls.getToValueFromObjectExpression(operand),
                 )
             else:
-                return """%s r = %s; Py_DECREF(%s); return r; """ % (
+                return """{ %s r = %s; Py_DECREF(%s); return r; }""" % (
                     cls.getTypeDecl(),
                     cls.getToValueFromObjectExpression(operand),
                     operand,
@@ -967,21 +814,6 @@ assert(%(is_newstyle)sNEW_STYLE_NUMBER(%(operand)s));
     @abstractmethod
     def getTypeValueExpression(self, operand):
         pass
-
-    def getSqConcatSlotSpecializationCode(
-        self, target, other, slot, operand1, operand2
-    ):
-        if not self.hasSlot(slot):
-            return ""
-
-        return "return SLOT_%s_%s_%s_%s(%s, %s);" % (
-            slot,
-            target.getHelperCodeName(),
-            self.getHelperCodeName(),
-            other.getHelperCodeName(),
-            operand1,
-            operand2,
-        )
 
     @staticmethod
     def getTakeReferenceStatement(operand):
@@ -1560,48 +1392,6 @@ def findTypeFromCodeName(code_name):
 
 op_slot_codes = set()
 
-
-def makeNbSlotCode(operand, op_code, target, left, right, emit):
-    key = operand, op_code, target, left, right
-    if key in op_slot_codes:
-        return
-
-    assert target is not None
-
-    if left in (int_desc, clong_desc):
-        return
-    elif left == long_desc:
-        return
-    elif left == float_desc:
-        template = env.get_template("HelperOperationBinaryFloat.c.j2")
-    elif left == list_desc:
-        template = env.get_template("HelperOperationBinaryList.c.j2")
-    elif left == tuple_desc:
-        template = env.get_template("HelperOperationBinaryTuple.c.j2")
-    elif left == set_desc:
-        template = env.get_template("HelperOperationBinarySet.c.j2")
-    elif left == bytes_desc:
-        template = env.get_template("HelperOperationBinaryBytes.c.j2")
-    else:
-        return
-
-    code = template.render(
-        operator=operand,  # TODO: Rename operand to operator
-        operand=operand,
-        target=target,
-        left=left,
-        right=right,
-        nb_slot=_getNbSlotFromOperand(operand, op_code),
-        name=template.name,
-        int_desc=int_desc,
-        long_desc=long_desc,
-    )
-
-    emit(code)
-
-    op_slot_codes.add(key)
-
-
 # Reverse operation mapping.
 reversed_args_compare_op_codes = {
     "LE": "GE",
@@ -1705,6 +1495,14 @@ def _getNbSlotFromOperand(operand, op_code):
         assert False, operand
 
 
+def _getNbInplaceSlotFromOperand(operand, op_code):
+    if operand == "divmod":
+        return None
+
+    nb_slot = _getNbSlotFromOperand(operand, op_code)
+    return nb_slot.replace("nb_", "nb_i")
+
+
 def _parseTypesFromHelper(helper_name):
     (
         target_code,
@@ -1723,9 +1521,14 @@ def _parseTypesFromHelper(helper_name):
     return target_code, target, left, right
 
 
-def _parseRequirements(target, left, right, emit):
+def _parseRequirements(op_code, target, left, right, emit):
     python_requirement = set()
 
+    # There is an obsolete Python2 operation too, making sure it's guarded in code.
+    if op_code == "OLDDIV":
+        python_requirement.add(int_desc.python_requirement)
+    if op_code == "MATMULT":
+        python_requirement.add("PYTHON_VERSION >= 0x350")
     if target is not None and target.python_requirement:
         python_requirement.add(target.python_requirement)
     if left.python_requirement:
@@ -1784,22 +1587,7 @@ def makeHelperOperations(
 
             assert False, target_code
 
-        python_requirement = _parseRequirements(target, left, right, emit)
-
-        if operator == "*" and target is not None:
-            repeat = left.getSqConcatSlotSpecializationCode(
-                target, right, "sq_repeat", "operand2", "operand1"
-            )
-
-            if repeat:
-                makeMulRepeatCode(target, left, right, emit_c)
-
-            repeat = right.getSqConcatSlotSpecializationCode(
-                target, left, "sq_repeat", "operand2", "operand1"
-            )
-
-            if repeat:
-                makeMulRepeatCode(target, right, left, emit_c)
+        python_requirement = _parseRequirements(op_code, target, left, right, emit)
 
         emit(
             '/* Code referring to "%s" corresponds to %s and "%s" to %s. */'
@@ -1825,7 +1613,8 @@ def makeHelperOperations(
             op_code=op_code,
             operator=operator,
             nb_slot=_getNbSlotFromOperand(operator, op_code),
-            sq_slot1=sq_slot,
+            nb_islot=_getNbInplaceSlotFromOperand(operator, op_code),
+            sq_slot=sq_slot,
             object_desc=object_desc,
             int_desc=int_desc,
             long_desc=long_desc,
@@ -1833,6 +1622,8 @@ def makeHelperOperations(
             list_desc=list_desc,
             tuple_desc=tuple_desc,
             set_desc=set_desc,
+            str_desc=str_desc,
+            unicode_desc=unicode_desc,
             bytes_desc=bytes_desc,
         )
 
@@ -1875,7 +1666,9 @@ def makeHelperComparisons(
     emit()
 
     for target in (object_desc, cbool_desc, nbool_desc):
-        python_requirement = _parseRequirements(target, int_desc, int_desc, emit_c)
+        python_requirement = _parseRequirements(
+            op_code, target, int_desc, int_desc, emit_c
+        )
 
         makeCompareSlotCode(operator, op_code, target, int_desc, int_desc, emit_c)
 
@@ -1893,7 +1686,7 @@ def makeHelperComparisons(
 
             assert False, target_code
 
-        python_requirement = _parseRequirements(target, left, right, emit)
+        python_requirement = _parseRequirements(op_code, target, left, right, emit)
 
         code = left.getSameTypeComparisonSpecializationCode(
             right, op_code, target, "operand1", "operand2"

@@ -159,7 +159,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_INT(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -287,23 +286,29 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_INT(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'int'", type1->tp_name);
@@ -348,7 +353,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_OBJECT(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -475,23 +479,29 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_OBJECT(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and '%s'", type2->tp_name);
@@ -632,7 +642,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_INT(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -760,23 +769,29 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_INT(PyObject *operand1, P
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'int'", type1->tp_name);
@@ -787,9 +802,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -827,7 +844,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_OBJECT(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -954,23 +970,29 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_OBJECT(PyObject *operand1, P
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and '%s'", type2->tp_name);
@@ -981,9 +1003,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -1063,7 +1087,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_LONG(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1191,23 +1214,29 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_LONG(PyObject *operand1, P
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1254,7 +1283,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_OBJECT(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1381,23 +1409,29 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_OBJECT(PyObject *operand1, P
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1488,7 +1522,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_LONG(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1616,23 +1649,29 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_LONG(PyObject *operand1, 
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1647,9 +1686,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -1685,7 +1726,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_OBJECT(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1812,23 +1852,29 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_OBJECT(PyObject *operand1, 
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1843,9 +1889,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -1940,7 +1988,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_FLOAT(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -2068,23 +2115,29 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_FLOAT(PyObject *operand1, 
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'float'", type1->tp_name);
@@ -2127,7 +2180,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_OBJECT(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -2254,23 +2306,29 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_OBJECT(PyObject *operand1, 
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and '%s'", type2->tp_name);
@@ -2372,7 +2430,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_FLOAT(PyObject *operand1,
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -2500,23 +2557,29 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_FLOAT(PyObject *operand1,
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'float'", type1->tp_name);
@@ -2527,9 +2590,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -2565,7 +2630,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_OBJECT(PyObject *operand1,
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -2692,23 +2756,29 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_OBJECT(PyObject *operand1,
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and '%s'", type2->tp_name);
@@ -2719,9 +2789,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -2979,43 +3051,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_CLONG_INT(long operand1, PyObject *operan
 #endif
 
 #if PYTHON_VERSION < 0x300
-static PyObject *SLOT_sq_repeat_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyString_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
-    if (unlikely(!PyIndex_Check(operand2))) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *index_value = PyNumber_Index(operand2);
-
-    if (unlikely(index_value == NULL)) {
-        return NULL;
-    }
-
-    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
-
-    Py_DECREF(index_value);
-
-    /* Above conversion indicates an error as -1 */
-    if (unlikely(count == -1)) {
-        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", Py_TYPE(operand2)->tp_name);
-        return NULL;
-    }
-
-    NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = &PyString_Type;
-    ssizeargfunc repeatfunc = PyString_Type.tp_as_sequence->sq_repeat;
-
-    PyObject *result = (*repeatfunc)(operand1, count);
-
-    return result;
-}
 /* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -3041,7 +3076,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_STR(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -3169,19 +3203,51 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_STR(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    return SLOT_sq_repeat_OBJECT_STR_OBJECT(operand2, operand1);
+    if (unlikely(!PyIndex_Check(operand1))) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'str'", type1->tp_name);
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = PyNumber_Index(operand1);
+
+        if (unlikely(index_value == NULL)) {
+            goto exit_binary_exception;
+        }
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            Py_DECREF(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type1->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyString_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand2, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -3220,7 +3286,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_OBJECT(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -3347,10 +3412,40 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_OBJECT(PyObject *operand1, Py
     }
 #endif
 
-    return SLOT_sq_repeat_OBJECT_STR_OBJECT(operand1, operand2);
+    if (unlikely(!PyIndex_Check(operand2))) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'str' and '%s'", type2->tp_name);
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = PyNumber_Index(operand2);
+
+        if (unlikely(index_value == NULL)) {
+            goto exit_binary_exception;
+        }
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            Py_DECREF(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyString_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand1, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -3365,35 +3460,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *
 #endif
 
 #if PYTHON_VERSION < 0x300
-static PyObject *SLOT_sq_repeat_OBJECT_STR_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyString_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (unlikely(!1)) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *index_value = operand2;
-
-    Py_ssize_t count = PyInt_AS_LONG(index_value);
-
-    NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = &PyString_Type;
-    ssizeargfunc repeatfunc = PyString_Type.tp_as_sequence->sq_repeat;
-
-    PyObject *result = (*repeatfunc)(operand1, count);
-
-    return result;
-}
 /* Code referring to "INT" corresponds to Python2 'int' and "STR" to Python2 'str'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -3422,7 +3488,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_STR(PyObject *operand1, PyObj
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -3549,19 +3614,39 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_STR(PyObject *operand1, PyObj
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    return SLOT_sq_repeat_OBJECT_STR_INT(operand2, operand1);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'str'");
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand1;
+
+        {
+            Py_ssize_t count = PyInt_AS_LONG(index_value);
+            {
+                ssizeargfunc repeatfunc = PyString_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand2, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -3604,7 +3689,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_INT(PyObject *operand1, PyObj
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -3731,10 +3815,28 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_INT(PyObject *operand1, PyObj
     }
 #endif
 
-    return SLOT_sq_repeat_OBJECT_STR_INT(operand1, operand2);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'str' and 'int'");
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand2;
+
+        {
+            Py_ssize_t count = PyInt_AS_LONG(index_value);
+            {
+                ssizeargfunc repeatfunc = PyString_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand1, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -3749,41 +3851,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_STR_INT(PyObject *operand1, PyObject *ope
 #endif
 
 #if PYTHON_VERSION < 0x300
-static PyObject *SLOT_sq_repeat_OBJECT_STR_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyString_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (unlikely(!1)) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *index_value = operand2;
-
-    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
-
-    /* Above conversion indicates an error as -1 */
-    if (unlikely(count == -1)) {
-        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", Py_TYPE(operand2)->tp_name);
-        return NULL;
-    }
-
-    NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = &PyString_Type;
-    ssizeargfunc repeatfunc = PyString_Type.tp_as_sequence->sq_repeat;
-
-    PyObject *result = (*repeatfunc)(operand1, count);
-
-    return result;
-}
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "STR" to Python2 'str'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -3812,7 +3879,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_STR(PyObject *operand1, PyOb
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -3939,23 +4005,45 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_STR(PyObject *operand1, PyOb
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    return SLOT_sq_repeat_OBJECT_STR_LONG(operand2, operand1);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'str'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'str'");
-#endif
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand1;
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type1->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyString_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand2, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -3998,7 +4086,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_LONG(PyObject *operand1, PyOb
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -4125,14 +4212,34 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_LONG(PyObject *operand1, PyOb
     }
 #endif
 
-    return SLOT_sq_repeat_OBJECT_STR_LONG(operand1, operand2);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'str' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'str' and 'int'");
-#endif
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand2;
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyString_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand1, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -4146,41 +4253,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_STR_LONG(PyObject *operand1, PyObject *op
 }
 #endif
 
-static PyObject *SLOT_sq_repeat_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyUnicode_CheckExact(operand1));
-    assert(NEW_STYLE_NUMBER(operand1));
-    CHECK_OBJECT(operand2);
-
-    if (unlikely(!PyIndex_Check(operand2))) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *index_value = PyNumber_Index(operand2);
-
-    if (unlikely(index_value == NULL)) {
-        return NULL;
-    }
-
-    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
-
-    Py_DECREF(index_value);
-
-    /* Above conversion indicates an error as -1 */
-    if (unlikely(count == -1)) {
-        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", Py_TYPE(operand2)->tp_name);
-        return NULL;
-    }
-
-    NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = &PyUnicode_Type;
-    ssizeargfunc repeatfunc = PyUnicode_Type.tp_as_sequence->sq_repeat;
-
-    PyObject *result = (*repeatfunc)(operand1, count);
-
-    return result;
-}
 /* Code referring to "OBJECT" corresponds to any Python object and "UNICODE" to Python2 'unicode', Python3 'str'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -4204,7 +4276,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_UNICODE(PyObject *operand1
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -4332,23 +4403,51 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_UNICODE(PyObject *operand1
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    return SLOT_sq_repeat_OBJECT_UNICODE_OBJECT(operand2, operand1);
+    if (unlikely(!PyIndex_Check(operand1))) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'unicode'", type1->tp_name);
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'str'", type1->tp_name);
-#endif
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = PyNumber_Index(operand1);
+
+        if (unlikely(index_value == NULL)) {
+            goto exit_binary_exception;
+        }
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            Py_DECREF(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type1->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyUnicode_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand2, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -4383,7 +4482,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_OBJECT(PyObject *operand1
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -4510,14 +4608,40 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_OBJECT(PyObject *operand1
     }
 #endif
 
-    return SLOT_sq_repeat_OBJECT_UNICODE_OBJECT(operand1, operand2);
+    if (unlikely(!PyIndex_Check(operand2))) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'unicode' and '%s'", type2->tp_name);
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'str' and '%s'", type2->tp_name);
-#endif
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = PyNumber_Index(operand2);
+
+        if (unlikely(index_value == NULL)) {
+            goto exit_binary_exception;
+        }
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            Py_DECREF(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyUnicode_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand1, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -4531,33 +4655,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObje
 }
 
 #if PYTHON_VERSION < 0x300
-static PyObject *SLOT_sq_repeat_OBJECT_UNICODE_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyUnicode_CheckExact(operand1));
-    assert(NEW_STYLE_NUMBER(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (unlikely(!1)) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *index_value = operand2;
-
-    Py_ssize_t count = PyInt_AS_LONG(index_value);
-
-    NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = &PyUnicode_Type;
-    ssizeargfunc repeatfunc = PyUnicode_Type.tp_as_sequence->sq_repeat;
-
-    PyObject *result = (*repeatfunc)(operand1, count);
-
-    return result;
-}
 /* Code referring to "INT" corresponds to Python2 'int' and "UNICODE" to Python2 'unicode', Python3 'str'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_UNICODE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -4584,7 +4681,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_UNICODE(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -4711,23 +4807,39 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_UNICODE(PyObject *operand1, P
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    return SLOT_sq_repeat_OBJECT_UNICODE_INT(operand2, operand1);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'unicode'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'str'");
-#endif
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand1;
+
+        {
+            Py_ssize_t count = PyInt_AS_LONG(index_value);
+            {
+                ssizeargfunc repeatfunc = PyUnicode_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand2, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -4768,7 +4880,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_INT(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -4895,14 +5006,28 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_INT(PyObject *operand1, P
     }
 #endif
 
-    return SLOT_sq_repeat_OBJECT_UNICODE_INT(operand1, operand2);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'unicode' and 'int'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'str' and 'int'");
-#endif
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand2;
+
+        {
+            Py_ssize_t count = PyInt_AS_LONG(index_value);
+            {
+                ssizeargfunc repeatfunc = PyUnicode_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand1, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -4916,39 +5041,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_UNICODE_INT(PyObject *operand1, PyObject 
 }
 #endif
 
-static PyObject *SLOT_sq_repeat_OBJECT_UNICODE_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyUnicode_CheckExact(operand1));
-    assert(NEW_STYLE_NUMBER(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (unlikely(!1)) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *index_value = operand2;
-
-    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
-
-    /* Above conversion indicates an error as -1 */
-    if (unlikely(count == -1)) {
-        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", Py_TYPE(operand2)->tp_name);
-        return NULL;
-    }
-
-    NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = &PyUnicode_Type;
-    ssizeargfunc repeatfunc = PyUnicode_Type.tp_as_sequence->sq_repeat;
-
-    PyObject *result = (*repeatfunc)(operand1, count);
-
-    return result;
-}
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "UNICODE" to Python2 'unicode', Python3
  * 'str'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_UNICODE(PyObject *operand1, PyObject *operand2) {
@@ -4976,7 +5068,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_UNICODE(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -5103,23 +5194,45 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_UNICODE(PyObject *operand1, 
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    return SLOT_sq_repeat_OBJECT_UNICODE_LONG(operand2, operand1);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'unicode'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'str'");
-#endif
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand1;
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type1->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyUnicode_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand2, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -5159,7 +5272,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_LONG(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -5286,14 +5398,34 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_LONG(PyObject *operand1, 
     }
 #endif
 
-    return SLOT_sq_repeat_OBJECT_UNICODE_LONG(operand1, operand2);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'unicode' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'str' and 'int'");
-#endif
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand2;
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyUnicode_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand1, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -5306,43 +5438,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_UNICODE_LONG(PyObject *operand1, PyObject
     return _BINARY_OPERATION_MULT_OBJECT_UNICODE_LONG(operand1, operand2);
 }
 
-static PyObject *SLOT_sq_repeat_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyTuple_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
-    if (unlikely(!PyIndex_Check(operand2))) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *index_value = PyNumber_Index(operand2);
-
-    if (unlikely(index_value == NULL)) {
-        return NULL;
-    }
-
-    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
-
-    Py_DECREF(index_value);
-
-    /* Above conversion indicates an error as -1 */
-    if (unlikely(count == -1)) {
-        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", Py_TYPE(operand2)->tp_name);
-        return NULL;
-    }
-
-    NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = &PyTuple_Type;
-    ssizeargfunc repeatfunc = PyTuple_Type.tp_as_sequence->sq_repeat;
-
-    PyObject *result = (*repeatfunc)(operand1, count);
-
-    return result;
-}
 /* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -5368,7 +5463,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_TUPLE(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -5496,19 +5590,51 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_TUPLE(PyObject *operand1, 
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    return SLOT_sq_repeat_OBJECT_TUPLE_OBJECT(operand2, operand1);
+    if (unlikely(!PyIndex_Check(operand1))) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'tuple'", type1->tp_name);
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = PyNumber_Index(operand1);
+
+        if (unlikely(index_value == NULL)) {
+            goto exit_binary_exception;
+        }
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            Py_DECREF(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type1->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyTuple_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand2, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -5545,7 +5671,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_OBJECT(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -5672,10 +5797,40 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_OBJECT(PyObject *operand1, 
     }
 #endif
 
-    return SLOT_sq_repeat_OBJECT_TUPLE_OBJECT(operand1, operand2);
+    if (unlikely(!PyIndex_Check(operand2))) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'tuple' and '%s'", type2->tp_name);
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = PyNumber_Index(operand2);
+
+        if (unlikely(index_value == NULL)) {
+            goto exit_binary_exception;
+        }
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            Py_DECREF(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyTuple_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand1, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -5689,35 +5844,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject
 }
 
 #if PYTHON_VERSION < 0x300
-static PyObject *SLOT_sq_repeat_OBJECT_TUPLE_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyTuple_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (unlikely(!1)) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *index_value = operand2;
-
-    Py_ssize_t count = PyInt_AS_LONG(index_value);
-
-    NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = &PyTuple_Type;
-    ssizeargfunc repeatfunc = PyTuple_Type.tp_as_sequence->sq_repeat;
-
-    PyObject *result = (*repeatfunc)(operand1, count);
-
-    return result;
-}
 /* Code referring to "INT" corresponds to Python2 'int' and "TUPLE" to Python 'tuple'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -5746,7 +5872,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_TUPLE(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -5873,19 +5998,39 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_TUPLE(PyObject *operand1, PyO
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    return SLOT_sq_repeat_OBJECT_TUPLE_INT(operand2, operand1);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'tuple'");
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand1;
+
+        {
+            Py_ssize_t count = PyInt_AS_LONG(index_value);
+            {
+                ssizeargfunc repeatfunc = PyTuple_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand2, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -5928,7 +6073,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_INT(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -6055,10 +6199,28 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_INT(PyObject *operand1, PyO
     }
 #endif
 
-    return SLOT_sq_repeat_OBJECT_TUPLE_INT(operand1, operand2);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'tuple' and 'int'");
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand2;
+
+        {
+            Py_ssize_t count = PyInt_AS_LONG(index_value);
+            {
+                ssizeargfunc repeatfunc = PyTuple_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand1, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -6072,41 +6234,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_TUPLE_INT(PyObject *operand1, PyObject *o
 }
 #endif
 
-static PyObject *SLOT_sq_repeat_OBJECT_TUPLE_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyTuple_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (unlikely(!1)) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *index_value = operand2;
-
-    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
-
-    /* Above conversion indicates an error as -1 */
-    if (unlikely(count == -1)) {
-        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", Py_TYPE(operand2)->tp_name);
-        return NULL;
-    }
-
-    NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = &PyTuple_Type;
-    ssizeargfunc repeatfunc = PyTuple_Type.tp_as_sequence->sq_repeat;
-
-    PyObject *result = (*repeatfunc)(operand1, count);
-
-    return result;
-}
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "TUPLE" to Python 'tuple'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -6135,7 +6262,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_TUPLE(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -6262,23 +6388,45 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_TUPLE(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    return SLOT_sq_repeat_OBJECT_TUPLE_LONG(operand2, operand1);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'tuple'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'tuple'");
-#endif
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand1;
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type1->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyTuple_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand2, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -6319,7 +6467,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_LONG(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -6446,14 +6593,34 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_LONG(PyObject *operand1, Py
     }
 #endif
 
-    return SLOT_sq_repeat_OBJECT_TUPLE_LONG(operand1, operand2);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'tuple' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'tuple' and 'int'");
-#endif
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand2;
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyTuple_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand1, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -6466,43 +6633,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_TUPLE_LONG(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_MULT_OBJECT_TUPLE_LONG(operand1, operand2);
 }
 
-static PyObject *SLOT_sq_repeat_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyList_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
-    if (unlikely(!PyIndex_Check(operand2))) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *index_value = PyNumber_Index(operand2);
-
-    if (unlikely(index_value == NULL)) {
-        return NULL;
-    }
-
-    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
-
-    Py_DECREF(index_value);
-
-    /* Above conversion indicates an error as -1 */
-    if (unlikely(count == -1)) {
-        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", Py_TYPE(operand2)->tp_name);
-        return NULL;
-    }
-
-    NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = &PyList_Type;
-    ssizeargfunc repeatfunc = PyList_Type.tp_as_sequence->sq_repeat;
-
-    PyObject *result = (*repeatfunc)(operand1, count);
-
-    return result;
-}
 /* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -6528,7 +6658,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_LIST(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -6656,19 +6785,51 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_LIST(PyObject *operand1, P
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    return SLOT_sq_repeat_OBJECT_LIST_OBJECT(operand2, operand1);
+    if (unlikely(!PyIndex_Check(operand1))) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'list'", type1->tp_name);
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = PyNumber_Index(operand1);
+
+        if (unlikely(index_value == NULL)) {
+            goto exit_binary_exception;
+        }
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            Py_DECREF(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type1->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyList_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand2, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -6705,7 +6866,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_OBJECT(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -6832,10 +6992,40 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_OBJECT(PyObject *operand1, P
     }
 #endif
 
-    return SLOT_sq_repeat_OBJECT_LIST_OBJECT(operand1, operand2);
+    if (unlikely(!PyIndex_Check(operand2))) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'list' and '%s'", type2->tp_name);
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = PyNumber_Index(operand2);
+
+        if (unlikely(index_value == NULL)) {
+            goto exit_binary_exception;
+        }
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            Py_DECREF(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyList_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand1, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -6849,35 +7039,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject 
 }
 
 #if PYTHON_VERSION < 0x300
-static PyObject *SLOT_sq_repeat_OBJECT_LIST_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyList_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (unlikely(!1)) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *index_value = operand2;
-
-    Py_ssize_t count = PyInt_AS_LONG(index_value);
-
-    NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = &PyList_Type;
-    ssizeargfunc repeatfunc = PyList_Type.tp_as_sequence->sq_repeat;
-
-    PyObject *result = (*repeatfunc)(operand1, count);
-
-    return result;
-}
 /* Code referring to "INT" corresponds to Python2 'int' and "LIST" to Python 'list'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -6906,7 +7067,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_LIST(PyObject *operand1, PyOb
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -7033,19 +7193,39 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_LIST(PyObject *operand1, PyOb
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    return SLOT_sq_repeat_OBJECT_LIST_INT(operand2, operand1);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'list'");
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand1;
+
+        {
+            Py_ssize_t count = PyInt_AS_LONG(index_value);
+            {
+                ssizeargfunc repeatfunc = PyList_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand2, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -7088,7 +7268,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_INT(PyObject *operand1, PyOb
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -7215,10 +7394,28 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_INT(PyObject *operand1, PyOb
     }
 #endif
 
-    return SLOT_sq_repeat_OBJECT_LIST_INT(operand1, operand2);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'list' and 'int'");
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand2;
+
+        {
+            Py_ssize_t count = PyInt_AS_LONG(index_value);
+            {
+                ssizeargfunc repeatfunc = PyList_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand1, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -7232,41 +7429,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LIST_INT(PyObject *operand1, PyObject *op
 }
 #endif
 
-static PyObject *SLOT_sq_repeat_OBJECT_LIST_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyList_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (unlikely(!1)) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *index_value = operand2;
-
-    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
-
-    /* Above conversion indicates an error as -1 */
-    if (unlikely(count == -1)) {
-        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", Py_TYPE(operand2)->tp_name);
-        return NULL;
-    }
-
-    NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = &PyList_Type;
-    ssizeargfunc repeatfunc = PyList_Type.tp_as_sequence->sq_repeat;
-
-    PyObject *result = (*repeatfunc)(operand1, count);
-
-    return result;
-}
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LIST" to Python 'list'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -7295,7 +7457,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_LIST(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -7422,23 +7583,45 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_LIST(PyObject *operand1, PyO
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    return SLOT_sq_repeat_OBJECT_LIST_LONG(operand2, operand1);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'list'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'list'");
-#endif
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand1;
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type1->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyList_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand2, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -7479,7 +7662,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_LONG(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -7606,14 +7788,34 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_LONG(PyObject *operand1, PyO
     }
 #endif
 
-    return SLOT_sq_repeat_OBJECT_LIST_LONG(operand1, operand2);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'list' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'list' and 'int'");
-#endif
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand2;
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyList_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand1, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -7627,43 +7829,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_LIST_LONG(PyObject *operand1, PyObject *o
 }
 
 #if PYTHON_VERSION >= 0x300
-static PyObject *SLOT_sq_repeat_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyBytes_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
-    if (unlikely(!PyIndex_Check(operand2))) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *index_value = PyNumber_Index(operand2);
-
-    if (unlikely(index_value == NULL)) {
-        return NULL;
-    }
-
-    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
-
-    Py_DECREF(index_value);
-
-    /* Above conversion indicates an error as -1 */
-    if (unlikely(count == -1)) {
-        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", Py_TYPE(operand2)->tp_name);
-        return NULL;
-    }
-
-    NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = &PyBytes_Type;
-    ssizeargfunc repeatfunc = PyBytes_Type.tp_as_sequence->sq_repeat;
-
-    PyObject *result = (*repeatfunc)(operand1, count);
-
-    return result;
-}
 /* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -7689,7 +7854,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_BYTES(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -7817,19 +7981,51 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_BYTES(PyObject *operand1, 
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    return SLOT_sq_repeat_OBJECT_BYTES_OBJECT(operand2, operand1);
+    if (unlikely(!PyIndex_Check(operand1))) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'bytes'", type1->tp_name);
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = PyNumber_Index(operand1);
+
+        if (unlikely(index_value == NULL)) {
+            goto exit_binary_exception;
+        }
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            Py_DECREF(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type1->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyBytes_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand2, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -7868,7 +8064,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_OBJECT(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -7995,10 +8190,40 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_OBJECT(PyObject *operand1, 
     }
 #endif
 
-    return SLOT_sq_repeat_OBJECT_BYTES_OBJECT(operand1, operand2);
+    if (unlikely(!PyIndex_Check(operand2))) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'bytes' and '%s'", type2->tp_name);
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = PyNumber_Index(operand2);
+
+        if (unlikely(index_value == NULL)) {
+            goto exit_binary_exception;
+        }
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            Py_DECREF(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyBytes_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand1, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -8013,41 +8238,6 @@ PyObject *BINARY_OPERATION_MULT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject
 #endif
 
 #if PYTHON_VERSION >= 0x300
-static PyObject *SLOT_sq_repeat_OBJECT_BYTES_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyBytes_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (unlikely(!1)) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(operand2)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *index_value = operand2;
-
-    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
-
-    /* Above conversion indicates an error as -1 */
-    if (unlikely(count == -1)) {
-        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", Py_TYPE(operand2)->tp_name);
-        return NULL;
-    }
-
-    NUITKA_MAY_BE_UNUSED PyTypeObject *type1 = &PyBytes_Type;
-    ssizeargfunc repeatfunc = PyBytes_Type.tp_as_sequence->sq_repeat;
-
-    PyObject *result = (*repeatfunc)(operand1, count);
-
-    return result;
-}
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "BYTES" to Python3 'bytes'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_BYTES(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -8076,7 +8266,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_BYTES(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -8203,23 +8392,45 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_BYTES(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    return SLOT_sq_repeat_OBJECT_BYTES_LONG(operand2, operand1);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'bytes'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'bytes'");
-#endif
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand1;
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type1->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyBytes_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand2, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -8262,7 +8473,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_LONG(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -8389,14 +8599,34 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_LONG(PyObject *operand1, Py
     }
 #endif
 
-    return SLOT_sq_repeat_OBJECT_BYTES_LONG(operand1, operand2);
+    if (unlikely(!1)) {
+        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'bytes' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'bytes' and 'int'");
-#endif
-    goto exit_binary_exception;
+        goto exit_binary_exception;
+    }
+
+    {
+        PyObject *index_value = operand2;
+
+        {
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
+                goto exit_binary_exception;
+            }
+            {
+                ssizeargfunc repeatfunc = PyBytes_Type.tp_as_sequence->sq_repeat;
+                PyObject *r = (*repeatfunc)(operand1, count);
+
+                obj_result = r;
+                goto exit_binary_result_object;
+            }
+        }
+    }
+
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 
 exit_binary_result_object:
     return obj_result;
@@ -8439,7 +8669,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_LONG(PyObject *operand1, PyOb
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -8566,23 +8795,29 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_LONG(PyObject *operand1, PyOb
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -8633,7 +8868,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_INT(PyObject *operand1, PyOb
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -8760,23 +8994,29 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_INT(PyObject *operand1, PyOb
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -8827,7 +9067,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_LONG(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -8954,23 +9193,29 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_LONG(PyObject *operand1, PyO
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -8985,9 +9230,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -9027,7 +9274,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_INT(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -9154,23 +9400,29 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_INT(PyObject *operand1, PyO
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -9185,9 +9437,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -9227,7 +9481,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_FLOAT(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -9354,23 +9607,29 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_INT_FLOAT(PyObject *operand1, PyO
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'float'");
@@ -9417,7 +9676,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_INT(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -9544,23 +9802,29 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_INT(PyObject *operand1, PyO
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'int'");
@@ -9607,7 +9871,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_FLOAT(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -9734,23 +9997,29 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_INT_FLOAT(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'float'");
@@ -9761,9 +10030,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -9803,7 +10074,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_INT(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -9930,23 +10200,29 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_INT(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'int'");
@@ -9957,9 +10233,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -9998,7 +10276,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_FLOAT(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -10125,23 +10402,29 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LONG_FLOAT(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -10190,7 +10473,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_LONG(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -10317,23 +10599,29 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_LONG(PyObject *operand1, Py
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -10382,7 +10670,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_FLOAT(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -10509,23 +10796,29 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_LONG_FLOAT(PyObject *operand1, P
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -10540,9 +10833,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -10580,7 +10875,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_LONG(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -10707,23 +11001,29 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_FLOAT_LONG(PyObject *operand1, P
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
 #if PYTHON_VERSION < 0x300
@@ -10738,9 +11038,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -10849,7 +11151,6 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_OBJECT(PyObject *operand1,
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -10977,23 +11278,29 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_OBJECT(PyObject *operand1,
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and '%s'", type1->tp_name, type2->tp_name);
@@ -11110,7 +11417,6 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_OBJECT(PyObject *operand1
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -11238,23 +11544,29 @@ static nuitka_bool _BINARY_OPERATION_MULT_NBOOL_OBJECT_OBJECT(PyObject *operand1
     }
 #endif
 
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
+    {
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
 
-        obj_result = result;
-        goto exit_binary_result_object;
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
+    // Special case for "*", also work with sequence repeat from right argument.
+    {
+        ssizeargfunc sq_slot = type1->tp_as_sequence != NULL ? type1->tp_as_sequence->sq_repeat : NULL;
 
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+        sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
-        obj_result = result;
-        goto exit_binary_result_object;
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+
+            obj_result = result;
+            goto exit_binary_result_object;
+        }
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and '%s'", type1->tp_name, type2->tp_name);
@@ -11265,9 +11577,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;

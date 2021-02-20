@@ -135,37 +135,40 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
         goto exit_result_ok_cfloat;
     }
 
-    bool negate_result = false;
+    {
+        bool negate_result = false;
 
-    if (a < 0.0) {
-        if (unlikely(b != floor(b))) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative number cannot be raised to a fractional power");
-            goto exit_result_exception;
+        if (a < 0.0) {
+            if (unlikely(b != floor(b))) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError,
+                                                "negative number cannot be raised to a fractional power");
+                goto exit_result_exception;
+            }
+
+            a = -a;
+            negate_result = DOUBLE_IS_ODD_INTEGER(b);
         }
 
-        a = -a;
-        negate_result = DOUBLE_IS_ODD_INTEGER(b);
-    }
-
-    if (a == 1.0) {
-        if (negate_result) {
-            goto exit_result_ok_const_float_minus_1_0;
+        if (a == 1.0) {
+            if (negate_result) {
+                goto exit_result_ok_const_float_minus_1_0;
+            } else {
+                goto exit_result_ok_const_float_1_0;
+            }
         } else {
-            goto exit_result_ok_const_float_1_0;
+            errno = 0;
+            double r = pow(a, b);
+
+            if (unlikely(errno != 0)) {
+                PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
+                goto exit_result_exception;
+            }
+
+            r = negate_result ? -r : r;
+
+            cfloat_result = r;
+            goto exit_result_ok_cfloat;
         }
-    } else {
-        errno = 0;
-        double r = pow(a, b);
-
-        if (unlikely(errno != 0)) {
-            PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
-            goto exit_result_exception;
-        }
-
-        r = negate_result ? -r : r;
-
-        cfloat_result = r;
-        goto exit_result_ok_cfloat;
     }
 
 exit_result_ok_cfloat:
@@ -306,37 +309,40 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_FLOAT_FLOAT(PyObject *operand1, P
         goto exit_result_ok_cfloat;
     }
 
-    bool negate_result = false;
+    {
+        bool negate_result = false;
 
-    if (a < 0.0) {
-        if (unlikely(b != floor(b))) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative number cannot be raised to a fractional power");
-            goto exit_result_exception;
+        if (a < 0.0) {
+            if (unlikely(b != floor(b))) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError,
+                                                "negative number cannot be raised to a fractional power");
+                goto exit_result_exception;
+            }
+
+            a = -a;
+            negate_result = DOUBLE_IS_ODD_INTEGER(b);
         }
 
-        a = -a;
-        negate_result = DOUBLE_IS_ODD_INTEGER(b);
-    }
-
-    if (a == 1.0) {
-        if (negate_result) {
-            goto exit_result_ok_const_float_minus_1_0;
+        if (a == 1.0) {
+            if (negate_result) {
+                goto exit_result_ok_const_float_minus_1_0;
+            } else {
+                goto exit_result_ok_const_float_1_0;
+            }
         } else {
-            goto exit_result_ok_const_float_1_0;
+            errno = 0;
+            double r = pow(a, b);
+
+            if (unlikely(errno != 0)) {
+                PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
+                goto exit_result_exception;
+            }
+
+            r = negate_result ? -r : r;
+
+            cfloat_result = r;
+            goto exit_result_ok_cfloat;
         }
-    } else {
-        errno = 0;
-        double r = pow(a, b);
-
-        if (unlikely(errno != 0)) {
-            PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
-            goto exit_result_exception;
-        }
-
-        r = negate_result ? -r : r;
-
-        cfloat_result = r;
-        goto exit_result_ok_cfloat;
     }
 
 exit_result_ok_cfloat:
@@ -401,7 +407,6 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -570,7 +575,6 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -706,9 +710,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -744,7 +750,6 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -911,7 +916,6 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1046,9 +1050,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -1170,7 +1176,6 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_LONG(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1343,7 +1348,6 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_OBJECT_LONG(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1483,9 +1487,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -1521,7 +1527,6 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_LONG_OBJECT(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1692,7 +1697,6 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_LONG_OBJECT(PyObject *operand1, P
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1831,9 +1835,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -2128,7 +2134,6 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_INT(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -2299,7 +2304,6 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_OBJECT_INT(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -2435,9 +2439,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -2475,7 +2481,6 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_OBJECT(PyObject *operand1, PyO
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -2644,7 +2649,6 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_INT_OBJECT(PyObject *operand1, Py
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -2779,9 +2783,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -2821,7 +2827,6 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_LONG_INT(PyObject *operand1, PyObj
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -2996,7 +3001,6 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_LONG_INT(PyObject *operand1, PyOb
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -3135,9 +3139,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -3177,7 +3183,6 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_LONG(PyObject *operand1, PyObj
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -3352,7 +3357,6 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_INT_LONG(PyObject *operand1, PyOb
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -3491,9 +3495,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
@@ -3637,7 +3643,6 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -3914,7 +3919,6 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_OBJECT_OBJECT(PyObject *operand1,
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED nuitka_bool nbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -4051,9 +4055,11 @@ exit_binary_result_object:
         return NUITKA_BOOL_EXCEPTION;
     }
 
-    nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-    Py_DECREF(obj_result);
-    return r;
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;

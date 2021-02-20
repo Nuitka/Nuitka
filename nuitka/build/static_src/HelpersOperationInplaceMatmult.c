@@ -36,6 +36,7 @@
 #endif
 #endif
 
+#if PYTHON_VERSION >= 0x350
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _BINARY_OPERATION_MATMULT_LONG_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
@@ -75,7 +76,9 @@ static inline bool _BINARY_OPERATION_MATMULT_LONG_LONG_INPLACE(PyObject **operan
 bool BINARY_OPERATION_MATMULT_LONG_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MATMULT_LONG_LONG_INPLACE(operand1, operand2);
 }
+#endif
 
+#if PYTHON_VERSION >= 0x350
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _BINARY_OPERATION_MATMULT_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
@@ -111,7 +114,9 @@ static inline bool _BINARY_OPERATION_MATMULT_OBJECT_LONG_INPLACE(PyObject **oper
 bool BINARY_OPERATION_MATMULT_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MATMULT_OBJECT_LONG_INPLACE(operand1, operand2);
 }
+#endif
 
+#if PYTHON_VERSION >= 0x350
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static inline bool _BINARY_OPERATION_MATMULT_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
@@ -147,7 +152,9 @@ static inline bool _BINARY_OPERATION_MATMULT_LONG_OBJECT_INPLACE(PyObject **oper
 bool BINARY_OPERATION_MATMULT_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MATMULT_LONG_OBJECT_INPLACE(operand1, operand2);
 }
+#endif
 
+#if PYTHON_VERSION >= 0x350
 /* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 static inline bool _BINARY_OPERATION_MATMULT_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
@@ -187,7 +194,9 @@ static inline bool _BINARY_OPERATION_MATMULT_FLOAT_FLOAT_INPLACE(PyObject **oper
 bool BINARY_OPERATION_MATMULT_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MATMULT_FLOAT_FLOAT_INPLACE(operand1, operand2);
 }
+#endif
 
+#if PYTHON_VERSION >= 0x350
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 static inline bool _BINARY_OPERATION_MATMULT_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
@@ -223,7 +232,9 @@ static inline bool _BINARY_OPERATION_MATMULT_OBJECT_FLOAT_INPLACE(PyObject **ope
 bool BINARY_OPERATION_MATMULT_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MATMULT_OBJECT_FLOAT_INPLACE(operand1, operand2);
 }
+#endif
 
+#if PYTHON_VERSION >= 0x350
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static inline bool _BINARY_OPERATION_MATMULT_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
@@ -259,7 +270,9 @@ static inline bool _BINARY_OPERATION_MATMULT_FLOAT_OBJECT_INPLACE(PyObject **ope
 bool BINARY_OPERATION_MATMULT_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MATMULT_FLOAT_OBJECT_INPLACE(operand1, operand2);
 }
+#endif
 
+#if PYTHON_VERSION >= 0x350
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static inline bool _BINARY_OPERATION_MATMULT_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
@@ -352,6 +365,7 @@ static inline bool _BINARY_OPERATION_MATMULT_OBJECT_OBJECT_INPLACE(PyObject **op
 bool BINARY_OPERATION_MATMULT_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MATMULT_OBJECT_OBJECT_INPLACE(operand1, operand2);
 }
+#endif
 
 /* Reneable warnings about unused goto targets for compilers */
 #ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS

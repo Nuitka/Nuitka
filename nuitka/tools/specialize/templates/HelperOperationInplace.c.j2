@@ -15,16 +15,17 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
+{% from 'HelperSlotsCommon.c.j2' import goto_exit %}
 static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {
     assert(operand1); // Pointer must be non-null.
 
-    {{left.getCheckValueCode("*operand1")}}
-    {{right.getCheckValueCode("operand2")}}
+    {{ left.getCheckValueCode("*operand1") }}
+    {{ right.getCheckValueCode("operand2") }}
 
 {# CPython2 treats integer values with fast path. #}
 {% if left.mayBothHaveType(right, "int") %}
 #if PYTHON_VERSION < 0x300
-    if ({{left.getIntCheckExpression("*operand1")}} && {{right.getIntCheckExpression("operand2")}}) {
+    if ({{ left.getIntCheckExpression("*operand1") }} && {{ right.getIntCheckExpression("operand2") }}) {
         {% from 'HelperSlotsInt.c.j2' import int_slot %}
 
         {% set props = {"exits": []} %}
@@ -134,8 +135,37 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     }
 {% endif %}
 
-    {# TODO: There are major improvements possible by inlining this as well. #}
-    PyObject *result = PyNumber_InPlace{{op_code.title()}}(*operand1, operand2);
+{% if operator in "&" and False %}
+    {% set props = {"exits": []} %}
+
+    {{ left.getSlotType(nb_islot)}} islot = {{left.getSlotValueExpression("type1", nb_islot) }};
+
+    if (islot != NULL) {
+        PyObject *x = {{left.getSlotCallExpression(nb_islot, "islot", "operand1", "operand2")}};
+
+        if (x != Py_NotImplemented) {
+            {{ goto_exit(props, "exit_inplace_result_object", "x") }}
+        }
+
+        Py_DECREF(x);
+        slot2 = NULL;
+    }
+
+exit_inplace_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+{% else %}
+    PyObject *result = PyNumber_InPlace{{ op_code.title() }}(*operand1, operand2);
 
     if (unlikely(result == NULL)) {
         return false;
@@ -149,6 +179,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     *operand1 = result;
 
     return true;
+{% endif %}
 }
 
 bool BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {
