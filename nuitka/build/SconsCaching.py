@@ -297,6 +297,10 @@ def checkCachingSuccess(source_dir):
                 if result in ("cache hit (direct)", "cache hit (preprocessed)"):
                     result = "cache hit"
 
+                # Usage of incbin causes this for the constants blob integration.
+                if result == "unsupported code directive":
+                    continue
+
                 counts[result] += 1
 
             scons_logger.info("Compiled %d C files using ccache." % len(stats))
