@@ -38,10 +38,11 @@ from nuitka import Options
 from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
+from nuitka.Errors import NuitkaPluginError
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPointOld
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
-from nuitka.utils.FileOperations import makePath
+from nuitka.utils.FileOperations import makePath, relpath
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -197,12 +198,112 @@ class Plugins(object):
 
         return plugin_name in active_plugins
 
-    @staticmethod
-    def considerImplicitImports(module, signal_change):
-        for plugin in getActivePlugins():
-            plugin.considerImplicitImports(module, signal_change)
+    implicit_imports_cache = {}
 
-        # Post load code may have been created, if so indicate it's used.
+    @staticmethod
+    def _considerImplicitImports(plugin, module):
+        from nuitka.importing import Importing
+
+        result = []
+
+        for full_name in plugin.getImplicitImports(module):
+            if type(full_name) in (tuple, list):
+                raise NuitkaPluginError(
+                    "Plugin %r needs to be change to only return modules names, not %r"
+                    % (plugin, full_name)
+                )
+
+            full_name = ModuleName(full_name)
+
+            try:
+                _module_package, module_filename, _finding = Importing.findModule(
+                    importing=module,
+                    module_name=full_name,
+                    parent_package=None,
+                    level=-1,
+                    warn=False,
+                )
+
+                module_filename = plugin.locateModule(
+                    importing=module, module_name=full_name
+                )
+            except Exception:
+                plugin.warning(
+                    "Problem locating '%s' for implicit imports of '%s'."
+                    % (module.getFullName(), full_name)
+                )
+                raise
+
+            if module_filename is None:
+                if Options.isShowInclusion():
+                    plugin.info(
+                        "Implicit module '%s' suggested for '%s' not found."
+                        % (full_name, module.getFullName())
+                    )
+
+                continue
+
+            result.append((full_name, module_filename))
+
+        if result:
+            plugin.info(
+                "Implicit dependencies of module '%s' added '%s'."
+                % (module.getFullName(), ",".join(r[0] for r in result))
+            )
+
+        return result
+
+    @staticmethod
+    def _reportImplicitImports(implicit_imports, signal_change):
+        from nuitka.importing import Recursion
+        from nuitka.importing.Importing import getModuleNameAndKindFromFilename
+
+        for full_name, module_filename in implicit_imports:
+            _module_name2, module_kind = getModuleNameAndKindFromFilename(
+                module_filename
+            )
+
+            # This will get back to all other plugins allowing them to inhibit it though.
+            decision, reason = Recursion.decideRecursion(
+                module_filename=module_filename,
+                module_name=full_name,
+                module_kind=module_kind,
+            )
+
+            if decision:
+                imported_module, added_flag = Recursion.recurseTo(
+                    module_package=full_name.getPackageName(),
+                    module_filename=module_filename,
+                    module_relpath=relpath(module_filename),
+                    module_kind=module_kind,
+                    reason=reason,
+                )
+
+                addUsedModule(imported_module)
+
+                if added_flag:
+                    signal_change(
+                        "new_code",
+                        imported_module.getSourceReference(),
+                        "Recursed to module.",
+                    )
+
+    @classmethod
+    def considerImplicitImports(cls, module, signal_change):
+        for plugin in getActivePlugins():
+            key = (module.getFullName(), plugin)
+
+            if key not in cls.implicit_imports_cache:
+                cls.implicit_imports_cache[key] = tuple(
+                    cls._considerImplicitImports(plugin=plugin, module=module)
+                )
+
+            cls._reportImplicitImports(
+                implicit_imports=cls.implicit_imports_cache[key],
+                signal_change=signal_change,
+            )
+
+        # Pre and post load code may have been created, if so indicate it's used.
         full_name = module.getFullName()
 
         if full_name in pre_modules:
