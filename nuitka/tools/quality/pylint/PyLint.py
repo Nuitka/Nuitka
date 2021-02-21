@@ -53,9 +53,6 @@ def checkVersion():
 
         pylint_version = pylint_version.split("\n")[0].split()[-1].strip(",")
 
-    if pylint_version < "1.6.5":
-        sys.exit("Error, needs PyLint 1.6.5 or higher not %r." % pylint_version)
-
     my_print("Using PyLint version:", pylint_version)
 
 
@@ -139,7 +136,8 @@ def getOptions():
     default_pylint_options = """\
 --init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())
 --disable=I0011,I0012,no-init,bad-whitespace,bad-continuation,E1103,W0632,W1504,C0123,C0411,C0413,R0204,\
-similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none,ungrouped-imports
+similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none,ungrouped-imports,\
+no-else-return,c-extension-no-member,inconsistent-return-statements
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no
@@ -150,6 +148,7 @@ similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
 --variable-rgx=.*
 --argument-rgx=.*
 --dummy-variables-rgx=_.*|trace_collection
+--ignored-argument-names=_.*|trace_collection
 --const-rgx=.*
 --max-line-length=125
 --no-docstring-rgx=.*
@@ -160,26 +159,11 @@ similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
 --max-parents=13
 --max-statements=50
 --max-nested-blocks=10
---max-bool-expr=10\
+--max-bool-expr=10
+--score=no\
 """.split(
         "\n"
     )
-
-    if pylint_version >= "1.7":
-        default_pylint_options += """\
---score=no
---ignored-argument-names=_.*|trace_collection
---disable=no-else-return\
-""".split(
-            "\n"
-        )
-
-    if pylint_version >= "1.8":
-        default_pylint_options += """\
---disable=c-extension-no-member,inconsistent-return-statements\
-""".split(
-            "\n"
-        )
 
     if pylint_version >= "2.0":
         default_pylint_options += """\
