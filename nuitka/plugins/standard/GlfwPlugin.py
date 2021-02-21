@@ -24,6 +24,7 @@ import os
 from nuitka import Options
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.utils.ModuleNames import ModuleName
 
 
 class GlfwPlugin(NuitkaPluginBase):
@@ -46,6 +47,17 @@ class GlfwPlugin(NuitkaPluginBase):
             True if this is a standalone compilation.
         """
         return Options.isStandaloneMode()
+
+    def getImplicitImports(self, module):
+        if module.getFullName() == "OpenGL":
+            opengl_infos = self.queryRuntimeInformationSingle(
+                setup_codes="import OpenGL.plugins",
+                value="[(f.name, f.import_path) for f in OpenGL.plugins.FormatHandler.all()]",
+            )
+
+            # TODO: Filter by name.
+            for _name, import_path in opengl_infos:
+                yield ModuleName(import_path).getPackageName()
 
     def _getDLLFilename(self):
         glfw_info = self.queryRuntimeInformationMultiple(
