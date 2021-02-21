@@ -178,7 +178,7 @@ static void SET_KEY_ERROR_EXCEPTION(PyObject *key) {
      * it, but then that changes the key for the KeyError, which is not
      * welcome. The check is inexact, as the unwrapping one is too.
      */
-    if (PyTuple_Check(key)) {
+    if (PyTuple_Check(key) || key == Py_None) {
         PyObject *tuple = PyTuple_Pack(1, key);
 
         SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyExc_KeyError, tuple);

@@ -386,14 +386,13 @@ def buildAnnotationNode(provider, node, source_ref):
         m = {}
         exec(r, m)
 
-        # TODO: In Python3.9, we should get https://bugs.python.org/issue35143
-        # to be used.
-        if Options.is_debug:
-            assert python_version <= 390
+        value = m["__annotations__"]["x"]
 
-        return makeConstantRefNode(
-            constant=m["__annotations__"]["x"], source_ref=source_ref
-        )
+        if Options.is_debug and python_version >= 0x390:
+            # TODO: In Python3.9+, we should only use ast.unparse
+            assert value == ast.unparse(node)
+
+        return makeConstantRefNode(constant=value, source_ref=source_ref)
 
     return buildNode(provider, node, source_ref)
 

@@ -1202,6 +1202,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield full_name.getChildNamed("_win32")
             else:
                 yield full_name.getChildNamed("xorg")
+        elif full_name == "_pytest._code.code":
+            yield "py._path.local"
 
     def getImportsByFullname(self, full_name, module_filename):
         """Recursively create a set of imports for a fullname.
