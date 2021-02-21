@@ -314,6 +314,8 @@ ImportScanFinding = collections.namedtuple(
     "ImportScanFinding", ("found_in", "priority", "full_path", "search_order")
 )
 
+unworthy_namespaces = ("Cython",)
+
 
 def _reportCandidates(module_name, candidate, candidates):
     if (
@@ -326,12 +328,14 @@ def _reportCandidates(module_name, candidate, candidates):
                 continue
 
             if c.search_order == candidate.search_order:
-                recursion_logger.info(
-                    """\
+                if not module_name.hasOneOfNamespaces(unworthy_namespaces):
+
+                    recursion_logger.info(
+                        """\
 Should decide '--prefer-source-code' vs. '--no-prefer-source-code', using \
 existing '%s' extension module by default. Candidates were: %s <-> %s."""
-                    % (module_name, candidate, c)
-                )
+                        % (module_name, candidate, c)
+                    )
 
 
 def _findModuleInPath2(module_name, search_path):
