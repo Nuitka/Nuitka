@@ -22,7 +22,11 @@ the future flags in use there.
 """
 
 from nuitka.__past__ import total_ordering
-from nuitka.utils.InstanceCounters import counted_del, counted_init
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 
 
 @total_ordering
@@ -38,7 +42,8 @@ class SourceCodeReference(object):
 
         return result
 
-    __del__ = counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     @counted_init
     def __init__(self):
@@ -159,12 +164,6 @@ class SourceCodeReference(object):
 
 class SourceCodeReferenceInternal(SourceCodeReference):
     __slots__ = ()
-
-    __del__ = counted_del()
-
-    @counted_init
-    def __init__(self):
-        SourceCodeReference.__init__(self)
 
     @staticmethod
     def isInternal():

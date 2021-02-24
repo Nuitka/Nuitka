@@ -32,14 +32,17 @@ Values can be seen as:
 * LoopComplete (complete knowledge of loop types)
 """
 
-
 from nuitka.nodes.shapes.StandardShapes import (
     ShapeLoopCompleteAlternative,
     ShapeLoopInitialAlternative,
     tshape_uninit,
     tshape_unknown,
 )
-from nuitka.utils import InstanceCounters
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 
 
 class ValueTraceBase(object):
@@ -55,7 +58,7 @@ class ValueTraceBase(object):
         "previous",
     )
 
-    @InstanceCounters.counted_init
+    @counted_init
     def __init__(self, owner, previous):
         self.owner = owner
 
@@ -73,7 +76,8 @@ class ValueTraceBase(object):
         # Previous trace this is replacing.
         self.previous = previous
 
-    __del__ = InstanceCounters.counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     def __repr__(self):
         return "<%s of %s>" % (self.__class__.__name__, self.owner.getCodeName())

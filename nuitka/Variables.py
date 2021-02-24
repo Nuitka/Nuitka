@@ -27,7 +27,12 @@ from abc import abstractmethod
 
 from nuitka.__past__ import getMetaClassBase, iterItems
 from nuitka.nodes.shapes.StandardShapes import tshape_unknown
-from nuitka.utils import InstanceCounters, Utils
+from nuitka.utils import Utils
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 
 complete = False
 
@@ -47,7 +52,7 @@ class Variable(getMetaClassBase("Variable")):
         "writers",
     )
 
-    @InstanceCounters.counted_init
+    @counted_init
     def __init__(self, owner, variable_name):
         assert type(variable_name) is str, variable_name
         assert type(owner) not in (tuple, list), owner
@@ -65,7 +70,8 @@ class Variable(getMetaClassBase("Variable")):
         self.users = None
         self.writers = None
 
-    __del__ = InstanceCounters.counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     def finalize(self):
         del self.users

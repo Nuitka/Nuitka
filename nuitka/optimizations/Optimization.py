@@ -87,6 +87,8 @@ def signalChange(tags, source_ref, message):
                 )
             )
 
+        # assert pass_count < 2
+
     tag_set.onSignal(tags)
 
 

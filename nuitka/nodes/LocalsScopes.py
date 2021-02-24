@@ -19,7 +19,11 @@
 
 from nuitka import Variables
 from nuitka.containers.odict import OrderedDict
-from nuitka.utils.InstanceCounters import counted_del, counted_init
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 
 from .shapes.BuiltinTypeShapes import tshape_dict
 from .shapes.StandardShapes import tshape_unknown
@@ -88,7 +92,8 @@ class LocalsDictHandleBase(object):
 
         self.complete = False
 
-    __del__ = counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     def __repr__(self):
         return "<%s of %s>" % (self.__class__.__name__, self.locals_name)

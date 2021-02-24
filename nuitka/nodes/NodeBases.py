@@ -32,7 +32,11 @@ from nuitka.__past__ import iterItems
 from nuitka.Errors import NuitkaNodeDesignError, NuitkaNodeError
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
-from nuitka.utils.InstanceCounters import counted_del, counted_init
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 
 from .FutureSpecs import fromFlags
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
@@ -62,7 +66,8 @@ class NodeBase(NodeMetaClassBase):
 
         self.source_ref = source_ref
 
-    __del__ = counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     @abstractmethod
     def finalize(self):
@@ -754,7 +759,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         elif temp_type == "bool":
             temp_class = Variables.TempVariableBool
         else:
-            assert False, temp_class
+            assert False, temp_type
 
         result = temp_class(owner=self, variable_name=temp_name)
 

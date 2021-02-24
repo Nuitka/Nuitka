@@ -33,9 +33,14 @@ from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.nodes.shapes.StandardShapes import tshape_uninit
+from nuitka.Options import isShowMemory
 from nuitka.tree.SourceReading import readSourceLine
 from nuitka.utils.FileOperations import relpath
-from nuitka.utils.InstanceCounters import counted_del, counted_init
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 from nuitka.utils.ModuleNames import ModuleName
 
 from .ValueTraces import (
@@ -294,7 +299,8 @@ class TraceCollectionBase(object):
 
     __slots__ = ("owner", "parent", "name", "value_states", "variable_actives")
 
-    __del__ = counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     @counted_init
     def __init__(self, owner, name, parent):
