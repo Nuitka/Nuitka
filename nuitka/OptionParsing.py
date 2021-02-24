@@ -760,10 +760,8 @@ windows_group.add_option(
     "--windows-dependency-tool",
     action="store",
     dest="dependency_tool",
-    default="depends.exe",
-    help="""\
-When compiling for Windows, use this dependency tool. Defaults to %default,
-other allowed value is 'pefile'.""",
+    default=None,
+    help=SUPPRESS_HELP,
 )
 
 windows_group.add_option(

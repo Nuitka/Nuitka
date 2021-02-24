@@ -24,14 +24,12 @@ import sys
 
 from nuitka import Options
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
-from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
 from .Execution import executeToolChecked
 from .FileOperations import withMadeWritableFileMode
-from .Importing import importFromInlineCopy
-from .Utils import getArchitecture, getOS, isAlpineLinux, isWin32Windows
+from .Utils import getOS, isAlpineLinux, isWin32Windows
 from .WindowsResources import (
     RT_MANIFEST,
     VsFixedFileInfoStructure,
@@ -216,58 +214,6 @@ def getWindowsDLLVersion(filename):
     ls = file_info.contents.dwFileVersionLS
 
     return (ms >> 16) & 0xFFFF, ms & 0xFFFF, (ls >> 16) & 0xFFFF, ls & 0xFFFF
-
-
-# TODO: Relocate this to nuitka.freezer maybe.
-def getPEFileInformation(filename):
-    """Return the PE file information of a Windows EXE or DLL
-
-    Args:
-        filename - The file to be investigated.
-
-    Notes:
-        Use of this is obviously only for Windows, although the module
-        will exist on other platforms too. We use the system version
-        of pefile in preference, but have an inline copy as a fallback
-        too.
-    """
-
-    pefile = importFromInlineCopy("pefile", must_exist=True)
-
-    pe = pefile.PE(filename)
-
-    # This is the information we use from the file.
-    extracted = {}
-    extracted["DLLs"] = []
-
-    for imported_module in getattr(pe, "DIRECTORY_ENTRY_IMPORT", ()):
-        extracted["DLLs"].append(imported_module.dll.decode())
-
-    pe_type2arch = {
-        pefile.OPTIONAL_HEADER_MAGIC_PE: False,
-        pefile.OPTIONAL_HEADER_MAGIC_PE_PLUS: True,
-    }
-
-    if pe.PE_TYPE not in pe_type2arch:
-        # Support your architecture, e.g. ARM if necessary.
-        raise NuitkaAssumptionError(
-            "Unknown PE file architecture", filename, pe.PE_TYPE, pe_type2arch
-        )
-
-    extracted["AMD64"] = pe_type2arch[pe.PE_TYPE]
-
-    python_is_64bit = getArchitecture() == "x86_64"
-    if extracted["AMD64"] is not python_is_64bit:
-        postprocessing_logger.warning(
-            "Python %s bits with %s bits dependencies in '%s'"
-            % (
-                ("32" if python_is_64bit else "64"),
-                ("64" if extracted["AMD64"] else "32"),
-                filename,
-            )
-        )
-
-    return extracted
 
 
 _readelf_usage = "The 'readelf' is used to analyse dependencies on ELF using systems and required to be found."

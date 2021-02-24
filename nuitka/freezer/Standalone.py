@@ -73,7 +73,6 @@ from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
-    getPEFileInformation,
     getPyWin32Dir,
     getSharedLibraryRPATH,
     getWindowsDLLVersion,
@@ -83,7 +82,6 @@ from nuitka.utils.SharedLibraries import (
 )
 from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import getArchitecture
 
 from .DependsExe import detectDLLsWithDependencyWalker
 from .IncludedDataFiles import IncludedDataFile
@@ -950,132 +948,6 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
     return result
 
 
-def _parsePEFileOutput(
-    binary_filename,
-    scan_dirs,
-    is_main_executable,
-    source_dir,
-    original_dir,
-    use_cache,
-    update_cache,
-):
-    # This is complex, as it also includes the caching mechanism
-    # pylint: disable=too-many-branches
-
-    result = OrderedSet()
-
-    if use_cache or update_cache:
-        cache_filename = _getCacheFilename(
-            dependency_tool="pefile",
-            is_main_executable=is_main_executable,
-            source_dir=source_dir,
-            original_dir=original_dir,
-            binary_filename=binary_filename,
-        )
-
-        if use_cache:
-            with withFileLock():
-                if not os.path.exists(cache_filename):
-                    use_cache = False
-
-    if use_cache:
-
-        # TODO: We are lazy with the format, pylint: disable=eval-used
-        extracted = eval(getFileContents(cache_filename))
-    else:
-        if Options.isShowProgress():
-            general.info("Analysing dependencies of '%s'." % binary_filename)
-
-        extracted = getPEFileInformation(binary_filename)
-
-    if update_cache:
-        with withFileLock():
-            with open(cache_filename, "w") as cache_file:
-                print(repr(extracted), file=cache_file)
-
-    # Add native system directory based on pe file architecture and os architecture
-    # Python 32: system32 = syswow64 = 32 bits systemdirectory
-    # Python 64: system32 = 64 bits systemdirectory, syswow64 = 32 bits systemdirectory
-
-    # Get DLL imports from PE file
-    for dll_name in extracted["DLLs"]:
-        dll_name = dll_name.upper()
-
-        # Try determine DLL path from scan dirs
-        for scan_dir in scan_dirs:
-            dll_filename = os.path.normcase(
-                os.path.abspath(os.path.join(scan_dir, dll_name))
-            )
-
-            if os.path.isfile(dll_filename):
-                break
-        else:
-            if dll_name.startswith("API-MS-WIN-") or dll_name.startswith("EXT-MS-WIN-"):
-                continue
-            # Found via RC_MANIFEST as copied from Python.
-            if dll_name == "MSVCR90.DLL":
-                continue
-
-            if dll_name.startswith("python") and dll_name.endswith(".dll"):
-                dll_filename = os.path.join(
-                    os.environ["SYSTEMROOT"],
-                    "SysWOW64" if getArchitecture() == "x86_64" else "System32",
-                    dll_name,
-                )
-                dll_filename = os.path.normcase(dll_filename)
-            else:
-                continue
-
-        if dll_filename not in result:
-            result.add(dll_filename)
-
-    return result
-
-
-def detectBinaryPathDLLsWindowsPE(
-    is_main_executable,
-    source_dir,
-    original_dir,
-    binary_filename,
-    package_name,
-    use_cache,
-    update_cache,
-):
-
-    scan_dirs = getScanDirectories(package_name, original_dir)
-
-    result = _parsePEFileOutput(
-        binary_filename,
-        scan_dirs,
-        is_main_executable=is_main_executable,
-        source_dir=source_dir,
-        original_dir=original_dir,
-        use_cache=use_cache,
-        update_cache=update_cache,
-    )
-
-    def recurseDependencies(dll_filenames, initial):
-        for dll_filename in dll_filenames:
-            if initial or dll_filename not in result:
-                result.add(dll_filename)
-
-                sub_result = _parsePEFileOutput(
-                    dll_filename,
-                    scan_dirs,
-                    is_main_executable=False,
-                    source_dir=source_dir,
-                    original_dir=original_dir,
-                    use_cache=use_cache,
-                    update_cache=update_cache,
-                )
-
-                recurseDependencies(sub_result, False)
-
-    recurseDependencies(result, True)
-
-    return result
-
-
 def detectBinaryDLLs(
     is_main_executable,
     source_dir,
@@ -1087,7 +959,7 @@ def detectBinaryDLLs(
 ):
     """Detect the DLLs used by a binary.
 
-    Using "ldd" (Linux), "pefile" or "depends.exe" (Windows), or
+    Using "ldd" (Linux), "depends.exe" (Windows), or
     "otool" (macOS) the list of used DLLs is retrieved.
     """
 
@@ -1096,20 +968,6 @@ def detectBinaryDLLs(
         or Utils.isPosixWindows()
     ):
         return _detectBinaryPathDLLsPosix(dll_filename=original_filename)
-    elif Utils.isWin32Windows() and Options.getWindowsDependencyTool() == "pefile":
-        with TimerReport(
-            message="Finding dependencies for %s took %%.2f seconds" % binary_filename,
-            decider=Options.isShowProgress,
-        ):
-            return detectBinaryPathDLLsWindowsPE(
-                is_main_executable=is_main_executable,
-                source_dir=source_dir,
-                original_dir=os.path.dirname(original_filename),
-                binary_filename=binary_filename,
-                package_name=package_name,
-                use_cache=use_cache,
-                update_cache=update_cache,
-            )
     elif Utils.isWin32Windows():
         with TimerReport(
             message="Running depends.exe for %s took %%.2f seconds" % binary_filename,

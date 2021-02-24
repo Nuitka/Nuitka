@@ -347,6 +347,11 @@ def commentArgs():
                 % standalone_mode
             )
 
+    if options.dependency_tool:
+        Tracing.options_logger.warning(
+            "Using removed option '--windows-dependency-tool' is deprecated."
+        )
+
 
 def isVerbose():
     """*bool* = "--verbose" """

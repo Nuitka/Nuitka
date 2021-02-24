@@ -565,56 +565,16 @@ all contained in one binary.
 So if feasible, aim at static linking, which is currently only possible with
 Anaconda Python on non-Windows.
 
-Windows Standalone executables and dependencies
+Standalone executables and dependencies
 -----------------------------------------------
 
 The process of making standalone executables for Windows traditionally involves
 using an external dependency walker in order to copy necessary libraries along
 with the compiled executables to the distribution folder.
 
-Using the external dependency walker is quite a time consuming, and may copy
-some unnecessary libraries along the way (better have too much than missing).
-
-There's also an experimental alternative internal dependency walker that relies
-on pefile which analyses PE imports of executables and libraries.
-
-This implementation shall create smaller Standalone distributions since it
-won't include Windows' equivalent of the standard library, and will speed-up
-first Nuitka compilations by an order of magnitude.
-
-In order to use it, you may enable the internal dependency walker by using the
-following switch:
-
-.. code-block:: bash
-
-    python -m nuitka --standalone --windows-dependency-tool=pefile myprogram.py
-
-
-.. note::
-
-    The pefile dependency walker will test all dependencies of the distribution folder.
-
-    Optionally, it is also possible to check all recursive dependencies of included libraries
-    using the following switch along with the above one:
-
-.. code-block:: bash
-
-    python -m nuitka --standalone --windows-dependency-tool=pefile --experimental=use_pefile_recurse myprogram.py
-
-
-.. note::
-
-    Some modules may have hidden dependencies outside of their directory. In order for
-    the pefile dependency walker to find them, you may also scan the whole site-packages
-    directory for missing dependencies using the following switch along with the two above:
-
-.. code-block:: bash
-
-    python -m nuitka --standalone --windows-dependency-tool=pefile --experimental=use_pefile_recurse --experimental=use_pefile_fullrecurse myprogram.py
-
-.. note::
-
-    Be aware that using this switch will increase compilation time a lot.
+There is plenty of ways to find that something is missing. Do not manually copy
+things into the folder, esp. not DLLs, as that's not going to work. Instead
+make bug reports to get these handled by Nuitka properly.
 
 Windows errors with resources
 -----------------------------
@@ -1258,7 +1218,8 @@ The order is sorted by time.
   various distributions.
 
 - Orsiris de Jong: Submitted github pull request to implement the dependency
-  walking with `pefile` under Windows.
+  walking with `pefile` under Windows. Also provided the implementation of
+  Dejong Stacks.
 
 - Jorj X. McKie: Submitted github pull requests with NumPy plugin to retain
   its accelerating libraries, and Tkinter to include the TCL distribution
