@@ -190,6 +190,11 @@ def optimizeShlibModule(module):
 
 
 def optimizeModule(module):
+    # The tag set is global, so it can track changes without context.
+    # pylint: disable=global-statement
+    global tag_set
+    tag_set = TagSet()
+
     if module.isPythonShlibModule():
         optimizeShlibModule(module)
         changed = False
@@ -281,14 +286,11 @@ def makeOptimizationPass():
         current_module = ModuleRegistry.nextModule()
 
         if current_module is None:
+            # TODO: Internal module seems to cause extra passes.
+            # optimizeModule(getInternalModule())
             break
 
         _traceProgress(current_module)
-
-        # The tag set is global, so it can react to changes without context.
-        # pylint: disable=global-statement
-        global tag_set
-        tag_set = TagSet()
 
         changed = optimizeModule(current_module)
 
