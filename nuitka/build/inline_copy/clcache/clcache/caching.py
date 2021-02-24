@@ -325,6 +325,30 @@ class ManifestRepository(object):
         return HashAlgorithm(",".join(listOfHashes).encode()).hexdigest()
 
 
+# Lets be inefficient and have just one lock for all things, won't be a big deal
+# if it's only used for stats.
+from threading import RLock
+cache_lock = RLock()
+
+class CacheLock2(object):
+    """Implement a lock inside the process only. """
+
+    def __init__(self, mutexName, timeoutMs):
+        self._rlock = None
+        self._timeoutMs = timeoutMs
+
+    def __enter__(self):
+        cache_lock.acquire()
+
+    def __exit__(self, typ, value, traceback):
+        cache_lock.release()
+
+    @staticmethod
+    def forPath(path):
+        timeoutMs = int(os.environ.get("CLCACHE_OBJECT_CACHE_TIMEOUT_MS", 10 * 1000))
+        lockName = path.replace(":", "-").replace("\\", "-")
+        return CacheLock2(lockName, timeoutMs)
+
 class CacheLock(object):
     """Implements a lock for the object cache which
     can be used in 'with' statements."""
@@ -823,7 +847,9 @@ class Statistics(object):
     def __init__(self, statsFile):
         self._statsFile = statsFile
         self._stats = None
-        self.lock = CacheLock.forPath(self._statsFile)
+
+        # TODO: Provide this via an indicator environment variable.
+        self.lock = CacheLock2.forPath(self._statsFile)
 
     def __enter__(self):
         self._stats = PersistentJSONDict(self._statsFile)
