@@ -314,7 +314,10 @@ ImportScanFinding = collections.namedtuple(
     "ImportScanFinding", ("found_in", "priority", "full_path", "search_order")
 )
 
-unworthy_namespaces = ("Cython",)
+# We put here things that are not worth it (Cython is not really used by
+# anything really, or where it's know to not have a big # impact, e.g. lxml.
+
+unworthy_namespaces = ("Cython", "lxml")
 
 
 def _reportCandidates(module_name, candidate, candidates):
