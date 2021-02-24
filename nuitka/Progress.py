@@ -25,6 +25,7 @@ to the user while it's being displayed.
 from nuitka import Tracing
 from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.ThreadedExecutor import RLock
+from nuitka.utils.Utils import isWin32Windows
 
 # Late import and optional to be there.
 use_progress_bar = False
@@ -94,6 +95,10 @@ class NuitkaProgessBar(object):
 def enableProgressBar():
     global use_progress_bar  # singleton, pylint: disable=global-statement
     global tqdm  # singleton, pylint: disable=global-statement
+
+    if isWin32Windows():
+        colorama = importFromInlineCopy("colorama", must_exist=True)
+        colorama.init()
 
     try:
         from tqdm import tqdm  # pylint: disable=I0021,import-error,redefined-outer-name
