@@ -48,9 +48,10 @@ from nuitka.utils.MemoryUsage import (
     getHumanReadableProcessMemoryUsage,
 )
 
-from . import Graphs, TraceCollections
+from . import Graphs
 from .BytecodeDemotion import demoteCompiledModuleToBytecode
 from .Tags import TagSet
+from .TraceCollections import withChangeIndicationsTo
 
 _progress = Options.isShowProgress()
 _is_verbose = Options.isVerbose()
@@ -92,10 +93,6 @@ def signalChange(tags, source_ref, message):
     tag_set.onSignal(tags)
 
 
-# Use this globally from there, without cyclic dependency.
-TraceCollections.signalChange = signalChange
-
-
 def optimizeCompiledPythonModule(module):
     optimization_logger.info_fileoutput(
         "Doing module local optimizations for '{module_name}'.".format(
@@ -114,12 +111,13 @@ def optimizeCompiledPythonModule(module):
 
         try:
             # print("Compute module")
-            changed = module.computeModule()
+            with withChangeIndicationsTo(signalChange):
+                scopes_were_incomplete = module.computeModule()
         except BaseException:
             general.info("Interrupted while working on '%s'." % module)
             raise
 
-        if changed:
+        if scopes_were_incomplete:
             tag_set.add("var_usage")
 
         Graphs.onModuleOptimizationStep(module)

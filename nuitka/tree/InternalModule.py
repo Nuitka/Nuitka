@@ -28,8 +28,8 @@ merely helpers to do it.
 
 from nuitka.ModuleRegistry import getRootTopModule
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionBody,
     ExpressionFunctionPureBody,
+    ExpressionFunctionPureInlineConstBody,
 )
 from nuitka.SourceCodeReferences import fromFilename
 
@@ -66,9 +66,9 @@ def getInternalModule():
 
 def makeInternalHelperFunctionBody(name, parameters, inline_const_args=False):
     if inline_const_args:
-        node_class = ExpressionFunctionPureBody
+        node_class = ExpressionFunctionPureInlineConstBody
     else:
-        node_class = ExpressionFunctionBody
+        node_class = ExpressionFunctionPureBody
 
     result = node_class(
         provider=getInternalModule(),
