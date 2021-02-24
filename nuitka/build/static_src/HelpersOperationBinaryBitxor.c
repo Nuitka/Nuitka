@@ -2426,7 +2426,7 @@ static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_OBJECT_SET(PyObject *operand1, 
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
-        slot2 = NULL;
+        slot2 = PySet_Type.tp_as_number->nb_xor;
 
         if (slot1 == slot2) {
             slot2 = NULL;
@@ -2568,7 +2568,7 @@ static PyObject *_BINARY_OPERATION_BITXOR_OBJECT_SET_OBJECT(PyObject *operand1, 
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = &PySet_Type;
-    binaryfunc slot1 = NULL;
+    binaryfunc slot1 = PySet_Type.tp_as_number->nb_xor;
 
     PyTypeObject *type2 = Py_TYPE(operand2);
     binaryfunc slot2 = NULL;

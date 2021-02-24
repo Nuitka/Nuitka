@@ -300,6 +300,10 @@ class TypeDescBase(getMetaClassBase("Type")):
             return "%s(%s, %s)" % (slot_var, operand1, operand2)
 
     def getSlotValueExpression(self, operand, slot):
+        assert (
+            "inplace_" not in slot or not self.hasSlot(slot) or self is set_desc
+        ), self.hasSlot
+
         if not self.hasSlot(slot):
             return "NULL"
 
@@ -835,7 +839,9 @@ class IntDesc(ConcreteTypeBase):
         return "1"
 
     def hasSlot(self, slot):
-        if slot.startswith("nb_"):
+        if slot.startswith("nb_inplace"):
+            return False
+        elif slot.startswith("nb_"):
             return slot != "nb_matrix_multiply"
         elif slot.startswith("sq_"):
             return False
@@ -943,7 +949,9 @@ class FloatDesc(ConcreteTypeBase):
         return "PyFloat_AS_DOUBLE(%s)" % operand
 
     def hasSlot(self, slot):
-        if slot.startswith("nb_"):
+        if slot.startswith("nb_inplace"):
+            return False
+        elif slot.startswith("nb_"):
             return slot != "nb_matrix_multiply"
         elif slot.startswith("sq_"):
             return False
@@ -1023,8 +1031,15 @@ class SetDesc(ConcreteTypeBase):
         return "&PySet_Type"
 
     def hasSlot(self, slot):
-        if slot.startswith("nb_"):
-            return False
+        if slot.startswith("nb_inplace_"):
+            return slot in (
+                "nb_inplace_subtract",
+                "nb_inplace_and",
+                "nb_inplace_or",
+                "nb_inplace_xor",
+            )
+        elif slot.startswith("nb_"):
+            return slot in ("nb_subtract", "nb_and", "nb_or", "nb_xor")
         elif slot.startswith("sq_"):
             return True
         else:
@@ -1101,7 +1116,9 @@ class LongDesc(ConcreteTypeBase):
         return "&PyLong_Type"
 
     def hasSlot(self, slot):
-        if slot.startswith("nb_"):
+        if slot.startswith("nb_inplace_"):
+            return False
+        elif slot.startswith("nb_"):
             return slot != "nb_matrix_multiply"
         elif slot.startswith("sq_"):
             return False
@@ -1500,7 +1517,7 @@ def _getNbInplaceSlotFromOperand(operand, op_code):
         return None
 
     nb_slot = _getNbSlotFromOperand(operand, op_code)
-    return nb_slot.replace("nb_", "nb_i")
+    return nb_slot.replace("nb_", "nb_inplace_")
 
 
 def _parseTypesFromHelper(helper_name):

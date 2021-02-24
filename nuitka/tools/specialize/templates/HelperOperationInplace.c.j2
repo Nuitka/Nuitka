@@ -16,6 +16,7 @@
 {#     limitations under the License.                                           #}
 {#                                                                              #}
 {% from 'HelperSlotsCommon.c.j2' import goto_exit %}
+{% from 'HelperSlotsBinary.c.j2' import binary_operation %}
 static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {
     assert(operand1); // Pointer must be non-null.
 
@@ -136,7 +137,29 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 {% endif %}
 
 {% if operator in "&" and False %}
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
     {% set props = {"exits": []} %}
+
+    PyTypeObject *type1 = {{ left.getTypeValueExpression("*operand1") }};
+    PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
+
+    if ({{ left.getTypeIdenticalCheckExpression(right, "type1", "type2") }}) {
+        assert(type1 == type2);
+
+        {# There maybe be special code for same types. #}
+{% if left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
+        return _BINARY_OPERATION_{{op_code}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}_INPLACE(operand1, operand2);
+{% endif %}
+    }
 
     {{ left.getSlotType(nb_islot)}} islot = {{left.getSlotValueExpression("type1", nb_islot) }};
 
@@ -148,8 +171,12 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
         }
 
         Py_DECREF(x);
-        slot2 = NULL;
     }
+
+    {{ left.getSlotType(nb_slot) }} slot1 = {{ left.getSlotValueExpression("type1", nb_slot) }};
+    {{ left.getSlotType(nb_slot) }} slot2 = NULL;
+
+    {{ binary_operation(props, operator, nb_slot, left, right, "type1", "type2", "operand1", "operand2", "exit_inplace_result_object", "exit_inplace_result_cbool_ok", "exit_inplace_result_nbool", "exit_inplace_exception") }}
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -164,6 +191,10 @@ exit_inplace_result_object:
     *operand1 = result;
 
     return true;
+
+exit_inplace_exception:
+    return false;
+
 {% else %}
     PyObject *result = PyNumber_InPlace{{ op_code.title() }}(*operand1, operand2);
 
