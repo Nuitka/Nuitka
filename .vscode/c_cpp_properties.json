@@ -4,6 +4,7 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/nuitka/build/include",
+                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
                 "C:\\Python27\\Include"
             ],
             "defines": [
@@ -23,6 +24,7 @@
             "name": "Win32-Py38",
             "includePath": [
                 "${workspaceFolder}/nuitka/build/include",
+                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
                 "C:\\Python38\\Include"
             ],
             "defines": [
