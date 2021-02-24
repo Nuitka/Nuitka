@@ -54,6 +54,7 @@ class NuitkaProgessBar(object):
             unit=self.unit,
             disable=None,
             leave=False,
+            bar_format="{desc}{percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt}{postfix}",
         )
 
         self.tqdm.set_description(self.stage)
@@ -68,7 +69,7 @@ class NuitkaProgessBar(object):
             self.item = item
 
             if item is not None:
-                self.tqdm.set_postfix(item=item)
+                self.tqdm.set_postfix_str(item)
             else:
                 self.tqdm.set_postfix()
 
