@@ -41,7 +41,8 @@ is_fullcompat = None
 
 
 def parseArgs(will_reexec):
-    # singleton with many cases, pylint: disable=global-statement,too-many-branches,too-many-statements
+    # singleton with many cases checking the options right away.
+    # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements
     global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat
 
     if os.name == "nt":
@@ -234,6 +235,38 @@ the selection of onefile temp directory mode. Check --help output."""
             "Error, package data files are only included in standalone or onefile mode."
         )
 
+    for module_pattern in getShallIncludePackageData():
+        if (
+            module_pattern.startswith("-")
+            or "/" in module_pattern
+            or "\\" in module_pattern
+        ):
+            Tracing.options_logger.sysexit(
+                "Error, '--include-package-data' needs module name or pattern as an argument, not %r."
+                % module_pattern
+            )
+
+    for module_pattern in getShallFollowModules():
+        if (
+            module_pattern.startswith("-")
+            or "/" in module_pattern
+            or "\\" in module_pattern
+        ):
+            Tracing.options_logger.sysexit(
+                "Error, '--follow-import-to' options needs module name or pattern as an argument, not %r."
+                % module_pattern
+            )
+    for module_pattern in getShallFollowInNoCase():
+        if (
+            module_pattern.startswith("-")
+            or "/" in module_pattern
+            or "\\" in module_pattern
+        ):
+            Tracing.options_logger.sysexit(
+                "Error, '--nofollow-import-to' options needs module name or pattern as an argument, not %r."
+                % module_pattern
+            )
+
     for data_file in options.data_files:
         if "=" not in data_file:
             Tracing.options_logger.sysexit(
@@ -259,7 +292,7 @@ the selection of onefile temp directory mode. Check --help output."""
     for pattern in getShallFollowExtraFilePatterns():
         if os.path.isdir(pattern):
             Tracing.options_logger.sysexit(
-                "Error, pattern %r given to --include-plugin-files cannot be a directory name."
+                "Error, pattern %r given to '--include-plugin-files' cannot be a directory name."
                 % pattern
             )
 
