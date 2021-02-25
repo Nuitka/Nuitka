@@ -1239,22 +1239,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             for used_module in module.getUsedModules():
                 yield used_module[0]
 
-        if full_name == "pkg_resources.extern":
-            if self.pkg_utils_externals is None:
-                for line in getFileContentByLine(module.getCompileTimeFilename()):
-                    if line.startswith("names"):
-                        line = line.split("=")[-1].strip()
-                        parts = line.split(",")
-
-                        self.pkg_utils_externals = [part.strip("' ") for part in parts]
-
-                        break
-                else:
-                    self.pkg_utils_externals = ()
-
-            for pkg_util_external in self.pkg_utils_externals:
-                yield "pkg_resources._vendor." + pkg_util_external
-
         elif full_name == "OpenGL":
             if self.opengl_plugins is None:
                 self.opengl_plugins = []
@@ -1421,6 +1405,11 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "requests.packages.urllib3.util.ssl_": "urllib3.util.ssl_",
         "requests.packages.urllib3.util.timeout": "urllib3.util.timeout",
         "requests.packages.urllib3.util.url": "urllib3.util.url",
+        # Avoid pkg_resources.extern meta path based loader trick.
+        "pkg_resources.extern.packaging": "pkg_resources._vendor.packaging",
+        "pkg_resources.extern.pyparsing": "pkg_resources._vendor.pyparsing",
+        "pkg_resources.extern.six": "pkg_resources._vendor.six",
+        "pkg_resources.extern.appdirs": "pkg_resources._vendor.appdirs",
     }
 
     def onModuleSourceCode(self, module_name, source_code):
