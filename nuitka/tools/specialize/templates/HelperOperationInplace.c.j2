@@ -69,7 +69,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 
 {% if operator == "+" and left.mayBothHaveType(right, "unicode") %}
 #if PYTHON_VERSION >= 0x300
-        if ({{left.getUnicodeCheckExpression("*operand1")}} && !PyUnicode_CHECK_INTERNED(*operand1) && {{right.getUnicodeCheckExpression("operand2")}}) {
+        if ({{ left.getUnicodeCheckExpression("*operand1")}} && !PyUnicode_CHECK_INTERNED(*operand1) && {{right.getUnicodeCheckExpression("operand2") }}) {
             return UNICODE_ADD_INCREMENTAL(operand1, operand2);
         }
 #endif
@@ -77,7 +77,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 
 {% if operator == "+" and left.hasOneOrBothType(right, "bytes") %}
 #if PYTHON_VERSION >= 0x300
-        if ({{left.getBytesCheckExpression("*operand1")}} && {{right.getBytesCheckExpression("operand2")}}) {
+        if ({{ left.getBytesCheckExpression("*operand1")}} && {{right.getBytesCheckExpression("operand2") }}) {
             return BYTES_ADD_INCREMENTAL(operand1, operand2);
         }
 #endif
@@ -87,7 +87,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 {% if operator == "+" and left.mayBothHaveType(right, "str") %}
 #if PYTHON_VERSION < 0x300
     // Python2 strings are to be treated differently, fall back to Python API here.
-    if ({{left.getStringCheckExpression("*operand1")}} && {{right.getStringCheckExpression("operand2")}}) {
+    if ({{ left.getStringCheckExpression("*operand1")}} && {{right.getStringCheckExpression("operand2") }}) {
         {# This could be inlined too, but it has some detail behind it. #}
         PyString_Concat(operand1, operand2);
         return !ERROR_OCCURRED();
@@ -98,7 +98,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 {# Fast path for unicode values, very important for Python3, rare for Python2. #}
 {% if operator == "+" and left.mayBothHaveType(right, "unicode") %}
     // Python3 Strings are to be treated differently.
-    if ({{left.getUnicodeCheckExpression("*operand1")}} && {{right.getUnicodeCheckExpression("operand2")}}) {
+    if ({{ left.getUnicodeCheckExpression("*operand1")}} && {{right.getUnicodeCheckExpression("operand2") }}) {
         PyObject *result = UNICODE_CONCAT(*operand1, operand2);
 
         if (unlikely(result == NULL)) {
@@ -114,7 +114,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 
 {# Fast path for list in-place add with at least one known list. #}
 {% if operator == "+" and left.hasOneOrBothType(right, "list") %}
-    if ({{left.getListCheckExpression("*operand1")}} && {{right.getListCheckExpression("operand2")}}) {
+    if ({{ left.getListCheckExpression("*operand1")}} && {{right.getListCheckExpression("operand2") }}) {
         return LIST_EXTEND_FROM_LIST(*operand1, operand2);
     }
 {% endif %}
@@ -122,7 +122,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 {# TODO: No special function for tuple += tuple yet. #}
 {# Fast path for sequences in-place add with at least one known sequence type. #}
 {% if operator == "+" and left.type_name in ("list", "tuple", "object") and right.type_name in ("list", "tuple", "object") and not (left.type_name == "object" == right.type_name) %}
-    if ({{left.getSequenceCheckExpression("*operand1", right)}} && {{right.getSequenceCheckExpression("operand2", left)}}) {
+    if ({{ left.getSequenceCheckExpression("*operand1", right)}} && {{right.getSequenceCheckExpression("operand2", left) }}) {
         PyObject *result = PySequence_InPlaceConcat(*operand1, operand2);
 
         if (unlikely(result == NULL)) {
@@ -164,7 +164,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     {{ left.getSlotType(nb_islot)}} islot = {{left.getSlotValueExpression("type1", nb_islot) }};
 
     if (islot != NULL) {
-        PyObject *x = {{left.getSlotCallExpression(nb_islot, "islot", "operand1", "operand2")}};
+        PyObject *x = {{ left.getSlotCallExpression(nb_islot, "islot", "*operand1", "operand2") }};
 
         if (x != Py_NotImplemented) {
             {{ goto_exit(props, "exit_inplace_result_object", "x") }}
@@ -176,7 +176,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     {{ left.getSlotType(nb_slot) }} slot1 = {{ left.getSlotValueExpression("type1", nb_slot) }};
     {{ left.getSlotType(nb_slot) }} slot2 = NULL;
 
-    {{ binary_operation(props, operator, nb_slot, left, right, "type1", "type2", "operand1", "operand2", "exit_inplace_result_object", "exit_inplace_result_cbool_ok", "exit_inplace_result_nbool", "exit_inplace_exception") }}
+    {{ binary_operation(props, operator, nb_slot, left, right, "type1", "type2", "*operand1", "operand2", "exit_inplace_result_object", "exit_inplace_result_cbool_ok", "exit_inplace_result_nbool", "exit_inplace_exception") }}
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -188,7 +188,7 @@ exit_inplace_result_object:
 
     // That's our return value then. As we use a dedicated variable, it's
     // OK that way.
-    *operand1 = result;
+    *operand1 = obj_result;
 
     return true;
 

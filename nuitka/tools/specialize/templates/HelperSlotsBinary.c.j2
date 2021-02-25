@@ -81,7 +81,7 @@
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if ({{ left.getRealSubTypeCheckCode(right, "type2", "type1") }}) {
+            if ({{ left.getRealSubTypeCheckCode(right, type2, type1) }}) {
                 PyObject *x = {{ left.getSlotCallExpression(nb_slot, "slot2", operand1, operand2) }};
 
                 if (x != Py_NotImplemented) {
@@ -113,12 +113,12 @@
     }
 
 #if PYTHON_VERSION < 0x300 && ({{ left.canTypeCoerceObjects(right) }} || {{ right.canTypeCoerceObjects(left) }})
-    if (!{{ left.getNewStyleNumberTypeCheckExpression("type1") }} || !{{ right.getNewStyleNumberTypeCheckExpression("type2")}} ) {
-        coercion c = {{ left.getSlotValueExpression("type1", "nb_coerce") }};
+    if (!{{ left.getNewStyleNumberTypeCheckExpression(type1) }} || !{{ right.getNewStyleNumberTypeCheckExpression(type2)}} ) {
+        coercion c = {{ left.getSlotValueExpression(type1, "nb_coerce") }};
 
         if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
+            PyObject *coerced1 = {{ operand1 }};
+            PyObject *coerced2 = {{ operand2 }};
 
             {# TODO: Could hard code nb_coerce slot presence. #}
             int err = c(&coerced1, &coerced2);
@@ -149,11 +149,11 @@
             }
         }
 
-        c = {{right.getSlotValueExpression("type2", "nb_coerce")}};
+        c = {{ right.getSlotValueExpression(type2, "nb_coerce") }};
 
         if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
+            PyObject *coerced1 = {{ operand1 }};
+            PyObject *coerced2 = {{ operand2 }};
 
             {# TODO: Could hard code nb_coerce slot presence. #}
             int err = c(&coerced2, &coerced1);
@@ -198,7 +198,7 @@
 {% else %}
     {
         // Special case for "+" and "*", also works as sequence concat/repeat.
-        {{"binaryfunc" if operator == "+" else "ssizeargfunc"}} sq_slot = {{ left.getSlotValueExpression("type1", "sq_concat" if operator == "+" else "sq_repeat") }};
+        {{"binaryfunc" if operator == "+" else "ssizeargfunc"}} sq_slot = {{ left.getSlotValueExpression(type1, "sq_concat" if operator == "+" else "sq_repeat") }};
 
         if (sq_slot != NULL) {
 {% if operator == "+" %}
@@ -228,7 +228,7 @@
 {% else %}
     // Special case for "*", also work with sequence repeat from right argument.
     {
-        ssizeargfunc sq_slot = {{ left.getSlotValueExpression("type1", "sq_concat" if operator == "+" else "sq_repeat") }};
+        ssizeargfunc sq_slot = {{ left.getSlotValueExpression(type1, "sq_concat" if operator == "+" else "sq_repeat") }};
 
         sq_slot = {{right.getSlotValueExpression("type2", "sq_repeat")}};
 
@@ -244,7 +244,7 @@
 {% endif %}
 
 {% if error_needed == 1 %}
-    {{ left.getUnsupportedTypeErrorCode(operator, right, "type1", "type2") }}
+    {{ left.getUnsupportedTypeErrorCode(operator, right, type1, type2) }}
     {{ goto_exit(props, exit_result_exception) }}
 {% else %}
     NUITKA_CANNOT_GET_HERE("missing error exit annotation");

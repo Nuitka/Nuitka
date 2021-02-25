@@ -23,15 +23,15 @@
 
     {# TODO: Could and should in-line and specialize this per slot too. #}
 {% if nb_slot == "nb_add" %}
-    PyObject *x = {{left.getSlotCallExpression("sq_concat", "PyString_Type.tp_as_sequence->sq_concat", operand1, operand2)}};
+    PyObject *x = {{ left.getSlotCallExpression("sq_concat", "PyString_Type.tp_as_sequence->sq_concat", operand1, operand2) }};
     assert(x != Py_NotImplemented);
 {% elif nb_slot == "nb_multiply" %}
-    PyObject *x = {{left.getSlotCallExpression("sq_repeat", "PyString_Type.tp_as_sequence->sq_repeat", operand1, operand2)}};
+    PyObject *x = {{ left.getSlotCallExpression("sq_repeat", "PyString_Type.tp_as_sequence->sq_repeat", operand1, operand2) }};
     assert(x != Py_NotImplemented);
 {% elif nb_slot == "nb_remainder" %}
     PyObject *x = PyString_Format(operand1, operand2);
 {% else %}
-    PyObject *x = {{left.getSlotCallExpression(nb_slot, "PyString_Type.tp_as_number->" + nb_slot, operand1, operand2)}};
+    PyObject *x = {{ left.getSlotCallExpression(nb_slot, "PyString_Type.tp_as_number->" + nb_slot, operand1, operand2) }};
     assert(x != Py_NotImplemented);
 {% endif %}
 

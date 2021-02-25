@@ -22,7 +22,7 @@
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
     {# TODO: Could and should in-line and specialize this per slot too. #}
-    PyObject *x = {{left.getSlotCallExpression(nb_slot, "PySet_Type.tp_as_number->" + nb_slot, operand1, operand2)}};
+    PyObject *x = {{ left.getSlotCallExpression(nb_slot, "PySet_Type.tp_as_number->" + nb_slot, operand1, operand2) }};
 
     assert(x != Py_NotImplemented);
 

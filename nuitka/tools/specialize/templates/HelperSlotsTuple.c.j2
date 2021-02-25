@@ -26,12 +26,12 @@
 {% if left.type_name == "tuple" == right.type_name %}
     PyObject *x = TUPLE_CONCAT({{ operand1 }}, {{ operand2 }});
 {% else %}
-    PyObject *x = {{left.getSlotCallExpression("sq_concat", "PyTuple_Type.tp_as_sequence->sq_concat", operand1, operand2)}};
+    PyObject *x = {{ left.getSlotCallExpression("sq_concat", "PyTuple_Type.tp_as_sequence->sq_concat", operand1, operand2) }};
 {% endif %}
 {% elif nb_slot == "nb_multiply" %}
-    PyObject *x = {{left.getSlotCallExpression("sq_repeat", "PyTuple_Type.tp_as_sequence->sq_repeat", operand1, operand2)}};
+    PyObject *x = {{ left.getSlotCallExpression("sq_repeat", "PyTuple_Type.tp_as_sequence->sq_repeat", operand1, operand2) }};
 {% else %}
-    PyObject *x = {{left.getSlotCallExpression(nb_slot, "PyTuple_Type.tp_as_number->" + nb_slot, operand1, operand2)}};
+    PyObject *x = {{ left.getSlotCallExpression(nb_slot, "PyTuple_Type.tp_as_number->" + nb_slot, operand1, operand2) }};
 {% endif %}
 
     assert(x != Py_NotImplemented);
