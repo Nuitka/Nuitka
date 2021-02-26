@@ -287,7 +287,7 @@ def packDistFolderToOnefileWindows(onefile_output_filename, dist_dir):
 
         # Move the binary to start immediately to the start position
         start_binary = getResultFullpath(onefile=False)
-        file_list = getFileList(dist_dir)
+        file_list = getFileList(dist_dir, normalize=False)
         file_list.remove(start_binary)
         file_list.insert(0, start_binary)
 

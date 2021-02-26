@@ -93,7 +93,10 @@ def _getPackageFiles(module, *packages):
             filename_start = len(pkg_base)  # position of package name in dir
             # read out the filenames
             pkg_files = getFileList(
-                pkg_dir, ignore_dirs=("__pycache__",), ignore_suffixes=(".pyc",)
+                pkg_dir,
+                ignore_dirs=("__pycache__",),
+                ignore_suffixes=(".pyc",),
+                normalize=False,
             )
             file_dirs.append(pkg_dir)
             for f in pkg_files:
@@ -115,7 +118,7 @@ def _getPackageFiles(module, *packages):
         yield f
 
 
-def _getSubDirectoryFiles(module, subdirs, folders_only):
+def _getSubDirectoryFiles2(module, subdirs, folders_only):
     """Get filenames or dirnames in given subdirs of the module.
 
     Notes:
@@ -195,6 +198,14 @@ def _getSubDirectoryFiles(module, subdirs, folders_only):
     return item_set
 
 
+def _getSubDirectoryFiles(module, subdirs):
+    return _getSubDirectoryFiles2(module, subdirs, False)
+
+
+def _getSubDirectoryFolders(module, subdirs):
+    return _getSubDirectoryFiles2(module, subdirs, True)
+
+
 class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     plugin_name = "data-files"
 
@@ -240,20 +251,23 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     # the 3rd item indicates whether to recreate toe folder structure only (True),
     # or indeed also copy the files.
     known_data_folders = {
-        "botocore": (_getSubDirectoryFiles, "data", False),
-        "boto3": (_getSubDirectoryFiles, "data", False),
-        "sklearn.datasets": (_getSubDirectoryFiles, ("data", "descr"), False),
-        "osgeo": (_getSubDirectoryFiles, "data", False),
-        "pyphen": (_getSubDirectoryFiles, "dictionaries", False),
-        "pendulum": (_getSubDirectoryFiles, "locales", True),  # folder structure only
-        "pytz": (_getSubDirectoryFiles, "zoneinfo", False),
-        "pytzdata": (_getSubDirectoryFiles, "zoneinfo", False),
-        "pywt": (_getSubDirectoryFiles, "data", False),
-        "skimage": (_getSubDirectoryFiles, "data", False),
-        "weasyprint": (_getSubDirectoryFiles, "css", False),
-        "xarray": (_getSubDirectoryFiles, "static", False),
-        "eventlet": (_getPackageFiles, "dns"),  # copy other package source
-        "gooey": (_getSubDirectoryFiles, ("languages", "images"), False),
+        "botocore": (_getSubDirectoryFiles, "data"),
+        "boto3": (_getSubDirectoryFiles, "data"),
+        "sklearn.datasets": (_getSubDirectoryFiles, ("data", "descr")),
+        "osgeo": (_getSubDirectoryFiles, "data"),
+        "pyphen": (_getSubDirectoryFiles, "dictionaries"),
+        "pendulum": (_getSubDirectoryFolders, "locales"),
+        "pytz": (_getSubDirectoryFiles, "zoneinfo"),
+        "pytzdata": (_getSubDirectoryFiles, "zoneinfo"),
+        "pywt": (_getSubDirectoryFiles, "data"),
+        "skimage": (
+            _getSubDirectoryFiles,
+            "data",
+        ),
+        "weasyprint": (_getSubDirectoryFiles, "css"),
+        "xarray": (_getSubDirectoryFiles, "static"),
+        "eventlet": (_getPackageFiles, "dns"),
+        "gooey": (_getSubDirectoryFiles, ("languages", "images")),
     }
 
     generated_data_files = {
@@ -274,8 +288,6 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         return True
 
     def considerDataFiles(self, module):
-        # This is considering many options, pylint: disable=too-many-branches
-
         module_name = module.getFullName()
         module_folder = module.getCompileTimeDirectory()
 
@@ -293,13 +305,10 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                     )
 
         if module_name in self.known_data_folders:
-            func, subdir, folders_only = self.known_data_folders[module_name]
+            func, subdir = self.known_data_folders[module_name]
 
-            if folders_only:
-                yield func(module, subdir, folders_only)
-            else:
-                for item in func(module, subdir, folders_only):
-                    yield item
+            for item in func(module, subdir):
+                yield item
 
         if module_name in self.generated_data_files:
             for target_dir, filename, func in self.generated_data_files[module_name]:

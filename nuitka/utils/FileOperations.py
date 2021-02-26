@@ -218,7 +218,7 @@ def listDir(path):
     )
 
 
-def getFileList(path, ignore_dirs=(), ignore_suffixes=()):
+def getFileList(path, ignore_dirs=(), ignore_suffixes=(), normalize=True):
     """Get all files below a given path.
 
     Args:
@@ -237,21 +237,29 @@ def getFileList(path, ignore_dirs=(), ignore_suffixes=()):
     """
     result = []
 
+    # Normalize ignoredirs for better matching.
+    ignore_dirs = [os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs]
+
     for root, dirnames, filenames in os.walk(path):
         dirnames.sort()
         filenames.sort()
 
         # Normalize dirnames for better matching.
-        dirnames[:] = [os.path.normcase(dirname) for dirname in dirnames]
+        dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
         for dirname in ignore_dirs:
-            if dirname in dirnames:
+            if dirname in dirnames_normalized:
                 dirnames.remove(dirname)
 
         for filename in filenames:
             if os.path.normcase(filename).endswith(ignore_suffixes):
                 continue
 
-            result.append(os.path.normpath(os.path.join(root, filename)))
+            fullname = os.path.join(root, filename)
+
+            if normalize:
+                fullname = os.path.normpath(fullname)
+
+            result.append(fullname)
 
     return result
 
