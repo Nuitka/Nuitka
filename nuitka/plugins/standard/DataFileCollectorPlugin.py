@@ -34,90 +34,6 @@ def _createEmptyDirText(filename):
     return ""
 
 
-def remove_suffix(string, suffix):
-    """Remove 'suffix' from 'string'."""
-    # Special case: if suffix is empty, string[:0] returns ''. So, test
-    # for a non-empty suffix.
-    if suffix and string.endswith(suffix):
-        return string[: -len(suffix)]
-    else:
-        return string
-
-
-def get_package_paths(package):
-    """Return the path to the package.
-
-    Args:
-        package: (str) package name
-    Returns:
-        tuple: (prefix, prefix/package)
-    """
-    import pkgutil
-
-    loader = pkgutil.find_loader(package)
-    if not loader:
-        return "", ""
-
-    file_attr = loader.get_filename(package)
-    if not file_attr:
-        return "", ""
-
-    pkg_dir = os.path.dirname(file_attr)
-    pkg_base = remove_suffix(pkg_dir, package.replace(".", os.sep))
-
-    return pkg_base, pkg_dir
-
-
-def _getPackageFiles(module, *packages):
-    """Yield all (!) filenames in given package(s).
-
-    Notes:
-        This should be required in rare occasions only. The one example I know
-        is 'dns' when used by package 'eventlet'. Eventlet imports dns modules
-        only to replace them with 'green' (i.e. non-blocking) counterparts.
-    Args:
-        module: module object
-        packages: package name(s) - str or tuple
-    Yields:
-        Tuples of paths (source, dest)
-    """
-
-    file_list = []
-    item_set = OrderedSet()
-
-    file_dirs = []
-
-    for package in packages:
-        pkg_base, pkg_dir = get_package_paths(package)  # read package folders
-        if pkg_dir:
-            filename_start = len(pkg_base)  # position of package name in dir
-            # read out the filenames
-            pkg_files = getFileList(
-                pkg_dir,
-                ignore_dirs=("__pycache__",),
-                ignore_suffixes=(".pyc",),
-                normalize=False,
-            )
-            file_dirs.append(pkg_dir)
-            for f in pkg_files:
-                file_list.append((filename_start, f))  # append to file list
-
-    if not file_list:  #  safeguard for unexpected cases
-        msg = "No files or folders found for '%s' in packages(s) '%r' (%r)." % (
-            module.getFullName(),
-            packages,
-            file_dirs,
-        )
-        NuitkaPluginDataFileCollector.warning(msg)
-
-    for filename_start, f in file_list:  # re-read the collected filenames
-        target = f[filename_start:]  # make part of name
-        item_set.add((f, target))
-
-    for f in item_set:
-        yield f
-
-
 def _getSubDirectoryFiles2(module, subdirs, folders_only):
     """Get filenames or dirnames in given subdirs of the module.
 
@@ -266,7 +182,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         ),
         "weasyprint": (_getSubDirectoryFiles, "css"),
         "xarray": (_getSubDirectoryFiles, "static"),
-        "eventlet": (_getPackageFiles, "dns"),
+        #        "eventlet": (_getPackageFiles, "dns"),
         "gooey": (_getSubDirectoryFiles, ("languages", "images")),
     }
 

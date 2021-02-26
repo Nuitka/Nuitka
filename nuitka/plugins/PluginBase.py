@@ -27,6 +27,7 @@ it being used.
 """
 
 import os
+import pkgutil
 import shutil
 import sys
 from collections import namedtuple
@@ -417,7 +418,7 @@ class NuitkaPluginBase(object):
         """Provide a filename / -path for a to-be-imported module.
 
         Args:
-            importing: module object
+            importing: module object that asked for it (tracing only)
             module_name: (str or ModuleName) full name of module
             warn: (bool) True if required module
         Returns:
@@ -434,6 +435,31 @@ class NuitkaPluginBase(object):
         )
 
         return module_filename
+
+    def locateModules(self, importing, module_name):
+        """Provide a filename / -path for a to-be-imported module.
+
+        Args:
+            importing: module object that asked for it (tracing only)
+            module_name: (str or ModuleName) full name of module
+            warn: (bool) True if required module
+        Returns:
+            list of ModuleName
+        """
+        module_path = self.locateModule(importing, module_name)
+
+        result = []
+
+        def _scanModules(path, prefix):
+            for module_info in pkgutil.walk_packages((path,), prefix=prefix + "."):
+                result.append(ModuleName(module_info[1]))
+
+                if module_info[2]:
+                    _scanModules(module_info[1], module_name + module_info[1])
+
+        _scanModules(module_path, module_name)
+
+        return result
 
     def considerExtraDlls(self, dist_dir, module):
         """Provide a tuple of names of binaries to be included.

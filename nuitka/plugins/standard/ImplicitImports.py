@@ -306,19 +306,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "engineio.async_drivers.threading"
             yield "engineio.async_drivers.tornado"
 
-        # start of eventlet imports ------------------------------------------
-        elif full_name == "eventlet":
-            yield "eventlet.hubs"
-
-        elif full_name == "eventlet.hubs":
-            yield "eventlet.hubs.epolls"
-            yield "eventlet.hubs.hub"
-            yield "eventlet.hubs.kqueue"
-            yield "eventlet.hubs.poll"
-            yield "eventlet.hubs.pyevent"
-            yield "eventlet.hubs.selects"
-            yield "eventlet.hubs.timer"
-
         # start of gevent imports --------------------------------------------
         elif full_name == "gevent":
             yield "_cffi_backend"
