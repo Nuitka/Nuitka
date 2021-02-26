@@ -136,7 +136,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     }
 {% endif %}
 
-{% if operator in "&" and False %}
+{% if operator in ("&", "|", "^", "<<", ">>", "/", "//", "-", "@", "**", "%") %}
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)

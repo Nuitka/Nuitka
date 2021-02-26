@@ -286,15 +286,15 @@ class TypeDescBase(getMetaClassBase("Type")):
             assert False, slot
 
     @staticmethod
-    def getSlotType(slot):
-        if slot == "nb_power":
+    def getSlotType(nb_slot):
+        if nb_slot in ("nb_power", "nb_inplace_power"):
             return "ternaryfunc"
         else:
             return "binaryfunc"
 
     @staticmethod
     def getSlotCallExpression(nb_slot, slot_var, operand1, operand2):
-        if nb_slot == "nb_power":
+        if nb_slot in ("nb_power", "nb_inplace_power"):
             return "%s(%s, %s, Py_None)" % (slot_var, operand1, operand2)
         else:
             return "%s(%s, %s)" % (slot_var, operand1, operand2)
