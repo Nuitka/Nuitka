@@ -74,7 +74,7 @@ class GlfwPlugin(NuitkaPluginBase):
 
             yield makeDllEntryPoint(
                 source_path=dll_filename,
-                dest_path=os.path.basename(dll_filename),
+                dest_path=os.path.join("glfw", os.path.basename(dll_filename)),
                 package_name="glfw.library",
             )
 
@@ -82,12 +82,11 @@ class GlfwPlugin(NuitkaPluginBase):
         if module.getFullName() == "glfw":
             dll_filename = self._getDLLFilename()
 
-            code = (
-                r"""
+            code = r"""
 import os
-os.environ["PYGLFW_LIBRARY"] = os.path.join(__nuitka_binary_dir, "glfw", "library", %r)
-"""
-                % dll_filename
+os.environ["PYGLFW_LIBRARY"] = os.path.join(__nuitka_binary_dir, "glfw", %r)
+""" % os.path.basename(
+                dll_filename
             )
             return (
                 code,

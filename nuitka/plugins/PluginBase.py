@@ -36,7 +36,7 @@ from nuitka import Options, OutputDirectories
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import check_output
-from nuitka.utils.FileOperations import putTextFileContents
+from nuitka.utils.FileOperations import makePath, putTextFileContents
 from nuitka.utils.ModuleNames import ModuleName
 
 pre_modules = {}
@@ -474,6 +474,8 @@ class NuitkaPluginBase(object):
 
         for included_entry_point in self.getExtraDlls(module):
             # Copy to the dist directory, which normally should not be our task, but is for now.
+            makePath(os.path.dirname(included_entry_point.dest_path))
+
             shutil.copyfile(
                 included_entry_point.source_path, included_entry_point.dest_path
             )
