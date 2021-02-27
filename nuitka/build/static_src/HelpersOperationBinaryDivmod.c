@@ -208,16 +208,16 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_INT(PyObject *operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
+#if PYTHON_VERSION < 0x300
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-        coercion c =
+        coercion c1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_binary_exception;
@@ -245,14 +245,13 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_INT(PyObject *operand1, 
                 Py_DECREF(coerced2);
             }
         }
+        coercion c2 = PyInt_Type.tp_as_number->nb_coerce;
 
-        c = PyInt_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_binary_exception;
@@ -377,15 +376,15 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
+#if PYTHON_VERSION < 0x300
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c = PyInt_Type.tp_as_number->nb_coerce;
+        coercion c1 = PyInt_Type.tp_as_number->nb_coerce;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_binary_exception;
@@ -413,14 +412,14 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT(PyObject *operand1, 
                 Py_DECREF(coerced2);
             }
         }
+        coercion c2 =
+            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
 
-        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_binary_exception;
@@ -587,16 +586,16 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_LONG(PyObject *operand1,
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
+#if PYTHON_VERSION < 0x300
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-        coercion c =
+        coercion c1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_binary_exception;
@@ -624,14 +623,13 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_LONG(PyObject *operand1,
                 Py_DECREF(coerced2);
             }
         }
+        coercion c2 = PyLong_Type.tp_as_number->nb_coerce;
 
-        c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_binary_exception;
@@ -758,15 +756,15 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(PyObject *operand1,
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
+#if PYTHON_VERSION < 0x300
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c = PyLong_Type.tp_as_number->nb_coerce;
+        coercion c1 = PyLong_Type.tp_as_number->nb_coerce;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_binary_exception;
@@ -794,14 +792,14 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJECT(PyObject *operand1,
                 Py_DECREF(coerced2);
             }
         }
+        coercion c2 =
+            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
 
-        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_binary_exception;
@@ -1022,16 +1020,16 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
+#if PYTHON_VERSION < 0x300
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-        coercion c =
+        coercion c1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_binary_exception;
@@ -1059,14 +1057,13 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1
                 Py_DECREF(coerced2);
             }
         }
+        coercion c2 = PyFloat_Type.tp_as_number->nb_coerce;
 
-        c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_binary_exception;
@@ -1189,15 +1186,15 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
+#if PYTHON_VERSION < 0x300
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c = PyFloat_Type.tp_as_number->nb_coerce;
+        coercion c1 = PyFloat_Type.tp_as_number->nb_coerce;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_binary_exception;
@@ -1225,14 +1222,14 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1
                 Py_DECREF(coerced2);
             }
         }
+        coercion c2 =
+            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
 
-        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_binary_exception;
@@ -1425,16 +1422,16 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
+#if PYTHON_VERSION < 0x300
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c =
+        coercion c1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_binary_exception;
@@ -1462,14 +1459,14 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
                 Py_DECREF(coerced2);
             }
         }
+        coercion c2 =
+            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
 
-        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_binary_exception;

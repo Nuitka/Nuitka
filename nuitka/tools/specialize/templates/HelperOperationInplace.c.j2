@@ -16,7 +16,7 @@
 {#     limitations under the License.                                           #}
 {#                                                                              #}
 {% from 'HelperSlotsCommon.c.j2' import goto_exit %}
-{% from 'HelperSlotsBinary.c.j2' import binary_operation %}
+{% from 'HelperSlotsBinary.c.j2' import binary_operation, call_binary_slot with context %}
 static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {
     assert(operand1); // Pointer must be non-null.
 
@@ -136,7 +136,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     }
 {% endif %}
 
-{% if operator in ("&", "|", "^", "<<", ">>", "/", "//", "-", "@", "**", "%") %}
+{% if operator not in ("+*") %}
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)

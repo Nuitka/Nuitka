@@ -224,79 +224,7 @@ static inline bool _BINARY_OPERATION_MOD_INT_INT_INPLACE(PyObject **operand1, Py
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!1 || !1) {
-        coercion c = PyInt_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyInt_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'int'");
     goto exit_inplace_exception;
@@ -513,16 +441,16 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_INT_INPLACE(PyObject **operand1,
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
+#if PYTHON_VERSION < 0x300
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-        coercion c =
+        coercion c1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -550,14 +478,13 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_INT_INPLACE(PyObject **operand1,
                 Py_DECREF(coerced2);
             }
         }
+        coercion c2 = PyInt_Type.tp_as_number->nb_coerce;
 
-        c = PyInt_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -801,15 +728,15 @@ static inline bool _BINARY_OPERATION_MOD_INT_OBJECT_INPLACE(PyObject **operand1,
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
+#if PYTHON_VERSION < 0x300
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c = PyInt_Type.tp_as_number->nb_coerce;
+        coercion c1 = PyInt_Type.tp_as_number->nb_coerce;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -837,14 +764,14 @@ static inline bool _BINARY_OPERATION_MOD_INT_OBJECT_INPLACE(PyObject **operand1,
                 Py_DECREF(coerced2);
             }
         }
+        coercion c2 =
+            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
 
-        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -1001,79 +928,7 @@ static inline bool _BINARY_OPERATION_MOD_LONG_LONG_INPLACE(PyObject **operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!1 || !1) {
-        coercion c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'long'");
@@ -1205,16 +1060,16 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_LONG_INPLACE(PyObject **operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
+#if PYTHON_VERSION < 0x300
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-        coercion c =
+        coercion c1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -1242,14 +1097,13 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_LONG_INPLACE(PyObject **operand1
                 Py_DECREF(coerced2);
             }
         }
+        coercion c2 = PyLong_Type.tp_as_number->nb_coerce;
 
-        c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -1408,15 +1262,15 @@ static inline bool _BINARY_OPERATION_MOD_LONG_OBJECT_INPLACE(PyObject **operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
+#if PYTHON_VERSION < 0x300
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c = PyLong_Type.tp_as_number->nb_coerce;
+        coercion c1 = PyLong_Type.tp_as_number->nb_coerce;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -1444,14 +1298,14 @@ static inline bool _BINARY_OPERATION_MOD_LONG_OBJECT_INPLACE(PyObject **operand1
                 Py_DECREF(coerced2);
             }
         }
+        coercion c2 =
+            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
 
-        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -1611,79 +1465,7 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_FLOAT_INPLACE(PyObject **operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!1 || !1) {
-        coercion c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'float'");
     goto exit_inplace_exception;
@@ -1811,16 +1593,16 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_FLOAT_INPLACE(PyObject **operand
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
+#if PYTHON_VERSION < 0x300
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-        coercion c =
+        coercion c1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -1848,14 +1630,13 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_FLOAT_INPLACE(PyObject **operand
                 Py_DECREF(coerced2);
             }
         }
+        coercion c2 = PyFloat_Type.tp_as_number->nb_coerce;
 
-        c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -2010,15 +1791,15 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_OBJECT_INPLACE(PyObject **operand
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
+#if PYTHON_VERSION < 0x300
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c = PyFloat_Type.tp_as_number->nb_coerce;
+        coercion c1 = PyFloat_Type.tp_as_number->nb_coerce;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -2046,14 +1827,14 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_OBJECT_INPLACE(PyObject **operand
                 Py_DECREF(coerced2);
             }
         }
+        coercion c2 =
+            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
 
-        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -2210,79 +1991,7 @@ static inline bool _BINARY_OPERATION_MOD_INT_LONG_INPLACE(PyObject **operand1, P
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
-    if (!1 || !1) {
-        coercion c = PyInt_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'long'");
@@ -2415,79 +2124,7 @@ static inline bool _BINARY_OPERATION_MOD_LONG_INT_INPLACE(PyObject **operand1, P
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
-    if (!1 || !1) {
-        coercion c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyInt_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'int'");
@@ -2620,79 +2257,7 @@ static inline bool _BINARY_OPERATION_MOD_INT_FLOAT_INPLACE(PyObject **operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
-    if (!1 || !1) {
-        coercion c = PyInt_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'float'");
     goto exit_inplace_exception;
@@ -2821,79 +2386,7 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_INT_INPLACE(PyObject **operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
-    if (!1 || !1) {
-        coercion c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyInt_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'int'");
     goto exit_inplace_exception;
@@ -3021,79 +2514,7 @@ static inline bool _BINARY_OPERATION_MOD_LONG_FLOAT_INPLACE(PyObject **operand1,
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
-    if (!1 || !1) {
-        coercion c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'float'");
@@ -3224,79 +2645,7 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_LONG_INPLACE(PyObject **operand1,
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
-    if (!1 || !1) {
-        coercion c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'long'");
@@ -3428,79 +2777,7 @@ static inline bool _BINARY_OPERATION_MOD_STR_INT_INPLACE(PyObject **operand1, Py
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 1)
-    if (!1 || !1) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyInt_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'int'");
     goto exit_inplace_exception;
@@ -3629,79 +2906,7 @@ static inline bool _BINARY_OPERATION_MOD_STR_LONG_INPLACE(PyObject **operand1, P
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 1)
-    if (!1 || !1) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'long'");
@@ -3834,79 +3039,7 @@ static inline bool _BINARY_OPERATION_MOD_STR_FLOAT_INPLACE(PyObject **operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 1)
-    if (!1 || !1) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'float'");
     goto exit_inplace_exception;
@@ -4035,79 +3168,7 @@ static inline bool _BINARY_OPERATION_MOD_STR_STR_INPLACE(PyObject **operand1, Py
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!1 || !1) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'str'");
     goto exit_inplace_exception;
@@ -4234,79 +3295,7 @@ static inline bool _BINARY_OPERATION_MOD_STR_UNICODE_INPLACE(PyObject **operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!1 || !1) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'unicode'");
@@ -4439,79 +3428,7 @@ static inline bool _BINARY_OPERATION_MOD_STR_TUPLE_INPLACE(PyObject **operand1, 
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!1 || !0) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'tuple'");
     goto exit_inplace_exception;
@@ -4640,79 +3557,7 @@ static inline bool _BINARY_OPERATION_MOD_STR_LIST_INPLACE(PyObject **operand1, P
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!1 || !0) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'list'");
     goto exit_inplace_exception;
@@ -4841,79 +3686,7 @@ static inline bool _BINARY_OPERATION_MOD_STR_DICT_INPLACE(PyObject **operand1, P
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!1 || !0) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'dict'");
     goto exit_inplace_exception;
@@ -5041,50 +3814,16 @@ static inline bool _BINARY_OPERATION_MOD_STR_OBJECT_INPLACE(PyObject **operand1,
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 1)
+#if PYTHON_VERSION < 0x300
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c = NULL;
+        coercion c2 =
+            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -5240,79 +3979,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_INT_INPLACE(PyObject **operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 1)
-    if (!1 || !1) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyInt_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'int'");
@@ -5443,79 +4110,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_LONG_INPLACE(PyObject **operand
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 1)
-    if (!1 || !1) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'long'");
@@ -5644,79 +4239,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_FLOAT_INPLACE(PyObject **operan
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 1)
-    if (!1 || !1) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'float'");
@@ -5846,79 +4369,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_STR_INPLACE(PyObject **operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!1 || !1) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'str'");
@@ -6049,79 +4500,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_BYTES_INPLACE(PyObject **operan
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!1 || !0) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'bytes'");
@@ -6250,79 +4629,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_UNICODE_INPLACE(PyObject **oper
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!1 || !1) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'unicode'");
@@ -6451,79 +4758,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_TUPLE_INPLACE(PyObject **operan
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!1 || !0) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'tuple'");
@@ -6652,79 +4887,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_LIST_INPLACE(PyObject **operand
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!1 || !0) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'list'");
@@ -6853,79 +5016,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_DICT_INPLACE(PyObject **operand
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!1 || !0) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'dict'");
@@ -7053,50 +5144,16 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_OBJECT_INPLACE(PyObject **opera
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 1)
+#if PYTHON_VERSION < 0x300
     if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c = NULL;
+        coercion c2 =
+            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -7257,79 +5314,7 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_BYTES_INPLACE(PyObject **operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!0 || !0) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'bytes'");
     goto exit_inplace_exception;
@@ -7458,50 +5443,15 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_LONG_INPLACE(PyObject **operand1,
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 1)
+#if PYTHON_VERSION < 0x300
     if (!0 || !1) {
-        coercion c = NULL;
+        coercion c2 = PyLong_Type.tp_as_number->nb_coerce;
 
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -7663,50 +5613,15 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_FLOAT_INPLACE(PyObject **operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 1)
+#if PYTHON_VERSION < 0x300
     if (!0 || !1) {
-        coercion c = NULL;
+        coercion c2 = PyFloat_Type.tp_as_number->nb_coerce;
 
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -7862,79 +5777,7 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_UNICODE_INPLACE(PyObject **operan
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!0 || !1) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'unicode'");
@@ -8067,79 +5910,7 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_TUPLE_INPLACE(PyObject **operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!0 || !0) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'tuple'");
     goto exit_inplace_exception;
@@ -8268,79 +6039,7 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_LIST_INPLACE(PyObject **operand1,
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!0 || !0) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'list'");
     goto exit_inplace_exception;
@@ -8469,79 +6168,7 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_DICT_INPLACE(PyObject **operand1,
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 0)
-    if (!0 || !0) {
-        coercion c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
+    // Statically recognized that coercion is not possible with these types
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'dict'");
     goto exit_inplace_exception;
@@ -8669,50 +6296,16 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_OBJECT_INPLACE(PyObject **operand
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (0 || 1)
+#if PYTHON_VERSION < 0x300
     if (!0 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c = NULL;
+        coercion c2 =
+            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -8871,51 +6464,16 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_STR_INPLACE(PyObject **operand1,
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 0)
+#if PYTHON_VERSION < 0x300
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-        coercion c =
+        coercion c1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -9074,51 +6632,16 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_BYTES_INPLACE(PyObject **operand
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 0)
+#if PYTHON_VERSION < 0x300
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
-        coercion c =
+        coercion c1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -9274,51 +6797,16 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_UNICODE_INPLACE(PyObject **opera
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 0)
+#if PYTHON_VERSION < 0x300
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-        coercion c =
+        coercion c1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -9477,51 +6965,16 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_TUPLE_INPLACE(PyObject **operand
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 0)
+#if PYTHON_VERSION < 0x300
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
-        coercion c =
+        coercion c1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -9676,51 +7129,16 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_LIST_INPLACE(PyObject **operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 0)
+#if PYTHON_VERSION < 0x300
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
-        coercion c =
+        coercion c1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -9875,51 +7293,16 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_DICT_INPLACE(PyObject **operand1
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 0)
+#if PYTHON_VERSION < 0x300
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
-        coercion c =
+        coercion c1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = NULL;
-
-        if (c != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c(&coerced2, &coerced1);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -10158,16 +7541,16 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_OBJECT_INPLACE(PyObject **operan
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && (1 || 1)
+#if PYTHON_VERSION < 0x300
     if (!NEW_STYLE_NUMBER_TYPE(type1) || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c =
+        coercion c1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced1, &coerced2);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;
@@ -10195,14 +7578,14 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_OBJECT_INPLACE(PyObject **operan
                 Py_DECREF(coerced2);
             }
         }
+        coercion c2 =
+            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
 
-        c = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = *operand1;
             PyObject *coerced2 = operand2;
 
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 goto exit_inplace_exception;

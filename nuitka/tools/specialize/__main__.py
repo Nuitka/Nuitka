@@ -93,16 +93,31 @@ class TypeDescBase(getMetaClassBase("Type")):
     def needsIndexConversion():
         return True
 
-    def canTypeCoerceObjects(self, left):
-        if left is self and left is not object_desc:
-            return "0"
+    def isKnownToNotCoerce(self, right):
+        if right is self and right is not object_desc:
+            return True
 
-        # TODO: Provide hook for float to say it can do int.
-        return (
-            "1"
-            if self.getSlotValueCheckExpression("type2", "nb_coerce") != "false"
-            else "0"
-        )
+        if self in (int_desc, long_desc, float_desc):
+            if right in (
+                str_desc,
+                unicode_desc,
+                tuple_desc,
+                list_desc,
+                set_desc,
+                dict_desc,
+            ):
+                return True
+
+        if (
+            self.getNewStyleNumberTypeCheckExpression("dummy") == "1"
+            and right.getNewStyleNumberTypeCheckExpression("dummy") == "1"
+        ):
+            return True
+
+        if self is not object_desc:
+            return not self.hasSlot("nb_coerce")
+        else:
+            return False
 
     def getMostSpecificType(self, right):
         if self is not object_desc:
@@ -301,7 +316,9 @@ class TypeDescBase(getMetaClassBase("Type")):
 
     def getSlotValueExpression(self, operand, slot):
         assert (
-            "inplace_" not in slot or not self.hasSlot(slot) or self is set_desc
+            "inplace_" not in slot
+            or not self.hasSlot(slot)
+            or self in (set_desc, list_desc)
         ), self.hasSlot
 
         if not self.hasSlot(slot):
@@ -891,7 +908,7 @@ class StrDesc(ConcreteTypeBase):
         if slot.startswith("nb_"):
             return slot == "nb_remainder"
         elif slot.startswith("sq_"):
-            return "ass" not in slot
+            return "ass" not in slot and "inplace" not in slot
         else:
             assert False, slot
 
@@ -928,7 +945,7 @@ assert(NEW_STYLE_NUMBER(%(operand)s));""" % {
         if slot.startswith("nb_"):
             return slot == "nb_remainder"
         elif slot.startswith("sq_"):
-            return "ass" not in slot
+            return "ass" not in slot and "inplace" not in slot
         else:
             assert False, slot
 
@@ -982,7 +999,7 @@ class TupleDesc(ConcreteTypeBase):
         if slot.startswith("nb_"):
             return False
         elif slot.startswith("sq_"):
-            return "ass" not in slot
+            return "ass" not in slot and "inplace" not in slot
         elif slot == "tp_richcompare":
             return True
         elif slot == "tp_compare":
@@ -1091,7 +1108,7 @@ class BytesDesc(ConcreteTypeBase):
         if slot.startswith("nb_"):
             return slot == "nb_remainder"
         elif slot.startswith("sq_"):
-            return "ass" not in slot and slot != "sq_slice"
+            return "ass" not in slot and slot != "sq_slice" and "inplace" not in slot
         else:
             assert False, slot
 

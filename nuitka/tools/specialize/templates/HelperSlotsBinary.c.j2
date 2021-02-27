@@ -17,6 +17,12 @@
 {#                                                                              #}
 {% from 'HelperSlotsCommon.c.j2' import goto_exit %}
 {% macro concat_operation(props, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_exception) %}
+{% if left.hasSlot(nb_islot) %}
+    {
+        PyObject *o = {{ left.getSlotValueExpression(type1, "sq_inplace_concat") }}((PyObject *)operand1, (PyObject *)operand2);
+        {{ goto_exit(props, exit_result_object, "o") }}
+    }
+{% endif %}
     {
         PyObject *o = {{ left.getSlotValueExpression(type1, "sq_concat") }}((PyObject *)operand1, (PyObject *)operand2);
         {{ goto_exit(props, exit_result_object, "o") }}
@@ -112,16 +118,18 @@
         Py_DECREF(x);
     }
 
-#if PYTHON_VERSION < 0x300 && ({{ left.canTypeCoerceObjects(right) }} || {{ right.canTypeCoerceObjects(left) }})
+{% if operator != "@" %}
+{% if not left.isKnownToNotCoerce(right) or not right.isKnownToNotCoerce(left) %}
+#if PYTHON_VERSION < 0x300
     if (!{{ left.getNewStyleNumberTypeCheckExpression(type1) }} || !{{ right.getNewStyleNumberTypeCheckExpression(type2)}} ) {
-        coercion c = {{ left.getSlotValueExpression(type1, "nb_coerce") }};
+{% if not left.isKnownToNotCoerce(right) %}
+        coercion c1 = {{ left.getSlotValueExpression(type1, "nb_coerce") }};
 
-        if (c != NULL) {
+        if (c1 != NULL) {
             PyObject *coerced1 = {{ operand1 }};
             PyObject *coerced2 = {{ operand2 }};
 
-            {# TODO: Could hard code nb_coerce slot presence. #}
-            int err = c(&coerced1, &coerced2);
+            int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
                 {{ goto_exit(props, exit_result_exception) }}
@@ -148,15 +156,15 @@
                 Py_DECREF(coerced2);
             }
         }
+{% endif %}
+{% if not right.isKnownToNotCoerce(left) %}
+        coercion c2 = {{ right.getSlotValueExpression(type2, "nb_coerce") }};
 
-        c = {{ right.getSlotValueExpression(type2, "nb_coerce") }};
-
-        if (c != NULL) {
+        if (c2 != NULL) {
             PyObject *coerced1 = {{ operand1 }};
             PyObject *coerced2 = {{ operand2 }};
 
-            {# TODO: Could hard code nb_coerce slot presence. #}
-            int err = c(&coerced2, &coerced1);
+            int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
                 {{ goto_exit(props, exit_result_exception) }}
@@ -183,8 +191,15 @@
                 Py_DECREF(coerced2);
             }
         }
+{% endif %}
     }
 #endif
+{% else %}
+// Statically recognized that coercion is not possible with these types
+{% endif %}
+{% else %}
+// Statically recognized that coercion is not possible with Python3 only operator '@'
+{% endif %}
 
 {# There might be a sq_slot specialization that saves the day. #}
 {% if operator in "+*" %}
@@ -248,5 +263,28 @@
     {{ goto_exit(props, exit_result_exception) }}
 {% else %}
     NUITKA_CANNOT_GET_HERE("missing error exit annotation");
+{% endif %}
+{% endmacro %}
+{% macro call_binary_slot(props, operator, nb_slot, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
+{% if left.isSimilarOrSameTypesAsOneOf(int_desc) or right.isSimilarOrSameTypesAsOneOf(int_desc) %}
+    {{ int_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(long_desc) or right.isSimilarOrSameTypesAsOneOf(long_desc) %}
+    {{ long_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(float_desc) or right.isSimilarOrSameTypesAsOneOf(float_desc) %}
+    {{ float_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(str_desc) or right.isSimilarOrSameTypesAsOneOf(str_desc) %}
+    {{ str_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(unicode_desc) or right.isSimilarOrSameTypesAsOneOf(unicode_desc) %}
+    {{ unicode_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(bytes_desc) or right.isSimilarOrSameTypesAsOneOf(bytes_desc) %}
+    {{ bytes_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(tuple_desc) or right.isSimilarOrSameTypesAsOneOf(tuple_desc) %}
+    {{ tuple_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(list_desc) or right.isSimilarOrSameTypesAsOneOf(list_desc) %}
+    {{ list_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(set_desc) or right.isSimilarOrSameTypesAsOneOf(set_desc) %}
+    {{ set_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% else %}
+    {{ 0/0 }}
 {% endif %}
 {% endmacro %}

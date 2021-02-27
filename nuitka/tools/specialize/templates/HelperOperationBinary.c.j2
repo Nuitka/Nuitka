@@ -25,30 +25,7 @@
 {% from 'HelperSlotsTuple.c.j2' import tuple_slot %}
 {% from 'HelperSlotsList.c.j2' import list_slot %}
 {% from 'HelperSlotsSet.c.j2' import set_slot %}
-{% from 'HelperSlotsBinary.c.j2' import binary_operation %}
-{% macro call_binary_slot(props, operator, nb_slot, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
-{% if left.isSimilarOrSameTypesAsOneOf(int_desc) or right.isSimilarOrSameTypesAsOneOf(int_desc) %}
-    {{ int_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
-{% elif left.isSimilarOrSameTypesAsOneOf(long_desc) or right.isSimilarOrSameTypesAsOneOf(long_desc) %}
-    {{ long_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
-{% elif left.isSimilarOrSameTypesAsOneOf(float_desc) or right.isSimilarOrSameTypesAsOneOf(float_desc) %}
-    {{ float_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
-{% elif left.isSimilarOrSameTypesAsOneOf(str_desc) or right.isSimilarOrSameTypesAsOneOf(str_desc) %}
-    {{ str_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
-{% elif left.isSimilarOrSameTypesAsOneOf(unicode_desc) or right.isSimilarOrSameTypesAsOneOf(unicode_desc) %}
-    {{ unicode_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
-{% elif left.isSimilarOrSameTypesAsOneOf(bytes_desc) or right.isSimilarOrSameTypesAsOneOf(bytes_desc) %}
-    {{ bytes_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
-{% elif left.isSimilarOrSameTypesAsOneOf(tuple_desc) or right.isSimilarOrSameTypesAsOneOf(tuple_desc) %}
-    {{ tuple_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
-{% elif left.isSimilarOrSameTypesAsOneOf(list_desc) or right.isSimilarOrSameTypesAsOneOf(list_desc) %}
-    {{ list_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
-{% elif left.isSimilarOrSameTypesAsOneOf(set_desc) or right.isSimilarOrSameTypesAsOneOf(set_desc) %}
-    {{ set_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
-{% else %}
-    {{ 0/0 }}
-{% endif %}
-{% endmacro %}
+{% from 'HelperSlotsBinary.c.j2' import binary_operation, call_binary_slot with context %}
 static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
     {{ left.getCheckValueCode("operand1") }}
     {{ right.getCheckValueCode("operand2") }}
