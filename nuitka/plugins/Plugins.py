@@ -431,7 +431,10 @@ class Plugins(object):
         assert type(source_code) is str
 
         for plugin in getActivePlugins():
-            source_code = plugin.onModuleSourceCode(module_name, source_code)
+            new_source_code = plugin.onModuleSourceCode(module_name, source_code)
+            if new_source_code is not None:
+                source_code = new_source_code
+
             assert type(source_code) is str
 
         return source_code

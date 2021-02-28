@@ -31,7 +31,6 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContentByLine
-from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import getPyWin32Dir, locateDLL
 from nuitka.utils.Utils import getOS, isWin32Windows
@@ -1104,8 +1103,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pandas._libs.tslibs.base"
         elif full_name == "pandas.core.window":
             yield "pandas._libs.skiplist"
-        elif full_name == "zmq.backend":
-            yield "zmq.backend.cython"
         elif full_name == "flask.app":
             yield "jinja2.ext"
             yield "jinja2.ext.autoescape"
@@ -1471,18 +1468,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                         result.append((pythoncom_dll_path, dist_dll_path, None))
 
             return result
-
-        elif full_name == "zmq.libzmq" and isWin32Windows():
-            # TODO: Very strange thing for zmq on Windows, needs the .pyd file in wrong dir too. Have
-            # this done in a dedicated form somewhere.
-            shutil.copyfile(
-                os.path.join(dist_dir, "zmq\\libzmq.pyd"),
-                os.path.join(
-                    dist_dir, "libzmq" + getSharedLibrarySuffix(preferred=True)
-                ),
-            )
-
-            return ()
 
         return ()
 
