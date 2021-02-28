@@ -382,7 +382,7 @@ def commentArgs():
 
     if options.dependency_tool:
         Tracing.options_logger.warning(
-            "Using removed option '--windows-dependency-tool' is deprecated."
+            "Using removed option '--windows-dependency-tool' is deprecated and has no impact anymore."
         )
 
 
