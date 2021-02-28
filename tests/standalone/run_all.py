@@ -61,7 +61,11 @@ from nuitka.tools.testing.Common import (
     setup,
     test_logger,
 )
-from nuitka.utils.FileOperations import areSamePaths, removeDirectory
+from nuitka.utils.FileOperations import (
+    areSamePaths,
+    getExternalUsePath,
+    removeDirectory,
+)
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import getOS
 
@@ -275,6 +279,7 @@ def main():
 
         current_dir = os.path.normpath(os.getcwd())
         current_dir = os.path.normcase(current_dir)
+        current_dir_ext = os.path.normcase(getExternalUsePath(current_dir))
 
         illegal_access = False
 
@@ -314,6 +319,9 @@ def main():
                 continue
 
             if loaded_filename.startswith(os.path.abspath(current_dir)):
+                continue
+
+            if loaded_filename.startswith(current_dir_ext):
                 continue
 
             if loaded_filename.startswith("/etc/"):
