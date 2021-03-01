@@ -49,15 +49,13 @@ from SCons.Script import (  # pylint: disable=import-error
 )
 
 from nuitka.Tracing import my_print, scons_details_logger, scons_logger
-from nuitka.utils.WindowsResources import (
-    RT_GROUP_ICON,
-    RT_ICON,
-    RT_VERSION,
-    copyResourcesFromFileToFile,
-)
 
 from .SconsCaching import enableCcache, enableClcache
-from .SconsCompilerSettings import checkWindowsCompilerFound, enableC11Settings
+from .SconsCompilerSettings import (
+    checkWindowsCompilerFound,
+    enableC11Settings,
+    enableExperimentalSettings,
+)
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
 from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
 from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
@@ -534,14 +532,7 @@ if debug_mode:
         # Disable warnings, that CPython headers already show.
         env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
 
-if experimental:
-    env.Append(
-        CPPDEFINES=[
-            "_NUITKA_EXPERIMENTAL_" + experiment.upper().replace("-", "_")
-            for experiment in experimental
-            if experiment
-        ]
-    )
+enableExperimentalSettings(env, experimental)
 
 if trace_mode:
     env.Append(CPPDEFINES=["_NUITKA_TRACE"])

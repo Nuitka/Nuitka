@@ -297,3 +297,21 @@ def enableWindowsStackSize(env, msvc_mode, mingw_mode, target_arch):
 
     if mingw_mode:
         env.Append(LINKFLAGS=["-Wl,--stack,%d" % stack_size])
+
+
+def enableExperimentalSettings(env, experimental_flags):
+    for experimental_flag in experimental_flags:
+        if experimental_flag:
+            if "=" in experimental_flag:
+                experiment, value = experimental_flag.split("=", 1)
+            else:
+                experiment = experimental_flag
+                value = None
+
+            # Allowing for nice names on command line, but using identifiers for C.
+            experiment = experiment.upper().replace("-", "_")
+
+            if value:
+                env.Append(CPPDEFINES=[("_NUITKA_EXPERIMENTAL_%s" % experiment, value)])
+            else:
+                env.Append(CPPDEFINES=["_NUITKA_EXPERIMENTAL_%s" % experiment])

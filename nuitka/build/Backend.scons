@@ -60,6 +60,7 @@ from .SconsCompilerSettings import (
     checkWindowsCompilerFound,
     decideConstantsBlobResourceMode,
     enableC11Settings,
+    enableExperimentalSettings,
     enableWindowsStackSize,
 )
 from .SconsHacks import (
@@ -691,13 +692,7 @@ if full_compat_mode:
     env.Append(CPPDEFINES=["_NUITKA_FULL_COMPAT"])
 
 if experimental:
-    env.Append(
-        CPPDEFINES=[
-            "_NUITKA_EXPERIMENTAL_" + experiment.upper().replace("-", "_")
-            for experiment in experimental
-            if experiment
-        ]
-    )
+    enableExperimentalSettings(env, experimental)
 
 if profile_mode:
     env.Append(CPPDEFINES=["_NUITKA_PROFILE"])
@@ -1283,7 +1278,7 @@ if gcc_mode:
         assume_yes_for_downloads=assume_yes_for_downloads,
     )
 
-if msvc_mode:
+if msvc_mode and False:
     enableClcache(
         the_compiler=the_compiler,
         env=env,
