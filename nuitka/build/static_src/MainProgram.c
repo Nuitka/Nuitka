@@ -719,9 +719,8 @@ int main(int argc, char **argv) {
 #endif
 
     Py_Exit(exit_code);
-    /* The above branches both do "Py_Exit()" calls which are not supposed to
-     * return.
-     */
+
+    // The "Py_Exit()" calls is not supposed to return.
     NUITKA_CANNOT_GET_HERE("Py_Exit does not return");
 }
 
