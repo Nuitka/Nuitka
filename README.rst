@@ -493,6 +493,26 @@ frameworks for syntax highlighting everything imaginable take time.
 Nuitka will have to learn effective caching to deal with this in the future.
 Right now, you will have to deal with huge compilation times for these.
 
+Onefile on Windows: Finding files
+---------------------------------
+
+There is a difference between ``sys.argv[0]`` and ``__file__`` of the main
+module on Windows, that is caused by using a bootstrap to a temporary or
+permanent location. The first one will be the original executable path, where
+as the second one will be the temporary or permanent path the bootstrap
+executable unpacks to. Data files will be in the later location, your original
+environment files will be in the former location.
+
+Given 2 files, one which you expect to be near your executable, and one which
+you expect to be inside the onefile binary, access them like this.
+
+.. code-block:: python
+
+   # This will find a file near your onefile.exe
+   open(os.path.join(dirname(sys.argv[0]), "user-provided-file.txt"))
+   # This will find a file inside your onefile.exe
+   open(os.path.join(dirname(__file__), "user-provided-file.txt"))
+
 Tips
 ====
 
