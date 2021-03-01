@@ -107,6 +107,11 @@
 #define NUITKA_CANNOT_GET_HERE(NAME) abort();
 #endif
 
+// Stringizing, to make strings out of defines use XSTRINGIZED(SOME_DEFINE) needs
+// to level of defines to work.
+#define _STRINGIZED(ARG) #ARG
+#define STRINGIZED(ARG) _STRINGIZED(ARG)
+
 /* Python3 removed PyInt instead of renaming PyLong, and PyObject_Str instead
  * of renaming PyObject_Unicode. Define this to be easily portable.
  */

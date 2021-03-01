@@ -585,6 +585,56 @@ int main(int argc, char **argv) {
         Py_DECREF(nul_filename);
     }
 
+#ifdef _NUITKA_EXPERIMENTAL_FORCED_OUTPUT
+    {
+        wchar_t filename_buffer[1024];
+        wchar_t const *pattern = L"" STRINGIZED(_NUITKA_EXPERIMENTAL_FORCED_OUTPUT);
+
+        bool res = expandWindowsPath(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
+
+        if (res == false) {
+            puts("Error, couldn't expand pattern:");
+            _putws(pattern);
+            abort();
+        }
+
+        PyObject *filename = PyUnicode_FromWideChar(filename_buffer, wcslen(filename_buffer));
+
+        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w");
+        if (unlikely(stdout_file == NULL)) {
+            PyErr_PrintEx(1);
+            Py_Exit(1);
+        }
+
+        PySys_SetObject((char *)"stdout", stdout_file);
+    }
+#endif
+
+#ifdef _NUITKA_EXPERIMENTAL_FORCED_STDERR
+    {
+        wchar_t filename_buffer[1024];
+        wchar_t const *pattern = L"" STRINGIZED(_NUITKA_EXPERIMENTAL_FORCED_STDERR);
+
+        bool res = expandWindowsPath(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
+
+        if (res == false) {
+            puts("Error, couldn't expand pattern:");
+            _putws(pattern);
+            abort();
+        }
+
+        PyObject *filename = PyUnicode_FromWideChar(filename_buffer, wcslen(filename_buffer));
+
+        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w");
+        if (unlikely(stderr_file == NULL)) {
+            PyErr_PrintEx(1);
+            Py_Exit(1);
+        }
+
+        PySys_SetObject((char *)"stderr", stderr_file);
+    }
+#endif
+
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Calling setEarlyFrozenModulesFileAttribute().");
 
