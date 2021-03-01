@@ -3,6 +3,7 @@
     "files.trimFinalNewlines": true,
     "C_Cpp.dimInactiveRegions": false,
     "files.exclude": {
+        "**/*.onefile-build": true,
         "**/*.build": true,
         "**/*.dist" : true,
         "**/*.exe": true,
