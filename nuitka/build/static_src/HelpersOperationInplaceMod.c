@@ -161,73 +161,65 @@ static inline bool _BINARY_OPERATION_MOD_INT_INT_INPLACE(PyObject **operand1, Py
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyInt_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(1)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyInt_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(1)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyInt_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'int'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'int'");
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -390,133 +382,135 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_INT_INPLACE(PyObject **operand1,
         Py_DECREF(x);
     }
 
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-    binaryfunc slot2 = NULL;
+    {
+        binaryfunc slot1 =
+            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
+        binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        slot2 = PyInt_Type.tp_as_number->nb_remainder;
+            slot2 = PyInt_Type.tp_as_number->nb_remainder;
 
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
-
-        Py_DECREF(x);
-    }
 
 #if PYTHON_VERSION < 0x300
-    if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-        coercion c1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
+        if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
+            coercion c1 =
+                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c1 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
+            if (c1 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
 
-            int err = c1(&coerced1, &coerced2);
+                int err = c1(&coerced1, &coerced2);
 
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-        coercion c2 = PyInt_Type.tp_as_number->nb_coerce;
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
-        if (c2 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
 
-            int err = c2(&coerced2, &coerced1);
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
 
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
 
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
                     }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
+            }
+            coercion c2 = PyInt_Type.tp_as_number->nb_coerce;
+
+            if (c2 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c2(&coerced2, &coerced1);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'int'", type1->tp_name);
-    goto exit_inplace_exception;
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'int'", type1->tp_name);
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -664,146 +658,138 @@ static inline bool _BINARY_OPERATION_MOD_INT_OBJECT_INPLACE(PyObject **operand1,
         return _BINARY_OPERATION_MOD_INT_INT_INPLACE(operand1, operand2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyInt_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder
+                                                                                  : NULL;
 
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 =
-            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
-
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (PyType_IsSubtype(type2, type1)) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
-
-        Py_DECREF(x);
-    }
 
 #if PYTHON_VERSION < 0x300
-    if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c1 = PyInt_Type.tp_as_number->nb_coerce;
+        if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
+            coercion c1 = PyInt_Type.tp_as_number->nb_coerce;
 
-        if (c1 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
+            if (c1 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
 
-            int err = c1(&coerced1, &coerced2);
+                int err = c1(&coerced1, &coerced2);
 
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-        coercion c2 =
-            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
-        if (c2 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
 
-            int err = c2(&coerced2, &coerced1);
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
 
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
 
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
                     }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
+            }
+            coercion c2 =
+                (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
+
+            if (c2 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c2(&coerced2, &coerced1);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and '%s'", type2->tp_name);
-    goto exit_inplace_exception;
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and '%s'", type2->tp_name);
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -865,77 +851,69 @@ static inline bool _BINARY_OPERATION_MOD_LONG_LONG_INPLACE(PyObject **operand1, 
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(1)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyLong_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(1)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyLong_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
+        // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'long'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'long'");
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'int'");
 #endif
-    goto exit_inplace_exception;
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -1009,137 +987,139 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_LONG_INPLACE(PyObject **operand1
         Py_DECREF(x);
     }
 
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-    binaryfunc slot2 = NULL;
+    {
+        binaryfunc slot1 =
+            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
+        binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        slot2 = PyLong_Type.tp_as_number->nb_remainder;
+            slot2 = PyLong_Type.tp_as_number->nb_remainder;
 
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
-
-        Py_DECREF(x);
-    }
 
 #if PYTHON_VERSION < 0x300
-    if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-        coercion c1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
+        if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
+            coercion c1 =
+                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c1 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
+            if (c1 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
 
-            int err = c1(&coerced1, &coerced2);
+                int err = c1(&coerced1, &coerced2);
 
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-        coercion c2 = PyLong_Type.tp_as_number->nb_coerce;
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
-        if (c2 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
 
-            int err = c2(&coerced2, &coerced1);
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
 
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
 
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
                     }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
+            }
+            coercion c2 = PyLong_Type.tp_as_number->nb_coerce;
+
+            if (c2 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c2(&coerced2, &coerced1);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'long'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'long'", type1->tp_name);
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'int'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'int'", type1->tp_name);
 #endif
-    goto exit_inplace_exception;
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -1198,150 +1178,142 @@ static inline bool _BINARY_OPERATION_MOD_LONG_OBJECT_INPLACE(PyObject **operand1
         return _BINARY_OPERATION_MOD_LONG_LONG_INPLACE(operand1, operand2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder
+                                                                                  : NULL;
 
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 =
-            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
-
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (PyType_IsSubtype(type2, type1)) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
-
-        Py_DECREF(x);
-    }
 
 #if PYTHON_VERSION < 0x300
-    if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c1 = PyLong_Type.tp_as_number->nb_coerce;
+        if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
+            coercion c1 = PyLong_Type.tp_as_number->nb_coerce;
 
-        if (c1 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
+            if (c1 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
 
-            int err = c1(&coerced1, &coerced2);
+                int err = c1(&coerced1, &coerced2);
 
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-        coercion c2 =
-            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
-        if (c2 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
 
-            int err = c2(&coerced2, &coerced1);
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
 
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
 
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
                     }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
+            }
+            coercion c2 =
+                (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
+
+            if (c2 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c2(&coerced2, &coerced1);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and '%s'", type2->tp_name);
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and '%s'", type2->tp_name);
 #endif
-    goto exit_inplace_exception;
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -1402,73 +1374,65 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_FLOAT_INPLACE(PyObject **operand1
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(1)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyFloat_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(1)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyFloat_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'float'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'float'");
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -1542,133 +1506,135 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_FLOAT_INPLACE(PyObject **operand
         Py_DECREF(x);
     }
 
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-    binaryfunc slot2 = NULL;
+    {
+        binaryfunc slot1 =
+            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
+        binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        slot2 = PyFloat_Type.tp_as_number->nb_remainder;
+            slot2 = PyFloat_Type.tp_as_number->nb_remainder;
 
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
-
-        Py_DECREF(x);
-    }
 
 #if PYTHON_VERSION < 0x300
-    if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-        coercion c1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
+        if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
+            coercion c1 =
+                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c1 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
+            if (c1 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
 
-            int err = c1(&coerced1, &coerced2);
+                int err = c1(&coerced1, &coerced2);
 
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-        coercion c2 = PyFloat_Type.tp_as_number->nb_coerce;
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
-        if (c2 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
 
-            int err = c2(&coerced2, &coerced1);
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
 
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
 
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
                     }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
+            }
+            coercion c2 = PyFloat_Type.tp_as_number->nb_coerce;
+
+            if (c2 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c2(&coerced2, &coerced1);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'float'", type1->tp_name);
-    goto exit_inplace_exception;
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'float'", type1->tp_name);
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -1727,146 +1693,138 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_OBJECT_INPLACE(PyObject **operand
         return _BINARY_OPERATION_MOD_FLOAT_FLOAT_INPLACE(operand1, operand2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder
+                                                                                  : NULL;
 
-    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 =
-            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
-
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (PyType_IsSubtype(type2, type1)) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
-
-        Py_DECREF(x);
-    }
 
 #if PYTHON_VERSION < 0x300
-    if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c1 = PyFloat_Type.tp_as_number->nb_coerce;
+        if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
+            coercion c1 = PyFloat_Type.tp_as_number->nb_coerce;
 
-        if (c1 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
+            if (c1 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
 
-            int err = c1(&coerced1, &coerced2);
+                int err = c1(&coerced1, &coerced2);
 
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-        coercion c2 =
-            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
-        if (c2 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
 
-            int err = c2(&coerced2, &coerced1);
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
 
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
 
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
                     }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
+            }
+            coercion c2 =
+                (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
+
+            if (c2 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c2(&coerced2, &coerced1);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and '%s'", type2->tp_name);
-    goto exit_inplace_exception;
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and '%s'", type2->tp_name);
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -1928,77 +1886,65 @@ static inline bool _BINARY_OPERATION_MOD_INT_LONG_INPLACE(PyObject **operand1, P
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyInt_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyLong_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyLong_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'long'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'int'");
-#endif
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -2061,77 +2007,65 @@ static inline bool _BINARY_OPERATION_MOD_LONG_INT_INPLACE(PyObject **operand1, P
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyInt_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyInt_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'int'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'int'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'int'");
-#endif
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -2194,73 +2128,65 @@ static inline bool _BINARY_OPERATION_MOD_INT_FLOAT_INPLACE(PyObject **operand1, 
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyInt_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyFloat_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyFloat_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'float'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'float'");
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -2323,73 +2249,65 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_INT_INPLACE(PyObject **operand1, 
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyInt_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyInt_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'int'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'int'");
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -2451,77 +2369,69 @@ static inline bool _BINARY_OPERATION_MOD_LONG_FLOAT_INPLACE(PyObject **operand1,
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyFloat_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyFloat_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
+        // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'float'");
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'float'");
 #endif
-    goto exit_inplace_exception;
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -2582,77 +2492,69 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_LONG_INPLACE(PyObject **operand1,
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyLong_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyLong_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
+        // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'long'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'long'");
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'int'");
 #endif
-    goto exit_inplace_exception;
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -2714,73 +2616,65 @@ static inline bool _BINARY_OPERATION_MOD_STR_INT_INPLACE(PyObject **operand1, Py
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyInt_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyInt_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'int'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'int'");
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -2843,77 +2737,65 @@ static inline bool _BINARY_OPERATION_MOD_STR_LONG_INPLACE(PyObject **operand1, P
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyLong_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyLong_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'long'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'int'");
-#endif
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -2976,73 +2858,65 @@ static inline bool _BINARY_OPERATION_MOD_STR_FLOAT_INPLACE(PyObject **operand1, 
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyFloat_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyFloat_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'float'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'float'");
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -3105,73 +2979,65 @@ static inline bool _BINARY_OPERATION_MOD_STR_STR_INPLACE(PyObject **operand1, Py
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(1)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyString_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(1)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyString_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'str'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'str'");
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -3232,77 +3098,65 @@ static inline bool _BINARY_OPERATION_MOD_STR_UNICODE_INPLACE(PyObject **operand1
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyUnicode_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyUnicode_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'unicode'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'unicode'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'str'");
-#endif
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -3365,73 +3219,65 @@ static inline bool _BINARY_OPERATION_MOD_STR_TUPLE_INPLACE(PyObject **operand1, 
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
-
-    binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = NULL;
-
-        if (0) {
             slot2 = NULL;
-        }
-    }
 
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'tuple'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'tuple'");
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -3494,73 +3340,65 @@ static inline bool _BINARY_OPERATION_MOD_STR_LIST_INPLACE(PyObject **operand1, P
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
-
-    binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = NULL;
-
-        if (0) {
             slot2 = NULL;
-        }
-    }
 
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'list'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'list'");
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -3623,73 +3461,65 @@ static inline bool _BINARY_OPERATION_MOD_STR_DICT_INPLACE(PyObject **operand1, P
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
-
-    binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = NULL;
-
-        if (0) {
             slot2 = NULL;
-        }
-    }
 
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'dict'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'dict'");
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -3750,112 +3580,104 @@ static inline bool _BINARY_OPERATION_MOD_STR_OBJECT_INPLACE(PyObject **operand1,
         return _BINARY_OPERATION_MOD_STR_STR_INPLACE(operand1, operand2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder
+                                                                                  : NULL;
 
-    binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 =
-            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
-
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (PyType_IsSubtype(type2, type1)) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300
-    if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c2 =
-            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c2 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c2(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
+                    if (x != Py_NotImplemented) {
                         obj_result = x;
                         goto exit_inplace_result_object;
                     }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+#if PYTHON_VERSION < 0x300
+        if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
+            coercion c2 =
+                (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
+
+            if (c2 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c2(&coerced2, &coerced1);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and '%s'", type2->tp_name);
-    goto exit_inplace_exception;
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and '%s'", type2->tp_name);
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -3916,77 +3738,65 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_INT_INPLACE(PyObject **operand1
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyInt_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyInt_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'int'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'int'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'int'");
-#endif
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -4047,77 +3857,69 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_LONG_INPLACE(PyObject **operand
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyLong_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyLong_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
+        // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'long'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'long'");
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'int'");
 #endif
-    goto exit_inplace_exception;
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -4176,77 +3978,69 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_FLOAT_INPLACE(PyObject **operan
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyFloat_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyFloat_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
+        // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'float'");
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'float'");
 #endif
-    goto exit_inplace_exception;
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -4306,77 +4100,65 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_STR_INPLACE(PyObject **operand1
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyString_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyString_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'str'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'str'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'str'");
-#endif
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -4437,77 +4219,65 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_BYTES_INPLACE(PyObject **operan
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyBytes_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyBytes_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'bytes'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'bytes'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'bytes'");
-#endif
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -4566,77 +4336,69 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_UNICODE_INPLACE(PyObject **oper
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(1)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyUnicode_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(1)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyUnicode_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
+        // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'unicode'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'unicode'");
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'str'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'str'");
 #endif
-    goto exit_inplace_exception;
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -4695,77 +4457,69 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_TUPLE_INPLACE(PyObject **operan
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
-
-    binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = NULL;
-
-        if (0) {
             slot2 = NULL;
-        }
-    }
 
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
+        // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'tuple'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'tuple'");
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'tuple'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'tuple'");
 #endif
-    goto exit_inplace_exception;
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -4824,77 +4578,69 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_LIST_INPLACE(PyObject **operand
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
-
-    binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = NULL;
-
-        if (0) {
             slot2 = NULL;
-        }
-    }
 
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
+        // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'list'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'list'");
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'list'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'list'");
 #endif
-    goto exit_inplace_exception;
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -4953,77 +4699,69 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_DICT_INPLACE(PyObject **operand
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
-
-    binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = NULL;
-
-        if (0) {
             slot2 = NULL;
-        }
-    }
 
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
+        // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'dict'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'dict'");
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'dict'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'dict'");
 #endif
-    goto exit_inplace_exception;
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -5080,116 +4818,108 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_OBJECT_INPLACE(PyObject **opera
         return _BINARY_OPERATION_MOD_UNICODE_UNICODE_INPLACE(operand1, operand2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder
+                                                                                  : NULL;
 
-    binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 =
-            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
-
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (PyType_IsSubtype(type2, type1)) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300
-    if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c2 =
-            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c2 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c2(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
+                    if (x != Py_NotImplemented) {
                         obj_result = x;
                         goto exit_inplace_result_object;
                     }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+#if PYTHON_VERSION < 0x300
+        if (!1 || !NEW_STYLE_NUMBER_TYPE(type2)) {
+            coercion c2 =
+                (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
+
+            if (c2 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c2(&coerced2, &coerced1);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and '%s'", type2->tp_name);
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and '%s'", type2->tp_name);
 #endif
-    goto exit_inplace_exception;
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -5251,73 +4981,65 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_BYTES_INPLACE(PyObject **operand1
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(1)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyBytes_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(1)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyBytes_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'bytes'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'bytes'");
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -5380,114 +5102,102 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_LONG_INPLACE(PyObject **operand1,
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyLong_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyLong_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300
-    if (!0 || !1) {
-        coercion c2 = PyLong_Type.tp_as_number->nb_coerce;
-
-        if (c2 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c2(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
+                    if (x != Py_NotImplemented) {
                         obj_result = x;
                         goto exit_inplace_result_object;
                     }
-                }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
             }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
-    }
-#endif
+
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
 
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'int'");
+        if (!0 || !1) {
+            coercion c2 = PyLong_Type.tp_as_number->nb_coerce;
+
+            if (c2 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c2(&coerced2, &coerced1);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
+                }
+
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
+            }
+        }
 #endif
-    goto exit_inplace_exception;
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'int'");
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -5550,110 +5260,102 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_FLOAT_INPLACE(PyObject **operand1
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyFloat_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyFloat_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300
-    if (!0 || !1) {
-        coercion c2 = PyFloat_Type.tp_as_number->nb_coerce;
-
-        if (c2 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c2(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
+                    if (x != Py_NotImplemented) {
                         obj_result = x;
                         goto exit_inplace_result_object;
                     }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+#if PYTHON_VERSION < 0x300
+        if (!0 || !1) {
+            coercion c2 = PyFloat_Type.tp_as_number->nb_coerce;
+
+            if (c2 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c2(&coerced2, &coerced1);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'float'");
-    goto exit_inplace_exception;
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'float'");
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -5714,77 +5416,65 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_UNICODE_INPLACE(PyObject **operan
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = PyUnicode_Type.tp_as_number->nb_remainder;
 
-    binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyUnicode_Type.tp_as_number->nb_remainder;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'str'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'unicode'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'str'");
-#endif
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -5847,73 +5537,65 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_TUPLE_INPLACE(PyObject **operand1
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
-
-    binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = NULL;
-
-        if (0) {
             slot2 = NULL;
-        }
-    }
 
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'tuple'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'tuple'");
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -5976,73 +5658,65 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_LIST_INPLACE(PyObject **operand1,
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
-
-    binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = NULL;
-
-        if (0) {
             slot2 = NULL;
-        }
-    }
 
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'list'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'list'");
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -6105,73 +5779,65 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_DICT_INPLACE(PyObject **operand1,
         assert(type1 == type2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
-
-    binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = NULL;
-
-        if (0) {
             slot2 = NULL;
-        }
-    }
 
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
             if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'dict'");
+        goto exit_inplace_exception;
     }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'dict'");
-    goto exit_inplace_exception;
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -6232,112 +5898,104 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_OBJECT_INPLACE(PyObject **operand
         return _BINARY_OPERATION_MOD_BYTES_BYTES_INPLACE(operand1, operand2);
     }
 
-    binaryfunc islot = NULL;
+    // No inplace number slot nb_inplace_remainder available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
 
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
+    {
+        binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
+        binaryfunc slot2 = NULL;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        Py_DECREF(x);
-    }
+            slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder
+                                                                                  : NULL;
 
-    binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
-    binaryfunc slot2 = NULL;
-
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 =
-            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
-
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (PyType_IsSubtype(type2, type1)) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300
-    if (!0 || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c2 =
-            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
-
-        if (c2 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c2(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
+                    if (x != Py_NotImplemented) {
                         obj_result = x;
                         goto exit_inplace_result_object;
                     }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+#if PYTHON_VERSION < 0x300
+        if (!0 || !NEW_STYLE_NUMBER_TYPE(type2)) {
+            coercion c2 =
+                (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
+
+            if (c2 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c2(&coerced2, &coerced1);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and '%s'", type2->tp_name);
-    goto exit_inplace_exception;
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and '%s'", type2->tp_name);
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -6413,99 +6071,101 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_STR_INPLACE(PyObject **operand1,
         Py_DECREF(x);
     }
 
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-    binaryfunc slot2 = NULL;
+    {
+        binaryfunc slot1 =
+            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
+        binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        slot2 = PyString_Type.tp_as_number->nb_remainder;
+            slot2 = PyString_Type.tp_as_number->nb_remainder;
 
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300
-    if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-        coercion c1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
-
-        if (c1 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c1(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
+                    if (x != Py_NotImplemented) {
                         obj_result = x;
                         goto exit_inplace_result_object;
                     }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+#if PYTHON_VERSION < 0x300
+        if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
+            coercion c1 =
+                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
+
+            if (c1 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c1(&coerced1, &coerced2);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'str'", type1->tp_name);
-    goto exit_inplace_exception;
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'str'", type1->tp_name);
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -6581,99 +6241,101 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_BYTES_INPLACE(PyObject **operand
         Py_DECREF(x);
     }
 
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-    binaryfunc slot2 = NULL;
+    {
+        binaryfunc slot1 =
+            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
+        binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        slot2 = PyBytes_Type.tp_as_number->nb_remainder;
+            slot2 = PyBytes_Type.tp_as_number->nb_remainder;
 
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300
-    if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
-        coercion c1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
-
-        if (c1 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c1(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
+                    if (x != Py_NotImplemented) {
                         obj_result = x;
                         goto exit_inplace_result_object;
                     }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+#if PYTHON_VERSION < 0x300
+        if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
+            coercion c1 =
+                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
+
+            if (c1 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c1(&coerced1, &coerced2);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'bytes'", type1->tp_name);
-    goto exit_inplace_exception;
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'bytes'", type1->tp_name);
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -6746,103 +6408,105 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_UNICODE_INPLACE(PyObject **opera
         Py_DECREF(x);
     }
 
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-    binaryfunc slot2 = NULL;
+    {
+        binaryfunc slot1 =
+            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
+        binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        slot2 = PyUnicode_Type.tp_as_number->nb_remainder;
+            slot2 = PyUnicode_Type.tp_as_number->nb_remainder;
 
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300
-    if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-        coercion c1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
-
-        if (c1 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c1(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
+                    if (x != Py_NotImplemented) {
                         obj_result = x;
                         goto exit_inplace_result_object;
                     }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+#if PYTHON_VERSION < 0x300
+        if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
+            coercion c1 =
+                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
+
+            if (c1 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c1(&coerced1, &coerced2);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'unicode'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'unicode'", type1->tp_name);
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'str'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'str'", type1->tp_name);
 #endif
-    goto exit_inplace_exception;
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -6914,99 +6578,101 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_TUPLE_INPLACE(PyObject **operand
         Py_DECREF(x);
     }
 
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-    binaryfunc slot2 = NULL;
+    {
+        binaryfunc slot1 =
+            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
+        binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        slot2 = NULL;
-
-        if (slot1 == slot2) {
             slot2 = NULL;
-        }
-    }
 
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300
-    if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
-        coercion c1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
-
-        if (c1 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c1(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
+                    if (x != Py_NotImplemented) {
                         obj_result = x;
                         goto exit_inplace_result_object;
                     }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+#if PYTHON_VERSION < 0x300
+        if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
+            coercion c1 =
+                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
+
+            if (c1 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c1(&coerced1, &coerced2);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'tuple'", type1->tp_name);
-    goto exit_inplace_exception;
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'tuple'", type1->tp_name);
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -7078,99 +6744,101 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_LIST_INPLACE(PyObject **operand1
         Py_DECREF(x);
     }
 
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-    binaryfunc slot2 = NULL;
+    {
+        binaryfunc slot1 =
+            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
+        binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        slot2 = NULL;
-
-        if (slot1 == slot2) {
             slot2 = NULL;
-        }
-    }
 
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300
-    if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
-        coercion c1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
-
-        if (c1 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c1(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
+                    if (x != Py_NotImplemented) {
                         obj_result = x;
                         goto exit_inplace_result_object;
                     }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+#if PYTHON_VERSION < 0x300
+        if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
+            coercion c1 =
+                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
+
+            if (c1 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c1(&coerced1, &coerced2);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'list'", type1->tp_name);
-    goto exit_inplace_exception;
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'list'", type1->tp_name);
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -7242,99 +6910,101 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_DICT_INPLACE(PyObject **operand1
         Py_DECREF(x);
     }
 
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-    binaryfunc slot2 = NULL;
+    {
+        binaryfunc slot1 =
+            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
+        binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        slot2 = NULL;
-
-        if (slot1 == slot2) {
             slot2 = NULL;
-        }
-    }
 
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (0) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 0x300
-    if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
-        coercion c1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
-
-        if (c1 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
-
-            int err = c1(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
+                    if (x != Py_NotImplemented) {
                         obj_result = x;
                         goto exit_inplace_result_object;
                     }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+#if PYTHON_VERSION < 0x300
+        if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
+            coercion c1 =
+                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
+
+            if (c1 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c1(&coerced1, &coerced2);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'dict'", type1->tp_name);
-    goto exit_inplace_exception;
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'dict'", type1->tp_name);
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -7489,135 +7159,138 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_OBJECT_INPLACE(PyObject **operan
         Py_DECREF(x);
     }
 
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-    binaryfunc slot2 = NULL;
+    {
+        binaryfunc slot1 =
+            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
+        binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        if (!(type1 == type2)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
 
-        slot2 =
-            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder : NULL;
+            slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder
+                                                                                  : NULL;
 
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
-                PyObject *x = slot2(*operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_inplace_result_object;
-                }
-
-                Py_DECREF(x);
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
 
-        PyObject *x = slot1(*operand1, operand2);
+        if (slot1 != NULL) {
+            if (slot2 != NULL) {
+                if (PyType_IsSubtype(type2, type1)) {
+                    PyObject *x = slot2(*operand1, operand2);
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+                    if (x != Py_NotImplemented) {
+                        obj_result = x;
+                        goto exit_inplace_result_object;
+                    }
+
+                    Py_DECREF(x);
+                    slot2 = NULL;
+                }
+            }
+
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
         }
 
-        Py_DECREF(x);
-    }
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2);
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(*operand1, operand2);
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
+            Py_DECREF(x);
         }
-
-        Py_DECREF(x);
-    }
 
 #if PYTHON_VERSION < 0x300
-    if (!NEW_STYLE_NUMBER_TYPE(type1) || !NEW_STYLE_NUMBER_TYPE(type2)) {
-        coercion c1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
+        if (!NEW_STYLE_NUMBER_TYPE(type1) || !NEW_STYLE_NUMBER_TYPE(type2)) {
+            coercion c1 =
+                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
 
-        if (c1 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
+            if (c1 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
 
-            int err = c1(&coerced1, &coerced2);
+                int err = c1(&coerced1, &coerced2);
 
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-        coercion c2 =
-            (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
 
-        if (c2 != NULL) {
-            PyObject *coerced1 = *operand1;
-            PyObject *coerced2 = operand2;
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
 
-            int err = c2(&coerced2, &coerced1);
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
 
-            if (unlikely(err < 0)) {
-                goto exit_inplace_exception;
-            }
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
 
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    binaryfunc slot = mv->nb_remainder;
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = slot(coerced1, coerced2);
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        obj_result = x;
-                        goto exit_inplace_result_object;
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
                     }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
+            }
+            coercion c2 =
+                (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_coerce : NULL;
+
+            if (c2 != NULL) {
+                PyObject *coerced1 = *operand1;
+                PyObject *coerced2 = operand2;
+
+                int err = c2(&coerced2, &coerced1);
+
+                if (unlikely(err < 0)) {
+                    goto exit_inplace_exception;
                 }
 
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
+                if (err == 0) {
+                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                    if (likely(mv == NULL)) {
+                        binaryfunc slot = mv->nb_remainder;
+
+                        if (likely(slot != NULL)) {
+                            PyObject *x = slot(coerced1, coerced2);
+
+                            Py_DECREF(coerced1);
+                            Py_DECREF(coerced2);
+
+                            obj_result = x;
+                            goto exit_inplace_result_object;
+                        }
+                    }
+
+                    // nb_coerce took a reference.
+                    Py_DECREF(coerced1);
+                    Py_DECREF(coerced2);
+                }
             }
         }
-    }
 #endif
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and '%s'", type1->tp_name, type2->tp_name);
-    goto exit_inplace_exception;
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and '%s'", type1->tp_name,
+                     type2->tp_name);
+        goto exit_inplace_exception;
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {

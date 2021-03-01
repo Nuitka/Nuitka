@@ -301,9 +301,11 @@ class TypeDescBase(getMetaClassBase("Type")):
             assert False, slot
 
     @staticmethod
-    def getSlotType(nb_slot):
-        if nb_slot in ("nb_power", "nb_inplace_power"):
+    def getSlotType(slot):
+        if slot in ("nb_power", "nb_inplace_power"):
             return "ternaryfunc"
+        elif slot in ("sq_repeat", "sq_inplace_repeat"):
+            return "ssizeargfunc"
         else:
             return "binaryfunc"
 
@@ -330,57 +332,16 @@ class TypeDescBase(getMetaClassBase("Type")):
         # Virtual method, pylint: disable=unused-argument
         return "true" if self.hasSlot(slot) else "false"
 
-    def getUnsupportedTypeErrorCode(self, operator, right, operand1, operand2):
-        left = self
-        args = []
-
-        if left is object_desc:
-            args.append("%s->tp_name" % operand1)
-        if right is object_desc:
-            args.append("%s->tp_name" % operand2)
-
-        if args:
-            args = ", " + ", ".join(args)
+    @staticmethod
+    def getOperationErrorMessageName(operator):
+        if operator == "%":
+            return "%%"
+        elif operator == "**":
+            return "** or pow()"
+        elif operator == "divmod":
+            return "divmod()"
         else:
-            args = ""
-
-        def formatOperation(operator):
-            if operator == "%":
-                return "%%"
-            elif operator == "**":
-                return "** or pow()"
-            elif operator == "divmod":
-                return "divmod()"
-            else:
-                return operator
-
-        if (
-            left.getTypeName2() != left.getTypeName3()
-            or right.getTypeName2() != right.getTypeName3()
-        ):
-            return """\
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
-#endif""" % (
-                formatOperation(operator),
-                "%s" if left is object_desc else left.getTypeName2(),
-                "%s" if right is object_desc else right.getTypeName2(),
-                args,
-                formatOperation(operator),
-                "%s" if left is object_desc else left.getTypeName3(),
-                "%s" if right is object_desc else right.getTypeName3(),
-                args,
-            )
-        else:
-            return """\
-PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);""" % (
-                formatOperation(operator),
-                "%s" if left is object_desc else left.getTypeName2(),
-                "%s" if right is object_desc else right.getTypeName2(),
-                args,
-            )
+            return operator
 
     def getReturnUnorderableTypeErrorCode(
         self, operator, left, right, operand1, operand2
@@ -1640,6 +1601,11 @@ def makeHelperOperations(
         else:
             sq_slot = None
 
+        if inplace and sq_slot is not None:
+            sq_islot = sq_slot.replace("sq_", "sq_inplace_")
+        else:
+            sq_islot = None
+
         code = template.render(
             target=target,
             left=left,
@@ -1649,6 +1615,7 @@ def makeHelperOperations(
             nb_slot=_getNbSlotFromOperand(operator, op_code),
             nb_islot=_getNbInplaceSlotFromOperand(operator, op_code),
             sq_slot=sq_slot,
+            sq_islot=sq_islot,
             object_desc=object_desc,
             int_desc=int_desc,
             long_desc=long_desc,

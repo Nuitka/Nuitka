@@ -455,15 +455,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and '%s'", type2->tp_name);
@@ -887,15 +880,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_OBJECT(PyObject *operand1, Py
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and '%s'", type2->tp_name);
@@ -1299,15 +1285,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1715,15 +1694,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -2142,15 +2114,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and '%s'", type2->tp_name);
@@ -2565,15 +2530,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
 #endif
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and '%s'", type2->tp_name);
@@ -2909,7 +2867,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_OBJECT(PyObject *operand1, PyO
 #endif
 
     {
-        PyObject *o = PyString_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        PyObject *o = PyString_Type.tp_as_sequence->sq_concat(operand1, operand2);
         obj_result = o;
         goto exit_binary_result_object;
     }
@@ -3230,7 +3188,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
 #endif
 
     {
-        PyObject *o = PyUnicode_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        PyObject *o = PyUnicode_Type.tp_as_sequence->sq_concat(operand1, operand2);
         obj_result = o;
         goto exit_binary_result_object;
     }
@@ -3559,7 +3517,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_BYTES_OBJECT(PyObject *operand1, P
 #endif
 
     {
-        PyObject *o = PyBytes_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        PyObject *o = PyBytes_Type.tp_as_sequence->sq_concat(operand1, operand2);
         obj_result = o;
         goto exit_binary_result_object;
     }
@@ -3884,7 +3842,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_TUPLE_OBJECT(PyObject *operand1, P
 #endif
 
     {
-        PyObject *o = PyTuple_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        PyObject *o = PyTuple_Type.tp_as_sequence->sq_concat(operand1, operand2);
         obj_result = o;
         goto exit_binary_result_object;
     }
@@ -4208,7 +4166,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LIST_OBJECT(PyObject *operand1, Py
 #endif
 
     {
-        PyObject *o = PyList_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        PyObject *o = PyList_Type.tp_as_sequence->sq_concat(operand1, operand2);
         obj_result = o;
         goto exit_binary_result_object;
     }
@@ -4541,7 +4499,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LIST_OBJECT(PyObject *operand1, P
 #endif
 
     {
-        PyObject *o = PyList_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        PyObject *o = PyList_Type.tp_as_sequence->sq_concat(operand1, operand2);
         obj_result = o;
         goto exit_binary_result_object;
     }
@@ -4651,22 +4609,11 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_LONG(PyObject *operand1, PyObj
     // Statically recognized that coercion is not possible with these types
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'int'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -4765,22 +4712,11 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_INT(PyObject *operand1, PyObj
     // Statically recognized that coercion is not possible with these types
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'long' and 'int'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'int'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -4879,22 +4815,11 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_LONG(PyObject *operand1, PyOb
     // Statically recognized that coercion is not possible with these types
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'int'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -5001,22 +4926,11 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyOb
     // Statically recognized that coercion is not possible with these types
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'long' and 'int'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'int'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -5123,15 +5037,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_INT_FLOAT(PyObject *operand1, PyOb
     // Statically recognized that coercion is not possible with these types
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'float'");
@@ -5233,15 +5140,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
     // Statically recognized that coercion is not possible with these types
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and 'int'");
@@ -5343,15 +5243,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_INT_FLOAT(PyObject *operand1, PyO
     // Statically recognized that coercion is not possible with these types
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'int' and 'float'");
@@ -5461,15 +5354,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_INT(PyObject *operand1, PyO
     // Statically recognized that coercion is not possible with these types
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: 'float' and 'int'");
@@ -5578,15 +5464,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
     // Statically recognized that coercion is not possible with these types
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -5690,15 +5569,8 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
     // Statically recognized that coercion is not possible with these types
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -5802,15 +5674,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_FLOAT(PyObject *operand1, Py
     // Statically recognized that coercion is not possible with these types
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -5922,15 +5787,8 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
     // Statically recognized that coercion is not possible with these types
 
     {
-        // Special case for "+" and "*", also works as sequence concat/repeat.
-        binaryfunc sq_slot = NULL;
-
-        if (sq_slot != NULL) {
-            PyObject *result = sq_slot(operand1, operand2);
-
-            obj_result = result;
-            goto exit_binary_result_object;
-        }
+        // No sequence repeat slot sq_concat available for this type.
+        assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_concat == NULL);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -6041,7 +5899,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_STR_UNICODE(PyObject *operand1, Py
     // Statically recognized that coercion is not possible with these types
 
     {
-        PyObject *o = PyString_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        PyObject *o = PyString_Type.tp_as_sequence->sq_concat(operand1, operand2);
         obj_result = o;
         goto exit_binary_result_object;
     }
@@ -6139,7 +5997,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, Py
     // Statically recognized that coercion is not possible with these types
 
     {
-        PyObject *o = PyUnicode_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        PyObject *o = PyUnicode_Type.tp_as_sequence->sq_concat(operand1, operand2);
         obj_result = o;
         goto exit_binary_result_object;
     }
@@ -6237,7 +6095,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_STR_UNICODE(PyObject *operand1, P
     // Statically recognized that coercion is not possible with these types
 
     {
-        PyObject *o = PyString_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        PyObject *o = PyString_Type.tp_as_sequence->sq_concat(operand1, operand2);
         obj_result = o;
         goto exit_binary_result_object;
     }
@@ -6343,7 +6201,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_UNICODE_STR(PyObject *operand1, P
     // Statically recognized that coercion is not possible with these types
 
     {
-        PyObject *o = PyUnicode_Type.tp_as_sequence->sq_concat((PyObject *)operand1, (PyObject *)operand2);
+        PyObject *o = PyUnicode_Type.tp_as_sequence->sq_concat(operand1, operand2);
         obj_result = o;
         goto exit_binary_result_object;
     }

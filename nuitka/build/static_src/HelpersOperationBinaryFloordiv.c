@@ -2651,11 +2651,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_LONG(PyObject *operand1, 
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'int' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'int' and 'int'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -2753,11 +2749,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_INT(PyObject *operand1, 
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'long' and 'int'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'int' and 'int'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -2855,11 +2847,7 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_INT_LONG(PyObject *operand1,
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'int' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'int' and 'int'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -2965,11 +2953,7 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_LONG_INT(PyObject *operand1,
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'long' and 'int'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for //: 'int' and 'int'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:

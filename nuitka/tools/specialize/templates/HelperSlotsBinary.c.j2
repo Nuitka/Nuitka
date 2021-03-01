@@ -16,15 +16,42 @@
 {#     limitations under the License.                                           #}
 {#                                                                              #}
 {% from 'HelperSlotsCommon.c.j2' import goto_exit %}
+{% macro operation_unsupported_error_exit(props, operator, left, right, type1, type2, exit_result_exception) %}
+{% set args = [] %}
+{% if left == object_desc %}
+{% do args.append("%s->tp_name" % type1) %}
+{% endif %}
+{% if right == object_desc %}
+{% do args.append("%s->tp_name" % type2) %}
+{% endif %}
+{% set left_name_2 = "'%s'" % ("%s" if left == object_desc else left.getTypeName2()) %}
+{% set left_name_3 = "'%s'" % ("%s" if left == object_desc else left.getTypeName3()) %}
+{% set right_name_2 = "'%s'" % ("%s" if right == object_desc else right.getTypeName2()) %}
+{% set right_name_3 = "'%s'" % ("%s" if right == object_desc else right.getTypeName3()) %}
+{% if (left_name_2 == left_name_3 and right_name_2 == right_name_3) or left.python_requirement or right.python_requirement %}
+{% if left.python_requirement == "PYTHON_VERSION < 0x300" or right.python_requirement == "PYTHON_VERSION < 0x300" %}
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator) }}: {{ left_name_2 }} and {{ right_name_2 }}"{{ "," + ",".join(args) if args else "" }});
+{% else %}
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator) }}: {{ left_name_3 }} and {{ right_name_3 }}"{{ "," + ",".join(args) if args else "" }});
+{% endif %}
+{% else %}
+#if PYTHON_VERSION < 0x300
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator) }}: {{ left_name_2 }} and {{ right_name_2 }}"{{ "," + ",".join(args) if args else "" }});
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator) }}: {{ left_name_3 }} and {{ right_name_3 }}"{{ "," + ",".join(args) if args else "" }});
+#endif
+{% endif %}
+    {{ goto_exit(props, exit_result_exception) }}
+{% endmacro %}
 {% macro concat_operation(props, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_exception) %}
-{% if left.hasSlot(nb_islot) %}
+{% if sq_islot and left.hasSlot(sq_islot) %}
     {
-        PyObject *o = {{ left.getSlotValueExpression(type1, "sq_inplace_concat") }}((PyObject *)operand1, (PyObject *)operand2);
+        PyObject *o = {{ left.getSlotValueExpression(type1, "sq_inplace_concat") }}({{ operand1 }}, {{ operand2 }});
         {{ goto_exit(props, exit_result_object, "o") }}
     }
 {% endif %}
     {
-        PyObject *o = {{ left.getSlotValueExpression(type1, "sq_concat") }}((PyObject *)operand1, (PyObject *)operand2);
+        PyObject *o = {{ left.getSlotValueExpression(type1, "sq_concat") }}({{ operand1 }}, {{ operand2 }});
         {{ goto_exit(props, exit_result_object, "o") }}
     }
 {% endmacro %}
@@ -64,7 +91,14 @@
             }
 {% endif %}
             {
-                ssizeargfunc repeatfunc = {{ left.getSlotValueExpression(type1, "sq_repeat") }};
+{% if sq_islot %}
+                {{ left.getSlotType(sq_slot) }} repeatfunc = {{ left.getSlotValueExpression(type1, sq_islot) }};
+                if (repeatfunc == NULL) {
+                    repeatfunc = {{ left.getSlotValueExpression(type1, sq_slot) }};
+                }
+{% else %}
+                {{ left.getSlotType(sq_slot) }} repeatfunc = {{ left.getSlotValueExpression(type1, sq_slot) }};
+{% endif %}
                 PyObject *r = (*repeatfunc)({{ operand1 }}, count);
 
                 {{ goto_exit(props, exit_result_object, "r") }}
@@ -203,7 +237,7 @@
 
 {# There might be a sq_slot specialization that saves the day. #}
 {% if operator in "+*" %}
-{% if left.type_name != "object" and left.hasSlot("sq_concat" if operator == "+" else "sq_repeat")  %}
+{% if left.type_name != "object" and left.hasSlot(sq_slot)  %}
 {% if operator == "*" %}
     {{ repeat_operation(props, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_exception) }}
 {% else %}
@@ -212,23 +246,49 @@
     {% set error_needed = 0 %}
 {% else %}
     {
+{% if sq_islot and (left == object_desc or left.hasSlot(sq_islot)) %}
         // Special case for "+" and "*", also works as sequence concat/repeat.
-        {{"binaryfunc" if operator == "+" else "ssizeargfunc"}} sq_slot = {{ left.getSlotValueExpression(type1, "sq_concat" if operator == "+" else "sq_repeat") }};
+        {{ left.getSlotType(sq_slot) }} sq_slot = {{ left.getSlotValueExpression(type1, sq_islot) }};
+        if (sq_slot == NULL) {
+            sq_slot = {{ left.getSlotValueExpression(type1, sq_slot) }};
+        }
+        {% set lslot_needed = 1 %}
+{% elif left == object_desc or left.hasSlot(sq_slot) %}
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        {{ left.getSlotType(sq_slot) }} sq_slot = {{ left.getSlotValueExpression(type1, sq_slot) }};
+        {% set lslot_needed = 1 %}
+{% else %}
+        // No sequence repeat slot {{ sq_slot }} available for this type.
+        assert({{ type1 }}->tp_as_sequence == NULL || {{ type1 }}->tp_as_sequence->{{ sq_slot }} == NULL);
+{% if sq_islot %}
+        // No inplace sequence repeat slot {{ sq_islot }} available for this type.
+        assert({{ type1 }}->tp_as_sequence == NULL || {{ type1 }}->tp_as_sequence->{{ sq_islot }} == NULL);
+{% endif %}
+        {% set lslot_needed = 0 %}
+{% endif %}
+{% if lslot_needed == 1 %}
 
         if (sq_slot != NULL) {
 {% if operator == "+" %}
-            PyObject *result = sq_slot(operand1, operand2);
+            PyObject *result = sq_slot({{ operand1 }}, {{ operand2 }});
 {% else %}
-            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, {{ operand1 }}, {{ operand2 }});
 {% endif %}
 
             {{ goto_exit(props, exit_result_object, "result") }}
         }
+{% endif %}
     }
 {% if operator == "*" %}
 {% if right.type_name != "object" and right.hasSlot("sq_repeat")  %}
 {% if operator == "*" %}
-    {{ repeat_operation(props, right, left, type2, type1, operand2, operand1, exit_result_object, exit_result_exception) }}
+{% if sq_islot %}
+    if ({{ type1 }}->tp_as_sequence == NULL) {
+{% endif %}
+        {{ repeat_operation(props, right, left, type2, type1, operand2, operand1, exit_result_object, exit_result_exception) }}
+{% if sq_islot %}
+    }
+{% endif %}
 {% else %}
     {{ target.getTypeDecl() }} x = SLOT_sq_repeat_{{target.getHelperCodeName()}}_{{right.getHelperCodeName()}}_{{left.getHelperCodeName()}}(operand2, operand1);
 {% if target and target.type_name == "cbool" %}
@@ -239,16 +299,27 @@
     {{ goto_exit(props, exit_result_object, "x") }}
 {% endif %}
 {% endif %}
-    {% set error_needed = 0 %}
+{% if not sq_islot %}
+{% set error_needed = 0 %}
+{% endif %}
 {% else %}
+{% if right == object_desc or right.hasSlot(sq_slot) %}
     // Special case for "*", also work with sequence repeat from right argument.
+{% if sq_islot %}
+    if ({{ type1 }}->tp_as_sequence == NULL )
+{% endif %}
     {
-        ssizeargfunc sq_slot = {{ left.getSlotValueExpression(type1, "sq_concat" if operator == "+" else "sq_repeat") }};
-
-        sq_slot = {{right.getSlotValueExpression("type2", "sq_repeat")}};
+        {{ right.getSlotType(sq_slot) }} sq_slot = {{ right.getSlotValueExpression(type2, sq_slot) }};
+        {% set rslot_needed = 1 %}
+{% else %}
+        // No sequence repeat slot {{ sq_slot }} available for this type.
+        assert({{ type2 }}->tp_as_sequence == NULL || {{ type2 }}->tp_as_sequence->{{ sq_slot }} == NULL);
+        {% set rslot_needed = 0 %}
+{% endif %}
+{% if rslot_needed == 1 %}
 
         if (sq_slot != NULL) {
-            PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, {{ operand2 }}, {{ operand1 }});
 
             {{ goto_exit(props, exit_result_object, "result") }}
         }
@@ -257,10 +328,10 @@
 {% endif %}
 {% endif %}
 {% endif %}
+{% endif %}
 
 {% if error_needed == 1 %}
-    {{ left.getUnsupportedTypeErrorCode(operator, right, type1, type2) }}
-    {{ goto_exit(props, exit_result_exception) }}
+    {{ operation_unsupported_error_exit(props, operator, left, right, type1, type2, exit_result_exception) }}
 {% else %}
     NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 {% endif %}

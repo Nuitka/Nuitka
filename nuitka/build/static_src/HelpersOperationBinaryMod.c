@@ -2619,11 +2619,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_LONG(PyObject *operand1, PyObj
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'int'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -2721,11 +2717,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_LONG_INT(PyObject *operand1, PyObj
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'int'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'int'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -2823,11 +2815,7 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_LONG(PyObject *operand1, PyOb
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'int'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -2933,11 +2921,7 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_LONG_INT(PyObject *operand1, PyOb
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'int'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'int'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -3965,11 +3949,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_LONG(PyObject *operand1, PyObj
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'int'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -4206,11 +4186,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_STR_UNICODE(PyObject *operand1, Py
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'unicode'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'str'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -4735,11 +4711,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_INT(PyObject *operand1, Py
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'int'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'int'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -5032,11 +5004,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_STR(PyObject *operand1, Py
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'str'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'str'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -5132,11 +5100,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_UNICODE_BYTES(PyObject *operand1, 
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'bytes'");
-#else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'bytes'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -5782,11 +5746,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_LONG(PyObject *operand1, PyO
     }
 #endif
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'long'");
-#else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'int'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -6017,11 +5977,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_BYTES_UNICODE(PyObject *operand1, 
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'unicode'");
-#else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'str'");
-#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:

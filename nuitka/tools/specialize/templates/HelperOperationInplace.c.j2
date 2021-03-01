@@ -136,7 +136,6 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     }
 {% endif %}
 
-{% if operator not in ("+*") %}
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -161,6 +160,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 {% endif %}
     }
 
+{% if left == object_desc or left.hasSlot(nb_islot) %}
     {{ left.getSlotType(nb_islot)}} islot = {{left.getSlotValueExpression("type1", nb_islot) }};
 
     if (islot != NULL) {
@@ -172,11 +172,17 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 
         Py_DECREF(x);
     }
+{% else %}
+    // No inplace number slot {{ nb_islot }} available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->{{ nb_islot }} == NULL);
+{% endif %}
 
-    {{ left.getSlotType(nb_slot) }} slot1 = {{ left.getSlotValueExpression("type1", nb_slot) }};
-    {{ left.getSlotType(nb_slot) }} slot2 = NULL;
+    {
+        {{ left.getSlotType(nb_slot) }} slot1 = {{ left.getSlotValueExpression("type1", nb_slot) }};
+        {{ left.getSlotType(nb_slot) }} slot2 = NULL;
 
-    {{ binary_operation(props, operator, nb_slot, left, right, "type1", "type2", "*operand1", "operand2", "exit_inplace_result_object", "exit_inplace_result_cbool_ok", "exit_inplace_result_nbool", "exit_inplace_exception") }}
+        {{ binary_operation(props, operator, nb_slot, left, right, "type1", "type2", "*operand1", "operand2", "exit_inplace_result_object", "exit_inplace_result_cbool_ok", "exit_inplace_result_nbool", "exit_inplace_exception") }}
+    }
 
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
@@ -194,23 +200,6 @@ exit_inplace_result_object:
 
 exit_inplace_exception:
     return false;
-
-{% else %}
-    PyObject *result = PyNumber_InPlace{{ op_code.title() }}(*operand1, operand2);
-
-    if (unlikely(result == NULL)) {
-        return false;
-    }
-
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = result;
-
-    return true;
-{% endif %}
 }
 
 bool BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {
