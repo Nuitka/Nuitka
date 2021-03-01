@@ -43,6 +43,28 @@
 {% endif %}
     {{ goto_exit(props, exit_result_exception) }}
 {% endmacro %}
+{% macro cannot_fit_to_index_size_error_exit(props, left, right, type2, exit_result_exception) %}
+{% if right == object_desc %}
+    PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", {{ type2 }}->tp_name);
+{% else %}
+{% set right_name_2 = right.getTypeName2() %}
+{% set right_name_3 = right.getTypeName3() %}
+{% if right_name_2 == right_name_3 or left.python_requirement or right.python_requirement %}
+{% if left.python_requirement == "PYTHON_VERSION < 0x300" or right.python_requirement == "PYTHON_VERSION < 0x300" %}
+    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_2 }}' into an index-sized integer" );
+{% else %}
+    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_3 }}' into an index-sized integer" );
+{% endif %}
+{% else %}
+#if PYTHON_VERSION < 0x300
+    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_2 }}' into an index-sized integer" );
+#else
+    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_3 }}' into an index-sized integer" );
+#endif
+{% endif %}
+{% endif %}
+    {{ goto_exit(props, exit_result_exception) }}
+{% endmacro %}
 {% macro concat_operation(props, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_exception) %}
 {% if sq_islot and left.hasSlot(sq_islot) %}
     {
@@ -78,7 +100,11 @@
 {% if right.type_name == "int" %}
             Py_ssize_t count = PyInt_AS_LONG(index_value);
 {% else %}
+{% if right.type_name == "long" %}
+            Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
+{% else %}
             Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+{% endif %}
 
 {% if right.needsIndexConversion() %}
             Py_DECREF(index_value);
@@ -86,8 +112,7 @@
 
             /* Above conversion indicates an error as -1 */
             if (unlikely(count == -1)) {
-                PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", {{ type2 }}->tp_name);
-                {{ goto_exit(props, exit_result_exception) }}
+                {{ cannot_fit_to_index_size_error_exit(props, left, right, type2, exit_result_exception) }}
             }
 {% endif %}
             {

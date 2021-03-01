@@ -2811,12 +2811,11 @@ static inline bool _BINARY_OPERATION_MULT_LONG_STR_INPLACE(PyObject **operand1, 
                 PyObject *index_value = *operand1;
 
                 {
-                    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+                    Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
                     /* Above conversion indicates an error as -1 */
                     if (unlikely(count == -1)) {
-                        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer",
-                                     type1->tp_name);
+                        PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
                         goto exit_inplace_exception;
                     }
                     {
@@ -2964,11 +2963,11 @@ static inline bool _BINARY_OPERATION_MULT_STR_LONG_INPLACE(PyObject **operand1, 
             PyObject *index_value = operand2;
 
             {
-                Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+                Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
                 /* Above conversion indicates an error as -1 */
                 if (unlikely(count == -1)) {
-                    PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
+                    PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
                     goto exit_inplace_exception;
                 }
                 {
@@ -3819,12 +3818,15 @@ static inline bool _BINARY_OPERATION_MULT_LONG_UNICODE_INPLACE(PyObject **operan
                 PyObject *index_value = *operand1;
 
                 {
-                    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+                    Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
                     /* Above conversion indicates an error as -1 */
                     if (unlikely(count == -1)) {
-                        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer",
-                                     type1->tp_name);
+#if PYTHON_VERSION < 0x300
+                        PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
+#else
+                        PyErr_Format(PyExc_OverflowError, "cannot fit 'int' into an index-sized integer");
+#endif
                         goto exit_inplace_exception;
                     }
                     {
@@ -3973,11 +3975,15 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_LONG_INPLACE(PyObject **operan
             PyObject *index_value = operand2;
 
             {
-                Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+                Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
                 /* Above conversion indicates an error as -1 */
                 if (unlikely(count == -1)) {
-                    PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
+#if PYTHON_VERSION < 0x300
+                    PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
+#else
+                    PyErr_Format(PyExc_OverflowError, "cannot fit 'int' into an index-sized integer");
+#endif
                     goto exit_inplace_exception;
                 }
                 {
@@ -4832,12 +4838,15 @@ static inline bool _BINARY_OPERATION_MULT_LONG_TUPLE_INPLACE(PyObject **operand1
                 PyObject *index_value = *operand1;
 
                 {
-                    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+                    Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
                     /* Above conversion indicates an error as -1 */
                     if (unlikely(count == -1)) {
-                        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer",
-                                     type1->tp_name);
+#if PYTHON_VERSION < 0x300
+                        PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
+#else
+                        PyErr_Format(PyExc_OverflowError, "cannot fit 'int' into an index-sized integer");
+#endif
                         goto exit_inplace_exception;
                     }
                     {
@@ -4987,11 +4996,15 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_LONG_INPLACE(PyObject **operand1
             PyObject *index_value = operand2;
 
             {
-                Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+                Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
                 /* Above conversion indicates an error as -1 */
                 if (unlikely(count == -1)) {
-                    PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
+#if PYTHON_VERSION < 0x300
+                    PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
+#else
+                    PyErr_Format(PyExc_OverflowError, "cannot fit 'int' into an index-sized integer");
+#endif
                     goto exit_inplace_exception;
                 }
                 {
@@ -5846,12 +5859,15 @@ static inline bool _BINARY_OPERATION_MULT_LONG_LIST_INPLACE(PyObject **operand1,
                 PyObject *index_value = *operand1;
 
                 {
-                    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+                    Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
                     /* Above conversion indicates an error as -1 */
                     if (unlikely(count == -1)) {
-                        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer",
-                                     type1->tp_name);
+#if PYTHON_VERSION < 0x300
+                        PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
+#else
+                        PyErr_Format(PyExc_OverflowError, "cannot fit 'int' into an index-sized integer");
+#endif
                         goto exit_inplace_exception;
                     }
                     {
@@ -6001,11 +6017,15 @@ static inline bool _BINARY_OPERATION_MULT_LIST_LONG_INPLACE(PyObject **operand1,
             PyObject *index_value = operand2;
 
             {
-                Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+                Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
                 /* Above conversion indicates an error as -1 */
                 if (unlikely(count == -1)) {
-                    PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
+#if PYTHON_VERSION < 0x300
+                    PyErr_Format(PyExc_OverflowError, "cannot fit 'long' into an index-sized integer");
+#else
+                    PyErr_Format(PyExc_OverflowError, "cannot fit 'int' into an index-sized integer");
+#endif
                     goto exit_inplace_exception;
                 }
                 {
@@ -6605,12 +6625,11 @@ static inline bool _BINARY_OPERATION_MULT_LONG_BYTES_INPLACE(PyObject **operand1
                 PyObject *index_value = *operand1;
 
                 {
-                    Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+                    Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
                     /* Above conversion indicates an error as -1 */
                     if (unlikely(count == -1)) {
-                        PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer",
-                                     type1->tp_name);
+                        PyErr_Format(PyExc_OverflowError, "cannot fit 'int' into an index-sized integer");
                         goto exit_inplace_exception;
                     }
                     {
@@ -6795,11 +6814,11 @@ static inline bool _BINARY_OPERATION_MULT_BYTES_LONG_INPLACE(PyObject **operand1
             PyObject *index_value = operand2;
 
             {
-                Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+                Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
 
                 /* Above conversion indicates an error as -1 */
                 if (unlikely(count == -1)) {
-                    PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", type2->tp_name);
+                    PyErr_Format(PyExc_OverflowError, "cannot fit 'int' into an index-sized integer");
                     goto exit_inplace_exception;
                 }
                 {
