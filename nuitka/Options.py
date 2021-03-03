@@ -59,7 +59,9 @@ def parseArgs(will_reexec):
         logger=Tracing.options_logger
     )
 
-    Tracing.is_quiet = options.quiet or int(os.environ.get("NUITKA_QUIET", "0"))
+    if options.quiet or int(os.environ.get("NUITKA_QUIET", "0")):
+        Tracing.setQuiet()
+
     if options.progress_bar and not will_reexec:
         Progress.enableProgressBar()
 

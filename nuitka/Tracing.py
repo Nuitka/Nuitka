@@ -42,6 +42,12 @@ is_quiet = False
 progress = None
 
 
+def setQuiet():
+    # singleton, pylint: disable=global-statement
+    global is_quiet
+    is_quiet = True
+
+
 def printIndented(level, *what):
     print("    " * level, *what)
 
