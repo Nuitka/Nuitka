@@ -17,14 +17,6 @@
 {#                                                                              #}
 {% from 'HelperSlotsCommon.c.j2' import goto_exit %}
 {% from 'HelperSlotsInt.c.j2' import int_slot %}
-{% from 'HelperSlotsLong.c.j2' import long_slot %}
-{% from 'HelperSlotsFloat.c.j2' import float_slot %}
-{% from 'HelperSlotsStr.c.j2' import str_slot %}
-{% from 'HelperSlotsUnicode.c.j2' import unicode_slot %}
-{% from 'HelperSlotsBytes.c.j2' import bytes_slot %}
-{% from 'HelperSlotsTuple.c.j2' import tuple_slot %}
-{% from 'HelperSlotsList.c.j2' import list_slot %}
-{% from 'HelperSlotsSet.c.j2' import set_slot %}
 {% from 'HelperSlotsBinary.c.j2' import binary_operation, call_binary_slot with context %}
 static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
     {{ left.getCheckValueCode("operand1") }}
@@ -36,7 +28,7 @@ static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelper
     if ({{ left.getIntCheckExpression("operand1") }} && {{ right.getIntCheckExpression("operand2") }}) {
         {{target.getTypeDecl()}} result;
 
-        {% set props = {"exits": []} %}
+        {% set props = {"exits": {}} %}
         {{ int_slot(props, operator, nb_slot, target, int_desc, int_desc, "result", "operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
 
         exit_result_ok:
@@ -51,10 +43,10 @@ static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelper
 {% endif %}
 
 {% if left.hasTypeSpecializationCode(right, nb_slot, sq_slot) %}
-    {% set props = {"exits": []} %}
+    {% set props = {"exits": {}} %}
     {{ target.getTypeDecl() }} result;
 
-    {{ call_binary_slot(props, operator, nb_slot, left, right, "result", "operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
+    {{ call_binary_slot(props, operator, nb_slot, None, left, right, "result", "operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
 
     exit_result_ok:
     return result;
@@ -65,19 +57,16 @@ static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelper
 {% endif %}
 {% else %}
     PyTypeObject *type1 = {{ left.getTypeValueExpression("operand1") }};
-    {{ left.getSlotType(nb_slot) }} slot1 = {{ left.getSlotValueExpression("type1", nb_slot) }};
+    PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
 
-    PyTypeObject *type2 = {{right.getTypeValueExpression("operand2")}};
-    {{ left.getSlotType(nb_slot) }} slot2 = NULL;
-
+{% if left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
     if ({{ left.getTypeIdenticalCheckExpression(right, "type1", "type2") }}) {
         assert(type1 == type2);
 
         {# There maybe be special code for same types. #}
-{% if left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
         return _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}(operand1, operand2);
-{% endif %}
     }
+{% endif %}
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -89,11 +78,13 @@ static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelper
 #pragma warning(pop)
 #endif
 
-    {% set props = {"exits": []} %}
+    {% set props = {"exits": {}} %}
     {{ binary_operation(props, operator, nb_slot, left, right, "type1", "type2", "operand1", "operand2", "exit_binary_result_object", "exit_binary_result_cbool_ok", "exit_binary_result_nbool", "exit_binary_exception") }}
 
+{% if "exit_binary_result_object" in props["exits"] %}
 exit_binary_result_object:
     {{ target.getReturnFromObjectExpressionCode("obj_result") }}
+{% endif %}
 
 {% if "exit_binary_result_cbool_ok" in props["exits"] %}
 exit_binary_result_cbool_ok:
@@ -101,8 +92,14 @@ exit_binary_result_cbool_ok:
 {% endif %}
 
 {% if "exit_binary_exception" in props["exits"] %}
+{% if "all" not in props["exits"]["exit_binary_exception"] %}
+#if PYTHON_VERSION < 0x300
+{% endif %}
 exit_binary_exception:
     return {{target.getExceptionResultIndicatorValue()}};
+{% if "all" not in props["exits"]["exit_binary_exception"] %}
+#endif
+{% endif %}
 {% endif %}
 {% endif %}
 }

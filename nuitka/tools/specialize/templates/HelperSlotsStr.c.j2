@@ -29,7 +29,7 @@
     PyObject *x = {{ left.getSlotCallExpression("sq_repeat", "PyString_Type.tp_as_sequence->sq_repeat", operand1, operand2) }};
     assert(x != Py_NotImplemented);
 {% elif nb_slot == "nb_remainder" %}
-    PyObject *x = PyString_Format(operand1, operand2);
+    PyObject *x = PyString_Format({{ operand1 }}, {{ operand2 }});
 {% else %}
     PyObject *x = {{ left.getSlotCallExpression(nb_slot, "PyString_Type.tp_as_number->" + nb_slot, operand1, operand2) }};
     assert(x != Py_NotImplemented);
@@ -49,7 +49,6 @@ exit_result_object:
     Py_DECREF({{ operand1 }});
 
     {{ operand1 }} = obj_result;
-    Py_INCREF(obj_result);
 {% endif %}
     {{ goto_exit(props, exit_result_ok) }}
 

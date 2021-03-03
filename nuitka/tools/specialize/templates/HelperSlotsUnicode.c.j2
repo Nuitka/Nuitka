@@ -24,7 +24,7 @@
     {# TODO: Could and should in-line and specialize this per slot too. #}
 {% if nb_slot == "nb_add" %}
 {% if left.type_name == "unicode" == right.type_name %}
-    PyObject *x = UNICODE_CONCAT(operand1, operand2);
+    PyObject *x = UNICODE_CONCAT({{ operand1 }}, {{ operand2 }});
 {% else %}
     PyObject *x = {{ left.getSlotCallExpression("sq_concat", "PyUnicode_Type.tp_as_sequence->sq_concat", operand1, operand2) }};
     assert(x != Py_NotImplemented);
@@ -33,7 +33,7 @@
     PyObject *x = {{ left.getSlotCallExpression("sq_repeat", "PyUnicode_Type.tp_as_sequence->sq_repeat", operand1, operand2) }};
     assert(x != Py_NotImplemented);
 {% elif nb_slot == "nb_remainder" %}
-    PyObject *x = PyUnicode_Format(operand1, operand2);
+    PyObject *x = PyUnicode_Format({{ operand1 }}, {{ operand2 }});
 {% else %}
     PyObject *x = {{ left.getSlotCallExpression(nb_slot, "PyUnicode_Type.tp_as_number->" + nb_slot, operand1, operand2) }};
     assert(x != Py_NotImplemented);
@@ -53,7 +53,6 @@ exit_result_object:
     Py_DECREF({{ operand1 }});
 
     {{ operand1 }} = obj_result;
-    Py_INCREF(obj_result);
 {% endif %}
     {{ goto_exit(props, exit_result_ok) }}
 

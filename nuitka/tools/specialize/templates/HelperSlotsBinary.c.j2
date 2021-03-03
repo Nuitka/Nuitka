@@ -16,6 +16,15 @@
 {#     limitations under the License.                                           #}
 {#                                                                              #}
 {% from 'HelperSlotsCommon.c.j2' import goto_exit %}
+{% from 'HelperSlotsInt.c.j2' import int_slot %}
+{% from 'HelperSlotsLong.c.j2' import long_slot %}
+{% from 'HelperSlotsFloat.c.j2' import float_slot %}
+{% from 'HelperSlotsStr.c.j2' import str_slot %}
+{% from 'HelperSlotsUnicode.c.j2' import unicode_slot %}
+{% from 'HelperSlotsBytes.c.j2' import bytes_slot %}
+{% from 'HelperSlotsTuple.c.j2' import tuple_slot %}
+{% from 'HelperSlotsList.c.j2' import list_slot %}
+{% from 'HelperSlotsSet.c.j2' import set_slot %}
 {% macro operation_unsupported_error_exit(props, operator, left, right, type1, type2, exit_result_exception) %}
 {% set args = [] %}
 {% if left == object_desc %}
@@ -132,21 +141,36 @@
     }
 {% endmacro %}
 {% macro binary_operation(props, operator, nb_slot, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_cbool_ok, exit_result_nbool, exit_result_exception) %}
+{% set slot1_relevant = left == object_desc or left.hasSlot(nb_slot) %}
+{% set slot2_relevant = right == object_desc or (left != right and right.hasSlot(nb_slot)) %}
     {% set error_needed = 1 %}
+{% if slot1_relevant %}
+    {{ left.getSlotType(nb_slot) }} slot1 = {{ left.getSlotValueExpression(type1, nb_slot) }};
+{% endif %}
+{% if slot2_relevant %}
+    {{ left.getSlotType(nb_slot) }} slot2 = NULL;
+
     if (!({{ left.getTypeIdenticalCheckExpression(right, type1, type2) }})) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
         slot2 = {{ right.getSlotValueExpression(type2, nb_slot) }};
 
-        if ({{ left.getSlotComparisonEqualExpression(right, "slot1", "slot2") }}) {
+{% if slot1_relevant and (left == object_desc or right == object_desc)  %}
+        if (slot1 == slot2) {
             slot2 = NULL;
         }
+{% endif %}
     }
+{% else %}
+    assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->{{nb_slot}} == NULL || type1->tp_as_number->{{nb_slot}} == type2->tp_as_number->{{nb_slot}});
+{% endif %}
 
+{% if slot1_relevant %}
     if (slot1 != NULL) {
+{% if slot2_relevant and right == object_desc %}
         if (slot2 != NULL) {
-            if ({{ left.getRealSubTypeCheckCode(right, type2, type1) }}) {
+            if (PyType_IsSubtype(type2, type1)) {
                 PyObject *x = {{ left.getSlotCallExpression(nb_slot, "slot2", operand1, operand2) }};
 
                 if (x != Py_NotImplemented) {
@@ -158,6 +182,7 @@
             }
         }
 
+{% endif %}
         PyObject *x = {{ left.getSlotCallExpression(nb_slot, "slot1", operand1, operand2) }};
 
         if (x != Py_NotImplemented) {
@@ -166,7 +191,9 @@
 
         Py_DECREF(x);
     }
+{% endif %}
 
+{% if slot2_relevant %}
     if (slot2 != NULL) {
         PyObject *x = {{ left.getSlotCallExpression(nb_slot, "slot2", operand1, operand2) }};
 
@@ -176,6 +203,7 @@
 
         Py_DECREF(x);
     }
+{% endif %}
 
 {% if operator != "@" %}
 {% if not left.isKnownToNotCoerce(right) or not right.isKnownToNotCoerce(left) %}
@@ -191,7 +219,7 @@
             int err = c1(&coerced1, &coerced2);
 
             if (unlikely(err < 0)) {
-                {{ goto_exit(props, exit_result_exception) }}
+                {{ goto_exit(props, exit_result_exception, None, "py2") }}
             }
 
             if (err == 0) {
@@ -226,7 +254,7 @@
             int err = c2(&coerced2, &coerced1);
 
             if (unlikely(err < 0)) {
-                {{ goto_exit(props, exit_result_exception) }}
+                {{ goto_exit(props, exit_result_exception, None, "py2") }}
             }
 
             if (err == 0) {
@@ -361,7 +389,7 @@
     NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 {% endif %}
 {% endmacro %}
-{% macro call_binary_slot(props, operator, nb_slot, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
+{% macro call_binary_slot(props, operator, nb_slot, nb_islot, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
 {% if left.isSimilarOrSameTypesAsOneOf(int_desc) or right.isSimilarOrSameTypesAsOneOf(int_desc) %}
     {{ int_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
 {% elif left.isSimilarOrSameTypesAsOneOf(long_desc) or right.isSimilarOrSameTypesAsOneOf(long_desc) %}
@@ -379,7 +407,7 @@
 {% elif left.isSimilarOrSameTypesAsOneOf(list_desc) or right.isSimilarOrSameTypesAsOneOf(list_desc) %}
     {{ list_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
 {% elif left.isSimilarOrSameTypesAsOneOf(set_desc) or right.isSimilarOrSameTypesAsOneOf(set_desc) %}
-    {{ set_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+    {{ set_slot(props, operator, nb_slot, nb_islot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
 {% else %}
     {{ 0/0 }}
 {% endif %}

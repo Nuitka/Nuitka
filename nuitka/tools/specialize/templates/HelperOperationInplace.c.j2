@@ -23,21 +23,22 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     {{ left.getCheckValueCode("*operand1") }}
     {{ right.getCheckValueCode("operand2") }}
 
-{# CPython2 treats integer values with fast path. #}
-{% if left.mayBothHaveType(right, "int") %}
+{% if left.type_name == "object" and right.type_name == "object" %}
+    {# CPython2 treats integer values with fast path. #}
 #if PYTHON_VERSION < 0x300
     if ({{ left.getIntCheckExpression("*operand1") }} && {{ right.getIntCheckExpression("operand2") }}) {
         {% from 'HelperSlotsInt.c.j2' import int_slot %}
 
-        {% set props = {"exits": []} %}
+        {% set props = {"exits": {}} %}
         {{ int_slot(props, operator, nb_slot, None, int_desc, int_desc, "result", "*operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
 
         exit_result_ok:
         return true;
 
-{# Not all operations have defined a definite exception exit, so this can be unused #}
+{% if "exit_result_exception" in props["exits"] %}
         exit_result_exception:
         return false;
+{% endif %}
     }
 #endif
 {% endif %}
@@ -51,20 +52,6 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
             return STRING_ADD_INPLACE(operand1, operand2);
         }
 #endif
-{% endif %}
-
-{# Floats are very good for in-place operations. TODO: Probably a lot more could be added. #}
-{% if operator in ("+", "-", "*", "/") and left.hasOneOrBothType(right, "float") %}
-        if ({{left.getFloatCheckExpression("*operand1")}} && {{right.getFloatCheckExpression("operand2")}}) {
-{% if operator == "/" %}
-            if (PyFloat_AS_DOUBLE(operand2) == 0.0) {
-                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
-                return false;
-            }
-{% endif %}
-            PyFloat_AS_DOUBLE(*operand1) {{operator}}= PyFloat_AS_DOUBLE(operand2);
-            return true;
-        }
 {% endif %}
 
 {% if operator == "+" and left.mayBothHaveType(right, "unicode") %}
@@ -84,7 +71,17 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 {% endif %}
     }
 
-{% if operator == "+" and left.mayBothHaveType(right, "str") %}
+{% if left == object_desc and right == object_desc %}
+{# Floats are very good for in-place operations. #}
+{% if float_desc.hasTypeSpecializationCode(float_desc, nb_slot, sq_slot) %}
+    if ({{left.getFloatCheckExpression("*operand1")}} && {{right.getFloatCheckExpression("operand2")}}) {
+        return _BINARY_OPERATION_{{op_code}}_{{float_desc.getHelperCodeName()}}_{{float_desc.getHelperCodeName()}}_INPLACE(operand1, operand2);
+    }
+{% endif %}
+{% endif %}
+
+{% if operator == "+" and left == right and left in (object_desc, str_desc) %}
+{# Fast path for Python2 str values, very important for performance. #}
 #if PYTHON_VERSION < 0x300
     // Python2 strings are to be treated differently, fall back to Python API here.
     if ({{ left.getStringCheckExpression("*operand1")}} && {{right.getStringCheckExpression("operand2") }}) {
@@ -94,9 +91,9 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     }
 #endif
 {% endif %}
-
-{# Fast path for unicode values, very important for Python3, rare for Python2. #}
-{% if operator == "+" and left.mayBothHaveType(right, "unicode") %}
+{% if operator == "+" and left == right and right == object_desc %}
+{# Fast path for Python3 str values, very important for performance. #}
+#if PYTHON_VERSION >= 0x300
     // Python3 Strings are to be treated differently.
     if ({{ left.getUnicodeCheckExpression("*operand1")}} && {{right.getUnicodeCheckExpression("operand2") }}) {
         PyObject *result = UNICODE_CONCAT(*operand1, operand2);
@@ -110,6 +107,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 
         return true;
     }
+#endif
 {% endif %}
 
 {# Fast path for list in-place add with at least one known list. #}
@@ -136,6 +134,21 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     }
 {% endif %}
 
+{% if left.hasTypeSpecializationCode(right, nb_slot, sq_slot) %}
+    {% set props = {"exits": {}} %}
+
+    {{ call_binary_slot(props, operator, nb_slot, nb_islot, left, right, "result", "*operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
+
+    exit_result_ok:
+    return true;
+
+{% if "exit_result_exception" in props["exits"] %}
+    exit_result_exception:
+    return false;
+{% endif %}
+{% else %}
+    {% set props = {"exits": {}} %}
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -146,19 +159,17 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 #pragma warning(pop)
 #endif
 
-    {% set props = {"exits": []} %}
-
     PyTypeObject *type1 = {{ left.getTypeValueExpression("*operand1") }};
     PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
 
+{% if left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
     if ({{ left.getTypeIdenticalCheckExpression(right, "type1", "type2") }}) {
         assert(type1 == type2);
 
         {# There maybe be special code for same types. #}
-{% if left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
         return _BINARY_OPERATION_{{op_code}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}_INPLACE(operand1, operand2);
-{% endif %}
     }
+{% endif %}
 
 {% if left == object_desc or left.hasSlot(nb_islot) %}
     {{ left.getSlotType(nb_islot)}} islot = {{left.getSlotValueExpression("type1", nb_islot) }};
@@ -178,12 +189,10 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 {% endif %}
 
     {
-        {{ left.getSlotType(nb_slot) }} slot1 = {{ left.getSlotValueExpression("type1", nb_slot) }};
-        {{ left.getSlotType(nb_slot) }} slot2 = NULL;
-
         {{ binary_operation(props, operator, nb_slot, left, right, "type1", "type2", "*operand1", "operand2", "exit_inplace_result_object", "exit_inplace_result_cbool_ok", "exit_inplace_result_nbool", "exit_inplace_exception") }}
     }
 
+{% if "exit_inplace_result_object" in props["exits"] %}
 exit_inplace_result_object:
     if (unlikely(obj_result == NULL)) {
         return false;
@@ -197,9 +206,19 @@ exit_inplace_result_object:
     *operand1 = obj_result;
 
     return true;
+{% endif %}
 
+{% if "exit_inplace_exception" in props["exits"] %}
+{% if "all" not in props["exits"]["exit_inplace_exception"] %}
+#if PYTHON_VERSION < 0x300
+{% endif %}
 exit_inplace_exception:
     return false;
+{% if "all" not in props["exits"]["exit_inplace_exception"] %}
+#endif
+{% endif %}
+{% endif %}
+{% endif %}
 }
 
 bool BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {

@@ -37,9 +37,7 @@ exit_result_object:
     {# TODO: Check the reference we were handed down and do it in-place really. #}
     // We got an object handed, that we have to release.
     Py_DECREF({{ operand1 }});
-
     {{ operand1 }} = obj_result;
-    Py_INCREF(obj_result);
 {% endif %}
     {{ goto_exit(props, exit_result_ok) }}
 

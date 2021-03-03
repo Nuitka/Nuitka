@@ -45,7 +45,6 @@ exit_result_object:
     Py_DECREF({{ operand1 }});
 
     {{ operand1 }} = obj_result;
-    Py_INCREF(obj_result);
 {% endif %}
     {{ goto_exit(props, exit_result_ok) }}
 

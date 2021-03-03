@@ -24,18 +24,6 @@
 
 /* C helpers for type in-place "/" (OLDDIV) operations */
 
-/* Disable warnings about unused goto targets for compilers */
-
-#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4102)
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wunused-label"
-#endif
-#endif
-
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 static inline bool _BINARY_OPERATION_OLDDIV_INT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
@@ -52,196 +40,96 @@ static inline bool _BINARY_OPERATION_OLDDIV_INT_INT_INPLACE(PyObject **operand1,
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
-#if PYTHON_VERSION < 0x300
-    if (1 && 1) {
-
-        // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED bool cbool_result;
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-        NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-        CHECK_OBJECT(*operand1);
-        assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(*operand1));
-#endif
-        CHECK_OBJECT(operand2);
-        assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-        const long a = PyInt_AS_LONG(*operand1);
-        const long b = PyInt_AS_LONG(operand2);
-
-        if (unlikely(b == 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
-            goto exit_result_exception;
-        }
-
-        /* TODO: Isn't this a very specific value only, of which we could
-         * hardcode the constant result. Not sure how well the C compiler
-         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-         * -1 has to be rare anyway.
-         */
-
-        if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
-            long a_div_b = a / b;
-            long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
-
-            if (a_mod_b && (b ^ a_mod_b) < 0) {
-                a_mod_b += b;
-                a_div_b -= 1;
-            }
-
-            clong_result = a_div_b;
-            goto exit_result_ok_clong;
-        }
-        {
-            PyObject *operand1_object = *operand1;
-            PyObject *operand2_object = operand2;
-
-            PyObject *r = PyLong_Type.tp_as_number->nb_divide(operand1_object, operand2_object);
-            assert(r != Py_NotImplemented);
-
-            obj_result = r;
-            goto exit_result_object;
-        }
-
-    exit_result_ok_clong:
-
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        // That's our return value then. As we use a dedicated variable, it's
-        // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
-        goto exit_result_ok;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        *operand1 = obj_result;
-        Py_INCREF(obj_result);
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
-
-    exit_result_exception:
-        return false;
-    }
-#endif
-
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
     }
 
+    // Not every code path will make use of all possible results.
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyInt_Type;
+    CHECK_OBJECT(*operand1);
+    assert(PyInt_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
 
-    if (1) {
-        assert(type1 == type2);
+    const long a = PyInt_AS_LONG(*operand1);
+    const long b = PyInt_AS_LONG(operand2);
+
+    if (unlikely(b == 0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        goto exit_result_exception;
     }
 
-    // No inplace number slot nb_inplace_divide available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
+    /* TODO: Isn't this a very specific value only, of which we could
+     * hardcode the constant result. Not sure how well the C compiler
+     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+     * -1 has to be rare anyway.
+     */
 
+    if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+        long a_div_b = a / b;
+        long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
+
+        if (a_mod_b && (b ^ a_mod_b) < 0) {
+            a_mod_b += b;
+            a_div_b -= 1;
+        }
+
+        clong_result = a_div_b;
+        goto exit_result_ok_clong;
+    }
     {
-        binaryfunc slot1 = PyInt_Type.tp_as_number->nb_divide;
-        binaryfunc slot2 = NULL;
+        PyObject *operand1_object = *operand1;
+        PyObject *operand2_object = operand2;
 
-        if (!(1)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        PyObject *r = PyLong_Type.tp_as_number->nb_divide(operand1_object, operand2_object);
+        assert(r != Py_NotImplemented);
 
-            slot2 = PyInt_Type.tp_as_number->nb_divide;
-
-            if (0) {
-                slot2 = NULL;
-            }
-        }
-
-        if (slot1 != NULL) {
-            if (slot2 != NULL) {
-                if (0) {
-                    PyObject *x = slot2(*operand1, operand2);
-
-                    if (x != Py_NotImplemented) {
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-
-                    Py_DECREF(x);
-                    slot2 = NULL;
-                }
-            }
-
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        // Statically recognized that coercion is not possible with these types
-
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'int' and 'int'");
-        goto exit_inplace_exception;
+        obj_result = r;
+        goto exit_result_object;
     }
 
-exit_inplace_result_object:
-    if (unlikely(obj_result == NULL)) {
-        return false;
-    }
+exit_result_ok_clong:
 
     // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
 
     // That's our return value then. As we use a dedicated variable, it's
     // OK that way.
-    *operand1 = obj_result;
+    *operand1 = PyInt_FromLong(clong_result);
+    goto exit_result_ok;
 
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    *operand1 = obj_result;
+    goto exit_result_ok;
+
+exit_result_ok:
     return true;
 
-exit_inplace_exception:
+exit_result_exception:
     return false;
 }
 
@@ -260,99 +148,6 @@ static inline bool _BINARY_OPERATION_OLDDIV_OBJECT_INT_INPLACE(PyObject **operan
     assert(PyInt_CheckExact(operand2));
 #if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-#if PYTHON_VERSION < 0x300
-    if (PyInt_CheckExact(*operand1) && 1) {
-
-        // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED bool cbool_result;
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-        NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-        CHECK_OBJECT(*operand1);
-        assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(*operand1));
-#endif
-        CHECK_OBJECT(operand2);
-        assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-        const long a = PyInt_AS_LONG(*operand1);
-        const long b = PyInt_AS_LONG(operand2);
-
-        if (unlikely(b == 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
-            goto exit_result_exception;
-        }
-
-        /* TODO: Isn't this a very specific value only, of which we could
-         * hardcode the constant result. Not sure how well the C compiler
-         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-         * -1 has to be rare anyway.
-         */
-
-        if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
-            long a_div_b = a / b;
-            long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
-
-            if (a_mod_b && (b ^ a_mod_b) < 0) {
-                a_mod_b += b;
-                a_div_b -= 1;
-            }
-
-            clong_result = a_div_b;
-            goto exit_result_ok_clong;
-        }
-        {
-            PyObject *operand1_object = *operand1;
-            PyObject *operand2_object = operand2;
-
-            PyObject *r = PyLong_Type.tp_as_number->nb_divide(operand1_object, operand2_object);
-            assert(r != Py_NotImplemented);
-
-            obj_result = r;
-            goto exit_result_object;
-        }
-
-    exit_result_ok_clong:
-
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        // That's our return value then. As we use a dedicated variable, it's
-        // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
-        goto exit_result_ok;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        *operand1 = obj_result;
-        Py_INCREF(obj_result);
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
-
-    exit_result_exception:
-        return false;
-    }
 #endif
 
     if (Py_REFCNT(*operand1) == 1) {
@@ -410,20 +205,6 @@ static inline bool _BINARY_OPERATION_OLDDIV_OBJECT_INT_INPLACE(PyObject **operan
         }
 
         if (slot1 != NULL) {
-            if (slot2 != NULL) {
-                if (0) {
-                    PyObject *x = slot2(*operand1, operand2);
-
-                    if (x != Py_NotImplemented) {
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-
-                    Py_DECREF(x);
-                    slot2 = NULL;
-                }
-            }
-
             PyObject *x = slot1(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
@@ -557,99 +338,6 @@ static inline bool _BINARY_OPERATION_OLDDIV_INT_OBJECT_INPLACE(PyObject **operan
     assert(NEW_STYLE_NUMBER(*operand1));
 #endif
     CHECK_OBJECT(operand2);
-
-#if PYTHON_VERSION < 0x300
-    if (1 && PyInt_CheckExact(operand2)) {
-
-        // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED bool cbool_result;
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-        NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-        CHECK_OBJECT(*operand1);
-        assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(*operand1));
-#endif
-        CHECK_OBJECT(operand2);
-        assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-        const long a = PyInt_AS_LONG(*operand1);
-        const long b = PyInt_AS_LONG(operand2);
-
-        if (unlikely(b == 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
-            goto exit_result_exception;
-        }
-
-        /* TODO: Isn't this a very specific value only, of which we could
-         * hardcode the constant result. Not sure how well the C compiler
-         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-         * -1 has to be rare anyway.
-         */
-
-        if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
-            long a_div_b = a / b;
-            long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
-
-            if (a_mod_b && (b ^ a_mod_b) < 0) {
-                a_mod_b += b;
-                a_div_b -= 1;
-            }
-
-            clong_result = a_div_b;
-            goto exit_result_ok_clong;
-        }
-        {
-            PyObject *operand1_object = *operand1;
-            PyObject *operand2_object = operand2;
-
-            PyObject *r = PyLong_Type.tp_as_number->nb_divide(operand1_object, operand2_object);
-            assert(r != Py_NotImplemented);
-
-            obj_result = r;
-            goto exit_result_object;
-        }
-
-    exit_result_ok_clong:
-
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        // That's our return value then. As we use a dedicated variable, it's
-        // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
-        goto exit_result_ok;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        *operand1 = obj_result;
-        Py_INCREF(obj_result);
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
-
-    exit_result_exception:
-        return false;
-    }
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -852,102 +540,28 @@ static inline bool _BINARY_OPERATION_OLDDIV_LONG_LONG_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyLong_Type;
+    PyObject *x = PyLong_Type.tp_as_number->nb_divide(*operand1, operand2);
+    assert(x != Py_NotImplemented);
 
-    if (1) {
-        assert(type1 == type2);
-    }
+    obj_result = x;
+    goto exit_result_object;
 
-    // No inplace number slot nb_inplace_divide available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
-
-    {
-        binaryfunc slot1 = PyLong_Type.tp_as_number->nb_divide;
-        binaryfunc slot2 = NULL;
-
-        if (!(1)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyLong_Type.tp_as_number->nb_divide;
-
-            if (0) {
-                slot2 = NULL;
-            }
-        }
-
-        if (slot1 != NULL) {
-            if (slot2 != NULL) {
-                if (0) {
-                    PyObject *x = slot2(*operand1, operand2);
-
-                    if (x != Py_NotImplemented) {
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-
-                    Py_DECREF(x);
-                    slot2 = NULL;
-                }
-            }
-
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        // Statically recognized that coercion is not possible with these types
-
-#if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'long' and 'long'");
-#else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'int' and 'int'");
-#endif
-        goto exit_inplace_exception;
-    }
-
-exit_inplace_result_object:
+exit_result_object:
     if (unlikely(obj_result == NULL)) {
-        return false;
+        goto exit_result_exception;
     }
-
     // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
     *operand1 = obj_result;
+    goto exit_result_ok;
 
+exit_result_ok:
     return true;
 
-exit_inplace_exception:
+exit_result_exception:
     return false;
 }
 
@@ -1023,20 +637,6 @@ static inline bool _BINARY_OPERATION_OLDDIV_OBJECT_LONG_INPLACE(PyObject **opera
         }
 
         if (slot1 != NULL) {
-            if (slot2 != NULL) {
-                if (0) {
-                    PyObject *x = slot2(*operand1, operand2);
-
-                    if (x != Py_NotImplemented) {
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-
-                    Py_DECREF(x);
-                    slot2 = NULL;
-                }
-            }
-
             PyObject *x = slot1(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
@@ -1378,109 +978,61 @@ static inline bool _BINARY_OPERATION_OLDDIV_FLOAT_FLOAT_INPLACE(PyObject **opera
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-
-        if (1 && 1) {
-            if (PyFloat_AS_DOUBLE(operand2) == 0.0) {
-                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
-                return false;
-            }
-            PyFloat_AS_DOUBLE(*operand1) /= PyFloat_AS_DOUBLE(operand2);
-            return true;
-        }
     }
 
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
+    CHECK_OBJECT(*operand1);
+    assert(PyFloat_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
 
-    if (1) {
-        assert(type1 == type2);
+    double a = PyFloat_AS_DOUBLE(*operand1);
+    double b = PyFloat_AS_DOUBLE(operand2);
+
+    if (unlikely(b == 0.0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
+        goto exit_result_exception;
     }
-
-    // No inplace number slot nb_inplace_divide available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
 
     {
-        binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_divide;
-        binaryfunc slot2 = NULL;
+        double r = a / b;
 
-        if (!(1)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyFloat_Type.tp_as_number->nb_divide;
-
-            if (0) {
-                slot2 = NULL;
-            }
-        }
-
-        if (slot1 != NULL) {
-            if (slot2 != NULL) {
-                if (0) {
-                    PyObject *x = slot2(*operand1, operand2);
-
-                    if (x != Py_NotImplemented) {
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-
-                    Py_DECREF(x);
-                    slot2 = NULL;
-                }
-            }
-
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        // Statically recognized that coercion is not possible with these types
-
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'float' and 'float'");
-        goto exit_inplace_exception;
+        cfloat_result = r;
+        goto exit_result_ok_cfloat;
     }
 
-exit_inplace_result_object:
-    if (unlikely(obj_result == NULL)) {
-        return false;
+exit_result_ok_cfloat:
+    if (Py_REFCNT(*operand1) == 1) {
+        PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
+    } else {
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = PyFloat_FromDouble(cfloat_result);
     }
+    goto exit_result_ok;
 
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = obj_result;
-
+exit_result_ok:
     return true;
 
-exit_inplace_exception:
+exit_result_exception:
     return false;
 }
 
@@ -1504,15 +1056,6 @@ static inline bool _BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_INPLACE(PyObject **oper
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-
-        if (PyFloat_CheckExact(*operand1) && 1) {
-            if (PyFloat_AS_DOUBLE(operand2) == 0.0) {
-                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
-                return false;
-            }
-            PyFloat_AS_DOUBLE(*operand1) /= PyFloat_AS_DOUBLE(operand2);
-            return true;
-        }
     }
 
 #ifdef _MSC_VER
@@ -1565,20 +1108,6 @@ static inline bool _BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_INPLACE(PyObject **oper
         }
 
         if (slot1 != NULL) {
-            if (slot2 != NULL) {
-                if (0) {
-                    PyObject *x = slot2(*operand1, operand2);
-
-                    if (x != Py_NotImplemented) {
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-
-                    Py_DECREF(x);
-                    slot2 = NULL;
-                }
-            }
-
             PyObject *x = slot1(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
@@ -1716,15 +1245,6 @@ static inline bool _BINARY_OPERATION_OLDDIV_FLOAT_OBJECT_INPLACE(PyObject **oper
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
-
-        if (1 && PyFloat_CheckExact(operand2)) {
-            if (PyFloat_AS_DOUBLE(operand2) == 0.0) {
-                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
-                return false;
-            }
-            PyFloat_AS_DOUBLE(*operand1) /= PyFloat_AS_DOUBLE(operand2);
-            return true;
-        }
     }
 
 #ifdef _MSC_VER
@@ -1936,10 +1456,6 @@ static inline bool _BINARY_OPERATION_OLDDIV_INT_LONG_INPLACE(PyObject **operand1
     PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = &PyLong_Type;
 
-    if (0) {
-        assert(type1 == type2);
-    }
-
     // No inplace number slot nb_inplace_divide available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
 
@@ -1952,27 +1468,9 @@ static inline bool _BINARY_OPERATION_OLDDIV_INT_LONG_INPLACE(PyObject **operand1
             /* Different types, need to consider second value slot. */
 
             slot2 = PyLong_Type.tp_as_number->nb_divide;
-
-            if (0) {
-                slot2 = NULL;
-            }
         }
 
         if (slot1 != NULL) {
-            if (slot2 != NULL) {
-                if (0) {
-                    PyObject *x = slot2(*operand1, operand2);
-
-                    if (x != Py_NotImplemented) {
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-
-                    Py_DECREF(x);
-                    slot2 = NULL;
-                }
-            }
-
             PyObject *x = slot1(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
@@ -2057,10 +1555,6 @@ static inline bool _BINARY_OPERATION_OLDDIV_LONG_INT_INPLACE(PyObject **operand1
     PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = &PyInt_Type;
 
-    if (0) {
-        assert(type1 == type2);
-    }
-
     // No inplace number slot nb_inplace_divide available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
 
@@ -2073,27 +1567,9 @@ static inline bool _BINARY_OPERATION_OLDDIV_LONG_INT_INPLACE(PyObject **operand1
             /* Different types, need to consider second value slot. */
 
             slot2 = PyInt_Type.tp_as_number->nb_divide;
-
-            if (0) {
-                slot2 = NULL;
-            }
         }
 
         if (slot1 != NULL) {
-            if (slot2 != NULL) {
-                if (0) {
-                    PyObject *x = slot2(*operand1, operand2);
-
-                    if (x != Py_NotImplemented) {
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-
-                    Py_DECREF(x);
-                    slot2 = NULL;
-                }
-            }
-
             PyObject *x = slot1(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
@@ -2178,10 +1654,6 @@ static inline bool _BINARY_OPERATION_OLDDIV_INT_FLOAT_INPLACE(PyObject **operand
     PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = &PyFloat_Type;
 
-    if (0) {
-        assert(type1 == type2);
-    }
-
     // No inplace number slot nb_inplace_divide available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
 
@@ -2194,27 +1666,9 @@ static inline bool _BINARY_OPERATION_OLDDIV_INT_FLOAT_INPLACE(PyObject **operand
             /* Different types, need to consider second value slot. */
 
             slot2 = PyFloat_Type.tp_as_number->nb_divide;
-
-            if (0) {
-                slot2 = NULL;
-            }
         }
 
         if (slot1 != NULL) {
-            if (slot2 != NULL) {
-                if (0) {
-                    PyObject *x = slot2(*operand1, operand2);
-
-                    if (x != Py_NotImplemented) {
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-
-                    Py_DECREF(x);
-                    slot2 = NULL;
-                }
-            }
-
             PyObject *x = slot1(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
@@ -2299,10 +1753,6 @@ static inline bool _BINARY_OPERATION_OLDDIV_FLOAT_INT_INPLACE(PyObject **operand
     PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = &PyInt_Type;
 
-    if (0) {
-        assert(type1 == type2);
-    }
-
     // No inplace number slot nb_inplace_divide available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
 
@@ -2315,27 +1765,9 @@ static inline bool _BINARY_OPERATION_OLDDIV_FLOAT_INT_INPLACE(PyObject **operand
             /* Different types, need to consider second value slot. */
 
             slot2 = PyInt_Type.tp_as_number->nb_divide;
-
-            if (0) {
-                slot2 = NULL;
-            }
         }
 
         if (slot1 != NULL) {
-            if (slot2 != NULL) {
-                if (0) {
-                    PyObject *x = slot2(*operand1, operand2);
-
-                    if (x != Py_NotImplemented) {
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-
-                    Py_DECREF(x);
-                    slot2 = NULL;
-                }
-            }
-
             PyObject *x = slot1(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
@@ -2420,10 +1852,6 @@ static inline bool _BINARY_OPERATION_OLDDIV_LONG_FLOAT_INPLACE(PyObject **operan
     PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = &PyFloat_Type;
 
-    if (0) {
-        assert(type1 == type2);
-    }
-
     // No inplace number slot nb_inplace_divide available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
 
@@ -2436,27 +1864,9 @@ static inline bool _BINARY_OPERATION_OLDDIV_LONG_FLOAT_INPLACE(PyObject **operan
             /* Different types, need to consider second value slot. */
 
             slot2 = PyFloat_Type.tp_as_number->nb_divide;
-
-            if (0) {
-                slot2 = NULL;
-            }
         }
 
         if (slot1 != NULL) {
-            if (slot2 != NULL) {
-                if (0) {
-                    PyObject *x = slot2(*operand1, operand2);
-
-                    if (x != Py_NotImplemented) {
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-
-                    Py_DECREF(x);
-                    slot2 = NULL;
-                }
-            }
-
             PyObject *x = slot1(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
@@ -2545,10 +1955,6 @@ static inline bool _BINARY_OPERATION_OLDDIV_FLOAT_LONG_INPLACE(PyObject **operan
     PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = &PyLong_Type;
 
-    if (0) {
-        assert(type1 == type2);
-    }
-
     // No inplace number slot nb_inplace_divide available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
 
@@ -2561,27 +1967,9 @@ static inline bool _BINARY_OPERATION_OLDDIV_FLOAT_LONG_INPLACE(PyObject **operan
             /* Different types, need to consider second value slot. */
 
             slot2 = PyLong_Type.tp_as_number->nb_divide;
-
-            if (0) {
-                slot2 = NULL;
-            }
         }
 
         if (slot1 != NULL) {
-            if (slot2 != NULL) {
-                if (0) {
-                    PyObject *x = slot2(*operand1, operand2);
-
-                    if (x != Py_NotImplemented) {
-                        obj_result = x;
-                        goto exit_inplace_result_object;
-                    }
-
-                    Py_DECREF(x);
-                    slot2 = NULL;
-                }
-            }
-
             PyObject *x = slot1(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
@@ -2726,7 +2114,6 @@ static inline bool _BINARY_OPERATION_OLDDIV_OBJECT_OBJECT_INPLACE(PyObject **ope
         Py_DECREF(*operand1);
 
         *operand1 = obj_result;
-        Py_INCREF(obj_result);
         goto exit_result_ok;
 
     exit_result_ok:
@@ -2742,6 +2129,10 @@ static inline bool _BINARY_OPERATION_OLDDIV_OBJECT_OBJECT_INPLACE(PyObject **ope
         // execute stuff in-place.
     }
 
+    if (PyFloat_CheckExact(*operand1) && PyFloat_CheckExact(operand2)) {
+        return _BINARY_OPERATION_OLDDIV_FLOAT_FLOAT_INPLACE(operand1, operand2);
+    }
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2754,10 +2145,6 @@ static inline bool _BINARY_OPERATION_OLDDIV_OBJECT_OBJECT_INPLACE(PyObject **ope
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-    }
 
     binaryfunc islot =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_inplace_divide : NULL;
@@ -2927,14 +2314,4 @@ exit_inplace_exception:
 bool BINARY_OPERATION_OLDDIV_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_OLDDIV_OBJECT_OBJECT_INPLACE(operand1, operand2);
 }
-#endif
-
-/* Reneable warnings about unused goto targets for compilers */
-#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic warning "-Wunused-label"
-#endif
 #endif

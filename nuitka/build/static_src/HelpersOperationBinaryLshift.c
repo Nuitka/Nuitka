@@ -24,18 +24,6 @@
 
 /* C helpers for type specialized "<<" (LSHIFT) operations */
 
-/* Disable warnings about unused goto targets for compilers */
-
-#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4102)
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wunused-label"
-#endif
-#endif
-
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -88,11 +76,7 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_LONG(PyObject *operand1,
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_lshift : NULL;
-
     PyTypeObject *type2 = &PyLong_Type;
-    binaryfunc slot2 = NULL;
 
     if (type1 == type2) {
         assert(type1 == type2);
@@ -110,6 +94,10 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_LONG(PyObject *operand1,
 #pragma warning(pop)
 #endif
 
+    binaryfunc slot1 =
+        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_lshift : NULL;
+    binaryfunc slot2 = NULL;
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -122,20 +110,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_LONG(PyObject *operand1,
     }
 
     if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_binary_result_object;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
@@ -259,10 +233,7 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_LONG_OBJECT(PyObject *operand1,
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = &PyLong_Type;
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_lshift;
-
     PyTypeObject *type2 = Py_TYPE(operand2);
-    binaryfunc slot2 = NULL;
 
     if (type1 == type2) {
         assert(type1 == type2);
@@ -279,6 +250,9 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_LONG_OBJECT(PyObject *operand1,
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
+
+    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_lshift;
+    binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
         assert(type1 != type2);
@@ -472,11 +446,7 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_LONG(PyObject *operand1
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_lshift : NULL;
-
     PyTypeObject *type2 = &PyLong_Type;
-    binaryfunc slot2 = NULL;
 
     if (type1 == type2) {
         assert(type1 == type2);
@@ -494,6 +464,10 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_LONG(PyObject *operand1
 #pragma warning(pop)
 #endif
 
+    binaryfunc slot1 =
+        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_lshift : NULL;
+    binaryfunc slot2 = NULL;
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -506,20 +480,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_LONG(PyObject *operand1
     }
 
     if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_binary_result_object;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
@@ -651,10 +611,7 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_LONG_OBJECT(PyObject *operand1
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = &PyLong_Type;
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_lshift;
-
     PyTypeObject *type2 = Py_TYPE(operand2);
-    binaryfunc slot2 = NULL;
 
     if (type1 == type2) {
         assert(type1 == type2);
@@ -671,6 +628,9 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_LONG_OBJECT(PyObject *operand1
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
+
+    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_lshift;
+    binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
         assert(type1 != type2);
@@ -941,11 +901,7 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_INT(PyObject *operand1, 
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_lshift : NULL;
-
     PyTypeObject *type2 = &PyInt_Type;
-    binaryfunc slot2 = NULL;
 
     if (type1 == type2) {
         assert(type1 == type2);
@@ -963,6 +919,10 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_INT(PyObject *operand1, 
 #pragma warning(pop)
 #endif
 
+    binaryfunc slot1 =
+        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_lshift : NULL;
+    binaryfunc slot2 = NULL;
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -975,20 +935,6 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_INT(PyObject *operand1, 
     }
 
     if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_binary_result_object;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
@@ -1110,10 +1056,7 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_OBJECT(PyObject *operand1, 
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = &PyInt_Type;
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_lshift;
-
     PyTypeObject *type2 = Py_TYPE(operand2);
-    binaryfunc slot2 = NULL;
 
     if (type1 == type2) {
         assert(type1 == type2);
@@ -1130,6 +1073,9 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_OBJECT(PyObject *operand1, 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
+
+    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_lshift;
+    binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
         assert(type1 != type2);
@@ -1389,11 +1335,7 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_INT(PyObject *operand1,
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_lshift : NULL;
-
     PyTypeObject *type2 = &PyInt_Type;
-    binaryfunc slot2 = NULL;
 
     if (type1 == type2) {
         assert(type1 == type2);
@@ -1411,6 +1353,10 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_INT(PyObject *operand1,
 #pragma warning(pop)
 #endif
 
+    binaryfunc slot1 =
+        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_lshift : NULL;
+    binaryfunc slot2 = NULL;
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
@@ -1423,20 +1369,6 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_INT(PyObject *operand1,
     }
 
     if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_binary_result_object;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
@@ -1566,10 +1498,7 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_OBJECT(PyObject *operand1,
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = &PyInt_Type;
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_lshift;
-
     PyTypeObject *type2 = Py_TYPE(operand2);
-    binaryfunc slot2 = NULL;
 
     if (type1 == type2) {
         assert(type1 == type2);
@@ -1586,6 +1515,9 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_OBJECT(PyObject *operand1,
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
+
+    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_lshift;
+    binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
         assert(type1 != type2);
@@ -1746,14 +1678,7 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_LONG(PyObject *operand1, Py
 #endif
 
     PyTypeObject *type1 = &PyInt_Type;
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_lshift;
-
     PyTypeObject *type2 = &PyLong_Type;
-    binaryfunc slot2 = NULL;
-
-    if (0) {
-        assert(type1 == type2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1765,32 +1690,17 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_LONG(PyObject *operand1, Py
 #pragma warning(pop)
 #endif
 
+    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_lshift;
+    binaryfunc slot2 = NULL;
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
         slot2 = PyLong_Type.tp_as_number->nb_lshift;
-
-        if (0) {
-            slot2 = NULL;
-        }
     }
 
     if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_binary_result_object;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
@@ -1844,14 +1754,7 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_LONG_INT(PyObject *operand1, Py
 #endif
 
     PyTypeObject *type1 = &PyLong_Type;
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_lshift;
-
     PyTypeObject *type2 = &PyInt_Type;
-    binaryfunc slot2 = NULL;
-
-    if (0) {
-        assert(type1 == type2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1863,32 +1766,17 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_LONG_INT(PyObject *operand1, Py
 #pragma warning(pop)
 #endif
 
+    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_lshift;
+    binaryfunc slot2 = NULL;
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
         slot2 = PyInt_Type.tp_as_number->nb_lshift;
-
-        if (0) {
-            slot2 = NULL;
-        }
     }
 
     if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_binary_result_object;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
@@ -1942,14 +1830,7 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_LONG(PyObject *operand1, P
 #endif
 
     PyTypeObject *type1 = &PyInt_Type;
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_lshift;
-
     PyTypeObject *type2 = &PyLong_Type;
-    binaryfunc slot2 = NULL;
-
-    if (0) {
-        assert(type1 == type2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1961,32 +1842,17 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_LONG(PyObject *operand1, P
 #pragma warning(pop)
 #endif
 
+    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_lshift;
+    binaryfunc slot2 = NULL;
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
         slot2 = PyLong_Type.tp_as_number->nb_lshift;
-
-        if (0) {
-            slot2 = NULL;
-        }
     }
 
     if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_binary_result_object;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
@@ -2048,14 +1914,7 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_LONG_INT(PyObject *operand1, P
 #endif
 
     PyTypeObject *type1 = &PyLong_Type;
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_lshift;
-
     PyTypeObject *type2 = &PyInt_Type;
-    binaryfunc slot2 = NULL;
-
-    if (0) {
-        assert(type1 == type2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2067,32 +1926,17 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_LONG_INT(PyObject *operand1, P
 #pragma warning(pop)
 #endif
 
+    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_lshift;
+    binaryfunc slot2 = NULL;
+
     if (!(0)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
         slot2 = PyInt_Type.tp_as_number->nb_lshift;
-
-        if (0) {
-            slot2 = NULL;
-        }
     }
 
     if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_binary_result_object;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
@@ -2240,15 +2084,7 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_OBJECT(PyObject *operand
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_lshift : NULL;
-
     PyTypeObject *type2 = Py_TYPE(operand2);
-    binaryfunc slot2 = NULL;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2259,6 +2095,10 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_OBJECT(PyObject *operand
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
+
+    binaryfunc slot1 =
+        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_lshift : NULL;
+    binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
         assert(type1 != type2);
@@ -2497,15 +2337,7 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operan
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_lshift : NULL;
-
     PyTypeObject *type2 = Py_TYPE(operand2);
-    binaryfunc slot2 = NULL;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2516,6 +2348,10 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operan
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
+
+    binaryfunc slot1 =
+        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_lshift : NULL;
+    binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
         assert(type1 != type2);
@@ -2660,13 +2496,3 @@ exit_binary_exception:
 nuitka_bool BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_OBJECT(operand1, operand2);
 }
-
-/* Reneable warnings about unused goto targets for compilers */
-#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic warning "-Wunused-label"
-#endif
-#endif

@@ -24,18 +24,6 @@
 
 /* C helpers for type specialized "@" (MATMULT) operations */
 
-/* Disable warnings about unused goto targets for compilers */
-
-#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4102)
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wunused-label"
-#endif
-#endif
-
 #if PYTHON_VERSION >= 0x350
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
@@ -51,14 +39,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_LONG(PyObject *operand1, 
 #endif
 
     PyTypeObject *type1 = &PyLong_Type;
-    binaryfunc slot1 = NULL;
-
     PyTypeObject *type2 = &PyLong_Type;
-    binaryfunc slot2 = NULL;
-
-    if (1) {
-        assert(type1 == type2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -70,52 +51,8 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_LONG(PyObject *operand1, 
 #pragma warning(pop)
 #endif
 
-    if (!(1)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = NULL;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_binary_result_object;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
+    assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_matrix_multiply == NULL ||
+           type1->tp_as_number->nb_matrix_multiply == type2->tp_as_number->nb_matrix_multiply);
 
     // Statically recognized that coercion is not possible with Python3 only operator '@'
 
@@ -125,9 +62,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_LONG(PyObject *operand1, 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'int' and 'int'");
 #endif
     goto exit_binary_exception;
-
-exit_binary_result_object:
-    return obj_result;
 
 exit_binary_exception:
     return NULL;
@@ -149,15 +83,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_LONG(PyObject *operand1
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_matrix_multiply : NULL;
-
     PyTypeObject *type2 = &PyLong_Type;
-    binaryfunc slot2 = NULL;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -169,44 +95,13 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_LONG(PyObject *operand1
 #pragma warning(pop)
 #endif
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = NULL;
-
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
+    binaryfunc slot1 =
+        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_matrix_multiply : NULL;
+    assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_matrix_multiply == NULL ||
+           type1->tp_as_number->nb_matrix_multiply == type2->tp_as_number->nb_matrix_multiply);
 
     if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_binary_result_object;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
         PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
             obj_result = x;
@@ -248,14 +143,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_OBJECT(PyObject *operand1
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = &PyLong_Type;
-    binaryfunc slot1 = NULL;
-
     PyTypeObject *type2 = Py_TYPE(operand2);
-    binaryfunc slot2 = NULL;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -267,41 +155,14 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_OBJECT(PyObject *operand1
 #pragma warning(pop)
 #endif
 
+    binaryfunc slot2 = NULL;
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_matrix_multiply
                                                                               : NULL;
-
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_binary_result_object;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
     }
 
     if (slot2 != NULL) {
@@ -351,14 +212,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_FLOAT(PyObject *operand1
 #endif
 
     PyTypeObject *type1 = &PyFloat_Type;
-    binaryfunc slot1 = NULL;
-
     PyTypeObject *type2 = &PyFloat_Type;
-    binaryfunc slot2 = NULL;
-
-    if (1) {
-        assert(type1 == type2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -370,60 +224,13 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_FLOAT(PyObject *operand1
 #pragma warning(pop)
 #endif
 
-    if (!(1)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = NULL;
-
-        if (0) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_binary_result_object;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
+    assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_matrix_multiply == NULL ||
+           type1->tp_as_number->nb_matrix_multiply == type2->tp_as_number->nb_matrix_multiply);
 
     // Statically recognized that coercion is not possible with Python3 only operator '@'
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'float' and 'float'");
     goto exit_binary_exception;
-
-exit_binary_result_object:
-    return obj_result;
 
 exit_binary_exception:
     return NULL;
@@ -445,15 +252,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_FLOAT(PyObject *operand
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_matrix_multiply : NULL;
-
     PyTypeObject *type2 = &PyFloat_Type;
-    binaryfunc slot2 = NULL;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -465,44 +264,13 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_FLOAT(PyObject *operand
 #pragma warning(pop)
 #endif
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = NULL;
-
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
+    binaryfunc slot1 =
+        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_matrix_multiply : NULL;
+    assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_matrix_multiply == NULL ||
+           type1->tp_as_number->nb_matrix_multiply == type2->tp_as_number->nb_matrix_multiply);
 
     if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (0) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_binary_result_object;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
         PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
             obj_result = x;
@@ -540,14 +308,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_OBJECT(PyObject *operand
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = &PyFloat_Type;
-    binaryfunc slot1 = NULL;
-
     PyTypeObject *type2 = Py_TYPE(operand2);
-    binaryfunc slot2 = NULL;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -559,41 +320,14 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_OBJECT(PyObject *operand
 #pragma warning(pop)
 #endif
 
+    binaryfunc slot2 = NULL;
+
     if (!(type1 == type2)) {
         assert(type1 != type2);
         /* Different types, need to consider second value slot. */
 
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_matrix_multiply
                                                                               : NULL;
-
-        if (slot1 == slot2) {
-            slot2 = NULL;
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
-                PyObject *x = slot2(operand1, operand2);
-
-                if (x != Py_NotImplemented) {
-                    obj_result = x;
-                    goto exit_binary_result_object;
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
     }
 
     if (slot2 != NULL) {
@@ -689,15 +423,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operan
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    binaryfunc slot1 =
-        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_matrix_multiply : NULL;
-
     PyTypeObject *type2 = Py_TYPE(operand2);
-    binaryfunc slot2 = NULL;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -708,6 +434,10 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operan
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
+
+    binaryfunc slot1 =
+        (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_matrix_multiply : NULL;
+    binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
         assert(type1 != type2);
@@ -772,14 +502,4 @@ exit_binary_exception:
 PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(operand1, operand2);
 }
-#endif
-
-/* Reneable warnings about unused goto targets for compilers */
-#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic warning "-Wunused-label"
-#endif
 #endif

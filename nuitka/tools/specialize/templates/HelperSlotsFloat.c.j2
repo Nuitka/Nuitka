@@ -234,11 +234,14 @@ exit_result_ok_cfloat:
     {{ target.getAssignFromFloatExpressionCode(result, "cfloat_result") }}
 {% else %}
     {# TODO: Check the reference we were handed down. #}
+    if (Py_REFCNT({{ operand1 }}) == 1) {
+        PyFloat_AS_DOUBLE({{ operand1 }}) = cfloat_result;
+    } else {
+        // We got an object handed, that we have to release.
+        Py_DECREF({{ operand1 }});
 
-    // We got an object handed, that we have to release.
-    Py_DECREF({{ operand1 }});
-
-    {{ left.getAssignFromFloatExpressionCode(operand1, "cfloat_result") }}
+        {{ left.getAssignFromFloatExpressionCode(operand1, "cfloat_result") }}
+    }
 {% endif %}
     {{ goto_exit(props, exit_result_ok) }}
 {% endif %}
@@ -256,7 +259,6 @@ exit_result_object:
     Py_DECREF({{ operand1 }});
 
     {{ operand1 }} = obj_result;
-    Py_INCREF(obj_result);
 {% endif %}
     {{ goto_exit(props, exit_result_ok) }}
 {% endif %}
@@ -277,7 +279,7 @@ exit_result_ok_right:
 {% else %}
     // We got an object handed, that we have to release.
     Py_DECREF({{ operand1 }});
-    {{ left.getAssignConversionCode(result, right, operand2) }}
+    {{ left.getAssignConversionCode(operand1, right, operand2) }}
 {% endif %}
     {{ goto_exit(props, exit_result_ok) }}
 {% endif %}

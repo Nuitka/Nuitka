@@ -267,12 +267,6 @@ class TypeDescBase(getMetaClassBase("Type")):
         else:
             return 0
 
-    def getSlotComparisonEqualExpression(self, right, operand1, operand2):
-        if right is object_desc or self is object_desc:
-            return "%s == %s" % (operand1, operand2)
-        else:
-            return "0"
-
     @abstractmethod
     def hasSlot(self, slot):
         pass
@@ -464,6 +458,7 @@ return %(return_value)s;""" % {
                 list_desc,
                 tuple_desc,
                 dict_desc,
+                float_desc,
             ):
                 return False
 
@@ -476,6 +471,7 @@ return %(return_value)s;""" % {
                 list_desc,
                 set_desc,
                 dict_desc,
+                float_desc,
             ):
                 return False
 
@@ -652,7 +648,7 @@ return %(return_value)s;""" % {
 
     @classmethod
     def getAssignFromFloatExpressionCode(cls, result, operand):
-        if cls.type_name in ("object", "int"):
+        if cls.type_name in ("object", "int", "float"):
             return "%s = PyFloat_FromDouble(%s);" % (result, operand)
         elif cls.type_name == "nbool":
             return "%s = %s;" % (
@@ -1406,7 +1402,7 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
     if left in (int_desc, clong_desc):
         template = env.get_template("HelperOperationComparisonInt.c.j2")
     # elif left == long_desc:
-    #     template = env.get_template("HelperOperationBinaryLong.c.j2")
+    #     template = env.get_template("HelperOperationComparisonLong.c.j2")
     elif left == float_desc:
         template = env.get_template("HelperOperationComparisonFloat.c.j2")
     # elif left == list_desc:
@@ -1551,21 +1547,6 @@ def makeHelperOperations(
     )
     emit()
 
-    emit_c(
-        """/* Disable warnings about unused goto targets for compilers */
-
-#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4102)
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wunused-label"
-#endif
-#endif
-"""
-    )
-
     for helper_name in helpers_set:
         assert helper_name.split("_")[:3] == ["BINARY", "OPERATION", op_code], (
             op_code,
@@ -1613,7 +1594,9 @@ def makeHelperOperations(
             op_code=op_code,
             operator=operator,
             nb_slot=_getNbSlotFromOperand(operator, op_code),
-            nb_islot=_getNbInplaceSlotFromOperand(operator, op_code),
+            nb_islot=_getNbInplaceSlotFromOperand(operator, op_code)
+            if inplace
+            else None,
             sq_slot=sq_slot,
             sq_islot=sq_islot,
             object_desc=object_desc,
@@ -1642,19 +1625,6 @@ def makeHelperOperations(
             emit("#endif")
 
         emit()
-
-    emit_c(
-        """/* Reneable warnings about unused goto targets for compilers */
-#ifndef _NUITKA_EXPERIMENTAL_DEBUG_OPERATION_LABELS
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic warning "-Wunused-label"
-#endif
-#endif
-    """
-    )
 
 
 def makeHelperComparisons(

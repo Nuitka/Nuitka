@@ -16,7 +16,7 @@
 {#     limitations under the License.                                           #}
 {#                                                                              #}
 {# This contains macros that are used for all slot helper macros #}
-{% macro goto_exit(props, target, result) %}
+{% macro goto_exit(props, target, result, qual="all") %}
 {% if target.endswith(("_exception", "_left", "_right")) or "_const_" in target or target == "exit_result_ok" %}
 {% elif target.endswith("_cbool") %}
     cbool_result = {{ result }};
@@ -31,7 +31,7 @@
 {% else %}
 #error Cannot derive result variable from {{target}}
 {% endif %}
-    goto {{ target }}; {% do props.get("exits").append(target) %}
+    goto {{ target }}; {% if target not in props.get("exits") %} {% do props.get("exits").update({target: []}) %} {% endif %} {% do props.get("exits").get(target).append(qual) %}
 {% endmacro %}
 
 {% macro constant_float_exit_target(props, target, result, left, operand1, label, constant_value, exit_result_ok) %}
