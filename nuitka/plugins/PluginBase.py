@@ -33,6 +33,7 @@ import sys
 from collections import namedtuple
 
 from nuitka import Options, OutputDirectories
+from nuitka.__past__ import getMetaClassBase
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import check_output
@@ -45,7 +46,7 @@ post_modules = {}
 warned_unused_plugins = set()
 
 
-class NuitkaPluginBase(object):
+class NuitkaPluginBase(getMetaClassBase("Plugin")):
     """Nuitka base class for all plug-ins.
 
     Derive your plugin from "NuitkaPluginBase" please.

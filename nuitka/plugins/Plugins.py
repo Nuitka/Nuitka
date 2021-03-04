@@ -27,6 +27,7 @@ The base class in PluginBase will serve as documentation of available.
 
 """
 
+import inspect
 import os
 import pkgutil
 import shutil
@@ -163,7 +164,11 @@ def _loadPluginClassesFromPath(scan_path):
             assert detector.plugin_name is None, detector
             detector.plugin_name = plugin_class.plugin_name
 
-            assert plugin_class in plugin_classes
+            if plugin_class not in plugin_classes:
+                plugins_logger.sysexit(
+                    "Plugin detector %r references unknown plugin %r"
+                    % (detector, plugin_class)
+                )
 
             plugin_classes.remove(detector)
             plugin_classes.remove(plugin_class)
@@ -634,7 +639,11 @@ def listPlugins():
 def isObjectAUserPluginBaseClass(obj):
     """Verify that a user plugin inherits from UserPluginBase."""
     try:
-        return obj is not NuitkaPluginBase and issubclass(obj, NuitkaPluginBase)
+        return (
+            obj is not NuitkaPluginBase
+            and issubclass(obj, NuitkaPluginBase)
+            and not inspect.isabstract(obj)
+        )
     except TypeError:
         return False
 
