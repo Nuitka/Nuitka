@@ -1212,6 +1212,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         checkImportsRecursive(full_name, module_filename)
 
+        if full_name in result:
+            result.remove(full_name)
+
         return result
 
     def getImplicitImports(self, module):
