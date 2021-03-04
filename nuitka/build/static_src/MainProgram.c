@@ -585,10 +585,10 @@ int main(int argc, char **argv) {
         Py_DECREF(nul_filename);
     }
 
-#ifdef _NUITKA_EXPERIMENTAL_FORCED_OUTPUT
+#if defined(NUITKA_FORCED_STDOUT_PATH)
     {
         wchar_t filename_buffer[1024];
-        wchar_t const *pattern = L"" STRINGIZED(_NUITKA_EXPERIMENTAL_FORCED_OUTPUT);
+        wchar_t const *pattern = L"" NUITKA_FORCED_STDOUT_PATH;
 
         bool res = expandWindowsPath(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
 
@@ -610,10 +610,10 @@ int main(int argc, char **argv) {
     }
 #endif
 
-#ifdef _NUITKA_EXPERIMENTAL_FORCED_STDERR
+#if defined(NUITKA_FORCED_STDERR_PATH)
     {
         wchar_t filename_buffer[1024];
-        wchar_t const *pattern = L"" STRINGIZED(_NUITKA_EXPERIMENTAL_FORCED_STDERR);
+        wchar_t const *pattern = L"" NUITKA_FORCED_STDERR_PATH;
 
         bool res = expandWindowsPath(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
 

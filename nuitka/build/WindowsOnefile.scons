@@ -775,13 +775,13 @@ if msvc_mode:
 onefile_definitions = {}
 
 if "ONEFILE_COMPANY" in os.environ:
-    onefile_definitions["ONEFILE_TEMPFILE"] = 0
+    onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 0
 
     onefile_definitions["ONEFILE_COMPANY"] = os.environ["ONEFILE_COMPANY"]
     onefile_definitions["ONEFILE_PRODUCT"] = os.environ["ONEFILE_PRODUCT"]
     onefile_definitions["ONEFILE_VERSION"] = os.environ["ONEFILE_VERSION"]
 else:
-    onefile_definitions["ONEFILE_TEMPFILE"] = 1
+    onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 1
 
 
 createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)

@@ -974,3 +974,13 @@ def shallPreferSourcecodeOverExtensionModules():
 def shallUseProgressBar():
     """*bool* prefer source code over extension modules if both are there"""
     return options.progress_bar
+
+
+def getForcedStdoutPath():
+    """*str* force program stdout output into that filename"""
+    return options.force_stdout_spec
+
+
+def getForcedStderrPath():
+    """*str* force program stderr output into that filename"""
+    return options.force_stderr_spec

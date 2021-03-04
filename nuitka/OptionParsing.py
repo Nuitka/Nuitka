@@ -890,6 +890,31 @@ Use temporary folder rather than company AppData. Defaults to off.""",
 )
 
 
+windows_group.add_option(
+    "--windows-force-stdout-spec",
+    action="store",
+    dest="force_stdout_spec",
+    metavar="WINDOWS_FORCE_STDOUT_SPEC",
+    default=None,
+    help="""\
+Force standard output of the program to go to this location. Useful for programs with
+disabled console and programs using the Windows Services Plugin of Nuitka. Defaults
+to not active, use e.g. '%PROGRAM%.out.txt', i.e. file near your program.""",
+)
+
+windows_group.add_option(
+    "--windows-force-stderr-spec",
+    action="store",
+    dest="force_stderr_spec",
+    metavar="WINDOWS_FORCE_STDERR_SPEC",
+    default=None,
+    help="""\
+Force standard error of the program to go to this location. Useful for programs with
+disabled console and programs using the Windows Services Plugin of Nuitka. Defaults
+to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your program.""",
+)
+
+
 parser.add_option_group(windows_group)
 
 linux_group = OptionGroup(parser, "Linux specific controls")

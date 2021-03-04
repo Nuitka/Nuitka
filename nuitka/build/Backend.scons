@@ -217,6 +217,12 @@ standalone_mode = getArgumentBool("standalone_mode", False)
 # Onefile mode
 onefile_mode = getArgumentBool("onefile_mode", False)
 
+# Onefile temp mode
+onefile_temp_mode = getArgumentBool("onefile_temp_mode", False)
+
+forced_stdout_path = ARGUMENTS.get("forced_stdout_path", None)
+forced_stderr_path = ARGUMENTS.get("forced_stderr_path", None)
+
 # Show scons mode, output information about Scons operation
 show_scons_mode = getArgumentBool("show_scons", False)
 scons_details_logger.is_quiet = not show_scons_mode
@@ -712,6 +718,9 @@ if standalone_mode:
 
 if onefile_mode:
     env.Append(CPPDEFINES=["_NUITKA_ONEFILE"])
+
+if onefile_temp_mode:
+    env.Append(CPPDEFINES=["_NUITKA_ONEFILE_TEMP"])
 
 # We need "dl" in accelerated mode.
 if "linux" in sys.platform:
@@ -1238,6 +1247,11 @@ def createBuildDefinitionsFile():
     build_definitions["SYSFLAG_NO_RANDOMIZATION"] = (
         1 if python_sysflag_no_randomization else 0
     )
+
+    if forced_stdout_path:
+        build_definitions["NUITKA_FORCED_STDOUT_PATH"] = forced_stdout_path
+    if forced_stderr_path:
+        build_definitions["NUITKA_FORCED_STDERR_PATH"] = forced_stderr_path
 
     createDefinitionsFile(source_dir, "build_definitions.h", build_definitions)
 

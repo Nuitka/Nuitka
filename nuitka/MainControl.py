@@ -397,7 +397,7 @@ def makeSourceDirectory():
 def runSconsBackend(quiet):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-statements
 
     asBoolStr = SconsInterface.asBoolStr
 
@@ -434,6 +434,15 @@ def runSconsBackend(quiet):
 
     if Options.isOnefileMode():
         options["onefile_mode"] = asBoolStr(True)
+
+    if Options.isWindowsOnefileTempDirMode():
+        options["onefile_temp_mode"] = asBoolStr(True)
+
+    if Options.getForcedStdoutPath():
+        options["forced_stdout_path"] = Options.getForcedStdoutPath()
+
+    if Options.getForcedStderrPath():
+        options["forced_stderr_path"] = Options.getForcedStderrPath()
 
     if Options.shallTreatUninstalledPython():
         options["uninstalled_python"] = asBoolStr(True)

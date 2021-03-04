@@ -157,13 +157,13 @@ static void cleanupChildProcess() {
         }
 
         // We only need to wait if there is a need to cleanup files.
-#if ONEFILE_TEMPFILE == 1
+#if _NUITKA_ONEFILE_TEMP == 1
         WaitForSingleObject(handle_process, INFINITE);
         CloseHandle(handle_process);
 #endif
     }
 
-#if ONEFILE_TEMPFILE == 1
+#if _NUITKA_ONEFILE_TEMP == 1
     if (payload_created) {
         // _putws(payload_path);
 
@@ -237,7 +237,7 @@ int main(int argc, char **argv) {
 
     BOOL bool_res;
 
-#if ONEFILE_TEMPFILE == 0
+#if _NUITKA_ONEFILE_TEMP == 0
     res = SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, payload_path);
 
     if (res != S_OK) {
@@ -421,7 +421,7 @@ int main(int argc, char **argv) {
     // Pass our pid by value to the child.
     {
         char buffer[128];
-        itoa(GetCurrentProcessId(), buffer, 10);
+        _itoa_s(GetCurrentProcessId(), buffer, sizeof(buffer), 10);
         SetEnvironmentVariable("NUITKA_ONEFILE_PARENT", buffer);
     }
 

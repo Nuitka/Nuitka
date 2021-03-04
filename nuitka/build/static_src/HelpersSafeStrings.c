@@ -25,7 +25,9 @@
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
+#if defined(_WIN32)
 #include "windows.h"
+#endif
 #include <stdbool.h>
 #endif
 
@@ -110,6 +112,8 @@ void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) 
 
 #if defined(_WIN32)
 bool expandWindowsPath(wchar_t *target, wchar_t const *source, size_t buffer_size) {
+    target[0] = 0;
+
     wchar_t var_name[1024];
     wchar_t *w = NULL;
 
@@ -124,7 +128,6 @@ bool expandWindowsPath(wchar_t *target, wchar_t const *source, size_t buffer_siz
                 continue;
             } else {
                 *w = 0;
-                _putws(var_name);
 
                 if (wcscmp(var_name, L"TEMP") == 0) {
                     GetTempPathW((DWORD)buffer_size, target);
@@ -134,10 +137,16 @@ bool expandWindowsPath(wchar_t *target, wchar_t const *source, size_t buffer_siz
                         buffer_size -= 1;
                     }
                 } else if (wcscmp(var_name, L"PROGRAM") == 0) {
+#if _NUITKA_ONEFILE_TEMP == 1
+                    int argc;
+                    wchar_t **args = CommandLineToArgvW(GetCommandLineW(), &argc);
+
+                    appendWStringSafeW(target, args[0], buffer_size);
+#else
                     if (!GetModuleFileNameW(NULL, target, (DWORD)buffer_size)) {
                         return false;
                     }
-
+#endif
                     while (*target) {
                         target++;
                         buffer_size -= 1;
