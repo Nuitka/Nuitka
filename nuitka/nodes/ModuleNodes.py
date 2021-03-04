@@ -951,6 +951,9 @@ class PythonShlibModule(PythonModuleBase):
                 if "typing" in pyi_deps:
                     pyi_deps.discard("typing")
 
+                if self.getFullName() in pyi_deps:
+                    pyi_deps.discard(self.getFullName())
+
                 self.used_modules = tuple((pyi_dep, None) for pyi_dep in pyi_deps)
             else:
                 self.used_modules = ()
