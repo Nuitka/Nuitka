@@ -294,11 +294,11 @@ static void PRINT_REFCOUNTS() {
 #endif
 
 // Small helper to open files with few arguments.
-static PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode) {
+static PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, PyObject *buffering) {
 #if PYTHON_VERSION < 0x300
-    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), NULL);
+    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), buffering);
 #else
-    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), NULL, NULL, NULL, NULL, NULL, NULL);
+    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), buffering, NULL, NULL, NULL, NULL, NULL);
 #endif
 }
 
@@ -566,21 +566,21 @@ int main(int argc, char **argv) {
         PyObject *nul_filename = Nuitka_String_FromString("NUL:");
 
         if (PySys_GetObject((char *)"stdin") == NULL) {
-            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r");
+            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r", NULL);
 
             CHECK_OBJECT(stdin_file);
             PySys_SetObject((char *)"stdin", stdin_file);
         }
 
         if (PySys_GetObject((char *)"stdout") == NULL) {
-            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w");
+            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", NULL);
 
             CHECK_OBJECT(stdout_file);
             PySys_SetObject((char *)"stdout", stdout_file);
         }
 
         if (PySys_GetObject((char *)"stderr") == NULL) {
-            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w");
+            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", NULL);
 
             CHECK_OBJECT(stderr_file);
 
@@ -605,7 +605,7 @@ int main(int argc, char **argv) {
 
         PyObject *filename = PyUnicode_FromWideChar(filename_buffer, wcslen(filename_buffer));
 
-        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w");
+        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w", const_int_pos_1);
         if (unlikely(stdout_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -630,7 +630,7 @@ int main(int argc, char **argv) {
 
         PyObject *filename = PyUnicode_FromWideChar(filename_buffer, wcslen(filename_buffer));
 
-        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w");
+        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w", const_int_pos_1);
         if (unlikely(stderr_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
