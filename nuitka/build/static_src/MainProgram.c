@@ -186,12 +186,17 @@ extern void SvcLaunchService();
 
 // Callback from Windows Service logic.
 DWORD WINAPI SvcStartPython(LPVOID lpParam) {
-    IMPORT_EMBEDDED_MODULE("__main__");
+    if (lpParam == NULL) {
+        IMPORT_EMBEDDED_MODULE("__main__");
 
-    // TODO: Log exception and call ReportSvcStatus
-    if (ERROR_OCCURRED()) {
-        return 1;
+        // TODO: Log exception and call ReportSvcStatus
+        if (ERROR_OCCURRED()) {
+            return 1;
+        } else {
+            return 0;
+        }
     } else {
+        PyErr_SetInterrupt();
         return 0;
     }
 }
