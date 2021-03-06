@@ -35,6 +35,10 @@ def calledRepeatedly():
 
 # construct_begin
     s += additiv
+    s += additiv
+    s += additiv
+    s += additiv
+    s += additiv
 # construct_end
 
     # Prevent optimization into direct return.

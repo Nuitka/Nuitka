@@ -33,6 +33,10 @@ def calledRepeatedly():
     s *= module_value1
 # construct_begin
     s *= 1000
+    s *= 1000
+    s *= 1000
+    s *= 1000
+    s *= 1000
 # construct_end
     s *= module_value2
 
