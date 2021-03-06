@@ -1097,11 +1097,17 @@ def discoverSourceFiles():
     # needs to derive from filenames, so make copies (or links) with a different
     # name.
 
-    def _scanSourcekDir(dirname):
+    def _scanSourceDir(dirname, plugins):
         if not os.path.exists(dirname):
             return
 
+        added_path = False
+
         for filename in sorted(os.listdir(dirname)):
+            if filename.endswith(".h") and plugins and not added_path:
+                env.Append(CPPPATH=[dirname])
+                added_path = True
+
             # Only C files are of interest here.
             if not filename.endswith((".c", "cpp")) or not filename.startswith(
                 ("module.", "__", "plugin.")
@@ -1124,8 +1130,8 @@ def discoverSourceFiles():
                 result.append(target_file)
 
     # Scan for Nuitka created source files, and add them too.
-    _scanSourcekDir(source_dir)
-    _scanSourcekDir(os.path.join(source_dir, "plugins"))
+    _scanSourceDir(source_dir, plugins=False)
+    _scanSourceDir(os.path.join(source_dir, "plugins"), plugins=True)
 
     static_src_filenames = []
 

@@ -649,7 +649,7 @@ def discoverSourceFiles():
     # If we use C11 capable compiler, all good. Otherwise use C++, which Scons
     # needs to derive from filenames, so make copies (or links) with a different
     # name.
-    def _scanSourcekDir(dirname):
+    def _scanSourceDir(dirname):
         if not os.path.exists(dirname):
             return
 
@@ -676,8 +676,8 @@ def discoverSourceFiles():
                 result.append(target_file)
 
     # Scan for Nuitka created source files, and add them too.
-    _scanSourcekDir(source_dir)
-    _scanSourcekDir(os.path.join(source_dir, "plugins"))
+    _scanSourceDir(source_dir)
+    _scanSourceDir(os.path.join(source_dir, "plugins"))
 
     # Main onefile bootstrap program
     result.append(
