@@ -289,6 +289,11 @@ static PyObject *our_dict_richcompare(PyObject *a, PyObject *b, int op) {
     return result;
 }
 
+#if PYTHON_VERSION >= 0x300
+// For creation of small long singleton long values as required by Python3.
+PyObject *Nuitka_Long_SmallValues[NUITKA_STATIC_SMALLINT_VALUE_MAX - NUITKA_STATIC_SMALLINT_VALUE_MIN + 1];
+#endif
+
 static void initCaches(void) {
     static bool init_done = false;
     if (init_done == true) {
@@ -320,6 +325,15 @@ static void initCaches(void) {
     set_cache = PyDict_New();
 
     frozenset_cache = PyDict_New();
+
+    for (long i = NUITKA_STATIC_SMALLINT_VALUE_MIN; i <= NUITKA_STATIC_SMALLINT_VALUE_MAX; i++) {
+#if PYTHON_VERSION >= 0x300
+        PyObject *value = PyLong_FromLong(i);
+        Py_INCREF(value);
+
+        Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(i)] = value;
+#endif
+    }
 
     init_done = true;
 }

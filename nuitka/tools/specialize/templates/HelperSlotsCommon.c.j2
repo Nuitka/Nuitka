@@ -57,3 +57,15 @@
 {% endif %}
     {{ goto_exit(props, exit_result_ok) }}
 {% endmacro %}
+
+{% macro constant_long_exit_target(props, target, result, left, operand1, label, constant_value, exit_result_ok) %}
+{{label}}:
+{% if target %}
+    {{ target.getAssignFromLongConstantCode(result, constant_value) }}
+{% else %}
+    // We got an object handed, that we have to release.
+    Py_DECREF({{ operand1 }});
+    {{ left.getAssignFromLongConstantCode(operand1, constant_value) }}
+{% endif %}
+    {{ goto_exit(props, exit_result_ok) }}
+{% endmacro %}

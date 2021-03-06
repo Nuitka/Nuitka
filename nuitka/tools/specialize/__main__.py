@@ -723,6 +723,38 @@ return %(return_value)s;""" % {
             assert False, (cls, cls.type_name)
 
     @classmethod
+    def getAssignFromLongConstantCode(cls, result, value):
+        if cls.type_name in ("object", "long"):
+            if str is bytes:
+                # Cannot put "L" in Jinja code for constant value.
+                value = long(value)  # pylint: disable=undefined-variable
+
+            # The only on we surely know right now.
+            assert value == 0
+
+            # TODO: This works for small constants only and only for Python3.
+            const_name2 = "const_" + nuitka.codegen.Namify.namifyConstant(value)
+            const_name3 = (
+                "Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(%d)]" % value
+            )
+
+            return """\
+#if PYTHON_VERSION < 0x300
+%(result)s = %(const_name2)s;
+#else
+%(result)s = %(const_name3)s;
+#endif
+Py_INCREF(%(result)s);""" % {
+                "result": result,
+                "const_name2": const_name2,
+                "const_name3": const_name3,
+            }
+        elif cls.type_name in ("nbool", "float"):
+            return cls.getAssignFromLongExpressionCode(result, value)
+        else:
+            assert False, (cls, cls.type_name)
+
+    @classmethod
     def getAssignConversionCode(cls, result, left, value):
         def _getObjectObject():
             code = "%s = %s;" % (result, value)

@@ -236,6 +236,19 @@ extern PyThreadState *_PyThreadState_Current;
 #define RICHCOMPARE(t) ((t)->tp_richcompare)
 #endif
 
+// For older Python we need to define this ourselves.
+#ifndef Py_ABS
+#define Py_ABS(x) ((x) < 0 ? -(x) : (x))
+#endif
+
+#ifndef Py_MIN
+#define Py_MIN(x, y) (((x) > (y)) ? (y) : (x))
+#endif
+
+#ifndef Py_MAX
+#define Py_MAX(x, y) (((x) > (y)) ? (x) : (y))
+#endif
+
 // Generated.
 // TODO: Move generated ones to separate file.
 #ifdef __IDE_ONLY__

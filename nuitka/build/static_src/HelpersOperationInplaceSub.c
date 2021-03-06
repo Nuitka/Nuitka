@@ -525,11 +525,42 @@ static inline bool _BINARY_OPERATION_SUB_LONG_LONG_INPLACE(PyObject **operand1, 
     // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-    PyObject *x = PyLong_Type.tp_as_number->nb_subtract(*operand1, operand2);
-    assert(x != Py_NotImplemented);
+    if (Py_ABS(Py_SIZE(*operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
+        if (Py_REFCNT(*operand1) == 1) {
+            Nuitka_LongUpdateFromCLong(&*operand1, MEDIUM_VALUE(*operand1) - MEDIUM_VALUE(operand2));
+            goto exit_result_ok;
+        }
+        PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(*operand1) - MEDIUM_VALUE(operand2));
+        obj_result = r;
+        goto exit_result_object;
+    }
+    {
+        PyLongObject *z;
 
-    obj_result = x;
-    goto exit_result_object;
+        digit const *a = Nuitka_LongGetDigitPointer(*operand1);
+        Py_ssize_t size_a = Nuitka_LongGetDigitSize(*operand1);
+        digit const *b = Nuitka_LongGetDigitPointer(operand2);
+        Py_ssize_t size_b = Nuitka_LongGetDigitSize(operand2);
+
+        if (Py_SIZE(*operand1) < 0) {
+            if (Py_SIZE(operand2) < 0) {
+                z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+            } else {
+                z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+            }
+
+            Py_SIZE(z) = -(Py_SIZE(z));
+        } else {
+            if (Py_SIZE(operand2) < 0) {
+                z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+            } else {
+                z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+            }
+        }
+
+        obj_result = (PyObject *)z;
+        goto exit_result_object;
+    }
 
 exit_result_object:
     if (unlikely(obj_result == NULL)) {
