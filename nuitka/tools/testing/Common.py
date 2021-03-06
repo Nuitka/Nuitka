@@ -628,19 +628,27 @@ Error, needs 'strace' on your system to scan used libraries."""
             if sys.version.startswith("3"):
                 result = [s.decode("utf-8") for s in result]
     elif os.name == "nt":
-        subprocess.call(
-            (
-                getDependsExePath(),
-                "-c",
-                "-ot%s" % path + ".depends",
-                "-f1",
-                "-pa1",
-                "-ps1",
-                "-pp0",
-                "-pl1",
-                path,
-            )
+        command = (
+            getDependsExePath(),
+            "-c",  # Console mode
+            "-ot%s" % path + ".depends",
+            "-f1",
+            "-pb",
+            "-pa1",  # Turn on all profiling options.
+            "-ps1",  # Simulate ShellExecute with app dirs in PATH.
+            "-pp1",  # Do not long DllMain calls.
+            "-po1",  # Log DllMain call for all other messages.
+            "-ph1",  # Hook the process.
+            "-pl1",  # Log LoadLibrary calls.
+            "-pt1",  # Thread information.
+            "-pe1",  # First chance exceptions.
+            "-pg1",  # Log GetProcAddress calls.
+            "-pf1",  # Use full paths.
+            "-pc1",  # Profile child processes.
+            path,
         )
+
+        subprocess.call(command)
 
         inside = False
         for line in getFileContentByLine(path + ".depends"):
