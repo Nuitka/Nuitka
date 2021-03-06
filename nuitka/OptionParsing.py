@@ -889,6 +889,15 @@ windows_group.add_option(
 Use temporary folder rather than company AppData. Defaults to off.""",
 )
 
+windows_group.add_option(
+    "--windows-onefile-tempdir-spec",
+    action="store",
+    dest="windows_onefile_tempdir_spec",
+    metavar="WINDOWS_ONEFILE_TEMPDIR_SPEC",
+    default=None,
+    help="""\
+Use this as a temporary folder. Defaults to '%TEMP%\\onefile_%PID%_%TIME%', i.e. system temporary directory.""",
+)
 
 windows_group.add_option(
     "--windows-force-stdout-spec",

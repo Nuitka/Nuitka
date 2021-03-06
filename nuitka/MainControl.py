@@ -625,7 +625,8 @@ def compileTree():
 
     # TODO: On Windows, we could run this in parallel to Scons, on Linux we need it
     # for linking.
-    runDataComposer(source_dir)
+    blob_filename = runDataComposer(source_dir)
+    Plugins.onDataComposerResult(blob_filename)
 
     general.info("Running C level backend compilation via Scons.")
 

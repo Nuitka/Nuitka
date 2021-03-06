@@ -214,8 +214,12 @@ def _runOnefileScons(quiet):
 
     onefile_env_values = {}
 
-    if not Options.isWindowsOnefileTempDirMode():
-        # Merge version information if necessary, to avoid collisions, or deep nesting
+    if Options.isWindowsOnefileTempDirMode():
+        onefile_env_values["ONEFILE_TEMP_SPEC"] = Options.getWindowsOnefileTempDirSpec(
+            use_default=True
+        )
+    else:
+        # Merge version information if possible, to avoid collisions, or deep nesting
         # in file system.
         product_version = version_resources["ProductVersion"]
         file_version = version_resources["FileVersion"]

@@ -22,6 +22,8 @@
  *
  */
 
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <assert.h>
 #include <stdio.h>
 
@@ -52,23 +54,7 @@
 #include "WindowsDecompression.c"
 #endif
 
-static void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t buffer_size) {
-    while (*target != 0) {
-        target++;
-        buffer_size -= 1;
-    }
-
-    while (*source != 0) {
-        if (buffer_size < 1) {
-            abort();
-        }
-
-        *target++ = *source++;
-        buffer_size -= 1;
-    }
-
-    *target = 0;
-}
+#include "HelpersSafeStrings.c"
 
 static void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size) {
     while (*target != 0) {
@@ -278,23 +264,16 @@ int main(int argc, char **argv) {
     appendWStringSafeW(payload_path, L"" ONEFILE_VERSION, sizeof(payload_path) / sizeof(wchar_t));
 
 #else
-    res = GetTempPathW(sizeof(payload_path) / sizeof(wchar_t), payload_path);
-    if (res == 0) {
-        printError("Temporary path cannot be detected.");
-        return 1;
+    wchar_t const *pattern = L"" _NUITKA_ONEFILE_TEMP_SPEC;
+
+    bool_res = expandWindowsPath(payload_path, pattern, sizeof(payload_path) / sizeof(wchar_t));
+
+    if (bool_res == false) {
+        puts("Error, couldn't runtime expand temporary directory pattern:");
+        _putws(pattern);
+        abort();
     }
 
-    // Best effort to make temp path unique by using PID and time.
-    {
-        wchar_t buffer[1024];
-
-        __int64 time = 0;
-        assert(sizeof(time) == sizeof(FILETIME));
-        GetSystemTimeAsFileTime((LPFILETIME)&time);
-
-        swprintf(buffer, sizeof(buffer), L"\\onefile_%d_%lld", GetCurrentProcessId(), time);
-        appendWStringSafeW(payload_path, buffer, sizeof(payload_path) / sizeof(wchar_t));
-    }
 #endif
     bool_res = SetConsoleCtrlHandler(ourConsoleCtrlHandler, true);
     if (bool_res == false) {

@@ -129,14 +129,9 @@ bool expandWindowsPath(wchar_t *target, wchar_t const *source, size_t buffer_siz
             } else {
                 *w = 0;
 
-                if (wcscmp(var_name, L"TEMP") == 0) {
+                if (wcsicmp(var_name, L"TEMP") == 0) {
                     GetTempPathW((DWORD)buffer_size, target);
-
-                    while (*target) {
-                        target++;
-                        buffer_size -= 1;
-                    }
-                } else if (wcscmp(var_name, L"PROGRAM") == 0) {
+                } else if (wcsicmp(var_name, L"PROGRAM") == 0) {
 #if _NUITKA_ONEFILE_TEMP == 1
                     int argc;
                     wchar_t **args = CommandLineToArgvW(GetCommandLineW(), &argc);
@@ -147,12 +142,29 @@ bool expandWindowsPath(wchar_t *target, wchar_t const *source, size_t buffer_siz
                         return false;
                     }
 #endif
-                    while (*target) {
-                        target++;
-                        buffer_size -= 1;
-                    }
+                } else if (wcsicmp(var_name, L"PID") == 0) {
+                    char pid_buffer[128];
+                    _itoa_s(GetCurrentProcessId(), pid_buffer, sizeof(pid_buffer), 10);
+
+                    appendStringSafeW(target, pid_buffer, buffer_size);
+                } else if (wcsicmp(var_name, L"TIME") == 0) {
+                    char time_buffer[1024];
+
+                    __int64 time = 0;
+                    assert(sizeof(time) == sizeof(FILETIME));
+                    GetSystemTimeAsFileTime((LPFILETIME)&time);
+
+                    snprintf(time_buffer, sizeof(time_buffer), "%lld", time);
+
+                    appendStringSafeW(target, time_buffer, buffer_size);
                 } else {
                     return false;
+                }
+
+                // Skip over appended stuff.
+                while (*target) {
+                    target++;
+                    buffer_size -= 1;
                 }
 
                 w = NULL;

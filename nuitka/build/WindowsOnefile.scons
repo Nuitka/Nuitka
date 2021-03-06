@@ -537,8 +537,8 @@ if debug_mode:
             ]
         )
 
-        # Disable warnings, that CPython headers already show.
-        env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
+        # Disable warnings, the first 3 are for Python headers, maybe not needed.
+        env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610", "/wd4996"])
 
 enableExperimentalSettings(env, experimental)
 
@@ -775,14 +775,15 @@ if msvc_mode:
 onefile_definitions = {}
 
 if "ONEFILE_COMPANY" in os.environ:
-    onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 0
-
     onefile_definitions["ONEFILE_COMPANY"] = os.environ["ONEFILE_COMPANY"]
     onefile_definitions["ONEFILE_PRODUCT"] = os.environ["ONEFILE_PRODUCT"]
     onefile_definitions["ONEFILE_VERSION"] = os.environ["ONEFILE_VERSION"]
-else:
-    onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 1
 
+if "ONEFILE_TEMP_SPEC" in os.environ:
+    onefile_definitions["_NUITKA_ONEFILE_TEMP_SPEC"] = os.environ["ONEFILE_TEMP_SPEC"]
+    onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 1
+else:
+    onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 0
 
 createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
 

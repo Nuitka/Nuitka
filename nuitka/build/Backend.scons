@@ -698,8 +698,7 @@ if debug_mode:
         if python_version >= (3, 4):
             env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
 
-        if python_version >= (3, 9):
-            env.Append(CCFLAGS=["/wd4996"])
+        env.Append(CCFLAGS=["/wd4996"])
 
 if full_compat_mode:
     env.Append(CPPDEFINES=["_NUITKA_FULL_COMPAT"])
