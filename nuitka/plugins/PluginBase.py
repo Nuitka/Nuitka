@@ -662,6 +662,15 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
                 "Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message)
             )
 
+    def onDataComposerResult(self, blob_filename):
+        """Internal use only.
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     _runtime_information_cache = {}
 
     def queryRuntimeInformationMultiple(self, info_name, setup_codes, values):

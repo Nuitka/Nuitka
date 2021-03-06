@@ -614,6 +614,11 @@ class Plugins(object):
 
         return cls.extra_link_libraries
 
+    @classmethod
+    def onDataComposerResult(cls, blob_filename):
+        for plugin in getActivePlugins():
+            plugin.onDataComposerResult(blob_filename)
+
 
 def listPlugins():
     """Print available standard plugins."""

@@ -383,16 +383,6 @@ def makeSourceDirectory():
         source_code=constants_body_code,
     )
 
-    for filename, source_code in Plugins.getExtraCodeFiles().items():
-        target_dir = os.path.join(source_dir, "plugins")
-
-        if not os.path.isdir(target_dir):
-            makePath(target_dir)
-
-        writeSourceCode(
-            filename=os.path.join(target_dir, filename), source_code=source_code
-        )
-
 
 def runSconsBackend(quiet):
     # Scons gets transported many details, that we express as variables, and
@@ -623,10 +613,18 @@ def compileTree():
 
     general.info("Running data composer tool for optimal constant value handling.")
 
-    # TODO: On Windows, we could run this in parallel to Scons, on Linux we need it
-    # for linking.
     blob_filename = runDataComposer(source_dir)
     Plugins.onDataComposerResult(blob_filename)
+
+    for filename, source_code in Plugins.getExtraCodeFiles().items():
+        target_dir = os.path.join(source_dir, "plugins")
+
+        if not os.path.isdir(target_dir):
+            makePath(target_dir)
+
+        writeSourceCode(
+            filename=os.path.join(target_dir, filename), source_code=source_code
+        )
 
     general.info("Running C level backend compilation via Scons.")
 
