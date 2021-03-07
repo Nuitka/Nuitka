@@ -575,6 +575,9 @@ static inline bool _BINARY_OPERATION_MATMULT_OBJECT_OBJECT_INPLACE(PyObject **op
         // execute stuff in-place.
     }
 
+    if (Py_TYPE(*operand1) == Py_TYPE(operand2)) {
+    }
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)

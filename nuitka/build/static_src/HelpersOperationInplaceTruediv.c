@@ -2145,8 +2145,15 @@ static inline bool _BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_INPLACE(PyObject **op
         // execute stuff in-place.
     }
 
-    if (PyFloat_CheckExact(*operand1) && PyFloat_CheckExact(operand2)) {
-        return _BINARY_OPERATION_TRUEDIV_FLOAT_FLOAT_INPLACE(operand1, operand2);
+    if (Py_TYPE(*operand1) == Py_TYPE(operand2)) {
+        if (PyFloat_CheckExact(operand2)) {
+            return _BINARY_OPERATION_TRUEDIV_FLOAT_FLOAT_INPLACE(operand1, operand2);
+        }
+#if PYTHON_VERSION >= 0x300
+        if (PyLong_CheckExact(operand2)) {
+            return _BINARY_OPERATION_TRUEDIV_LONG_LONG_INPLACE(operand1, operand2);
+        }
+#endif
     }
 
 #ifdef _MSC_VER

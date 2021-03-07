@@ -73,11 +73,20 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 
 {% if left == object_desc and right == object_desc %}
 {# Floats are very good for in-place operations. #}
+    if (Py_TYPE(*operand1) == Py_TYPE(operand2)) {
 {% if float_desc.hasTypeSpecializationCode(float_desc, nb_slot, sq_slot) %}
-    if ({{left.getFloatCheckExpression("*operand1")}} && {{right.getFloatCheckExpression("operand2")}}) {
-        return _BINARY_OPERATION_{{op_code}}_{{float_desc.getHelperCodeName()}}_{{float_desc.getHelperCodeName()}}_INPLACE(operand1, operand2);
-    }
+        if ({{left.getFloatCheckExpression("operand2")}}) {
+            return _BINARY_OPERATION_{{op_code}}_{{float_desc.getHelperCodeName()}}_{{float_desc.getHelperCodeName()}}_INPLACE(operand1, operand2);
+        }
 {% endif %}
+{% if long_desc.hasTypeSpecializationCode(long_desc, nb_slot, sq_slot) %}
+#if PYTHON_VERSION >= 0x300
+        if ({{left.getLongCheckExpression("operand2")}}) {
+            return _BINARY_OPERATION_{{op_code}}_{{long_desc.getHelperCodeName()}}_{{long_desc.getHelperCodeName()}}_INPLACE(operand1, operand2);
+        }
+#endif
+{% endif %}
+    }
 {% endif %}
 
 {% if operator == "+" and left == right and left in (object_desc, str_desc) %}
@@ -112,7 +121,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 
 {# Fast path for list in-place add with at least one known list. #}
 {% if operator == "+" and left.hasOneOrBothType(right, "list") %}
-    if ({{ left.getListCheckExpression("*operand1")}} && {{right.getListCheckExpression("operand2") }}) {
+    if ({{ left.getListCheckExpression("*operand1")}} && {{ right.getListCheckExpression("operand2") }}) {
         return LIST_EXTEND_FROM_LIST(*operand1, operand2);
     }
 {% endif %}
@@ -120,7 +129,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 {# TODO: No special function for tuple += tuple yet. #}
 {# Fast path for sequences in-place add with at least one known sequence type. #}
 {% if operator == "+" and left.type_name in ("list", "tuple", "object") and right.type_name in ("list", "tuple", "object") and not (left.type_name == "object" == right.type_name) %}
-    if ({{ left.getSequenceCheckExpression("*operand1", right)}} && {{right.getSequenceCheckExpression("operand2", left) }}) {
+    if ({{ left.getSequenceCheckExpression("*operand1", right)}} && {{ right.getSequenceCheckExpression("operand2", left) }}) {
         PyObject *result = PySequence_InPlaceConcat(*operand1, operand2);
 
         if (unlikely(result == NULL)) {

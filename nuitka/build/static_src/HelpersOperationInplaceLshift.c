@@ -1273,6 +1273,14 @@ static inline bool _BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_INPLACE(PyObject **ope
         // execute stuff in-place.
     }
 
+    if (Py_TYPE(*operand1) == Py_TYPE(operand2)) {
+#if PYTHON_VERSION >= 0x300
+        if (PyLong_CheckExact(operand2)) {
+            return _BINARY_OPERATION_LSHIFT_LONG_LONG_INPLACE(operand1, operand2);
+        }
+#endif
+    }
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)

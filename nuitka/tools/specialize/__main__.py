@@ -163,6 +163,15 @@ class TypeDescBase(getMetaClassBase("Type")):
             return "0"
 
     @classmethod
+    def getLongCheckExpression(cls, operand):
+        if cls.type_name == "long":
+            return "1"
+        elif cls.type_name == "object":
+            return "PyLong_CheckExact(%s)" % operand
+        else:
+            return "0"
+
+    @classmethod
     def getStringCheckExpression(cls, operand):
         if cls.type_name == "str":
             return "1"
