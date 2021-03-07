@@ -150,7 +150,8 @@ SxS
 """
                 % {
                     "scan_dirs": "\n".join(
-                        "UserDir %s" % dirname for dirname in scan_dirs
+                        "UserDir %s" % getExternalUsePath(dirname)
+                        for dirname in scan_dirs
                     )
                 }
             )
