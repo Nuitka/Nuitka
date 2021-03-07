@@ -590,8 +590,11 @@ class Plugins(object):
                 # We order per plugin, but from the plugins, lets just take a dict
                 # and achieve determism by ordering the files by name.
                 for key, value in sorted(value.items()):
+                    if not key.startswith("nuitka_"):
+                        key = "plugin." + plugin.plugin_name + "." + key
+
                     assert key not in result, key
-                    result["plugin." + plugin.plugin_name + "." + key] = value
+                    result[key] = value
 
         return result
 
