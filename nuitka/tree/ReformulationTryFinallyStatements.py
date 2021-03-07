@@ -22,7 +22,6 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import Options
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ReturnNodes import StatementReturnReturnedValue
 from nuitka.nodes.StatementNodes import (
@@ -100,11 +99,6 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc=False
     if provider is not None:
         tried.parent = provider
         final.parent = provider
-
-    # TODO: Currently it's not possible anymore to get at XML for all codes
-    # during the building phase. So this error catcher cannot work currently.
-    if False and Options.is_debug:
-        _checkCloning(final, provider)
 
     def getFinal():
         # Make a clone of "final" only if necessary.

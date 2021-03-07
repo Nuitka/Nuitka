@@ -111,7 +111,7 @@ void copyFrozenModulesTo(struct _frozen *destination) {
 
     struct frozen_desc *current = _frozen_modules;
 
-    for(;;) {
+    for (;;) {
         destination->name = (char *)current->name;
         destination->code = bytecode_data[current->index];
         destination->size = current->size;
