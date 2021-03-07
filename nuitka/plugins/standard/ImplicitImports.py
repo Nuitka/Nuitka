@@ -1460,6 +1460,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "gi._gi":
             gtk_dll_path = locateDLL("gtk-3")
 
+            if gtk_dll_path is None:
+                gtk_dll_path = locateDLL("gtk-3-0")
+
             if gtk_dll_path is not None:
                 dist_dll_path = os.path.join(dist_dir, os.path.basename(gtk_dll_path))
                 shutil.copy(gtk_dll_path, dist_dll_path)
