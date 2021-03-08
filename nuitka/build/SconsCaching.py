@@ -29,6 +29,7 @@ from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.FileOperations import (
     getExternalUsePath,
+    getFileContentByLine,
     getFileContents,
     getLinkTarget,
     makePath,
@@ -231,7 +232,7 @@ def _getCcacheStatistics(ccache_logfile):
         # can be matched against it.
         commands = {}
 
-        for line in open(ccache_logfile):
+        for line in getFileContentByLine(ccache_logfile):
             match = re_command.match(line)
 
             if match:
