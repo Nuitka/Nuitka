@@ -313,50 +313,8 @@ def _writeConstantStream(constants_reader):
 crc32 = 0
 
 
-def main():
+def _writeConstantsBlob(output_filename, desc):
     global crc32  # singleton, pylint: disable=global-statement
-
-    datacomposer_logger.is_quiet = (
-        os.environ.get("NUITKA_DATACOMPOSER_VERBOSE", "0") != "1"
-    )
-
-    # Internal tool, most simple command line handling. This is the build directory
-    # where main Nuitka put the .const files.
-    build_dir = sys.argv[1]
-    output_filename = sys.argv[2]
-
-    const_files = scanConstFiles(build_dir)
-
-    total = 0
-
-    desc = []
-
-    names = set()
-
-    for fullpath, filename in const_files:
-        datacomposer_logger.info("Working on constant file %r." % filename)
-
-        constants_reader = ConstantStreamReader(fullpath)
-        count, part = _writeConstantStream(constants_reader)
-        total += count
-
-        name = deriveModuleConstantsBlobName(filename)
-
-        # Make sure that is not repeated.
-        assert name not in names, name
-        names.add(name)
-
-        datacomposer_logger.info(
-            "Storing %r chunk with %s values size %r." % (name, count, len(part))
-        )
-
-        if str is not bytes:
-            # Encoding needs to match generated source code output.
-            name = name.encode("latin1")
-
-        desc.append((name, part))
-
-    datacomposer_logger.info("Total amount of constants is %d." % total)
 
     with open(output_filename, "w+b") as output:
         output.write(b"\0" * 8)
@@ -387,5 +345,52 @@ def main():
             "Total constants blob size without header %d." % data_size
         )
         datacomposer_logger.info("Total constants blob CRC32 is %d." % crc32)
+
+
+def main():
+    datacomposer_logger.is_quiet = (
+        os.environ.get("NUITKA_DATACOMPOSER_VERBOSE", "0") != "1"
+    )
+
+    # Internal tool, most simple command line handling. This is the build directory
+    # where main Nuitka put the .const files.
+    build_dir = sys.argv[1]
+    output_filename = sys.argv[2]
+
+    const_files = scanConstFiles(build_dir)
+
+    total = 0
+
+    desc = []
+
+    names = set()
+
+    for fullpath, filename in const_files:
+        datacomposer_logger.info("Working on constant file %r." % filename)
+
+        with open(fullpath, "rb") as const_file:
+            constants_reader = ConstantStreamReader(const_file)
+            count, part = _writeConstantStream(constants_reader)
+        total += count
+
+        name = deriveModuleConstantsBlobName(filename)
+
+        # Make sure that is not repeated.
+        assert name not in names, name
+        names.add(name)
+
+        datacomposer_logger.info(
+            "Storing %r chunk with %s values size %r." % (name, count, len(part))
+        )
+
+        if str is not bytes:
+            # Encoding needs to match generated source code output.
+            name = name.encode("latin1")
+
+        desc.append((name, part))
+
+    datacomposer_logger.info("Total amount of constants is %d." % total)
+
+    _writeConstantsBlob(output_filename=output_filename, desc=desc)
 
     sys.exit(0)

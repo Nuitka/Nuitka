@@ -126,9 +126,9 @@ class ConstantStreamWriter(object):
 
 
 class ConstantStreamReader(object):
-    def __init__(self, filename):
+    def __init__(self, const_file):
         self.count = 0
-        self.pickle = pickle.Unpickler(open(filename, "rb"))
+        self.pickle = pickle.Unpickler(const_file)
 
     def readConstantValue(self):
         return self.pickle.load()
