@@ -470,14 +470,21 @@ class Plugins(object):
 
     @staticmethod
     def onModuleEncounter(module_filename, module_name, module_kind):
-        result = False
+        result = None
 
         for plugin in getActivePlugins():
             must_recurse = plugin.onModuleEncounter(
                 module_filename, module_name, module_kind
             )
 
-            result = result or must_recurse
+            if must_recurse is None:
+                continue
+
+            if result is not None:
+                # false alarm, pylint: disable=unsubscriptable-object
+                assert result[0] == must_recurse[0]
+
+            result = must_recurse
 
         return result
 

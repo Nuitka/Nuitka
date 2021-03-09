@@ -64,14 +64,13 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         top_level_package_name = full_name.getTopLevelPackageName()
 
-        if full_name.hasOneOfNamespaces("PyQt4", "PyQt5"):
+        if top_level_package_name == "PyQt5":
             if python_version < 0x300:
                 yield "atexit"
 
-            # These are alternatives now:
-            # TODO: One day it should avoid including both.
-            yield "sip"
-            if top_level_package_name == "PyQt5":
+            # These are alternatives depending on PyQt5 version
+            if full_name == "PyQt5.QtCore":
+                yield "sip"
                 yield "PyQt5.sip"
 
             _, child = full_name.splitPackageName()
@@ -91,6 +90,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "QtNetwork",
                 "QtScript",
                 "QtQml",
+                "QtGui",
                 "QtScriptTools",
                 "QtSvg",
                 "QtTest",
@@ -732,13 +732,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "tornado"
 
         elif full_name.hasOneOfNamespaces(
-            "matplotlib.backends.backend_qt4agg", "matplotlib.backends.backend_qt4"
-        ):
-            yield "matplotlib.backends.backend_qt4agg"
-            yield "matplotlib.backends.backend_qt4"
-            yield "PyQt4"
-
-        elif full_name.hasOneOfNamespaces(
             "matplotlib.backends.backend_qt5agg", "matplotlib.backends.backend_qt5"
         ):
             yield "matplotlib.backends.backend_qt5agg"
@@ -1199,7 +1192,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         """Recursively create a set of imports for a fullname.
 
         Notes:
-            If an imported item has imported kids, call me again with each kid,
+            If an imported item has imported kids, call again with each new item,
             resulting in a leaf-only set (no more consequential kids).
         """
         result = OrderedSet()
@@ -1228,7 +1221,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             for used_module in module.getUsedModules():
                 yield used_module[0]
 
-        elif full_name == "OpenGL":
+        if full_name == "OpenGL":
             if self.opengl_plugins is None:
                 self.opengl_plugins = []
 
