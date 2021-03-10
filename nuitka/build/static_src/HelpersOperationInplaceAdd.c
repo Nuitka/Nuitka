@@ -557,7 +557,7 @@ static inline bool _BINARY_OPERATION_ADD_LONG_LONG_INPLACE(PyObject **operand1, 
         goto exit_result_object;
     }
 
-    if (Py_REFCNT(*operand1) == 1 && false) {
+    if (Py_REFCNT(*operand1) == 1) {
         digit const *b = Nuitka_LongGetDigitPointer(operand2);
         Py_ssize_t size_b = Nuitka_LongGetDigitSize(operand2);
 

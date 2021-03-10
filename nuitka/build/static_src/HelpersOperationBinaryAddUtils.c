@@ -60,8 +60,11 @@ static PyObject *LIST_CONCAT(PyObject *operand1, PyObject *operand2) {
 
 #if PYTHON_VERSION < 0x300
 #include <longintrepr.h>
-#else
 
+#if PYTHON_VERSION < 0x270
+// Renamed from Python2.6
+#define sdigit wdigit
+#endif
 #endif
 
 // Convert single digit to sdigit (int32_t)
@@ -183,13 +186,6 @@ static PyObject *Nuitka_LongFromCLong(long ival) {
     return (PyObject *)result;
 }
 
-static void Nuitka_LongAssertDigits(PyObject **value, Py_ssize_t ndigits) {
-    if (unlikely(Py_ABS(Py_SIZE(value)) < ndigits)) {
-        *value = Nuitka_LongRealloc(*value, ndigits);
-        CHECK_OBJECT(*value);
-    }
-}
-
 static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
     assert(Py_REFCNT(*value) == 1);
 
@@ -280,7 +276,11 @@ static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
         t >>= PyLong_SHIFT;
     }
 
-    Nuitka_LongAssertDigits(value, ndigits);
+    if (unlikely(Py_ABS(Py_SIZE(*value)) < ndigits)) {
+        *value = Nuitka_LongRealloc(*value, ndigits);
+    }
+
+    CHECK_OBJECT(*value);
 
     Py_SIZE(*value) = negative ? -ndigits : ndigits;
 
@@ -410,9 +410,13 @@ static PyObject *_Nuitka_LongAddInplaceDigits(PyObject *left, digit const *b, Py
         needed = i + 1;
     }
 
+    // Need to keep the old value around, or else we commit use after free potentially.
+    PyObject *old = left;
+
     if (needed > Nuitka_LongGetDigitSize(left)) {
-        left = Nuitka_LongRealloc(left, needed);
-        CHECK_OBJECT(left);
+        left = (PyObject *)Nuitka_LongNew(needed);
+    } else {
+        Py_INCREF(old);
     }
 
     digit *r = Nuitka_LongGetDigitPointer(left);
@@ -441,6 +445,9 @@ static PyObject *_Nuitka_LongAddInplaceDigits(PyObject *left, digit const *b, Py
     } else {
         Py_SIZE(left) = i;
     }
+
+    // Release reference to old value
+    Py_DECREF(old);
 
     return left;
 }
@@ -597,9 +604,13 @@ static PyObject *_Nuitka_LongSubInplaceDigits(PyObject *left, digit const *b, Py
 
     Py_ssize_t needed = size_a;
 
+    // Need to keep the old value around, or else we commit use after free potentially.
+    PyObject *old = left;
+
     if (needed > Nuitka_LongGetDigitSize(left)) {
-        left = Nuitka_LongRealloc(left, needed);
-        CHECK_OBJECT(left);
+        left = (PyObject *)Nuitka_LongNew(needed);
+    } else {
+        Py_INCREF(old);
     }
 
     digit *r = Nuitka_LongGetDigitPointer(left);
@@ -629,6 +640,23 @@ static PyObject *_Nuitka_LongSubInplaceDigits(PyObject *left, digit const *b, Py
     }
 
     Py_SIZE(left) = (sign < 0) ? -i : i;
+
+    // Release reference to old value
+    Py_DECREF(old);
+
+#if PYTHON_VERSION >= 0x300
+    // Normalize small integers.
+    if (i <= 1) {
+        long ival = MEDIUM_VALUE(left);
+
+        if (ival >= NUITKA_STATIC_SMALLINT_VALUE_MIN && ival <= NUITKA_STATIC_SMALLINT_VALUE_MAX) {
+            Py_DECREF(left);
+
+            left = Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(ival)];
+            Py_INCREF(left);
+        }
+    }
+#endif
 
     return left;
 }

@@ -534,6 +534,35 @@ static inline bool _BINARY_OPERATION_SUB_LONG_LONG_INPLACE(PyObject **operand1, 
         obj_result = r;
         goto exit_result_object;
     }
+    if (Py_REFCNT(*operand1) == 1) {
+        digit const *b = Nuitka_LongGetDigitPointer(operand2);
+        Py_ssize_t size_b = Nuitka_LongGetDigitSize(operand2);
+
+#if 0
+        PyObject *r = BINARY_OPERATION_SUB_OBJECT_LONG_LONG( *operand1, operand2 );
+#endif
+        if (Py_SIZE(*operand1) < 0) {
+            if (Py_SIZE(operand2) < 0) {
+                *operand1 = _Nuitka_LongSubInplaceDigits(*operand1, b, size_b, -1);
+            } else {
+                *operand1 = _Nuitka_LongAddInplaceDigits(*operand1, b, size_b);
+                Py_SIZE(*operand1) = -Py_ABS(Py_SIZE(*operand1));
+            }
+        } else {
+            if (Py_SIZE(operand2) < 0) {
+                *operand1 = _Nuitka_LongAddInplaceDigits(*operand1, b, size_b);
+            } else {
+                *operand1 = _Nuitka_LongSubInplaceDigits(*operand1, b, size_b, 1);
+            }
+        }
+
+#if 0
+        assert(PyObject_RichCompareBool(r, *operand1, Py_EQ) == 1);
+        Py_DECREF(r);
+#endif
+
+        goto exit_result_ok;
+    }
     {
         PyLongObject *z;
 
