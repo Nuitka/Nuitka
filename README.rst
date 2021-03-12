@@ -447,6 +447,35 @@ temporary directory. You need to do one this this.
    There are more Windows specific options, e.g. related to icons, but also
    more version information, consider the ``--help`` output for the details of these.
 
+Again, on Windows, for the temporary file directory, by default the user one is
+used, however this is overridable with a path specification given in
+``--windows-onefile-tempdir=%TEMP%\\onefile_%PID%_%TIME%`` which is the default
+and asserts that the temporary directories created cannot collide.
+
+Currently these expanded tokens are available:
+
++-----------+--------------------------------------+-----------------------------------+
+| Token     | What this Expands to                 | Example                           |
++===========+============+=============================================================+
+| %TEMP%    | User temporary file directory        | C:\Users\...\AppData\Locals\Temp  |
++-----------+------------+-------------------------+-----------------------------------+
+| %PID%     | Process ID                           | 2772                              |
++-----------+------------+-------------------------+-----------------------------------+
+| %TIME%    | Time in seconds since the epoch.     | 1299852985                        |
++-----------+----------------------------------+---------------------------------------+
+| %PROGRAM% | Full program filename of executable. | C:\SomeWhere\YourOnefile.exe      |
++-----------+--------------------------------------+-----------------------------------+
+
+.. note::
+
+   It is your responsibility to make the path provided unique, on Windows a
+   running program will be locked, and while using a fixed folder name is
+   possible, it can cause locking issues in that case, where the program gets
+   restarted.
+
+   Usually you need to use ``%TIME%`` or at least ``%PID%`` to make a path
+   unique, and this is mainly intended for use cases, where e.g. you want things
+   to reside in a place you choose or abide your naming conventions.
 
 Typical Problems
 ================
@@ -512,6 +541,13 @@ you expect to be inside the onefile binary, access them like this.
    open(os.path.join(dirname(sys.argv[0]), "user-provided-file.txt"))
    # This will find a file inside your onefile.exe
    open(os.path.join(dirname(__file__), "user-provided-file.txt"))
+
+Windows Programs without console give no errors
+-----------------------------------------------
+
+For debugging purposes, remove ``--windows-disable-console`` or use the
+options ``--windows-force-stdout-spec`` and ``--windows-force-stderr-spec``
+with paths as documented for ``--windows-onefile-tempdir-spec`` above.
 
 Tips
 ====
