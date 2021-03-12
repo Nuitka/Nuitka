@@ -1119,6 +1119,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pandas._libs.skiplist"
         elif full_name == "zmq.backend":
             yield "zmq.backend.cython"
+        elif full_name == "pandas._libs.testing":
+            yield "cmath"
         elif full_name == "flask.app":
             yield "jinja2.ext"
             yield "jinja2.ext.autoescape"
