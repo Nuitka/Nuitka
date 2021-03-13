@@ -150,6 +150,10 @@ def main():
                 reportSkip("Not working macOS yet", ".", filename)
                 continue
 
+            if getOS() == "Windows":
+                reportSkip("Can hang on Windows CI.", ".", filename)
+                continue
+
             # For the plug-in information.
             extra_flags.append("plugin_enable:tk-inter")
 
