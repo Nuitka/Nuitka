@@ -1119,6 +1119,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pandas._libs.skiplist"
         elif full_name == "zmq.backend":
             yield "zmq.backend.cython"
+        elif full_name == "pandas._libs.testing":
+            yield "cmath"
         elif full_name == "flask.app":
             yield "jinja2.ext"
             yield "jinja2.ext.autoescape"
@@ -1459,6 +1461,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             return ((xtwrapper_dll_path, dist_dll_path, None),)
         elif full_name == "gi._gi":
             gtk_dll_path = locateDLL("gtk-3")
+
+            if gtk_dll_path is None:
+                gtk_dll_path = locateDLL("gtk-3-0")
 
             if gtk_dll_path is not None:
                 dist_dll_path = os.path.join(dist_dir, os.path.basename(gtk_dll_path))
