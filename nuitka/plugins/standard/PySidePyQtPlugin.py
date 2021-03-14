@@ -428,7 +428,10 @@ if not path.startswith(__nuitka_binary_dir):
             translations_dir = os.path.join(plugin_parent, "translations")
             pos = len(translations_dir) + 1
             target_translations_dir = os.path.join(
-                dist_dir, full_name.getTopLevelPackageName(), "Qt", "translations"
+                dist_dir,
+                full_name.getTopLevelPackageName().asPath(),
+                "Qt",
+                "translations",
             )
             for f in getFileList(translations_dir):
                 tar_f = os.path.join(target_translations_dir, f[pos:])
