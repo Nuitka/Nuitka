@@ -134,20 +134,9 @@ bool BINARY_OPERATION_MULT_INT_INT_INPLACE(PyObject **operand1, PyObject *operan
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-static inline bool _BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
+static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyInt_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -158,15 +147,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(PyObject **operand1
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyInt_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_MULT_INT_INT_INPLACE(operand1, operand2);
-    }
 
     binaryfunc islot =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_inplace_multiply : NULL;
@@ -332,6 +312,113 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
+static inline bool _BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyInt_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        // return _BINARY_OPERATION_MULT_INT_INT_INPLACE(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(*operand1);
+        assert(PyInt_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(*operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        const long longprod = (long)((unsigned long)a * b);
+        const double doubleprod = (double)a * (double)b;
+        const double doubled_longprod = (double)longprod;
+
+        if (likely(doubled_longprod == doubleprod)) {
+            clong_result = longprod;
+            goto exit_result_ok_clong;
+        } else {
+            const double diff = doubled_longprod - doubleprod;
+            const double absdiff = diff >= 0.0 ? diff : -diff;
+            const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+            if (likely(32.0 * absdiff <= absprod)) {
+                clong_result = longprod;
+                goto exit_result_ok_clong;
+            }
+        }
+        {
+            PyObject *operand1_object = *operand1;
+            PyObject *operand2_object = operand2;
+
+            PyObject *r = PyLong_Type.tp_as_number->nb_multiply(operand1_object, operand2_object);
+            assert(r != Py_NotImplemented);
+
+            obj_result = r;
+            goto exit_result_object;
+        }
+
+    exit_result_ok_clong:
+
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        // That's our return value then. As we use a dedicated variable, it's
+        // OK that way.
+        *operand1 = PyInt_FromLong(clong_result);
+        goto exit_result_ok;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return true;
+
+    exit_result_exception:
+        return false;
+    }
+
+    return __BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(operand1, operand2);
+}
 
 bool BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(operand1, operand2);
@@ -340,20 +427,9 @@ bool BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *ope
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-static inline bool _BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
+static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -364,15 +440,6 @@ static inline bool _BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(PyObject **operand1
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_MULT_INT_INT_INPLACE(operand1, operand2);
-    }
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -542,6 +609,113 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
+static inline bool _BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyInt_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        // return _BINARY_OPERATION_MULT_INT_INT_INPLACE(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(*operand1);
+        assert(PyInt_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(*operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        const long longprod = (long)((unsigned long)a * b);
+        const double doubleprod = (double)a * (double)b;
+        const double doubled_longprod = (double)longprod;
+
+        if (likely(doubled_longprod == doubleprod)) {
+            clong_result = longprod;
+            goto exit_result_ok_clong;
+        } else {
+            const double diff = doubled_longprod - doubleprod;
+            const double absdiff = diff >= 0.0 ? diff : -diff;
+            const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+            if (likely(32.0 * absdiff <= absprod)) {
+                clong_result = longprod;
+                goto exit_result_ok_clong;
+            }
+        }
+        {
+            PyObject *operand1_object = *operand1;
+            PyObject *operand2_object = operand2;
+
+            PyObject *r = PyLong_Type.tp_as_number->nb_multiply(operand1_object, operand2_object);
+            assert(r != Py_NotImplemented);
+
+            obj_result = r;
+            goto exit_result_object;
+        }
+
+    exit_result_ok_clong:
+
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        // That's our return value then. As we use a dedicated variable, it's
+        // OK that way.
+        *operand1 = PyInt_FromLong(clong_result);
+        goto exit_result_ok;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return true;
+
+    exit_result_exception:
+        return false;
+    }
+
+    return __BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(operand1, operand2);
+}
 
 bool BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(operand1, operand2);
@@ -598,20 +772,9 @@ bool BINARY_OPERATION_MULT_LONG_LONG_INPLACE(PyObject **operand1, PyObject *oper
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-static inline bool _BINARY_OPERATION_MULT_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
+static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyLong_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -622,15 +785,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_LONG_INPLACE(PyObject **operand
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyLong_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_MULT_LONG_LONG_INPLACE(operand1, operand2);
-    }
 
     binaryfunc islot =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_inplace_multiply : NULL;
@@ -800,26 +954,65 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
+static inline bool _BINARY_OPERATION_MULT_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyLong_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        // return _BINARY_OPERATION_MULT_LONG_LONG_INPLACE(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        PyObject *x = PyLong_Type.tp_as_number->nb_multiply(*operand1, operand2);
+        assert(x != Py_NotImplemented);
+
+        obj_result = x;
+        goto exit_result_object;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+        *operand1 = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return true;
+
+    exit_result_exception:
+        return false;
+    }
+
+    return __BINARY_OPERATION_MULT_OBJECT_LONG_INPLACE(operand1, operand2);
+}
 
 bool BINARY_OPERATION_MULT_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MULT_OBJECT_LONG_INPLACE(operand1, operand2);
 }
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-static inline bool _BINARY_OPERATION_MULT_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
+static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -830,15 +1023,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_OBJECT_INPLACE(PyObject **operand
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_MULT_LONG_LONG_INPLACE(operand1, operand2);
-    }
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -1012,6 +1196,56 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
+static inline bool _BINARY_OPERATION_MULT_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyLong_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        // return _BINARY_OPERATION_MULT_LONG_LONG_INPLACE(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        PyObject *x = PyLong_Type.tp_as_number->nb_multiply(*operand1, operand2);
+        assert(x != Py_NotImplemented);
+
+        obj_result = x;
+        goto exit_result_object;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+        *operand1 = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return true;
+
+    exit_result_exception:
+        return false;
+    }
+
+    return __BINARY_OPERATION_MULT_LONG_OBJECT_INPLACE(operand1, operand2);
+}
 
 bool BINARY_OPERATION_MULT_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MULT_LONG_OBJECT_INPLACE(operand1, operand2);
@@ -1088,20 +1322,9 @@ bool BINARY_OPERATION_MULT_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *op
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
-static inline bool _BINARY_OPERATION_MULT_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
+static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyFloat_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1112,15 +1335,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_FLOAT_INPLACE(PyObject **operan
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_MULT_FLOAT_FLOAT_INPLACE(operand1, operand2);
-    }
 
     binaryfunc islot =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_inplace_multiply : NULL;
@@ -1286,26 +1500,86 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
+static inline bool _BINARY_OPERATION_MULT_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyFloat_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        // return _BINARY_OPERATION_MULT_FLOAT_FLOAT_INPLACE(operand1, operand2);
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(*operand1);
+        assert(PyFloat_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        double a = PyFloat_AS_DOUBLE(*operand1);
+        double b = PyFloat_AS_DOUBLE(operand2);
+
+        double r = a * b;
+
+        cfloat_result = r;
+        goto exit_result_ok_cfloat;
+
+    exit_result_ok_cfloat:
+        if (Py_REFCNT(*operand1) == 1) {
+            PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
+        } else {
+            // We got an object handed, that we have to release.
+            Py_DECREF(*operand1);
+
+            *operand1 = PyFloat_FromDouble(cfloat_result);
+        }
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return true;
+    }
+
+    return __BINARY_OPERATION_MULT_OBJECT_FLOAT_INPLACE(operand1, operand2);
+}
 
 bool BINARY_OPERATION_MULT_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MULT_OBJECT_FLOAT_INPLACE(operand1, operand2);
 }
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
-static inline bool _BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
+static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    PyTypeObject *type1 = &PyFloat_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1316,15 +1590,6 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(PyObject **operan
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_MULT_FLOAT_FLOAT_INPLACE(operand1, operand2);
-    }
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -1494,6 +1759,77 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
+static inline bool _BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyFloat_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    PyTypeObject *type1 = &PyFloat_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        // return _BINARY_OPERATION_MULT_FLOAT_FLOAT_INPLACE(operand1, operand2);
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(*operand1);
+        assert(PyFloat_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        double a = PyFloat_AS_DOUBLE(*operand1);
+        double b = PyFloat_AS_DOUBLE(operand2);
+
+        double r = a * b;
+
+        cfloat_result = r;
+        goto exit_result_ok_cfloat;
+
+    exit_result_ok_cfloat:
+        if (Py_REFCNT(*operand1) == 1) {
+            PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
+        } else {
+            // We got an object handed, that we have to release.
+            Py_DECREF(*operand1);
+
+            *operand1 = PyFloat_FromDouble(cfloat_result);
+        }
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return true;
+    }
+
+    return __BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(operand1, operand2);
+}
 
 bool BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(operand1, operand2);
@@ -1516,6 +1852,9 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_STR_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyString_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1525,9 +1864,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_STR_INPLACE(PyObject **operand1
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyString_Type;
 
     binaryfunc islot =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_inplace_multiply : NULL;
@@ -1697,6 +2033,9 @@ static inline bool _BINARY_OPERATION_MULT_STR_OBJECT_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyString_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1706,9 +2045,6 @@ static inline bool _BINARY_OPERATION_MULT_STR_OBJECT_INPLACE(PyObject **operand1
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyString_Type;
-    PyTypeObject *type2 = Py_TYPE(operand2);
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -1858,6 +2194,9 @@ static inline bool _BINARY_OPERATION_MULT_INT_STR_INPLACE(PyObject **operand1, P
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = &PyString_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1867,9 +2206,6 @@ static inline bool _BINARY_OPERATION_MULT_INT_STR_INPLACE(PyObject **operand1, P
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyString_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -1972,6 +2308,9 @@ static inline bool _BINARY_OPERATION_MULT_STR_INT_INPLACE(PyObject **operand1, P
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyString_Type;
+    PyTypeObject *type2 = &PyInt_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1981,9 +2320,6 @@ static inline bool _BINARY_OPERATION_MULT_STR_INT_INPLACE(PyObject **operand1, P
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyString_Type;
-    PyTypeObject *type2 = &PyInt_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -2082,6 +2418,9 @@ static inline bool _BINARY_OPERATION_MULT_LONG_STR_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = &PyString_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2091,9 +2430,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_STR_INPLACE(PyObject **operand1, 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyString_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -2202,6 +2538,9 @@ static inline bool _BINARY_OPERATION_MULT_STR_LONG_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyString_Type;
+    PyTypeObject *type2 = &PyLong_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2211,9 +2550,6 @@ static inline bool _BINARY_OPERATION_MULT_STR_LONG_INPLACE(PyObject **operand1, 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyString_Type;
-    PyTypeObject *type2 = &PyLong_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -2311,6 +2647,9 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_UNICODE_INPLACE(PyObject **oper
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyUnicode_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2320,9 +2659,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_UNICODE_INPLACE(PyObject **oper
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyUnicode_Type;
 
     binaryfunc islot =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_inplace_multiply : NULL;
@@ -2492,6 +2828,9 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_OBJECT_INPLACE(PyObject **oper
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyUnicode_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2501,9 +2840,6 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_OBJECT_INPLACE(PyObject **oper
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyUnicode_Type;
-    PyTypeObject *type2 = Py_TYPE(operand2);
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -2650,6 +2986,9 @@ static inline bool _BINARY_OPERATION_MULT_INT_UNICODE_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = &PyUnicode_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2659,9 +2998,6 @@ static inline bool _BINARY_OPERATION_MULT_INT_UNICODE_INPLACE(PyObject **operand
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyUnicode_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -2762,6 +3098,9 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_INT_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyUnicode_Type;
+    PyTypeObject *type2 = &PyInt_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2771,9 +3110,6 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_INT_INPLACE(PyObject **operand
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyUnicode_Type;
-    PyTypeObject *type2 = &PyInt_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -2870,6 +3206,9 @@ static inline bool _BINARY_OPERATION_MULT_LONG_UNICODE_INPLACE(PyObject **operan
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = &PyUnicode_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2879,9 +3218,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_UNICODE_INPLACE(PyObject **operan
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyUnicode_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -2995,6 +3331,9 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_LONG_INPLACE(PyObject **operan
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyUnicode_Type;
+    PyTypeObject *type2 = &PyLong_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3004,9 +3343,6 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_LONG_INPLACE(PyObject **operan
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyUnicode_Type;
-    PyTypeObject *type2 = &PyLong_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -3109,6 +3445,9 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_TUPLE_INPLACE(PyObject **operan
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyTuple_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3118,9 +3457,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_TUPLE_INPLACE(PyObject **operan
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyTuple_Type;
 
     binaryfunc islot =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_inplace_multiply : NULL;
@@ -3288,6 +3624,9 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_OBJECT_INPLACE(PyObject **operan
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyTuple_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3297,9 +3636,6 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_OBJECT_INPLACE(PyObject **operan
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyTuple_Type;
-    PyTypeObject *type2 = Py_TYPE(operand2);
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -3448,6 +3784,9 @@ static inline bool _BINARY_OPERATION_MULT_INT_TUPLE_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = &PyTuple_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3457,9 +3796,6 @@ static inline bool _BINARY_OPERATION_MULT_INT_TUPLE_INPLACE(PyObject **operand1,
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyTuple_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -3562,6 +3898,9 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_INT_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyTuple_Type;
+    PyTypeObject *type2 = &PyInt_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3571,9 +3910,6 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_INT_INPLACE(PyObject **operand1,
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyTuple_Type;
-    PyTypeObject *type2 = &PyInt_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -3671,6 +4007,9 @@ static inline bool _BINARY_OPERATION_MULT_LONG_TUPLE_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = &PyTuple_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3680,9 +4019,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_TUPLE_INPLACE(PyObject **operand1
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyTuple_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -3797,6 +4133,9 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_LONG_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyTuple_Type;
+    PyTypeObject *type2 = &PyLong_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3806,9 +4145,6 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_LONG_INPLACE(PyObject **operand1
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyTuple_Type;
-    PyTypeObject *type2 = &PyLong_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -3911,6 +4247,9 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_LIST_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyList_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3920,9 +4259,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_LIST_INPLACE(PyObject **operand
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyList_Type;
 
     binaryfunc islot =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_inplace_multiply : NULL;
@@ -4090,6 +4426,9 @@ static inline bool _BINARY_OPERATION_MULT_LIST_OBJECT_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyList_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4099,9 +4438,6 @@ static inline bool _BINARY_OPERATION_MULT_LIST_OBJECT_INPLACE(PyObject **operand
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyList_Type;
-    PyTypeObject *type2 = Py_TYPE(operand2);
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -4250,6 +4586,9 @@ static inline bool _BINARY_OPERATION_MULT_INT_LIST_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = &PyList_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4259,9 +4598,6 @@ static inline bool _BINARY_OPERATION_MULT_INT_LIST_INPLACE(PyObject **operand1, 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyList_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -4364,6 +4700,9 @@ static inline bool _BINARY_OPERATION_MULT_LIST_INT_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyList_Type;
+    PyTypeObject *type2 = &PyInt_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4373,9 +4712,6 @@ static inline bool _BINARY_OPERATION_MULT_LIST_INT_INPLACE(PyObject **operand1, 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyList_Type;
-    PyTypeObject *type2 = &PyInt_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -4473,6 +4809,9 @@ static inline bool _BINARY_OPERATION_MULT_LONG_LIST_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = &PyList_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4482,9 +4821,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_LIST_INPLACE(PyObject **operand1,
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyList_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -4599,6 +4935,9 @@ static inline bool _BINARY_OPERATION_MULT_LIST_LONG_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyList_Type;
+    PyTypeObject *type2 = &PyLong_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4608,9 +4947,6 @@ static inline bool _BINARY_OPERATION_MULT_LIST_LONG_INPLACE(PyObject **operand1,
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyList_Type;
-    PyTypeObject *type2 = &PyLong_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -4714,6 +5050,9 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_BYTES_INPLACE(PyObject **operan
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyBytes_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4723,9 +5062,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_BYTES_INPLACE(PyObject **operan
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyBytes_Type;
 
     binaryfunc islot =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_inplace_multiply : NULL;
@@ -4895,6 +5231,9 @@ static inline bool _BINARY_OPERATION_MULT_BYTES_OBJECT_INPLACE(PyObject **operan
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyBytes_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4904,9 +5243,6 @@ static inline bool _BINARY_OPERATION_MULT_BYTES_OBJECT_INPLACE(PyObject **operan
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyBytes_Type;
-    PyTypeObject *type2 = Py_TYPE(operand2);
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -5056,6 +5392,9 @@ static inline bool _BINARY_OPERATION_MULT_LONG_BYTES_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = &PyBytes_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -5065,9 +5404,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_BYTES_INPLACE(PyObject **operand1
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyBytes_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -5213,6 +5549,9 @@ static inline bool _BINARY_OPERATION_MULT_BYTES_LONG_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyBytes_Type;
+    PyTypeObject *type2 = &PyLong_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -5222,9 +5561,6 @@ static inline bool _BINARY_OPERATION_MULT_BYTES_LONG_INPLACE(PyObject **operand1
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyBytes_Type;
-    PyTypeObject *type2 = &PyLong_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -5366,6 +5702,9 @@ static inline bool _BINARY_OPERATION_MULT_INT_LONG_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = &PyLong_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -5375,9 +5714,6 @@ static inline bool _BINARY_OPERATION_MULT_INT_LONG_INPLACE(PyObject **operand1, 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyLong_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -5474,6 +5810,9 @@ static inline bool _BINARY_OPERATION_MULT_LONG_INT_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = &PyInt_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -5483,9 +5822,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_INT_INPLACE(PyObject **operand1, 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyInt_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -5582,6 +5918,9 @@ static inline bool _BINARY_OPERATION_MULT_INT_FLOAT_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = &PyFloat_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -5591,9 +5930,6 @@ static inline bool _BINARY_OPERATION_MULT_INT_FLOAT_INPLACE(PyObject **operand1,
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -5690,6 +6026,9 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_INT_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyFloat_Type;
+    PyTypeObject *type2 = &PyInt_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -5699,9 +6038,6 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_INT_INPLACE(PyObject **operand1,
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = &PyInt_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -5797,6 +6133,9 @@ static inline bool _BINARY_OPERATION_MULT_LONG_FLOAT_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = &PyFloat_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -5806,9 +6145,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_FLOAT_INPLACE(PyObject **operand1
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -5907,6 +6243,9 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_LONG_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyFloat_Type;
+    PyTypeObject *type2 = &PyLong_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -5916,9 +6255,6 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_LONG_INPLACE(PyObject **operand1
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = &PyLong_Type;
 
     // No inplace number slot nb_inplace_multiply available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
@@ -6106,6 +6442,9 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_OBJECT_INPLACE(PyObject **opera
 #endif
     }
 
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -6115,9 +6454,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_OBJECT_INPLACE(PyObject **opera
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
 
     binaryfunc islot =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_inplace_multiply : NULL;

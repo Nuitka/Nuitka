@@ -1659,6 +1659,8 @@ def makeHelperOperations(
             .replace(" {", ";")
             .replace("static ", "")
             .replace("inline ", "")
+            .replace("HEDLEY_NEVER_INLINE ", "")
+            .replace("__BINARY", "BINARY")
             .replace("_BINARY", "BINARY")
         )
 

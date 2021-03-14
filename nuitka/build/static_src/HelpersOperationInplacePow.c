@@ -213,20 +213,9 @@ bool BINARY_OPERATION_POW_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *ope
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
-static inline bool _BINARY_OPERATION_POW_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
+static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_POW_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyFloat_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -237,15 +226,6 @@ static inline bool _BINARY_OPERATION_POW_OBJECT_FLOAT_INPLACE(PyObject **operand
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_POW_FLOAT_FLOAT_INPLACE(operand1, operand2);
-    }
 
     ternaryfunc islot =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_inplace_power : NULL;
@@ -394,26 +374,204 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
+static inline bool _BINARY_OPERATION_POW_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyFloat_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        // return _BINARY_OPERATION_POW_FLOAT_FLOAT_INPLACE(operand1, operand2);
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(*operand1);
+        assert(PyFloat_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        double a = PyFloat_AS_DOUBLE(*operand1);
+        double b = PyFloat_AS_DOUBLE(operand2);
+
+        if (b == 0) {
+            goto exit_result_ok_const_float_1_0;
+        }
+
+        if (Py_IS_NAN(a)) {
+            goto exit_result_ok_left;
+        }
+
+        if (Py_IS_NAN(b)) {
+            if (a == 1.0) {
+                goto exit_result_ok_const_float_1_0;
+            } else {
+                goto exit_result_ok_right;
+            }
+        }
+
+        if (Py_IS_INFINITY(b)) {
+            a = fabs(a);
+            if (a == 1.0) {
+                goto exit_result_ok_const_float_1_0;
+            } else if ((b > 0.0) == (a > 1.0)) {
+                long r = (long)fabs(b);
+
+                cfloat_result = r;
+                goto exit_result_ok_cfloat;
+            } else {
+                goto exit_result_ok_const_float_0_0;
+            }
+        }
+
+        if (Py_IS_INFINITY(a)) {
+            bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
+            double r;
+
+            if (b > 0.0) {
+                r = b_is_odd ? a : fabs(a);
+            } else {
+                r = b_is_odd ? copysign(0.0, a) : 0.0;
+            }
+
+            cfloat_result = r;
+            goto exit_result_ok_cfloat;
+        }
+
+        if (a == 0.0) {
+            if (unlikely(b < 0.0)) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
+                goto exit_result_exception;
+            }
+
+            bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
+            double r = b_is_odd ? a : 0.0;
+
+            cfloat_result = r;
+            goto exit_result_ok_cfloat;
+        }
+
+        {
+            bool negate_result = false;
+
+            if (a < 0.0) {
+                if (unlikely(b != floor(b))) {
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError,
+                                                    "negative number cannot be raised to a fractional power");
+                    goto exit_result_exception;
+                }
+
+                a = -a;
+                negate_result = DOUBLE_IS_ODD_INTEGER(b);
+            }
+
+            if (a == 1.0) {
+                if (negate_result) {
+                    goto exit_result_ok_const_float_minus_1_0;
+                } else {
+                    goto exit_result_ok_const_float_1_0;
+                }
+            } else {
+                errno = 0;
+                double r = pow(a, b);
+
+                if (unlikely(errno != 0)) {
+                    PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
+                    goto exit_result_exception;
+                }
+
+                r = negate_result ? -r : r;
+
+                cfloat_result = r;
+                goto exit_result_ok_cfloat;
+            }
+        }
+
+    exit_result_ok_cfloat:
+        if (Py_REFCNT(*operand1) == 1) {
+            PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
+        } else {
+            // We got an object handed, that we have to release.
+            Py_DECREF(*operand1);
+
+            *operand1 = PyFloat_FromDouble(cfloat_result);
+        }
+        goto exit_result_ok;
+
+    exit_result_ok_left:
+        goto exit_result_ok;
+
+    exit_result_ok_right:
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+        *operand1 = operand2;
+        goto exit_result_ok;
+
+    exit_result_ok_const_float_0_0:
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+        *operand1 = PyFloat_FromDouble(0.0);
+        goto exit_result_ok;
+
+    exit_result_ok_const_float_1_0:
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+        *operand1 = PyFloat_FromDouble(1.0);
+        goto exit_result_ok;
+
+    exit_result_ok_const_float_minus_1_0:
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+        *operand1 = PyFloat_FromDouble(-1.0);
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return true;
+
+    exit_result_exception:
+        return false;
+    }
+
+    return __BINARY_OPERATION_POW_OBJECT_FLOAT_INPLACE(operand1, operand2);
+}
 
 bool BINARY_OPERATION_POW_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_POW_OBJECT_FLOAT_INPLACE(operand1, operand2);
 }
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
-static inline bool _BINARY_OPERATION_POW_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
+static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_POW_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    PyTypeObject *type1 = &PyFloat_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -424,15 +582,6 @@ static inline bool _BINARY_OPERATION_POW_FLOAT_OBJECT_INPLACE(PyObject **operand
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_POW_FLOAT_FLOAT_INPLACE(operand1, operand2);
-    }
 
     // No inplace number slot nb_inplace_power available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_power == NULL);
@@ -584,6 +733,195 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
+static inline bool _BINARY_OPERATION_POW_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyFloat_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    PyTypeObject *type1 = &PyFloat_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        // return _BINARY_OPERATION_POW_FLOAT_FLOAT_INPLACE(operand1, operand2);
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(*operand1);
+        assert(PyFloat_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        double a = PyFloat_AS_DOUBLE(*operand1);
+        double b = PyFloat_AS_DOUBLE(operand2);
+
+        if (b == 0) {
+            goto exit_result_ok_const_float_1_0;
+        }
+
+        if (Py_IS_NAN(a)) {
+            goto exit_result_ok_left;
+        }
+
+        if (Py_IS_NAN(b)) {
+            if (a == 1.0) {
+                goto exit_result_ok_const_float_1_0;
+            } else {
+                goto exit_result_ok_right;
+            }
+        }
+
+        if (Py_IS_INFINITY(b)) {
+            a = fabs(a);
+            if (a == 1.0) {
+                goto exit_result_ok_const_float_1_0;
+            } else if ((b > 0.0) == (a > 1.0)) {
+                long r = (long)fabs(b);
+
+                cfloat_result = r;
+                goto exit_result_ok_cfloat;
+            } else {
+                goto exit_result_ok_const_float_0_0;
+            }
+        }
+
+        if (Py_IS_INFINITY(a)) {
+            bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
+            double r;
+
+            if (b > 0.0) {
+                r = b_is_odd ? a : fabs(a);
+            } else {
+                r = b_is_odd ? copysign(0.0, a) : 0.0;
+            }
+
+            cfloat_result = r;
+            goto exit_result_ok_cfloat;
+        }
+
+        if (a == 0.0) {
+            if (unlikely(b < 0.0)) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
+                goto exit_result_exception;
+            }
+
+            bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
+            double r = b_is_odd ? a : 0.0;
+
+            cfloat_result = r;
+            goto exit_result_ok_cfloat;
+        }
+
+        {
+            bool negate_result = false;
+
+            if (a < 0.0) {
+                if (unlikely(b != floor(b))) {
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError,
+                                                    "negative number cannot be raised to a fractional power");
+                    goto exit_result_exception;
+                }
+
+                a = -a;
+                negate_result = DOUBLE_IS_ODD_INTEGER(b);
+            }
+
+            if (a == 1.0) {
+                if (negate_result) {
+                    goto exit_result_ok_const_float_minus_1_0;
+                } else {
+                    goto exit_result_ok_const_float_1_0;
+                }
+            } else {
+                errno = 0;
+                double r = pow(a, b);
+
+                if (unlikely(errno != 0)) {
+                    PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
+                    goto exit_result_exception;
+                }
+
+                r = negate_result ? -r : r;
+
+                cfloat_result = r;
+                goto exit_result_ok_cfloat;
+            }
+        }
+
+    exit_result_ok_cfloat:
+        if (Py_REFCNT(*operand1) == 1) {
+            PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
+        } else {
+            // We got an object handed, that we have to release.
+            Py_DECREF(*operand1);
+
+            *operand1 = PyFloat_FromDouble(cfloat_result);
+        }
+        goto exit_result_ok;
+
+    exit_result_ok_left:
+        goto exit_result_ok;
+
+    exit_result_ok_right:
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+        *operand1 = operand2;
+        goto exit_result_ok;
+
+    exit_result_ok_const_float_0_0:
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+        *operand1 = PyFloat_FromDouble(0.0);
+        goto exit_result_ok;
+
+    exit_result_ok_const_float_1_0:
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+        *operand1 = PyFloat_FromDouble(1.0);
+        goto exit_result_ok;
+
+    exit_result_ok_const_float_minus_1_0:
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+        *operand1 = PyFloat_FromDouble(-1.0);
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return true;
+
+    exit_result_exception:
+        return false;
+    }
+
+    return __BINARY_OPERATION_POW_FLOAT_OBJECT_INPLACE(operand1, operand2);
+}
 
 bool BINARY_OPERATION_POW_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_POW_FLOAT_OBJECT_INPLACE(operand1, operand2);
@@ -639,20 +977,9 @@ bool BINARY_OPERATION_POW_LONG_LONG_INPLACE(PyObject **operand1, PyObject *opera
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-static inline bool _BINARY_OPERATION_POW_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
+static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_POW_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyLong_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -663,15 +990,6 @@ static inline bool _BINARY_OPERATION_POW_OBJECT_LONG_INPLACE(PyObject **operand1
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyLong_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_POW_LONG_LONG_INPLACE(operand1, operand2);
-    }
 
     ternaryfunc islot =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_inplace_power : NULL;
@@ -824,26 +1142,65 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
+static inline bool _BINARY_OPERATION_POW_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyLong_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        // return _BINARY_OPERATION_POW_LONG_LONG_INPLACE(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        PyObject *x = PyLong_Type.tp_as_number->nb_power(*operand1, operand2, Py_None);
+        assert(x != Py_NotImplemented);
+
+        obj_result = x;
+        goto exit_result_object;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+        *operand1 = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return true;
+
+    exit_result_exception:
+        return false;
+    }
+
+    return __BINARY_OPERATION_POW_OBJECT_LONG_INPLACE(operand1, operand2);
+}
 
 bool BINARY_OPERATION_POW_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_POW_OBJECT_LONG_INPLACE(operand1, operand2);
 }
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-static inline bool _BINARY_OPERATION_POW_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
+static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_POW_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -854,15 +1211,6 @@ static inline bool _BINARY_OPERATION_POW_LONG_OBJECT_INPLACE(PyObject **operand1
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_POW_LONG_LONG_INPLACE(operand1, operand2);
-    }
 
     // No inplace number slot nb_inplace_power available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_power == NULL);
@@ -1018,6 +1366,56 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
+static inline bool _BINARY_OPERATION_POW_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyLong_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        // return _BINARY_OPERATION_POW_LONG_LONG_INPLACE(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        PyObject *x = PyLong_Type.tp_as_number->nb_power(*operand1, operand2, Py_None);
+        assert(x != Py_NotImplemented);
+
+        obj_result = x;
+        goto exit_result_object;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+        *operand1 = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return true;
+
+    exit_result_exception:
+        return false;
+    }
+
+    return __BINARY_OPERATION_POW_LONG_OBJECT_INPLACE(operand1, operand2);
+}
 
 bool BINARY_OPERATION_POW_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_POW_LONG_OBJECT_INPLACE(operand1, operand2);
@@ -1167,20 +1565,9 @@ bool BINARY_OPERATION_POW_INT_INT_INPLACE(PyObject **operand1, PyObject *operand
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-static inline bool _BINARY_OPERATION_POW_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
+static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_POW_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyInt_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1191,15 +1578,6 @@ static inline bool _BINARY_OPERATION_POW_OBJECT_INT_INPLACE(PyObject **operand1,
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyInt_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_POW_INT_INT_INPLACE(operand1, operand2);
-    }
 
     ternaryfunc islot =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_inplace_power : NULL;
@@ -1348,6 +1726,147 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
+static inline bool _BINARY_OPERATION_POW_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = &PyInt_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        // return _BINARY_OPERATION_POW_INT_INT_INPLACE(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(*operand1);
+        assert(PyInt_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(*operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        if (b < 0) {
+            // TODO: Use CFLOAT once available.
+            PyObject *operand1_float = PyFloat_FromDouble(a);
+            PyObject *operand2_float = PyFloat_FromDouble(b);
+
+            PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
+
+            Py_DECREF(operand1_float);
+            Py_DECREF(operand2_float);
+
+            obj_result = r;
+            goto exit_result_object;
+        } else {
+            long temp = a;
+            long ix = 1;
+            long bb = b;
+
+            while (bb > 0) {
+                long prev = ix;
+                if (bb & 1) {
+                    ix = (unsigned long)ix * temp;
+                    if (temp == 0) {
+                        break;
+                    }
+                    if (ix / temp != prev) {
+                        PyObject *operand1_long = PyLong_FromLong(a);
+                        PyObject *operand2_long = PyLong_FromLong(b);
+
+                        PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                        Py_DECREF(operand1_long);
+                        Py_DECREF(operand2_long);
+
+                        obj_result = r;
+                        goto exit_result_object;
+                    }
+                }
+                bb >>= 1;
+                if (bb == 0) {
+                    break;
+                }
+                prev = temp;
+                temp = (unsigned long)temp * temp;
+
+                if (prev != 0 && temp / prev != prev) {
+                    PyObject *operand1_long = PyLong_FromLong(a);
+                    PyObject *operand2_long = PyLong_FromLong(b);
+
+                    PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                    Py_DECREF(operand1_long);
+                    Py_DECREF(operand2_long);
+
+                    obj_result = r;
+                    goto exit_result_object;
+                }
+            }
+
+            clong_result = ix;
+            goto exit_result_ok_clong;
+        }
+
+    exit_result_ok_clong:
+
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        // That's our return value then. As we use a dedicated variable, it's
+        // OK that way.
+        *operand1 = PyInt_FromLong(clong_result);
+        goto exit_result_ok;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return true;
+
+    exit_result_exception:
+        return false;
+    }
+
+    return __BINARY_OPERATION_POW_OBJECT_INT_INPLACE(operand1, operand2);
+}
 
 bool BINARY_OPERATION_POW_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_POW_OBJECT_INT_INPLACE(operand1, operand2);
@@ -1356,20 +1875,9 @@ bool BINARY_OPERATION_POW_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *oper
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-static inline bool _BINARY_OPERATION_POW_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
+static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_POW_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1380,15 +1888,6 @@ static inline bool _BINARY_OPERATION_POW_INT_OBJECT_INPLACE(PyObject **operand1,
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_POW_INT_INT_INPLACE(operand1, operand2);
-    }
 
     // No inplace number slot nb_inplace_power available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_power == NULL);
@@ -1540,6 +2039,147 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
+static inline bool _BINARY_OPERATION_POW_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyInt_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        // return _BINARY_OPERATION_POW_INT_INT_INPLACE(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(*operand1);
+        assert(PyInt_CheckExact(*operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(*operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(*operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        if (b < 0) {
+            // TODO: Use CFLOAT once available.
+            PyObject *operand1_float = PyFloat_FromDouble(a);
+            PyObject *operand2_float = PyFloat_FromDouble(b);
+
+            PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
+
+            Py_DECREF(operand1_float);
+            Py_DECREF(operand2_float);
+
+            obj_result = r;
+            goto exit_result_object;
+        } else {
+            long temp = a;
+            long ix = 1;
+            long bb = b;
+
+            while (bb > 0) {
+                long prev = ix;
+                if (bb & 1) {
+                    ix = (unsigned long)ix * temp;
+                    if (temp == 0) {
+                        break;
+                    }
+                    if (ix / temp != prev) {
+                        PyObject *operand1_long = PyLong_FromLong(a);
+                        PyObject *operand2_long = PyLong_FromLong(b);
+
+                        PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                        Py_DECREF(operand1_long);
+                        Py_DECREF(operand2_long);
+
+                        obj_result = r;
+                        goto exit_result_object;
+                    }
+                }
+                bb >>= 1;
+                if (bb == 0) {
+                    break;
+                }
+                prev = temp;
+                temp = (unsigned long)temp * temp;
+
+                if (prev != 0 && temp / prev != prev) {
+                    PyObject *operand1_long = PyLong_FromLong(a);
+                    PyObject *operand2_long = PyLong_FromLong(b);
+
+                    PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                    Py_DECREF(operand1_long);
+                    Py_DECREF(operand2_long);
+
+                    obj_result = r;
+                    goto exit_result_object;
+                }
+            }
+
+            clong_result = ix;
+            goto exit_result_ok_clong;
+        }
+
+    exit_result_ok_clong:
+
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        // That's our return value then. As we use a dedicated variable, it's
+        // OK that way.
+        *operand1 = PyInt_FromLong(clong_result);
+        goto exit_result_ok;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return true;
+
+    exit_result_exception:
+        return false;
+    }
+
+    return __BINARY_OPERATION_POW_INT_OBJECT_INPLACE(operand1, operand2);
+}
 
 bool BINARY_OPERATION_POW_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_POW_INT_OBJECT_INPLACE(operand1, operand2);
@@ -1567,6 +2207,9 @@ static inline bool _BINARY_OPERATION_POW_LONG_INT_INPLACE(PyObject **operand1, P
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = &PyInt_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1576,9 +2219,6 @@ static inline bool _BINARY_OPERATION_POW_LONG_INT_INPLACE(PyObject **operand1, P
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyInt_Type;
 
     // No inplace number slot nb_inplace_power available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_power == NULL);
@@ -1666,6 +2306,9 @@ static inline bool _BINARY_OPERATION_POW_INT_LONG_INPLACE(PyObject **operand1, P
         // execute stuff in-place.
     }
 
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = &PyLong_Type;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1675,9 +2318,6 @@ static inline bool _BINARY_OPERATION_POW_INT_LONG_INPLACE(PyObject **operand1, P
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyLong_Type;
 
     // No inplace number slot nb_inplace_power available for this type.
     assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_power == NULL);
@@ -1887,6 +2527,9 @@ static inline bool _BINARY_OPERATION_POW_OBJECT_OBJECT_INPLACE(PyObject **operan
 #endif
     }
 
+    PyTypeObject *type1 = Py_TYPE(*operand1);
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1896,9 +2539,6 @@ static inline bool _BINARY_OPERATION_POW_OBJECT_OBJECT_INPLACE(PyObject **operan
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
 
     ternaryfunc islot =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_inplace_power : NULL;

@@ -17,6 +17,74 @@
 {#                                                                              #}
 {% from 'HelperSlotsCommon.c.j2' import goto_exit %}
 {% from 'HelperSlotsBinary.c.j2' import binary_operation, call_binary_slot with context %}
+{% macro inplace_fallback_operation(props, left, right, type1, type2) %}
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+{% if left == object_desc or left.hasSlot(nb_islot) %}
+    {{ left.getSlotType(nb_islot)}} islot = {{left.getSlotValueExpression("type1", nb_islot) }};
+
+    if (islot != NULL) {
+        PyObject *x = {{ left.getSlotCallExpression(nb_islot, "islot", "*operand1", "operand2") }};
+
+        if (x != Py_NotImplemented) {
+            {{ goto_exit(props, "exit_inplace_result_object", "x") }}
+        }
+
+        Py_DECREF(x);
+    }
+{% else %}
+    // No inplace number slot {{ nb_islot }} available for this type.
+    assert(type2->tp_as_number == NULL || type2->tp_as_number->{{ nb_islot }} == NULL);
+{% endif %}
+
+    {
+        {{ binary_operation(props, operator, nb_slot, left, right, "type1", "type2", "*operand1", "operand2", "exit_inplace_result_object", "exit_inplace_result_cbool_ok", "exit_inplace_result_nbool", "exit_inplace_exception") }}
+    }
+
+{% if "exit_inplace_result_object" in props["exits"] %}
+exit_inplace_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = obj_result;
+
+    return true;
+{% endif %}
+
+{% if "exit_inplace_exception" in props["exits"] %}
+{% if "all" not in props["exits"]["exit_inplace_exception"] %}
+#if PYTHON_VERSION < 0x300
+{% endif %}
+exit_inplace_exception:
+    return false;
+{% if "all" not in props["exits"]["exit_inplace_exception"] %}
+#endif
+{% endif %}
+{% endif %}
+{% endmacro %}
+{% if not left.hasTypeSpecializationCode(right, nb_slot, sq_slot) and left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
+static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {
+{% set props = {"exits": {}} %}
+    PyTypeObject *type1 = {{ left.getTypeValueExpression("*operand1") }};
+    PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
+
+    {{ inplace_fallback_operation(props, left, right, "type1", "type2") }}
+}
+{% endif %}
 static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {
     assert(operand1); // Pointer must be non-null.
 
@@ -144,8 +212,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 {% endif %}
 
 {% if left.hasTypeSpecializationCode(right, nb_slot, sq_slot) %}
-    {% set props = {"exits": {}} %}
-
+{% set props = {"exits": {}} %}
     {{ call_binary_slot(props, operator, nb_slot, nb_islot, left, right, "result", "*operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
 
     exit_result_ok:
@@ -155,78 +222,37 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     exit_result_exception:
     return false;
 {% endif %}
-{% else %}
-    {% set props = {"exits": {}} %}
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+{% elif left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
+{% set props = {"exits": {}} %}
 
     PyTypeObject *type1 = {{ left.getTypeValueExpression("*operand1") }};
     PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
 
-{% if left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
     if ({{ left.getTypeIdenticalCheckExpression(right, "type1", "type2") }}) {
         assert(type1 == type2);
 
-        {# There maybe be special code for same types. #}
-        return _BINARY_OPERATION_{{op_code}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}_INPLACE(operand1, operand2);
-    }
-{% endif %}
+        {# There is special code for same types. #}
+        // return _BINARY_OPERATION_{{op_code}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}_INPLACE(operand1, operand2);
 
-{% if left == object_desc or left.hasSlot(nb_islot) %}
-    {{ left.getSlotType(nb_islot)}} islot = {{left.getSlotValueExpression("type1", nb_islot) }};
+        {{ call_binary_slot(props, operator, nb_slot, nb_islot, left.getSameTypeType(right), right.getSameTypeType(left), "result", "*operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
 
-    if (islot != NULL) {
-        PyObject *x = {{ left.getSlotCallExpression(nb_islot, "islot", "*operand1", "operand2") }};
+        exit_result_ok:
+        return true;
 
-        if (x != Py_NotImplemented) {
-            {{ goto_exit(props, "exit_inplace_result_object", "x") }}
-        }
-
-        Py_DECREF(x);
-    }
-{% else %}
-    // No inplace number slot {{ nb_islot }} available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->{{ nb_islot }} == NULL);
-{% endif %}
-
-    {
-        {{ binary_operation(props, operator, nb_slot, left, right, "type1", "type2", "*operand1", "operand2", "exit_inplace_result_object", "exit_inplace_result_cbool_ok", "exit_inplace_result_nbool", "exit_inplace_exception") }}
-    }
-
-{% if "exit_inplace_result_object" in props["exits"] %}
-exit_inplace_result_object:
-    if (unlikely(obj_result == NULL)) {
+{% if "exit_result_exception" in props["exits"] %}
+        exit_result_exception:
         return false;
+{% endif %}
     }
 
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
+    return __BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE(operand1, operand2);
+{% else %}
+{% set props = {"exits": {}} %}
 
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = obj_result;
+    PyTypeObject *type1 = {{ left.getTypeValueExpression("*operand1") }};
+    PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
 
-    return true;
-{% endif %}
-
-{% if "exit_inplace_exception" in props["exits"] %}
-{% if "all" not in props["exits"]["exit_inplace_exception"] %}
-#if PYTHON_VERSION < 0x300
-{% endif %}
-exit_inplace_exception:
-    return false;
-{% if "all" not in props["exits"]["exit_inplace_exception"] %}
-#endif
-{% endif %}
-{% endif %}
+    {{ inplace_fallback_operation(props, left, right, "type1", "type2") }}
 {% endif %}
 }
 
