@@ -585,19 +585,35 @@ def nuitka_wrap(cls):
             wrapper_count += 1
             wrapper_name = "_wrapped_function_%s_%d" % (attr, wrapper_count)
 
+            signature = inspect.signature(value)
+
+            # Remove annotations junk that cannot be executed.
+            signature = signature.replace(
+                return_annotation = inspect.Signature.empty,
+                parameters=[
+                    parameter.replace(annotation=inspect.Signature.empty)
+                    for parameter in
+                    signature.parameters.values()
+                ]
+            )
+
+            v = r'''
+def %(wrapper_name)s%(signature)s:
+    return %(wrapper_name)s.func(%(parameters)s)
+            ''' % {
+                    "signature": signature,
+                    "parameters": ",".join(signature.parameters),
+                    "wrapper_name": wrapper_name
+                }
+
             # TODO: Nuitka does not currently statically optimize this, might change!
             exec(
-                '''
-def %(wrapper_name)s(self, *args, **kwargs):
-    return %(wrapper_name)s.func(self, *args, **kwargs)
-            '''
-                % {"wrapper_name": wrapper_name},
+                v,
                 globals(),
             )
 
-            func = value
             wrapper = globals()[wrapper_name]
-            wrapper.func = func
+            wrapper.func = value
 
             setattr(cls, attr, wrapper)
 
