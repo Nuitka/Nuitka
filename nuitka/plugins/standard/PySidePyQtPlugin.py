@@ -628,6 +628,7 @@ def my_init_subclass(cls, *args):
 
 import PySide2.QtCore
 PySide2.QtCore.QAbstractItemModel.__init_subclass__ = my_init_subclass
+PySide2.QtCore.QObject.__init_subclass__ = my_init_subclass
 """
             return (
                 code,
