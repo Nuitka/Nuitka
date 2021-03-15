@@ -172,6 +172,7 @@ def main():
             extra_flags.append("plugin_enable:numpy")
             extra_flags.append("plugin_disable:pylint-warnings")
             extra_flags.append("plugin_disable:qt-plugins")
+            extra_flags.append("plugin_disable:pyside2")
 
         if filename == "PmwUsing.py":
             extra_flags.append("plugin_enable:pmw-freezer")
