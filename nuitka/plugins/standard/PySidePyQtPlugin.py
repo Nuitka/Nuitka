@@ -594,7 +594,7 @@ def nuitka_wrap(cls):
             signature = signature.replace(
                 return_annotation = inspect.Signature.empty,
                 parameters=[
-                    parameter.replace(annotation=inspect.Signature.empty)
+                    parameter.replace(default=inspect.Signature.empty,annotation=inspect.Signature.empty)
                     for parameter in
                     signature.parameters.values()
                 ]
@@ -617,6 +617,7 @@ def %(wrapper_name)s%(signature)s:
 
             wrapper = globals()[wrapper_name]
             wrapper.func = value
+            wrapper.__defaults__ = value.__defaults__
 
             setattr(cls, attr, wrapper)
 
@@ -633,7 +634,7 @@ PySide2.QtCore.QObject.__init_subclass__ = my_init_subclass
             return (
                 code,
                 """\
-Money patching classes derived from PySide2.QtCore.QAbstractItemModel to pass PySide2 checks.""",
+Money patching classes derived from PySide2 base classes to pass PySide2 checks.""",
             )
 
 
