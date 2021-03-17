@@ -27,6 +27,7 @@ The base class in PluginBase will serve as documentation of available.
 
 """
 
+import inspect
 import os
 import pkgutil
 import shutil
@@ -38,10 +39,11 @@ from nuitka import Options
 from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
+from nuitka.Errors import NuitkaPluginError
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPointOld
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
-from nuitka.utils.FileOperations import makePath
+from nuitka.utils.FileOperations import makePath, relpath
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -162,7 +164,11 @@ def _loadPluginClassesFromPath(scan_path):
             assert detector.plugin_name is None, detector
             detector.plugin_name = plugin_class.plugin_name
 
-            assert plugin_class in plugin_classes
+            if plugin_class not in plugin_classes:
+                plugins_logger.sysexit(
+                    "Plugin detector %r references unknown plugin %r"
+                    % (detector, plugin_class)
+                )
 
             plugin_classes.remove(detector)
             plugin_classes.remove(plugin_class)
@@ -197,12 +203,112 @@ class Plugins(object):
 
         return plugin_name in active_plugins
 
-    @staticmethod
-    def considerImplicitImports(module, signal_change):
-        for plugin in getActivePlugins():
-            plugin.considerImplicitImports(module, signal_change)
+    implicit_imports_cache = {}
 
-        # Post load code may have been created, if so indicate it's used.
+    @staticmethod
+    def _considerImplicitImports(plugin, module):
+        from nuitka.importing import Importing
+
+        result = []
+
+        for full_name in plugin.getImplicitImports(module):
+            if type(full_name) in (tuple, list):
+                raise NuitkaPluginError(
+                    "Plugin %r needs to be change to only return modules names, not %r"
+                    % (plugin, full_name)
+                )
+
+            full_name = ModuleName(full_name)
+
+            try:
+                _module_package, module_filename, _finding = Importing.findModule(
+                    importing=module,
+                    module_name=full_name,
+                    parent_package=None,
+                    level=-1,
+                    warn=False,
+                )
+
+                module_filename = plugin.locateModule(
+                    importing=module, module_name=full_name
+                )
+            except Exception:
+                plugin.warning(
+                    "Problem locating '%s' for implicit imports of '%s'."
+                    % (module.getFullName(), full_name)
+                )
+                raise
+
+            if module_filename is None:
+                if Options.isShowInclusion():
+                    plugin.info(
+                        "Implicit module '%s' suggested for '%s' not found."
+                        % (full_name, module.getFullName())
+                    )
+
+                continue
+
+            result.append((full_name, module_filename))
+
+        if result:
+            plugin.info(
+                "Implicit dependencies of module '%s' added '%s'."
+                % (module.getFullName(), ",".join(r[0] for r in result))
+            )
+
+        return result
+
+    @staticmethod
+    def _reportImplicitImports(implicit_imports, signal_change):
+        from nuitka.importing import Recursion
+        from nuitka.importing.Importing import getModuleNameAndKindFromFilename
+
+        for full_name, module_filename in implicit_imports:
+            _module_name2, module_kind = getModuleNameAndKindFromFilename(
+                module_filename
+            )
+
+            # This will get back to all other plugins allowing them to inhibit it though.
+            decision, reason = Recursion.decideRecursion(
+                module_filename=module_filename,
+                module_name=full_name,
+                module_kind=module_kind,
+            )
+
+            if decision:
+                imported_module, added_flag = Recursion.recurseTo(
+                    module_package=full_name.getPackageName(),
+                    module_filename=module_filename,
+                    module_relpath=relpath(module_filename),
+                    module_kind=module_kind,
+                    reason=reason,
+                )
+
+                addUsedModule(imported_module)
+
+                if added_flag:
+                    signal_change(
+                        "new_code",
+                        imported_module.getSourceReference(),
+                        "Recursed to module.",
+                    )
+
+    @classmethod
+    def considerImplicitImports(cls, module, signal_change):
+        for plugin in getActivePlugins():
+            key = (module.getFullName(), plugin)
+
+            if key not in cls.implicit_imports_cache:
+                cls.implicit_imports_cache[key] = tuple(
+                    cls._considerImplicitImports(plugin=plugin, module=module)
+                )
+
+            cls._reportImplicitImports(
+                implicit_imports=cls.implicit_imports_cache[key],
+                signal_change=signal_change,
+            )
+
+        # Pre and post load code may have been created, if so indicate it's used.
         full_name = module.getFullName()
 
         if full_name in pre_modules:
@@ -285,15 +391,24 @@ class Plugins(object):
         """
         dll_filenames = tuple(sorted(dll_filenames))
 
-        result = []
+        to_remove = OrderedSet()
 
         for plugin in getActivePlugins():
-            for removed_dll in plugin.removeDllDependencies(
-                dll_filename, dll_filenames
-            ):
-                result.append(removed_dll)
+            removed_dlls = tuple(
+                plugin.removeDllDependencies(dll_filename, dll_filenames)
+            )
 
-        return result
+            if removed_dlls and Options.isShowInclusion():
+                plugin.info(
+                    "Removing DLLs %s of %s by plugin decision."
+                    % (dll_filename, removed_dlls)
+                )
+
+            for removed_dll in removed_dlls:
+                to_remove.add(removed_dll)
+
+        for removed in to_remove:
+            dll_filenames.discard(removed)
 
     @staticmethod
     def considerDataFiles(module):
@@ -321,7 +436,10 @@ class Plugins(object):
         assert type(source_code) is str
 
         for plugin in getActivePlugins():
-            source_code = plugin.onModuleSourceCode(module_name, source_code)
+            new_source_code = plugin.onModuleSourceCode(module_name, source_code)
+            if new_source_code is not None:
+                source_code = new_source_code
+
             assert type(source_code) is str
 
         return source_code
@@ -352,14 +470,21 @@ class Plugins(object):
 
     @staticmethod
     def onModuleEncounter(module_filename, module_name, module_kind):
-        result = False
+        result = None
 
         for plugin in getActivePlugins():
             must_recurse = plugin.onModuleEncounter(
                 module_filename, module_name, module_kind
             )
 
-            result = result or must_recurse
+            if must_recurse is None:
+                continue
+
+            if result is not None:
+                # false alarm, pylint: disable=unsubscriptable-object
+                assert result[0] == must_recurse[0]
+
+            result = must_recurse
 
         return result
 
@@ -472,8 +597,11 @@ class Plugins(object):
                 # We order per plugin, but from the plugins, lets just take a dict
                 # and achieve determism by ordering the files by name.
                 for key, value in sorted(value.items()):
+                    if not key.startswith("nuitka_"):
+                        key = "plugin." + plugin.plugin_name + "." + key
+
                     assert key not in result, key
-                    result["plugin." + plugin.plugin_name + "." + key] = value
+                    result[key] = value
 
         return result
 
@@ -495,6 +623,11 @@ class Plugins(object):
                             cls.extra_link_libraries.add(library_name)
 
         return cls.extra_link_libraries
+
+    @classmethod
+    def onDataComposerResult(cls, blob_filename):
+        for plugin in getActivePlugins():
+            plugin.onDataComposerResult(blob_filename)
 
 
 def listPlugins():
@@ -521,7 +654,11 @@ def listPlugins():
 def isObjectAUserPluginBaseClass(obj):
     """Verify that a user plugin inherits from UserPluginBase."""
     try:
-        return obj is not NuitkaPluginBase and issubclass(obj, NuitkaPluginBase)
+        return (
+            obj is not NuitkaPluginBase
+            and issubclass(obj, NuitkaPluginBase)
+            and not inspect.isabstract(obj)
+        )
     except TypeError:
         return False
 

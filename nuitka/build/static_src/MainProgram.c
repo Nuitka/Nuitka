@@ -186,12 +186,17 @@ extern void SvcLaunchService();
 
 // Callback from Windows Service logic.
 DWORD WINAPI SvcStartPython(LPVOID lpParam) {
-    IMPORT_EMBEDDED_MODULE("__main__");
+    if (lpParam == NULL) {
+        IMPORT_EMBEDDED_MODULE("__main__");
 
-    // TODO: Log exception and call ReportSvcStatus
-    if (ERROR_OCCURRED()) {
-        return 1;
+        // TODO: Log exception and call ReportSvcStatus
+        if (ERROR_OCCURRED()) {
+            return 1;
+        } else {
+            return 0;
+        }
     } else {
+        PyErr_SetInterrupt();
         return 0;
     }
 }
@@ -289,11 +294,11 @@ static void PRINT_REFCOUNTS() {
 #endif
 
 // Small helper to open files with few arguments.
-static PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode) {
+static PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, PyObject *buffering) {
 #if PYTHON_VERSION < 0x300
-    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), NULL);
+    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), buffering);
 #else
-    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), NULL, NULL, NULL, NULL, NULL, NULL);
+    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), buffering, NULL, NULL, NULL, NULL, NULL);
 #endif
 }
 
@@ -561,21 +566,21 @@ int main(int argc, char **argv) {
         PyObject *nul_filename = Nuitka_String_FromString("NUL:");
 
         if (PySys_GetObject((char *)"stdin") == NULL) {
-            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r");
+            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r", NULL);
 
             CHECK_OBJECT(stdin_file);
             PySys_SetObject((char *)"stdin", stdin_file);
         }
 
         if (PySys_GetObject((char *)"stdout") == NULL) {
-            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w");
+            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", NULL);
 
             CHECK_OBJECT(stdout_file);
             PySys_SetObject((char *)"stdout", stdout_file);
         }
 
         if (PySys_GetObject((char *)"stderr") == NULL) {
-            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w");
+            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", NULL);
 
             CHECK_OBJECT(stderr_file);
 
@@ -584,6 +589,56 @@ int main(int argc, char **argv) {
 
         Py_DECREF(nul_filename);
     }
+
+#if defined(NUITKA_FORCED_STDOUT_PATH)
+    {
+        wchar_t filename_buffer[1024];
+        wchar_t const *pattern = L"" NUITKA_FORCED_STDOUT_PATH;
+
+        bool res = expandWindowsPath(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
+
+        if (res == false) {
+            puts("Error, couldn't expand pattern:");
+            _putws(pattern);
+            abort();
+        }
+
+        PyObject *filename = PyUnicode_FromWideChar(filename_buffer, wcslen(filename_buffer));
+
+        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w", const_int_pos_1);
+        if (unlikely(stdout_file == NULL)) {
+            PyErr_PrintEx(1);
+            Py_Exit(1);
+        }
+
+        PySys_SetObject((char *)"stdout", stdout_file);
+    }
+#endif
+
+#if defined(NUITKA_FORCED_STDERR_PATH)
+    {
+        wchar_t filename_buffer[1024];
+        wchar_t const *pattern = L"" NUITKA_FORCED_STDERR_PATH;
+
+        bool res = expandWindowsPath(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
+
+        if (res == false) {
+            puts("Error, couldn't expand pattern:");
+            _putws(pattern);
+            abort();
+        }
+
+        PyObject *filename = PyUnicode_FromWideChar(filename_buffer, wcslen(filename_buffer));
+
+        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w", const_int_pos_1);
+        if (unlikely(stderr_file == NULL)) {
+            PyErr_PrintEx(1);
+            Py_Exit(1);
+        }
+
+        PySys_SetObject((char *)"stderr", stderr_file);
+    }
+#endif
 
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Calling setEarlyFrozenModulesFileAttribute().");
@@ -719,9 +774,8 @@ int main(int argc, char **argv) {
 #endif
 
     Py_Exit(exit_code);
-    /* The above branches both do "Py_Exit()" calls which are not supposed to
-     * return.
-     */
+
+    // The "Py_Exit()" calls is not supposed to return.
     NUITKA_CANNOT_GET_HERE("Py_Exit does not return");
 }
 

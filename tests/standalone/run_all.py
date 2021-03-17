@@ -61,7 +61,11 @@ from nuitka.tools.testing.Common import (
     setup,
     test_logger,
 )
-from nuitka.utils.FileOperations import areSamePaths, removeDirectory
+from nuitka.utils.FileOperations import (
+    areSamePaths,
+    getExternalUsePath,
+    removeDirectory,
+)
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import getOS
 
@@ -146,6 +150,10 @@ def main():
                 reportSkip("Not working macOS yet", ".", filename)
                 continue
 
+            if getOS() == "Windows":
+                reportSkip("Can hang on Windows CI.", ".", filename)
+                continue
+
             # For the plug-in information.
             extra_flags.append("plugin_enable:tk-inter")
 
@@ -164,6 +172,7 @@ def main():
             extra_flags.append("plugin_enable:numpy")
             extra_flags.append("plugin_disable:pylint-warnings")
             extra_flags.append("plugin_disable:qt-plugins")
+            extra_flags.append("plugin_disable:pyside2")
 
         if filename == "PmwUsing.py":
             extra_flags.append("plugin_enable:pmw-freezer")
@@ -171,6 +180,11 @@ def main():
         if filename == "OpenGLUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
+
+        if filename == "GlfwUsing.py":
+            # For the warnings.
+            extra_flags.append("plugin_enable:glfw")
+            extra_flags.append("plugin_enable:numpy")
 
         if filename == "PasslibUsing.py":
             # For the warnings.
@@ -270,6 +284,7 @@ def main():
 
         current_dir = os.path.normpath(os.getcwd())
         current_dir = os.path.normcase(current_dir)
+        current_dir_ext = os.path.normcase(getExternalUsePath(current_dir))
 
         illegal_access = False
 
@@ -304,11 +319,16 @@ def main():
                     continue
                 if r"azure dev spaces cli" in loaded_filename:
                     continue
+                if r"tortoisesvn" in loaded_filename:
+                    continue
 
             if loaded_filename.startswith(current_dir):
                 continue
 
             if loaded_filename.startswith(os.path.abspath(current_dir)):
+                continue
+
+            if loaded_filename.startswith(current_dir_ext):
                 continue
 
             if loaded_filename.startswith("/etc/"):

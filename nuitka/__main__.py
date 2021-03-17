@@ -54,14 +54,6 @@ def main():
             if os.path.dirname(os.path.abspath(__file__)) != path_element
         ]
 
-    # For re-execution, we might not have done this.
-    from nuitka import Options  # isort:skip
-
-    Options.parseArgs()
-
-    # TODO: Stop using logging module, then this can be removed.
-    from nuitka import Tracing  # isort:skip
-
     # We don't care, and these are triggered by run time calculations of "range" and
     # others, while on python2.7 they are disabled by default.
 
@@ -70,13 +62,6 @@ def main():
     # We will run with the Python configuration as specified by the user, if it does
     # not match, we restart ourselves with matching configuration.
     needs_reexec = False
-
-    # Inform the user about potential issues with the running version. e.g. unsupported.
-    from nuitka.PythonVersions import (
-        getSupportedPythonVersions,
-        python_version,
-        python_version_str,
-    )
 
     if sys.flags.no_site == 0:
         needs_reexec = True
@@ -89,8 +74,14 @@ def main():
     if os.environ.get("PYTHONHASHSEED", "-1") != "0":
         needs_reexec = True
 
+    # For re-execution, we might not have done this.
+    from nuitka import Options  # isort:skip
+
     # In case we need to re-execute.
     if needs_reexec:
+        # TODO: If that's the only one, why do it at all..
+        Options.parseArgs(will_reexec=True)
+
         if not Options.isAllowedToReexecute():
             sys.exit("Error, not allowed to re-execute, but that would be needed.")
 
@@ -99,6 +90,8 @@ def main():
         # Execute with full path as the process name, so it can find itself and its
         # libraries.
         args = [sys.executable, sys.executable]
+
+        from nuitka.PythonVersions import python_version
 
         if python_version >= 0x370 and sys.flags.utf8_mode:
             args += ["-X", "utf8"]
@@ -140,24 +133,7 @@ def main():
 
         Execution.callExec(args)
 
-    if python_version_str not in getSupportedPythonVersions():
-        # Do not disturb run of automatic tests, detected from the presence of
-        # that environment variable.
-        if "PYTHON" not in os.environ:
-            Tracing.general.warning(
-                "The version %r is not currently supported. Expect problems."
-                % python_version_str,
-            )
-
-    if os.name == "nt":
-        # Windows store Python's don't allow looking at the python, catch that.
-        try:
-            with open(sys.executable):
-                pass
-        except OSError:
-            sys.exit(
-                "Error, the Python from Windows store is not supported, check user manual."
-            )
+    Options.parseArgs(will_reexec=False)
 
     Options.commentArgs()
 

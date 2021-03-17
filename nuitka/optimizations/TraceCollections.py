@@ -24,6 +24,7 @@ This is about collecting these constraints and to manage them.
 """
 
 import contextlib
+from contextlib import contextmanager
 
 from nuitka import Tracing, Variables
 from nuitka.__past__ import iterItems  # Python3 compatibility.
@@ -35,7 +36,11 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.nodes.shapes.StandardShapes import tshape_uninit
 from nuitka.tree.SourceReading import readSourceLine
 from nuitka.utils.FileOperations import relpath
-from nuitka.utils.InstanceCounters import counted_del, counted_init
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 from nuitka.utils.ModuleNames import ModuleName
 
 from .ValueTraces import (
@@ -51,6 +56,18 @@ from .ValueTraces import (
 )
 
 signalChange = None
+
+
+@contextmanager
+def withChangeIndicationsTo(signal_change):
+    """ Decide where change indications should go to."""
+
+    global signalChange  # Singleton, pylint: disable=global-statement
+
+    old = signalChange
+    signalChange = signal_change
+    yield
+    signalChange = old
 
 
 class CollectionStartpointMixin(object):
@@ -294,7 +311,8 @@ class TraceCollectionBase(object):
 
     __slots__ = ("owner", "parent", "name", "value_states", "variable_actives")
 
-    __del__ = counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     @counted_init
     def __init__(self, owner, name, parent):
@@ -393,6 +411,19 @@ class TraceCollectionBase(object):
 
     def onUsedModule(self, module_name, module_relpath):
         return self.parent.onUsedModule(module_name, module_relpath)
+
+    def onUsedFunction(self, function_body):
+        owning_module = function_body.getParentModule()
+
+        # Make sure the owning module is added to the used set. This is most
+        # important for helper functions, or modules, which otherwise have
+        # become unused.
+        addUsedModule(owning_module)
+
+        needs_visit = owning_module.addUsedFunction(function_body)
+
+        if needs_visit:
+            function_body.computeFunctionRaw(self)
 
     @staticmethod
     def mustAlias(a, b):
@@ -866,6 +897,23 @@ class TraceCollectionFunction(CollectionStartpointMixin, TraceCollectionBase):
                     self._initVariableUninit(locals_dict_variable)
             else:
                 function_body.locals_scope = None
+
+
+class TraceCollectionPureFunction(TraceCollectionFunction):
+    """Pure functions don't feed their parent."""
+
+    __slots__ = ("used_functions",)
+
+    def __init__(self, function_body):
+        TraceCollectionFunction.__init__(self, parent=None, function_body=function_body)
+
+        self.used_functions = OrderedSet()
+
+    def getUsedFunctions(self):
+        return self.used_functions
+
+    def onUsedFunction(self, function_body):
+        self.used_functions.add(function_body)
 
 
 class TraceCollectionModule(CollectionStartpointMixin, TraceCollectionBase):

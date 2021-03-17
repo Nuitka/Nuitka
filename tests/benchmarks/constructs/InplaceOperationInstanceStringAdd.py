@@ -30,6 +30,10 @@ class C:
 
 # construct_begin
         self.s += additiv
+        self.s += additiv
+        self.s += additiv
+        self.s += additiv
+        self.s += additiv
 # construct_end
 
         return additiv

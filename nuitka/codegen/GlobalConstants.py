@@ -20,6 +20,7 @@
 """
 
 from nuitka import Options
+from nuitka.__past__ import long
 from nuitka.PythonVersions import python_version
 
 
@@ -47,6 +48,7 @@ def getConstantDefaultPopulation():
         -0.0,
         1.0,
         -1.0,
+        long(0),
         "",
         # For Python3 empty bytes, no effect for Python2, same as "", used for
         # code objects.

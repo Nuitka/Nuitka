@@ -447,6 +447,35 @@ temporary directory. You need to do one this this.
    There are more Windows specific options, e.g. related to icons, but also
    more version information, consider the ``--help`` output for the details of these.
 
+Again, on Windows, for the temporary file directory, by default the user one is
+used, however this is overridable with a path specification given in
+``--windows-onefile-tempdir=%TEMP%\\onefile_%PID%_%TIME%`` which is the default
+and asserts that the temporary directories created cannot collide.
+
+Currently these expanded tokens are available:
+
++-----------+--------------------------------------+-----------------------------------+
+| Token     | What this Expands to                 | Example                           |
++===========+============+=============================================================+
+| %TEMP%    | User temporary file directory        | C:\Users\...\AppData\Locals\Temp  |
++-----------+------------+-------------------------+-----------------------------------+
+| %PID%     | Process ID                           | 2772                              |
++-----------+------------+-------------------------+-----------------------------------+
+| %TIME%    | Time in seconds since the epoch.     | 1299852985                        |
++-----------+----------------------------------+---------------------------------------+
+| %PROGRAM% | Full program filename of executable. | C:\SomeWhere\YourOnefile.exe      |
++-----------+--------------------------------------+-----------------------------------+
+
+.. note::
+
+   It is your responsibility to make the path provided unique, on Windows a
+   running program will be locked, and while using a fixed folder name is
+   possible, it can cause locking issues in that case, where the program gets
+   restarted.
+
+   Usually you need to use ``%TIME%`` or at least ``%PID%`` to make a path
+   unique, and this is mainly intended for use cases, where e.g. you want things
+   to reside in a place you choose or abide your naming conventions.
 
 Typical Problems
 ================
@@ -493,6 +522,33 @@ frameworks for syntax highlighting everything imaginable take time.
 Nuitka will have to learn effective caching to deal with this in the future.
 Right now, you will have to deal with huge compilation times for these.
 
+Onefile on Windows: Finding files
+---------------------------------
+
+There is a difference between ``sys.argv[0]`` and ``__file__`` of the main
+module on Windows, that is caused by using a bootstrap to a temporary or
+permanent location. The first one will be the original executable path, where
+as the second one will be the temporary or permanent path the bootstrap
+executable unpacks to. Data files will be in the later location, your original
+environment files will be in the former location.
+
+Given 2 files, one which you expect to be near your executable, and one which
+you expect to be inside the onefile binary, access them like this.
+
+.. code-block:: python
+
+   # This will find a file near your onefile.exe
+   open(os.path.join(dirname(sys.argv[0]), "user-provided-file.txt"))
+   # This will find a file inside your onefile.exe
+   open(os.path.join(dirname(__file__), "user-provided-file.txt"))
+
+Windows Programs without console give no errors
+-----------------------------------------------
+
+For debugging purposes, remove ``--windows-disable-console`` or use the
+options ``--windows-force-stdout-spec`` and ``--windows-force-stderr-spec``
+with paths as documented for ``--windows-onefile-tempdir-spec`` above.
+
 Tips
 ====
 
@@ -523,10 +579,8 @@ Nuitka will pick up ``ccache`` if it's in found in system ``PATH``, and it will
 also be possible to provide if by setting ``NUITKA_CCACHE_BINARY`` to the full
 path of the binary, this is for use in CI systems.
 
-For the Visual Studio compilers, you are just one ``pip install clcache``
-command away. To make Nuitka use those, set ``NUITKA_CLCACHE_BINARY`` to the
-full path of ``clcache.exe``, which will be in the scripts folder of the
-Python, you installed it into.
+For the MSVC compilers and ClangCL setups, using the ``clcache`` is automatic
+and included in Nuitka.
 
 Runners
 -------
@@ -565,56 +619,16 @@ all contained in one binary.
 So if feasible, aim at static linking, which is currently only possible with
 Anaconda Python on non-Windows.
 
-Windows Standalone executables and dependencies
+Standalone executables and dependencies
 -----------------------------------------------
 
 The process of making standalone executables for Windows traditionally involves
 using an external dependency walker in order to copy necessary libraries along
 with the compiled executables to the distribution folder.
 
-Using the external dependency walker is quite a time consuming, and may copy
-some unnecessary libraries along the way (better have too much than missing).
-
-There's also an experimental alternative internal dependency walker that relies
-on pefile which analyses PE imports of executables and libraries.
-
-This implementation shall create smaller Standalone distributions since it
-won't include Windows' equivalent of the standard library, and will speed-up
-first Nuitka compilations by an order of magnitude.
-
-In order to use it, you may enable the internal dependency walker by using the
-following switch:
-
-.. code-block:: bash
-
-    python -m nuitka --standalone --windows-dependency-tool=pefile myprogram.py
-
-
-.. note::
-
-    The pefile dependency walker will test all dependencies of the distribution folder.
-
-    Optionally, it is also possible to check all recursive dependencies of included libraries
-    using the following switch along with the above one:
-
-.. code-block:: bash
-
-    python -m nuitka --standalone --windows-dependency-tool=pefile --experimental=use_pefile_recurse myprogram.py
-
-
-.. note::
-
-    Some modules may have hidden dependencies outside of their directory. In order for
-    the pefile dependency walker to find them, you may also scan the whole site-packages
-    directory for missing dependencies using the following switch along with the two above:
-
-.. code-block:: bash
-
-    python -m nuitka --standalone --windows-dependency-tool=pefile --experimental=use_pefile_recurse --experimental=use_pefile_fullrecurse myprogram.py
-
-.. note::
-
-    Be aware that using this switch will increase compilation time a lot.
+There is plenty of ways to find that something is missing. Do not manually copy
+things into the folder, esp. not DLLs, as that's not going to work. Instead
+make bug reports to get these handled by Nuitka properly.
 
 Windows errors with resources
 -----------------------------
@@ -1258,7 +1272,8 @@ The order is sorted by time.
   various distributions.
 
 - Orsiris de Jong: Submitted github pull request to implement the dependency
-  walking with `pefile` under Windows.
+  walking with `pefile` under Windows. Also provided the implementation of
+  Dejong Stacks.
 
 - Jorj X. McKie: Submitted github pull requests with NumPy plugin to retain
   its accelerating libraries, and Tkinter to include the TCL distribution

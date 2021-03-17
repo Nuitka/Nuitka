@@ -153,20 +153,18 @@ def generateImportModuleNameHardCode(to_name, expression, emit, context):
         elif module_name in ("os", "__future__", "importlib._bootstrap"):
             emitLineNumberUpdateCode(emit, context)
 
+            # TODO: The import name wouldn't have to be an object really, could do with a
+            # C string only.
             emit(
                 """\
 {
-    PyObject *hard_module = PyImport_ImportModule("%(module_name)s");
-    if (likely(hard_module != NULL)) {
-        %(to_name)s = PyObject_GetAttr(hard_module, %(import_name)s);
-    } else {
-        %(to_name)s = NULL;
-    }
+    PyObject *hard_module = IMPORT_HARD_%(module_name)s();
+    %(to_name)s = LOOKUP_ATTRIBUTE(hard_module, %(import_name)s);
 }
 """
                 % {
                     "to_name": value_name,
-                    "module_name": module_name,
+                    "module_name": module_name.upper(),
                     "import_name": context.getConstantCode(import_name),
                 }
             )

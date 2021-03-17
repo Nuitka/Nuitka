@@ -34,88 +34,7 @@ def _createEmptyDirText(filename):
     return ""
 
 
-def remove_suffix(string, suffix):
-    """Remove 'suffix' from 'string'."""
-    # Special case: if suffix is empty, string[:0] returns ''. So, test
-    # for a non-empty suffix.
-    if suffix and string.endswith(suffix):
-        return string[: -len(suffix)]
-    else:
-        return string
-
-
-def get_package_paths(package):
-    """Return the path to the package.
-
-    Args:
-        package: (str) package name
-    Returns:
-        tuple: (prefix, prefix/package)
-    """
-    import pkgutil
-
-    loader = pkgutil.find_loader(package)
-    if not loader:
-        return "", ""
-
-    file_attr = loader.get_filename(package)
-    if not file_attr:
-        return "", ""
-
-    pkg_dir = os.path.dirname(file_attr)
-    pkg_base = remove_suffix(pkg_dir, package.replace(".", os.sep))
-
-    return pkg_base, pkg_dir
-
-
-def _getPackageFiles(module, *packages):
-    """Yield all (!) filenames in given package(s).
-
-    Notes:
-        This should be required in rare occasions only. The one example I know
-        is 'dns' when used by package 'eventlet'. Eventlet imports dns modules
-        only to replace them with 'green' (i.e. non-blocking) counterparts.
-    Args:
-        module: module object
-        packages: package name(s) - str or tuple
-    Yields:
-        Tuples of paths (source, dest)
-    """
-
-    file_list = []
-    item_set = OrderedSet()
-
-    file_dirs = []
-
-    for package in packages:
-        pkg_base, pkg_dir = get_package_paths(package)  # read package folders
-        if pkg_dir:
-            filename_start = len(pkg_base)  # position of package name in dir
-            # read out the filenames
-            pkg_files = getFileList(
-                pkg_dir, ignore_dirs=("__pycache__",), ignore_suffixes=(".pyc",)
-            )
-            file_dirs.append(pkg_dir)
-            for f in pkg_files:
-                file_list.append((filename_start, f))  # append to file list
-
-    if not file_list:  #  safeguard for unexpected cases
-        msg = "No files or folders found for '%s' in packages(s) '%r' (%r)." % (
-            module.getFullName(),
-            packages,
-            file_dirs,
-        )
-        NuitkaPluginDataFileCollector.warning(msg)
-
-    for filename_start, f in file_list:  # re-read the collected filenames
-        target = f[filename_start:]  # make part of name
-        item_set.add((f, target))
-
-    for f in item_set:
-        yield f
-
-
-def _getSubDirectoryFiles(module, subdirs, folders_only):
+def _getSubDirectoryFiles2(module, subdirs, folders_only):
     """Get filenames or dirnames in given subdirs of the module.
 
     Notes:
@@ -195,6 +114,14 @@ def _getSubDirectoryFiles(module, subdirs, folders_only):
     return item_set
 
 
+def _getSubDirectoryFiles(module, subdirs):
+    return _getSubDirectoryFiles2(module, subdirs, False)
+
+
+def _getSubDirectoryFolders(module, subdirs):
+    return _getSubDirectoryFiles2(module, subdirs, True)
+
+
 class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     plugin_name = "data-files"
 
@@ -240,20 +167,23 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     # the 3rd item indicates whether to recreate toe folder structure only (True),
     # or indeed also copy the files.
     known_data_folders = {
-        "botocore": (_getSubDirectoryFiles, "data", False),
-        "boto3": (_getSubDirectoryFiles, "data", False),
-        "sklearn.datasets": (_getSubDirectoryFiles, ("data", "descr"), False),
-        "osgeo": (_getSubDirectoryFiles, "data", False),
-        "pyphen": (_getSubDirectoryFiles, "dictionaries", False),
-        "pendulum": (_getSubDirectoryFiles, "locales", True),  # folder structure only
-        "pytz": (_getSubDirectoryFiles, "zoneinfo", False),
-        "pytzdata": (_getSubDirectoryFiles, "zoneinfo", False),
-        "pywt": (_getSubDirectoryFiles, "data", False),
-        "skimage": (_getSubDirectoryFiles, "data", False),
-        "weasyprint": (_getSubDirectoryFiles, "css", False),
-        "xarray": (_getSubDirectoryFiles, "static", False),
-        "eventlet": (_getPackageFiles, "dns"),  # copy other package source
-        "gooey": (_getSubDirectoryFiles, ("languages", "images"), False),
+        "botocore": (_getSubDirectoryFiles, "data"),
+        "boto3": (_getSubDirectoryFiles, "data"),
+        "sklearn.datasets": (_getSubDirectoryFiles, ("data", "descr")),
+        "osgeo": (_getSubDirectoryFiles, "data"),
+        "pyphen": (_getSubDirectoryFiles, "dictionaries"),
+        "pendulum": (_getSubDirectoryFolders, "locales"),
+        "pytz": (_getSubDirectoryFiles, "zoneinfo"),
+        "pytzdata": (_getSubDirectoryFiles, "zoneinfo"),
+        "pywt": (_getSubDirectoryFiles, "data"),
+        "skimage": (
+            _getSubDirectoryFiles,
+            "data",
+        ),
+        "weasyprint": (_getSubDirectoryFiles, "css"),
+        "xarray": (_getSubDirectoryFiles, "static"),
+        #        "eventlet": (_getPackageFiles, "dns"),
+        "gooey": (_getSubDirectoryFiles, ("languages", "images")),
     }
 
     generated_data_files = {
@@ -274,8 +204,6 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         return True
 
     def considerDataFiles(self, module):
-        # This is considering many options, pylint: disable=too-many-branches
-
         module_name = module.getFullName()
         module_folder = module.getCompileTimeDirectory()
 
@@ -293,13 +221,10 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                     )
 
         if module_name in self.known_data_folders:
-            func, subdir, folders_only = self.known_data_folders[module_name]
+            func, subdir = self.known_data_folders[module_name]
 
-            if folders_only:
-                yield func(module, subdir, folders_only)
-            else:
-                for item in func(module, subdir, folders_only):
-                    yield item
+            for item in func(module, subdir):
+                yield item
 
         if module_name in self.generated_data_files:
             for target_dir, filename, func in self.generated_data_files[module_name]:

@@ -89,12 +89,14 @@ else
     # Remove files mot needed for Python 2.6, they only cause errors during
     # compilation with Python 2.6.
     rm -rf nuitka/build/inline_copy/lib/scons-3*
+    rm -rf nuitka/build/inline_copy/tqdm
 fi
 
-# This is Windows only
-rm -rf nuitka/build/inline_copy/pefile
+# These are all Windows only or used only there.
 rm -rf nuitka/build/inline_copy/clcache
 rm -rf nuitka/build/inline_copy/atomicwrites
+rm -rf nuitka/build/inline_copy/colorama
+rm -rf nuitka/build/inline_copy/zstd
 
 if [ "$python2" != "" ]
 then

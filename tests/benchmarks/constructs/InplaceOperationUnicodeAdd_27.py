@@ -34,6 +34,10 @@ def calledRepeatedly():
     s += additiv
 # construct_begin
     s += u'lala'
+    s += u'lala'
+    s += u'lala'
+    s += u'lala'
+    s += u'lala'
 # construct_end
     s += additiv
 

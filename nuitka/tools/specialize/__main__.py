@@ -22,6 +22,7 @@
 from __future__ import print_function
 
 import contextlib
+import math
 import os
 import shutil
 from abc import abstractmethod
@@ -92,16 +93,31 @@ class TypeDescBase(getMetaClassBase("Type")):
     def needsIndexConversion():
         return True
 
-    def canTypeCoerceObjects(self, left):
-        if left is self and left is not object_desc:
-            return "0"
+    def isKnownToNotCoerce(self, right):
+        if right is self and right is not object_desc:
+            return True
 
-        # TODO: Provide hook for float to say it can do int.
-        return (
-            "1"
-            if self.getSlotValueCheckExpression("type2", "nb_coerce") != "false"
-            else "0"
-        )
+        if self in (int_desc, long_desc, float_desc):
+            if right in (
+                str_desc,
+                unicode_desc,
+                tuple_desc,
+                list_desc,
+                set_desc,
+                dict_desc,
+            ):
+                return True
+
+        if (
+            self.getNewStyleNumberTypeCheckExpression("dummy") == "1"
+            and right.getNewStyleNumberTypeCheckExpression("dummy") == "1"
+        ):
+            return True
+
+        if self is not object_desc:
+            return not self.hasSlot("nb_coerce")
+        else:
+            return False
 
     def getMostSpecificType(self, right):
         if self is not object_desc:
@@ -117,7 +133,18 @@ class TypeDescBase(getMetaClassBase("Type")):
 
     @classmethod
     def hasOneOrBothType(cls, right, type_name):
-        return type_name in (cls.type_name, right.type_name)
+        # At least one match
+        if type_name not in (cls.type_name, right.type_name):
+            return False
+
+        # Two matches perfect.
+        if cls.type_name == right.type_name:
+            return True
+
+        if "object" not in (cls.type_name, right.type_name):
+            return False
+
+        return True
 
     @classmethod
     def mayBothHaveType(cls, right, type_name):
@@ -132,6 +159,15 @@ class TypeDescBase(getMetaClassBase("Type")):
             return "1"
         elif cls.type_name == "object":
             return "PyInt_CheckExact(%s)" % operand
+        else:
+            return "0"
+
+    @classmethod
+    def getLongCheckExpression(cls, operand):
+        if cls.type_name == "long":
+            return "1"
+        elif cls.type_name == "object":
+            return "PyLong_CheckExact(%s)" % operand
         else:
             return "0"
 
@@ -240,12 +276,6 @@ class TypeDescBase(getMetaClassBase("Type")):
         else:
             return 0
 
-    def getSlotComparisonEqualExpression(self, right, operand1, operand2):
-        if right is object_desc or self is object_desc:
-            return "%s == %s" % (operand1, operand2)
-        else:
-            return "0"
-
     @abstractmethod
     def hasSlot(self, slot):
         pass
@@ -275,19 +305,27 @@ class TypeDescBase(getMetaClassBase("Type")):
 
     @staticmethod
     def getSlotType(slot):
-        if slot == "nb_power":
+        if slot in ("nb_power", "nb_inplace_power"):
             return "ternaryfunc"
+        elif slot in ("sq_repeat", "sq_inplace_repeat"):
+            return "ssizeargfunc"
         else:
             return "binaryfunc"
 
     @staticmethod
     def getSlotCallExpression(nb_slot, slot_var, operand1, operand2):
-        if nb_slot == "nb_power":
+        if nb_slot in ("nb_power", "nb_inplace_power"):
             return "%s(%s, %s, Py_None)" % (slot_var, operand1, operand2)
         else:
             return "%s(%s, %s)" % (slot_var, operand1, operand2)
 
     def getSlotValueExpression(self, operand, slot):
+        assert (
+            "inplace_" not in slot
+            or not self.hasSlot(slot)
+            or self in (set_desc, list_desc)
+        ), self.hasSlot
+
         if not self.hasSlot(slot):
             return "NULL"
 
@@ -297,62 +335,16 @@ class TypeDescBase(getMetaClassBase("Type")):
         # Virtual method, pylint: disable=unused-argument
         return "true" if self.hasSlot(slot) else "false"
 
-    def getReturnUnsupportedTypeErrorCode(
-        self, operator, left, right, operand1, operand2
-    ):
-        args = []
-
-        if left is object_desc:
-            args.append("%s->tp_name" % operand1)
-        if right is object_desc:
-            args.append("%s->tp_name" % operand2)
-
-        if args:
-            args = ", " + ", ".join(args)
+    @staticmethod
+    def getOperationErrorMessageName(operator):
+        if operator == "%":
+            return "%%"
+        elif operator == "**":
+            return "** or pow()"
+        elif operator == "divmod":
+            return "divmod()"
         else:
-            args = ""
-
-        def formatOperation(operator):
-            if operator == "%":
-                return "%%"
-            elif operator == "**":
-                return "** or pow()"
-            elif operator == "divmod":
-                return "divmod()"
-            else:
-                return operator
-
-        if (
-            left.getTypeName2() != left.getTypeName3()
-            or right.getTypeName2() != right.getTypeName3()
-        ):
-            return """\
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
-#endif
-return %s;""" % (
-                formatOperation(operator),
-                "%s" if left is object_desc else left.getTypeName2(),
-                "%s" if right is object_desc else right.getTypeName2(),
-                args,
-                formatOperation(operator),
-                "%s" if left is object_desc else left.getTypeName3(),
-                "%s" if right is object_desc else right.getTypeName3(),
-                args,
-                self.getExceptionResultIndicatorValue(),
-            )
-        else:
-            return """\
-PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %s: '%s' and '%s'"%s);
-return %s;""" % (
-                formatOperation(operator),
-                "%s" if left is object_desc else left.getTypeName2(),
-                "%s" if right is object_desc else right.getTypeName2(),
-                args,
-                self.getExceptionResultIndicatorValue(),
-            )
+            return operator
 
     def getReturnUnorderableTypeErrorCode(
         self, operator, left, right, operand1, operand2
@@ -406,15 +398,16 @@ return %(return_value)s;""" % {
                 "return_value": self.getExceptionResultIndicatorValue(),
             }
 
-    def getSameTypeOperationSpecializationCode(
-        self, target, other, nb_slot, sq_slot, operand1, operand2
-    ):
+    def hasSameTypeOperationSpecializationCode(self, other, nb_slot, sq_slot):
         # Many cases, pylint: disable=too-many-branches,too-many-return-statements
 
         cand = self if self is not object_desc else other
 
+        # Both are objects, nothing to be done.
         if cand is object_desc:
-            return ""
+            assert self is object_desc
+            assert other is object_desc
+            return False
 
         # Special case for sequence concats/repeats.
         if sq_slot is not None and not cand.hasSlot(nb_slot) and cand.hasSlot(sq_slot):
@@ -433,11 +426,12 @@ return %(return_value)s;""" % {
                 bytes_desc,
             ):
                 # No repeat with themselves.
-                return ""
+                return False
 
         if slot == "nb_remainder":
             if cand in (list_desc, tuple_desc, set_desc, dict_desc):
-                return ""
+                # No remainder with themselves.
+                return False
 
         if slot == "nb_multiply":
             if cand in (
@@ -448,7 +442,8 @@ return %(return_value)s;""" % {
                 set_desc,
                 dict_desc,
             ):
-                return ""
+                # No multiply with themselves.
+                return False
 
         if slot == "nb_add":
             # Tuple and list, etc. use sq_concat.
@@ -461,7 +456,8 @@ return %(return_value)s;""" % {
                 set_desc,
                 dict_desc,
             ):
-                return ""
+                # No add with themselves.
+                return False
 
         if slot in ("nb_and", "nb_or", "nb_xor"):
             if cand in (
@@ -471,8 +467,9 @@ return %(return_value)s;""" % {
                 list_desc,
                 tuple_desc,
                 dict_desc,
+                float_desc,
             ):
-                return ""
+                return False
 
         if slot in ("nb_lshift", "nb_rshift"):
             if cand in (
@@ -483,69 +480,50 @@ return %(return_value)s;""" % {
                 list_desc,
                 set_desc,
                 dict_desc,
+                float_desc,
             ):
-                return ""
+                return False
 
-        # Nobody has it.
         if slot == "nb_matrix_multiply":
-            return ""
+            # Nobody has it for anything
+            return False
 
-        # We sometimes fake these, e.g. for CLONG. Maybe we should make it more
-        # distinct function names in those cases and use cand.hasSlot there.
+        return True
 
-        return "return SLOT_%s_%s_%s_%s(%s, %s);" % (
-            slot,
-            target.getHelperCodeName(),
-            cand.getHelperCodeName(),
-            cand.getHelperCodeName(),
-            operand1,
-            operand2,
-        )
+    def hasSimilarTypeSpecializationCode(self, other):
+        return other in related_types.get(self, ())
 
-    def getSimilarTypeSpecializationCode(
-        self, target, other, nb_slot, operand1, operand2
-    ):
-        return "return SLOT_%s_%s_%s_%s(%s, %s);" % (
-            nb_slot,
-            target.getHelperCodeName(),
-            self.getHelperCodeName(),
-            other.getHelperCodeName(),
-            operand1,
-            operand2,
-        )
+    def getSameTypeType(self, other):
+        if self is object_desc:
+            return other
+        elif other is object_desc:
+            return self
+        else:
+            return object_desc
 
-    def getTypeSpecializationCode(
-        self, target, other, nb_slot, sq_slot, operand1, operand2
-    ):
-        if self is object_desc or other is object_desc:
-            return ""
+    def isSimilarOrSameTypesAsOneOf(self, *others):
+        for other in others:
+            assert other is not None
+
+            if self is other or other in related_types.get(self, ()):
+                return True
+
+        return False
+
+    def hasTypeSpecializationCode(self, other, nb_slot, sq_slot):
+        if self is object_desc and other is object_desc:
+            return False
 
         if self is other:
-            return self.getSameTypeOperationSpecializationCode(
-                target=target,
+            return self.hasSameTypeOperationSpecializationCode(
                 other=other,
                 nb_slot=nb_slot,
                 sq_slot=sq_slot,
-                operand1=operand1,
-                operand2=operand2,
             )
 
-        if other in related_types.get(self, ()):
-            return self.getSimilarTypeSpecializationCode(
-                target=target,
-                other=other,
-                nb_slot=nb_slot,
-                operand1=operand1,
-                operand2=operand2,
-            )
-
-        return ""
-
-    @abstractmethod
-    def getSqConcatSlotSpecializationCode(
-        self, target, other, slot, operand1, operand2
-    ):
-        pass
+        return self.hasSimilarTypeSpecializationCode(
+            other=other,
+        )
 
     def getSameTypeComparisonSpecializationCode(
         self, other, op_code, target, operand1, operand2
@@ -613,12 +591,12 @@ return %(return_value)s;""" % {
                 return "return %s;" % operand
         else:
             if take_ref:
-                return """%s r = %s; return r; """ % (
+                return """{ %s r = %s; return r; }""" % (
                     cls.getTypeDecl(),
                     cls.getToValueFromObjectExpression(operand),
                 )
             else:
-                return """%s r = %s; Py_DECREF(%s); return r; """ % (
+                return """{ %s r = %s; Py_DECREF(%s); return r; }""" % (
                     cls.getTypeDecl(),
                     cls.getToValueFromObjectExpression(operand),
                     operand,
@@ -665,37 +643,6 @@ return %(return_value)s;""" % {
             assert False, cls
 
     @classmethod
-    def getAssignTupleFromLongExpressionsCode(cls, result, *operands):
-        if cls.type_name == "object":
-            return '%s = Py_BuildValue("(%s)", %s);' % (
-                result,
-                "l" * len(operands),
-                ", ".join(operands),
-            )
-        else:
-            assert False, cls
-
-    @classmethod
-    def getReturnTupleFromLongExpressionsCode(cls, *operands):
-        if cls.type_name == "object":
-            return 'return Py_BuildValue("(%s)", %s);' % (
-                "l" * len(operands),
-                ", ".join(operands),
-            )
-        else:
-            assert False, cls
-
-    @classmethod
-    def getReturnTupleFromFloatExpressionsCode(cls, *operands):
-        if cls.type_name == "object":
-            return 'return Py_BuildValue("(%s)", %s);' % (
-                "d" * len(operands),
-                ", ".join(operands),
-            )
-        else:
-            assert False, cls
-
-    @classmethod
     def getReturnFromFloatExpressionCode(cls, operand):
         if cls.type_name == "object":
             return "return PyFloat_FromDouble(%s);" % operand
@@ -710,12 +657,12 @@ return %(return_value)s;""" % {
 
     @classmethod
     def getAssignFromFloatExpressionCode(cls, result, operand):
-        if cls.type_name == "object":
+        if cls.type_name in ("object", "int", "float"):
             return "%s = PyFloat_FromDouble(%s);" % (result, operand)
         elif cls.type_name == "nbool":
             return "%s = %s;" % (
                 result,
-                cls.getToValueFromBoolExpression("%s == 0.0" % operand),
+                cls.getToValueFromBoolExpression("%s != 0.0" % operand),
             )
         elif cls.type_name == "float":
             return "%s = %s;" % (result, operand)
@@ -737,7 +684,12 @@ return %(return_value)s;""" % {
 
     @classmethod
     def getAssignFromFloatConstantCode(cls, result, value):
-        if cls.type_name == "object":
+        if value == "nan":
+            value = float(value)
+
+        if cls.type_name in ("object", "int"):
+            # TODO: Type checks for value are needed for "int".
+
             const_name = "const_" + nuitka.codegen.Namify.namifyConstant(value)
 
             return "Py_INCREF(%(const_name)s); %(result)s = %(const_name)s;" % {
@@ -745,6 +697,9 @@ return %(return_value)s;""" % {
                 "const_name": const_name,
             }
         elif cls.type_name in ("nbool", "float"):
+            if math.isnan(value):
+                value = "Py_NAN"
+
             return cls.getAssignFromFloatExpressionCode(result, value)
         else:
             assert False, cls
@@ -764,7 +719,7 @@ return %(return_value)s;""" % {
 
     @classmethod
     def getAssignFromIntConstantCode(cls, result, value):
-        if cls.type_name == "object":
+        if cls.type_name in ("object", "int"):
             const_name = "const_" + nuitka.codegen.Namify.namifyConstant(value)
 
             return "Py_INCREF(%(const_name)s); %(result)s = %(const_name)s;" % {
@@ -774,7 +729,78 @@ return %(return_value)s;""" % {
         elif cls.type_name in ("nbool", "float"):
             return cls.getAssignFromLongExpressionCode(result, value)
         else:
-            assert False, cls
+            assert False, (cls, cls.type_name)
+
+    @classmethod
+    def getAssignFromLongConstantCode(cls, result, value):
+        if cls.type_name in ("object", "long"):
+            if str is bytes:
+                # Cannot put "L" in Jinja code for constant value.
+                value = long(value)  # pylint: disable=undefined-variable
+
+            # The only on we surely know right now.
+            assert value == 0
+
+            # TODO: This works for small constants only and only for Python3.
+            const_name2 = "const_" + nuitka.codegen.Namify.namifyConstant(value)
+            const_name3 = (
+                "Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(%d)]" % value
+            )
+
+            return """\
+#if PYTHON_VERSION < 0x300
+%(result)s = %(const_name2)s;
+#else
+%(result)s = %(const_name3)s;
+#endif
+Py_INCREF(%(result)s);""" % {
+                "result": result,
+                "const_name2": const_name2,
+                "const_name3": const_name3,
+            }
+        elif cls.type_name in ("nbool", "float"):
+            return cls.getAssignFromLongExpressionCode(result, value)
+        else:
+            assert False, (cls, cls.type_name)
+
+    @classmethod
+    def getAssignConversionCode(cls, result, left, value):
+        def _getObjectObject():
+            code = "%s = %s;" % (result, value)
+            code += cls.getTakeReferenceStatement(result)
+
+            return code
+
+        if cls is left:
+            return _getObjectObject()
+        else:
+            if cls.type_name in ("object", "float"):
+                if left.type_name in ("int", "float"):
+                    return _getObjectObject()
+                elif left.type_name == "clong":
+                    return cls.getAssignFromLongExpressionCode(result, value)
+                else:
+                    assert False, left.type_name
+            elif cls.type_name == "nbool":
+
+                if left.type_name == "int":
+                    return "%s = %s;" % (
+                        result,
+                        cls.getToValueFromBoolExpression(
+                            "%s != 0" % left.getAsLongValueExpression(value)
+                        ),
+                    )
+                elif left.type_name == "float":
+                    return "%s = %s;" % (
+                        result,
+                        cls.getToValueFromBoolExpression(
+                            "%s != 0.0" % left.getAsDoubleValueExpression(value)
+                        ),
+                    )
+                else:
+                    assert False, left.type_name
+            else:
+                assert False, cls.type_name
 
 
 class ConcreteTypeBase(TypeDescBase):
@@ -808,22 +834,6 @@ assert(%(is_newstyle)sNEW_STYLE_NUMBER(%(operand)s));
     def getTypeValueExpression(self, operand):
         pass
 
-    def getSqConcatSlotSpecializationCode(
-        self, target, other, slot, operand1, operand2
-    ):
-        if not self.hasSlot(slot):
-            return ""
-
-        # TODO: Use second type eventually when we specialize those too.
-        return "return SLOT_%s_%s_%s_%s(%s, %s);" % (
-            slot,
-            target.getHelperCodeName(),
-            self.getHelperCodeName(),
-            other.getHelperCodeName(),
-            operand1,
-            operand2,
-        )
-
     @staticmethod
     def getTakeReferenceStatement(operand):
         return ""
@@ -844,7 +854,9 @@ class IntDesc(ConcreteTypeBase):
         return "1"
 
     def hasSlot(self, slot):
-        if slot.startswith("nb_"):
+        if slot.startswith("nb_inplace"):
+            return False
+        elif slot.startswith("nb_"):
             return slot != "nb_matrix_multiply"
         elif slot.startswith("sq_"):
             return False
@@ -894,7 +906,7 @@ class StrDesc(ConcreteTypeBase):
         if slot.startswith("nb_"):
             return slot == "nb_remainder"
         elif slot.startswith("sq_"):
-            return "ass" not in slot
+            return "ass" not in slot and "inplace" not in slot
         else:
             assert False, slot
 
@@ -931,7 +943,7 @@ assert(NEW_STYLE_NUMBER(%(operand)s));""" % {
         if slot.startswith("nb_"):
             return slot == "nb_remainder"
         elif slot.startswith("sq_"):
-            return "ass" not in slot
+            return "ass" not in slot and "inplace" not in slot
         else:
             assert False, slot
 
@@ -952,7 +964,9 @@ class FloatDesc(ConcreteTypeBase):
         return "PyFloat_AS_DOUBLE(%s)" % operand
 
     def hasSlot(self, slot):
-        if slot.startswith("nb_"):
+        if slot.startswith("nb_inplace"):
+            return False
+        elif slot.startswith("nb_"):
             return slot != "nb_matrix_multiply"
         elif slot.startswith("sq_"):
             return False
@@ -983,7 +997,7 @@ class TupleDesc(ConcreteTypeBase):
         if slot.startswith("nb_"):
             return False
         elif slot.startswith("sq_"):
-            return "ass" not in slot
+            return "ass" not in slot and "inplace" not in slot
         elif slot == "tp_richcompare":
             return True
         elif slot == "tp_compare":
@@ -1032,8 +1046,15 @@ class SetDesc(ConcreteTypeBase):
         return "&PySet_Type"
 
     def hasSlot(self, slot):
-        if slot.startswith("nb_"):
-            return False
+        if slot.startswith("nb_inplace_"):
+            return slot in (
+                "nb_inplace_subtract",
+                "nb_inplace_and",
+                "nb_inplace_or",
+                "nb_inplace_xor",
+            )
+        elif slot.startswith("nb_"):
+            return slot in ("nb_subtract", "nb_and", "nb_or", "nb_xor")
         elif slot.startswith("sq_"):
             return True
         else:
@@ -1085,7 +1106,7 @@ class BytesDesc(ConcreteTypeBase):
         if slot.startswith("nb_"):
             return slot == "nb_remainder"
         elif slot.startswith("sq_"):
-            return "ass" not in slot and slot != "sq_slice"
+            return "ass" not in slot and slot != "sq_slice" and "inplace" not in slot
         else:
             assert False, slot
 
@@ -1110,7 +1131,9 @@ class LongDesc(ConcreteTypeBase):
         return "&PyLong_Type"
 
     def hasSlot(self, slot):
-        if slot.startswith("nb_"):
+        if slot.startswith("nb_inplace_"):
+            return False
+        elif slot.startswith("nb_"):
             return slot != "nb_matrix_multiply"
         elif slot.startswith("sq_"):
             return False
@@ -1151,11 +1174,6 @@ class ObjectDesc(TypeDescBase):
     def getSlotValueCheckExpression(self, operand, slot):
         return "(%s) != NULL" % self._getSlotValueExpression(operand, slot)
 
-    def getSqConcatSlotSpecializationCode(
-        self, target, other, slot, operand1, operand2
-    ):
-        return ""
-
     @staticmethod
     def getToValueFromBoolExpression(operand):
         return "BOOL_FROM(%s)" % operand
@@ -1192,11 +1210,6 @@ class CLongDesc(TypeDescBase):
     def hasSlot(self, slot):
         return False
 
-    def getSqConcatSlotSpecializationCode(
-        self, target, other, slot, operand1, operand2
-    ):
-        return ""
-
     @staticmethod
     def getAsLongValueExpression(operand):
         return operand
@@ -1232,11 +1245,6 @@ class CBoolDesc(TypeDescBase):
 
     def hasSlot(self, slot):
         return False
-
-    def getSqConcatSlotSpecializationCode(
-        self, target, other, slot, operand1, operand2
-    ):
-        return ""
 
     @staticmethod
     def getAsLongValueExpression(operand):
@@ -1286,11 +1294,6 @@ class NBoolDesc(TypeDescBase):
     def hasSlot(self, slot):
         return False
 
-    def getSqConcatSlotSpecializationCode(
-        self, target, other, slot, operand1, operand2
-    ):
-        return ""
-
     @staticmethod
     def getAsLongValueExpression(operand):
         return operand
@@ -1338,11 +1341,6 @@ class NVoidDesc(TypeDescBase):
 
     def hasSlot(self, slot):
         return False
-
-    def getSqConcatSlotSpecializationCode(
-        self, target, other, slot, operand1, operand2
-    ):
-        return ""
 
     @staticmethod
     def getAsLongValueExpression(operand):
@@ -1393,6 +1391,7 @@ class AlternativeIntOrClong(AlternativeTypeBase):
 
 env = jinja2.Environment(
     loader=jinja2.PackageLoader("nuitka.tools.specialize", "templates"),
+    extensions=["jinja2.ext.do"],
     trim_blocks=True,
     lstrip_blocks=True,
 )
@@ -1425,43 +1424,6 @@ def findTypeFromCodeName(code_name):
 
 op_slot_codes = set()
 
-
-def makeNbSlotCode(operand, op_code, target, left, right, emit):
-    key = operand, op_code, target, left, right
-    if key in op_slot_codes:
-        return
-
-    if left in (int_desc, clong_desc):
-        template = env.get_template("HelperOperationBinaryInt.c.j2")
-    elif left == long_desc:
-        template = env.get_template("HelperOperationBinaryLong.c.j2")
-    elif left == float_desc:
-        template = env.get_template("HelperOperationBinaryFloat.c.j2")
-    elif left == list_desc:
-        template = env.get_template("HelperOperationBinaryList.c.j2")
-    elif left == tuple_desc:
-        template = env.get_template("HelperOperationBinaryTuple.c.j2")
-    elif left == set_desc:
-        template = env.get_template("HelperOperationBinarySet.c.j2")
-    elif left == bytes_desc:
-        template = env.get_template("HelperOperationBinaryBytes.c.j2")
-    else:
-        return
-
-    code = template.render(
-        operand=operand,
-        target=target,
-        left=left,
-        right=right,
-        nb_slot=_getNbSlotFromOperand(operand, op_code),
-        name=template.name,
-    )
-
-    emit(code)
-
-    op_slot_codes.add(key)
-
-
 # Reverse operation mapping.
 reversed_args_compare_op_codes = {
     "LE": "GE",
@@ -1481,7 +1443,7 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
     if left in (int_desc, clong_desc):
         template = env.get_template("HelperOperationComparisonInt.c.j2")
     # elif left == long_desc:
-    #     template = env.get_template("HelperOperationBinaryLong.c.j2")
+    #     template = env.get_template("HelperOperationComparisonLong.c.j2")
     elif left == float_desc:
         template = env.get_template("HelperOperationComparisonFloat.c.j2")
     # elif left == list_desc:
@@ -1565,6 +1527,14 @@ def _getNbSlotFromOperand(operand, op_code):
         assert False, operand
 
 
+def _getNbInplaceSlotFromOperand(operand, op_code):
+    if operand == "divmod":
+        return None
+
+    nb_slot = _getNbSlotFromOperand(operand, op_code)
+    return nb_slot.replace("nb_", "nb_inplace_")
+
+
 def _parseTypesFromHelper(helper_name):
     (
         target_code,
@@ -1583,9 +1553,14 @@ def _parseTypesFromHelper(helper_name):
     return target_code, target, left, right
 
 
-def _parseRequirements(target, left, right, emit):
+def _parseRequirements(op_code, target, left, right, emit):
     python_requirement = set()
 
+    # There is an obsolete Python2 operation too, making sure it's guarded in code.
+    if op_code == "OLDDIV":
+        python_requirement.add(int_desc.python_requirement)
+    if op_code == "MATMULT":
+        python_requirement.add("PYTHON_VERSION >= 0x350")
     if target is not None and target.python_requirement:
         python_requirement.add(target.python_requirement)
     if left.python_requirement:
@@ -1603,28 +1578,15 @@ def _parseRequirements(target, left, right, emit):
 
 
 def makeHelperOperations(
-    template, inplace, helpers_set, operand, op_code, emit_h, emit_c, emit
+    template, inplace, helpers_set, operator, op_code, emit_h, emit_c, emit
 ):
-    # Complexity comes natural, pylint: disable=too-many-branches,too-many-locals
+    # Complexity comes natural, pylint: disable=too-many-locals
 
     emit(
         '/* C helpers for type %s "%s" (%s) operations */'
-        % ("in-place" if inplace else "specialized", operand, op_code)
+        % ("in-place" if inplace else "specialized", operator, op_code)
     )
     emit()
-
-    emit_c(
-        """/* Disable warnings about unused goto targets for compilers */
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4102)
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wunused-label"
-#endif
-"""
-    )
 
     for helper_name in helpers_set:
         assert helper_name.split("_")[:3] == ["BINARY", "OPERATION", op_code], (
@@ -1642,54 +1604,7 @@ def makeHelperOperations(
 
             assert False, target_code
 
-        python_requirement = _parseRequirements(target, left, right, emit)
-
-        nb_slot = _getNbSlotFromOperand(operand, op_code)
-
-        if not inplace:
-            code = left.getSameTypeOperationSpecializationCode(
-                target=target,
-                other=right,
-                nb_slot=nb_slot,
-                sq_slot=None,
-                operand1="operand1",
-                operand2="operand2",
-            )
-
-            if code:
-                cand = left if left is not object_desc else right
-                makeNbSlotCode(operand, op_code, target, cand, cand, emit_c)
-
-        if (
-            target is not None
-            and left is not right
-            and right in related_types.get(left, ())
-        ):
-            code = left.getSimilarTypeSpecializationCode(
-                target=target,
-                other=right,
-                nb_slot=nb_slot,
-                operand1="operand1",
-                operand2="operand2",
-            )
-
-            if code:
-                makeNbSlotCode(operand, op_code, target, left, right, emit_c)
-
-        if operand == "*" and target is not None:
-            repeat = left.getSqConcatSlotSpecializationCode(
-                target, right, "sq_repeat", "operand2", "operand1"
-            )
-
-            if repeat:
-                makeMulRepeatCode(target, left, right, emit_c)
-
-            repeat = right.getSqConcatSlotSpecializationCode(
-                target, left, "sq_repeat", "operand2", "operand1"
-            )
-
-            if repeat:
-                makeMulRepeatCode(target, right, left, emit_c)
+        python_requirement = _parseRequirements(op_code, target, left, right, emit)
 
         emit(
             '/* Code referring to "%s" corresponds to %s and "%s" to %s. */'
@@ -1701,23 +1616,40 @@ def makeHelperOperations(
             )
         )
 
-        if operand == "+":
+        if operator == "+":
             sq_slot = "sq_concat"
-        elif operand == "*":
+        elif operator == "*":
             sq_slot = "sq_repeat"
         else:
             sq_slot = None
+
+        if inplace and sq_slot is not None:
+            sq_islot = sq_slot.replace("sq_", "sq_inplace_")
+        else:
+            sq_islot = None
 
         code = template.render(
             target=target,
             left=left,
             right=right,
             op_code=op_code,
-            operator=operand,  # TODO: Rename operand to operator
-            nb_slot=_getNbSlotFromOperand(operand, op_code),
-            sq_slot1=sq_slot,
+            operator=operator,
+            nb_slot=_getNbSlotFromOperand(operator, op_code),
+            nb_islot=_getNbInplaceSlotFromOperand(operator, op_code)
+            if inplace
+            else None,
+            sq_slot=sq_slot,
+            sq_islot=sq_islot,
             object_desc=object_desc,
             int_desc=int_desc,
+            long_desc=long_desc,
+            float_desc=float_desc,
+            list_desc=list_desc,
+            tuple_desc=tuple_desc,
+            set_desc=set_desc,
+            str_desc=str_desc,
+            unicode_desc=unicode_desc,
+            bytes_desc=bytes_desc,
         )
 
         emit_c(code)
@@ -1727,6 +1659,8 @@ def makeHelperOperations(
             .replace(" {", ";")
             .replace("static ", "")
             .replace("inline ", "")
+            .replace("HEDLEY_NEVER_INLINE ", "")
+            .replace("__BINARY", "BINARY")
             .replace("_BINARY", "BINARY")
         )
 
@@ -1734,17 +1668,6 @@ def makeHelperOperations(
             emit("#endif")
 
         emit()
-
-    emit_c(
-        """/* Reneable warnings about unused goto targets for compilers */
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic warning "-Wunused-label"
-#endif
-    """
-    )
 
 
 def makeHelperComparisons(
@@ -1757,7 +1680,9 @@ def makeHelperComparisons(
     emit()
 
     for target in (object_desc, cbool_desc, nbool_desc):
-        python_requirement = _parseRequirements(target, int_desc, int_desc, emit_c)
+        python_requirement = _parseRequirements(
+            op_code, target, int_desc, int_desc, emit_c
+        )
 
         makeCompareSlotCode(operator, op_code, target, int_desc, int_desc, emit_c)
 
@@ -1775,7 +1700,7 @@ def makeHelperComparisons(
 
             assert False, target_code
 
-        python_requirement = _parseRequirements(target, left, right, emit)
+        python_requirement = _parseRequirements(op_code, target, left, right, emit)
 
         code = left.getSameTypeComparisonSpecializationCode(
             right, op_code, target, "operand1", "operand2"
@@ -2061,9 +1986,12 @@ def writeline(output, *args):
 
 
 def main():
+    # Cover many things once first, then cover all for quicker turnaround during development.
+    makeHelpersBinaryOperation("+", "ADD")
+    makeHelpersInplaceOperation("+", "ADD")
+
     makeHelpersImportHard()
 
-    makeHelpersBinaryOperation("+", "ADD")
     makeHelpersBinaryOperation("-", "SUB")
     makeHelpersBinaryOperation("*", "MULT")
     makeHelpersBinaryOperation("%", "MOD")
@@ -2079,7 +2007,6 @@ def main():
     makeHelpersBinaryOperation("**", "POW")
     makeHelpersBinaryOperation("@", "MATMULT")
 
-    makeHelpersInplaceOperation("+", "ADD")
     makeHelpersInplaceOperation("-", "SUB")
     makeHelpersInplaceOperation("*", "MULT")
     makeHelpersInplaceOperation("%", "MOD")

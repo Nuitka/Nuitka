@@ -146,7 +146,7 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
 
     if module_kind == "shlib":
         if Options.isStandaloneMode():
-            return True, "Shared library for inclusion."
+            return True, "Extension module needed for standalone mode."
         else:
             return False, "Shared library cannot be inspected."
 

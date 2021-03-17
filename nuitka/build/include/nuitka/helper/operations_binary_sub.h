@@ -96,8 +96,18 @@ extern PyObject *BINARY_OPERATION_SUB_OBJECT_INT_LONG(PyObject *operand1, PyObje
 #endif
 
 #if PYTHON_VERSION < 0x300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+extern PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -106,29 +116,13 @@ extern PyObject *BINARY_OPERATION_SUB_OBJECT_INT_FLOAT(PyObject *operand1, PyObj
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
-extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-extern PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2);
-#endif
-
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
-extern PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
-extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_LONG_FLOAT(PyObject *operand1, PyObject *operand2);
-
-#if PYTHON_VERSION < 0x300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 extern PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
+extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -136,8 +130,14 @@ extern PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_INT(PyObject *operand1, PyObj
 extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
+extern PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *operand2);
+
 /* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 extern PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
+extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_LONG_FLOAT(PyObject *operand1, PyObject *operand2);
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 extern nuitka_bool BINARY_OPERATION_SUB_NBOOL_FLOAT_LONG(PyObject *operand1, PyObject *operand2);

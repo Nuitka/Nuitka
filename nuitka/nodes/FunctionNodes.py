@@ -29,14 +29,21 @@ Coroutines and generators live in their dedicated module and share base
 classes.
 """
 
-from nuitka import Variables
+import inspect
+
+from nuitka import Options, Variables
 from nuitka.Constants import isMutable
+from nuitka.optimizations.TraceCollections import (
+    TraceCollectionPureFunction,
+    withChangeIndicationsTo,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import (
     ParameterSpec,
     TooManyArguments,
     matchCall,
 )
+from nuitka.Tracing import optimization_logger
 from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 
@@ -63,6 +70,8 @@ from .NodeMakingHelpers import (
     wrapExpressionWithSideEffects,
 )
 from .shapes.BuiltinTypeShapes import tshape_function
+
+_is_verbose = Options.isVerbose()
 
 
 class MaybeLocalVariableUsage(Exception):
@@ -779,6 +788,79 @@ class ExpressionFunctionBody(
 class ExpressionFunctionPureBody(ExpressionFunctionBody):
     kind = "EXPRESSION_FUNCTION_PURE_BODY"
 
+    __slots__ = (
+        # These need only one optimization ever.
+        "optimization_done",
+    )
+
+    def __init__(
+        self,
+        provider,
+        name,
+        code_object,
+        doc,
+        parameters,
+        flags,
+        auto_release,
+        source_ref,
+    ):
+        ExpressionFunctionBody.__init__(
+            self,
+            provider=provider,
+            name=name,
+            code_object=code_object,
+            doc=doc,
+            parameters=parameters,
+            flags=flags,
+            auto_release=auto_release,
+            source_ref=source_ref,
+        )
+
+        self.optimization_done = False
+
+    def computeFunctionRaw(self, trace_collection):
+        if self.optimization_done:
+            for function_body in self.trace_collection.getUsedFunctions():
+                trace_collection.onUsedFunction(function_body)
+
+        def mySignal(tag, source_ref, change_desc):
+            if _is_verbose:
+                optimization_logger.info(
+                    "{source_ref} : {tags} : {message}".format(
+                        source_ref=source_ref.getAsString(),
+                        tags=tags,
+                        message=change_desc()
+                        if inspect.isfunction(change_desc)
+                        else change_desc,
+                    )
+                )
+
+            tags.add(tag)
+
+        tags = set()
+
+        while 1:
+            trace_collection = TraceCollectionPureFunction(function_body=self)
+            old_collection = self.setTraceCollection(trace_collection)
+
+            with withChangeIndicationsTo(mySignal):
+                self.computeFunction(trace_collection)
+
+            trace_collection.updateVariablesFromCollection(
+                old_collection, self.source_ref
+            )
+
+            if tags:
+                tags.clear()
+            else:
+                break
+
+        self.optimization_done = True
+
+
+class ExpressionFunctionPureInlineConstBody(ExpressionFunctionBody):
+    kind = "EXPRESSION_FUNCTION_PURE_INLINE_CONST_BODY"
+
     def getFunctionInlineCost(self, values):
         return 0
 
@@ -1012,23 +1094,9 @@ class ExpressionFunctionRef(ExpressionBase):
         return self.function_body
 
     def computeExpressionRaw(self, trace_collection):
-        function_body = self.getFunctionBody()
+        trace_collection.onUsedFunction(self.getFunctionBody())
 
-        owning_module = function_body.getParentModule()
-
-        # Make sure the owning module is added to the used set. This is most
-        # important for helper functions, or modules, which otherwise have
-        # become unused.
-        from nuitka.ModuleRegistry import addUsedModule
-
-        addUsedModule(owning_module)
-
-        needs_visit = owning_module.addUsedFunction(function_body)
-
-        if needs_visit:
-            function_body.computeFunctionRaw(trace_collection)
-
-        # TODO: Function collection may now know something.
+        # TODO: Function after collection may now know something.
         return self, None, None
 
     @staticmethod

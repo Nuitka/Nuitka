@@ -194,6 +194,8 @@ def main():
                     continue
                 if r"azure dev spaces cli" in loaded_filename:
                     continue
+                if r"tortoisesvn" in loaded_filename:
+                    continue
 
             if loaded_filename.startswith(current_dir):
                 continue

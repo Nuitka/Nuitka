@@ -6,7 +6,4 @@ appdirs == 1.4.4
 scons == 3.1.2
 
 # For the progress bar to look nicely.
-tqdm == 4.56.0
-
-# PEFile is needed on Windows internal dependency walker
-# pefile == 2019.4.18
+tqdm == 4.59.0

@@ -48,16 +48,19 @@ from SCons.Script import (  # pylint: disable=import-error
     GetOption,
 )
 
-from nuitka.Tracing import my_print, scons_details_logger, scons_logger
-from nuitka.utils.WindowsResources import (
-    RT_GROUP_ICON,
-    RT_ICON,
-    RT_VERSION,
-    copyResourcesFromFileToFile,
+from nuitka.Tracing import (
+    my_print,
+    scons_details_logger,
+    scons_logger,
+    setQuiet,
 )
 
 from .SconsCaching import enableCcache, enableClcache
-from .SconsCompilerSettings import checkWindowsCompilerFound, enableC11Settings
+from .SconsCompilerSettings import (
+    checkWindowsCompilerFound,
+    enableC11Settings,
+    enableExperimentalSettings,
+)
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
 from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
 from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
@@ -158,6 +161,9 @@ mingw_mode = getArgumentBool("mingw_mode", False)
 # Show scons mode, output information about Scons operation
 show_scons_mode = getArgumentBool("show_scons", False)
 scons_details_logger.is_quiet = not show_scons_mode
+
+if int(os.environ.get("NUITKA_QUIET", "0")):
+    setQuiet()
 
 # Home of Python to be compiled against, used to find tools like clcache and
 # ccache.
@@ -531,17 +537,10 @@ if debug_mode:
             ]
         )
 
-        # Disable warnings, that CPython headers already show.
-        env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
+        # Disable warnings, the first 3 are for Python headers, maybe not needed.
+        env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610", "/wd4996"])
 
-if experimental:
-    env.Append(
-        CPPDEFINES=[
-            "_NUITKA_EXPERIMENTAL_" + experiment.upper().replace("-", "_")
-            for experiment in experimental
-            if experiment
-        ]
-    )
+enableExperimentalSettings(env, experimental)
 
 if trace_mode:
     env.Append(CPPDEFINES=["_NUITKA_TRACE"])
@@ -574,8 +573,25 @@ if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
     )
 
 # We have include files in the build directory and the static include directory
-# that is located inside Nuitka installation.
-env.Append(CPPPATH=[source_dir, nuitka_include, os.path.join(nuitka_src, "static_src")])
+# that is located inside Nuitka installation, as well as an inline copy of zstd
+# that should be found.
+env.Append(
+    CPPPATH=[
+        source_dir,
+        nuitka_include,
+        os.path.join(nuitka_src, "static_src"),
+        os.path.join(nuitka_src, "inline_copy", "zstd"),
+    ],
+)
+
+# The inline copy of zstd has a header file to discover.
+env.Append(
+    CPPPATH=[
+        source_dir,
+        nuitka_include,
+    ]
+)
+
 
 if debug_mode or unstripped_mode:
     # Use debug format, so we get good tracebacks from it.
@@ -633,7 +649,7 @@ def discoverSourceFiles():
     # If we use C11 capable compiler, all good. Otherwise use C++, which Scons
     # needs to derive from filenames, so make copies (or links) with a different
     # name.
-    def _scanSourcekDir(dirname):
+    def _scanSourceDir(dirname):
         if not os.path.exists(dirname):
             return
 
@@ -660,8 +676,8 @@ def discoverSourceFiles():
                 result.append(target_file)
 
     # Scan for Nuitka created source files, and add them too.
-    _scanSourcekDir(source_dir)
-    _scanSourcekDir(os.path.join(source_dir, "plugins"))
+    _scanSourceDir(source_dir)
+    _scanSourceDir(os.path.join(source_dir, "plugins"))
 
     # Main onefile bootstrap program
     result.append(
@@ -759,14 +775,15 @@ if msvc_mode:
 onefile_definitions = {}
 
 if "ONEFILE_COMPANY" in os.environ:
-    onefile_definitions["ONEFILE_TEMPFILE"] = 0
-
     onefile_definitions["ONEFILE_COMPANY"] = os.environ["ONEFILE_COMPANY"]
     onefile_definitions["ONEFILE_PRODUCT"] = os.environ["ONEFILE_PRODUCT"]
     onefile_definitions["ONEFILE_VERSION"] = os.environ["ONEFILE_VERSION"]
-else:
-    onefile_definitions["ONEFILE_TEMPFILE"] = 1
 
+if "ONEFILE_TEMP_SPEC" in os.environ:
+    onefile_definitions["_NUITKA_ONEFILE_TEMP_SPEC"] = os.environ["ONEFILE_TEMP_SPEC"]
+    onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 1
+else:
+    onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 0
 
 createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
 

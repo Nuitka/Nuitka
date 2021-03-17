@@ -31,7 +31,6 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContentByLine
-from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import getPyWin32Dir, locateDLL
 from nuitka.utils.Utils import getOS, isWin32Windows
@@ -65,14 +64,13 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         top_level_package_name = full_name.getTopLevelPackageName()
 
-        if full_name.hasOneOfNamespaces("PyQt4", "PyQt5"):
+        if top_level_package_name == "PyQt5":
             if python_version < 0x300:
                 yield "atexit"
 
-            # These are alternatives now:
-            # TODO: One day it should avoid including both.
-            yield "sip"
-            if top_level_package_name == "PyQt5":
+            # These are alternatives depending on PyQt5 version
+            if full_name == "PyQt5.QtCore":
+                yield "sip"
                 yield "PyQt5.sip"
 
             _, child = full_name.splitPackageName()
@@ -92,6 +90,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 "QtNetwork",
                 "QtScript",
                 "QtQml",
+                "QtGui",
                 "QtScriptTools",
                 "QtSvg",
                 "QtTest",
@@ -305,19 +304,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "engineio.async_drivers.sanic"
             yield "engineio.async_drivers.threading"
             yield "engineio.async_drivers.tornado"
-
-        # start of eventlet imports ------------------------------------------
-        elif full_name == "eventlet":
-            yield "eventlet.hubs"
-
-        elif full_name == "eventlet.hubs":
-            yield "eventlet.hubs.epolls"
-            yield "eventlet.hubs.hub"
-            yield "eventlet.hubs.kqueue"
-            yield "eventlet.hubs.poll"
-            yield "eventlet.hubs.pyevent"
-            yield "eventlet.hubs.selects"
-            yield "eventlet.hubs.timer"
 
         # start of gevent imports --------------------------------------------
         elif full_name == "gevent":
@@ -746,13 +732,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "tornado"
 
         elif full_name.hasOneOfNamespaces(
-            "matplotlib.backends.backend_qt4agg", "matplotlib.backends.backend_qt4"
-        ):
-            yield "matplotlib.backends.backend_qt4agg"
-            yield "matplotlib.backends.backend_qt4"
-            yield "PyQt4"
-
-        elif full_name.hasOneOfNamespaces(
             "matplotlib.backends.backend_qt5agg", "matplotlib.backends.backend_qt5"
         ):
             yield "matplotlib.backends.backend_qt5agg"
@@ -1117,8 +1096,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pandas._libs.tslibs.base"
         elif full_name == "pandas.core.window":
             yield "pandas._libs.skiplist"
-        elif full_name == "zmq.backend":
-            yield "zmq.backend.cython"
         elif full_name == "pandas._libs.testing":
             yield "cmath"
         elif full_name == "flask.app":
@@ -1173,6 +1150,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield crypto_module_name + ".Hash._ghash_portable"
             elif full_name == crypto_module_name + ".Cipher.ChaCha20":
                 yield crypto_module_name + ".Cipher._chacha20"
+            elif full_name == crypto_module_name + ".PublicKey.ECC":
+                yield crypto_module_name + ".PublicKey._ec_ws"
         elif full_name == "pycparser.c_parser":
             yield "pycparser.yacctab"
             yield "pycparser.lextab"
@@ -1206,12 +1185,14 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield full_name.getChildNamed("xorg")
         elif full_name == "_pytest._code.code":
             yield "py._path.local"
+        elif full_name == "pyreadstat._readstat_parser":
+            yield "pandas"
 
     def getImportsByFullname(self, full_name, module_filename):
         """Recursively create a set of imports for a fullname.
 
         Notes:
-            If an imported item has imported kids, call me again with each kid,
+            If an imported item has imported kids, call again with each new item,
             resulting in a leaf-only set (no more consequential kids).
         """
         result = OrderedSet()
@@ -1226,6 +1207,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         checkImportsRecursive(full_name, module_filename)
 
+        if full_name in result:
+            result.remove(full_name)
+
         return result
 
     def getImplicitImports(self, module):
@@ -1237,23 +1221,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             for used_module in module.getUsedModules():
                 yield used_module[0]
 
-        if full_name == "pkg_resources.extern":
-            if self.pkg_utils_externals is None:
-                for line in getFileContentByLine(module.getCompileTimeFilename()):
-                    if line.startswith("names"):
-                        line = line.split("=")[-1].strip()
-                        parts = line.split(",")
-
-                        self.pkg_utils_externals = [part.strip("' ") for part in parts]
-
-                        break
-                else:
-                    self.pkg_utils_externals = ()
-
-            for pkg_util_external in self.pkg_utils_externals:
-                yield "pkg_resources._vendor." + pkg_util_external
-
-        elif full_name == "OpenGL":
+        if full_name == "OpenGL":
             if self.opengl_plugins is None:
                 self.opengl_plugins = []
 
@@ -1419,6 +1387,11 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "requests.packages.urllib3.util.ssl_": "urllib3.util.ssl_",
         "requests.packages.urllib3.util.timeout": "urllib3.util.timeout",
         "requests.packages.urllib3.util.url": "urllib3.util.url",
+        # Avoid pkg_resources.extern meta path based loader trick.
+        "pkg_resources.extern.packaging": "pkg_resources._vendor.packaging",
+        "pkg_resources.extern.pyparsing": "pkg_resources._vendor.pyparsing",
+        "pkg_resources.extern.six": "pkg_resources._vendor.six",
+        "pkg_resources.extern.appdirs": "pkg_resources._vendor.appdirs",
     }
 
     def onModuleSourceCode(self, module_name, source_code):
@@ -1496,18 +1469,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                         result.append((pythoncom_dll_path, dist_dll_path, None))
 
             return result
-
-        elif full_name == "zmq.libzmq" and isWin32Windows():
-            # TODO: Very strange thing for zmq on Windows, needs the .pyd file in wrong dir too. Have
-            # this done in a dedicated form somewhere.
-            shutil.copyfile(
-                os.path.join(dist_dir, "zmq\\libzmq.pyd"),
-                os.path.join(
-                    dist_dir, "libzmq" + getSharedLibrarySuffix(preferred=True)
-                ),
-            )
-
-            return ()
 
         return ()
 

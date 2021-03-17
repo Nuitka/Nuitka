@@ -23,14 +23,13 @@ to the user while it's being displayed.
 """
 
 from nuitka import Tracing
+from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.ThreadedExecutor import RLock
+from nuitka.utils.Utils import isWin32Windows
 
-try:
-    from tqdm import tqdm
-except ImportError:
-    tqdm = None
-else:
-    tqdm.set_lock(RLock())
+# Late import and optional to be there.
+use_progress_bar = False
+tqdm = None
 
 
 class NuitkaProgessBar(object):
@@ -56,6 +55,7 @@ class NuitkaProgessBar(object):
             unit=self.unit,
             disable=None,
             leave=False,
+            bar_format="{desc}{percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt}{postfix}",
         )
 
         self.tqdm.set_description(self.stage)
@@ -70,7 +70,7 @@ class NuitkaProgessBar(object):
             self.item = item
 
             if item is not None:
-                self.tqdm.set_postfix(item=item)
+                self.tqdm.set_postfix_str(item)
             else:
                 self.tqdm.set_postfix()
 
@@ -92,15 +92,31 @@ class NuitkaProgessBar(object):
         self.tqdm.close()
 
 
-# Written by enableProgressBar from nuitka.options or Scons files in their processes.
-use_progress_bar = False
-
-
 def enableProgressBar():
     global use_progress_bar  # singleton, pylint: disable=global-statement
+    global tqdm  # singleton, pylint: disable=global-statement
+
+    if isWin32Windows():
+        colorama = importFromInlineCopy("colorama", must_exist=True)
+        colorama.init()
+
+    try:
+        from tqdm import tqdm  # pylint: disable=I0021,import-error,redefined-outer-name
+    except ImportError:
+        # We handle the case without inline copy too, but it may be removed, e.g. on
+        # Debian it's only a recommended install, and not included that way.
+        try:
+            tqdm = importFromInlineCopy("tqdm", must_exist=False)
+        except SyntaxError:
+            # Python 2.6 is not supported by our inline copy version
+            tqdm = None
+
+        if tqdm is not None:
+            tqdm = tqdm.tqdm
 
     # Tolerate the absence for now and ignore the progress bar
     if tqdm is not None:
+        tqdm.set_lock(RLock())
         use_progress_bar = True
 
 

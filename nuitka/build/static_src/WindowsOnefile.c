@@ -22,6 +22,8 @@
  *
  */
 
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <assert.h>
 #include <stdio.h>
 
@@ -48,25 +50,11 @@
 #define ONEFILE_VERSION "SomeVersion"
 #endif
 
-// #include <locale.h>
+#ifdef _NUITKA_EXPERIMENTAL_ZSTD2
+#include "WindowsDecompression.c"
+#endif
 
-static void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t buffer_size) {
-    while (*target != 0) {
-        target++;
-        buffer_size -= 1;
-    }
-
-    while (*source != 0) {
-        if (buffer_size < 1) {
-            abort();
-        }
-
-        *target++ = *source++;
-        buffer_size -= 1;
-    }
-
-    *target = 0;
-}
+#include "HelpersSafeStrings.c"
 
 static void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size) {
     while (*target != 0) {
@@ -82,17 +70,39 @@ static void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size) {
     *target = 0;
 }
 
-static wchar_t *readFilename(HANDLE exe_file) {
+// Note: Made payload file handle global until we properly abstracted compression.
+static HANDLE exe_file;
+
+static void readChunk(void *buffer, DWORD size) {
+    DWORD read_size;
+    BOOL bool_res = ReadFile(exe_file, buffer, size, &read_size, NULL);
+
+    assert(bool_res);
+    assert(read_size == size);
+}
+
+static unsigned long long readSizeValue() {
+    unsigned long long result;
+    readChunk(&result, sizeof(unsigned long long));
+
+    return result;
+}
+
+static wchar_t readChar() {
+    wchar_t result;
+
+    readChunk(&result, 2);
+
+    return result;
+}
+
+static wchar_t *readFilename() {
     static wchar_t buffer[1024];
 
     wchar_t *w = buffer;
 
     for (;;) {
-        DWORD read_size;
-        BOOL bool_res = ReadFile(exe_file, w, 2, &read_size, NULL);
-
-        assert(bool_res);
-        assert(read_size == 2);
+        *w = readChar();
 
         if (*w == 0) {
             break;
@@ -102,16 +112,6 @@ static wchar_t *readFilename(HANDLE exe_file) {
     }
 
     return buffer;
-}
-
-static unsigned long long readSizeValue(HANDLE exe_file) {
-    unsigned long long result;
-    DWORD read_size;
-    BOOL bool_res = ReadFile(exe_file, &result, sizeof(unsigned long long), &read_size, NULL);
-    assert(bool_res);
-    assert(read_size == sizeof(unsigned long long));
-
-    return result;
 }
 
 static void printError(char const *message) {
@@ -143,13 +143,13 @@ static void cleanupChildProcess() {
         }
 
         // We only need to wait if there is a need to cleanup files.
-#if ONEFILE_TEMPFILE == 1
+#if _NUITKA_ONEFILE_TEMP == 1
         WaitForSingleObject(handle_process, INFINITE);
         CloseHandle(handle_process);
 #endif
     }
 
-#if ONEFILE_TEMPFILE == 1
+#if _NUITKA_ONEFILE_TEMP == 1
     if (payload_created) {
         // _putws(payload_path);
 
@@ -223,7 +223,7 @@ int main(int argc, char **argv) {
 
     BOOL bool_res;
 
-#if ONEFILE_TEMPFILE == 0
+#if _NUITKA_ONEFILE_TEMP == 0
     res = SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, payload_path);
 
     if (res != S_OK) {
@@ -264,23 +264,16 @@ int main(int argc, char **argv) {
     appendWStringSafeW(payload_path, L"" ONEFILE_VERSION, sizeof(payload_path) / sizeof(wchar_t));
 
 #else
-    res = GetTempPathW(sizeof(payload_path) / sizeof(wchar_t), payload_path);
-    if (res == 0) {
-        printError("Temporary path cannot be detected.");
-        return 1;
+    wchar_t const *pattern = L"" _NUITKA_ONEFILE_TEMP_SPEC;
+
+    bool_res = expandWindowsPath(payload_path, pattern, sizeof(payload_path) / sizeof(wchar_t));
+
+    if (bool_res == false) {
+        puts("Error, couldn't runtime expand temporary directory pattern:");
+        _putws(pattern);
+        abort();
     }
 
-    // Best effort to make temp path unique by using PID and time.
-    {
-        wchar_t buffer[1024];
-
-        __int64 time = 0;
-        assert(sizeof(time) == sizeof(FILETIME));
-        GetSystemTimeAsFileTime((LPFILETIME)&time);
-
-        swprintf(buffer, sizeof(buffer), L"\\onefile_%d_%lld", GetCurrentProcessId(), time);
-        appendWStringSafeW(payload_path, buffer, sizeof(payload_path) / sizeof(wchar_t));
-    }
 #endif
     bool_res = SetConsoleCtrlHandler(ourConsoleCtrlHandler, true);
     if (bool_res == false) {
@@ -292,7 +285,7 @@ int main(int argc, char **argv) {
 
     payload_created = true;
 
-    HANDLE exe_file = CreateFileW(exe_filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+    exe_file = CreateFileW(exe_filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
     if (exe_file == INVALID_HANDLE_VALUE) {
         printError("Error, failed to access unpacked executable.");
         return 1;
@@ -303,7 +296,7 @@ int main(int argc, char **argv) {
 
     DWORD read_size;
 
-    unsigned long long start_pos = readSizeValue(exe_file);
+    unsigned long long start_pos = readSizeValue();
 
     // printf("Start at %lld\n", start_pos);
     // printf("Start at %ld\n", (LONG)start_pos);
@@ -326,7 +319,7 @@ int main(int argc, char **argv) {
     static wchar_t first_filename[1024] = {0};
 
     for (;;) {
-        wchar_t *filename = readFilename(exe_file);
+        wchar_t *filename = readFilename();
 
         // Detect EOF from empty filename.
         if (filename[0] == 0) {
@@ -373,7 +366,7 @@ int main(int argc, char **argv) {
         HANDLE target_file = CreateFileW(target_path, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, 0, NULL);
         assert(target_file != INVALID_HANDLE_VALUE);
 
-        unsigned long long file_size = readSizeValue(exe_file);
+        unsigned long long file_size = readSizeValue();
 
         while (file_size > 0) {
             static char chunk[32768];
@@ -387,8 +380,7 @@ int main(int argc, char **argv) {
                 chunk_size = sizeof(chunk);
             }
 
-            bool_res = ReadFile(exe_file, chunk, chunk_size, NULL, NULL);
-            assert(bool_res);
+            readChunk(chunk, chunk_size);
             bool_res = WriteFile(target_file, chunk, chunk_size, NULL, NULL);
             assert(bool_res);
 
@@ -408,7 +400,7 @@ int main(int argc, char **argv) {
     // Pass our pid by value to the child.
     {
         char buffer[128];
-        itoa(GetCurrentProcessId(), buffer, 10);
+        _itoa_s(GetCurrentProcessId(), buffer, sizeof(buffer), 10);
         SetEnvironmentVariable("NUITKA_ONEFILE_PARENT", buffer);
     }
 

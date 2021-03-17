@@ -24,7 +24,11 @@ code from other modules.
 """
 
 from nuitka.PythonVersions import python_version
-from nuitka.utils.InstanceCounters import counted_del, counted_init
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 
 # These defaults have changed with Python versions.
 _future_division_default = python_version >= 0x300
@@ -54,7 +58,8 @@ class FutureSpec(object):
         self.generator_stop = _future_generator_stop_default
         self.future_annotations = _future_annotations_default
 
-    __del__ = counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     def __repr__(self):
         return "<FutureSpec %s>" % ",".join(self.asFlags())

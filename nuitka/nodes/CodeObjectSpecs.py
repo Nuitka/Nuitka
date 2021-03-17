@@ -22,7 +22,11 @@ objects, as well as tracebacks. They might be shared.
 
 """
 
-from nuitka.utils.InstanceCounters import counted_del, counted_init
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 
 
 class CodeObjectSpec(object):
@@ -111,7 +115,8 @@ class CodeObjectSpec(object):
         self.new_locals = co_new_locals
         self.is_optimized = co_is_optimized
 
-    __del__ = counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     def __repr__(self):
         return (

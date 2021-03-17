@@ -30,4 +30,7 @@ extern void appendCharSafeW(wchar_t *target, char c, size_t buffer_size);
 extern void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size);
 extern void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t buffer_size);
 
+/* Expand symbolic paths, containing %TEMP%, %PID% without overflowing. */
+extern bool expandWindowsPath(wchar_t *target, wchar_t const *source, size_t buffer_size);
+
 #endif

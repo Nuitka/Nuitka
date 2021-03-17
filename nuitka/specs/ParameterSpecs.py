@@ -31,7 +31,11 @@ flexible.
 
 from nuitka import Variables
 from nuitka.PythonVersions import python_version
-from nuitka.utils.InstanceCounters import counted_del, counted_init
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 
 
 class TooManyArguments(Exception):
@@ -116,7 +120,8 @@ class ParameterSpec(object):
         self.pos_only_args = tuple(ps_pos_only_args)
         self.pos_only_variables = None
 
-    __del__ = counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     def makeClone(self):
         return ParameterSpec(

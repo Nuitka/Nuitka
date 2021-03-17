@@ -383,21 +383,11 @@ def makeSourceDirectory():
         source_code=constants_body_code,
     )
 
-    for filename, source_code in Plugins.getExtraCodeFiles().items():
-        target_dir = os.path.join(source_dir, "plugins")
-
-        if not os.path.isdir(target_dir):
-            makePath(target_dir)
-
-        writeSourceCode(
-            filename=os.path.join(target_dir, filename), source_code=source_code
-        )
-
 
 def runSconsBackend(quiet):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-statements
 
     asBoolStr = SconsInterface.asBoolStr
 
@@ -434,6 +424,15 @@ def runSconsBackend(quiet):
 
     if Options.isOnefileMode():
         options["onefile_mode"] = asBoolStr(True)
+
+    if Options.isWindowsOnefileTempDirMode():
+        options["onefile_temp_mode"] = asBoolStr(True)
+
+    if Options.getForcedStdoutPath():
+        options["forced_stdout_path"] = Options.getForcedStdoutPath()
+
+    if Options.getForcedStderrPath():
+        options["forced_stderr_path"] = Options.getForcedStderrPath()
 
     if Options.shallTreatUninstalledPython():
         options["uninstalled_python"] = asBoolStr(True)
@@ -614,9 +613,18 @@ def compileTree():
 
     general.info("Running data composer tool for optimal constant value handling.")
 
-    # TODO: On Windows, we could run this in parallel to Scons, on Linux we need it
-    # for linking.
-    runDataComposer(source_dir)
+    blob_filename = runDataComposer(source_dir)
+    Plugins.onDataComposerResult(blob_filename)
+
+    for filename, source_code in Plugins.getExtraCodeFiles().items():
+        target_dir = os.path.join(source_dir, "plugins")
+
+        if not os.path.isdir(target_dir):
+            makePath(target_dir)
+
+        writeSourceCode(
+            filename=os.path.join(target_dir, filename), source_code=source_code
+        )
 
     general.info("Running C level backend compilation via Scons.")
 

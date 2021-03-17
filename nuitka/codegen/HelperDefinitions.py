@@ -100,7 +100,7 @@ def makeFriendOps(op_code, include_nbool, *type_names):
                 continue
 
             yield "BINARY_OPERATION_%s_OBJECT_%s_%s" % (op_code, type_name1, type_name2)
-            yield "BINARY_OPERATION_%s_OBJECT_%s_%s" % (op_code, type_name1, type_name2)
+            yield "BINARY_OPERATION_%s_OBJECT_%s_%s" % (op_code, type_name2, type_name1)
 
             if include_nbool:
                 yield "BINARY_OPERATION_%s_NBOOL_%s_%s" % (
@@ -110,8 +110,8 @@ def makeFriendOps(op_code, include_nbool, *type_names):
                 )
                 yield "BINARY_OPERATION_%s_NBOOL_%s_%s" % (
                     op_code,
-                    type_name1,
                     type_name2,
+                    type_name1,
                 )
 
 
@@ -181,6 +181,8 @@ specialized_mult_helpers_set = buildOrderedSet(
         "BINARY_OPERATION_MULT_OBJECT_CLONG_CLONG",
         "BINARY_OPERATION_MULT_OBJECT_INT_CLONG",
         "BINARY_OPERATION_MULT_OBJECT_CLONG_INT",
+        #        "BINARY_OPERATION_MULT_OBJECT_LONG_CLONG",
+        #        "BINARY_OPERATION_MULT_OBJECT_CLONG_LONG",
         "BINARY_OPERATION_MULT_OBJECT_OBJECT_STR",
         "BINARY_OPERATION_MULT_OBJECT_STR_OBJECT",
         "BINARY_OPERATION_MULT_OBJECT_INT_STR",

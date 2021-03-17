@@ -215,14 +215,14 @@ Exec statement raises implicitly when determining locals argument.""",
 
         str_value = self.subnode_source.getStrValue()
 
-        if False and str_value is not None:
+        if str_value is not None:
+            # TODO: This needs to be re-done.
             # TODO: Don't forget to consider side effects of source code,
             # locals_arg, and globals_arg.
+            return self, None, None
 
-            # TODO: This needs to be re-done.
-            exec_body = None
-
-            return (exec_body, "new_statements", "In-lined constant exec statement.")
+            # exec_body = ...
+            # return (exec_body, "new_statements", "In-lined constant exec statement.")
 
         return self, None, None
 

@@ -41,6 +41,7 @@ Depends: gcc (>= 5.0) | g++ (>= 4.4) | clang (>= 3.0),
          ${python:Depends},
          ${python3:Depends}
 Recommends: python3-lxml,
+            python3-tqdm,
             strace,
             chrpath,
             libfuse2

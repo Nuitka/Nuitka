@@ -42,8 +42,6 @@ class GeventPlugin(NuitkaPluginBase):
         if module_name.hasNamespace("gevent"):
             return True, "everything from gevent"
 
-        return None
-
     def onModuleSourceCode(self, module_name, source_code):
         """Append a statement to gevent/_config.py."""
         if module_name != "gevent._config":

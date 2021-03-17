@@ -148,7 +148,6 @@ from nuitka.nodes.VariableRefNodes import (
 )
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
-from nuitka.Tracing import optimization_logger
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from nuitka.tree.ReformulationTryFinallyStatements import (
     makeTryFinallyStatement,
@@ -1510,9 +1509,10 @@ def computeBuiltinCall(builtin_name, call_node):
 
         return new_node, tags, message
     else:
-        if False and builtin_name not in _builtin_ignore_list:
-            optimization_logger.warning(
-                "Not handling built-in %r, consider support." % builtin_name
-            )
+        # TODO: Achieve coverage of all built-ins in at least the ignore list.
+        # if False and builtin_name not in _builtin_ignore_list:
+        #     optimization_logger.warning(
+        #         "Not handling built-in %r, consider support." % builtin_name
+        #     )
 
         return call_node, None, None

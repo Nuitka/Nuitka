@@ -61,11 +61,22 @@ static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] = {
     {NULL, NULL, 0, 0, 0}
 };
 
+static void _loadBytesCodesBlob()
+{
+    static bool init_done = false;
+
+    if (init_done == false) {
+        loadConstantsBlob((PyObject **)bytecode_data, ".bytecode");
+
+        init_done = true;
+    }
+}
+
 
 void setupMetaPathBasedLoader(void) {
     static bool init_done = false;
     if (init_done == false) {
-        loadConstantsBlob((PyObject **)bytecode_data, ".bytecode", %(bytecode_count)d);
+        _loadBytesCodesBlob();
         registerMetaPathBasedUnfreezer(meta_path_loader_entries, bytecode_data);
 
         init_done = true;
@@ -96,11 +107,11 @@ static struct frozen_desc _frozen_modules[] = {
 
 
 void copyFrozenModulesTo(struct _frozen *destination) {
-    loadConstantsBlob((PyObject **)bytecode_data, ".bytecode", %(bytecode_count)d);
+    _loadBytesCodesBlob();
 
     struct frozen_desc *current = _frozen_modules;
 
-    for(;;) {
+    for (;;) {
         destination->name = (char *)current->name;
         destination->code = bytecode_data[current->index];
         destination->size = current->size;

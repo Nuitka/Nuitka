@@ -27,7 +27,11 @@ from nuitka import Options
 from nuitka.__past__ import getMetaClassBase, iterItems
 from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.PythonVersions import python_version
-from nuitka.utils.InstanceCounters import counted_del, counted_init
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 
 from .VariableDeclarations import VariableDeclaration, VariableStorage
 
@@ -353,7 +357,8 @@ class PythonContextBase(getMetaClassBase("Context")):
         self.current_source_ref = None
         self.last_source_ref = None
 
-    __del__ = counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     def getCurrentSourceCodeReference(self):
         return self.current_source_ref

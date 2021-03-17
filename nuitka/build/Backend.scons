@@ -52,7 +52,12 @@ from SCons.Script import (  # pylint: disable=import-error
     GetOption,
 )
 
-from nuitka.Tracing import my_print, scons_details_logger, scons_logger
+from nuitka.Tracing import (
+    my_print,
+    scons_details_logger,
+    scons_logger,
+    setQuiet,
+)
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
@@ -60,6 +65,7 @@ from .SconsCompilerSettings import (
     checkWindowsCompilerFound,
     decideConstantsBlobResourceMode,
     enableC11Settings,
+    enableExperimentalSettings,
     enableWindowsStackSize,
 )
 from .SconsHacks import (
@@ -211,10 +217,18 @@ standalone_mode = getArgumentBool("standalone_mode", False)
 # Onefile mode
 onefile_mode = getArgumentBool("onefile_mode", False)
 
+# Onefile temp mode
+onefile_temp_mode = getArgumentBool("onefile_temp_mode", False)
+
+forced_stdout_path = ARGUMENTS.get("forced_stdout_path", None)
+forced_stderr_path = ARGUMENTS.get("forced_stderr_path", None)
+
 # Show scons mode, output information about Scons operation
 show_scons_mode = getArgumentBool("show_scons", False)
 scons_details_logger.is_quiet = not show_scons_mode
 
+if int(os.environ.get("NUITKA_QUIET", "0")):
+    setQuiet()
 
 # Home of Python to be compiled against, used to find include files and
 # libraries to link against.
@@ -684,20 +698,13 @@ if debug_mode:
         if python_version >= (3, 4):
             env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
 
-        if python_version >= (3, 9):
-            env.Append(CCFLAGS=["/wd4996"])
+        env.Append(CCFLAGS=["/wd4996"])
 
 if full_compat_mode:
     env.Append(CPPDEFINES=["_NUITKA_FULL_COMPAT"])
 
 if experimental:
-    env.Append(
-        CPPDEFINES=[
-            "_NUITKA_EXPERIMENTAL_" + experiment.upper().replace("-", "_")
-            for experiment in experimental
-            if experiment
-        ]
-    )
+    enableExperimentalSettings(env, experimental)
 
 if profile_mode:
     env.Append(CPPDEFINES=["_NUITKA_PROFILE"])
@@ -710,6 +717,9 @@ if standalone_mode:
 
 if onefile_mode:
     env.Append(CPPDEFINES=["_NUITKA_ONEFILE"])
+
+if onefile_temp_mode:
+    env.Append(CPPDEFINES=["_NUITKA_ONEFILE_TEMP"])
 
 # We need "dl" in accelerated mode.
 if "linux" in sys.platform:
@@ -1087,11 +1097,17 @@ def discoverSourceFiles():
     # needs to derive from filenames, so make copies (or links) with a different
     # name.
 
-    def _scanSourcekDir(dirname):
+    def _scanSourceDir(dirname, plugins):
         if not os.path.exists(dirname):
             return
 
+        added_path = False
+
         for filename in sorted(os.listdir(dirname)):
+            if filename.endswith(".h") and plugins and not added_path:
+                env.Append(CPPPATH=[dirname])
+                added_path = True
+
             # Only C files are of interest here.
             if not filename.endswith((".c", "cpp")) or not filename.startswith(
                 ("module.", "__", "plugin.")
@@ -1114,8 +1130,8 @@ def discoverSourceFiles():
                 result.append(target_file)
 
     # Scan for Nuitka created source files, and add them too.
-    _scanSourcekDir(source_dir)
-    _scanSourcekDir(os.path.join(source_dir, "plugins"))
+    _scanSourceDir(source_dir, plugins=False)
+    _scanSourceDir(os.path.join(source_dir, "plugins"), plugins=True)
 
     static_src_filenames = []
 
@@ -1237,6 +1253,11 @@ def createBuildDefinitionsFile():
         1 if python_sysflag_no_randomization else 0
     )
 
+    if forced_stdout_path:
+        build_definitions["NUITKA_FORCED_STDOUT_PATH"] = forced_stdout_path
+    if forced_stderr_path:
+        build_definitions["NUITKA_FORCED_STDERR_PATH"] = forced_stderr_path
+
     createDefinitionsFile(source_dir, "build_definitions.h", build_definitions)
 
 
@@ -1283,7 +1304,7 @@ if gcc_mode:
         assume_yes_for_downloads=assume_yes_for_downloads,
     )
 
-if msvc_mode:
+if msvc_mode and False:
     enableClcache(
         the_compiler=the_compiler,
         env=env,

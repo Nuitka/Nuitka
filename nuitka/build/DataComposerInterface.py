@@ -40,16 +40,20 @@ def runDataComposer(source_dir):
     if isExperimental("debug-constants"):
         mapping["NUITKA_DATACOMPOSER_VERBOSE"] = "1"
 
+    blob_filename = getConstantBlobFilename(source_dir)
+
     with withEnvironmentVarsOverriden(mapping):
         subprocess.check_call(
             [
                 sys.executable,
                 data_composer_path,
                 source_dir,
-                getConstantBlobFilename(source_dir),
+                blob_filename,
             ],
             shell=False,
         )
+
+    return blob_filename
 
 
 def getConstantBlobFilename(source_dir):

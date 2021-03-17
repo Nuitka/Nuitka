@@ -69,7 +69,7 @@ static bool constants_created = false;
 
 /* Function to create module private constants. */
 static void createModuleConstants(void) {
-    loadConstantsBlob(&mod_consts[0], "%(module_const_blob_name)s", %(constants_count)d);
+    loadConstantsBlob(&mod_consts[0], "%(module_const_blob_name)s");
 
     constants_created = true;
 }
@@ -87,7 +87,7 @@ void checkModuleConstants_%(module_identifier)s(void) {
     // The module may not have been used at all, then ignore this.
     if (constants_created == false) return;
 
-    checkConstantsBlob(&mod_consts[0], "%(module_name)s", %(constants_count)d);
+    checkConstantsBlob(&mod_consts[0], "%(module_name)s");
 }
 #endif
 

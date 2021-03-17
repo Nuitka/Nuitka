@@ -90,7 +90,7 @@ def isConstantExpression(expression):
 
     return kind.startswith("Constant") or kind in (
         "ImportModuleHard",
-        "ImportName",
+        "ImportModuleNameHard",
         "ModuleAttributeFileRef",
         "ModuleLoaderRef",
     )
@@ -127,14 +127,6 @@ def checkSequence(filename, statements):
                 if getKind(called_expression) == "BuiltinRef":
                     if called_expression.attrib["builtin_name"] == "print":
                         continue
-
-        # Trying of printing is fine, but not needed
-        if kind == "Try" and False:
-            tried = getRole(statement, "tried")
-
-            checkSequence(filename, getRole(tried[0], "statements"))
-
-            continue
 
         if kind == "FrameModule":
             checkSequence(filename, getRole(statement, "statements"))

@@ -754,6 +754,8 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
     result = buildStatementsNode(provider=provider, nodes=body, source_ref=source_ref)
 
+    # After building, we can verify that all future statements were where they
+    # belong, namely at the start of the module.
     checkFutureImportsOnlyAtStart(body)
 
     internal_source_ref = source_ref.atInternal()

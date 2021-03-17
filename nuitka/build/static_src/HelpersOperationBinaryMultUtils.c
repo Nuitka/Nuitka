@@ -46,8 +46,9 @@ static Py_ssize_t CONVERT_LONG_TO_REPEAT_FACTOR(PyObject *value) {
     Py_ssize_t result = 0;
 
     bool is_negative = i < 0;
-    if (is_negative)
+    if (is_negative) {
         i = -i;
+    }
 
     while (--i >= 0) {
         Py_ssize_t prev = result;

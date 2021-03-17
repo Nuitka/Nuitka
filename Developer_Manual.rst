@@ -773,7 +773,7 @@ simply execute this command:
 
 .. code-block: sh
 
-    git submodule foreach 'git checkout $(basename $(pwd)) && \
+    git submodule foreach 'git fetch && git checkout $(basename $(pwd)) && \
     git reset --hard origin/$(basename $(pwd))'
 
 When adding a test suite, for a new version, proceed like this:

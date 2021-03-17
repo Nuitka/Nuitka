@@ -27,17 +27,17 @@ it being used.
 """
 
 import os
+import pkgutil
 import shutil
 import sys
 from collections import namedtuple
 
 from nuitka import Options, OutputDirectories
-from nuitka.Errors import NuitkaPluginError
-from nuitka.ModuleRegistry import addUsedModule
+from nuitka.__past__ import getMetaClassBase
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import check_output
-from nuitka.utils.FileOperations import putTextFileContents, relpath
+from nuitka.utils.FileOperations import makePath, putTextFileContents
 from nuitka.utils.ModuleNames import ModuleName
 
 pre_modules = {}
@@ -46,7 +46,7 @@ post_modules = {}
 warned_unused_plugins = set()
 
 
-class NuitkaPluginBase(object):
+class NuitkaPluginBase(getMetaClassBase("Plugin")):
     """Nuitka base class for all plug-ins.
 
     Derive your plugin from "NuitkaPluginBase" please.
@@ -138,72 +138,6 @@ class NuitkaPluginBase(object):
             result[option.dest] = option.default
 
         return result
-
-    def considerImplicitImports(self, module, signal_change):
-        """Provide additional modules to import implicitly when encountering the module.
-
-        Notes:
-            Better do not overload this method.
-            The standard plugin 'ImplicitImports.py' already contains MANY of these.
-            If you do have a new candidate, consider a PR to get it included there.
-
-        Args:
-            module: the module object
-            signal_change: bool
-        Returns:
-            None
-        """
-        from nuitka.importing.Importing import getModuleNameAndKindFromFilename
-
-        for full_name in self.getImplicitImports(module):
-            if type(full_name) in (tuple, list):
-                raise NuitkaPluginError(
-                    "Plugin %s needs to be change to only return modules names, not %r"
-                    % (self, full_name)
-                )
-
-            full_name = ModuleName(full_name)
-
-            try:
-                module_filename = self.locateModule(
-                    importing=module, module_name=full_name
-                )
-            except Exception:
-                self.warning(
-                    "Problem locating '%s' implicit imports '%s'."
-                    % (module.getFullName(), full_name)
-                )
-                raise
-
-            if module_filename is None:
-                if Options.isShowInclusion():
-                    self.info(
-                        "Implicit module '%s' suggested by '%s' not found."
-                        % (full_name, module.getFullName())
-                    )
-
-                continue
-
-            _module_name2, module_kind = getModuleNameAndKindFromFilename(
-                module_filename
-            )
-
-            # TODO: This should get back to plug-ins, they should be allowed to
-            # preempt or override the decision.
-            decision, reason = self.decideRecursion(
-                module_filename=module_filename,
-                module_name=full_name,
-                module_kind=module_kind,
-            )
-
-            if decision:
-                self.recurseTo(
-                    module_package=full_name.getPackageName(),
-                    module_filename=module_filename,
-                    module_kind=module_kind,
-                    reason=reason,
-                    signal_change=signal_change,
-                )
 
     def isRequiredImplicitImport(self, module, full_name):
         """Indicate whether an implicitly imported module should be accepted.
@@ -485,7 +419,7 @@ class NuitkaPluginBase(object):
         """Provide a filename / -path for a to-be-imported module.
 
         Args:
-            importing: module object
+            importing: module object that asked for it (tracing only)
             module_name: (str or ModuleName) full name of module
             warn: (bool) True if required module
         Returns:
@@ -503,45 +437,30 @@ class NuitkaPluginBase(object):
 
         return module_filename
 
-    @staticmethod
-    def decideRecursion(module_filename, module_name, module_kind):
-        """Decide whether Nuitka should recurse down to a given module.
+    def locateModules(self, importing, module_name):
+        """Provide a filename / -path for a to-be-imported module.
 
         Args:
-            module_filename: filename
-            module_name: full module name
-            module_kind: one of "py" or "shlib" (shared library)
+            importing: module object that asked for it (tracing only)
+            module_name: (str or ModuleName) full name of module
+            warn: (bool) True if required module
         Returns:
-            (decision, reason) where decision is either a bool or None, and reason is a string message.
+            list of ModuleName
         """
-        from nuitka.importing import Recursion
+        module_path = self.locateModule(importing, module_name)
 
-        decision, reason = Recursion.decideRecursion(
-            module_filename=module_filename,
-            module_name=module_name,
-            module_kind=module_kind,
-        )
+        result = []
 
-        return decision, reason
+        def _scanModules(path, prefix):
+            for module_info in pkgutil.walk_packages((path,), prefix=prefix + "."):
+                result.append(ModuleName(module_info[1]))
 
-    @staticmethod
-    def recurseTo(module_package, module_filename, module_kind, reason, signal_change):
-        from nuitka.importing import Recursion
+                if module_info[2]:
+                    _scanModules(module_info[1], module_name + module_info[1])
 
-        imported_module, added_flag = Recursion.recurseTo(
-            module_package=module_package,
-            module_filename=module_filename,
-            module_relpath=relpath(module_filename),
-            module_kind=module_kind,
-            reason=reason,
-        )
+        _scanModules(module_path, module_name)
 
-        addUsedModule(imported_module)
-
-        if added_flag:
-            signal_change(
-                "new_code", imported_module.getSourceReference(), "Recursed to module."
-            )
+        return result
 
     def considerExtraDlls(self, dist_dir, module):
         """Provide a tuple of names of binaries to be included.
@@ -556,6 +475,8 @@ class NuitkaPluginBase(object):
 
         for included_entry_point in self.getExtraDlls(module):
             # Copy to the dist directory, which normally should not be our task, but is for now.
+            makePath(os.path.dirname(included_entry_point.dest_path))
+
             shutil.copyfile(
                 included_entry_point.source_path, included_entry_point.dest_path
             )
@@ -740,6 +661,15 @@ class NuitkaPluginBase(object):
             plugins_logger.warning(
                 "Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message)
             )
+
+    def onDataComposerResult(self, blob_filename):
+        """Internal use only.
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
 
     _runtime_information_cache = {}
 

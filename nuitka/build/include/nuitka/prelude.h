@@ -107,6 +107,11 @@
 #define NUITKA_CANNOT_GET_HERE(NAME) abort();
 #endif
 
+// Stringizing, to make strings out of defines use XSTRINGIZED(SOME_DEFINE) needs
+// to level of defines to work.
+#define _STRINGIZED(ARG) #ARG
+#define STRINGIZED(ARG) _STRINGIZED(ARG)
+
 /* Python3 removed PyInt instead of renaming PyLong, and PyObject_Str instead
  * of renaming PyObject_Unicode. Define this to be easily portable.
  */
@@ -229,6 +234,19 @@ extern PyThreadState *_PyThreadState_Current;
 #define RICHCOMPARE(t) (PyType_HasFeature((t), Py_TPFLAGS_HAVE_RICHCOMPARE) ? (t)->tp_richcompare : NULL)
 #else
 #define RICHCOMPARE(t) ((t)->tp_richcompare)
+#endif
+
+// For older Python we need to define this ourselves.
+#ifndef Py_ABS
+#define Py_ABS(x) ((x) < 0 ? -(x) : (x))
+#endif
+
+#ifndef Py_MIN
+#define Py_MIN(x, y) (((x) > (y)) ? (y) : (x))
+#endif
+
+#ifndef Py_MAX
+#define Py_MAX(x, y) (((x) > (y)) ? (x) : (y))
 #endif
 
 // Generated.

@@ -23,7 +23,11 @@ import sys
 from nuitka import Progress, Tracing
 from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import parseOptions
-from nuitka.PythonVersions import isUninstalledPython
+from nuitka.PythonVersions import (
+    getSupportedPythonVersions,
+    isUninstalledPython,
+    python_version_str,
+)
 from nuitka.utils.FileOperations import resolveShellPatternToFilenames
 from nuitka.utils.Utils import getOS, hasOnefileSupportedOS, isWin32Windows
 
@@ -36,19 +40,32 @@ is_nondebug = None
 is_fullcompat = None
 
 
-def parseArgs():
-    # singleton with many cases, pylint: disable=global-statement,too-many-branches,too-many-statements
+def parseArgs(will_reexec):
+    # singleton with many cases checking the options right away.
+    # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements
     global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat
 
+    if os.name == "nt":
+        # Windows store Python's don't allow looking at the python, catch that.
+        try:
+            with open(sys.executable):
+                pass
+        except OSError:
+            Tracing.general.sysexit(
+                "Error, the Python from Windows store is not supported, check user manual."
+            )
+
     is_nuitka_run, options, positional_args, extra_args = parseOptions(
-        logger=Tracing.general
+        logger=Tracing.options_logger
     )
 
-    Tracing.is_quiet = options.quiet or int(os.environ.get("NUITKA_QUIET", "0"))
-    if options.progress_bar:
+    if options.quiet or int(os.environ.get("NUITKA_QUIET", "0")):
+        Tracing.setQuiet()
+
+    if options.progress_bar and not will_reexec:
         Progress.enableProgressBar()
 
-    if options.verbose_output:
+    if options.verbose_output and not will_reexec:
         Tracing.optimization_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
             open(options.verbose_output, "w")
@@ -58,7 +75,7 @@ def parseArgs():
 
     Tracing.optimization_logger.is_quiet = not options.verbose
 
-    if options.show_inclusion_output:
+    if options.show_inclusion_output and not will_reexec:
         Tracing.inclusion_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
             open(options.show_inclusion_output, "w")
@@ -72,19 +89,21 @@ def parseArgs():
     if options.is_onefile:
         options.is_standalone = True
 
+    # Provide a tempdir spec implies onefile tempdir.
+    if options.windows_onefile_tempdir_spec:
+        options.is_windows_onefile_tempdir = True
+
     # Standalone mode implies an executable, not importing "site" module, which is
     # only for this machine, recursing to all modules, and even including the
     # standard library.
     if options.is_standalone:
         if not options.executable:
-            Tracing.general.sysexit(
+            Tracing.options_logger.sysexit(
                 """\
-Error, conflicting options, cannot make standalone module, only executable."""
-            )
+Error, conflicting options, cannot make standalone module, only executable.
 
-        if getOS() == "NetBSD":
-            Tracing.general.warning(
-                "Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported."
+Modules are supposed to be imported to an existing Python installation, therefore it
+makes no sense to include a Python runtime."""
             )
 
     for any_case_module in getShallFollowModules():
@@ -99,7 +118,7 @@ Error, conflicting options, cannot make standalone module, only executable."""
                 bad = False
 
         if bad:
-            Tracing.general.sysexit(
+            Tracing.options_logger.sysexit(
                 """\
 Error, '--follow-import-to' takes only module names, not directory path '%s'."""
                 % any_case_module
@@ -117,7 +136,7 @@ Error, '--follow-import-to' takes only module names, not directory path '%s'."""
                 bad = False
 
         if bad:
-            Tracing.general.sysexit(
+            Tracing.options_logger.sysexit(
                 """\
 Error, '--nofollow-import-to' takes only module names, not directory path '%s'."""
                 % no_case_module
@@ -126,14 +145,14 @@ Error, '--nofollow-import-to' takes only module names, not directory path '%s'."
     scons_python = getPythonPathForScons()
 
     if scons_python is not None and not os.path.isfile(scons_python):
-        Tracing.scons_logger.sysexit(
+        Tracing.options_logger.sysexit(
             "Error, no such Python binary %r, should be full path." % scons_python
         )
 
     if options.output_filename is not None and (
         isStandaloneMode() or shallMakeModule()
     ):
-        Tracing.general.sysexit(
+        Tracing.options_logger.sysexit(
             """\
 Error, can only specify output filename for acceleration mode, not for module
 mode where filenames are mandatory, and not for standalone where there is a
@@ -142,41 +161,45 @@ sane default used inside the dist folder."""
 
     if getOS() == "Linux":
         if len(getIconPaths()) > 1:
-            Tracing.general.sysexit("Error, can only use one icon on Linux.")
+            Tracing.options_logger.sysexit("Error, can only use one icon on Linux.")
 
     for icon_path in getIconPaths():
         if "#" in icon_path and isWin32Windows():
             icon_path, icon_index = icon_path.rsplit("#", 1)
 
             if not icon_index.isdigit() or int(icon_index) < 0:
-                Tracing.general.sysexit(
+                Tracing.options_logger.sysexit(
                     "Error, icon number in %r not valid."
                     % (icon_path + "#" + icon_index)
                 )
 
         if not os.path.exists(icon_path):
-            Tracing.general.sysexit("Error, icon path %r does not exist." % icon_path)
+            Tracing.options_logger.sysexit(
+                "Error, icon path %r does not exist." % icon_path
+            )
 
         if getWindowsIconExecutablePath():
-            Tracing.general.sysexit(
+            Tracing.options_logger.sysexit(
                 "Error, can only use icons from template executable or from icon files, but not both."
             )
 
     icon_exe_path = getWindowsIconExecutablePath()
     if icon_exe_path is not None and not os.path.exists(icon_exe_path):
-        Tracing.general.sysexit("Error, icon path %r does not exist." % icon_exe_path)
+        Tracing.options_logger.sysexit(
+            "Error, icon path %r does not exist." % icon_exe_path
+        )
 
     try:
         file_version = getWindowsFileVersion()
     except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
-        Tracing.general.sysexit(
+        Tracing.options_logger.sysexit(
             "Error, file version must be a tuple of up to 4 integer values."
         )
 
     try:
         product_version = getWindowsProductVersion()
     except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
-        Tracing.general.sysexit(
+        Tracing.options_logger.sysexit(
             "Error, product version must be a tuple of up to 4 integer values."
         )
 
@@ -192,55 +215,90 @@ sane default used inside the dist folder."""
 
     if file_version or product_version or getWindowsVersionInfoStrings():
         if not (file_version or product_version) and getWindowsCompanyName():
-            Tracing.general.sysexit(
+            Tracing.options_logger.sysexit(
                 "Error, company name and file or product version need to be given when any version information is given."
             )
 
     if isOnefileMode() and not hasOnefileSupportedOS():
-        Tracing.general.sysexit("Error, unsupported OS for onefile %r" % getOS())
+        Tracing.options_logger.sysexit("Error, unsupported OS for onefile %r" % getOS())
 
     if isOnefileMode() and os.name == "nt":
         if not getWindowsCompanyName() and not isWindowsOnefileTempDirMode():
-            Tracing.general.sysexit(
-                "Error, onefile on Windows requires company name and file or product version to be given or temp dir mode."
+            Tracing.options_logger.sysexit(
+                """Error, onefile on Windows needs more options.
+
+It requires either company name and product version to be given or
+the selection of onefile temp directory mode. Check --help output."""
             )
 
     if options.recurse_none and options.recurse_all:
-        Tracing.general.sysexit(
+        Tracing.options_logger.sysexit(
             "Conflicting options '--follow-imports' and '--nofollow-imports' given."
         )
 
     if getShallIncludePackageData() and not isStandaloneMode():
-        Tracing.general.sysexit(
+        Tracing.options_logger.sysexit(
             "Error, package data files are only included in standalone or onefile mode."
         )
 
+    for module_pattern in getShallIncludePackageData():
+        if (
+            module_pattern.startswith("-")
+            or "/" in module_pattern
+            or "\\" in module_pattern
+        ):
+            Tracing.options_logger.sysexit(
+                "Error, '--include-package-data' needs module name or pattern as an argument, not %r."
+                % module_pattern
+            )
+
+    for module_pattern in getShallFollowModules():
+        if (
+            module_pattern.startswith("-")
+            or "/" in module_pattern
+            or "\\" in module_pattern
+        ):
+            Tracing.options_logger.sysexit(
+                "Error, '--follow-import-to' options needs module name or pattern as an argument, not %r."
+                % module_pattern
+            )
+    for module_pattern in getShallFollowInNoCase():
+        if (
+            module_pattern.startswith("-")
+            or "/" in module_pattern
+            or "\\" in module_pattern
+        ):
+            Tracing.options_logger.sysexit(
+                "Error, '--nofollow-import-to' options needs module name or pattern as an argument, not %r."
+                % module_pattern
+            )
+
     for data_file in options.data_files:
         if "=" not in data_file:
-            Tracing.general.sysexit(
+            Tracing.options_logger.sysexit(
                 "Error, malformed data file description, must specify relative target path with =."
             )
 
         src, dst = data_file.split("=", 1)
 
         if os.path.isabs(dst):
-            Tracing.general.sysexit(
+            Tracing.options_logger.sysexit(
                 "Error, must specify relative target path for data file, not %r."
                 % data_file
             )
 
         if not resolveShellPatternToFilenames(src):
-            Tracing.general.sysexit("Error, %r does not match any files." % src)
+            Tracing.options_logger.sysexit("Error, %r does not match any files." % src)
 
     if options.data_files and not isStandaloneMode():
-        Tracing.general.sysexit(
+        Tracing.options_logger.sysexit(
             "Error, data files are only included in standalone or onefile mode."
         )
 
     for pattern in getShallFollowExtraFilePatterns():
         if os.path.isdir(pattern):
-            sys.exit(
-                "Error, pattern %r given to --include-plugin-files cannot be a directory name."
+            Tracing.options_logger.sysexit(
+                "Error, pattern %r given to '--include-plugin-files' cannot be a directory name."
                 % pattern
             )
 
@@ -250,6 +308,20 @@ sane default used inside the dist folder."""
 
 
 def commentArgs():
+    """Comment on options, where we know something is not having the intended effect."""
+    # A ton of cases to consider, pylint: disable=too-many-boolean-expressions,too-many-branches
+
+    # Inform the user about potential issues with the running version. e.g. unsupported
+    # version.
+    if python_version_str not in getSupportedPythonVersions():
+        # Do not disturb run of automatic tests with, detected from the presence of
+        # that environment variable.
+        if "PYTHON" not in os.environ:
+            Tracing.general.warning(
+                "The version %r is not currently supported. Expect problems."
+                % python_version_str,
+            )
+
     default_reference_mode = (
         "runtime" if shallMakeModule() or isStandaloneMode() else "original"
     )
@@ -277,10 +349,21 @@ def commentArgs():
             or getWindowsProductName()
             or getWindowsProductVersion()
             or getWindowsFileVersion()
+            or isWindowsOnefileTempDirMode()
+            or getWindowsOnefileTempDirSpec(use_default=False)
+            or getForcedStderrPath()  # not yet for other platforms
+            or getForcedStdoutPath()
         ):
             Tracing.options_logger.warning(
-                "Using Windows specific options has no effect."
+                "Using Windows specific options has no effect on other platforms."
             )
+
+    if not isOnefileMode() and (
+        isWindowsOnefileTempDirMode() or getWindowsOnefileTempDirSpec(use_default=False)
+    ):
+        Tracing.options_logger.warning(
+            "Using onefile specific option for Windows without --onefile enabled."
+        )
 
     if isOnefileMode():
         standalone_mode = "onefile"
@@ -288,6 +371,11 @@ def commentArgs():
         standalone_mode = "standalone"
     else:
         standalone_mode = None
+
+    if standalone_mode and getOS() == "NetBSD":
+        Tracing.options_logger.warning(
+            "Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported."
+        )
 
     if options.recurse_all and standalone_mode:
         if standalone_mode:
@@ -302,6 +390,11 @@ def commentArgs():
                 "Recursing none is unlikely to work for %s mode and should not be specified."
                 % standalone_mode
             )
+
+    if options.dependency_tool:
+        Tracing.options_logger.warning(
+            "Using removed option '--windows-dependency-tool' is deprecated and has no impact anymore."
+        )
 
 
 def isVerbose():
@@ -677,6 +770,13 @@ def isWindowsOnefileTempDirMode():
     return options.is_windows_onefile_tempdir
 
 
+def getWindowsOnefileTempDirSpec(use_default):
+    if use_default:
+        return options.windows_onefile_tempdir_spec or r"%TEMP%\onefile_%PID%_%TIME%"
+    else:
+        return options.windows_onefile_tempdir_spec
+
+
 def getIconPaths():
     """*list of str*, values of "--windows-icon-from-ico" and "--linux-onefile-icon """
 
@@ -688,7 +788,7 @@ def getIconPaths():
         if os.path.exists(default_icon):
             result.append(default_icon)
         else:
-            Tracing.general.sysexit(
+            Tracing.options_logger.sysexit(
                 """\
 Error, the default icon %r does not exist, making --linux-onefile-icon required."""
                 % default_icon
@@ -797,7 +897,7 @@ def getPythonFlags():
                     _python_flags.add("no_docstrings")
                     _python_flags.add("no_asserts")
                 else:
-                    Tracing.general.sysexit("Unsupported python flag %r." % part)
+                    Tracing.options_logger.sysexit("Unsupported python flag %r." % part)
 
     return _python_flags
 
@@ -890,3 +990,13 @@ def shallPreferSourcecodeOverExtensionModules():
 def shallUseProgressBar():
     """*bool* prefer source code over extension modules if both are there"""
     return options.progress_bar
+
+
+def getForcedStdoutPath():
+    """*str* force program stdout output into that filename"""
+    return options.force_stdout_spec
+
+
+def getForcedStderrPath():
+    """*str* force program stderr output into that filename"""
+    return options.force_stderr_spec

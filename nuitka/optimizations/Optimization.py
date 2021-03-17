@@ -48,9 +48,10 @@ from nuitka.utils.MemoryUsage import (
     getHumanReadableProcessMemoryUsage,
 )
 
-from . import Graphs, TraceCollections
+from . import Graphs
 from .BytecodeDemotion import demoteCompiledModuleToBytecode
 from .Tags import TagSet
+from .TraceCollections import withChangeIndicationsTo
 
 _progress = Options.isShowProgress()
 _is_verbose = Options.isVerbose()
@@ -87,11 +88,9 @@ def signalChange(tags, source_ref, message):
                 )
             )
 
+        # assert pass_count < 2
+
     tag_set.onSignal(tags)
-
-
-# Use this globally from there, without cyclic dependency.
-TraceCollections.signalChange = signalChange
 
 
 def optimizeCompiledPythonModule(module):
@@ -107,35 +106,48 @@ def optimizeCompiledPythonModule(module):
     if _progress and Options.isShowMemory():
         memory_watch = MemoryWatch()
 
+    # Temporary workaround, since we do some optimization based on the last pass results
+    # that are then not yet fully seen in the traces yet until another time around, we
+    # allow to continue the loop even without changes one more time.
+    unchanged_count = 0
+
     while True:
         tag_set.clear()
 
         try:
             # print("Compute module")
-            changed = module.computeModule()
+            with withChangeIndicationsTo(signalChange):
+                scopes_were_incomplete = module.computeModule()
         except BaseException:
             general.info("Interrupted while working on '%s'." % module)
             raise
 
-        if changed:
+        if scopes_were_incomplete:
             tag_set.add("var_usage")
 
         Graphs.onModuleOptimizationStep(module)
 
+        # Ignore other modules brought into the game.
+        if "new_code" in tag_set:
+            tag_set.remove("new_code")
+
         # Search for local change tags.
-        for tag in tag_set:
-            if tag == "new_code":
+        if not tag_set:
+            unchanged_count += 1
+
+            if unchanged_count == 1 and pass_count == 1:
+                optimization_logger.info_fileoutput(
+                    "No changed, but retrying one more time.",
+                    other_logger=progress_logger,
+                )
                 continue
 
-            break
-        else:
             optimization_logger.info_fileoutput(
                 "Finished with the module.", other_logger=progress_logger
             )
             break
 
-        if "new_code" in tag_set:
-            tag_set.remove("new_code")
+        unchanged_count = 0
 
         optimization_logger.info_fileoutput(
             "Not finished with the module due to following change kinds: %s"
@@ -190,6 +202,11 @@ def optimizeShlibModule(module):
 
 
 def optimizeModule(module):
+    # The tag set is global, so it can track changes without context.
+    # pylint: disable=global-statement
+    global tag_set
+    tag_set = TagSet()
+
     if module.isPythonShlibModule():
         optimizeShlibModule(module)
         changed = False
@@ -281,14 +298,11 @@ def makeOptimizationPass():
         current_module = ModuleRegistry.nextModule()
 
         if current_module is None:
+            # TODO: Internal module seems to cause extra passes.
+            # optimizeModule(getInternalModule())
             break
 
         _traceProgress(current_module)
-
-        # The tag set is global, so it can react to changes without context.
-        # pylint: disable=global-statement
-        global tag_set
-        tag_set = TagSet()
 
         changed = optimizeModule(current_module)
 

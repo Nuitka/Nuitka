@@ -289,6 +289,11 @@ static PyObject *our_dict_richcompare(PyObject *a, PyObject *b, int op) {
     return result;
 }
 
+#if PYTHON_VERSION >= 0x300
+// For creation of small long singleton long values as required by Python3.
+PyObject *Nuitka_Long_SmallValues[NUITKA_STATIC_SMALLINT_VALUE_MAX - NUITKA_STATIC_SMALLINT_VALUE_MIN + 1];
+#endif
+
 static void initCaches(void) {
     static bool init_done = false;
     if (init_done == true) {
@@ -321,6 +326,15 @@ static void initCaches(void) {
 
     frozenset_cache = PyDict_New();
 
+    for (long i = NUITKA_STATIC_SMALLINT_VALUE_MIN; i <= NUITKA_STATIC_SMALLINT_VALUE_MAX; i++) {
+#if PYTHON_VERSION >= 0x300
+        PyObject *value = PyLong_FromLong(i);
+        Py_INCREF(value);
+
+        Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(i)] = value;
+#endif
+    }
+
     init_done = true;
 }
 
@@ -352,16 +366,28 @@ static void insertToDictCacheForcedHash(PyObject *dict, PyObject **value, hashfu
     Py_TYPE(*value)->tp_richcompare = old_richcmp;
 }
 
+static uint16_t unpackValueUint16(unsigned char const **data) {
+    uint16_t value;
+
+    memcpy(&value, *data, sizeof(value));
+
+    assert(sizeof(value) == 2);
+
+    *data += sizeof(value);
+
+    return value;
+}
+
 static uint32_t unpackValueUint32(unsigned char const **data) {
-    uint32_t size;
+    uint32_t value;
 
-    memcpy(&size, *data, sizeof(size));
+    memcpy(&value, *data, sizeof(value));
 
-    assert(sizeof(size) == 4);
+    assert(sizeof(value) == 4);
 
-    *data += sizeof(size);
+    *data += sizeof(value);
 
-    return size;
+    return value;
 }
 
 static int unpackValueInt(unsigned char const **data) {
@@ -1054,11 +1080,23 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
     return data;
 }
 
-static void unpackBlobConstants(PyObject **output, unsigned char const *data, int count) {
+static void unpackBlobConstants(PyObject **output, unsigned char const *data) {
+    int count = (int)unpackValueUint16(&data);
+
     _unpackBlobConstants(output, data, count);
 }
 
-void loadConstantsBlob(PyObject **output, char const *name, int count) {
+#if defined(__has_include)
+#if __has_include("nuitka_data_decoder.h")
+#include "nuitka_data_decoder.h"
+#else
+#define DECODE(x) assert(x)
+#endif
+#else
+#define DECODE(x) assert(x)
+#endif
+
+void loadConstantsBlob(PyObject **output, char const *name) {
 
     static bool init_done = false;
 
@@ -1082,6 +1120,8 @@ void loadConstantsBlob(PyObject **output, char const *name, int count) {
 
         assert(constant_bin);
 #endif
+        DECODE(constant_bin);
+
         uint32_t hash = unpackValueUint32(&constant_bin);
         uint32_t size = unpackValueUint32(&constant_bin);
 
@@ -1128,11 +1168,11 @@ void loadConstantsBlob(PyObject **output, char const *name, int count) {
         w += size;
     }
 
-    unpackBlobConstants(output, w, count);
+    unpackBlobConstants(output, w);
 }
 
 #ifndef __NUITKA_NO_ASSERT__
-void checkConstantsBlob(PyObject **output, char const *name, int count) {
+void checkConstantsBlob(PyObject **output, char const *name) {
     // TODO: Unpack and check for correct values in output only.
 }
 #endif

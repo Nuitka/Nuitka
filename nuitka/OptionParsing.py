@@ -760,10 +760,8 @@ windows_group.add_option(
     "--windows-dependency-tool",
     action="store",
     dest="dependency_tool",
-    default="depends.exe",
-    help="""\
-When compiling for Windows, use this dependency tool. Defaults to %default,
-other allowed value is 'pefile'.""",
+    default=None,
+    help=SUPPRESS_HELP,
 )
 
 windows_group.add_option(
@@ -889,6 +887,40 @@ windows_group.add_option(
     default=False,
     help="""\
 Use temporary folder rather than company AppData. Defaults to off.""",
+)
+
+windows_group.add_option(
+    "--windows-onefile-tempdir-spec",
+    action="store",
+    dest="windows_onefile_tempdir_spec",
+    metavar="WINDOWS_ONEFILE_TEMPDIR_SPEC",
+    default=None,
+    help="""\
+Use this as a temporary folder. Defaults to '%TEMP%\\onefile_%PID%_%TIME%', i.e. system temporary directory.""",
+)
+
+windows_group.add_option(
+    "--windows-force-stdout-spec",
+    action="store",
+    dest="force_stdout_spec",
+    metavar="WINDOWS_FORCE_STDOUT_SPEC",
+    default=None,
+    help="""\
+Force standard output of the program to go to this location. Useful for programs with
+disabled console and programs using the Windows Services Plugin of Nuitka. Defaults
+to not active, use e.g. '%PROGRAM%.out.txt', i.e. file near your program.""",
+)
+
+windows_group.add_option(
+    "--windows-force-stderr-spec",
+    action="store",
+    dest="force_stderr_spec",
+    metavar="WINDOWS_FORCE_STDERR_SPEC",
+    default=None,
+    help="""\
+Force standard error of the program to go to this location. Useful for programs with
+disabled console and programs using the Windows Services Plugin of Nuitka. Defaults
+to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your program.""",
 )
 
 

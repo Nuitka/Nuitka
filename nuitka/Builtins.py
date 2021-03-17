@@ -47,7 +47,7 @@ def _getBuiltinExceptionNames():
 
     # Hide Python3 changes for built-in exception names
     if python_version < 0x300:
-        import exceptions as builtin_exceptions
+        import exceptions as builtin_exceptions  # python2 code, pylint: disable=import-error
 
         for key in sorted(dir(builtin_exceptions)):
             name = str(key)
