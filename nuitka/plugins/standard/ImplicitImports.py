@@ -1187,6 +1187,10 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "py._path.local"
         elif full_name == "pyreadstat._readstat_parser":
             yield "pandas"
+        elif full_name == "cytoolz.itertoolz":
+            yield "cytoolz.utils"
+        elif full_name == "cytoolz.functoolz":
+            yield "cytoolz._signatures"
 
     def getImportsByFullname(self, full_name, module_filename):
         """Recursively create a set of imports for a fullname.
