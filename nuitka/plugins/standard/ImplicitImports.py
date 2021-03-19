@@ -44,9 +44,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     def __init__(self):
         NuitkaPluginBase.__init__(self)
 
-        self.pkg_utils_externals = None
-        self.opengl_plugins = None
-
     @staticmethod
     def isAlwaysEnabled():
         return True
@@ -1225,35 +1222,36 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             for used_module in module.getUsedModules():
                 yield used_module[0]
 
-        if full_name == "OpenGL":
-            if self.opengl_plugins is None:
-                self.opengl_plugins = []
+        if full_name == "pkg_resources.extern":
+            for line in getFileContentByLine(module.getCompileTimeFilename()):
+                if line.startswith("names"):
+                    line = line.split("=")[-1].strip()
+                    parts = line.split(",")
 
-                for line in getFileContentByLine(module.getCompileTimeFilename()):
-                    if line.startswith("PlatformPlugin("):
-                        os_part, plugin_name_part = line[15:-1].split(",")
-                        os_part = os_part.strip("' ")
-                        plugin_name_part = plugin_name_part.strip(") '")
-                        plugin_name_part = plugin_name_part[
-                            : plugin_name_part.rfind(".")
-                        ]
-                        if os_part == "nt":
-                            if getOS() == "Windows":
-                                self.opengl_plugins.append(plugin_name_part)
-                        elif os_part.startswith("linux"):
-                            if getOS() == "Linux":
-                                self.opengl_plugins.append(plugin_name_part)
-                        elif os_part.startswith("darwin"):
-                            if getOS() == "Darwin":
-                                self.opengl_plugins.append(plugin_name_part)
-                        elif os_part.startswith(("posix", "osmesa", "egl")):
-                            if getOS() != "Windows":
-                                self.opengl_plugins.append(plugin_name_part)
-                        else:
-                            assert False, os_part
+                    for part in parts:
+                        yield "pkg_resources._vendor." + part.strip("' ")
 
-            for opengl_plugin in self.opengl_plugins:
-                yield opengl_plugin
+        elif full_name == "OpenGL":
+            for line in getFileContentByLine(module.getCompileTimeFilename()):
+                if line.startswith("PlatformPlugin("):
+                    os_part, plugin_name_part = line[15:-1].split(",")
+                    os_part = os_part.strip("' ")
+                    plugin_name_part = plugin_name_part.strip(") '")
+                    plugin_name_part = plugin_name_part[: plugin_name_part.rfind(".")]
+                    if os_part == "nt":
+                        if getOS() == "Windows":
+                            yield plugin_name_part
+                    elif os_part.startswith("linux"):
+                        if getOS() == "Linux":
+                            yield plugin_name_part
+                    elif os_part.startswith("darwin"):
+                        if getOS() == "Darwin":
+                            yield plugin_name_part
+                    elif os_part.startswith(("posix", "osmesa", "egl")):
+                        if getOS() != "Windows":
+                            yield plugin_name_part
+                    else:
+                        assert False, os_part
 
         else:
             # create a flattened import set for full_name and yield from it
@@ -1391,11 +1389,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "requests.packages.urllib3.util.ssl_": "urllib3.util.ssl_",
         "requests.packages.urllib3.util.timeout": "urllib3.util.timeout",
         "requests.packages.urllib3.util.url": "urllib3.util.url",
-        # Avoid pkg_resources.extern meta path based loader trick.
-        "pkg_resources.extern.packaging": "pkg_resources._vendor.packaging",
-        "pkg_resources.extern.pyparsing": "pkg_resources._vendor.pyparsing",
-        "pkg_resources.extern.six": "pkg_resources._vendor.six",
-        "pkg_resources.extern.appdirs": "pkg_resources._vendor.appdirs",
     }
 
     def onModuleSourceCode(self, module_name, source_code):
