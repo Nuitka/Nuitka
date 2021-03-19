@@ -341,7 +341,7 @@ existing '%s' extension module by default. Candidates were: %s <-> %s."""
                     )
 
 
-def _findModuleInPath2(module_name, search_path):
+def _findModuleInPath2(package_name, module_name, search_path):
     """This is out own module finding low level implementation.
 
     Just the full module name and search path are given. This is then
@@ -436,7 +436,13 @@ def _findModuleInPath2(module_name, search_path):
 
         # On case sensitive systems, no resolution needed.
         if case_sensitive:
-            _reportCandidates(module_name, candidates[0], candidates)
+            _reportCandidates(
+                module_name=package_name.getChildNamed(module_name)
+                if package_name is not None
+                else module_name,
+                candidate=candidates[0],
+                candidates=candidates,
+            )
             return candidates[0].full_path
         else:
             for candidate in candidates:
@@ -549,7 +555,7 @@ def _findModuleInPath(module_name):
 
     try:
         module_filename = _findModuleInPath2(
-            module_name=module_name, search_path=search_path
+            package_name=package_name, module_name=module_name, search_path=search_path
         )
     except SyntaxError:
         # Warn user, as this is kind of unusual.
