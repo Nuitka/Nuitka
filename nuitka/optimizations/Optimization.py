@@ -241,7 +241,7 @@ def _restartProgress():
     )
 
 
-def _traceProgress(current_module):
+def _traceProgressModuleStart(current_module):
     optimization_logger.info_fileoutput(
         """\
 Optimizing module '{module_name}', {remaining:d} more modules to go \
@@ -258,6 +258,7 @@ after that.""".format(
             item=current_module.getFullName(),
             total=ModuleRegistry.getRemainingModulesCount()
             + ModuleRegistry.getDoneModulesCount(),
+            update=False,
         )
 
     if _progress and Options.isShowMemory():
@@ -266,6 +267,15 @@ after that.""".format(
         )
 
         memory_logger.info(output)
+
+
+def _traceProgressModuleEnd(current_module):
+    reportProgressBar(
+        item=current_module.getFullName(),
+        total=ModuleRegistry.getRemainingModulesCount()
+        + ModuleRegistry.getDoneModulesCount(),
+        update=True,
+    )
 
 
 def _endProgress():
@@ -302,9 +312,11 @@ def makeOptimizationPass():
             # optimizeModule(getInternalModule())
             break
 
-        _traceProgress(current_module)
+        _traceProgressModuleStart(current_module)
 
         changed = optimizeModule(current_module)
+
+        _traceProgressModuleEnd(current_module)
 
         if changed:
             finished = False
