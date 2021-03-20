@@ -33,9 +33,12 @@ tqdm = None
 
 
 class NuitkaProgessBar(object):
-    def __init__(self, stage, total, unit):
+    def __init__(self, stage, total, min_total, unit):
         self.stage = stage
         self.total = total
+
+        # The minimum may not be provided, then default to 0.
+        self.min_total = min_total or 0
         self.unit = unit
 
         # No item under work yet.
@@ -51,7 +54,7 @@ class NuitkaProgessBar(object):
         # Note: Setting disable=None enables tty detection.
         self.tqdm = tqdm(
             initial=self.progress,
-            total=self.total,
+            total=max(self.total, self.min_total),
             unit=self.unit,
             disable=None,
             leave=False,
@@ -63,7 +66,8 @@ class NuitkaProgessBar(object):
 
     def updateTotal(self, total):
         if total != self.total:
-            self.total = self.tqdm.total = total
+            self.total = total
+            self.tqdm.total = max(total, self.min_total)
 
     def setCurrent(self, item):
         if item != self.item:
@@ -120,7 +124,7 @@ def enableProgressBar():
         use_progress_bar = True
 
 
-def setupProgressBar(stage, unit, total):
+def setupProgressBar(stage, unit, total, min_total=0):
     # Make sure the other was closed.
     assert Tracing.progress is None
 
@@ -128,6 +132,7 @@ def setupProgressBar(stage, unit, total):
         Tracing.progress = NuitkaProgessBar(
             stage=stage,
             total=total,
+            min_total=min_total,
             unit=unit,
         )
 
@@ -144,8 +149,17 @@ def reportProgressBar(item, total=None, update=True):
 
 
 def closeProgressBar():
-    """ Close the active progress bar. """
+    """Close the active progress bar.
+
+    Returns: int or None - if displayed, the total used last time.
+    """
 
     if Tracing.progress is not None:
+        # Retrieve that previous total, for repeated progress bars, it
+        # can be used as a new minimum.
+        result = Tracing.progress.total
+
         Tracing.progress.close()
         Tracing.progress = None
+
+        return result

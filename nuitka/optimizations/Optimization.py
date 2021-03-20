@@ -220,13 +220,13 @@ def optimizeModule(module):
 
 
 pass_count = 0
+last_total = 0
 
 
 def _restartProgress():
+    global pass_count, last_total  # Singleton, pylint: disable=global-statement
+
     closeProgressBar()
-
-    global pass_count  # Singleton, pylint: disable=global-statement
-
     pass_count += 1
 
     optimization_logger.info_fileoutput(
@@ -238,6 +238,7 @@ def _restartProgress():
         unit="module",
         total=ModuleRegistry.getRemainingModulesCount()
         + ModuleRegistry.getDoneModulesCount(),
+        min_total=last_total,
     )
 
 
@@ -279,7 +280,8 @@ def _traceProgressModuleEnd(current_module):
 
 
 def _endProgress():
-    closeProgressBar()
+    global last_total  # Singleton, pylint: disable=global-statement
+    last_total = closeProgressBar()
 
 
 def restoreFromXML(text):
