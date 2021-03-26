@@ -313,6 +313,8 @@ extern PyObject **global_constants;
 #define const_str_plain_inspect global_constants[27]
 // 'compile'
 #define const_str_plain_compile global_constants[28]
+// 'getattr'
+#define const_str_plain_getattr global_constants[28]
 // 'range'
 #define const_str_plain_range global_constants[29]
 // 'open'
