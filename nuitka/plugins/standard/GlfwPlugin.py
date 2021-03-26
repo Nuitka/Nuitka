@@ -30,7 +30,7 @@ from nuitka.utils.ModuleNames import ModuleName
 class GlfwPlugin(NuitkaPluginBase):
     """This class represents the main logic of the glfw plugin.
 
-    This is a plugin to ensure that gldw platform specific backends are loading
+    This is a plugin to ensure that glfw platform specific backends are loading
     properly. This need to include the correct DLL and make sure it's used by
     setting an environment variable.
 

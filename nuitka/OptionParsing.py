@@ -351,7 +351,7 @@ execute_group.add_option(
     dest="debugger",
     default=False,
     help="""\
-Execute inside "gdb" to automatically get a stack trace.
+Execute inside a debugger, e.g. "gdb" or "lldb" to automatically get a stack trace.
 Defaults to off.""",
 )
 

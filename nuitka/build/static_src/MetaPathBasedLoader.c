@@ -1409,6 +1409,8 @@ static PyObject *_path_unfreezer_find_distributions(PyObject *self, PyObject *ar
 
     struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry(Nuitka_String_AsString(name));
 
+    Py_DECREF(name);
+
     PyObject *temp;
 
     if (entry) {
@@ -1419,7 +1421,8 @@ static PyObject *_path_unfreezer_find_distributions(PyObject *self, PyObject *ar
         PyTuple_SET_ITEM(temp, 0, distribution);
 
     } else {
-        temp = PyTuple_New(0);
+        temp = const_tuple_empty;
+        Py_INCREF(const_tuple_empty);
     }
 
     // We are expected to return an iterator.
