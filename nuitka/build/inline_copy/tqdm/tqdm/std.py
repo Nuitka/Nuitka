@@ -696,11 +696,15 @@ class tqdm(Comparable):
         <https://stackoverflow.com/questions/18603270/\
         progress-indicator-during-pandas-operations-python>
         """
+        from warnings import catch_warnings, simplefilter
+
         from pandas.core.frame import DataFrame
         from pandas.core.series import Series
         try:
-            from pandas import Panel
-        except ImportError:  # TODO: pandas>0.25.2
+            with catch_warnings():
+                simplefilter("ignore", category=FutureWarning)
+                from pandas import Panel
+        except ImportError:  # pandas>=1.2.0
             Panel = None
         Rolling, Expanding = None, None
         try:  # pandas>=1.0.0
@@ -718,14 +722,14 @@ class tqdm(Comparable):
         try:  # pandas>=0.25.0
             from pandas.core.groupby.generic import SeriesGroupBy  # , NDFrameGroupBy
             from pandas.core.groupby.generic import DataFrameGroupBy
-        except ImportError:
+        except ImportError:  # pragma: no cover
             try:  # pandas>=0.23.0
                 from pandas.core.groupby.groupby import DataFrameGroupBy, SeriesGroupBy
             except ImportError:
                 from pandas.core.groupby import DataFrameGroupBy, SeriesGroupBy
         try:  # pandas>=0.23.0
             from pandas.core.groupby.groupby import GroupBy
-        except ImportError:
+        except ImportError:  # pragma: no cover
             from pandas.core.groupby import GroupBy
 
         try:  # pandas>=0.23.0
@@ -840,7 +844,8 @@ class tqdm(Comparable):
                  ascii=None, disable=False, unit='it', unit_scale=False,
                  dynamic_ncols=False, smoothing=0.3, bar_format=None, initial=0,
                  position=None, postfix=None, unit_divisor=1000, write_bytes=None,
-                 lock_args=None, nrows=None, colour=None, gui=False, **kwargs):
+                 lock_args=None, nrows=None, colour=None, delay=0, gui=False,
+                 **kwargs):
         """
         Parameters
         ----------
@@ -947,6 +952,8 @@ class tqdm(Comparable):
             The fallback is 20.
         colour  : str, optional
             Bar colour (e.g. 'green', '#00ff00').
+        delay  : float, optional
+            Don't display until [default: 0] seconds have elapsed.
         gui  : bool, optional
             WARNING: internal parameter - do not use.
             Use tqdm.gui.tqdm(...) instead. If set, will attempt to use
@@ -1064,6 +1071,7 @@ class tqdm(Comparable):
         self.unit_divisor = unit_divisor
         self.initial = initial
         self.lock_args = lock_args
+        self.delay = delay
         self.gui = gui
         self.dynamic_ncols = dynamic_ncols
         self.smoothing = smoothing
@@ -1095,7 +1103,8 @@ class tqdm(Comparable):
         if not gui:
             # Initialize the screen printer
             self.sp = self.status_printer(self.fp)
-            self.refresh(lock_args=self.lock_args)
+            if delay <= 0:
+                self.refresh(lock_args=self.lock_args)
 
         # Init the time counter
         self.last_print_t = self._time()
@@ -1116,6 +1125,8 @@ class tqdm(Comparable):
         return self.total if self.iterable is None else \
             (self.iterable.shape[0] if hasattr(self.iterable, "shape")
              else len(self.iterable) if hasattr(self.iterable, "__len__")
+             else self.iterable.__length_hint__()
+             if hasattr(self.iterable, "__length_hint__")
              else getattr(self, "total", None))
 
     def __enter__(self):
@@ -1159,6 +1170,7 @@ class tqdm(Comparable):
         mininterval = self.mininterval
         last_print_t = self.last_print_t
         last_print_n = self.last_print_n
+        min_start_t = self.start_t + self.delay
         n = self.n
         time = self._time
 
@@ -1170,8 +1182,9 @@ class tqdm(Comparable):
                 n += 1
 
                 if n - last_print_n >= self.miniters:
-                    dt = time() - last_print_t
-                    if dt >= mininterval:
+                    cur_t = time()
+                    dt = cur_t - last_print_t
+                    if dt >= mininterval and cur_t >= min_start_t:
                         self.update(n - last_print_n)
                         last_print_n = self.last_print_n
                         last_print_t = self.last_print_t
@@ -1214,8 +1227,9 @@ class tqdm(Comparable):
 
         # check counter first to reduce calls to time()
         if self.n - self.last_print_n >= self.miniters:
-            dt = self._time() - self.last_print_t
-            if dt >= self.mininterval:
+            cur_t = self._time()
+            dt = cur_t - self.last_print_t
+            if dt >= self.mininterval and cur_t >= self.start_t + self.delay:
                 cur_t = self._time()
                 dn = self.n - self.last_print_n  # >= n
                 if self.smoothing and dt and dn:
@@ -1256,6 +1270,10 @@ class tqdm(Comparable):
         # decrement instance pos and remove from internal set
         pos = abs(self.pos)
         self._decr_instances(self)
+
+        if self.last_print_t < self.start_t + self.delay:
+            # haven't ever displayed; nothing to clear
+            return
 
         # GUI mode
         if getattr(self, 'sp', None) is None:
@@ -1330,6 +1348,8 @@ class tqdm(Comparable):
 
     def unpause(self):
         """Restart tqdm timer from last print time."""
+        if self.disable:
+            return
         cur_t = self._time()
         self.start_t += cur_t - self.last_print_t
         self.last_print_t = cur_t
@@ -1344,13 +1364,16 @@ class tqdm(Comparable):
         ----------
         total  : int or float, optional. Total to use for the new bar.
         """
-        self.last_print_n = self.n = 0
+        self.n = 0
+        if total is not None:
+            self.total = total
+        if self.disable:
+            return
+        self.last_print_n = 0
         self.last_print_t = self.start_t = self._time()
         self._ema_dn = EMA(self.smoothing)
         self._ema_dt = EMA(self.smoothing)
         self._ema_miniters = EMA(self.smoothing)
-        if total is not None:
-            self.total = total
         self.refresh()
 
     def set_description(self, desc=None, refresh=True):
