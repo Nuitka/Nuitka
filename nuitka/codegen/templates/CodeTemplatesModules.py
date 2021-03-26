@@ -276,21 +276,6 @@ NUITKA_MAY_BE_UNUSED static char const *module_full_name = "%(module_name)s";
 PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *module_entry) {
     module_%(module_identifier)s = module;
 
-#if defined(_NUITKA_EXE) || PYTHON_VERSION >= 0x300
-    static bool _init_done = false;
-
-    // Modules might be imported repeatedly, which is to be ignored.
-    if (_init_done) {
-#ifdef _NUITKA_TRACE
-        PRINT_STRING("%(module_name)s: Skipping module init, already done.\n");
-#endif
-
-        return module_%(module_identifier)s;
-    } else {
-        _init_done = true;
-    }
-#endif
-
 #ifdef _NUITKA_MODULE
     // In case of a stand alone extension module, need to call initialization
     // the init here because that's the first and only time we are going to get

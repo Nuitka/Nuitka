@@ -294,7 +294,8 @@ static PyObject *getFileList(PyObject *dirname) {
     return CALL_FUNCTION_WITH_SINGLE_ARG(listdir_func, dirname);
 }
 
-static PyObject *getImportingSuffixesByPriority(int kind) {
+#if PYTHON_VERSION < 0x300
+static PyObject *_getImportingSuffixesByPriority(int kind) {
     static PyObject *result = NULL;
 
     if (result == NULL) {
@@ -312,8 +313,32 @@ static PyObject *getImportingSuffixesByPriority(int kind) {
                 LIST_APPEND0(result, PyTuple_GET_ITEM(PyList_GET_ITEM(suffix_list, i), 0));
             }
         }
+
+        Py_DECREF(suffix_list);
     }
 
+    return result;
+}
+#endif
+
+static PyObject *getExtensionModuleSuffixesByPriority() {
+    static PyObject *result = NULL;
+
+    if (result == NULL) {
+#if PYTHON_VERSION < 0x300
+        result = _getImportingSuffixesByPriority(3);
+#else
+        static PyObject *machinery_module = NULL;
+
+        if (machinery_module == NULL) {
+            machinery_module = PyImport_ImportModule("importlib.machinery");
+        }
+
+        result = PyObject_GetAttrString(machinery_module, "EXTENSION_SUFFIXES");
+#endif
+    }
+
+    CHECK_OBJECT(result);
     return result;
 }
 
@@ -374,7 +399,9 @@ static bool scanModuleInPackagePath(PyObject *module_name, char const *parent_mo
 #endif
 
     // Look up C-extension suffixes, these are used with highest priority.
-    PyObject *suffix_list = getImportingSuffixesByPriority(3);
+    PyObject *suffix_list = getExtensionModuleSuffixesByPriority();
+
+    bool result = false;
 
     for (Py_ssize_t i = 0; i < PyList_GET_SIZE(suffix_list); i += 1) {
         PyObject *suffix = PyList_GET_ITEM(suffix_list, i);
@@ -406,16 +433,15 @@ static bool scanModuleInPackagePath(PyObject *module_name, char const *parent_mo
 
                 DICT_SET_ITEM(installed_extension_modules, module_name, fullpath);
 
-                Py_DECREF(candidates);
-
-                return true;
+                result = true;
+                break;
             }
         }
     }
 
     Py_DECREF(candidates);
 
-    return false;
+    return result;
 }
 
 #ifdef _WIN32
@@ -950,15 +976,33 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyObject *module, PyObject *module_nam
 // Note: This may become an entry point for hard coded imports of compiled
 // stuff.
 PyObject *IMPORT_EMBEDDED_MODULE(char const *name) {
-
     PyObject *module_name = Nuitka_String_FromString(name);
+
+    // Check if it's already loaded, and don't do it again otherwise.
+    PyObject *module = Nuitka_GetModule(module_name);
+
+    if (module != NULL) {
+        Py_DECREF(module_name);
+        return module;
+    }
+
 #if PYTHON_VERSION < 0x300
-    PyObject *module = PyModule_New(name);
+    module = PyModule_New(name);
 #else
-    PyObject *module = PyModule_NewObject(module_name);
+    module = PyModule_NewObject(module_name);
 #endif
 
-    return _EXECUTE_EMBEDDED_MODULE(module, module_name, name);
+    PyObject *result = _EXECUTE_EMBEDDED_MODULE(module, module_name, name);
+
+    Py_DECREF(module_name);
+
+#if PYTHON_VERSION < 0x350
+    if (unlikely(result == NULL)) {
+        PyObject_DelItem(PyImport_GetModuleDict(), module_name);
+    }
+#endif
+
+    return result;
 }
 
 PyObject *EXECUTE_EMBEDDED_MODULE(PyObject *module) {
