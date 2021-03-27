@@ -388,7 +388,7 @@ if not path.startswith(__nuitka_binary_dir):
             if not isWin32Windows():
                 dll_path = locateDLL("crypto")
 
-                if dll_path is None:
+                if dll_path is not None:
                     dist_dll_path = os.path.join(dist_dir, os.path.basename(dll_path))
                     shutil.copy(dll_path, dist_dll_path)
 
