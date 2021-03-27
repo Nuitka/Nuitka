@@ -23,14 +23,12 @@ own dependencies.
 
 import os
 import shutil
-import sys
 from abc import abstractmethod
 
 from nuitka import Options
 from nuitka.containers.oset import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
-from nuitka.utils import Execution
 from nuitka.utils.FileOperations import (
     copyTree,
     getFileList,
@@ -38,6 +36,7 @@ from nuitka.utils.FileOperations import (
     makePath,
     removeDirectory,
 )
+from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import locateDLL
 from nuitka.utils.Utils import isWin32Windows
 
@@ -100,58 +99,76 @@ not exist, a list of all available will be given.""",
 
         return self.qt_plugins
 
+    def _getQtInformation(self):
+        # This is generic, and therefore needs to apply this to a lot of strings.
+        def applyBindingName(template):
+            return template % {"binding_name": self.binding_name}
+
+        setup_codes = applyBindingName(
+            r"""\
+import os
+import %(binding_name)s.QtCore
+"""
+        )
+
+        return self.queryRuntimeInformationMultiple(
+            applyBindingName("%(binding_name)s_info"),
+            setup_codes=setup_codes,
+            values=(
+                (
+                    "library_paths",
+                    applyBindingName(
+                        "%(binding_name)s.QtCore.QCoreApplication.libraryPaths()"
+                    ),
+                ),
+                (
+                    "guess_path1",
+                    applyBindingName(
+                        "os.path.join(os.path.dirname(%(binding_name)s.__file__), 'plugins')"
+                    ),
+                ),
+                (
+                    "guess_path2",
+                    applyBindingName(
+                        "os.path.join(os.path.dirname(%(binding_name)s.__file__), '..', '..', '..', 'Library', 'plugins')"
+                    ),
+                ),
+                (
+                    "version",
+                    applyBindingName(
+                        "%(binding_name)s.__version_info__"
+                        if "PySide" in self.binding_name
+                        else "%(binding_name)s.QtCore.PYQT_VERSION_STR"
+                    ),
+                ),
+            ),
+        )
+
+    def _getBindingVersion(self):
+        """ Get the version of the binding in tuple digit form, e.g. (6,0,3) """
+        return self._getQtInformation().version
+
     def getQtPluginDirs(self):
         if self.qt_plugins_dirs is not None:
             return self.qt_plugins_dirs
 
-        command = """\
-from __future__ import print_function
-from __future__ import absolute_import
+        qt_info = self._getQtInformation()
 
-import %(binding_name)s.QtCore
-for v in %(binding_name)s.QtCore.QCoreApplication.libraryPaths():
-    print(v)
-import os
-# Standard CPython has installations like this.
-guess_path = os.path.join(os.path.dirname(%(binding_name)s.__file__), "plugins")
-if os.path.exists(guess_path):
-    print("GUESS:", guess_path)
-# Anaconda has this, but it seems not automatic.
-guess_path = os.path.join(os.path.dirname(%(binding_name)s.__file__), "..", "..", "..", "Library", "plugins")
-if os.path.exists(guess_path):
-    print("GUESS:", guess_path)
-""" % {
-            "binding_name": self.binding_name
-        }
+        self.qt_plugins_dirs = qt_info.library_paths
 
-        output = Execution.check_output([sys.executable, "-c", command])
+        if not self.qt_plugins_dirs and os.path.exists(qt_info.guess_path1):
+            self.qt_plugins_dirs.append(qt_info.guess_path1)
 
-        # May not be good for everybody, but we cannot have bytes in paths, or
-        # else working with them breaks down.
-        if str is not bytes:
-            output = output.decode("utf-8")
-
-        result = []
-
-        for line in output.replace("\r", "").split("\n"):
-            if not line:
-                continue
-
-            # Take the guessed path only if necessary.
-            if line.startswith("GUESS: "):
-                if result:
-                    continue
-
-                line = line[len("GUESS: ") :]
-
-            result.append(os.path.normpath(line))
+        if not self.qt_plugins_dirs and os.path.exists(qt_info.guess_path2):
+            self.qt_plugins_dirs.append(qt_info.guess_path2)
 
         # Avoid duplicates.
-        result = tuple(sorted(set(result)))
+        self.qt_plugins_dirs = tuple(sorted(set(self.qt_plugins_dirs)))
 
-        self.qt_plugins_dirs = result
+        if not self.qt_plugins_dirs:
+            self.warning("Couldn't detect Qt plugin directories.")
 
-        return result
+        return self.qt_plugins_dirs
 
     def _getQtBinDirs(self):
         for plugin_dir in self.getQtPluginDirs():
@@ -223,6 +240,157 @@ if os.path.exists(guess_path):
                 os.path.join(target_plugin_dir, os.path.relpath(filename, plugin_dir))
             )
         ]
+
+    def _getChildNamed(self, *child_names):
+        for child_name in child_names:
+            return ModuleName(self.binding_name).getChildNamed(child_name)
+
+    def getImplicitImports(self, module):
+        # Way too many indeed, pylint: disable=too-many-branches
+
+        full_name = module.getFullName()
+        top_level_package_name, child_name = full_name.splitPackageName()
+
+        if top_level_package_name != self.binding_name:
+            return
+
+        # These are alternatives depending on PyQt5 version
+        if child_name == "QtCore" and "PyQt" in self.binding_name:
+            if python_version < 0x300:
+                yield "atexit"
+
+            yield "sip"
+            yield self._getChildNamed("sip")
+
+        if child_name in (
+            "QtGui",
+            "QtAssistant",
+            "QtDBus",
+            "QtDeclarative",
+            "QtSql",
+            "QtDesigner",
+            "QtHelp",
+            "QtNetwork",
+            "QtScript",
+            "QtQml",
+            "QtGui",
+            "QtScriptTools",
+            "QtSvg",
+            "QtTest",
+            "QtWebKit",
+            "QtOpenGL",
+            "QtXml",
+            "QtXmlPatterns",
+            "QtPrintSupport",
+            "QtNfc",
+            "QtWebKitWidgets",
+            "QtBluetooth",
+            "QtMultimediaWidgets",
+            "QtQuick",
+            "QtWebChannel",
+            "QtWebSockets",
+            "QtX11Extras",
+            "_QOpenGLFunctions_2_0",
+            "_QOpenGLFunctions_2_1",
+            "_QOpenGLFunctions_4_1_Core",
+        ):
+            yield self._getChildNamed("QtCore")
+
+        if child_name in (
+            "QtDeclarative",
+            "QtWebKit",
+            "QtXmlPatterns",
+            "QtQml",
+            "QtPrintSupport",
+            "QtWebKitWidgets",
+            "QtMultimedia",
+            "QtMultimediaWidgets",
+            "QtQuick",
+            "QtQuickWidgets",
+            "QtWebSockets",
+            "QtWebEngineWidgets",
+        ):
+            yield self._getChildNamed("QtNetwork")
+
+        if child_name == "QtWebEngineWidgets":
+            yield self._getChildNamed("QtWebEngineCore")
+            yield self._getChildNamed("QtWebChannel")
+            yield self._getChildNamed("QtPrintSupport")
+        elif child_name == "QtScriptTools":
+            yield self._getChildNamed("QtScript")
+        elif child_name in (
+            "QtWidgets",
+            "QtDeclarative",
+            "QtDesigner",
+            "QtHelp",
+            "QtScriptTools",
+            "QtSvg",
+            "QtTest",
+            "QtWebKit",
+            "QtPrintSupport",
+            "QtWebKitWidgets",
+            "QtMultimedia",
+            "QtMultimediaWidgets",
+            "QtOpenGL",
+            "QtQuick",
+            "QtQuickWidgets",
+            "QtSql",
+            "_QOpenGLFunctions_2_0",
+            "_QOpenGLFunctions_2_1",
+            "_QOpenGLFunctions_4_1_Core",
+        ):
+            yield self._getChildNamed("QtGui")
+
+        if child_name in (
+            "QtDesigner",
+            "QtHelp",
+            "QtTest",
+            "QtPrintSupport",
+            "QtSvg",
+            "QtOpenGL",
+            "QtWebKitWidgets",
+            "QtMultimediaWidgets",
+            "QtQuickWidgets",
+            "QtSql",
+        ):
+            yield self._getChildNamed("QtWidgets")
+
+        if child_name in ("QtPrintSupport",):
+            yield self._getChildNamed("QtSvg")
+
+        if child_name in ("QtWebKitWidgets",):
+            yield self._getChildNamed("QtWebKit")
+            yield self._getChildNamed("QtPrintSupport")
+
+        if child_name in ("QtMultimediaWidgets",):
+            yield self._getChildNamed("QtMultimedia")
+
+        if child_name in ("QtQuick", "QtQuickWidgets"):
+            yield self._getChildNamed("QtQml")
+
+        if child_name in ("QtQuickWidgets", "QtQml"):
+            yield self._getChildNamed("QtQuick")
+
+        if child_name == "Qt":
+            yield self._getChildNamed("QtCore")
+            yield self._getChildNamed("QtDBus")
+            yield self._getChildNamed("QtGui")
+            yield self._getChildNamed("QtNetwork")
+            yield self._getChildNamed("QtNetworkAuth")
+            yield self._getChildNamed("QtSensors")
+            yield self._getChildNamed("QtSerialPort")
+            yield self._getChildNamed("QtMultimedia")
+            yield self._getChildNamed("QtQml")
+            yield self._getChildNamed("QtWidgets")
+
+        # TODO: Questionable if this still exists in newer PySide.
+        if child_name == "QtUiTools":
+            yield self._getChildNamed("QtGui")
+            yield self._getChildNamed("QtXml")
+
+        # TODO: Questionable if this still exists in newer PySide.
+        if full_name == "phonon":
+            yield self._getChildNamed("QtGui")
 
     def createPostModuleLoadCode(self, module):
         """Create code to load after a module was successfully imported.
@@ -531,12 +699,6 @@ class NuitkaPluginPySide2Plugins(NuitkaPluginQtBindingsPluginBase):
     def _getQmlTargetDir(self, target_plugin_dir):
         return os.path.join(target_plugin_dir, "..", "qml")
 
-    def getImplicitImports(self, module):
-        full_name = module.getFullName()
-
-        if full_name == "PySide2.QtQuick":
-            yield "PySide2.QtQuick.Controls"
-
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         # Enforce recursion in to multiprocessing for accelerated mode, which
         # would normally avoid this.
@@ -644,3 +806,35 @@ class NuitkaPluginDetectorPySide2Plugins(NuitkaPluginBase):
     def onModuleDiscovered(self, module):
         if module.getFullName() == NuitkaPluginPySide2Plugins.binding_name + ".QtCore":
             self.warnUnusedPlugin("Making callbacks work and include Qt plugins.")
+
+
+class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
+    """This is for plugins of PySide6.
+
+    When Qt loads an image, it may use a plug-in, which in turn used DLLs,
+    which for standalone mode, can cause issues of not having it.
+    """
+
+    plugin_name = "pyside6"
+    plugin_desc = "Required by the PySide6 package for standalone mode."
+
+    binding_name = "PySide6"
+
+    def __init__(self, qt_plugins):
+        NuitkaPluginQtBindingsPluginBase.__init__(self, qt_plugins)
+
+        if self._getBindingVersion() < (6, 0, 3):
+            self.warning(
+                "The version of PySide6 you are using should be 6.0.3 or higher, otherwise callbacks won't work."
+            )
+
+    def _getQmlTargetDir(self, target_plugin_dir):
+        return os.path.join(target_plugin_dir, "..", "qml")
+
+
+class NuitkaPluginDetectorPySide6Plugins(NuitkaPluginBase):
+    detector_for = NuitkaPluginPySide6Plugins
+
+    def onModuleDiscovered(self, module):
+        if module.getFullName() == NuitkaPluginPySide6Plugins.binding_name + ".QtCore":
+            self.warnUnusedPlugin("Standalone mode support and Qt plugins.")
