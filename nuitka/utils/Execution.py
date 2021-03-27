@@ -144,6 +144,19 @@ def getPythonExePathWindows(search, arch):
                 return candidate
 
 
+class NuitkaCalledProcessError(subprocess.CalledProcessError):
+    def __str__(self):
+        result = subprocess.CalledProcessError.__str__(self)
+
+        if self.output:
+            result += " Output was %r." % self.output.strip()
+
+        if self.stderr:
+            result += " Error was %r." % self.stderr.strip()
+
+        return result
+
+
 def check_output(*popenargs, **kwargs):
     """Call a process and check result code.
 
@@ -157,8 +170,12 @@ def check_output(*popenargs, **kwargs):
     if "stdout" in kwargs:
         raise ValueError("stdout argument not allowed, it will be overridden.")
 
+    if "stderr" not in kwargs:
+        kwargs["stderr"] = subprocess.PIPE
+
     process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
-    output, _unused_err = process.communicate()
+
+    output, stderr = process.communicate()
     retcode = process.poll()
 
     if retcode:
@@ -166,7 +183,7 @@ def check_output(*popenargs, **kwargs):
         if cmd is None:
             cmd = popenargs[0]
 
-        raise subprocess.CalledProcessError(retcode, cmd, output=output)
+        raise NuitkaCalledProcessError(retcode, cmd, output=output, stderr=stderr)
 
     return output
 
