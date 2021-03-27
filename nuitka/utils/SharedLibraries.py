@@ -47,9 +47,8 @@ def locateDLLFromFilesystem(name, paths):
     for path in paths:
         for root, _dirs, files in os.walk(path):
             for file in files:
-                if name in file and '.so' in file:
+                if name in file and ".so" in file:
                     return os.path.join(root, file)
-            
 
 
 _ldconfig_usage = "The 'ldconfig' is used to analyse dependencies on ELF using systems and required to be found."
