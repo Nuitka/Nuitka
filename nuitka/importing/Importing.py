@@ -320,7 +320,13 @@ ImportScanFinding = collections.namedtuple(
 unworthy_namespaces = ("Cython", "lxml")
 
 
-def _reportCandidates(module_name, candidate, candidates):
+def _reportCandidates(package_name, module_name, candidate, candidates):
+    module_name = (
+        package_name.getChildNamed(module_name)
+        if package_name is not None
+        else module_name
+    )
+
     if (
         candidate.priority == 1
         and Options.shallPreferSourcecodeOverExtensionModules() is None
@@ -437,9 +443,8 @@ def _findModuleInPath2(package_name, module_name, search_path):
         # On case sensitive systems, no resolution needed.
         if case_sensitive:
             _reportCandidates(
-                module_name=package_name.getChildNamed(module_name)
-                if package_name is not None
-                else module_name,
+                package_name=package_name,
+                module_name=module_name,
                 candidate=candidates[0],
                 candidates=candidates,
             )
@@ -448,7 +453,12 @@ def _findModuleInPath2(package_name, module_name, search_path):
             for candidate in candidates:
                 for fullname, _filename in listDir(candidate[0]):
                     if fullname == candidate.full_path:
-                        _reportCandidates(module_name, candidate, candidates)
+                        _reportCandidates(
+                            package_name=package_name,
+                            module_name=module_name,
+                            candidate=candidate,
+                            candidates=candidates,
+                        )
                         return candidate.full_path
 
             # Only exact case matches matter, all candidates were ignored,

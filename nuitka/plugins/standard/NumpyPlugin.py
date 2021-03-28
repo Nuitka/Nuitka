@@ -224,13 +224,17 @@ Should matplotlib not be be included with numpy, Default is %default.""",
         if self.matplotlib_info is None:
             cmd = r"""\
 from __future__ import print_function
-from matplotlib import matplotlib_fname, get_backend, _get_data_path, __version__
+from matplotlib import matplotlib_fname, get_backend, __version__
+try:
+    from matplotlib import get_data_path
+except ImportError:
+    from matplotlib import _get_data_path as get_data_path
 from inspect import getsource
 print(repr(matplotlib_fname()))
 print(repr(get_backend()))
-print(repr(_get_data_path()))
+print(repr(get_data_path()))
 print(repr(__version__))
-print(repr("MATPLOTLIBDATA" in getsource(_get_data_path)))
+print(repr("MATPLOTLIBDATA" in getsource(get_data_path)))
 """
 
             # TODO: Make this is a re-usable pattern, output from a script with values per line

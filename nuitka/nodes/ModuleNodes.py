@@ -950,9 +950,13 @@ class PythonShlibModule(PythonModuleBase):
 
                 if "typing" in pyi_deps:
                     pyi_deps.discard("typing")
+                if "__future__" in pyi_deps:
+                    pyi_deps.discard("__future__")
 
                 if self.getFullName() in pyi_deps:
                     pyi_deps.discard(self.getFullName())
+                if self.getFullName().getPackageName() in pyi_deps:
+                    pyi_deps.discard(self.getFullName().getPackageName())
 
                 self.used_modules = tuple((pyi_dep, None) for pyi_dep in pyi_deps)
             else:
