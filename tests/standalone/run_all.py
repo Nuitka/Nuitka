@@ -55,7 +55,6 @@ from nuitka.tools.testing.Common import (
     displayFileContents,
     displayFolderContents,
     displayRuntimeTraces,
-    getPythonVendor,
     getRuntimeTraceOfLoadedFiles,
     reportSkip,
     setup,
@@ -175,6 +174,7 @@ def main():
             extra_flags.append("plugin_disable:pylint-warnings")
             extra_flags.append("plugin_disable:qt-plugins")
             extra_flags.append("plugin_disable:pyside2")
+            extra_flags.append("plugin_disable:pyside6")
 
         if filename == "PmwUsing.py":
             extra_flags.append("plugin_enable:pmw-freezer")
@@ -192,28 +192,24 @@ def main():
             # For the warnings.
             extra_flags.append("ignore_warnings")
 
-        if filename == "PySideUsing.py":
-            # TODO: Disabled due to lack of upstream support.
-            reportSkip("PySide not supported yet", ".", filename)
-            continue
-
         if filename == "Win32ComUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
 
-        if filename.startswith(("PySide", "PyQt")):
+        if filename.startswith(("PySide6", "PyQt5", "PyQt6")):
             # Don't test on platforms not supported by current Debian testing, and
             # which should be considered irrelevant by now.
-            if python_version < (2, 7):
+            if python_version < (2, 7) or ((3,) <= python_version < (3, 7)):
                 reportSkip("irrelevant Python version", ".", filename)
                 continue
 
-            # For the plug-in information.
-            if getPythonVendor() != "Anaconda":
+            # For the plug-in information
+            if filename.startswith("PySide6"):
+                extra_flags.append("plugin_enable:pyside6")
+            elif filename.startswith("PyQt5"):
                 extra_flags.append("plugin_enable:qt-plugins")
-            else:
-                # For the plug-in not used information.
-                extra_flags.append("ignore_warnings")
+            elif filename.startswith("PyQt6"):
+                extra_flags.append("plugin_enable:pyqt6")
 
         test_logger.info(
             "Consider output of standalone mode compiled program: %s" % filename
