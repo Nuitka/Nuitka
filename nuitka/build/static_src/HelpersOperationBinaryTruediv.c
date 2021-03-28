@@ -139,22 +139,10 @@ PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_INT_INT(PyObject *operand1, PyObject *
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_INT(PyObject *operand1,
+                                                                                  PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyInt_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_TRUEDIV_OBJECT_INT_INT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -286,6 +274,118 @@ exit_binary_result_object:
 exit_binary_exception:
     return NULL;
 }
+static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyInt_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_TRUEDIV_OBJECT_INT_INT(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        if (unlikely(b == 0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "division by zero");
+            goto exit_result_exception;
+        }
+
+        if (a == 0) {
+            if (b < 0) {
+                goto exit_result_ok_const_float_minus_0_0;
+            } else {
+                goto exit_result_ok_const_float_0_0;
+            }
+        }
+
+/* May need to resort to LONG code, which we currently do not
+ * specialize yet. TODO: Once we do that, call it here instead.
+ */
+#if DBL_MANT_DIG < WIDTH_OF_ULONG
+        if ((a >= 0 ? 0UL + a : 0UL - a) >> DBL_MANT_DIG || (b >= 0 ? 0UL + b : 0UL - b) >> DBL_MANT_DIG) {
+        } else
+#endif
+        {
+            double r = (double)a / (double)b;
+
+            cfloat_result = r;
+            goto exit_result_ok_cfloat;
+        }
+        {
+            PyObject *operand1_object = operand1;
+            PyObject *operand2_object = operand2;
+
+            PyObject *r = PyLong_Type.tp_as_number->nb_true_divide(operand1_object, operand2_object);
+            assert(r != Py_NotImplemented);
+
+            obj_result = r;
+            goto exit_result_object;
+        }
+
+    exit_result_ok_cfloat:
+        result = PyFloat_FromDouble(cfloat_result);
+        goto exit_result_ok;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok_const_float_0_0:
+        Py_INCREF(const_float_0_0);
+        result = const_float_0_0;
+        goto exit_result_ok;
+
+    exit_result_ok_const_float_minus_0_0:
+        Py_INCREF(const_float_minus_0_0);
+        result = const_float_minus_0_0;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NULL;
+    }
+
+    return __BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_INT(operand1, operand2);
+}
 
 PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_INT(operand1, operand2);
@@ -294,22 +394,10 @@ PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_INT(PyObject *operand1, PyObjec
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_TRUEDIV_OBJECT_INT_OBJECT(PyObject *operand1,
+                                                                                  PyObject *operand2) {
     PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_TRUEDIV_OBJECT_INT_INT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -454,6 +542,118 @@ exit_binary_result_object:
 
 exit_binary_exception:
     return NULL;
+}
+static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_TRUEDIV_OBJECT_INT_INT(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        if (unlikely(b == 0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "division by zero");
+            goto exit_result_exception;
+        }
+
+        if (a == 0) {
+            if (b < 0) {
+                goto exit_result_ok_const_float_minus_0_0;
+            } else {
+                goto exit_result_ok_const_float_0_0;
+            }
+        }
+
+/* May need to resort to LONG code, which we currently do not
+ * specialize yet. TODO: Once we do that, call it here instead.
+ */
+#if DBL_MANT_DIG < WIDTH_OF_ULONG
+        if ((a >= 0 ? 0UL + a : 0UL - a) >> DBL_MANT_DIG || (b >= 0 ? 0UL + b : 0UL - b) >> DBL_MANT_DIG) {
+        } else
+#endif
+        {
+            double r = (double)a / (double)b;
+
+            cfloat_result = r;
+            goto exit_result_ok_cfloat;
+        }
+        {
+            PyObject *operand1_object = operand1;
+            PyObject *operand2_object = operand2;
+
+            PyObject *r = PyLong_Type.tp_as_number->nb_true_divide(operand1_object, operand2_object);
+            assert(r != Py_NotImplemented);
+
+            obj_result = r;
+            goto exit_result_object;
+        }
+
+    exit_result_ok_cfloat:
+        result = PyFloat_FromDouble(cfloat_result);
+        goto exit_result_ok;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok_const_float_0_0:
+        Py_INCREF(const_float_0_0);
+        result = const_float_0_0;
+        goto exit_result_ok;
+
+    exit_result_ok_const_float_minus_0_0:
+        Py_INCREF(const_float_minus_0_0);
+        result = const_float_minus_0_0;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NULL;
+    }
+
+    return __BINARY_OPERATION_TRUEDIV_OBJECT_INT_OBJECT(operand1, operand2);
 }
 
 PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
@@ -530,22 +730,10 @@ nuitka_bool BINARY_OPERATION_TRUEDIV_NBOOL_INT_INT(PyObject *operand1, PyObject 
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-static nuitka_bool _BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_INT(PyObject *operand1,
+                                                                                   PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyInt_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_TRUEDIV_NBOOL_INT_INT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -685,6 +873,72 @@ exit_binary_result_object:
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
+static nuitka_bool _BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyInt_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_TRUEDIV_NBOOL_INT_INT(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        if (unlikely(b == 0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "division by zero");
+            goto exit_result_exception;
+        }
+
+        cbool_result = a == 0;
+        goto exit_result_ok_cbool;
+
+    exit_result_ok_cbool:
+        result = cbool_result ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    return __BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_INT(operand1, operand2);
+}
 
 nuitka_bool BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_INT(operand1, operand2);
@@ -693,22 +947,10 @@ nuitka_bool BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_INT(PyObject *operand1, PyObje
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-static nuitka_bool _BINARY_OPERATION_TRUEDIV_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_TRUEDIV_NBOOL_INT_OBJECT(PyObject *operand1,
+                                                                                   PyObject *operand2) {
     PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_TRUEDIV_NBOOL_INT_INT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -862,6 +1104,72 @@ exit_binary_result_object:
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
+static nuitka_bool _BINARY_OPERATION_TRUEDIV_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_TRUEDIV_NBOOL_INT_INT(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        if (unlikely(b == 0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "division by zero");
+            goto exit_result_exception;
+        }
+
+        cbool_result = a == 0;
+        goto exit_result_ok_cbool;
+
+    exit_result_ok_cbool:
+        result = cbool_result ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    return __BINARY_OPERATION_TRUEDIV_NBOOL_INT_OBJECT(operand1, operand2);
+}
 
 nuitka_bool BINARY_OPERATION_TRUEDIV_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_TRUEDIV_NBOOL_INT_OBJECT(operand1, operand2);
@@ -911,22 +1219,10 @@ PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_LONG_LONG(PyObject *operand1, PyObject
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_LONG(PyObject *operand1,
+                                                                                   PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyLong_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_TRUEDIV_OBJECT_LONG_LONG(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1062,28 +1358,59 @@ exit_binary_result_object:
 exit_binary_exception:
     return NULL;
 }
+static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyLong_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_TRUEDIV_OBJECT_LONG_LONG(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        PyObject *x = PyLong_Type.tp_as_number->nb_true_divide(operand1, operand2);
+        assert(x != Py_NotImplemented);
+
+        obj_result = x;
+        goto exit_result_object;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NULL;
+    }
+
+    return __BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_LONG(operand1, operand2);
+}
 
 PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_LONG(operand1, operand2);
 }
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_TRUEDIV_OBJECT_LONG_OBJECT(PyObject *operand1,
+                                                                                   PyObject *operand2) {
     PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_TRUEDIV_OBJECT_LONG_LONG(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1232,6 +1559,49 @@ exit_binary_result_object:
 
 exit_binary_exception:
     return NULL;
+}
+static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_TRUEDIV_OBJECT_LONG_LONG(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        PyObject *x = PyLong_Type.tp_as_number->nb_true_divide(operand1, operand2);
+        assert(x != Py_NotImplemented);
+
+        obj_result = x;
+        goto exit_result_object;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NULL;
+    }
+
+    return __BINARY_OPERATION_TRUEDIV_OBJECT_LONG_OBJECT(operand1, operand2);
 }
 
 PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
@@ -1282,22 +1652,10 @@ nuitka_bool BINARY_OPERATION_TRUEDIV_NBOOL_LONG_LONG(PyObject *operand1, PyObjec
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-static nuitka_bool _BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_LONG(PyObject *operand1,
+                                                                                    PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyLong_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_TRUEDIV_NBOOL_LONG_LONG(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1441,28 +1799,60 @@ exit_binary_result_object:
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
+static nuitka_bool _BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyLong_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_TRUEDIV_NBOOL_LONG_LONG(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        PyObject *x = PyLong_Type.tp_as_number->nb_true_divide(operand1, operand2);
+        assert(x != Py_NotImplemented);
+
+        obj_result = x;
+        goto exit_result_object;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    return __BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_LONG(operand1, operand2);
+}
 
 nuitka_bool BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_LONG(operand1, operand2);
 }
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-static nuitka_bool _BINARY_OPERATION_TRUEDIV_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_TRUEDIV_NBOOL_LONG_OBJECT(PyObject *operand1,
+                                                                                    PyObject *operand2) {
     PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_TRUEDIV_NBOOL_LONG_LONG(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1619,6 +2009,50 @@ exit_binary_result_object:
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
+}
+static nuitka_bool _BINARY_OPERATION_TRUEDIV_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_TRUEDIV_NBOOL_LONG_LONG(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        PyObject *x = PyLong_Type.tp_as_number->nb_true_divide(operand1, operand2);
+        assert(x != Py_NotImplemented);
+
+        obj_result = x;
+        goto exit_result_object;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    return __BINARY_OPERATION_TRUEDIV_NBOOL_LONG_OBJECT(operand1, operand2);
 }
 
 nuitka_bool BINARY_OPERATION_TRUEDIV_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
@@ -1694,22 +2128,10 @@ PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObje
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
-static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_FLOAT(PyObject *operand1,
+                                                                                    PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyFloat_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_FLOAT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1841,28 +2263,85 @@ exit_binary_result_object:
 exit_binary_exception:
     return NULL;
 }
+static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyFloat_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_FLOAT(operand1, operand2);
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        double a = PyFloat_AS_DOUBLE(operand1);
+        double b = PyFloat_AS_DOUBLE(operand2);
+
+        if (unlikely(b == 0.0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
+            goto exit_result_exception;
+        }
+
+        {
+            double r = a / b;
+
+            cfloat_result = r;
+            goto exit_result_ok_cfloat;
+        }
+
+    exit_result_ok_cfloat:
+        result = PyFloat_FromDouble(cfloat_result);
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NULL;
+    }
+
+    return __BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_FLOAT(operand1, operand2);
+}
 
 PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_FLOAT(operand1, operand2);
 }
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
-static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_OBJECT(PyObject *operand1,
+                                                                                    PyObject *operand2) {
     PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_FLOAT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2007,6 +2486,75 @@ exit_binary_result_object:
 
 exit_binary_exception:
     return NULL;
+}
+static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyFloat_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_FLOAT(operand1, operand2);
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        double a = PyFloat_AS_DOUBLE(operand1);
+        double b = PyFloat_AS_DOUBLE(operand2);
+
+        if (unlikely(b == 0.0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
+            goto exit_result_exception;
+        }
+
+        {
+            double r = a / b;
+
+            cfloat_result = r;
+            goto exit_result_ok_cfloat;
+        }
+
+    exit_result_ok_cfloat:
+        result = PyFloat_FromDouble(cfloat_result);
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NULL;
+    }
+
+    return __BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_OBJECT(operand1, operand2);
 }
 
 PyObject *BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
@@ -2082,22 +2630,10 @@ nuitka_bool BINARY_OPERATION_TRUEDIV_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObj
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
-static nuitka_bool _BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_FLOAT(PyObject *operand1,
+                                                                                     PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyFloat_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_TRUEDIV_NBOOL_FLOAT_FLOAT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2237,28 +2773,85 @@ exit_binary_result_object:
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
+static nuitka_bool _BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyFloat_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_TRUEDIV_NBOOL_FLOAT_FLOAT(operand1, operand2);
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        double a = PyFloat_AS_DOUBLE(operand1);
+        double b = PyFloat_AS_DOUBLE(operand2);
+
+        if (unlikely(b == 0.0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
+            goto exit_result_exception;
+        }
+
+        {
+            double r = a / b;
+
+            cfloat_result = r;
+            goto exit_result_ok_cfloat;
+        }
+
+    exit_result_ok_cfloat:
+        result = cfloat_result != 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    return __BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_FLOAT(operand1, operand2);
+}
 
 nuitka_bool BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_TRUEDIV_NBOOL_OBJECT_FLOAT(operand1, operand2);
 }
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
-static nuitka_bool _BINARY_OPERATION_TRUEDIV_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_TRUEDIV_NBOOL_FLOAT_OBJECT(PyObject *operand1,
+                                                                                     PyObject *operand2) {
     PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_TRUEDIV_NBOOL_FLOAT_FLOAT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2411,6 +3004,75 @@ exit_binary_result_object:
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
+}
+static nuitka_bool _BINARY_OPERATION_TRUEDIV_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyFloat_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_TRUEDIV_NBOOL_FLOAT_FLOAT(operand1, operand2);
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        double a = PyFloat_AS_DOUBLE(operand1);
+        double b = PyFloat_AS_DOUBLE(operand2);
+
+        if (unlikely(b == 0.0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
+            goto exit_result_exception;
+        }
+
+        {
+            double r = a / b;
+
+            cfloat_result = r;
+            goto exit_result_ok_cfloat;
+        }
+
+    exit_result_ok_cfloat:
+        result = cfloat_result != 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    return __BINARY_OPERATION_TRUEDIV_NBOOL_FLOAT_OBJECT(operand1, operand2);
 }
 
 nuitka_bool BINARY_OPERATION_TRUEDIV_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
