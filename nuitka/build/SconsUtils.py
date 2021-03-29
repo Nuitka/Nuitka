@@ -39,6 +39,30 @@ def initScons():
     # Avoid localized outputs.
     os.environ["LANG"] = "C"
 
+    def nosync(self):
+        # That's a noop, pylint: disable=unused-argument
+        pass
+
+    # Avoid scons writing the scons file at all.
+    import SCons.dblite  # pylint: disable=I0021,import-error
+
+    SCons.dblite.dblite.sync = nosync
+
+
+def setupScons(env, source_dir):
+    env["BUILD_DIR"] = source_dir
+
+    # Store the file signatures database with the rest of the source files
+    # and make it version dependent on the Python version of Scons, as its
+    # pickle is being used.
+    sconsign_dir = os.path.abspath(
+        os.path.join(
+            source_dir, ".sconsign-%d%s" % (sys.version_info[0], sys.version_info[1])
+        )
+    )
+
+    env.SConsignFile(sconsign_dir)
+
 
 scons_arguments = {}
 
