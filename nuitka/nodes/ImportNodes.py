@@ -70,6 +70,7 @@ hard_modules = frozenset(
         "importlib",
         "_frozen_importlib",
         "_frozen_importlib_external",
+        "pkgutil",
     )
 )
 
@@ -88,6 +89,7 @@ hard_modules_trust = {
     "importlib": {},
     "_frozen_importlib": {},
     "_frozen_importlib_external": {},
+    "pkgutil": {"get_data": trust_exist},
 }
 
 hard_modules_trust["__future__"] = {

@@ -34,6 +34,7 @@ from collections import namedtuple
 
 from nuitka import Options, OutputDirectories
 from nuitka.__past__ import getMetaClassBase
+from nuitka.containers.oset import OrderedSet
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import check_output
@@ -44,6 +45,8 @@ pre_modules = {}
 post_modules = {}
 
 warned_unused_plugins = set()
+
+registered_pkgutil_getdata_callbacks = OrderedSet()
 
 
 class NuitkaPluginBase(getMetaClassBase("Plugin")):
@@ -729,6 +732,11 @@ from __future__ import absolute_import
             setup_codes=setup_codes,
             values=(("key", value),),
         ).key
+
+    @staticmethod
+    def registerPkgutilGetDataCallback(callback):
+        """ Allow a plugin to register for that node type. """
+        registered_pkgutil_getdata_callbacks.add(callback)
 
     @classmethod
     def warning(cls, message):
