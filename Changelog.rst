@@ -4,7 +4,6 @@
 
 This release is not done yet.
 
-
 #######################
  Nuitka Release 0.6.13
 #######################
@@ -6355,7 +6354,7 @@ tasks in the summary, but first out to the many details.
    rpath to the Python DLL.
 
 -  Added experimental support for ``multiprocessing`` on Windows, which
-   needs money patching of the module to support compiled methods.
+   needs monkey patching of the module to support compiled methods.
 
 **************
  Optimization
