@@ -259,7 +259,7 @@ def buildImportFromNode(provider, node, source_ref):
                     source=ExpressionImportName(
                         module=imported_from_module,
                         import_name=import_name,
-                        level=level,
+                        level=0,
                         source_ref=source_ref,
                     ),
                     source_ref=source_ref,
@@ -330,7 +330,8 @@ def buildImportModulesNode(provider, node, source_ref):
                 import_node = ExpressionImportName(
                     module=import_node,
                     import_name=import_name,
-                    level=None,
+                    # TODO: Does level make sense at all, should be removed.
+                    level=0,
                     source_ref=source_ref,
                 )
 
