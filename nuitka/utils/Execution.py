@@ -207,6 +207,8 @@ def check_call(*popenargs, **kwargs):
 
 @contextmanager
 def withEnvironmentPathAdded(env_var_name, *paths):
+    assert os.path.sep not in env_var_name
+
     paths = [path for path in paths if path]
     path = os.pathsep.join(paths)
 
