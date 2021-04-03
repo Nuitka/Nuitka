@@ -1096,7 +1096,7 @@ def buildModuleTree(filename, package, is_top, is_main):
         # Detect to be frozen modules if any, so we can consider to not recurse
         # to them.
         if Options.isStandaloneMode():
-            detectEarlyImports()
+            module.setEarlyModules(detectEarlyImports())
 
     # If there is source code associated (not the case for namespace packages of
     # Python3.3 or higher, then read it.

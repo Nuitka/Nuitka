@@ -571,8 +571,11 @@ def detectEarlyImports():
     # Cyclic dependency
     from nuitka import ModuleRegistry
 
-    for module in _detectEarlyImports():
+    early_modules = tuple(_detectEarlyImports())
+    for module in early_modules:
         ModuleRegistry.addUncompiledModule(module)
+
+    return early_modules
 
 
 _detected_python_rpath = None

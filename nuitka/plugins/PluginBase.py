@@ -421,7 +421,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         Args:
             importing: module object that asked for it (tracing only)
             module_name: (str or ModuleName) full name of module
-            warn: (bool) True if required module
         Returns:
             filename for module
         """
