@@ -24,6 +24,7 @@ This is about collecting these constraints and to manage them.
 """
 
 import contextlib
+from collections import defaultdict
 from contextlib import contextmanager
 
 from nuitka import Tracing, Variables
@@ -42,6 +43,7 @@ from nuitka.utils.InstanceCounters import (
     isCountingInstances,
 )
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Timing import TimerReport
 
 from .ValueTraces import (
     ValueTraceAssign,
@@ -70,7 +72,49 @@ def withChangeIndicationsTo(signal_change):
     signalChange = old
 
 
-class CollectionStartpointMixin(object):
+class CollectionUpdateMixin(object):
+    """Mixin to use in every collection to add traces."""
+
+    # Mixins are not allow to specify slots.
+    __slots__ = ()
+
+    def hasVariableTrace(self, variable, version):
+        return (variable, version) in self.variable_traces
+
+    def getVariableTrace(self, variable, version):
+        return self.variable_traces[(variable, version)]
+
+    def getVariableTraces(self, variable):
+        result = []
+
+        for key, variable_trace in iterItems(self.variable_traces):
+            candidate = key[0]
+
+            if variable is candidate:
+                result.append(variable_trace)
+
+        return result
+
+    def getVariableTracesAll(self):
+        return self.variable_traces
+
+    def addVariableTrace(self, variable, version, trace):
+        key = variable, version
+
+        assert key not in self.variable_traces, (key, self)
+        self.variable_traces[key] = trace
+
+    def addVariableMergeMultipleTrace(self, variable, traces):
+        version = variable.allocateTargetNumber()
+
+        trace_merge = ValueTraceMerge(traces)
+
+        self.addVariableTrace(variable, version, trace_merge)
+
+        return version
+
+
+class CollectionStartpointMixin(CollectionUpdateMixin):
     """Mixin to use in start points of collections.
 
     These are modules, functions, etc. typically entry points.
@@ -165,23 +209,6 @@ class CollectionStartpointMixin(object):
     def getExceptionRaiseCollections(self):
         return self.exception_collections
 
-    def hasVariableTrace(self, variable, version):
-        return (variable, version) in self.variable_traces
-
-    def getVariableTrace(self, variable, version):
-        return self.variable_traces[(variable, version)]
-
-    def getVariableTraces(self, variable):
-        result = []
-
-        for key, variable_trace in iterItems(self.variable_traces):
-            candidate = key[0]
-
-            if variable is candidate:
-                result.append(variable_trace)
-
-        return result
-
     def hasEmptyTraces(self, variable):
         # TODO: Combine these steps into one for performance gains.
         traces = self.getVariableTraces(variable)
@@ -192,42 +219,24 @@ class CollectionStartpointMixin(object):
         traces = self.getVariableTraces(variable)
         return areReadOnlyTraces(traces)
 
-    def getVariableTracesAll(self):
-        return self.variable_traces
-
-    def addVariableTrace(self, variable, version, trace):
-        key = variable, version
-
-        assert key not in self.variable_traces, (key, self)
-        self.variable_traces[key] = trace
-
-    def addVariableMergeMultipleTrace(self, variable, traces):
-        version = variable.allocateTargetNumber()
-
-        trace_merge = ValueTraceMerge(traces)
-
-        self.addVariableTrace(variable, version, trace_merge)
-
-        return version
-
     def initVariableUnknown(self, variable):
         trace = ValueTraceUnknown(owner=self.owner, previous=None)
 
-        self.addVariableTrace(variable=variable, version=0, trace=trace)
+        self.addVariableTrace(variable, 0, trace)
 
         return trace
 
     def _initVariableInit(self, variable):
         trace = ValueTraceInit(self.owner)
 
-        self.addVariableTrace(variable=variable, version=0, trace=trace)
+        self.addVariableTrace(variable, 0, trace)
 
         return trace
 
     def _initVariableUninit(self, variable):
         trace = ValueTraceUninit(owner=self.owner, previous=None)
 
-        self.addVariableTrace(variable=variable, version=0, trace=trace)
+        self.addVariableTrace(variable, 0, trace)
 
         return trace
 
@@ -368,9 +377,9 @@ class TraceCollectionBase(object):
             version = variable.allocateTargetNumber()
 
             self.addVariableTrace(
-                variable=variable,
-                version=version,
-                trace=ValueTraceEscaped(owner=self.owner, previous=current),
+                variable,
+                version,
+                ValueTraceEscaped(owner=self.owner, previous=current),
             )
 
             self.markCurrentVariableTrace(variable, version)
@@ -391,7 +400,7 @@ class TraceCollectionBase(object):
             result = ValueTraceLoopComplete(loop_node, current, shapes)
 
         version = variable.allocateTargetNumber()
-        self.addVariableTrace(variable=variable, version=version, trace=result)
+        self.addVariableTrace(variable, version, result)
 
         self.markCurrentVariableTrace(variable, version)
 
@@ -466,18 +475,6 @@ class TraceCollectionBase(object):
     def removeAllKnowledge(self):
         self.markActiveVariablesAsUnknown()
 
-    def getVariableTrace(self, variable, version):
-        return self.parent.getVariableTrace(variable, version)
-
-    def hasVariableTrace(self, variable, version):
-        return self.parent.hasVariableTrace(variable, version)
-
-    def addVariableTrace(self, variable, version, trace):
-        self.parent.addVariableTrace(variable, version, trace)
-
-    def addVariableMergeMultipleTrace(self, variable, traces):
-        return self.parent.addVariableMergeMultipleTrace(variable, traces)
-
     def onVariableSet(self, variable, version, assign_node):
         variable_trace = ValueTraceAssign(
             owner=self.owner,
@@ -485,7 +482,7 @@ class TraceCollectionBase(object):
             previous=self.getVariableCurrentTrace(variable=variable),
         )
 
-        self.addVariableTrace(variable=variable, version=version, trace=variable_trace)
+        self.addVariableTrace(variable, version, variable_trace)
 
         # Make references point to it.
         self.markCurrentVariableTrace(variable, version)
@@ -502,7 +499,7 @@ class TraceCollectionBase(object):
         )
 
         # Assign to not initialized again.
-        self.addVariableTrace(variable=variable, version=version, trace=variable_trace)
+        self.addVariableTrace(variable, version, variable_trace)
 
         # Make references point to it.
         self.markCurrentVariableTrace(variable, version)
@@ -695,34 +692,39 @@ class TraceCollectionBase(object):
             self.replaceBranch(collections[0])
             return None
 
-        variable_versions = {}
+        # print("Enter mergeMultipleBranches", len(collections))
+        with TimerReport(
+            message="Running merge for %s took %%.2f seconds" % collections,
+            decider=lambda: 0,
+        ):
+            variable_versions = defaultdict(OrderedSet)
 
-        for collection in collections:
-            for variable, version in iterItems(collection.variable_actives):
-                if variable not in variable_versions:
-                    variable_versions[variable] = OrderedSet((version,))
-                else:
+            for collection in collections:
+                for variable, version in iterItems(collection.variable_actives):
                     variable_versions[variable].add(version)
 
-        for collection in collections:
+            for collection in collections:
+                for variable, versions in iterItems(variable_versions):
+                    if variable not in collection.variable_actives:
+                        versions.add(0)
+
+            self.variable_actives = {}
+
             for variable, versions in iterItems(variable_versions):
-                if variable not in collection.variable_actives:
-                    versions.add(0)
+                if len(versions) == 1:
+                    (version,) = versions
+                else:
+                    version = self.addVariableMergeMultipleTrace(
+                        variable=variable,
+                        traces=tuple(
+                            self.getVariableTrace(variable, version)
+                            for version in versions
+                        ),
+                    )
 
-        self.variable_actives = {}
+                self.markCurrentVariableTrace(variable, version)
 
-        for variable, versions in iterItems(variable_versions):
-            if len(versions) == 1:
-                (version,) = versions
-            else:
-                version = self.addVariableMergeMultipleTrace(
-                    variable=variable,
-                    traces=tuple(
-                        self.getVariableTrace(variable, version) for version in versions
-                    ),
-                )
-
-            self.markCurrentVariableTrace(variable, version)
+            # print("Leave mergeMultipleBranches", len(collections))
 
     def replaceBranch(self, collection_replace):
         self.variable_actives.update(collection_replace.variable_actives)
@@ -809,14 +811,17 @@ class TraceCollectionBase(object):
         self.parent.addOutlineFunction(outline)
 
 
-class TraceCollectionBranch(TraceCollectionBase):
-    __slots__ = ()
+class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
+    __slots__ = ("variable_traces",)
 
     def __init__(self, name, parent):
         TraceCollectionBase.__init__(self, owner=parent.owner, name=name, parent=parent)
 
         # Detach from others
         self.variable_actives = dict(parent.variable_actives)
+
+        # For quick access without going to parent.
+        self.variable_traces = parent.variable_traces
 
     def computeBranch(self, branch):
         if branch.isStatementsSequence():
@@ -833,9 +838,6 @@ class TraceCollectionBranch(TraceCollectionBase):
         self.variable_actives[variable] = 0
 
         return variable_trace
-
-    def onLocalsDictEscaped(self, locals_scope):
-        return self.parent.onLocalsDictEscaped(locals_scope)
 
     def dumpTraces(self):
         Tracing.printSeparator()
