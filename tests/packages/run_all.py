@@ -105,9 +105,6 @@ Error, no package in dir '%s' found, incomplete test case."""
                     needs_2to3=False,
                 )
 
-            if search_mode.abortIfExecuted():
-                break
-
     search_mode.finish()
 
 

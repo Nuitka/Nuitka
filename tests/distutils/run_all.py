@@ -245,9 +245,6 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
             if exit_code:
                 sys.exit("Error, outputs differed.")
 
-        if search_mode.abortIfExecuted():
-            break
-
     search_mode.finish()
 
 
