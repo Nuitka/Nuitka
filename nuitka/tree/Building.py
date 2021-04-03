@@ -756,7 +756,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     if is_module:
         # Add import of "site" module of main programs visibly in the node tree,
         # so recursion and optimization can pick it up, checking its effects.
-        if is_main and "no_site" not in Options.getPythonFlags():
+        if is_main and not Options.hasPythonFlagNoSite():
             for path_imported_name in getPthImportedPackages():
                 statements.append(
                     StatementExpressionOnly(

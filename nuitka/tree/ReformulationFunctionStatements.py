@@ -60,6 +60,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableNameRef,
     ExpressionVariableRef,
 )
+from nuitka.Options import hasPythonFlagNoAnnotations
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -454,7 +455,7 @@ def buildParameterAnnotations(provider, node, source_ref):
     # Too many branches, because there is too many cases, pylint: disable=too-many-branches
 
     # Build annotations. We are hiding here, that it is a Python3 only feature.
-    if python_version < 0x300:
+    if python_version < 0x300 or hasPythonFlagNoAnnotations():
         return None
 
     # Starting with Python 3.4, the names of parameters are mangled in

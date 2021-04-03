@@ -902,6 +902,18 @@ def getPythonFlags():
     return _python_flags
 
 
+def hasPythonFlagNoSite():
+    """*bool* = "no_site" in python flags given """
+
+    return "no_site" in getPythonFlags()
+
+
+def hasPythonFlagNoAnnotations():
+    """*bool* = "no_annotations" in python flags given """
+
+    return "no_annotations" in getPythonFlags()
+
+
 def shallFreezeAllStdlib():
     """*bool* = **not** shallFollowStandardLibrary"""
     return not shallFollowStandardLibrary()

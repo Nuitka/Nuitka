@@ -75,6 +75,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableLocalNameRef,
     ExpressionVariableNameRef,
 )
+from nuitka.Options import hasPythonFlagNoAnnotations
 from nuitka.PythonVersions import python_version
 
 from .ReformulationImportStatements import getFutureSpec
@@ -606,7 +607,9 @@ def buildAnnAssignNode(provider, node, source_ref):
     # Only annotations for modules and classes are really made, for functions
     # they are ignored like comments.
     if variable_name is not None:
-        if provider.isExpressionClassBody() or provider.isCompiledPythonModule():
+        if not hasPythonFlagNoAnnotations() and (
+            provider.isExpressionClassBody() or provider.isCompiledPythonModule()
+        ):
             annotation = buildAnnotationNode(provider, node.annotation, source_ref)
 
             # TODO: As CPython core considers this implementation detail, and it seems
@@ -633,7 +636,7 @@ def buildAnnAssignNode(provider, node, source_ref):
                 )
             )
         else:
-            # Functions.
+            # Functions or disabled.
             if node.simple:
                 provider.getVariableForAssignment(variable_name)
 
