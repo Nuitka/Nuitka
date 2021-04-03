@@ -25,6 +25,13 @@ from __future__ import print_function
 
 import os
 import sys
+import traceback
+
+try:
+    import __builtin__ as builtins
+except ImportError:
+    import builtins
+
 
 original_import = __import__
 
@@ -76,68 +83,75 @@ def _moduleRepr(module):
     return "<module %s %s>" % (module.__name__, file_desc)
 
 
+normalize_paths = None
+show_source = None
+
+
+def _ourimport(
+    name,
+    globals=None,
+    locals=None,
+    fromlist=None,
+    level=-1 if sys.version_info[0] < 3 else 0,
+):
+    builtins.__import__ = original_import
+
+    # Singleton, pylint: disable=global-statement
+    global _indentation
+    try:
+        _indentation += 1
+
+        print(
+            _indentation * " "
+            + "called with: name=%r level=%d fromlist=%s" % (name, level, fromlist)
+        )
+
+        for entry in traceback.extract_stack()[:-1]:
+            if entry[2] == "_ourimport":
+                print(_indentation * " " + "by __import__")
+            else:
+                entry = list(entry)
+
+                if not show_source:
+                    del entry[-1]
+                    del entry[-1]
+
+                if normalize_paths:
+                    entry[0] = _normalizePath(entry[0])
+
+                print(_indentation * " " + "by " + "|".join(str(s) for s in entry))
+
+        print(_indentation * " " + "*" * 40)
+
+        builtins.__import__ = _ourimport
+        try:
+            result = original_import(name, globals, locals, fromlist, level)
+        except ImportError as e:
+            print(_indentation * " " + "EXCEPTION:", e)
+            raise
+        finally:
+            builtins.__import__ = original_import
+
+        print(_indentation * " " + "RESULT:", _moduleRepr(result))
+        print(_indentation * " " + "*" * 40)
+
+        builtins.__import__ = _ourimport
+
+        return result
+    finally:
+        _indentation -= 1
+
+
 def enableImportTracing(normalize_paths=True, show_source=False):
+    global do_normalize_paths, do_show_source
+    do_normalize_paths = normalize_paths
+    do_show_source = show_source
+
     # pylint: disable=redefined-builtin
 
-    def _ourimport(
-        name,
-        globals=None,
-        locals=None,
-        fromlist=None,
-        level=-1 if sys.version_info[0] < 3 else 0,
-    ):
-        builtins.__import__ = original_import
-
-        # Singleton, pylint: disable=global-statement
-        global _indentation
-        try:
-            _indentation += 1
-
-            print(
-                _indentation * " "
-                + "called with: name=%r level=%d fromlist=%s" % (name, level, fromlist)
-            )
-
-            for entry in traceback.extract_stack()[:-1]:
-                if entry[2] == "_ourimport":
-                    print(_indentation * " " + "by __import__")
-                else:
-                    entry = list(entry)
-
-                    if not show_source:
-                        del entry[-1]
-                        del entry[-1]
-
-                    if normalize_paths:
-                        entry[0] = _normalizePath(entry[0])
-
-                    print(_indentation * " " + "by " + "|".join(str(s) for s in entry))
-
-            print(_indentation * " " + "*" * 40)
-
-            builtins.__import__ = _ourimport
-            try:
-                result = original_import(name, globals, locals, fromlist, level)
-            except ImportError as e:
-                print(_indentation * " " + "EXCEPTION:", e)
-                raise
-            finally:
-                builtins.__import__ = original_import
-
-            print(_indentation * " " + "RESULT:", _moduleRepr(result))
-            print(_indentation * " " + "*" * 40)
-
-            builtins.__import__ = _ourimport
-
-            return result
-        finally:
-            _indentation -= 1
-
-    try:
-        import __builtin__ as builtins
-    except ImportError:
-        import builtins
-
-    import traceback
-
     builtins.__import__ = _ourimport
+
+    # Since we swap this around, prevent it from releasing by giving it a global
+    # name too, not only a local one.
+    global _ourimport_reference
+    _ourimport
