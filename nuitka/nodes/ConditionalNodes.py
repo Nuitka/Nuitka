@@ -34,6 +34,7 @@ from .NodeMakingHelpers import (
     wrapStatementWithSideEffects,
 )
 from .OperatorNodesUnary import ExpressionOperationNot
+from .shapes.BuiltinTypeShapes import tshape_bool
 from .StatementNodes import StatementsSequence
 
 
@@ -740,6 +741,16 @@ Empty 'yes' branch for conditional statement treated with inverted condition che
         return "branch statement"
 
 
+def makeNotExpression(expression):
+    # These are invertible with bool type shape.
+    if expression.isExpressionComparison() and expression.getTypeShape() is tshape_bool:
+        return expression.makeInverseComparision()
+    else:
+        return ExpressionOperationNot(
+            operand=expression, source_ref=expression.getSourceReference()
+        )
+
+
 def makeStatementConditional(condition, yes_branch, no_branch, source_ref):
     """Create conditional statement, with yes_branch not being empty.
 
@@ -747,9 +758,7 @@ def makeStatementConditional(condition, yes_branch, no_branch, source_ref):
     """
 
     if yes_branch is None:
-        condition = ExpressionOperationNot(
-            operand=condition, source_ref=condition.getSourceReference()
-        )
+        condition = makeNotExpression(expression=condition)
 
         yes_branch, no_branch = no_branch, yes_branch
 

@@ -25,8 +25,8 @@ source code comments with developer manual sections.
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditionalAnd,
     ExpressionConditionalOr,
+    makeNotExpression,
 )
-from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
 
 from .TreeHelpers import buildNode, buildNodeList, getKind
 
@@ -57,8 +57,8 @@ def buildBoolOpNode(provider, node, source_ref):
         return buildAndNode(values=values, source_ref=source_ref)
     elif bool_op == "Not":
         # The "not" is really only a unary operation and no special.
-        return ExpressionOperationNot(
-            operand=buildNode(provider, node.operand, source_ref), source_ref=source_ref
+        return makeNotExpression(
+            expression=buildNode(provider, node.operand, source_ref)
         )
     else:
         assert False, bool_op
