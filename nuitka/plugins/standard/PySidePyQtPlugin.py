@@ -796,7 +796,7 @@ PySide2.QtCore.QObject.__init_subclass__ = my_init_subclass
             return (
                 code,
                 """\
-Money patching classes derived from PySide2 base classes to pass PySide2 checks.""",
+Monkey patching classes derived from PySide2 base classes to pass PySide2 checks.""",
             )
 
 
