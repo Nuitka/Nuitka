@@ -132,7 +132,10 @@ def my_print(*args, **kwargs):
     Use kwarg style=[option] to print in a style listed below
     """
 
-    if progress:
+    file_output = kwargs.get("file", sys.stdout)
+    is_atty = file_output.isatty()
+
+    if progress and is_atty:
         progress.hideProgressBar()
 
     with withTraceLock():
@@ -146,7 +149,7 @@ def my_print(*args, **kwargs):
             else:
                 end = "\n"
 
-            if style is not None and sys.stdout.isatty():
+            if style is not None and is_atty:
                 enable_style = getEnableStyleCode(style)
 
                 if enable_style is None:
@@ -160,15 +163,15 @@ def my_print(*args, **kwargs):
 
             print(*args, end=end, **kwargs)
 
-            if style is not None and sys.stdout.isatty():
+            if style is not None and is_atty:
                 print(getDisableStyleCode(), end="", **kwargs)
         else:
             print(*args, **kwargs)
 
         # Flush the output.
-        kwargs.get("file", sys.stdout).flush()
+        file_output.flush()
 
-    if progress:
+    if progress and is_atty:
         progress.resumeProgressBar()
 
 
