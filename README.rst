@@ -299,8 +299,8 @@ Build it using
    repeated compilation of generated C code) and a MinGW64 based C
    compiler. Say yes to those.
 
-If you like to have full output add ``--show-progress`` and
-``--show-scons``.
+If you like to have full output from the C compilation add
+``--show-scons``, but that should only be useful if you have errors.
 
 Run it
 ------
