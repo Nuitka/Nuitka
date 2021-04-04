@@ -23,6 +23,7 @@ to the user while it's being displayed.
 """
 
 from nuitka import Tracing
+from nuitka.Tracing import general
 from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.ThreadedExecutor import RLock
 from nuitka.utils.Utils import isWin32Windows
@@ -100,22 +101,23 @@ def enableProgressBar():
         colorama = importFromInlineCopy("colorama", must_exist=True)
         colorama.init()
 
-    try:
-        from tqdm import tqdm  # pylint: disable=I0021,import-error,redefined-outer-name
-    except ImportError:
-        # We handle the case without inline copy too, but it may be removed, e.g. on
-        # Debian it's only a recommended install, and not included that way.
+    tqdm = importFromInlineCopy("tqdm", must_exist=False)
+
+    if tqdm is None:
         try:
-            tqdm = importFromInlineCopy("tqdm", must_exist=False)
-        except SyntaxError:
-            # Python 2.6 is not supported by our inline copy version
-            tqdm = None
+            # Cannot use import tqdm due to pylint bug.
+            import tqdm as tqdm_installed  # pylint: disable=I0021,import-error
 
-        if tqdm is not None:
-            tqdm = tqdm.tqdm
+            tqdm = tqdm_installed
+        except ImportError:
+            # We handle the case without inline copy too, but it may be removed, e.g. on
+            # Debian it's only a recommended install, and not included that way.
+            pass
 
-    # Tolerate the absence for now and ignore the progress bar
+    # Tolerate the absence ignore the progress bar
     if tqdm is not None:
+        tqdm = tqdm.tqdm
+
         tqdm.set_lock(RLock())
         use_progress_bar = True
 
@@ -134,13 +136,18 @@ def setupProgressBar(stage, unit, total):
 
 def reportProgressBar(item, total=None, update=True):
     if Tracing.progress is not None:
-        if total is not None:
-            Tracing.progress.updateTotal(total)
+        try:
+            if total is not None:
+                Tracing.progress.updateTotal(total)
 
-        Tracing.progress.setCurrent(item)
+            Tracing.progress.setCurrent(item)
 
-        if update:
-            Tracing.progress.update()
+            if update:
+                Tracing.progress.update()
+        except Exception:  # Catch all the things, pylint: disable=broad-except
+            # We disable the progress bar now, because it's causing issues.
+            general.warning("Progress bar disabled due to bug")
+            closeProgressBar()
 
 
 def closeProgressBar():
