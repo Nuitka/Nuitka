@@ -65,7 +65,7 @@ def getModuleMetapathLoaderEntryCode(module, bytecode_accessor):
             "module_name": module.getFullName(),
             "bytecode": accessor_code[accessor_code.find("[") + 1 : -1],
             "size": len(code_data),
-            "flags": " | ".join(flags),
+            "flags": " | ".join(flags) or "0",
         }
     elif module.isPythonShlibModule():
         assert module_name

@@ -72,7 +72,7 @@ parser.add_option(
     help="""\
 Enable standalone mode for output. This allows you to transfer the created binary
 to other machines without it using an existing Python installation. This also
-means it will become big. It implies these option: "--recurse-all". You may also
+means it will become big. It implies these option: "--follow-imports". You may also
 want to use "--python-flag=no_site" to avoid the "site.py" module, which can save
 a lot of code dependencies. Defaults to off.""",
 )
