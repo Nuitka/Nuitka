@@ -37,6 +37,7 @@ import nuitka.plugins.commercial
 import nuitka.plugins.standard
 from nuitka import Options
 from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
+from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
 from nuitka.Errors import NuitkaPluginError
@@ -628,6 +629,23 @@ class Plugins(object):
     def onDataComposerResult(cls, blob_filename):
         for plugin in getActivePlugins():
             plugin.onDataComposerResult(blob_filename)
+
+    @classmethod
+    def deriveModuleConstantsBlobName(cls, data_filename):
+        result = deriveModuleConstantsBlobName(data_filename)
+
+        if str is not bytes:
+            # Encoding needs to match generated source code output.
+            result = result.encode("latin1")
+
+        for plugin in getActivePlugins():
+            r = plugin.encodeDataComposerName(result)
+
+            if r is not None:
+                result = r
+                break
+
+        return result
 
 
 def listPlugins():

@@ -673,6 +673,15 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def encodeDataComposerName(self, data_name):
+        """Internal use only.
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     _runtime_information_cache = {}
 
     def queryRuntimeInformationMultiple(self, info_name, setup_codes, values):

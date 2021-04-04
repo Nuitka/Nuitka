@@ -26,7 +26,8 @@ branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
 
-from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
+from nuitka.plugins.Plugins import Plugins
+from nuitka.utils.CStrings import encodePythonStringToC
 
 from . import Contexts
 from .AsyncgenCodes import (
@@ -469,7 +470,9 @@ def generateModuleCode(module, data_filename):
         module=module,
         function_decl_codes=function_decl_codes,
         function_body_codes=function_body_codes,
-        module_const_blob_name=deriveModuleConstantsBlobName(data_filename),
+        module_const_blob_name=encodePythonStringToC(
+            Plugins.deriveModuleConstantsBlobName(data_filename)
+        ),
         context=context,
     )
 

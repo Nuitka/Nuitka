@@ -430,4 +430,16 @@ extern PyObject *Nuitka_dunder_compiled_value;
 
 #include "nuitka/safe_string_ops.h"
 
+#if defined(__has_include)
+#if __has_include("nuitka_data_decoder.h")
+#include "nuitka_data_decoder.h"
+#else
+#define DECODE(x) assert(x)
+#define UNTRANSLATE(x) (x)
+#endif
+#else
+#define DECODE(x) assert(x)
+#define UNTRANSLATE(x) (x)
+#endif
+
 #endif
