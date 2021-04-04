@@ -1334,6 +1334,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "wx._core",  # Too large generated code
         "pyVmomi.ServerObjects",  # Too large generated code
         "pyglet.gl",  # Too large generated code
+        "telethon.tl.types",  # Not performance relevant and slow C compile
     )
 
     def decideCompilation(self, module_name, source_ref):

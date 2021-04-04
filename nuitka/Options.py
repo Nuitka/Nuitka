@@ -380,14 +380,14 @@ def commentArgs():
     if options.recurse_all and standalone_mode:
         if standalone_mode:
             Tracing.options_logger.info(
-                "Recursing all is the default for %s mode and need not be specified."
+                "Following all imports is the default for %s mode and need not be specified."
                 % standalone_mode
             )
 
     if options.recurse_none and standalone_mode:
         if standalone_mode:
             Tracing.options_logger.warning(
-                "Recursing none is unlikely to work for %s mode and should not be specified."
+                "Following no imports is unlikely to work for %s mode and should not be specified."
                 % standalone_mode
             )
 

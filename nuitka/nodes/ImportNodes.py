@@ -751,6 +751,9 @@ class ExpressionImportName(ExpressionChildHavingBase):
         self.import_name = import_name
         self.level = level
 
+        # Not allowed.
+        assert level is not None
+
         assert module is not None
 
     def getImportName(self):
