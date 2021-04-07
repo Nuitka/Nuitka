@@ -293,6 +293,21 @@ There is no code in packages themselves. For programs, we use
 Names of modules should be plurals if they contain classes. Example is
 that a ``Nodes`` module that contains a ``Node`` class.
 
+Names for context manages start with ``with``
+=============================================
+
+In order to easily recognize that something is to be used as a context
+manager, we follow a pattern of naming them ``withSomething``, to make
+that easily recognized.
+
+.. code:: python
+
+   with withEnvironmentPathAdded(os.path.join(sys.prefix, "bin")):
+       with withDirectoryChange(self.qt_datadir):
+           ...
+
+This makes these easy to recognize even in their definition.
+
 Prefer list contractions over built-ins
 =======================================
 
