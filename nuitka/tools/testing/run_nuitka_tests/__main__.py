@@ -30,17 +30,14 @@ from optparse import OptionParser
 
 from nuitka.freezer.Onefile import checkOnefileReadiness
 from nuitka.tools.Basics import goHome
-from nuitka.tools.testing.Common import (
-    my_print,
-    withDirectoryChange,
-    withExtendedExtraOptions,
-)
+from nuitka.tools.testing.Common import my_print, withExtendedExtraOptions
 from nuitka.utils.Execution import (
     check_call,
     check_output,
     getExecutablePath,
     getPythonExePathWindows,
 )
+from nuitka.utils.FileOperations import withDirectoryChange
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import getOS, hasOnefileSupportedOS
 

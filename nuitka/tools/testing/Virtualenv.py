@@ -29,9 +29,9 @@ from contextlib import contextmanager
 
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.utils.Execution import check_call
-from nuitka.utils.FileOperations import removeDirectory
+from nuitka.utils.FileOperations import removeDirectory, withDirectoryChange
 
-from .Common import my_print, withDirectoryChange
+from .Common import my_print
 
 
 class Virtualenv(object):

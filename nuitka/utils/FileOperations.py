@@ -616,6 +616,29 @@ def replaceFileAtomic(source_path, dest_path):
 
 
 def resolveShellPatternToFilenames(pattern):
+    """Resolve shell pattern to filenames.
+
+    Args:
+        pattern - str
+
+    Returns:
+        list - filenames that matched.
+    """
+
     result = glob.glob(pattern)
     result.sort()
     return result
+
+
+@contextmanager
+def withDirectoryChange(path, allow_none=False):
+    """Change current directory temporarily in a context."""
+
+    if path is not None or not allow_none:
+        old_cwd = os.getcwd()
+        os.chdir(path)
+
+    yield
+
+    if path is not None or not allow_none:
+        os.chdir(old_cwd)
