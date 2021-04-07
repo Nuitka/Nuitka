@@ -66,7 +66,7 @@ Requirements
       garbage outputs, but only for that language).
 
    -  On Windows the ``clang-cl`` compiler on Windows can be used if
-      provided by the Visual Studion installer.
+      provided by the Visual Studio installer.
 
 -  Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9
 
