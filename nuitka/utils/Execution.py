@@ -145,6 +145,15 @@ def getPythonExePathWindows(search, arch):
 
 
 class NuitkaCalledProcessError(subprocess.CalledProcessError):
+    def __init__(self, retcode, cmd, output, stderr):
+        subprocess.CalledProcessError(self, retcode, cmd)
+
+        # Python2 doesn't have this otherwise, but needs it.
+        self.stderr = stderr
+        self.output = output
+        self.cmd = cmd
+        self.returncode = retcode
+
     def __str__(self):
         result = subprocess.CalledProcessError.__str__(self)
 
