@@ -832,7 +832,7 @@ def _detectPythonHeaderPath():
         ]
     else:
         # The python header path is a combination of python version and debug
-        # indication, make sure the headers are found by adding it to the C
+        # indication, we make sure the headers are found by adding it to the C
         # include path.
 
         candidates = [
