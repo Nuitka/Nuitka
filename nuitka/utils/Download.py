@@ -70,7 +70,7 @@ def getCachedDownload(
                 """\
 %s
 
-Is it OK to download and put it in "%s".
+Is it OK to download and put it in %r.
 
 No installer needed, cached, one time question.
 
