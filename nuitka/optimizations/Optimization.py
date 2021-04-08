@@ -188,8 +188,14 @@ def optimizeUncompiledPythonModule(module):
     package_name = full_name.getPackageName()
 
     if package_name is not None:
-        used_module = ImportCache.getImportedModuleByName(package_name)
-        ModuleRegistry.addUsedModule(used_module)
+        # TODO: It's unclear why, but some standard library modules on older Python3
+        # seem to not have parent packages after the scan.
+        try:
+            used_module = ImportCache.getImportedModuleByName(package_name)
+        except KeyError:
+            pass
+        else:
+            ModuleRegistry.addUsedModule(used_module)
 
     Plugins.considerImplicitImports(module=module, signal_change=signalChange)
 
