@@ -52,7 +52,7 @@ def parseArgs(will_reexec):
                 pass
         except OSError:
             Tracing.general.sysexit(
-                "Error, the Python from Windows store is not supported, check user manual."
+                "Error, the Python from Windows store is not supported, check the User Manual of Nuitka ."
             )
 
     is_nuitka_run, options, positional_args, extra_args = parseOptions(
