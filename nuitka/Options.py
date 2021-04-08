@@ -896,6 +896,8 @@ def getPythonFlags():
                 elif part in ("-OO",):
                     _python_flags.add("no_docstrings")
                     _python_flags.add("no_asserts")
+                elif part in ("no_annotations", "noannotations"):
+                    _python_flags.add("no_annotations")
                 else:
                     Tracing.options_logger.sysexit("Unsupported python flag %r." % part)
 
