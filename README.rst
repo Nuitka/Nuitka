@@ -577,9 +577,9 @@ which you expect to be inside the onefile binary, access them like this.
 .. code:: python
 
    # This will find a file near your onefile.exe
-   open(os.path.join(dirname(sys.argv[0]), "user-provided-file.txt"))
+   open(os.path.join(os.path.dirname(sys.argv[0]), "user-provided-file.txt"))
    # This will find a file inside your onefile.exe
-   open(os.path.join(dirname(__file__), "user-provided-file.txt"))
+   open(os.path.join(os.path.dirname(__file__), "user-provided-file.txt"))
 
 Windows Programs without console give no errors
 ===============================================
