@@ -634,18 +634,22 @@ class Plugins(object):
     def deriveModuleConstantsBlobName(cls, data_filename):
         result = deriveModuleConstantsBlobName(data_filename)
 
+        return cls.encodeDataComposerName(result)
+
+    @classmethod
+    def encodeDataComposerName(cls, name):
         if str is not bytes:
             # Encoding needs to match generated source code output.
-            result = result.encode("latin1")
+            name = name.encode("latin1")
 
         for plugin in getActivePlugins():
-            r = plugin.encodeDataComposerName(result)
+            r = plugin.encodeDataComposerName(name)
 
             if r is not None:
-                result = r
+                name = r
                 break
 
-        return result
+        return name
 
 
 def listPlugins():

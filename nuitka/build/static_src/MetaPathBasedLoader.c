@@ -244,6 +244,11 @@ static struct Nuitka_MetaPathBasedLoaderEntry *findEntry(char const *name) {
     assert(current);
 
     while (current->name != NULL) {
+        if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
+            current->name = UNTRANSLATE(current->name);
+            current->flags -= NUITKA_TRANSLATED_FLAG;
+        }
+
         if (strcmp(name, current->name) == 0) {
             return current;
         }
@@ -267,6 +272,11 @@ static struct Nuitka_MetaPathBasedLoaderEntry *findContainingPackageEntry(char c
     size_t length = package_name_end - name;
 
     while (current->name != NULL) {
+        if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
+            current->name = UNTRANSLATE(current->name);
+            current->flags -= NUITKA_TRANSLATED_FLAG;
+        }
+
         if ((current->flags & NUITKA_PACKAGE_FLAG) != 0) {
             if (strlen(current->name) == length && strncmp(name, current->name, length) == 0) {
                 return current;
@@ -1097,6 +1107,11 @@ static PyObject *_path_unfreezer_iter_modules(struct Nuitka_LoaderObject *self, 
     char const *s = self->m_loader_entry->name;
 
     while (current->name != NULL) {
+        if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
+            current->name = UNTRANSLATE(current->name);
+            current->flags -= NUITKA_TRANSLATED_FLAG;
+        }
+
         int c = strncmp(s, current->name, strlen(s));
 
         if (c != 0) {
@@ -1594,6 +1609,11 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
             assert(current);
 
             while (current->name != NULL) {
+                if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
+                    current->name = UNTRANSLATE(current->name);
+                    current->flags -= NUITKA_TRANSLATED_FLAG;
+                }
+
                 char name[2048];
 
                 if (strcmp(last_dot + 1, current->name) == 0) {

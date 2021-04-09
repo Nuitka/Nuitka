@@ -37,7 +37,9 @@ from nuitka.ModuleRegistry import (
     getUncompiledModules,
     getUncompiledTechnicalModules,
 )
+from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import inclusion_logger
+from nuitka.utils.CStrings import encodePythonStringToC
 
 from .Indentation import indented
 from .templates.CodeTemplatesLoader import (
@@ -49,37 +51,41 @@ from .templates.CodeTemplatesLoader import (
 
 
 def getModuleMetapathLoaderEntryCode(module, bytecode_accessor):
-    module_name = module.getFullName()
+    module_c_name = encodePythonStringToC(
+        Plugins.encodeDataComposerName(module.getFullName().asString())
+    )
+
+    flags = ["NUITKA_TRANSLATED_FLAG"]
 
     if module.isUncompiledPythonModule():
         code_data = module.getByteCode()
         is_package = module.isUncompiledPythonPackage()
 
-        flags = ["NUITKA_BYTECODE_FLAG"]
+        flags.append("NUITKA_BYTECODE_FLAG")
         if is_package:
             flags.append("NUITKA_PACKAGE_FLAG")
 
         accessor_code = bytecode_accessor.getBlobDataCode(code_data)
 
         return template_metapath_loader_bytecode_module_entry % {
-            "module_name": module.getFullName(),
+            "module_name": module_c_name,
             "bytecode": accessor_code[accessor_code.find("[") + 1 : -1],
             "size": len(code_data),
             "flags": " | ".join(flags) or "0",
         }
     elif module.isPythonShlibModule():
-        assert module_name
+        flags.append("NUITKA_SHLIB_FLAG")
 
         return template_metapath_loader_shlib_module_entry % {
-            "module_name": module_name
+            "module_name": module_c_name,
+            "flags": " | ".join(flags) or "0",
         }
     else:
-        flags = []
         if module.isCompiledPythonPackage():
             flags.append("NUITKA_PACKAGE_FLAG")
 
         return template_metapath_loader_compiled_module_entry % {
-            "module_name": module_name,
+            "module_name": module_c_name,
             "module_identifier": module.getCodeName(),
             "flags": " | ".join(flags),
         }
