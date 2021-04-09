@@ -66,6 +66,7 @@ from nuitka.utils.FileOperations import (
     listDir,
     makePath,
     putTextFileContents,
+    relpath,
     resolveShellPatternToFilenames,
     withFileLock,
 )
@@ -1332,7 +1333,7 @@ def copyDataFiles(dist_dir):
         necessary handling if provided like this.
     """
 
-    # Many details to deal with, pylint: disable=too-many-locals
+    # Many details to deal with, pylint: disable=too-many-branches,too-many-locals
 
     for pattern, dest, arg in Options.getShallIncludeDataFiles():
         filenames = resolveShellPatternToFilenames(pattern)
@@ -1347,6 +1348,25 @@ def copyDataFiles(dist_dir):
 
             if rel_path.endswith(("/", os.path.sep)):
                 rel_path = os.path.join(rel_path, os.path.basename(filename))
+
+            _handleDataFile(
+                dist_dir,
+                inclusion_logger,
+                makeIncludedDataFile(filename, rel_path, file_reason),
+            )
+
+    for src, dest in Options.getShallIncludeDataDirs():
+        filenames = getFileList(src)
+
+        if not filenames:
+            inclusion_logger.warning("No files in directory" % src)
+
+        for filename in filenames:
+            relative_filename = relpath(filename, src)
+
+            file_reason = "specified data dir %r on command line" % src
+
+            rel_path = os.path.join(dest, relative_filename)
 
             _handleDataFile(
                 dist_dir,

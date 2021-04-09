@@ -325,8 +325,22 @@ data_group.add_option(
 Include data files by filenames in the distribution. Could use patterns for
 use in glob, if specifying a directory with trailing slash. An example would
 be --include-data-file=/etc/somefile.txt=etc/somefile.txt for plain file copy,
-and you can copy multiple like --include-data-file=/etc/*.txt:etc/ with a
+and you can copy multiple like --include-data-file=/etc/*.txt=etc/ with a
 trailing slash required to use the pattern. Default empty.""",
+)
+
+data_group.add_option(
+    "--include-data-dir",
+    action="append",
+    dest="data_dirs",
+    metavar="DATA_DIRS",
+    default=[],
+    help="""\
+Include data files from complete directory in the distribution. This is
+recursive. Check --include-data-file with patterns if you want non-recursive
+inclusion. An example would be --include-data-dir=/path/somedir=data/somedir
+for plain copy, of the whole directory. All files are copied, if you want to
+exclude files you need to remove them beforehand. Default empty.""",
 )
 
 
@@ -1049,6 +1063,8 @@ def _expandProjectArg(arg, filename_arg, for_eval):
 
 
 def _getProjectOptions(logger, filename_arg, module_mode):
+    # Complex stuff, pylint: disable=too-many-branches,too-many-locals
+
     if os.path.isdir(filename_arg):
         if module_mode:
             filename_arg = os.path.join(filename_arg, "__init__.py")
