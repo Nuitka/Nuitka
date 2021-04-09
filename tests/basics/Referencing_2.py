@@ -25,6 +25,9 @@ These are for Python2 only constructs, which will give SyntaxError on
 other versions.
 """
 
+# While we use that for comparison code, no need to compile that.
+# nuitka-project: --nofollow-import-to=nuitka
+
 import os
 import sys
 
