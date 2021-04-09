@@ -737,7 +737,7 @@ from __future__ import absolute_import
 
     def queryRuntimeInformationSingle(self, setup_codes, value):
         return self.queryRuntimeInformationMultiple(
-            info_name="temp_info_for_" + self.plugin_name,
+            info_name="temp_info_for_" + self.plugin_name.replace("-", "_"),
             setup_codes=setup_codes,
             values=(("key", value),),
         ).key

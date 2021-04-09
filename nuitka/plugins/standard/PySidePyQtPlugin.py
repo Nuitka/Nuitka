@@ -112,7 +112,7 @@ import %(binding_name)s.QtCore
         )
 
         return self.queryRuntimeInformationMultiple(
-            applyBindingName("%(binding_name)s_info"),
+            info_name=applyBindingName("%(binding_name)s_info"),
             setup_codes=setup_codes,
             values=(
                 (

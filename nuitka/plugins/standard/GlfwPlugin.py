@@ -61,7 +61,7 @@ class GlfwPlugin(NuitkaPluginBase):
 
     def _getDLLFilename(self):
         glfw_info = self.queryRuntimeInformationMultiple(
-            "glfw_info",
+            info_name="glfw_info",
             setup_codes="import glfw.library",
             values=(("dll_filename", "glfw.library.glfw._name"),),
         )
