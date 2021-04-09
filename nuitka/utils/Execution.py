@@ -146,6 +146,8 @@ def getPythonExePathWindows(search, arch):
 
 class NuitkaCalledProcessError(subprocess.CalledProcessError):
     def __init__(self, retcode, cmd, output, stderr):
+        # False alarm, pylint: disable=super-init-not-called
+
         subprocess.CalledProcessError(self, retcode, cmd)
 
         # Python2 doesn't have this otherwise, but needs it.
