@@ -62,6 +62,11 @@ def parseArgs(will_reexec):
     if options.quiet or int(os.environ.get("NUITKA_QUIET", "0")):
         Tracing.setQuiet()
 
+    if not will_reexec and not shallDumpBuiltTreeXML():
+        Tracing.options_logger.info(
+            "Used command line options: %s" % " ".join(sys.argv[1:])
+        )
+
     if options.progress_bar and not will_reexec:
         Progress.enableProgressBar()
 
