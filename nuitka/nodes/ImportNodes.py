@@ -434,7 +434,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
                     inclusion_logger.warning(
                         """\
-Not recursing to '%(full_path)s' (%(filename)s), please specify \
+Not following import to '%(full_path)s' (%(filename)s), please specify \
 --nofollow-imports (do not warn), \
 --follow-imports (recurse to all), \
 --nofollow-import-to=%(full_path)s (ignore it), \

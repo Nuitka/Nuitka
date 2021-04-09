@@ -294,7 +294,10 @@ def makeSourceDirectory():
             if module.getFullName() == any_case_module:
                 break
         else:
-            general.warning("Not recursing to unused '%s'." % any_case_module)
+            general.warning(
+                "Did not follow import to unused '%s', consider include options."
+                % any_case_module
+            )
 
     # Prepare code generation, i.e. execute finalization for it.
     for module in ModuleRegistry.getDoneModules():
