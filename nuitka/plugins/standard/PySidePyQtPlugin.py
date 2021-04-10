@@ -142,12 +142,22 @@ import %(binding_name)s.QtCore
                         else "%(binding_name)s.QtCore.PYQT_VERSION_STR"
                     ),
                 ),
+                (
+                    "nuitka_patch_level",
+                    applyBindingName(
+                        "getattr(%(binding_name)s, '_nuitka_patch_level', 0)"
+                    ),
+                ),
             ),
         )
 
     def _getBindingVersion(self):
         """ Get the version of the binding in tuple digit form, e.g. (6,0,3) """
         return self._getQtInformation().version
+
+    def _getNuitkaPatchLevel(self):
+        """ Does it include the Nuitka patch, i.e. is a self-built one with it applied. """
+        return self._getQtInformation().nuitka_patch_level
 
     def getQtPluginDirs(self):
         if self.qt_plugins_dirs is not None:
@@ -433,8 +443,7 @@ Setting Qt library path to distribution folder. We need to avoid loading target
 system Qt plug-ins, which may be from another Qt version.""",
             )
 
-    @staticmethod
-    def createPreModuleLoadCode(module):
+    def createPreModuleLoadCode(self, module):
         """Method called when a module is being imported.
 
         Notes:
@@ -446,23 +455,23 @@ system Qt plug-ins, which may be from another Qt version.""",
         Returns:
             Code to insert and descriptive text (tuple), or (None, None).
         """
-        if (
-            not isWin32Windows() or not Options.isStandaloneMode()
-        ):  # we are only relevant on standalone mode for Windows
+
+        # This isonly relevant on standalone mode for Windows
+        if not isWin32Windows() or not Options.isStandaloneMode():
             return None
 
-        if module.getFullName() != "PyQt5":
-            return None
+        full_name = module.getFullName()
 
-        code = """import os
+        if full_name == self.binding_name:
+            code = """import os
 path = os.environ.get("PATH", "")
 if not path.startswith(__nuitka_binary_dir):
     os.environ["PATH"] = __nuitka_binary_dir + ";" + path
 """
-        return (
-            code,
-            "Adding binary folder to runtime 'PATH' environment variable for proper loading.",
-        )
+            return (
+                code,
+                "Adding binary folder to runtime 'PATH' environment variable for proper loading.",
+            )
 
     def considerExtraDlls(self, dist_dir, module):
         # pylint: disable=too-many-branches,too-many-locals,too-many-statements
@@ -695,6 +704,12 @@ class NuitkaPluginPySide2Plugins(NuitkaPluginQtBindingsPluginBase):
         if python_version < 0x360:
             self.sysexit("Error, PySide2 is not supported with Nuitka on CPython <3.6.")
 
+        if self._getNuitkaPatchLevel() < 1:
+            self.warning(
+                """\
+This PySide2 version only partially supported through workarounds, full support: https://nuitka.net/pages/pyside2.html"""
+            )
+
         NuitkaPluginQtBindingsPluginBase.__init__(self, qt_plugins)
 
     def _getQmlTargetDir(self, target_plugin_dir):
@@ -718,7 +733,10 @@ class NuitkaPluginPySide2Plugins(NuitkaPluginQtBindingsPluginBase):
         if result:
             return result
 
-        if module.getFullName() == self.binding_name:
+        if (
+            self._getNuitkaPatchLevel() < 1
+            and module.getFullName() == self.binding_name
+        ):
             code = r"""\
 # Make them unique and count them.
 wrapper_count = 0
@@ -824,9 +842,10 @@ class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
     def __init__(self, qt_plugins):
         NuitkaPluginQtBindingsPluginBase.__init__(self, qt_plugins)
 
-        if self._getBindingVersion() < (6, 0, 3):
+        if self._getBindingVersion() < (6, 1):
             self.warning(
-                "The version of PySide6 you are using should be 6.0.3 or higher, otherwise callbacks won't work."
+                """\
+Only PySide 6.1 or higher (or dev branch compiled), otherwise callbacks won't work."""
             )
 
     def _getQmlTargetDir(self, target_plugin_dir):
