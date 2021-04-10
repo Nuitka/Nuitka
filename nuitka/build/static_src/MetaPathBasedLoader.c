@@ -34,12 +34,6 @@
 #endif
 
 #include "nuitka/prelude.h"
-// Include definition of PyInterpreterState, hidden since Python 3.8
-#if PYTHON_VERSION >= 0x380
-#define Py_BUILD_CORE
-#include "internal/pycore_pystate.h"
-#undef Py_BUILD_CORE
-#endif
 #include "nuitka/unfreezing.h"
 
 #ifdef _WIN32
@@ -661,13 +655,13 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
 
     entrypoint_t entrypoint = (entrypoint_t)GetProcAddress(hDLL, entry_function_name);
 #else
-#if PYTHON_VERSION < 0x390
-    int dlopenflags = PyThreadState_GET()->interp->dlopenflags;
-#else
-    // This code would work for all versions, but we are avoiding it where possible.
-    PyObject *dlopenflags_object = CALL_FUNCTION_NO_ARGS(PySys_GetObject("getdlopenflags"));
+    // This code would work for all versions, we are avoiding access to interpreter
+    // structure internals of 3.8 or higher.
+    static PyObject *dlopenflags_object = NULL;
+    if (dlopenflags_object == NULL) {
+        dlopenflags_object = CALL_FUNCTION_NO_ARGS(PySys_GetObject((char *)"getdlopenflags"));
+    }
     int dlopenflags = PyInt_AsLong(dlopenflags_object);
-#endif
 
     if (isVerbose()) {
         PySys_WriteStderr("import %s # dlopen(\"%s\", %x);\n", full_name, filename, dlopenflags);
