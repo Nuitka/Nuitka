@@ -25,7 +25,6 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ConstantCodes import getConstantAccess
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
 from .PythonAPICodes import getReferenceExportCode
 from .VariableCodes import getVariableAssignmentCode
@@ -264,7 +263,7 @@ def generateExecCode(statement, emit, context):
     filename_name = context.allocateTempName("exec_filename")
 
     # Default filename with origin in improved mode.
-    getConstantAccess(
+    filename_name.getCType().emitAssignmentCodeFromConstant(
         to_name=filename_name,
         constant="<string>"
         if Options.is_fullcompat

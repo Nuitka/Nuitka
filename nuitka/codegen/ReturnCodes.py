@@ -26,7 +26,6 @@ by a try statement is accessible this way.
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateExpressionCode
-from .ConstantCodes import getConstantAccess
 from .ExceptionCodes import getExceptionUnpublishedReleaseCode
 from .LabelCodes import getGotoCode
 
@@ -72,7 +71,7 @@ def generateReturnConstantCode(statement, emit, context):
     if context.getReturnReleaseMode():
         emit("Py_DECREF(%s);" % return_value_name)
 
-    getConstantAccess(
+    return_value_name.getCType().emitAssignmentCodeFromConstant(
         to_name=return_value_name,
         constant=statement.getConstant(),
         emit=emit,
@@ -127,7 +126,7 @@ def generateGeneratorReturnNoneCode(statement, emit, context):
         if context.getReturnReleaseMode():
             emit("Py_DECREF(%s);" % return_value_name)
 
-        getConstantAccess(
+        return_value_name.getCType().emitAssignmentCodeFromConstant(
             to_name=return_value_name, constant=None, emit=emit, context=context
         )
 

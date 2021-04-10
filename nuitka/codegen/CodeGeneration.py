@@ -87,11 +87,7 @@ from .ConditionalCodes import (
     generateConditionalCode,
 )
 from .ConstantCodes import (
-    generateConstantEllipsisReferenceCode,
-    generateConstantFalseReferenceCode,
-    generateConstantNoneReferenceCode,
     generateConstantReferenceCode,
-    generateConstantTrueReferenceCode,
     getConstantsDefinitionCode,
 )
 from .CoroutineCodes import (
@@ -580,9 +576,9 @@ setExpressionDispatchDict(
         "EXPRESSION_CALL_KEYWORDS_ONLY": generateCallCode,
         "EXPRESSION_CALL_NO_KEYWORDS": generateCallCode,
         "EXPRESSION_CALL": generateCallCode,
-        "EXPRESSION_CONSTANT_NONE_REF": generateConstantNoneReferenceCode,
-        "EXPRESSION_CONSTANT_TRUE_REF": generateConstantTrueReferenceCode,
-        "EXPRESSION_CONSTANT_FALSE_REF": generateConstantFalseReferenceCode,
+        "EXPRESSION_CONSTANT_NONE_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TRUE_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_FALSE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_STR_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_STR_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_UNICODE_REF": generateConstantReferenceCode,
@@ -593,7 +589,7 @@ setExpressionDispatchDict(
         "EXPRESSION_CONSTANT_LONG_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_FLOAT_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_COMPLEX_REF": generateConstantReferenceCode,
-        "EXPRESSION_CONSTANT_ELLIPSIS_REF": generateConstantEllipsisReferenceCode,
+        "EXPRESSION_CONSTANT_ELLIPSIS_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_DICT_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_DICT_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TUPLE_REF": generateConstantReferenceCode,

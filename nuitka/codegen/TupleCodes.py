@@ -25,7 +25,6 @@ from .CodeHelpers import (
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
-from .ConstantCodes import getConstantAccess
 from .PythonAPICodes import generateCAPIObjectCode
 
 
@@ -55,7 +54,7 @@ def generateTupleCreationCode(to_name, expression, emit, context):
 
 def getTupleCreationCode(to_name, elements, emit, context):
     if _areConstants(elements):
-        getConstantAccess(
+        to_name.getCType().emitAssignmentCodeFromConstant(
             to_name=to_name,
             constant=tuple(element.getCompileTimeConstant() for element in elements),
             emit=emit,

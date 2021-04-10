@@ -19,8 +19,8 @@
 
 """
 
-
-from nuitka.codegen.ErrorCodes import getErrorExitBoolCode
+from nuitka.__past__ import iterItems
+from nuitka.codegen.ErrorCodes import getErrorExitBoolCode, getReleaseCode
 from nuitka.codegen.templates.CodeTemplatesVariables import (
     template_del_local_intolerant,
     template_del_local_known,
@@ -43,6 +43,7 @@ from nuitka.codegen.templates.CodeTemplatesVariables import (
     template_write_shared_unclear_ref0,
     template_write_shared_unclear_ref1,
 )
+from nuitka.Constants import isMutable
 
 from .CTypeBases import CTypeBase
 
@@ -134,6 +135,100 @@ class CPythonPyObjectPtrBase(CTypeBase):
             "%s = %s == 0 ? NUITKA_BOOL_FALSE : NUITKA_BOOL_TRUE;"
             % (to_name, truth_name)
         )
+
+    @classmethod
+    def emitAssignmentCodeFromConstant(cls, to_name, constant, emit, context):
+        # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
+
+        if type(constant) is dict:
+            if constant:
+                for key, value in iterItems(constant):
+                    # key cannot be mutable.
+                    assert not isMutable(key)
+                    if isMutable(value):
+                        needs_deep = True
+                        break
+                else:
+                    needs_deep = False
+
+                if needs_deep:
+                    code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
+                else:
+                    code = "PyDict_Copy(%s)" % context.getConstantCode(constant)
+            else:
+                code = "PyDict_New()"
+
+            ref_count = 1
+        elif type(constant) is set:
+            if constant:
+                code = "PySet_New(%s)" % context.getConstantCode(constant)
+            else:
+                code = "PySet_New(NULL)"
+
+            ref_count = 1
+        elif type(constant) is list:
+            if constant:
+                for value in constant:
+                    if isMutable(value):
+                        needs_deep = True
+                        break
+                else:
+                    needs_deep = False
+
+                if needs_deep:
+                    code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
+                else:
+                    code = "LIST_COPY(%s)" % context.getConstantCode(constant)
+            else:
+                code = "PyList_New(0)"
+
+            ref_count = 1
+        elif type(constant) is tuple:
+            for value in constant:
+                if isMutable(value):
+                    needs_deep = True
+                    break
+            else:
+                needs_deep = False
+
+            if needs_deep:
+                code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
+
+                ref_count = 1
+            else:
+                code = context.getConstantCode(constant)
+
+                ref_count = 0
+        elif type(constant) is bytearray:
+            code = "BYTEARRAY_COPY(%s)" % context.getConstantCode(constant)
+            ref_count = 1
+        else:
+            code = context.getConstantCode(constant=constant)
+
+            ref_count = 0
+
+        if to_name.c_type == "PyObject *":
+            value_name = to_name
+        else:
+            value_name = context.allocateTempName("constant_value")
+
+        emit("%s = %s;" % (value_name, code))
+
+        if to_name is not value_name:
+            cls.emitAssignConversionCode(
+                to_name=to_name,
+                value_name=value_name,
+                needs_check=False,
+                emit=emit,
+                context=context,
+            )
+
+            # Above is supposed to transfer ownership.
+            if ref_count:
+                getReleaseCode(value_name, emit, context)
+        else:
+            if ref_count:
+                context.addCleanupTempName(value_name)
 
 
 class CTypePyObjectPtr(CPythonPyObjectPtrBase):
