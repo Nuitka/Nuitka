@@ -86,6 +86,7 @@ not exist, a list of all available will be given.""",
                         "mediaservice",
                         "printsupport",
                         "platforms",
+                        "styles",
                     )
                     if self.hasPluginFamily(family)
                 )
