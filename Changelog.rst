@@ -1,6 +1,6 @@
-###############################
- Nuitka Release 0.6.14 (Draft)
-###############################
+#######################
+ Nuitka Release 0.6.14
+#######################
 
 This release has few, but important bug fixes. The main focus was on
 expanding standalone support, esp. for PySide2, but also and in general
