@@ -603,6 +603,42 @@ options ``--windows-force-stdout-spec`` and
  Tips
 ******
 
+Nuitka Options in the code
+==========================
+
+There is support for conditional options, and options using pre-defined
+variables, this is an example:
+
+.. code:: python
+
+   # Compilation mode, support OS specific. Note that macOS is going to gain onefile mode "soon".
+   # nuitka-project-if: {OS} in ("Windows", "Linux"):
+   #    nuitka-project: --onefile
+   # nuitka-project-if: {OS} not in ("Windows", "Linux"):
+   #    nuitka-project: --standalone
+   # nuitka-project-if: {OS} == "Windows":
+   #    nuitka-project: --windows-onefile-tempdir
+
+   # The PySide2 plugin covers qt-plugins
+   # nuitka-project: --enable-plugin=pyside2
+   # nuitka-project: --include-qt-plugins=sensible,qml
+
+The comments must be a start of line, and indentation is to be used, to
+end a conditional block, much like in Python. There are currently no
+other keywords than the used ones demonstrated above.
+
++------------------+--------------------------------------+--------------------------------+
+| Variable         | What this Expands to                 | Example                        |
++==================+======================================+================================+
+| {OS}             | Name of the OS used                  | Linux, Windows, Darwin         |
++------------------+--------------------------------------+--------------------------------+
+| {Version}        | Version of Nuitka                    | (0, 6, 14)                     |
++------------------+--------------------------------------+--------------------------------+
+| {Arch}           | Architecture used                    | x86_64                         |
++------------------+--------------------------------------+--------------------------------+
+| {MAIN_DIRECTORY} | Directory of the compiled file       | some_dir/maybe_relative        |
++------------------+--------------------------------------+--------------------------------+
+
 Python command line flags
 =========================
 
