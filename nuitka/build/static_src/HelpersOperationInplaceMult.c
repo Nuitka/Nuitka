@@ -442,7 +442,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(PyObj
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_multiply;
@@ -1025,7 +1025,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_LONG_OBJECT_INPLACE(PyOb
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
@@ -1592,7 +1592,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(PyO
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_multiply;
@@ -2047,7 +2047,7 @@ static inline bool _BINARY_OPERATION_MULT_STR_OBJECT_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
@@ -2208,7 +2208,7 @@ static inline bool _BINARY_OPERATION_MULT_INT_STR_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_multiply;
@@ -2322,7 +2322,7 @@ static inline bool _BINARY_OPERATION_MULT_STR_INT_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
@@ -2432,7 +2432,7 @@ static inline bool _BINARY_OPERATION_MULT_LONG_STR_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
@@ -2552,7 +2552,7 @@ static inline bool _BINARY_OPERATION_MULT_STR_LONG_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
@@ -2842,7 +2842,7 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_OBJECT_INPLACE(PyObject **oper
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
@@ -3000,7 +3000,7 @@ static inline bool _BINARY_OPERATION_MULT_INT_UNICODE_INPLACE(PyObject **operand
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_multiply;
@@ -3112,7 +3112,7 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_INT_INPLACE(PyObject **operand
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
@@ -3220,7 +3220,7 @@ static inline bool _BINARY_OPERATION_MULT_LONG_UNICODE_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
@@ -3345,7 +3345,7 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_LONG_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
@@ -3638,7 +3638,7 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_OBJECT_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
@@ -3798,7 +3798,7 @@ static inline bool _BINARY_OPERATION_MULT_INT_TUPLE_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_multiply;
@@ -3912,7 +3912,7 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_INT_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
@@ -4021,7 +4021,7 @@ static inline bool _BINARY_OPERATION_MULT_LONG_TUPLE_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
@@ -4147,7 +4147,7 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_LONG_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
@@ -4440,7 +4440,7 @@ static inline bool _BINARY_OPERATION_MULT_LIST_OBJECT_INPLACE(PyObject **operand
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
@@ -4600,7 +4600,7 @@ static inline bool _BINARY_OPERATION_MULT_INT_LIST_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_multiply;
@@ -4714,7 +4714,7 @@ static inline bool _BINARY_OPERATION_MULT_LIST_INT_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
@@ -4823,7 +4823,7 @@ static inline bool _BINARY_OPERATION_MULT_LONG_LIST_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
@@ -4949,7 +4949,7 @@ static inline bool _BINARY_OPERATION_MULT_LIST_LONG_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
@@ -5245,7 +5245,7 @@ static inline bool _BINARY_OPERATION_MULT_BYTES_OBJECT_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
@@ -5406,7 +5406,7 @@ static inline bool _BINARY_OPERATION_MULT_LONG_BYTES_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
@@ -5563,7 +5563,7 @@ static inline bool _BINARY_OPERATION_MULT_BYTES_LONG_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
@@ -5716,7 +5716,7 @@ static inline bool _BINARY_OPERATION_MULT_INT_LONG_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_multiply;
@@ -5824,7 +5824,7 @@ static inline bool _BINARY_OPERATION_MULT_LONG_INT_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
@@ -5932,7 +5932,7 @@ static inline bool _BINARY_OPERATION_MULT_INT_FLOAT_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_multiply;
@@ -6040,7 +6040,7 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_INT_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_multiply;
@@ -6147,7 +6147,7 @@ static inline bool _BINARY_OPERATION_MULT_LONG_FLOAT_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
@@ -6257,7 +6257,7 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_LONG_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_multiply;

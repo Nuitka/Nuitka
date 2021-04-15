@@ -310,7 +310,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_BITOR_LONG_OBJECT_INPLACE(PyO
 #endif
 
     // No inplace number slot nb_inplace_or available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_or == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_or == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_or;
@@ -846,7 +846,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_BITOR_INT_OBJECT_INPLACE(PyOb
 #endif
 
     // No inplace number slot nb_inplace_or available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_or == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_or == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_or;
@@ -1106,7 +1106,7 @@ static inline bool _BINARY_OPERATION_BITOR_INT_LONG_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_or available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_or == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_or == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_or;
@@ -1205,7 +1205,7 @@ static inline bool _BINARY_OPERATION_BITOR_LONG_INT_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_or available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_or == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_or == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_or;

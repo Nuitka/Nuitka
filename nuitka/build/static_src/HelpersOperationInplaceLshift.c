@@ -310,7 +310,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_LSHIFT_LONG_OBJECT_INPLACE(Py
 #endif
 
     // No inplace number slot nb_inplace_lshift available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_lshift == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_lshift == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_lshift;
@@ -949,7 +949,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_LSHIFT_INT_OBJECT_INPLACE(PyO
 #endif
 
     // No inplace number slot nb_inplace_lshift available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_lshift == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_lshift == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_lshift;
@@ -1261,7 +1261,7 @@ static inline bool _BINARY_OPERATION_LSHIFT_INT_LONG_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_lshift available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_lshift == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_lshift == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_lshift;
@@ -1360,7 +1360,7 @@ static inline bool _BINARY_OPERATION_LSHIFT_LONG_INT_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_lshift available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_lshift == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_lshift == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_lshift;
