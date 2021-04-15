@@ -437,7 +437,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_OLDDIV_INT_OBJECT_INPLACE(PyO
 #endif
 
     // No inplace number slot nb_inplace_divide available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_divide == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_divide;
@@ -996,7 +996,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_OLDDIV_LONG_OBJECT_INPLACE(Py
 #endif
 
     // No inplace number slot nb_inplace_divide available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_divide == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_divide;
@@ -1556,7 +1556,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_OLDDIV_FLOAT_OBJECT_INPLACE(P
 #endif
 
     // No inplace number slot nb_inplace_divide available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_divide == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_divide;
@@ -1827,7 +1827,7 @@ static inline bool _BINARY_OPERATION_OLDDIV_INT_LONG_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_divide available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_divide == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_divide;
@@ -1926,7 +1926,7 @@ static inline bool _BINARY_OPERATION_OLDDIV_LONG_INT_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_divide available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_divide == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_divide;
@@ -2025,7 +2025,7 @@ static inline bool _BINARY_OPERATION_OLDDIV_INT_FLOAT_INPLACE(PyObject **operand
 #endif
 
     // No inplace number slot nb_inplace_divide available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_divide == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_divide;
@@ -2124,7 +2124,7 @@ static inline bool _BINARY_OPERATION_OLDDIV_FLOAT_INT_INPLACE(PyObject **operand
 #endif
 
     // No inplace number slot nb_inplace_divide available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_divide == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_divide;
@@ -2223,7 +2223,7 @@ static inline bool _BINARY_OPERATION_OLDDIV_LONG_FLOAT_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_divide available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_divide == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_divide;
@@ -2326,7 +2326,7 @@ static inline bool _BINARY_OPERATION_OLDDIV_FLOAT_LONG_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_divide available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_divide == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_divide == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_divide;

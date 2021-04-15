@@ -584,7 +584,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_POW_FLOAT_OBJECT_INPLACE(PyOb
 #endif
 
     // No inplace number slot nb_inplace_power available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_power == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_power == NULL);
 
     {
         ternaryfunc slot1 = PyFloat_Type.tp_as_number->nb_power;
@@ -1213,7 +1213,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_POW_LONG_OBJECT_INPLACE(PyObj
 #endif
 
     // No inplace number slot nb_inplace_power available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_power == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_power == NULL);
 
     {
         ternaryfunc slot1 = PyLong_Type.tp_as_number->nb_power;
@@ -1890,7 +1890,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_POW_INT_OBJECT_INPLACE(PyObje
 #endif
 
     // No inplace number slot nb_inplace_power available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_power == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_power == NULL);
 
     {
         ternaryfunc slot1 = PyInt_Type.tp_as_number->nb_power;
@@ -2221,7 +2221,7 @@ static inline bool _BINARY_OPERATION_POW_LONG_INT_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_power available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_power == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_power == NULL);
 
     {
         ternaryfunc slot1 = PyLong_Type.tp_as_number->nb_power;
@@ -2320,7 +2320,7 @@ static inline bool _BINARY_OPERATION_POW_INT_LONG_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_power available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_power == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_power == NULL);
 
     {
         ternaryfunc slot1 = PyInt_Type.tp_as_number->nb_power;

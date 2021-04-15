@@ -426,7 +426,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_INT_OBJECT_INPLACE(PyObje
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_remainder;
@@ -975,7 +975,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_LONG_OBJECT_INPLACE(PyObj
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
@@ -1542,7 +1542,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_FLOAT_OBJECT_INPLACE(PyOb
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
@@ -1819,7 +1819,7 @@ static inline bool _BINARY_OPERATION_MOD_INT_LONG_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_remainder;
@@ -1918,7 +1918,7 @@ static inline bool _BINARY_OPERATION_MOD_LONG_INT_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
@@ -2017,7 +2017,7 @@ static inline bool _BINARY_OPERATION_MOD_INT_FLOAT_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_remainder;
@@ -2116,7 +2116,7 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_INT_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
@@ -2214,7 +2214,7 @@ static inline bool _BINARY_OPERATION_MOD_LONG_FLOAT_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
@@ -2315,7 +2315,7 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_LONG_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
@@ -2417,7 +2417,7 @@ static inline bool _BINARY_OPERATION_MOD_STR_INT_INPLACE(PyObject **operand1, Py
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
@@ -2516,7 +2516,7 @@ static inline bool _BINARY_OPERATION_MOD_STR_LONG_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
@@ -2615,7 +2615,7 @@ static inline bool _BINARY_OPERATION_MOD_STR_FLOAT_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
@@ -2763,7 +2763,7 @@ static inline bool _BINARY_OPERATION_MOD_STR_UNICODE_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
@@ -2862,7 +2862,7 @@ static inline bool _BINARY_OPERATION_MOD_STR_TUPLE_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
@@ -2944,7 +2944,7 @@ static inline bool _BINARY_OPERATION_MOD_STR_LIST_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
@@ -3026,7 +3026,7 @@ static inline bool _BINARY_OPERATION_MOD_STR_DICT_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
@@ -3090,7 +3090,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_STR_OBJECT_INPLACE(PyObje
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
@@ -3294,7 +3294,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_INT_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
@@ -3391,7 +3391,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_LONG_INPLACE(PyObject **operand
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
@@ -3490,7 +3490,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_FLOAT_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
@@ -3590,7 +3590,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_STR_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
@@ -3687,7 +3687,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_BYTES_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
@@ -3829,7 +3829,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_TUPLE_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
@@ -3911,7 +3911,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_LIST_INPLACE(PyObject **operand
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
@@ -3993,7 +3993,7 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_DICT_INPLACE(PyObject **operand
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
@@ -4059,7 +4059,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_UNICODE_OBJECT_INPLACE(Py
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
@@ -4318,7 +4318,7 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_LONG_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
@@ -4454,7 +4454,7 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_FLOAT_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
@@ -4588,7 +4588,7 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_UNICODE_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
@@ -4687,7 +4687,7 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_TUPLE_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
@@ -4769,7 +4769,7 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_LIST_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
@@ -4851,7 +4851,7 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_DICT_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
@@ -4915,7 +4915,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_BYTES_OBJECT_INPLACE(PyOb
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_remainder == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
