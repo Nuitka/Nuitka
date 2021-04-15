@@ -186,7 +186,7 @@ def generateListOperationPopCode(to_name, expression, emit, context):
 def generateBuiltinListCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
-        capi="PySequence_List",
+        capi="MAKE_LIST",
         arg_desc=(("list_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
