@@ -22,6 +22,9 @@ that references may be lost or corrupted. Executing them repeatedly and
 checking the reference count is how they are used.
 """
 
+# While we use that for comparison code, no need to compile that.
+# nuitka-project: --nofollow-import-to=nuitka
+
 import os
 import sys
 
@@ -947,8 +950,7 @@ def simpleFunction104():
 
 
 def simpleFunction105():
-    """ Delete a started generator, not properly closing it before releasing.
-    """
+    """Delete a started generator, not properly closing it before releasing."""
 
     def generator():
         yield 1

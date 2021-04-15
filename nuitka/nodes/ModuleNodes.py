@@ -745,7 +745,7 @@ class UncompiledPythonPackage(UncompiledPythonModule):
 class PythonMainModule(CompiledPythonModule):
     kind = "PYTHON_MAIN_MODULE"
 
-    __slots__ = ("main_added",)
+    __slots__ = ("main_added", "early_modules")
 
     def __init__(self, main_added, mode, future_spec, source_ref):
         # Is this one from a "__main__.py" file.
@@ -759,6 +759,8 @@ class PythonMainModule(CompiledPythonModule):
             future_spec=future_spec,
             source_ref=source_ref,
         )
+
+        self.early_modules = ()
 
     def getDetails(self):
         return {
@@ -829,6 +831,20 @@ class PythonMainModule(CompiledPythonModule):
             return os.path.dirname(self.getFilename())
         else:
             return CompiledPythonModule.getOutputFilename(self)
+
+    def setEarlyModules(self, early_modules):
+        self.early_modules = early_modules
+
+    def getEarlyModules(self):
+        return self.early_modules
+
+    def computeModule(self):
+        CompiledPythonModule.computeModule(self)
+
+        from nuitka.ModuleRegistry import addUsedModule
+
+        for early_module in self.early_modules:
+            addUsedModule(early_module)
 
 
 class PythonShlibModule(PythonModuleBase):

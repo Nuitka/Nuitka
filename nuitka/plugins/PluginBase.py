@@ -34,6 +34,7 @@ from collections import namedtuple
 
 from nuitka import Options, OutputDirectories
 from nuitka.__past__ import getMetaClassBase
+from nuitka.containers.oset import OrderedSet
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import check_output
@@ -44,6 +45,8 @@ pre_modules = {}
 post_modules = {}
 
 warned_unused_plugins = set()
+
+registered_pkgutil_getdata_callbacks = OrderedSet()
 
 
 class NuitkaPluginBase(getMetaClassBase("Plugin")):
@@ -421,7 +424,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         Args:
             importing: module object that asked for it (tracing only)
             module_name: (str or ModuleName) full name of module
-            warn: (bool) True if required module
         Returns:
             filename for module
         """
@@ -671,6 +673,15 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def encodeDataComposerName(self, data_name):
+        """Internal use only.
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     _runtime_information_cache = {}
 
     def queryRuntimeInformationMultiple(self, info_name, setup_codes, values):
@@ -726,10 +737,15 @@ from __future__ import absolute_import
 
     def queryRuntimeInformationSingle(self, setup_codes, value):
         return self.queryRuntimeInformationMultiple(
-            info_name="temp_info_for_" + self.plugin_name,
+            info_name="temp_info_for_" + self.plugin_name.replace("-", "_"),
             setup_codes=setup_codes,
             values=(("key", value),),
         ).key
+
+    @staticmethod
+    def registerPkgutilGetDataCallback(callback):
+        """ Allow a plugin to register for that node type. """
+        registered_pkgutil_getdata_callbacks.add(callback)
 
     @classmethod
     def warning(cls, message):

@@ -21,13 +21,13 @@
 
 
 template_metapath_loader_compiled_module_entry = """\
-{"%(module_name)s", modulecode_%(module_identifier)s, 0, 0, %(flags)s},"""
+{%(module_name)s, modulecode_%(module_identifier)s, 0, 0, %(flags)s},"""
 
 template_metapath_loader_shlib_module_entry = """\
-{"%(module_name)s", NULL, 0, 0, NUITKA_SHLIB_FLAG},"""
+{%(module_name)s, NULL, 0, 0, %(flags)s},"""
 
 template_metapath_loader_bytecode_module_entry = """\
-{"%(module_name)s", NULL, %(bytecode)s, %(size)d, %(flags)s},"""
+{%(module_name)s, NULL, %(bytecode)s, %(size)d, %(flags)s},"""
 
 
 template_metapath_loader_body = r"""

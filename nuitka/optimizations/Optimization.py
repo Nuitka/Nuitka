@@ -188,8 +188,14 @@ def optimizeUncompiledPythonModule(module):
     package_name = full_name.getPackageName()
 
     if package_name is not None:
-        used_module = ImportCache.getImportedModuleByName(package_name)
-        ModuleRegistry.addUsedModule(used_module)
+        # TODO: It's unclear why, but some standard library modules on older Python3
+        # seem to not have parent packages after the scan.
+        try:
+            used_module = ImportCache.getImportedModuleByName(package_name)
+        except KeyError:
+            pass
+        else:
+            ModuleRegistry.addUsedModule(used_module)
 
     Plugins.considerImplicitImports(module=module, signal_change=signalChange)
 
@@ -220,13 +226,13 @@ def optimizeModule(module):
 
 
 pass_count = 0
+last_total = 0
 
 
 def _restartProgress():
+    global pass_count, last_total  # Singleton, pylint: disable=global-statement
+
     closeProgressBar()
-
-    global pass_count  # Singleton, pylint: disable=global-statement
-
     pass_count += 1
 
     optimization_logger.info_fileoutput(
@@ -238,6 +244,7 @@ def _restartProgress():
         unit="module",
         total=ModuleRegistry.getRemainingModulesCount()
         + ModuleRegistry.getDoneModulesCount(),
+        min_total=last_total,
     )
 
 
@@ -279,7 +286,8 @@ def _traceProgressModuleEnd(current_module):
 
 
 def _endProgress():
-    closeProgressBar()
+    global last_total  # Singleton, pylint: disable=global-statement
+    last_total = closeProgressBar()
 
 
 def restoreFromXML(text):

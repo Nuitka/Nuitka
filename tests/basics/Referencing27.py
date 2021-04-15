@@ -15,6 +15,16 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Reference counting tests for Python2 specific features.
+
+These contain functions that do specific things, where we have a suspect
+that references may be lost or corrupted. Executing them repeatedly and
+checking the reference count is how they are used.
+"""
+
+# While we use that for comparison code, no need to compile that.
+# nuitka-project: --nofollow-import-to=nuitka
+
 import os
 import sys
 

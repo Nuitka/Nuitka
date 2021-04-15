@@ -294,7 +294,10 @@ def makeSourceDirectory():
             if module.getFullName() == any_case_module:
                 break
         else:
-            general.warning("Not recursing to unused '%s'." % any_case_module)
+            general.warning(
+                "Did not follow import to unused '%s', consider include options."
+                % any_case_module
+            )
 
     # Prepare code generation, i.e. execute finalization for it.
     for module in ModuleRegistry.getDoneModules():
@@ -465,7 +468,7 @@ def runSconsBackend(quiet):
     if sys.flags.bytes_warning:
         options["python_sysflag_bytes_warning"] = asBoolStr(True)
 
-    if int(os.environ.get("NUITKA_SITE_FLAG", "no_site" in Options.getPythonFlags())):
+    if int(os.environ.get("NUITKA_SITE_FLAG", Options.hasPythonFlagNoSite())):
         options["python_sysflag_no_site"] = asBoolStr(True)
 
     if "trace_imports" in Options.getPythonFlags():

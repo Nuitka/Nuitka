@@ -70,6 +70,7 @@ hard_modules = frozenset(
         "importlib",
         "_frozen_importlib",
         "_frozen_importlib_external",
+        "pkgutil",
     )
 )
 
@@ -88,6 +89,7 @@ hard_modules_trust = {
     "importlib": {},
     "_frozen_importlib": {},
     "_frozen_importlib_external": {},
+    "pkgutil": {"get_data": trust_exist},
 }
 
 hard_modules_trust["__future__"] = {
@@ -432,7 +434,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
                     inclusion_logger.warning(
                         """\
-Not recursing to '%(full_path)s' (%(filename)s), please specify \
+Not following import to '%(full_path)s' (%(filename)s), please specify \
 --nofollow-imports (do not warn), \
 --follow-imports (recurse to all), \
 --nofollow-import-to=%(full_path)s (ignore it), \

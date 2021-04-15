@@ -72,9 +72,6 @@ def main():
                 needs_2to3=False,
             )
 
-            if search_mode.abortIfExecuted():
-                break
-
     search_mode.finish()
 
 

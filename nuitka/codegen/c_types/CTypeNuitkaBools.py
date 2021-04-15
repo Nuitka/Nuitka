@@ -85,6 +85,14 @@ class CTypeNuitkaBoolEnum(CTypeNotReferenceCountedMixin, CTypeBase):
             )
 
     @classmethod
+    def emitAssignmentCodeFromConstant(cls, to_name, constant, emit, context):
+        # No context needed, pylint: disable=unused-argument
+        emit(
+            "%s = %s;"
+            % (to_name, "NUITKA_BOOL_TRUE" if constant else "NUITKA_BOOL_FALSE")
+        )
+
+    @classmethod
     def getInitValue(cls, init_from):
         if init_from is None:
             return "NUITKA_BOOL_UNASSIGNED"

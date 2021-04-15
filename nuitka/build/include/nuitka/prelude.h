@@ -313,6 +313,8 @@ extern PyObject **global_constants;
 #define const_str_plain_inspect global_constants[27]
 // 'compile'
 #define const_str_plain_compile global_constants[28]
+// 'getattr'
+#define const_str_plain_getattr global_constants[28]
 // 'range'
 #define const_str_plain_range global_constants[29]
 // 'open'
@@ -427,5 +429,17 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #endif
 
 #include "nuitka/safe_string_ops.h"
+
+#if defined(__has_include)
+#if __has_include("nuitka_data_decoder.h")
+#include "nuitka_data_decoder.h"
+#else
+#define DECODE(x) assert(x)
+#define UNTRANSLATE(x) (x)
+#endif
+#else
+#define DECODE(x) assert(x)
+#define UNTRANSLATE(x) (x)
+#endif
 
 #endif

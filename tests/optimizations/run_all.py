@@ -270,9 +270,6 @@ def main():
 
             my_print("OK.")
 
-            if search_mode.abortIfExecuted():
-                break
-
     search_mode.finish()
 
 

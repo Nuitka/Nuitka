@@ -1468,18 +1468,6 @@ def getTestingCPythonOutputsCacheDir():
     return result
 
 
-@contextmanager
-def withDirectoryChange(path, allow_none=False):
-    if path is not None or not allow_none:
-        old_cwd = os.getcwd()
-        os.chdir(path)
-
-    yield
-
-    if path is not None or not allow_none:
-        os.chdir(old_cwd)
-
-
 def scanDirectoryForTestCases(dirname, template_context=None):
     filenames = os.listdir(dirname)
 

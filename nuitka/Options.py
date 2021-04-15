@@ -52,7 +52,7 @@ def parseArgs(will_reexec):
                 pass
         except OSError:
             Tracing.general.sysexit(
-                "Error, the Python from Windows store is not supported, check user manual."
+                "Error, the Python from Windows store is not supported, check the User Manual of Nuitka ."
             )
 
     is_nuitka_run, options, positional_args, extra_args = parseOptions(
@@ -61,6 +61,11 @@ def parseArgs(will_reexec):
 
     if options.quiet or int(os.environ.get("NUITKA_QUIET", "0")):
         Tracing.setQuiet()
+
+    if not will_reexec and not shallDumpBuiltTreeXML():
+        Tracing.options_logger.info(
+            "Used command line options: %s" % " ".join(sys.argv[1:])
+        )
 
     if options.progress_bar and not will_reexec:
         Progress.enableProgressBar()
@@ -281,6 +286,11 @@ the selection of onefile temp directory mode. Check --help output."""
 
         src, dst = data_file.split("=", 1)
 
+        if not os.path.isdir(src):
+            Tracing.options_logger.sysexit(
+                "Error, must specify existing data directory, not %r." % data_file
+            )
+
         if os.path.isabs(dst):
             Tracing.options_logger.sysexit(
                 "Error, must specify relative target path for data file, not %r."
@@ -290,7 +300,24 @@ the selection of onefile temp directory mode. Check --help output."""
         if not resolveShellPatternToFilenames(src):
             Tracing.options_logger.sysexit("Error, %r does not match any files." % src)
 
-    if options.data_files and not isStandaloneMode():
+    for data_dir in options.data_dirs:
+        if "=" not in data_dir:
+            Tracing.options_logger.sysexit(
+                "Error, malformed data dir description, must specify relative target path with =."
+            )
+
+        src, dst = data_dir.split("=", 1)
+
+        if os.path.isabs(dst):
+            Tracing.options_logger.sysexit(
+                "Error, must specify relative target path for data dir, not %r."
+                % data_dir
+            )
+
+        if not resolveShellPatternToFilenames(src):
+            Tracing.options_logger.sysexit("Error, %r does not match any files." % src)
+
+    if (options.data_files or options.data_dirs) and not isStandaloneMode():
         Tracing.options_logger.sysexit(
             "Error, data files are only included in standalone or onefile mode."
         )
@@ -527,6 +554,14 @@ def getShallIncludeDataFiles():
 
         for pattern in _splitShellPattern(src):
             yield pattern, dest, data_file
+
+
+def getShallIncludeDataDirs():
+    """*list*, items of "--include-data-dir=" """
+    for data_file in options.data_dirs:
+        src, dest = data_file.split("=", 1)
+
+        yield src, dest
 
 
 def shallWarnImplicitRaises():
@@ -896,10 +931,24 @@ def getPythonFlags():
                 elif part in ("-OO",):
                     _python_flags.add("no_docstrings")
                     _python_flags.add("no_asserts")
+                elif part in ("no_annotations", "noannotations"):
+                    _python_flags.add("no_annotations")
                 else:
                     Tracing.options_logger.sysexit("Unsupported python flag %r." % part)
 
     return _python_flags
+
+
+def hasPythonFlagNoSite():
+    """*bool* = "no_site" in python flags given """
+
+    return "no_site" in getPythonFlags()
+
+
+def hasPythonFlagNoAnnotations():
+    """*bool* = "no_annotations" in python flags given """
+
+    return "no_annotations" in getPythonFlags()
 
 
 def shallFreezeAllStdlib():

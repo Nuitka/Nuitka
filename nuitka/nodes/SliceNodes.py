@@ -228,10 +228,19 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
 
 
 def makeExpressionBuiltinSlice(start, stop, step, source_ref):
-    if start is None and stop is None and step is None:
-        # Avoid going through dynamic nodes for [:] syntax.
+    if (
+        (start is None or start.isCompileTimeConstant())
+        and (stop is None or stop.isCompileTimeConstant())
+        and (step is None or step.isCompileTimeConstant())
+    ):
+        # Avoid going slices for what is effectively constant.
+
+        start_value = None if start is None else start.getCompileTimeConstant()
+        stop_value = None if stop is None else stop.getCompileTimeConstant()
+        step_value = None if step is None else step.getCompileTimeConstant()
+
         return makeConstantRefNode(
-            constant=slice(None, None, None), source_ref=source_ref
+            constant=slice(start_value, stop_value, step_value), source_ref=source_ref
         )
 
     if start is None and step is None:

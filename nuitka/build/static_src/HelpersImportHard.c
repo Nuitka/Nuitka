@@ -91,6 +91,19 @@ PyObject *IMPORT_HARD_OS(void) {
 
     return module_os;
 }
+/* C helper for hard import of module "pkgutil" import. */
+
+PyObject *IMPORT_HARD_PKGUTIL(void) {
+    static PyObject *module_pkgutil = NULL;
+
+    if (module_pkgutil == NULL) {
+        module_pkgutil = PyImport_ImportModule("pkgutil");
+    }
+
+    CHECK_OBJECT(module_pkgutil);
+
+    return module_pkgutil;
+}
 /* C helper for hard import of module "site" import. */
 
 PyObject *IMPORT_HARD_SITE(void) {

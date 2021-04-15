@@ -76,8 +76,6 @@ def main():
         # This test should be run with the debug Python, and makes outputs to
         # standard error that might be ignored.
         if filename.startswith("Referencing"):
-            extra_flags.append("recurse_not:nuitka")
-
             if hasDebugPython():
                 extra_flags.append("python_debug")
 
@@ -111,9 +109,6 @@ def main():
                 search_mode=search_mode,
                 needs_2to3=decideNeeds2to3(filename),
             )
-
-            if search_mode.abortIfExecuted():
-                break
 
     search_mode.finish()
 

@@ -489,9 +489,6 @@ def main():
 
         os.unlink(binary_filename)
 
-        if search_mode.abortIfExecuted():
-            break
-
     search_mode.finish()
 
 

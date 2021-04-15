@@ -108,6 +108,8 @@ def main():
             "cpython_cache",
             # To understand what is slow.
             "timing",
+            # TODO: This plugin probably ought to be on by default.
+            "plugin_enable:pkg-resources",
         ]
 
         # skip each test if their respective requirements are not met
@@ -623,9 +625,6 @@ def main():
             search_mode.onErrorDetected(1)
 
         removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
-
-        if search_mode.abortIfExecuted():
-            break
 
     search_mode.finish()
 

@@ -341,28 +341,6 @@ def createConstantDict(keys, values):
     return constant_value
 
 
-def getConstantWeight(constant):
-    constant_type = type(constant)
-
-    if constant_type is dict:
-        result = 0
-
-        for key, value in iterItems(constant):
-            result += getConstantWeight(key)
-            result += getConstantWeight(value)
-
-        return result
-    elif constant_type in (tuple, list, set, frozenset):
-        result = 0
-
-        for element_value in constant:
-            result += getConstantWeight(element_value)
-
-        return result
-    else:
-        return 1
-
-
 def isCompileTimeConstantValue(value):
     """Determine if a value will be usable at compile time."""
     # This needs to match code in makeCompileTimeConstantReplacementNode

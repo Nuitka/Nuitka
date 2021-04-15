@@ -355,6 +355,10 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
+    def isExpressionComparison():
+        return False
+
+    @staticmethod
     def isExpressionSideEffects():
         return False
 

@@ -109,22 +109,9 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_INT_INT(PyObject *operand1, PyObject *oper
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_SUB_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyInt_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_SUB_OBJECT_INT_INT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -256,6 +243,88 @@ exit_binary_result_object:
 exit_binary_exception:
     return NULL;
 }
+static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyInt_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_SUB_OBJECT_INT_INT(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        const long x = (long)((unsigned long)a - b);
+        bool no_overflow = ((x ^ a) >= 0 || (x ^ ~b) >= 0);
+        if (likely(no_overflow)) {
+            clong_result = x;
+            goto exit_result_ok_clong;
+        }
+        {
+            PyObject *operand1_object = operand1;
+            PyObject *operand2_object = operand2;
+
+            PyObject *r = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
+            assert(r != Py_NotImplemented);
+
+            obj_result = r;
+            goto exit_result_object;
+        }
+
+    exit_result_ok_clong:
+        result = PyInt_FromLong(clong_result);
+        goto exit_result_ok;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NULL;
+    }
+
+    return __BINARY_OPERATION_SUB_OBJECT_OBJECT_INT(operand1, operand2);
+}
 
 PyObject *BINARY_OPERATION_SUB_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_SUB_OBJECT_OBJECT_INT(operand1, operand2);
@@ -264,22 +333,9 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *o
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-static PyObject *_BINARY_OPERATION_SUB_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_SUB_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_SUB_OBJECT_INT_INT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -423,6 +479,88 @@ exit_binary_result_object:
 
 exit_binary_exception:
     return NULL;
+}
+static PyObject *_BINARY_OPERATION_SUB_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_SUB_OBJECT_INT_INT(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        const long x = (long)((unsigned long)a - b);
+        bool no_overflow = ((x ^ a) >= 0 || (x ^ ~b) >= 0);
+        if (likely(no_overflow)) {
+            clong_result = x;
+            goto exit_result_ok_clong;
+        }
+        {
+            PyObject *operand1_object = operand1;
+            PyObject *operand2_object = operand2;
+
+            PyObject *r = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
+            assert(r != Py_NotImplemented);
+
+            obj_result = r;
+            goto exit_result_object;
+        }
+
+    exit_result_ok_clong:
+        result = PyInt_FromLong(clong_result);
+        goto exit_result_ok;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NULL;
+    }
+
+    return __BINARY_OPERATION_SUB_OBJECT_INT_OBJECT(operand1, operand2);
 }
 
 PyObject *BINARY_OPERATION_SUB_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
@@ -495,22 +633,9 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_INT(PyObject *operand1, PyObject *ope
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_SUB_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyInt_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_SUB_NBOOL_INT_INT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -650,6 +775,68 @@ exit_binary_result_object:
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
+static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyInt_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_SUB_NBOOL_INT_INT(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        const long x = (long)((unsigned long)a - b);
+        bool no_overflow = ((x ^ a) >= 0 || (x ^ ~b) >= 0);
+        bool t = !no_overflow || x != 0;
+
+        cbool_result = t;
+        goto exit_result_ok_cbool;
+
+    exit_result_ok_cbool:
+        result = cbool_result ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+    }
+
+    return __BINARY_OPERATION_SUB_NBOOL_OBJECT_INT(operand1, operand2);
+}
 
 nuitka_bool BINARY_OPERATION_SUB_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_SUB_NBOOL_OBJECT_INT(operand1, operand2);
@@ -658,22 +845,9 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_SUB_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_SUB_NBOOL_INT_INT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -825,6 +999,68 @@ exit_binary_result_object:
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
+}
+static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_SUB_NBOOL_INT_INT(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        const long x = (long)((unsigned long)a - b);
+        bool no_overflow = ((x ^ a) >= 0 || (x ^ ~b) >= 0);
+        bool t = !no_overflow || x != 0;
+
+        cbool_result = t;
+        goto exit_result_ok_cbool;
+
+    exit_result_ok_cbool:
+        result = cbool_result ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+    }
+
+    return __BINARY_OPERATION_SUB_NBOOL_INT_OBJECT(operand1, operand2);
 }
 
 nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
@@ -902,22 +1138,9 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_LONG(PyObject *operand1, PyObject *op
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_SUB_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyLong_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_SUB_OBJECT_LONG_LONG(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1053,28 +1276,85 @@ exit_binary_result_object:
 exit_binary_exception:
     return NULL;
 }
+static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyLong_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_SUB_OBJECT_LONG_LONG(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
+            PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
+            obj_result = r;
+            goto exit_result_object;
+        }
+        {
+            PyLongObject *z;
+
+            digit const *a = Nuitka_LongGetDigitPointer(operand1);
+            Py_ssize_t size_a = Nuitka_LongGetDigitSize(operand1);
+            digit const *b = Nuitka_LongGetDigitPointer(operand2);
+            Py_ssize_t size_b = Nuitka_LongGetDigitSize(operand2);
+
+            if (Py_SIZE(operand1) < 0) {
+                if (Py_SIZE(operand2) < 0) {
+                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+                } else {
+                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                }
+
+                Py_SIZE(z) = -(Py_SIZE(z));
+            } else {
+                if (Py_SIZE(operand2) < 0) {
+                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                } else {
+                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+                }
+            }
+
+            obj_result = (PyObject *)z;
+            goto exit_result_object;
+        }
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NULL;
+    }
+
+    return __BINARY_OPERATION_SUB_OBJECT_OBJECT_LONG(operand1, operand2);
+}
 
 PyObject *BINARY_OPERATION_SUB_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_SUB_OBJECT_OBJECT_LONG(operand1, operand2);
 }
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_SUB_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_SUB_OBJECT_LONG_LONG(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1222,6 +1502,76 @@ exit_binary_result_object:
 
 exit_binary_exception:
     return NULL;
+}
+static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_SUB_OBJECT_LONG_LONG(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
+            PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
+            obj_result = r;
+            goto exit_result_object;
+        }
+        {
+            PyLongObject *z;
+
+            digit const *a = Nuitka_LongGetDigitPointer(operand1);
+            Py_ssize_t size_a = Nuitka_LongGetDigitSize(operand1);
+            digit const *b = Nuitka_LongGetDigitPointer(operand2);
+            Py_ssize_t size_b = Nuitka_LongGetDigitSize(operand2);
+
+            if (Py_SIZE(operand1) < 0) {
+                if (Py_SIZE(operand2) < 0) {
+                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+                } else {
+                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                }
+
+                Py_SIZE(z) = -(Py_SIZE(z));
+            } else {
+                if (Py_SIZE(operand2) < 0) {
+                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                } else {
+                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+                }
+            }
+
+            obj_result = (PyObject *)z;
+            goto exit_result_object;
+        }
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NULL;
+    }
+
+    return __BINARY_OPERATION_SUB_OBJECT_LONG_OBJECT(operand1, operand2);
 }
 
 PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
@@ -1299,22 +1649,10 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_LONG_LONG(PyObject *operand1, PyObject *o
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_SUB_NBOOL_OBJECT_LONG(PyObject *operand1,
+                                                                                PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyLong_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_SUB_NBOOL_LONG_LONG(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1458,28 +1796,87 @@ exit_binary_result_object:
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
+static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyLong_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_SUB_NBOOL_LONG_LONG(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
+            PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
+            obj_result = r;
+            goto exit_result_object;
+        }
+        {
+            PyLongObject *z;
+
+            digit const *a = Nuitka_LongGetDigitPointer(operand1);
+            Py_ssize_t size_a = Nuitka_LongGetDigitSize(operand1);
+            digit const *b = Nuitka_LongGetDigitPointer(operand2);
+            Py_ssize_t size_b = Nuitka_LongGetDigitSize(operand2);
+
+            if (Py_SIZE(operand1) < 0) {
+                if (Py_SIZE(operand2) < 0) {
+                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+                } else {
+                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                }
+
+                Py_SIZE(z) = -(Py_SIZE(z));
+            } else {
+                if (Py_SIZE(operand2) < 0) {
+                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                } else {
+                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+                }
+            }
+
+            obj_result = (PyObject *)z;
+            goto exit_result_object;
+        }
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    return __BINARY_OPERATION_SUB_NBOOL_OBJECT_LONG(operand1, operand2);
+}
 
 nuitka_bool BINARY_OPERATION_SUB_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_SUB_NBOOL_OBJECT_LONG(operand1, operand2);
 }
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_SUB_NBOOL_LONG_OBJECT(PyObject *operand1,
+                                                                                PyObject *operand2) {
     PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_SUB_NBOOL_LONG_LONG(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1636,6 +2033,77 @@ exit_binary_result_object:
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
+static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_SUB_NBOOL_LONG_LONG(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
+            PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
+            obj_result = r;
+            goto exit_result_object;
+        }
+        {
+            PyLongObject *z;
+
+            digit const *a = Nuitka_LongGetDigitPointer(operand1);
+            Py_ssize_t size_a = Nuitka_LongGetDigitSize(operand1);
+            digit const *b = Nuitka_LongGetDigitPointer(operand2);
+            Py_ssize_t size_b = Nuitka_LongGetDigitSize(operand2);
+
+            if (Py_SIZE(operand1) < 0) {
+                if (Py_SIZE(operand2) < 0) {
+                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+                } else {
+                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                }
+
+                Py_SIZE(z) = -(Py_SIZE(z));
+            } else {
+                if (Py_SIZE(operand2) < 0) {
+                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                } else {
+                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+                }
+            }
+
+            obj_result = (PyObject *)z;
+            goto exit_result_object;
+        }
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    return __BINARY_OPERATION_SUB_NBOOL_LONG_OBJECT(operand1, operand2);
+}
 
 nuitka_bool BINARY_OPERATION_SUB_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_SUB_NBOOL_LONG_OBJECT(operand1, operand2);
@@ -1700,22 +2168,10 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
-static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_SUB_OBJECT_OBJECT_FLOAT(PyObject *operand1,
+                                                                                PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyFloat_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_SUB_OBJECT_FLOAT_FLOAT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1847,28 +2303,75 @@ exit_binary_result_object:
 exit_binary_exception:
     return NULL;
 }
+static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyFloat_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_SUB_OBJECT_FLOAT_FLOAT(operand1, operand2);
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        double a = PyFloat_AS_DOUBLE(operand1);
+        double b = PyFloat_AS_DOUBLE(operand2);
+
+        double r = a - b;
+
+        cfloat_result = r;
+        goto exit_result_ok_cfloat;
+
+    exit_result_ok_cfloat:
+        result = PyFloat_FromDouble(cfloat_result);
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+    }
+
+    return __BINARY_OPERATION_SUB_OBJECT_OBJECT_FLOAT(operand1, operand2);
+}
 
 PyObject *BINARY_OPERATION_SUB_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_SUB_OBJECT_OBJECT_FLOAT(operand1, operand2);
 }
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
-static PyObject *_BINARY_OPERATION_SUB_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_SUB_OBJECT_FLOAT_OBJECT(PyObject *operand1,
+                                                                                PyObject *operand2) {
     PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_SUB_OBJECT_FLOAT_FLOAT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2012,6 +2515,65 @@ exit_binary_result_object:
 
 exit_binary_exception:
     return NULL;
+}
+static PyObject *_BINARY_OPERATION_SUB_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyFloat_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_SUB_OBJECT_FLOAT_FLOAT(operand1, operand2);
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        double a = PyFloat_AS_DOUBLE(operand1);
+        double b = PyFloat_AS_DOUBLE(operand2);
+
+        double r = a - b;
+
+        cfloat_result = r;
+        goto exit_result_ok_cfloat;
+
+    exit_result_ok_cfloat:
+        result = PyFloat_FromDouble(cfloat_result);
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+    }
+
+    return __BINARY_OPERATION_SUB_OBJECT_FLOAT_OBJECT(operand1, operand2);
 }
 
 PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
@@ -2077,22 +2639,10 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject 
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
-static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_SUB_NBOOL_OBJECT_FLOAT(PyObject *operand1,
+                                                                                 PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyFloat_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_SUB_NBOOL_FLOAT_FLOAT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2232,28 +2782,75 @@ exit_binary_result_object:
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
+static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyFloat_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_SUB_NBOOL_FLOAT_FLOAT(operand1, operand2);
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        double a = PyFloat_AS_DOUBLE(operand1);
+        double b = PyFloat_AS_DOUBLE(operand2);
+
+        double r = a - b;
+
+        cfloat_result = r;
+        goto exit_result_ok_cfloat;
+
+    exit_result_ok_cfloat:
+        result = cfloat_result != 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+    }
+
+    return __BINARY_OPERATION_SUB_NBOOL_OBJECT_FLOAT(operand1, operand2);
+}
 
 nuitka_bool BINARY_OPERATION_SUB_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_SUB_NBOOL_OBJECT_FLOAT(operand1, operand2);
 }
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
-static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_SUB_NBOOL_FLOAT_OBJECT(PyObject *operand1,
+                                                                                 PyObject *operand2) {
     PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_SUB_NBOOL_FLOAT_FLOAT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2405,6 +3002,65 @@ exit_binary_result_object:
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
+}
+static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyFloat_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_SUB_NBOOL_FLOAT_FLOAT(operand1, operand2);
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyFloat_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyFloat_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        double a = PyFloat_AS_DOUBLE(operand1);
+        double b = PyFloat_AS_DOUBLE(operand2);
+
+        double r = a - b;
+
+        cfloat_result = r;
+        goto exit_result_ok_cfloat;
+
+    exit_result_ok_cfloat:
+        result = cfloat_result != 0.0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+    }
+
+    return __BINARY_OPERATION_SUB_NBOOL_FLOAT_OBJECT(operand1, operand2);
 }
 
 nuitka_bool BINARY_OPERATION_SUB_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {

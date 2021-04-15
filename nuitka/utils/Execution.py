@@ -145,6 +145,17 @@ def getPythonExePathWindows(search, arch):
 
 
 class NuitkaCalledProcessError(subprocess.CalledProcessError):
+    def __init__(self, retcode, cmd, output, stderr):
+        # False alarm, pylint: disable=super-init-not-called
+
+        subprocess.CalledProcessError(self, retcode, cmd)
+
+        # Python2 doesn't have this otherwise, but needs it.
+        self.stderr = stderr
+        self.output = output
+        self.cmd = cmd
+        self.returncode = retcode
+
     def __str__(self):
         result = subprocess.CalledProcessError.__str__(self)
 
@@ -207,6 +218,8 @@ def check_call(*popenargs, **kwargs):
 
 @contextmanager
 def withEnvironmentPathAdded(env_var_name, *paths):
+    assert os.path.sep not in env_var_name
+
     paths = [path for path in paths if path]
     path = os.pathsep.join(paths)
 

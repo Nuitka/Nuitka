@@ -67,22 +67,10 @@ PyObject *BINARY_OPERATION_RSHIFT_OBJECT_LONG_LONG(PyObject *operand1, PyObject 
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-static PyObject *_BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_LONG(PyObject *operand1,
+                                                                                  PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyLong_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_RSHIFT_OBJECT_LONG_LONG(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -218,28 +206,59 @@ exit_binary_result_object:
 exit_binary_exception:
     return NULL;
 }
+static PyObject *_BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyLong_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_RSHIFT_OBJECT_LONG_LONG(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        PyObject *x = PyLong_Type.tp_as_number->nb_rshift(operand1, operand2);
+        assert(x != Py_NotImplemented);
+
+        obj_result = x;
+        goto exit_result_object;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NULL;
+    }
+
+    return __BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_LONG(operand1, operand2);
+}
 
 PyObject *BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_LONG(operand1, operand2);
 }
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-static PyObject *_BINARY_OPERATION_RSHIFT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_RSHIFT_OBJECT_LONG_OBJECT(PyObject *operand1,
+                                                                                  PyObject *operand2) {
     PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_RSHIFT_OBJECT_LONG_LONG(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -387,6 +406,49 @@ exit_binary_result_object:
 
 exit_binary_exception:
     return NULL;
+}
+static PyObject *_BINARY_OPERATION_RSHIFT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_RSHIFT_OBJECT_LONG_LONG(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        PyObject *x = PyLong_Type.tp_as_number->nb_rshift(operand1, operand2);
+        assert(x != Py_NotImplemented);
+
+        obj_result = x;
+        goto exit_result_object;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NULL;
+    }
+
+    return __BINARY_OPERATION_RSHIFT_OBJECT_LONG_OBJECT(operand1, operand2);
 }
 
 PyObject *BINARY_OPERATION_RSHIFT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
@@ -437,22 +499,10 @@ nuitka_bool BINARY_OPERATION_RSHIFT_NBOOL_LONG_LONG(PyObject *operand1, PyObject
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-static nuitka_bool _BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_LONG(PyObject *operand1,
+                                                                                   PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyLong_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_RSHIFT_NBOOL_LONG_LONG(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -596,28 +646,60 @@ exit_binary_result_object:
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
+static nuitka_bool _BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyLong_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_RSHIFT_NBOOL_LONG_LONG(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        PyObject *x = PyLong_Type.tp_as_number->nb_rshift(operand1, operand2);
+        assert(x != Py_NotImplemented);
+
+        obj_result = x;
+        goto exit_result_object;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    return __BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_LONG(operand1, operand2);
+}
 
 nuitka_bool BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_LONG(operand1, operand2);
 }
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-static nuitka_bool _BINARY_OPERATION_RSHIFT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_RSHIFT_NBOOL_LONG_OBJECT(PyObject *operand1,
+                                                                                   PyObject *operand2) {
     PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_RSHIFT_NBOOL_LONG_LONG(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -773,6 +855,50 @@ exit_binary_result_object:
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
+}
+static nuitka_bool _BINARY_OPERATION_RSHIFT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_RSHIFT_NBOOL_LONG_LONG(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+        PyObject *x = PyLong_Type.tp_as_number->nb_rshift(operand1, operand2);
+        assert(x != Py_NotImplemented);
+
+        obj_result = x;
+        goto exit_result_object;
+
+    exit_result_object:
+        if (unlikely(obj_result == NULL)) {
+            goto exit_result_exception;
+        }
+        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    return __BINARY_OPERATION_RSHIFT_NBOOL_LONG_OBJECT(operand1, operand2);
 }
 
 nuitka_bool BINARY_OPERATION_RSHIFT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
@@ -876,22 +1002,10 @@ PyObject *BINARY_OPERATION_RSHIFT_OBJECT_INT_INT(PyObject *operand1, PyObject *o
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-static PyObject *_BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_INT(PyObject *operand1,
+                                                                                 PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyInt_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_RSHIFT_OBJECT_INT_INT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1023,6 +1137,100 @@ exit_binary_result_object:
 exit_binary_exception:
     return NULL;
 }
+static PyObject *_BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyInt_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_RSHIFT_OBJECT_INT_INT(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        if (unlikely(b < 0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+            goto exit_result_exception;
+        }
+
+        /* Short cut for zero shift or shifting zero. */
+        if (a == 0 || b == 0) {
+            goto exit_result_ok_left;
+        } else if (b >= LONG_BIT) {
+            if (a < 0) {
+                goto exit_result_ok_const_int_neg_1;
+            } else {
+                goto exit_result_ok_const_int_0;
+            }
+        } else {
+            long r = Py_ARITHMETIC_RIGHT_SHIFT(long, a, b);
+
+            clong_result = r;
+            goto exit_result_ok_clong;
+        }
+
+    exit_result_ok_clong:
+        result = PyInt_FromLong(clong_result);
+        goto exit_result_ok;
+
+    exit_result_ok_left:
+        result = operand1;
+        Py_INCREF(result);
+        goto exit_result_ok;
+
+    exit_result_ok_const_int_0:
+        Py_INCREF(const_int_0);
+        result = const_int_0;
+        goto exit_result_ok;
+
+    exit_result_ok_const_int_neg_1:
+        Py_INCREF(const_int_neg_1);
+        result = const_int_neg_1;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NULL;
+    }
+
+    return __BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_INT(operand1, operand2);
+}
 
 PyObject *BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_INT(operand1, operand2);
@@ -1031,22 +1239,10 @@ PyObject *BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-static PyObject *_BINARY_OPERATION_RSHIFT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_RSHIFT_OBJECT_INT_OBJECT(PyObject *operand1,
+                                                                                 PyObject *operand2) {
     PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_RSHIFT_OBJECT_INT_INT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1190,6 +1386,100 @@ exit_binary_result_object:
 
 exit_binary_exception:
     return NULL;
+}
+static PyObject *_BINARY_OPERATION_RSHIFT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        PyObject *result;
+
+        // return _BINARY_OPERATION_RSHIFT_OBJECT_INT_INT(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        if (unlikely(b < 0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+            goto exit_result_exception;
+        }
+
+        /* Short cut for zero shift or shifting zero. */
+        if (a == 0 || b == 0) {
+            goto exit_result_ok_left;
+        } else if (b >= LONG_BIT) {
+            if (a < 0) {
+                goto exit_result_ok_const_int_neg_1;
+            } else {
+                goto exit_result_ok_const_int_0;
+            }
+        } else {
+            long r = Py_ARITHMETIC_RIGHT_SHIFT(long, a, b);
+
+            clong_result = r;
+            goto exit_result_ok_clong;
+        }
+
+    exit_result_ok_clong:
+        result = PyInt_FromLong(clong_result);
+        goto exit_result_ok;
+
+    exit_result_ok_left:
+        result = operand1;
+        Py_INCREF(result);
+        goto exit_result_ok;
+
+    exit_result_ok_const_int_0:
+        Py_INCREF(const_int_0);
+        result = const_int_0;
+        goto exit_result_ok;
+
+    exit_result_ok_const_int_neg_1:
+        Py_INCREF(const_int_neg_1);
+        result = const_int_neg_1;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NULL;
+    }
+
+    return __BINARY_OPERATION_RSHIFT_OBJECT_INT_OBJECT(operand1, operand2);
 }
 
 PyObject *BINARY_OPERATION_RSHIFT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
@@ -1291,22 +1581,10 @@ nuitka_bool BINARY_OPERATION_RSHIFT_NBOOL_INT_INT(PyObject *operand1, PyObject *
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-static nuitka_bool _BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_INT(PyObject *operand1,
+                                                                                  PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyInt_Type;
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_RSHIFT_NBOOL_INT_INT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1446,6 +1724,97 @@ exit_binary_result_object:
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
+static nuitka_bool _BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyInt_Type;
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_RSHIFT_NBOOL_INT_INT(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        if (unlikely(b < 0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+            goto exit_result_exception;
+        }
+
+        /* Short cut for zero shift or shifting zero. */
+        if (a == 0 || b == 0) {
+            goto exit_result_ok_left;
+        } else if (b >= LONG_BIT) {
+            if (a < 0) {
+                goto exit_result_ok_const_int_neg_1;
+            } else {
+                goto exit_result_ok_const_int_0;
+            }
+        } else {
+            long r = Py_ARITHMETIC_RIGHT_SHIFT(long, a, b);
+
+            clong_result = r;
+            goto exit_result_ok_clong;
+        }
+
+    exit_result_ok_clong:
+        result = clong_result != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok_left:
+        result = PyInt_AS_LONG(operand1) != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok_const_int_0:
+        result = 0 != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok_const_int_neg_1:
+        result = -1 != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    return __BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_INT(operand1, operand2);
+}
 
 nuitka_bool BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_INT(operand1, operand2);
@@ -1454,22 +1823,10 @@ nuitka_bool BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_INT(PyObject *operand1, PyObjec
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-static nuitka_bool _BINARY_OPERATION_RSHIFT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
-    CHECK_OBJECT(operand2);
-
+static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_RSHIFT_NBOOL_INT_OBJECT(PyObject *operand1,
+                                                                                  PyObject *operand2) {
     PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1 == type2) {
-        assert(type1 == type2);
-
-        return _BINARY_OPERATION_RSHIFT_NBOOL_INT_INT(operand1, operand2);
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1621,6 +1978,97 @@ exit_binary_result_object:
 
 exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
+}
+static nuitka_bool _BINARY_OPERATION_RSHIFT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+
+    PyTypeObject *type1 = &PyInt_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1 == type2) {
+        assert(type1 == type2);
+
+        nuitka_bool result;
+
+        // return _BINARY_OPERATION_RSHIFT_NBOOL_INT_INT(operand1, operand2);
+
+        // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+        NUITKA_MAY_BE_UNUSED bool cbool_result;
+        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+        NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+        CHECK_OBJECT(operand1);
+        assert(PyInt_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand1));
+#endif
+        CHECK_OBJECT(operand2);
+        assert(PyInt_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+        assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+        const long a = PyInt_AS_LONG(operand1);
+        const long b = PyInt_AS_LONG(operand2);
+
+        if (unlikely(b < 0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+            goto exit_result_exception;
+        }
+
+        /* Short cut for zero shift or shifting zero. */
+        if (a == 0 || b == 0) {
+            goto exit_result_ok_left;
+        } else if (b >= LONG_BIT) {
+            if (a < 0) {
+                goto exit_result_ok_const_int_neg_1;
+            } else {
+                goto exit_result_ok_const_int_0;
+            }
+        } else {
+            long r = Py_ARITHMETIC_RIGHT_SHIFT(long, a, b);
+
+            clong_result = r;
+            goto exit_result_ok_clong;
+        }
+
+    exit_result_ok_clong:
+        result = clong_result != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok_left:
+        result = PyInt_AS_LONG(operand1) != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok_const_int_0:
+        result = 0 != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok_const_int_neg_1:
+        result = -1 != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        goto exit_result_ok;
+
+    exit_result_ok:
+        return result;
+
+    exit_result_exception:
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    return __BINARY_OPERATION_RSHIFT_NBOOL_INT_OBJECT(operand1, operand2);
 }
 
 nuitka_bool BINARY_OPERATION_RSHIFT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {

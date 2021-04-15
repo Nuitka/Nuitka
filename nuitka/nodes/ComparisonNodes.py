@@ -88,14 +88,18 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
 
         return self, None, None
 
+    def makeInverseComparision(self):
+        # Making this accessing for tree building phase as well.
+        return makeComparisonExpression(
+            left=self.subnode_left,
+            right=self.subnode_right,
+            comparator=PythonOperators.comparison_inversions[self.comparator],
+            source_ref=self.source_ref,
+        )
+
     def computeExpressionOperationNot(self, not_node, trace_collection):
         if self.getTypeShape() is tshape_bool:
-            result = makeComparisonExpression(
-                left=self.subnode_left,
-                right=self.subnode_right,
-                comparator=PythonOperators.comparison_inversions[self.comparator],
-                source_ref=self.source_ref,
-            )
+            result = self.makeInverseComparision()
 
             result.copyTraceStateFrom(self)
 

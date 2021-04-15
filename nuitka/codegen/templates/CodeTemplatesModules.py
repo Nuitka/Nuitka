@@ -69,9 +69,10 @@ static bool constants_created = false;
 
 /* Function to create module private constants. */
 static void createModuleConstants(void) {
-    loadConstantsBlob(&mod_consts[0], "%(module_const_blob_name)s");
-
-    constants_created = true;
+    if (constants_created == false) {
+        loadConstantsBlob(&mod_consts[0], UNTRANSLATE(%(module_const_blob_name)s));
+        constants_created = true;
+    }
 }
 
 /* For multiprocessing, we want to be able to initialize the __main__ constants. */
@@ -115,6 +116,7 @@ extern PyTypeObject Nuitka_Loader_Type;
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
 // Provide a way to create find a function via its C code and create it back
 // in another process, useful for multiprocessing extensions like dill
+extern void registerDillPluginTables(char const *module_name, PyMethodDef *reduce_compiled_function, PyMethodDef *create_compiled_function);
 
 function_impl_code functable_%(module_identifier)s[] = {
 %(module_function_table_entries)s
@@ -269,27 +271,9 @@ static PyMethodDef _method_def_create_compiled_function = {
 
 #endif
 
-// Actual name might be different when loaded as a package.
-NUITKA_MAY_BE_UNUSED static char const *module_full_name = "%(module_name)s";
-
 // Internal entry point for module code.
 PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *module_entry) {
     module_%(module_identifier)s = module;
-
-#if defined(_NUITKA_EXE) || PYTHON_VERSION >= 0x300
-    static bool _init_done = false;
-
-    // Modules might be imported repeatedly, which is to be ignored.
-    if (_init_done) {
-#ifdef _NUITKA_TRACE
-        PRINT_STRING("%(module_name)s: Skipping module init, already done.\n");
-#endif
-
-        return module_%(module_identifier)s;
-    } else {
-        _init_done = true;
-    }
-#endif
 
 #ifdef _NUITKA_MODULE
     // In case of a stand alone extension module, need to call initialization
@@ -352,18 +336,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
     moduledict_%(module_identifier)s = MODULE_DICT(module_%(module_identifier)s);
 
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
-    {
-        PyObject *function_tables = PyObject_GetAttrString((PyObject *)builtin_module, "compiled_function_tables");
-        if (function_tables == NULL) {
-            DROP_ERROR_OCCURRED();
-            function_tables = PyDict_New();
-        }
-        PyObject_SetAttrString((PyObject *)builtin_module, "compiled_function_tables", function_tables);
-        PyObject *funcs = PyTuple_New(2);
-        PyTuple_SET_ITEM(funcs, 0, PyCFunction_New(&_method_def_reduce_compiled_function, NULL));
-        PyTuple_SET_ITEM(funcs, 1, PyCFunction_New(&_method_def_create_compiled_function, NULL));
-        PyDict_SetItemString(function_tables, module_full_name, funcs);
-    }
+    registerDillPluginTables(module_entry->name, &_method_def_reduce_compiled_function, &_method_def_create_compiled_function);
 #endif
 
     // Set "__compiled__" to what version information we have.
@@ -544,6 +517,10 @@ static struct PyModuleDef mdef_%(module_identifier)s = {
  * gets called. It has to have an exact function name, in cases it's a shared
  * library export. This is hidden behind the MOD_INIT_DECL macro.
  */
+
+// Actual name might be different when loaded as a package.
+static char const *module_full_name = "%(module_name)s";
+
 MOD_INIT_DECL(%(module_identifier)s) {
     if (_Py_PackageContext != NULL) {
         module_full_name = _Py_PackageContext;

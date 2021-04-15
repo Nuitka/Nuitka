@@ -105,12 +105,7 @@ from nuitka.nodes.ModuleNodes import (
     PythonShlibModule,
 )
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
-from nuitka.nodes.OperatorNodesUnary import (
-    ExpressionOperationUnaryAdd,
-    ExpressionOperationUnaryInvert,
-    ExpressionOperationUnaryRepr,
-    ExpressionOperationUnarySub,
-)
+from nuitka.nodes.OperatorNodesUnary import makeExpressionOperationUnary
 from nuitka.nodes.ReturnNodes import makeStatementReturn
 from nuitka.nodes.SliceNodes import makeExpressionBuiltinSlice
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
@@ -555,22 +550,15 @@ def buildExprOnlyNode(provider, node, source_ref):
 def buildUnaryOpNode(provider, node, source_ref):
     operator = getKind(node.op)
 
-    # Delegate this one to existing code.
+    # Delegate this one to boolean operation code.
     if operator == "Not":
         return buildBoolOpNode(provider=provider, node=node, source_ref=source_ref)
 
     operand = buildNode(provider, node.operand, source_ref)
 
-    if operator == "Repr":
-        return ExpressionOperationUnaryRepr(operand=operand, source_ref=source_ref)
-    elif operator == "USub":
-        return ExpressionOperationUnarySub(operand=operand, source_ref=source_ref)
-    elif operator == "UAdd":
-        return ExpressionOperationUnaryAdd(operand=operand, source_ref=source_ref)
-    elif operator == "Invert":
-        return ExpressionOperationUnaryInvert(operand=operand, source_ref=source_ref)
-    else:
-        assert False, operand
+    return makeExpressionOperationUnary(
+        operator=operator, operand=operand, source_ref=source_ref
+    )
 
 
 def buildBinaryOpNode(provider, node, source_ref):
@@ -592,7 +580,8 @@ def buildBinaryOpNode(provider, node, source_ref):
 
 
 def buildReprNode(provider, node, source_ref):
-    return ExpressionOperationUnaryRepr(
+    return makeExpressionOperationUnary(
+        operator="Repr",
         operand=buildNode(provider, node.value, source_ref),
         source_ref=source_ref,
     )
@@ -632,7 +621,9 @@ def buildFormattedValueNode(provider, node, source_ref):
             value=value, encoding=None, errors=None, source_ref=source_ref
         )
     elif conversion == 2:
-        value = ExpressionOperationUnaryRepr(operand=value, source_ref=source_ref)
+        value = makeExpressionOperationUnary(
+            operator="Repr", operand=value, source_ref=source_ref
+        )
     elif conversion == 1:
         value = ExpressionBuiltinAscii(value=value, source_ref=source_ref)
     else:
@@ -765,7 +756,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     if is_module:
         # Add import of "site" module of main programs visibly in the node tree,
         # so recursion and optimization can pick it up, checking its effects.
-        if is_main and "no_site" not in Options.getPythonFlags():
+        if is_main and not Options.hasPythonFlagNoSite():
             for path_imported_name in getPthImportedPackages():
                 statements.append(
                     StatementExpressionOnly(
@@ -1105,7 +1096,7 @@ def buildModuleTree(filename, package, is_top, is_main):
         # Detect to be frozen modules if any, so we can consider to not recurse
         # to them.
         if Options.isStandaloneMode():
-            detectEarlyImports()
+            module.setEarlyModules(detectEarlyImports())
 
     # If there is source code associated (not the case for namespace packages of
     # Python3.3 or higher, then read it.

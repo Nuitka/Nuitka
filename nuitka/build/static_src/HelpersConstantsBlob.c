@@ -1086,18 +1086,7 @@ static void unpackBlobConstants(PyObject **output, unsigned char const *data) {
     _unpackBlobConstants(output, data, count);
 }
 
-#if defined(__has_include)
-#if __has_include("nuitka_data_decoder.h")
-#include "nuitka_data_decoder.h"
-#else
-#define DECODE(x) assert(x)
-#endif
-#else
-#define DECODE(x) assert(x)
-#endif
-
 void loadConstantsBlob(PyObject **output, char const *name) {
-
     static bool init_done = false;
 
     if (init_done == false) {

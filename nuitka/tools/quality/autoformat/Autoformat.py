@@ -35,6 +35,7 @@ from nuitka.tools.quality.Git import (
 from nuitka.tools.quality.ScanSources import isPythonFile
 from nuitka.Tracing import general, my_print
 from nuitka.utils.Execution import (
+    NuitkaCalledProcessError,
     check_call,
     check_output,
     getExecutablePath,
@@ -108,9 +109,18 @@ def _checkRequiredVersion(tool, tool_call):
     else:
         sys.exit("Error, cannot find %r in requirements-devel.txt" % tool)
 
+    if tool == "rstfmt":
+        if "-m" in tool_call:
+            return False, "rstfmt doesn't support that yet."
+        else:
+            return True, "unchecked"
+
     tool_call = list(tool_call) + ["--version"]
 
-    version_output = check_output(tool_call)
+    try:
+        version_output = check_output(tool_call)
+    except NuitkaCalledProcessError:
+        return False, "failed to execute"
 
     if str is not bytes:
         version_output = version_output.decode("utf8")
@@ -277,7 +287,10 @@ def _getPythonBinaryCall(binary_name):
             else:
                 messages.append(message)
 
-        binary_path = getExecutablePath(binary_name)
+        with withEnvironmentPathAdded(
+            "PATH", os.path.join(sys.prefix, "Scripts"), os.path.join(sys.prefix, "bin")
+        ):
+            binary_path = getExecutablePath(binary_name)
 
         if binary_path:
             call = [binary_path]
@@ -344,6 +357,29 @@ def _cleanupImportSortOrder(filename):
 
         with open(filename, "w") as out_file:
             out_file.write(contents)
+
+
+def _cleanupRstFmt(filename):
+    rstfmt_call = _getPythonBinaryCall("rstfmt")
+
+    check_call(
+        rstfmt_call
+        + [
+            filename,
+        ],
+        #        stdout=devnull,
+    )
+
+    cleanupWindowsNewlines(filename)
+
+    with open(filename, "rb") as f:
+        contents = f.read()
+
+    updated_contents = contents.replace(b":\n\n.. code::\n", b"::\n")
+
+    if updated_contents != contents:
+        with open(filename, "wb") as out_file:
+            out_file.write(updated_contents)
 
 
 warned_clang_format = False
@@ -491,9 +527,11 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
         "lintian-overrides",
     )
 
+    is_rst = effective_filename.endswith(".rst")
+
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
-    if not (is_python or is_c or is_txt):
+    if not (is_python or is_c or is_txt or is_rst):
         my_print("Ignored file type.")
         return
 
@@ -530,6 +568,9 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
             cleanupWindowsNewlines(tmp_filename)
             _cleanupTrailingWhitespace(tmp_filename)
             cleanupWindowsNewlines(tmp_filename)
+
+            if is_rst:
+                _cleanupRstFmt(tmp_filename)
 
         _transferBOM(filename, tmp_filename)
 

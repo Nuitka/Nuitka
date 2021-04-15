@@ -22,14 +22,9 @@ from .utils import _range
 if True:  # pragma: no cover
     # import IPython/Jupyter base widget and display utilities
     IPY = 0
-    IPYW = 0
     try:  # IPython 4.x
         import ipywidgets
         IPY = 4
-        try:
-            IPYW = int(ipywidgets.__version__.split('.')[0])
-        except AttributeError:  # __version__ may not exist in old versions
-            pass
     except ImportError:  # IPython 3.x / 2.x
         IPY = 32
         import warnings
@@ -37,7 +32,7 @@ if True:  # pragma: no cover
             warnings.filterwarnings(
                 'ignore', message=".*The `IPython.html` package has been deprecated.*")
             try:
-                import IPython.html.widgets as ipywidgets
+                import IPython.html.widgets as ipywidgets  # NOQA: F401
             except ImportError:
                 pass
 
@@ -248,9 +243,9 @@ class tqdm_notebook(std_tqdm):
         if not self.disable:
             self.display()
 
-    def __iter__(self, *args, **kwargs):
+    def __iter__(self):
         try:
-            for obj in super(tqdm_notebook, self).__iter__(*args, **kwargs):
+            for obj in super(tqdm_notebook, self).__iter__():
                 # return super(tqdm...) will not catch exception
                 yield obj
         # NB: except ... [ as ...] breaks IPython async KeyboardInterrupt
@@ -260,9 +255,9 @@ class tqdm_notebook(std_tqdm):
         # NB: don't `finally: close()`
         # since this could be a shared bar which the user will `reset()`
 
-    def update(self, *args, **kwargs):
+    def update(self, n=1):
         try:
-            return super(tqdm_notebook, self).update(*args, **kwargs)
+            return super(tqdm_notebook, self).update(n=n)
         # NB: except ... [ as ...] breaks IPython async KeyboardInterrupt
         except:  # NOQA
             # cannot catch KeyboardInterrupt when using manual tqdm
@@ -272,8 +267,8 @@ class tqdm_notebook(std_tqdm):
         # NB: don't `finally: close()`
         # since this could be a shared bar which the user will `reset()`
 
-    def close(self, *args, **kwargs):
-        super(tqdm_notebook, self).close(*args, **kwargs)
+    def close(self):
+        super(tqdm_notebook, self).close()
         # Try to detect if there was an error or KeyboardInterrupt
         # in manual mode: if n < total, things probably got wrong
         if self.total and self.n < self.total:
@@ -297,6 +292,8 @@ class tqdm_notebook(std_tqdm):
         ----------
         total  : int or float, optional. Total to use for the new bar.
         """
+        if self.disable:
+            return super(tqdm_notebook, self).reset(total=total)
         _, pbar, _ = self.container.children
         pbar.bar_style = ''
         if total is not None:

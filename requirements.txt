@@ -7,3 +7,6 @@ scons == 3.1.2
 
 # For the progress bar to look nicely.
 tqdm == 4.59.0
+
+# Faster OrderedSet
+orderedset == 2.0.3

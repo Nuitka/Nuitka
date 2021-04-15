@@ -371,6 +371,18 @@ def getFileContentByLine(filename, mode="r", encoding=None):
 
 
 def getFileContents(filename, mode="r", encoding=None):
+    """Get the contents of a file.
+
+    Args:
+        filename: str with the file to be read
+        mode: "r" for str, "rb" for bytes result
+        encoding: optional encoding to used when reading the file, e.g. "utf8"
+
+    Returns:
+        str or bytes - depending on mode.
+
+    """
+
     with withFileLock("reading file %s" % filename):
         if encoding is not None:
             import codecs
@@ -604,6 +616,29 @@ def replaceFileAtomic(source_path, dest_path):
 
 
 def resolveShellPatternToFilenames(pattern):
+    """Resolve shell pattern to filenames.
+
+    Args:
+        pattern - str
+
+    Returns:
+        list - filenames that matched.
+    """
+
     result = glob.glob(pattern)
     result.sort()
     return result
+
+
+@contextmanager
+def withDirectoryChange(path, allow_none=False):
+    """Change current directory temporarily in a context."""
+
+    if path is not None or not allow_none:
+        old_cwd = os.getcwd()
+        os.chdir(path)
+
+    yield
+
+    if path is not None or not allow_none:
+        os.chdir(old_cwd)

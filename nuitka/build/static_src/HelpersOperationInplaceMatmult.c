@@ -59,7 +59,7 @@ static inline bool _BINARY_OPERATION_MATMULT_LONG_LONG_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_matrix_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_matrix_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_matrix_multiply == NULL);
 
     {
         assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_matrix_multiply == NULL ||
@@ -211,7 +211,7 @@ static inline bool _BINARY_OPERATION_MATMULT_LONG_OBJECT_INPLACE(PyObject **oper
 #endif
 
     // No inplace number slot nb_inplace_matrix_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_matrix_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_matrix_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
@@ -304,7 +304,7 @@ static inline bool _BINARY_OPERATION_MATMULT_FLOAT_FLOAT_INPLACE(PyObject **oper
 #endif
 
     // No inplace number slot nb_inplace_matrix_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_matrix_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_matrix_multiply == NULL);
 
     {
         assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_matrix_multiply == NULL ||
@@ -448,7 +448,7 @@ static inline bool _BINARY_OPERATION_MATMULT_FLOAT_OBJECT_INPLACE(PyObject **ope
 #endif
 
     // No inplace number slot nb_inplace_matrix_multiply available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->nb_inplace_matrix_multiply == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_matrix_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;

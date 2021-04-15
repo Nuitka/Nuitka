@@ -28,7 +28,6 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ConstantCodes import getConstantAccess
 from .ErrorCodes import getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .templates.CodeTemplatesCalls import (
@@ -70,7 +69,7 @@ def _generateCallCodePosOnly(
             for call_arg_element in call_args_value:
                 call_arg_name = context.allocateTempName("call_arg_element")
 
-                getConstantAccess(
+                call_arg_name.getCType().emitAssignmentCodeFromConstant(
                     to_name=call_arg_name,
                     constant=call_arg_element,
                     emit=emit,

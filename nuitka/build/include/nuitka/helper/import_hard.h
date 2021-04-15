@@ -41,6 +41,9 @@ extern PyObject *IMPORT_HARD_IMPORTLIB(void);
 /* C helper for hard import of module "os" import. */
 
 extern PyObject *IMPORT_HARD_OS(void);
+/* C helper for hard import of module "pkgutil" import. */
+
+extern PyObject *IMPORT_HARD_PKGUTIL(void);
 /* C helper for hard import of module "site" import. */
 
 extern PyObject *IMPORT_HARD_SITE(void);

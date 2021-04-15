@@ -140,3 +140,28 @@ Extending "dill" for compiled types to be pickable as well.""",
     @staticmethod
     def getPreprocessorSymbols():
         return {"_NUITKA_PLUGIN_DILL_ENABLED": "1"}
+
+    def getExtraCodeFiles(self):
+        return {"DillPlugin.c": extra_code}
+
+
+extra_code = r"""
+#include "nuitka/prelude.h"
+
+void registerDillPluginTables(char const *module_name, PyMethodDef *reduce_compiled_function, PyMethodDef *create_compiled_function) {
+    PyObject *function_tables = PyObject_GetAttrString((PyObject *)builtin_module, "compiled_function_tables");
+
+    if (function_tables == NULL) {
+        DROP_ERROR_OCCURRED();
+        function_tables = PyDict_New();
+        PyObject_SetAttrString((PyObject *)builtin_module, "compiled_function_tables", function_tables);
+    }
+
+    PyObject *funcs = PyTuple_New(2);
+    PyTuple_SET_ITEM(funcs, 0, PyCFunction_New(reduce_compiled_function, NULL));
+    PyTuple_SET_ITEM(funcs, 1, PyCFunction_New(create_compiled_function, NULL));
+
+    PyDict_SetItemString(function_tables, module_name, funcs);
+}
+
+"""

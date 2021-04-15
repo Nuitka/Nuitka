@@ -22,6 +22,10 @@
  *
  */
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 #include "nuitka/prelude.h"
 
 #ifndef __IDE_ONLY__
@@ -41,10 +45,6 @@
 
 #include <osdefs.h>
 #include <structseq.h>
-
-#if defined(_WIN32)
-#include <windows.h>
-#endif
 
 extern PyCodeObject *codeobj_main;
 

@@ -21,6 +21,7 @@ Some of these come from built-ins, e.g. abs, some from syntax, and repr from bot
 """
 from nuitka import PythonOperators
 
+from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionChildHavingBase
 from .shapes.BuiltinTypeShapes import tshape_bool, tshape_str
 
@@ -256,3 +257,32 @@ class ExpressionOperationUnaryAbs(ExpressionOperationUnaryBase):
             return True
 
         return operand.mayHaveSideEffectsAbs()
+
+
+def makeExpressionOperationUnary(operator, operand, source_ref):
+    if operator == "Repr":
+        unary_class = ExpressionOperationUnaryRepr
+    elif operator == "USub":
+        unary_class = ExpressionOperationUnarySub
+    elif operator == "UAdd":
+        unary_class = ExpressionOperationUnaryAdd
+    elif operator == "Invert":
+        unary_class = ExpressionOperationUnaryInvert
+    else:
+        assert False, operand
+
+    # Shortcut these unary operations, avoiding "-1", etc. to ever become one.
+    if operand.isCompileTimeConstant():
+        try:
+            constant = unary_class.simulator(operand.getCompileTimeConstant())
+        except Exception:  # Catch all the things, pylint: disable=broad-except
+            # Compile time detectable error, postpone these, so they get traced.
+            pass
+        else:
+            return makeConstantRefNode(
+                constant=constant,
+                source_ref=source_ref,
+                user_provided=getattr(operand, "user_provided", False),
+            )
+
+    return unary_class(operand=operand, source_ref=source_ref)

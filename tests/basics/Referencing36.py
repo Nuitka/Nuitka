@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Reference counting tests.
+""" Reference counting tests for Python3.6 or higher.
 
 These contain functions that do specific things, where we have a suspect
 that references may be lost or corrupted. Executing them repeatedly and
@@ -27,6 +27,9 @@ not be relevant on older versions.
 
 import os
 import sys
+
+# While we use that for comparison code, no need to compile that.
+# nuitka-project: --nofollow-import-to=nuitka
 
 # Find nuitka package relative to us.
 sys.path.insert(

@@ -27,10 +27,12 @@ and despite the long deprecation, it's in every later release.
 """
 
 import os
+import re
 import sys
 from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
 from nuitka.utils import Utils
+from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.Version import getNuitkaVersion
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
@@ -323,8 +325,22 @@ data_group.add_option(
 Include data files by filenames in the distribution. Could use patterns for
 use in glob, if specifying a directory with trailing slash. An example would
 be --include-data-file=/etc/somefile.txt=etc/somefile.txt for plain file copy,
-and you can copy multiple like --include-data-file=/etc/*.txt:etc/ with a
+and you can copy multiple like --include-data-file=/etc/*.txt=etc/ with a
 trailing slash required to use the pattern. Default empty.""",
+)
+
+data_group.add_option(
+    "--include-data-dir",
+    action="append",
+    dest="data_dirs",
+    metavar="DATA_DIRS",
+    default=[],
+    help="""\
+Include data files from complete directory in the distribution. This is
+recursive. Check --include-data-file with patterns if you want non-recursive
+inclusion. An example would be --include-data-dir=/path/somedir=data/somedir
+for plain copy, of the whole directory. All files are copied, if you want to
+exclude files you need to remove them beforehand. Default empty.""",
 )
 
 
@@ -1028,7 +1044,107 @@ def _considerPluginOptions(logger):
             addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
 
 
+def _expandProjectArg(arg, filename_arg, for_eval):
+    def wrap(value):
+        if for_eval:
+            return repr(value)
+        else:
+            return value
+
+    values = {
+        "OS": wrap(Utils.getOS()),
+        "Arch": wrap(Utils.getArchitecture()),
+        "Version": getNuitkaVersion(),
+        "MAIN_DIRECTORY": wrap(os.path.dirname(filename_arg) or "."),
+    }
+    arg = arg.format(**values)
+
+    return arg
+
+
+def _getProjectOptions(logger, filename_arg, module_mode):
+    # Complex stuff, pylint: disable=too-many-branches,too-many-locals
+
+    if os.path.isdir(filename_arg):
+        if module_mode:
+            filename_arg = os.path.join(filename_arg, "__init__.py")
+        else:
+            filename_arg = os.path.join(filename_arg, "__main__.py")
+
+    # The file specified may not exist, let the later parts of Nuitka handle this.
+    try:
+        contents_by_line = getFileContentByLine(filename_arg, "rb")
+    except (OSError, IOError):
+        return
+
+    def sysexit(count, message):
+        logger.sysexit("%s:%d %s" % (filename_arg, count + 1, message))
+
+    execute_block = True
+    expect_block = False
+
+    cond_level = -1
+
+    for count, line in enumerate(contents_by_line):
+        match = re.match(b"^\\s*#(\\s+)nuitka-project(.*?):(.*)", line)
+
+        if match:
+            level, command, arg = match.groups()
+            level = len(level)
+
+            # Check for empty conditional blocks.
+            if expect_block and level <= cond_level:
+                sysexit(
+                    count,
+                    "Error, 'nuitka-project-if' is expected to be followed by block start.",
+                )
+
+            expect_block = False
+
+            if level <= cond_level:
+                execute_block = True
+
+            if level > cond_level and not execute_block:
+                continue
+
+            if str is not bytes:
+                command = command.decode("utf8")
+                arg = arg.decode("utf8")
+
+            if command == "-if":
+                if not arg.endswith(":"):
+                    sysexit(
+                        count,
+                        "Error, 'nuitka-project-if' needs to start a block with a colon.",
+                    )
+
+                arg = arg[:-1]
+
+                expanded = _expandProjectArg(arg, filename_arg, for_eval=True)
+                r = eval(  # We allow the user to run any code, pylint: disable=eval-used
+                    expanded
+                )
+
+                # Likely mistakes, e.g. with "in" tests.
+                if r is not True and r is not False:
+                    sys.exit(
+                        "Error, 'nuitka-project-if' condition %r (%r) does not yield boolean result %r"
+                        % (arg, expanded, r)
+                    )
+
+                execute_block = r
+                expect_block = True
+                cond_level = level
+            elif command == "":
+                yield _expandProjectArg(arg.lstrip(), filename_arg, for_eval=False)
+            else:
+                assert False, (command, line)
+
+
 def parseOptions(logger):
+    # Pretty complex code, having a small options parser and many details as
+    # well as integrating with plugins and run modes, pylint: disable=too-many-branches
+
     # First, isolate the first non-option arguments.
     extra_args = []
 
@@ -1040,6 +1156,7 @@ def parseOptions(logger):
                 continue
 
             if arg[0] != "-":
+                filename_arg = arg[0]
                 break
 
             # Treat "--" as a terminator.
@@ -1050,6 +1167,23 @@ def parseOptions(logger):
         if count > 0:
             extra_args = sys.argv[count + 1 :]
             sys.argv = sys.argv[0 : count + 1]
+
+    filename_arg = None
+
+    for count, arg in enumerate(sys.argv):
+        if count == 0:
+            continue
+
+        if arg[0] != "-":
+            filename_arg = arg
+            break
+
+    if filename_arg is not None:
+        sys.argv = (
+            [sys.argv[0]]
+            + list(_getProjectOptions(logger, filename_arg, "--module" in sys.argv[1:]))
+            + sys.argv[1:]
+        )
 
     # Next, lets activate plugins early, so they can inject more options to the parser.
     _considerPluginOptions(logger)

@@ -27,6 +27,8 @@
 
 #define NUITKA_ABORT_MODULE_FLAG 8
 
+#define NUITKA_TRANSLATED_FLAG 16
+
 struct Nuitka_MetaPathBasedLoaderEntry;
 
 typedef PyObject *(*module_initfunc)(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *module_entry);

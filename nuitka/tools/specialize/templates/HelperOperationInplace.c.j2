@@ -42,7 +42,7 @@
     }
 {% else %}
     // No inplace number slot {{ nb_islot }} available for this type.
-    assert(type2->tp_as_number == NULL || type2->tp_as_number->{{ nb_islot }} == NULL);
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->{{ nb_islot }} == NULL);
 {% endif %}
 
     {

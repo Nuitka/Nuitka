@@ -118,11 +118,16 @@ else:
 
 if str is bytes:
     to_byte = chr
+    from_byte = ord
 else:
 
     def to_byte(value):
         assert type(value) is int and 0 <= value < 256
         return bytes((value,))
+
+    def from_byte(value):
+        assert type(value) is bytes and len(value) == 1, value
+        return value[0]
 
 
 def getMetaClassBase(meta_class_prefix):

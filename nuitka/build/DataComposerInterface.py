@@ -70,7 +70,7 @@ def deriveModuleConstantsBlobName(filename):
     elif basename == "__bytecode":
         return ".bytecode"
     else:
-        # Stripe "module." prefix"
+        # Strip "module." prefix"
         basename = basename[7:]
 
         return basename

@@ -260,7 +260,6 @@ class FileLogger(OurLogger):
 
 
 general = OurLogger("Nuitka")
-codegen_missing = OurLogger("Nuitka-codegen-missing")
 plugins_logger = OurLogger("Nuitka-Plugins")
 recursion_logger = OurLogger("Nuitka-Recursion")
 progress_logger = OurLogger("Nuitka-Progress", quiet=True)
