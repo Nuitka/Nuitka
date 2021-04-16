@@ -40,10 +40,24 @@ class NuitkaPluginResources(NuitkaPluginBase):
         else:
             self.pkg_resources = pkg_resources
 
+        try:
+            import importlib_metadata
+        except ImportError:
+            self.metadata = None
+        else:
+            self.metadata = importlib_metadata
+
+        try:
+            import metadata
+
+            self.metadata = metadata
+        except ImportError:
+            pass
+
     def onModuleSourceCode(self, module_name, source_code):
         if self.pkg_resources:
             for match in re.findall(
-                r"""(pkg_resources\.get_distribution\(\s*['"](.*?)['"]\s*\)\.((?:parsed_)?version))""",
+                r"""\b(pkg_resources\.get_distribution\(\s*['"](.*?)['"]\s*\)\.((?:parsed_)?version))""",
                 source_code,
             ):
                 value = self.pkg_resources.get_distribution(match[1]).version
@@ -57,6 +71,16 @@ class NuitkaPluginResources(NuitkaPluginBase):
 
                 source_code = source_code.replace(match[0], value)
 
+        if self.metadata:
+            for match in re.findall(
+                r"""\b((?:importlib_)?metadata\.version\(\s*['"](.*?)['"]\s*\))""",
+                source_code,
+            ):
+                value = self.metadata.version(match[1])
+                value = repr(value)
+
+                source_code = source_code.replace(match[0], value)
+
         return source_code
 
 
@@ -65,6 +89,19 @@ class NuitkaPluginDetectorPkgResources(NuitkaPluginBase):
 
     def checkModuleSourceCode(self, module_name, source_code):
         if re.search(
-            r"pkg_resources\.get_distribution\(.*?\)\.(?:parsed_)?version", source_code
+            r"""\bpkg_resources\.get_distribution\(\s*['"].*?['"]\s*\)\.(?:parsed_)?version""",
+            source_code,
         ):
-            self.warnUnusedPlugin("Resolve pkg_resources version information.")
+            self.warnUnusedPlugin(
+                "Resolve 'pkg_resources' distribution version information."
+            )
+
+        if re.search(r"""\bimportlib_metadata\.version\(['"].*?['"]\)""", source_code):
+            self.warnUnusedPlugin(
+                "Resolve 'importlib_metadata' distribution version information."
+            )
+
+        if re.search(r"""\bmetadata\.version\(\s*['"].*?['"]\s*\)""", source_code):
+            self.warnUnusedPlugin(
+                "Resolve 'metadata' distribution version information."
+            )
