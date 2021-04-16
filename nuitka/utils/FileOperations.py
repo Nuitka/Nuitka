@@ -487,7 +487,7 @@ def copyTree(source_path, dest_path):
     # False alarm on travis, pylint: disable=I0021,import-error,no-name-in-module
     from distutils.dir_util import copy_tree
 
-    copy_tree(source_path, dest_path)
+    return copy_tree(source_path, dest_path)
 
 
 def getWindowsDrive(path):

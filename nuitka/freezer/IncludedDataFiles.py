@@ -37,5 +37,11 @@ def makeIncludedEmptyDirectories(source_path, dest_paths, reason):
 
 def makeIncludedDataFile(source_path, dest_path, reason):
     return IncludedDataFile(
-        kind="datafile", source_path=source_path, dest_path=dest_path, reason=reason
+        kind="data_file", source_path=source_path, dest_path=dest_path, reason=reason
+    )
+
+
+def makeIncludedDataDirectory(source_path, dest_path, reason):
+    return IncludedDataFile(
+        kind="data_dir", source_path=source_path, dest_path=dest_path, reason=reason
     )

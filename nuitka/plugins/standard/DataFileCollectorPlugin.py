@@ -24,7 +24,10 @@ import os
 from nuitka import Options
 from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
 from nuitka.containers.oset import OrderedSet
-from nuitka.freezer.IncludedDataFiles import makeIncludedEmptyDirectories
+from nuitka.freezer.IncludedDataFiles import (
+    makeIncludedDataDirectory,
+    makeIncludedEmptyDirectories,
+)
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import getFileList, listDir
 
@@ -164,26 +167,24 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     }
 
     # data files to be copied are contained in subfolders named as the second item
-    # the 3rd item indicates whether to recreate toe folder structure only (True),
-    # or indeed also copy the files.
-    known_data_folders = {
-        "botocore": (_getSubDirectoryFiles, "data"),
-        "boto3": (_getSubDirectoryFiles, "data"),
-        "sklearn.datasets": (_getSubDirectoryFiles, ("data", "descr")),
-        "osgeo": (_getSubDirectoryFiles, "data"),
-        "pyphen": (_getSubDirectoryFiles, "dictionaries"),
-        "pendulum": (_getSubDirectoryFolders, "locales"),
-        "pytz": (_getSubDirectoryFiles, "zoneinfo"),
-        "pytzdata": (_getSubDirectoryFiles, "zoneinfo"),
-        "pywt": (_getSubDirectoryFiles, "data"),
-        "skimage": (
-            _getSubDirectoryFiles,
-            "data",
-        ),
-        "weasyprint": (_getSubDirectoryFiles, "css"),
-        "xarray": (_getSubDirectoryFiles, "static"),
-        #        "eventlet": (_getPackageFiles, "dns"),
-        "gooey": (_getSubDirectoryFiles, ("languages", "images")),
+    known_data_dirs = {
+        "botocore": "data",
+        "boto3": "data",
+        "sklearn.datasets": ("data", "descr"),
+        "osgeo": "data",
+        "pyphen": "dictionaries",
+        "pytz": "zoneinfo",
+        "pytzdata": "zoneinfo",
+        "pywt": "data",
+        "skimage": "data",
+        "weasyprint": "css",
+        "xarray": "static",
+        "gooey": ("languages", "images"),
+        "jsonschema": "schemas",
+    }
+
+    known_data_dir_structure = {
+        "pendulum": "locales",
     }
 
     generated_data_files = {
@@ -204,6 +205,8 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         return True
 
     def considerDataFiles(self, module):
+        # Many cases to deal with, pylint: disable=too-many-branches
+
         module_name = module.getFullName()
         module_folder = module.getCompileTimeDirectory()
 
@@ -220,11 +223,28 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                         os.path.normpath(os.path.join(target_dir, filename)),
                     )
 
-        if module_name in self.known_data_folders:
-            func, subdir = self.known_data_folders[module_name]
+        if module_name in self.known_data_dirs:
+            data_dirs = self.known_data_dirs[module_name]
 
-            for item in func(module, subdir):
-                yield item
+            if type(data_dirs) is not tuple:
+                data_dirs = (data_dirs,)
+
+            for data_dir in data_dirs:
+                yield makeIncludedDataDirectory(
+                    os.path.join(module_folder, data_dir),
+                    os.path.join(module_name.asPath(), data_dir),
+                    "package data for %r" % module_name.asString(),
+                )
+
+        if module_name in self.known_data_dir_structure:
+            empty_dirs = self.known_data_dir_structure[module_name]
+
+            if type(empty_dirs) is not tuple:
+                empty_dirs = (empty_dirs,)
+
+            for empty_dir in empty_dirs:
+                for item in _getSubDirectoryFolders(module, empty_dir):
+                    yield item
 
         if module_name in self.generated_data_files:
             for target_dir, filename, func in self.generated_data_files[module_name]:

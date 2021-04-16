@@ -56,6 +56,7 @@ from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import getNullInput, withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
+    copyTree,
     getDirectoryRealPath,
     getFileContentByLine,
     getFileContents,
@@ -85,7 +86,7 @@ from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
 
 from .DependsExe import detectDLLsWithDependencyWalker
-from .IncludedDataFiles import IncludedDataFile
+from .IncludedDataFiles import IncludedDataFile, makeIncludedDataFile
 
 
 def loadCodeObjectData(precompiled_filename):
@@ -1286,7 +1287,7 @@ def _handleDataFile(dist_dir, tracer, included_datafile):
 
             for sub_dir in included_datafile.dest_path:
                 makePath(os.path.join(dist_dir, sub_dir))
-        elif included_datafile.kind == "datafile":
+        elif included_datafile.kind == "data_file":
             dest_path = os.path.join(dist_dir, included_datafile.dest_path)
 
             tracer.info(
@@ -1299,6 +1300,20 @@ def _handleDataFile(dist_dir, tracer, included_datafile):
 
             makePath(os.path.dirname(dest_path))
             shutil.copyfile(included_datafile.source_path, dest_path)
+        elif included_datafile.kind == "data_dir":
+            dest_path = os.path.join(dist_dir, included_datafile.dest_path)
+            makePath(os.path.dirname(dest_path))
+
+            copied = copyTree(included_datafile.source_path, dest_path)
+
+            tracer.info(
+                "Included data dir %r with %d files due to %s."
+                % (
+                    included_datafile.dest_path,
+                    len(copied),
+                    included_datafile.reason,
+                )
+            )
         else:
             assert False, included_datafile
     else:
@@ -1417,6 +1432,3 @@ def copyDataFiles(dist_dir):
                         )
 
                 # assert False, (module.getCompileTimeDirectory(), pkg_files)
-
-
-from .IncludedDataFiles import makeIncludedDataFile
