@@ -19,17 +19,60 @@
 
 """
 
+import hashlib
 import marshal
+import os
 
 from nuitka import Options
 from nuitka.importing.ImportCache import (
     isImportedModuleByName,
     replaceImportedModule,
 )
+from nuitka.importing.Importing import getPackageSearchPath, isPackageDir
 from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import inclusion_logger
+from nuitka.utils.AppDirs import getCacheDir
+from nuitka.utils.FileOperations import listDir, makePath
+from nuitka.utils.Importing import getAllModuleSuffixes
+
+
+def getModuleImportableFilesHash(full_name):
+    package_name = full_name.getPackageName()
+
+    paths = getPackageSearchPath(None)
+
+    if package_name is not None:
+        paths += getPackageSearchPath(package_name)
+
+    all_suffixes = getAllModuleSuffixes()
+
+    result_hash = hashlib.md5()
+
+    for count, path in enumerate(paths):
+        if not os.path.isdir(path):
+            continue
+
+        for fullname, filename in listDir(path):
+            if isPackageDir(fullname) or filename.endswith(all_suffixes):
+                entry = "%s:%s" % (count, filename)
+
+                if str is not bytes:
+                    entry = entry.encode("utf8")
+
+                result_hash.update(entry)
+
+    return result_hash.hexdigest()
+
+
+def _getCacheFilename(full_name, module_importables_hash):
+    module_cache_dir = os.path.join(getCacheDir(), "module-imports-cache")
+    makePath(module_cache_dir)
+
+    return os.path.join(
+        module_cache_dir, "%s-%s.txt" % (full_name.asString(), module_importables_hash)
+    )
 
 
 def demoteCompiledModuleToBytecode(module):
@@ -66,7 +109,9 @@ def demoteCompiledModuleToBytecode(module):
         technical=False,
     )
 
-    uncompiled_module.setUsedModules(module.getUsedModules())
+    used_modules = module.getUsedModules()
+
+    uncompiled_module.setUsedModules(used_modules)
     module.finalize()
 
     if isImportedModuleByName(full_name):
@@ -77,3 +122,9 @@ def demoteCompiledModuleToBytecode(module):
 
     if isTriggerModule(module):
         replaceTriggerModule(old=module, new=uncompiled_module)
+
+    module_importables_hash = getModuleImportableFilesHash(full_name)
+
+    with open(_getCacheFilename(full_name, module_importables_hash), "w") as cache_file:
+        for module_name, _filename in used_modules:
+            cache_file.write(module_name.asString() + "\n")

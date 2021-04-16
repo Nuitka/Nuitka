@@ -24,7 +24,6 @@ make others possible.
 
 
 import inspect
-import os
 
 from nuitka import ModuleRegistry, Options, Variables
 from nuitka.importing import ImportCache
@@ -41,8 +40,6 @@ from nuitka.Tracing import (
     progress_logger,
     recursion_logger,
 )
-from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.FileOperations import makePath
 from nuitka.utils.MemoryUsage import (
     MemoryWatch,
     getHumanReadableProcessMemoryUsage,
@@ -356,30 +353,10 @@ def makeOptimizationPass():
     return finished
 
 
-def _getCacheFilename(module):
-    module_cache_dir = os.path.join(getCacheDir(), "module-cache")
-    makePath(module_cache_dir)
-
-    return os.path.join(module_cache_dir, module.getFullName().asString() + ".xml")
-
-
-def _checkXMLPersistence():
-    for module in ModuleRegistry.getDoneModules():
-        if not module.isCompiledPythonModule():
-            continue
-
-        text = module.asXmlText()
-        with open(_getCacheFilename(module), "w") as f:
-            f.write(text)
-
-
 def optimize(output_filename):
     Graphs.startGraph()
 
     finished = makeOptimizationPass()
-
-    if Options.isExperimental("check_xml_persistence"):
-        _checkXMLPersistence()
 
     # Demote compiled modules to bytecode, now that imports had a chance to be resolved, and
     # dependencies were handled.
