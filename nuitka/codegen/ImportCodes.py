@@ -20,6 +20,7 @@
 That is import as expression, and star import.
 """
 
+from nuitka.nodes.ImportNodes import hard_modules
 from nuitka.nodes.LocalsScopes import GlobalsDictHandle
 from nuitka.PythonVersions import python_version
 
@@ -150,7 +151,7 @@ def generateImportModuleNameHardCode(to_name, expression, emit, context):
 
         if module_name == "sys":
             emit("""%s = PySys_GetObject((char *)"%s");""" % (value_name, import_name))
-        elif module_name in ("os", "__future__", "importlib._bootstrap"):
+        elif module_name in hard_modules:
             emitLineNumberUpdateCode(emit, context)
 
             # TODO: The import name wouldn't have to be an object really, could do with a
