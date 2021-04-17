@@ -26,17 +26,23 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <wchar.h>
 
 /* Type bool */
 #ifndef __cplusplus
 #include "stdbool.h"
 #endif
 
+#if defined(_WIN32)
 #include <Shlobj.h>
 #include <windows.h>
 
 #ifndef CSIDL_LOCAL_APPDATA
 #define CSIDL_LOCAL_APPDATA 28
+#endif
+
 #endif
 
 #define NUITKA_PRINT_TRACE(arg)

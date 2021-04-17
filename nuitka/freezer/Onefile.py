@@ -51,10 +51,10 @@ def packDistFolderToOnefile(dist_dir, binary_filename):
 
     onefile_output_filename = getResultFullpath(onefile=True)
 
-    if getOS() == "Linux":
+    if getOS() == "Windows" or Options.isExperimental("onefile-bootstrap"):
+        packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir)
+    elif getOS() == "Linux":
         packDistFolderToOnefileLinux(onefile_output_filename, dist_dir, binary_filename)
-    elif getOS() == "Windows":
-        packDistFolderToOnefileWindows(onefile_output_filename, dist_dir)
     else:
         postprocessing_logger.sysexit(
             "Onefile mode is not yet available on %r." % getOS()
@@ -214,7 +214,7 @@ def _runOnefileScons(quiet):
 
     onefile_env_values = {}
 
-    if Options.isWindowsOnefileTempDirMode():
+    if Options.isWindowsOnefileTempDirMode() or getOS() != "Windows":
         onefile_env_values["ONEFILE_TEMP_SPEC"] = Options.getWindowsOnefileTempDirSpec(
             use_default=True
         )
@@ -265,7 +265,7 @@ def _pickCompressor():
         return b"X", lambda data: data
 
 
-def packDistFolderToOnefileWindows(onefile_output_filename, dist_dir):
+def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
     postprocessing_logger.info(
         "Creating single file from dist folder, this may take a while."
     )
