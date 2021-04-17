@@ -36,7 +36,7 @@ Depends: gcc (>= 5.0) | g++ (>= 4.4) | clang (>= 3.0),
          python3-appdirs | base-files (<< 7.2),
          python3-dev,
          ccache,
-         base-files (>= 11) | python-dev (>= 2.6.6-2),
+         base-files (>= 11),
          ${misc:Depends},
          ${python:Depends},
          ${python3:Depends}
