@@ -1292,7 +1292,7 @@ if gcc_mode:
         assume_yes_for_downloads=assume_yes_for_downloads,
     )
 
-if msvc_mode and False:
+if msvc_mode:
     enableClcache(
         the_compiler=the_compiler,
         env=env,
