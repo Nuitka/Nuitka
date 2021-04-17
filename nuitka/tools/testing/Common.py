@@ -1091,7 +1091,7 @@ Defaults to off.""",
     elif mode == "coverage":
         return SearchModeCoverage()
     else:
-        assert False
+        test_logger.sysexit("Error, using unknown search mode %r" % mode)
 
 
 def reportSkip(reason, dirname, filename):
