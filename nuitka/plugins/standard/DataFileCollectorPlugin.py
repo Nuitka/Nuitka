@@ -26,6 +26,7 @@ from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builti
 from nuitka.containers.oset import OrderedSet
 from nuitka.freezer.IncludedDataFiles import (
     makeIncludedDataDirectory,
+    makeIncludedDataFile,
     makeIncludedEmptyDirectories,
 )
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -37,21 +38,17 @@ def _createEmptyDirText(filename):
     return ""
 
 
-def _getSubDirectoryFiles2(module, subdirs, folders_only):
-    """Get filenames or dirnames in given subdirs of the module.
+def _getSubDirectoryFolders(module, subdirs):
+    """Get dirnames in given subdirs of the module.
 
     Notes:
-        All filenames in folders below one of the subdirs are recursively
+        All dirnames in folders below one of the subdirs are recursively
         retrieved and returned shortened to begin with the string of subdir.
     Args:
         module: module object
         subdirs: sub folder name(s) - str or None or tuple
-        folders_only: (bool) indicate, whether just the folder structure should
-            be generated. In that case, an empty file named DUMMY will be
-            placed in each of these folders.
-    Yields:
-        Tuples of paths (source, dest) are yielded if folders_only is False,
-        else IncludedDataFile instances for empty dirs.
+    Returns:
+        makeIncludedEmptyDirectories of found dirnames.
     """
 
     module_dir = module.getCompileTimeDirectory()
@@ -101,28 +98,14 @@ def _getSubDirectoryFiles2(module, subdirs, folders_only):
     for f in file_list:
         target = os.path.join(package_part, os.path.relpath(f, module_dir))
 
-        if folders_only:
-            dir_name = os.path.dirname(target)
-            item_set.add(dir_name)
-        else:
-            item_set.add((f, target))
+        dir_name = os.path.dirname(target)
+        item_set.add(dir_name)
 
-    if folders_only:
-        return makeIncludedEmptyDirectories(
-            source_path=module_dir,
-            dest_paths=item_set,
-            reason="Subdirectories of module %s" % module.getFullName(),
-        )
-
-    return item_set
-
-
-def _getSubDirectoryFiles(module, subdirs):
-    return _getSubDirectoryFiles2(module, subdirs, False)
-
-
-def _getSubDirectoryFolders(module, subdirs):
-    return _getSubDirectoryFiles2(module, subdirs, True)
+    return makeIncludedEmptyDirectories(
+        source_path=module_dir,
+        dest_paths=item_set,
+        reason="Subdirectories of module %s" % module.getFullName(),
+    )
 
 
 class NuitkaPluginDataFileCollector(NuitkaPluginBase):
@@ -239,12 +222,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         if module_name in self.known_data_dir_structure:
             empty_dirs = self.known_data_dir_structure[module_name]
 
-            if type(empty_dirs) is not tuple:
-                empty_dirs = (empty_dirs,)
-
-            for empty_dir in empty_dirs:
-                for item in _getSubDirectoryFolders(module, empty_dir):
-                    yield item
+            yield _getSubDirectoryFolders(module, empty_dirs)
 
         if module_name in self.generated_data_files:
             for target_dir, filename, func in self.generated_data_files[module_name]:
@@ -254,8 +232,14 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                 yield (func, os.path.normpath(os.path.join(target_dir, filename)))
 
         if module_name == "lib2to3.pgen2":
+            # TODO: Support patterns of files in known_data_files as
+            # that would cover this.
             for source_path, filename in listDir(os.path.join(module_folder, "..")):
                 if not filename.endswith(".pickle"):
                     continue
 
-                yield (source_path, os.path.normpath(os.path.join("lib2to3", filename)))
+                yield makeIncludedDataFile(
+                    source_path,
+                    os.path.join("lib2to3", filename),
+                    "package data for %r" % module_name.asString(),
+                )
