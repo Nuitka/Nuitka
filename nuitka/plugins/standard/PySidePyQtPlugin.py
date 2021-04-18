@@ -701,14 +701,16 @@ class NuitkaPluginPySide2Plugins(NuitkaPluginQtBindingsPluginBase):
     binding_name = "PySide2"
 
     def __init__(self, qt_plugins):
-        if python_version < 0x360:
-            self.sysexit("Error, PySide2 is not supported with Nuitka on CPython <3.6.")
-
         if self._getNuitkaPatchLevel() < 1:
             self.warning(
                 """\
 This PySide2 version only partially supported through workarounds, full support: https://nuitka.net/pages/pyside2.html"""
             )
+
+            if python_version < 0x360:
+                self.sysexit(
+                    "Error, unpatched PySide2 is not supported before CPython <3.6."
+                )
 
         NuitkaPluginQtBindingsPluginBase.__init__(self, qt_plugins)
 
