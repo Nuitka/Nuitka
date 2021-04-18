@@ -94,18 +94,32 @@ def _injectCcache(the_compiler, cc_path, env, python_prefix, assume_yes_for_down
 
                     break
 
-        if ccache_binary is None and os.name == "nt":
-            url = "https://github.com/ccache/ccache/releases/download/v3.7.12/ccache-3.7.12-windows-32.zip"
-            ccache_binary = getCachedDownload(
-                url=url,
-                is_arch_specific=False,
-                specifity=url.rsplit("/", 2)[1],
-                flatten=True,
-                binary="ccache.exe",
-                message="Nuitka will make use of ccache to speed up repeated compilation.",
-                reject=None,
-                assume_yes_for_downloads=assume_yes_for_downloads,
-            )
+        if ccache_binary is None:
+            if getOS() == "Windows" and isWin32Windows():
+                url = "https://github.com/ccache/ccache/releases/download/v3.7.12/ccache-3.7.12-windows-32.zip"
+                ccache_binary = getCachedDownload(
+                    url=url,
+                    is_arch_specific=False,
+                    specifity=url.rsplit("/", 2)[1],
+                    flatten=True,
+                    binary="ccache.exe",
+                    message="Nuitka will make use of ccache to speed up repeated compilation.",
+                    reject=None,
+                    assume_yes_for_downloads=assume_yes_for_downloads,
+                )
+            elif getOS() == "Darwin":
+                url = "https://nuitka.net/ccache/v4.2.1/ccache-4.2.1.zip"
+
+                ccache_binary = getCachedDownload(
+                    url=url,
+                    is_arch_specific=False,
+                    specifity=url.rsplit("/", 2)[1],
+                    flatten=True,
+                    binary="ccache",
+                    message="Nuitka will make use of ccache to speed up repeated compilation.",
+                    reject=None,
+                    assume_yes_for_downloads=assume_yes_for_downloads,
+                )
 
     else:
         scons_details_logger.info(
