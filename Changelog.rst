@@ -187,7 +187,7 @@ in the main file should prove to be very useful.
    naturally.
 
 -  Patches for ``PySide2`` are available to commercial customers, see
-   `PySide2 support <https://nuitka.net/pyside2.html>`__ page.
+   `PySide2 support <https://nuitka.net/pages/pyside2.html>`__ page.
 
 -  Formatted all documents with ``rstfmt`` and made that part of the
    commit hook for Nuitka. It now works for all documents we have.
