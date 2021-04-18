@@ -204,8 +204,6 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         return True
 
     def considerDataFiles(self, module):
-        # pylint: disable=too-many-branches
-
         module_name = module.getFullName()
         module_folder = module.getCompileTimeDirectory()
 
@@ -225,15 +223,8 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         if module_name in self.known_data_folders:
             func, subdir = self.known_data_folders[module_name]
 
-            # TODO: Temporary workaround until merge with develop with revamped this code
-            # by a lot.
-            r = func(module, subdir)
-
-            if r[0] == "empty_dirs":
-                yield r
-            else:
-                for item in r:
-                    yield item
+            for item in func(module, subdir):
+                yield item
 
         if module_name in self.generated_data_files:
             for target_dir, filename, func in self.generated_data_files[module_name]:
