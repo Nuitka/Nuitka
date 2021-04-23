@@ -70,9 +70,15 @@ def _getAppImageToolPath(for_operation, assume_yes_for_downloads):
     directory for Nuitka.
     """
 
+    arch_name = getArchitecture()
+
+    # Mismatch between Debian arch name and appimage arch naming.
+    if arch_name == "armv7l":
+        arch_name = "armhf"
+
     appimagetool_url = (
         "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-%s.AppImage"
-        % getArchitecture()
+        % arch_name
     )
 
     return getCachedDownload(

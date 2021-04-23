@@ -1025,6 +1025,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "py._path.local"
         elif full_name == "pyreadstat._readstat_parser":
             yield "pandas"
+        elif full_name == "pyreadstat.pyreadstat":
+            yield "pyreadstat._readstat_writer"
+            yield "pyreadstat.worker"
         elif full_name == "cytoolz.itertoolz":
             yield "cytoolz.utils"
         elif full_name == "cytoolz.functoolz":
