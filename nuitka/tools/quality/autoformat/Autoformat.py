@@ -109,12 +109,6 @@ def _checkRequiredVersion(tool, tool_call):
     else:
         sys.exit("Error, cannot find %r in requirements-devel.txt" % tool)
 
-    if tool == "rstfmt":
-        if "-m" in tool_call:
-            return False, "rstfmt doesn't support that yet."
-        else:
-            return True, "unchecked"
-
     tool_call = list(tool_call) + ["--version"]
 
     try:
@@ -132,6 +126,9 @@ def _checkRequiredVersion(tool, tool_call):
             actual_version = line.split()[-1]
             break
         if line.startswith("VERSION "):
+            actual_version = line.split()[-1]
+            break
+        if line.startswith("rstfmt "):
             actual_version = line.split()[-1]
             break
 
