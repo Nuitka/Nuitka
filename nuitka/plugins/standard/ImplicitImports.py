@@ -931,6 +931,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pandas._libs.tslibs.nattype"
             yield "pandas._libs.tslibs.base"
         elif full_name == "pandas.core.window":
+            yield "pandas._libs.window"
             yield "pandas._libs.skiplist"
         elif full_name == "pandas._libs.testing":
             yield "cmath"
