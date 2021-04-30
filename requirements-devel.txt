@@ -14,7 +14,7 @@ rstcheck == 3.3.1 ; python_version == '2.7' or python_version >= '3.6'
 black == 20.8b1 ; python_version >= '3.6'
 toml >= 0.10.1 ; python_version >= '3.6'
 isort == 5.8.0 ; python_version >= '3.6'
-rstfmt == 0.0.8 ; python_version >= '3.6'
+rstfmt == 0.0.9 ; python_version >= '3.6'
 redbaron == 0.9.2 ; python_version >= '2.7'
 baron == 0.9 ; python_version >= '2.7'
 
@@ -22,10 +22,10 @@ baron == 0.9 ; python_version >= '2.7'
 doxypypy == 0.8.8.6 ; python_version >= '2.7'
 
 # Code and test generation tools
-Jinja2 == 2.11.3 ; python_version >= '2.7'
+Jinja2 == 2.11.3 ; python_version == '2.7' or python_version >= '3.6'
 
 # For the progress bar to look nicely.
-tqdm == 4.59.0 ; python_version >= '2.7'
+tqdm == 4.59.0 ; python_version == '2.7' or python_version >= '3.4'
 
 # Codespell can be used as well, no need to fix version
 codespell ; python_version >= '2.7'
@@ -34,7 +34,9 @@ codespell ; python_version >= '2.7'
 # of newer virtualenv.
 virtualenv == 16.7.10; python_version == '2.7'
 virtualenv ; python_version >= '3.6'
-pytest
+
+# Tests of PyPI packages need that usually.
+pytest; python_version == '2.7' or python_version >= '3.4'
 
 # Packaging
 wheel
