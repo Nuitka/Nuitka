@@ -143,6 +143,8 @@ specialized_add_helpers_set = buildOrderedSet(
     makeTypeOps("ADD", "LIST", include_nbool=True),
     # These are friends naturally, they all add with another
     makeFriendOps("ADD", True, "INT", "LONG", "FLOAT"),
+    # TODO: Make CLONG ready to join above group.
+    # makeFriendOps("ADD", True, "INT", "CLONG"),
     # These are friends too.
     makeFriendOps("ADD", True, "STR", "UNICODE"),
     # Default implementation.
