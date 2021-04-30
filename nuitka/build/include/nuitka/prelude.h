@@ -50,7 +50,7 @@
 #include "methodobject.h"
 #include "pydebug.h"
 
-#if PYTHON_VERSION >= 0x390 && defined(_NUITKA_EXPERIMENTAL_BETTER_THREADS)
+#if PYTHON_VERSION >= 0x390
 
 #define Py_BUILD_CORE
 #undef _PyGC_FINALIZED
