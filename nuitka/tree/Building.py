@@ -930,9 +930,6 @@ required to compiled."""
         )
         result = "compiled"
 
-    elif not is_top:
-        result = "bytecode"
-
     return result
 
 
