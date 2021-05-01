@@ -75,7 +75,7 @@ def _getCacheFilename(full_name, module_importables_hash, extension):
     )
 
 def _loadBytecodeFromCache(cache_filename):
-    getFileContents(cache_filename, "rb")
+    return getFileContents(cache_filename, "rb")
 
 def demoteCompiledModuleToBytecode(module):
     """Demote a compiled module to uncompiled (bytecode)."""
