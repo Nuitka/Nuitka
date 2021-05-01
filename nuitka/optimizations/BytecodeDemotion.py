@@ -112,7 +112,9 @@ def demoteCompiledModuleToBytecode(module):
     uncompiled_module = makeUncompiledPythonModule(
         module_name=full_name,
         filename=filename,
-        bytecode=marshal.dumps(bytecode) if not already_demoted else _loadBytecodeFromCache(_getCacheFilename(full_name, module_importables_hash, "dat")),
+        bytecode=marshal.dumps(bytecode) if not already_demoted else _loadBytecodeFromCache(_getCacheFilename(
+            full_name, module_importables_hash, "dat")
+        ),
         is_package=module.isCompiledPythonPackage(),
         user_provided=True,
         technical=False,
