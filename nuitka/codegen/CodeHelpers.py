@@ -249,7 +249,7 @@ def decideConversionCheckNeeded(to_name, expression):
 def withObjectCodeTemporaryAssignment2(
     to_name, value_name, needs_conversion_check, emit, context
 ):
-    """ Converting to the target type, provide temporary object value name only if necessary. """
+    """Converting to the target type, provide temporary object value name only if necessary."""
 
     if to_name.c_type == "PyObject *":
         value_name = to_name
@@ -274,7 +274,7 @@ def withObjectCodeTemporaryAssignment2(
 
 @contextmanager
 def withObjectCodeTemporaryAssignment(to_name, value_name, expression, emit, context):
-    """ Converting to the target type, provide temporary object value name only if necessary. """
+    """Converting to the target type, provide temporary object value name only if necessary."""
 
     if to_name.c_type == "PyObject *":
         value_name = to_name

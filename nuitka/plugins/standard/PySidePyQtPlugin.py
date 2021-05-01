@@ -71,7 +71,7 @@ not exist, a list of all available will be given.""",
 
     @abstractmethod
     def _getQmlTargetDir(self, target_plugin_dir):
-        """ Where does the bindings package expect the QML files. """
+        """Where does the bindings package expect the QML files."""
 
     def getQtPluginsSelected(self):
         # Resolve "sensible on first use"
@@ -152,11 +152,11 @@ import %(binding_name)s.QtCore
         )
 
     def _getBindingVersion(self):
-        """ Get the version of the binding in tuple digit form, e.g. (6,0,3) """
+        """Get the version of the binding in tuple digit form, e.g. (6,0,3)"""
         return self._getQtInformation().version
 
     def _getNuitkaPatchLevel(self):
-        """ Does it include the Nuitka patch, i.e. is a self-built one with it applied. """
+        """Does it include the Nuitka patch, i.e. is a self-built one with it applied."""
         return self._getQtInformation().nuitka_patch_level
 
     def getQtPluginDirs(self):

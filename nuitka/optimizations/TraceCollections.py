@@ -62,7 +62,7 @@ signalChange = None
 
 @contextmanager
 def withChangeIndicationsTo(signal_change):
-    """ Decide where change indications should go to."""
+    """Decide where change indications should go to."""
 
     global signalChange  # Singleton, pylint: disable=global-statement
 

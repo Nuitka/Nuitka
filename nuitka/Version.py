@@ -33,6 +33,6 @@ def getNuitkaVersion():
 
 
 def getNuitkaVersionYear():
-    """ The year of Nuitka copyright for use in generations. """
+    """The year of Nuitka copyright for use in generations."""
 
     return int(version_string.split()[4])

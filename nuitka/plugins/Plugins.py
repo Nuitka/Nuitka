@@ -200,7 +200,7 @@ def loadStandardPluginClasses():
 class Plugins(object):
     @staticmethod
     def isPluginActive(plugin_name):
-        """ Is a plugin activated. """
+        """Is a plugin activated."""
 
         return plugin_name in active_plugins
 

@@ -264,7 +264,7 @@ def makeStatementExpressionOnlyReplacementNode(expression, node):
 
 
 def mergeStatements(statements, allow_none=False):
-    """ Helper function that merges nested statement sequences. """
+    """Helper function that merges nested statement sequences."""
     merged_statements = []
 
     for statement in statements:

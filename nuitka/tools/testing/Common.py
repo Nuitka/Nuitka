@@ -494,7 +494,7 @@ def displayRuntimeTraces(logger, path):
 
 
 def getRuntimeTraceOfLoadedFiles(logger, path):
-    """ Returns the files loaded when executing a binary. """
+    """Returns the files loaded when executing a binary."""
 
     # This will make a crazy amount of work,
     # pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
@@ -1409,7 +1409,7 @@ def compileLibraryTest(search_mode, stage_dir, decide, action):
 
 
 def run_async(coro):
-    """ Execute a coroutine until it's done. """
+    """Execute a coroutine until it's done."""
 
     values = []
     result = None
@@ -1423,7 +1423,7 @@ def run_async(coro):
 
 
 def async_iterate(g):
-    """ Execute async generator until it's done. """
+    """Execute async generator until it's done."""
 
     # Test code for Python3, catches all kinds of exceptions.
     # pylint: disable=broad-except

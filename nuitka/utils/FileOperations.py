@@ -313,12 +313,12 @@ def deleteFile(path, must_exist):
 
 
 def splitPath(path):
-    """ Split path, skipping empty elements. """
+    """Split path, skipping empty elements."""
     return tuple(element for element in os.path.split(path) if element)
 
 
 def hasFilenameExtension(path, extensions):
-    """ Has a filename one of the given extensions. """
+    """Has a filename one of the given extensions."""
 
     extension = os.path.splitext(os.path.normcase(path))[1]
 

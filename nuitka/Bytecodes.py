@@ -38,7 +38,7 @@ def _removeDocFromBody(node):
 
 
 def compileSourceToBytecode(source_code, filename):
-    """ Compile given source code into bytecode. """
+    """Compile given source code into bytecode."""
 
     if "no_docstrings" in getPythonFlags():
         tree = ast.parse(source_code, filename)

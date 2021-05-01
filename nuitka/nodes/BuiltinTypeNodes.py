@@ -208,7 +208,7 @@ class ExpressionBuiltinUnicodeBase(
 
 
 class ExpressionBuiltinStrP2(ExpressionBuiltinTypeBase):
-    """ Python2 built-in str call. """
+    """Python2 built-in str call."""
 
     kind = "EXPRESSION_BUILTIN_STR_P2"
 
@@ -240,7 +240,7 @@ class ExpressionBuiltinStrP2(ExpressionBuiltinTypeBase):
 
 
 class ExpressionBuiltinUnicodeP2(ExpressionBuiltinUnicodeBase):
-    """ Python2 built-in unicode call. """
+    """Python2 built-in unicode call."""
 
     kind = "EXPRESSION_BUILTIN_UNICODE_P2"
 
@@ -252,7 +252,7 @@ class ExpressionBuiltinUnicodeP2(ExpressionBuiltinUnicodeBase):
 
 
 class ExpressionBuiltinStrP3(ExpressionBuiltinUnicodeBase):
-    """ Python3 built-in str call. """
+    """Python3 built-in str call."""
 
     kind = "EXPRESSION_BUILTIN_STR_P3"
 

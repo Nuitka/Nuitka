@@ -90,7 +90,7 @@ class IconGroupDirectoryEntry(ctypes.Structure):
 
 
 def readFromFile(readable, c_struct):
-    """ Read ctypes structures from input. """
+    """Read ctypes structures from input."""
 
     result = c_struct()
     chunk = readable.read(ctypes.sizeof(result))

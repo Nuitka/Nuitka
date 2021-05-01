@@ -811,7 +811,7 @@ def getWindowsOnefileTempDirSpec(use_default):
 
 
 def getIconPaths():
-    """*list of str*, values of "--windows-icon-from-ico" and "--linux-onefile-icon """
+    """*list of str*, values of "--windows-icon-from-ico" and "--linux-onefile-icon"""
 
     result = options.icon_path
 
@@ -836,7 +836,7 @@ def getWindowsIconExecutablePath():
 
 
 def shallAskForWindowsAdminRights():
-    """*bool*, value of "--windows-uac-admin" or --windows-uac-uiaccess """
+    """*bool*, value of "--windows-uac-admin" or --windows-uac-uiaccess"""
     return options.windows_uac_admin
 
 
@@ -882,22 +882,22 @@ def _parseWindowsVersionNumber(value):
 
 
 def getWindowsProductVersion():
-    """*tuple of 4 ints* or None --windows-product-version """
+    """*tuple of 4 ints* or None --windows-product-version"""
     return _parseWindowsVersionNumber(options.windows_product_version)
 
 
 def getWindowsFileVersion():
-    """*tuple of 4 ints* or None --windows-file-version """
+    """*tuple of 4 ints* or None --windows-file-version"""
     return _parseWindowsVersionNumber(options.windows_file_version)
 
 
 def getWindowsCompanyName():
-    """*str* name of the company to use """
+    """*str* name of the company to use"""
     return options.windows_company_name
 
 
 def getWindowsProductName():
-    """*str* name of the product to use """
+    """*str* name of the product to use"""
     return options.windows_product_name
 
 
@@ -938,13 +938,13 @@ def getPythonFlags():
 
 
 def hasPythonFlagNoSite():
-    """*bool* = "no_site" in python flags given """
+    """*bool* = "no_site" in python flags given"""
 
     return "no_site" in getPythonFlags()
 
 
 def hasPythonFlagNoAnnotations():
-    """*bool* = "no_annotations" in python flags given """
+    """*bool* = "no_annotations" in python flags given"""
 
     return "no_annotations" in getPythonFlags()
 

@@ -117,7 +117,7 @@ trace_lock = RLock()
 
 @contextmanager
 def withTraceLock():
-    """ Hold a lock, so traces cannot be output at the same time mixing them up. """
+    """Hold a lock, so traces cannot be output at the same time mixing them up."""
 
     trace_lock.acquire()
     yield

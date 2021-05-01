@@ -289,7 +289,7 @@ class ExpressionBuiltinMakeException(ExpressionChildHavingBase):
 
 
 class ExpressionBuiltinMakeExceptionImportError(ExpressionChildrenHavingBase):
-    """ Python3 ImportError dedicated node with extra arguments. """
+    """Python3 ImportError dedicated node with extra arguments."""
 
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR"
 

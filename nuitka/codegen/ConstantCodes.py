@@ -42,7 +42,7 @@ from .templates.CodeTemplatesModules import template_header_guard
 
 
 def generateConstantReferenceCode(to_name, expression, emit, context):
-    """ Assign the constant behind the expression to to_name."""
+    """Assign the constant behind the expression to to_name."""
 
     to_name.getCType().emitAssignmentCodeFromConstant(
         to_name=to_name,

@@ -380,7 +380,7 @@ class ExpressionConstantTrueRef(ExpressionConstantBoolRefBase):
 
     @staticmethod
     def getTruthValue():
-        """ Return known truth value. """
+        """Return known truth value."""
 
         return True
 
@@ -401,7 +401,7 @@ class ExpressionConstantFalseRef(ExpressionConstantBoolRefBase):
 
     @staticmethod
     def getTruthValue():
-        """ Return known truth value. """
+        """Return known truth value."""
 
         return False
 
@@ -442,7 +442,7 @@ class ExpressionConstantEllipsisRef(ExpressionConstantUntrackedRefBase):
 
     @staticmethod
     def getTruthValue():
-        """ Return known truth value. """
+        """Return known truth value."""
 
         return True
 

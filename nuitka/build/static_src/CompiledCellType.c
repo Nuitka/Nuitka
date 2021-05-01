@@ -172,7 +172,7 @@ PyTypeObject Nuitka_Cell_Type = {
 #if PYTHON_VERSION < 0x300
     (cmpfunc)Nuitka_Cell_tp_compare, /* tp_compare */
 #else
-    0,                          /* tp_reserved */
+    0, /* tp_reserved */
 #endif
     (reprfunc)Nuitka_Cell_tp_repr,           /* tp_repr */
     0,                                       /* tp_as_number */

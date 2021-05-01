@@ -1063,7 +1063,7 @@ def detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache)
 
 
 def fixupBinaryDLLPathsMacOS(binary_filename, dll_map, original_location):
-    """ For macOS, the binary needs to be told to use relative DLL paths """
+    """For macOS, the binary needs to be told to use relative DLL paths"""
 
     # There may be nothing to do, in case there are no DLLs.
     if not dll_map:

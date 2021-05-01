@@ -171,7 +171,7 @@ class LocalsDictHandleBase(object):
         self.providing[variable_name] = variable
 
     def unregisterProvidedVariable(self, variable):
-        """ Remove provided variable, e.g. because it became unused. """
+        """Remove provided variable, e.g. because it became unused."""
 
         variable_name = variable.getName()
 
@@ -182,17 +182,17 @@ class LocalsDictHandleBase(object):
     unregisterClosureVariable = unregisterProvidedVariable
 
     def hasProvidedVariable(self, variable_name):
-        """ Test if a variable is provided. """
+        """Test if a variable is provided."""
 
         return variable_name in self.providing
 
     def getProvidedVariable(self, variable_name):
-        """ Test if a variable is provided. """
+        """Test if a variable is provided."""
 
         return self.providing[variable_name]
 
     def getLocalsRelevantVariables(self):
-        """ The variables relevant to locals. """
+        """The variables relevant to locals."""
 
         return self.providing.values()
 
@@ -297,7 +297,7 @@ class LocalsDictHandleBase(object):
 
 
 class LocalsDictHandle(LocalsDictHandleBase):
-    """ Locals dict for a Python class with mere dict. """
+    """Locals dict for a Python class with mere dict."""
 
     __slots__ = ()
 

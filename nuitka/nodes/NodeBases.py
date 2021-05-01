@@ -404,13 +404,13 @@ class NodeBase(NodeMetaClassBase):
 
     @staticmethod
     def getName():
-        """ Name of the node if any. """
+        """Name of the node if any."""
 
         return None
 
     @staticmethod
     def mayHaveSideEffects():
-        """ Unless we are told otherwise, everything may have a side effect. """
+        """Unless we are told otherwise, everything may have a side effect."""
 
         return True
 
@@ -418,20 +418,20 @@ class NodeBase(NodeMetaClassBase):
         return self.mayHaveSideEffects()
 
     def extractSideEffects(self):
-        """ Unless defined otherwise, the expression is the side effect. """
+        """Unless defined otherwise, the expression is the side effect."""
 
         return (self,)
 
     @staticmethod
     def mayRaiseException(exception_type):
-        """ Unless we are told otherwise, everything may raise everything. """
+        """Unless we are told otherwise, everything may raise everything."""
         # Virtual method, pylint: disable=unused-argument
 
         return True
 
     @staticmethod
     def mayReturn():
-        """ May this node do a return exit, to be overloaded for things that might. """
+        """May this node do a return exit, to be overloaded for things that might."""
         return False
 
     @staticmethod
@@ -443,19 +443,19 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     def needsFrame(self):
-        """ Unless we are tolder otherwise, this depends on exception raise. """
+        """Unless we are tolder otherwise, this depends on exception raise."""
 
         return self.mayRaiseException(BaseException)
 
     @staticmethod
     def willRaiseException(exception_type):
-        """ Unless we are told otherwise, nothing may raise anything. """
+        """Unless we are told otherwise, nothing may raise anything."""
         # Virtual method, pylint: disable=unused-argument
         return False
 
     @staticmethod
     def isStatementAborting():
-        """ Is the node aborting, control flow doesn't continue after this node.  """
+        """Is the node aborting, control flow doesn't continue after this node."""
         return False
 
 
@@ -701,7 +701,7 @@ class ChildrenHavingMixin(object):
 
 
 class ClosureGiverNodeMixin(CodeNodeMixin):
-    """Base class for nodes that provide variables for closure takers. """
+    """Base class for nodes that provide variables for closure takers."""
 
     # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
@@ -805,7 +805,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
 
 class ClosureTakerMixin(object):
-    """ Mixin for nodes that accept variables from closure givers. """
+    """Mixin for nodes that accept variables from closure givers."""
 
     # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()

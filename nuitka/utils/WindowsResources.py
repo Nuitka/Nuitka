@@ -302,11 +302,11 @@ class WindowsExecutableManifest(object):
         )
 
     def addUacAdmin(self):
-        """ Add indication, the binary should request admin rights. """
+        """Add indication, the binary should request admin rights."""
         self._getRequestedExecutionLevelNode().attrib["level"] = "requireAdministrator"
 
     def addUacUiAccess(self):
-        """ Add indication, the binary be allowed for remote desktop. """
+        """Add indication, the binary be allowed for remote desktop."""
         self._getRequestedExecutionLevelNode().attrib["uiAccess"] = "true"
 
     def _getTrustInfoNode(self):
@@ -387,7 +387,7 @@ class VsFixedFileInfoStructure(ctypes.Structure):
 
 
 def convertStructureToBytes(c_value):
-    """ Convert ctypes structure to bytes for output. """
+    """Convert ctypes structure to bytes for output."""
 
     result = (ctypes.c_char * ctypes.sizeof(c_value)).from_buffer_copy(c_value)
     r = b"".join(result)

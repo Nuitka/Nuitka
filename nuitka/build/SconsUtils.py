@@ -68,7 +68,7 @@ scons_arguments = {}
 
 
 def setArguments(arguments):
-    """ Decode command line arguments. """
+    """Decode command line arguments."""
 
     arg_encoding = arguments.get("argument_encoding")
 
@@ -79,17 +79,17 @@ def setArguments(arguments):
 
 
 def getArgumentRequired(name):
-    """ Helper for string options without default value. """
+    """Helper for string options without default value."""
     return scons_arguments[name]
 
 
 def getArgumentDefaulted(name, default):
-    """ Helper for string options with default value. """
+    """Helper for string options with default value."""
     return scons_arguments.get(name, default)
 
 
 def getArgumentBool(option_name, default=None):
-    """ Small helper for boolean mode flags."""
+    """Small helper for boolean mode flags."""
     if default is None:
         value = scons_arguments[option_name]
     else:
@@ -99,7 +99,7 @@ def getArgumentBool(option_name, default=None):
 
 
 def getArgumentList(option_name, default=None):
-    """ Small helper for list mode options, default should be command separated str."""
+    """Small helper for list mode options, default should be command separated str."""
     if default is None:
         value = scons_arguments[option_name]
     else:
@@ -176,7 +176,7 @@ win_target = os.name == "nt"
 
 
 def getExecutablePath(filename, env):
-    """ Find an execute in either normal PATH, or Scons detected PATH. """
+    """Find an execute in either normal PATH, or Scons detected PATH."""
 
     if os.path.exists(filename):
         return filename

@@ -744,7 +744,7 @@ from __future__ import absolute_import
 
     @staticmethod
     def registerPkgutilGetDataCallback(callback):
-        """ Allow a plugin to register for that node type. """
+        """Allow a plugin to register for that node type."""
         registered_pkgutil_getdata_callbacks.add(callback)
 
     @classmethod

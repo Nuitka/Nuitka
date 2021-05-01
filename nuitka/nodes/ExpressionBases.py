@@ -65,7 +65,7 @@ class ExpressionBase(NodeBase):
 
     @staticmethod
     def getTruthValue():
-        """ Return known truth value. The "None" value indicates unknown. """
+        """Return known truth value. The "None" value indicates unknown."""
 
         return None
 
@@ -104,7 +104,7 @@ class ExpressionBase(NodeBase):
 
     @staticmethod
     def getStringValue():
-        """ Node as string value, if possible. """
+        """Node as string value, if possible."""
         return None
 
     def getStrValue(self):
@@ -139,14 +139,14 @@ class ExpressionBase(NodeBase):
 
     @staticmethod
     def isKnownToBeHashable():
-        """ Is the value hashable, i.e. suitable for dictionary/set key usage."""
+        """Is the value hashable, i.e. suitable for dictionary/set key usage."""
 
         # Unknown by default.
         return None
 
     @staticmethod
     def extractUnhashableNode():
-        """ Return the value that is not hashable, if isKnowtoBeHashable() returns False. """
+        """Return the value that is not hashable, if isKnowtoBeHashable() returns False."""
 
         # Not available by default.
         return None
@@ -653,102 +653,102 @@ class ExpressionBase(NodeBase):
 
     @staticmethod
     def mayRaiseExceptionBool(exception_type):
-        """ Unless we are told otherwise, everything may raise being checked. """
+        """Unless we are told otherwise, everything may raise being checked."""
         # Virtual method, pylint: disable=unused-argument
         return True
 
     @staticmethod
     def mayRaiseExceptionAbs(exception_type):
-        """ Unless we are told otherwise, everything may raise in 'abs'. """
+        """Unless we are told otherwise, everything may raise in 'abs'."""
         # Virtual method, pylint: disable=unused-argument
 
         return True
 
     @staticmethod
     def mayRaiseExceptionInt(exception_type):
-        """ Unless we are told otherwise, everything may raise in __int__. """
+        """Unless we are told otherwise, everything may raise in __int__."""
         # Virtual method, pylint: disable=unused-argument
 
         return True
 
     @staticmethod
     def mayRaiseExceptionLong(exception_type):
-        """ Unless we are told otherwise, everything may raise in __long__. """
+        """Unless we are told otherwise, everything may raise in __long__."""
         # Virtual method, pylint: disable=unused-argument
 
         return True
 
     @staticmethod
     def mayRaiseExceptionFloat(exception_type):
-        """ Unless we are told otherwise, everything may raise in __float__. """
+        """Unless we are told otherwise, everything may raise in __float__."""
         # Virtual method, pylint: disable=unused-argument
 
         return True
 
     @staticmethod
     def mayRaiseExceptionBytes(exception_type):
-        """ Unless we are told otherwise, everything may raise in __bytes__. """
+        """Unless we are told otherwise, everything may raise in __bytes__."""
         # Virtual method, pylint: disable=unused-argument
 
         return True
 
     @staticmethod
     def mayRaiseExceptionIn(exception_type, checked_value):
-        """ Unless we are told otherwise, everything may raise being iterated. """
+        """Unless we are told otherwise, everything may raise being iterated."""
         # Virtual method, pylint: disable=unused-argument
 
         return True
 
     @staticmethod
     def mayRaiseExceptionAttributeLookup(exception_type, attribute_name):
-        """ Unless we are told otherwise, everything may raise for attribute access. """
+        """Unless we are told otherwise, everything may raise for attribute access."""
         # Virtual method, pylint: disable=unused-argument
 
         return True
 
     @staticmethod
     def mayRaiseExceptionAttributeLookupSpecial(exception_type, attribute_name):
-        """ Unless we are told otherwise, everything may raise for attribute access. """
+        """Unless we are told otherwise, everything may raise for attribute access."""
         # Virtual method, pylint: disable=unused-argument
 
         return True
 
     @staticmethod
     def mayRaiseExceptionAttributeLookupObject(exception_type, attribute):
-        """ Unless we are told otherwise, everything may raise for attribute access. """
+        """Unless we are told otherwise, everything may raise for attribute access."""
         # Virtual method, pylint: disable=unused-argument
 
         return True
 
     @staticmethod
     def mayRaiseExceptionAttributeCheck(exception_type, attribute_name):
-        """ Unless we are told otherwise, everything may raise for attribute check. """
+        """Unless we are told otherwise, everything may raise for attribute check."""
         # Virtual method, pylint: disable=unused-argument
 
         return True
 
     @staticmethod
     def mayRaiseExceptionAttributeCheckObject(exception_type, attribute):
-        """ Unless we are told otherwise, everything may raise for attribute check. """
+        """Unless we are told otherwise, everything may raise for attribute check."""
         # Virtual method, pylint: disable=unused-argument
 
         return True
 
     @staticmethod
     def mayRaiseExceptionImportName(exception_type, import_name):
-        """ Unless we are told otherwise, everything may raise for name import. """
+        """Unless we are told otherwise, everything may raise for name import."""
         # Virtual method, pylint: disable=unused-argument
         return True
 
     @staticmethod
     def mayHaveSideEffectsBool():
-        """ Unless we are told otherwise, everything may have a side effect for bool check. """
+        """Unless we are told otherwise, everything may have a side effect for bool check."""
 
         return True
 
     @staticmethod
     def mayHaveSideEffectsAbs():
-        """ Unless we are told otherwise, everything may have a side effect for abs check. """
+        """Unless we are told otherwise, everything may have a side effect for abs check."""
 
         # TODO: Bonus points for check type shapes that will be good
         # for abs, i.e. number shapes like Int, Long, Float, Complex.
@@ -770,14 +770,14 @@ class ExpressionBase(NodeBase):
     # TODO: Maybe this is a shape slot thing.
     @staticmethod
     def isIndexable():
-        """ Unless we are told otherwise, it's not indexable. """
+        """Unless we are told otherwise, it's not indexable."""
 
         return False
 
     # TODO: There ought to be a type shape check for that too.
     @staticmethod
     def getIntegerValue():
-        """ Node as integer value, if possible."""
+        """Node as integer value, if possible."""
 
         return None
 

@@ -530,7 +530,7 @@ def main():
     )
 
     def checkExecutableCommand(command):
-        """ Check if a command is executable. """
+        """Check if a command is executable."""
 
         # Many cases, pylint: disable=too-many-branches,too-many-return-statements
 

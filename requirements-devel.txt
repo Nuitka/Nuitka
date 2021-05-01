@@ -11,7 +11,7 @@ Pygments == 2.8.1 ; python_version >= '3.6'
 rstcheck == 3.3.1 ; python_version == '2.7' or python_version >= '3.6'
 
 # Autoformat needs
-black == 20.8b1 ; python_version >= '3.6'
+black == 21.4b2 ; python_version >= '3.6'
 toml >= 0.10.1 ; python_version >= '3.6'
 isort == 5.8.0 ; python_version >= '3.6'
 rstfmt == 0.0.9 ; python_version >= '3.6'
@@ -25,7 +25,7 @@ doxypypy == 0.8.8.6 ; python_version >= '2.7'
 Jinja2 == 2.11.3 ; python_version == '2.7' or python_version >= '3.6'
 
 # For the progress bar to look nicely.
-tqdm == 4.59.0 ; python_version == '2.7' or python_version >= '3.4'
+tqdm == 4.60.0 ; python_version == '2.7' or python_version >= '3.4'
 
 # Codespell can be used as well, no need to fix version
 codespell ; python_version >= '2.7'
@@ -33,7 +33,7 @@ codespell ; python_version >= '2.7'
 # Distutils test, packaging test for PyPI, fixed for Python2 breakage
 # of newer virtualenv.
 virtualenv == 16.7.10; python_version == '2.7'
-virtualenv ; python_version >= '3.6'
+virtualenv ; python_version >= '3.5'
 
 # Tests of PyPI packages need that usually.
 pytest; python_version == '2.7' or python_version >= '3.4'
