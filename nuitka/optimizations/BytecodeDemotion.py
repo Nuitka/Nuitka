@@ -34,7 +34,7 @@ from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.FileOperations import listDir, makePath
+from nuitka.utils.FileOperations import listDir, makePath, getFileContents
 from nuitka.utils.Importing import getAllModuleSuffixes
 
 
@@ -75,8 +75,7 @@ def _getCacheFilename(full_name, module_importables_hash, extension):
     )
 
 def _loadBytecodeFromCache(cache_filename):
-    with open(cache_filename, "rb") as bytecode_cache_file:
-        return bytecode_cache_file.read()
+    getFileContents(cache_filename, "rb")
 
 def demoteCompiledModuleToBytecode(module):
     """Demote a compiled module to uncompiled (bytecode)."""
