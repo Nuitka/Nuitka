@@ -66,14 +66,17 @@ def getModuleImportableFilesHash(full_name):
     return result_hash.hexdigest()
 
 
-def _getCacheFilename(full_name, module_importables_hash):
+def _getCacheFilename(full_name, module_importables_hash, extension):
     module_cache_dir = os.path.join(getCacheDir(), "module-imports-cache")
     makePath(module_cache_dir)
 
     return os.path.join(
-        module_cache_dir, "%s-%s.txt" % (full_name.asString(), module_importables_hash)
+        module_cache_dir, "%s-%s.%s" % (full_name.asString(), module_importables_hash, extension)
     )
 
+def _loadBytecodeFromCache(cache_filename):
+    with open(cache_filename, "rb") as bytecode_cache_file:
+        return bytecode_cache_file.read()
 
 def demoteCompiledModuleToBytecode(module):
     """Demote a compiled module to uncompiled (bytecode)."""
@@ -86,31 +89,38 @@ def demoteCompiledModuleToBytecode(module):
             "Demoting module %r to bytecode from %r." % (full_name, filename)
         )
 
-    source_code = module.getSourceCode()
+    module_importables_hash = getModuleImportableFilesHash(full_name)
+    if os.path.exists(_getCacheFilename(full_name, module_importables_hash, "txt")):
+        inclusion_logger.info("The module %r is already demoted" % (full_name))
+        already_demoted = True
 
-    # Second chance for plugins to modify source code just before turning it
-    # to bytecode.
-    source_code = Plugins.onFrozenModuleSourceCode(
-        module_name=full_name, is_package=False, source_code=source_code
-    )
+    else:
+        already_demoted = False
+        source_code = module.getSourceCode()
 
-    bytecode = compile(source_code, filename, "exec", dont_inherit=True)
+        # Second chance for plugins to modify source code just before turning it
+        # to bytecode.
+        source_code = Plugins.onFrozenModuleSourceCode(
+            module_name=full_name, is_package=False, source_code=source_code
+        )
 
-    bytecode = Plugins.onFrozenModuleBytecode(
-        module_name=full_name, is_package=False, bytecode=bytecode
-    )
+        bytecode = compile(source_code, filename, "exec", dont_inherit=True)
+
+        bytecode = Plugins.onFrozenModuleBytecode(
+            module_name=full_name, is_package=False, bytecode=bytecode
+        )
 
     uncompiled_module = makeUncompiledPythonModule(
         module_name=full_name,
         filename=filename,
-        bytecode=marshal.dumps(bytecode),
+        bytecode=marshal.dumps(bytecode) if not already_demoted else _loadBytecodeFromCache(_getCacheFilename(full_name, module_importables_hash, "dat")),
         is_package=module.isCompiledPythonPackage(),
         user_provided=True,
         technical=False,
     )
 
     used_modules = module.getUsedModules()
-
+    print(used_modules)
     uncompiled_module.setUsedModules(used_modules)
     module.finalize()
 
@@ -123,8 +133,10 @@ def demoteCompiledModuleToBytecode(module):
     if isTriggerModule(module):
         replaceTriggerModule(old=module, new=uncompiled_module)
 
-    module_importables_hash = getModuleImportableFilesHash(full_name)
+    if not already_demoted:
+        with open(_getCacheFilename(full_name, module_importables_hash, "txt"), "w") as modules_cache_file:
+            for module_name, _filename in used_modules:
+                modules_cache_file.write(module_name.asString() + "\n")
 
-    with open(_getCacheFilename(full_name, module_importables_hash), "w") as cache_file:
-        for module_name, _filename in used_modules:
-            cache_file.write(module_name.asString() + "\n")
+        with open(_getCacheFilename(full_name, module_importables_hash, "dat"), "wb") as bytecode_cache_file:
+            bytecode_cache_file.write(marshal.dumps(bytecode))
