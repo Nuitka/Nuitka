@@ -143,6 +143,15 @@ def getMetaClassBase(meta_class_prefix):
     return MetaClassBase
 
 
+if str is bytes:
+    try:
+        import subprocess32 as subprocess
+    except ImportError:
+        import subprocess
+else:
+    import subprocess
+
+
 # For PyLint to be happy.
 assert long
 assert unicode
@@ -155,3 +164,4 @@ assert intern
 assert builtins
 assert Iterable
 assert MutableSet
+assert subprocess

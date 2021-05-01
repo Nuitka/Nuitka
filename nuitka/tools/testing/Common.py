@@ -27,7 +27,6 @@ import os
 import re
 import shutil
 import signal
-import subprocess
 import sys
 import tempfile
 import threading
@@ -35,6 +34,7 @@ import time
 from contextlib import contextmanager
 from optparse import OptionGroup, OptionParser
 
+from nuitka.__past__ import subprocess
 from nuitka.freezer.DependsExe import getDependsExePath
 from nuitka.Tracing import OurLogger, my_print
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
@@ -648,7 +648,7 @@ Error, needs 'strace' on your system to scan used libraries."""
             path,
         )
 
-        subprocess.call(command)
+        subprocess.call(command, timeout=5 * 60)
 
         inside = False
         for line in getFileContentByLine(path + ".depends"):

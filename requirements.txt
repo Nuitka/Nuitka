@@ -10,3 +10,6 @@ tqdm == 4.60.0
 
 # Faster OrderedSet
 orderedset == 2.0.3
+
+# More capable subprocess.
+subprocess32==3.5.4 ; python_version == '2.7'
