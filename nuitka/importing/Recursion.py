@@ -28,7 +28,6 @@ from nuitka.importing import ImportCache, Importing, StandardLibrary
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import recursion_logger
-from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.FileOperations import listDir, relpath
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -37,7 +36,7 @@ def _recurseTo(module_package, module_filename, module_relpath, module_kind, rea
     from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
     from nuitka.tree import Building
 
-    module, source_ref, source_filename = Building.decideModuleTree(
+    module, source_ref, source_code = Building.decideModuleTree(
         filename=module_filename,
         package=module_package,
         is_top=False,
@@ -51,12 +50,8 @@ def _recurseTo(module_package, module_filename, module_relpath, module_kind, rea
             % (module.getFullName(), module_relpath, reason)
         )
 
-    if module_kind == "py" and source_filename is not None:
+    if source_code is not None:
         try:
-            source_code = readSourceCodeFromFilename(
-                module_name=module.getFullName(), source_filename=source_filename
-            )
-
             Building.createModuleTree(
                 module=module,
                 source_ref=source_ref,

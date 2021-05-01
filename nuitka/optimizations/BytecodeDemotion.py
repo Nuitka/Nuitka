@@ -19,60 +19,35 @@
 
 """
 
-import hashlib
 import marshal
-import os
 
 from nuitka import Options
+from nuitka.Bytecodes import compileSourceToBytecode
+from nuitka.Caching import writeImportedModulesNamesToCache
 from nuitka.importing.ImportCache import (
     isImportedModuleByName,
     replaceImportedModule,
 )
-from nuitka.importing.Importing import getPackageSearchPath, isPackageDir
 from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import inclusion_logger
-from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.FileOperations import listDir, makePath
-from nuitka.utils.Importing import getAllModuleSuffixes
 
 
-def getModuleImportableFilesHash(full_name):
-    package_name = full_name.getPackageName()
-
-    paths = getPackageSearchPath(None)
-
-    if package_name is not None:
-        paths += getPackageSearchPath(package_name)
-
-    all_suffixes = getAllModuleSuffixes()
-
-    result_hash = hashlib.md5()
-
-    for count, path in enumerate(paths):
-        if not os.path.isdir(path):
-            continue
-
-        for fullname, filename in listDir(path):
-            if isPackageDir(fullname) or filename.endswith(all_suffixes):
-                entry = "%s:%s" % (count, filename)
-
-                if str is not bytes:
-                    entry = entry.encode("utf8")
-
-                result_hash.update(entry)
-
-    return result_hash.hexdigest()
-
-
-def _getCacheFilename(full_name, module_importables_hash):
-    module_cache_dir = os.path.join(getCacheDir(), "module-imports-cache")
-    makePath(module_cache_dir)
-
-    return os.path.join(
-        module_cache_dir, "%s-%s.txt" % (full_name.asString(), module_importables_hash)
+def demoteSourceCodeToBytecode(module_name, source_code, filename):
+    # Second chance for plugins to modify source code just before turning it
+    # to bytecode.
+    source_code = Plugins.onFrozenModuleSourceCode(
+        module_name=module_name, is_package=False, source_code=source_code
     )
+
+    bytecode = compileSourceToBytecode(source_code, filename)
+
+    bytecode = Plugins.onFrozenModuleBytecode(
+        module_name=module_name, is_package=False, bytecode=bytecode
+    )
+
+    return marshal.dumps(bytecode)
 
 
 def demoteCompiledModuleToBytecode(module):
@@ -83,34 +58,25 @@ def demoteCompiledModuleToBytecode(module):
 
     if Options.isShowProgress():
         inclusion_logger.info(
-            "Demoting module %r to bytecode from %r." % (full_name, filename)
+            "Demoting module %r to bytecode from %r." % (full_name.asString(), filename)
         )
 
     source_code = module.getSourceCode()
 
-    # Second chance for plugins to modify source code just before turning it
-    # to bytecode.
-    source_code = Plugins.onFrozenModuleSourceCode(
-        module_name=full_name, is_package=False, source_code=source_code
-    )
-
-    bytecode = compile(source_code, filename, "exec", dont_inherit=True)
-
-    bytecode = Plugins.onFrozenModuleBytecode(
-        module_name=full_name, is_package=False, bytecode=bytecode
+    bytecode = demoteSourceCodeToBytecode(
+        module_name=full_name, source_code=source_code, filename=filename
     )
 
     uncompiled_module = makeUncompiledPythonModule(
         module_name=full_name,
         filename=filename,
-        bytecode=marshal.dumps(bytecode),
+        bytecode=bytecode,
         is_package=module.isCompiledPythonPackage(),
         user_provided=True,
         technical=False,
     )
 
     used_modules = module.getUsedModules()
-
     uncompiled_module.setUsedModules(used_modules)
     module.finalize()
 
@@ -123,8 +89,6 @@ def demoteCompiledModuleToBytecode(module):
     if isTriggerModule(module):
         replaceTriggerModule(old=module, new=uncompiled_module)
 
-    module_importables_hash = getModuleImportableFilesHash(full_name)
-
-    with open(_getCacheFilename(full_name, module_importables_hash), "w") as cache_file:
-        for module_name, _filename in used_modules:
-            cache_file.write(module_name.asString() + "\n")
+    writeImportedModulesNamesToCache(
+        module_name=full_name, source_code=source_code, used_modules=used_modules
+    )

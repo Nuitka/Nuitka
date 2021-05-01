@@ -48,7 +48,6 @@ special attribute lookups for "__enter__" and "__exit__", calls of them,
 catching and passing in exceptions raised.
 
 """
-
 import os
 import sys
 
@@ -62,6 +61,11 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     long,
     unicode,
 )
+from nuitka.Caching import (
+    getCachedImportedModulesNames,
+    hasCachedImportedModulesNames,
+)
+from nuitka.containers.oset import OrderedSet
 from nuitka.freezer.Standalone import detectEarlyImports
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
@@ -103,6 +107,7 @@ from nuitka.nodes.ModuleNodes import (
     CompiledPythonPackage,
     PythonMainModule,
     PythonShlibModule,
+    UncompiledPythonModule,
 )
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
 from nuitka.nodes.OperatorNodesUnary import makeExpressionOperationUnary
@@ -112,10 +117,16 @@ from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
 from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
 from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
+from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import memory_logger, plugins_logger, unusual_logger
+from nuitka.Tracing import (
+    memory_logger,
+    optimization_logger,
+    plugins_logger,
+    unusual_logger,
+)
 from nuitka.utils import MemoryUsage
 from nuitka.utils.FileOperations import splitPath
 from nuitka.utils.ModuleNames import ModuleName
@@ -934,7 +945,8 @@ required to compiled."""
 
 
 def decideModuleTree(filename, package, is_shlib, is_top, is_main):
-    # Many variables, branches, due to the many cases, pylint: disable=too-many-branches
+    # Many variables, branches, due to the many cases
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     assert package is None or type(package) is ModuleName
     assert filename is not None
@@ -981,21 +993,79 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
 
         if is_shlib:
             result = PythonShlibModule(module_name=module_name, source_ref=source_ref)
-        elif is_main:
-            result = PythonMainModule(
-                main_added=main_added,
-                mode=decideCompilationMode(False, module_name, source_ref),
-                future_spec=None,
-                source_ref=source_ref,
-            )
+            source_code = None
         else:
-            result = CompiledPythonModule(
-                module_name=module_name,
-                is_top=is_top,
-                mode=decideCompilationMode(is_top, module_name, source_ref),
-                future_spec=None,
-                source_ref=source_ref,
+            source_code = readSourceCodeFromFilename(
+                module_name=module_name, source_filename=source_filename
             )
+
+            if is_main:
+                result = PythonMainModule(
+                    main_added=main_added,
+                    mode=decideCompilationMode(False, module_name, source_ref),
+                    future_spec=None,
+                    source_ref=source_ref,
+                )
+
+                checkPythonVersionFromCode(source_code)
+            else:
+                mode = decideCompilationMode(is_top, module_name, source_ref)
+
+                if (
+                    mode == "bytecode"
+                    and not is_top
+                    and hasCachedImportedModulesNames(module_name, source_code)
+                ):
+
+                    optimization_logger.info(
+                        "%r is included as bytecode." % (module_name.asString())
+                    )
+                    result = UncompiledPythonModule(
+                        module_name=module_name,
+                        filename=filename,
+                        bytecode=demoteSourceCodeToBytecode(
+                            module_name=module_name,
+                            source_code=source_code,
+                            filename=filename,
+                        ),
+                        source_ref=source_ref,
+                        user_provided=False,
+                        technical=False,
+                    )
+
+                    used_modules = OrderedSet()
+
+                    for used_module_name in getCachedImportedModulesNames(
+                        module_name=module_name, source_code=source_code
+                    ):
+                        (
+                            _module_package,
+                            module_filename,
+                            _finding,
+                        ) = Importing.findModule(
+                            importing=result,
+                            module_name=used_module_name,
+                            parent_package=None,
+                            level=-1,
+                            warn=False,
+                        )
+
+                        used_modules.add(
+                            (used_module_name, os.path.relpath(module_filename))
+                        )
+
+                    result.setUsedModules(used_modules)
+
+                    # Not used anymore
+                    source_code = None
+                else:
+                    result = CompiledPythonModule(
+                        module_name=module_name,
+                        is_top=is_top,
+                        mode=mode,
+                        future_spec=None,
+                        source_ref=source_ref,
+                    )
 
     elif Importing.isPackageDir(filename):
         if is_top:
@@ -1012,6 +1082,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 module_name=module_name, is_top=is_top, module_relpath=filename
             )
             source_filename = None
+            source_code = None
         else:
             source_ref = SourceCodeReferences.fromFilename(
                 filename=os.path.abspath(source_filename)
@@ -1024,13 +1095,17 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 future_spec=None,
                 source_ref=source_ref,
             )
+
+            source_code = readSourceCodeFromFilename(
+                module_name=module_name, source_filename=source_filename
+            )
     else:
         sys.stderr.write(
             "%s: can't open file '%s'.\n" % (os.path.basename(sys.argv[0]), filename)
         )
         sys.exit(2)
 
-    return result, source_ref, source_filename
+    return result, source_ref, source_code
 
 
 class CodeTooComplexCode(Exception):
@@ -1080,7 +1155,7 @@ def createModuleTree(module, source_ref, source_code, is_main):
 
 
 def buildModuleTree(filename, package, is_top, is_main):
-    module, source_ref, source_filename = decideModuleTree(
+    module, source_ref, source_code = decideModuleTree(
         filename=filename,
         package=package,
         is_top=is_top,
@@ -1099,15 +1174,8 @@ def buildModuleTree(filename, package, is_top, is_main):
             module.setEarlyModules(detectEarlyImports())
 
     # If there is source code associated (not the case for namespace packages of
-    # Python3.3 or higher, then read it.
-    if source_filename is not None:
-        source_code = readSourceCodeFromFilename(
-            module_name=module.getFullName(), source_filename=source_filename
-        )
-
-        if is_main:
-            checkPythonVersionFromCode(source_code)
-
+    # Python3), then read it.
+    if source_code is not None:
         # Read source code.
         createModuleTree(
             module=module,
