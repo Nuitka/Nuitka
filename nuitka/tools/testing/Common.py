@@ -648,7 +648,17 @@ Error, needs 'strace' on your system to scan used libraries."""
             path,
         )
 
-        subprocess.call(command, timeout=5 * 60)
+        # TODO: Move the handling of this into nuitka.tools.Execution module methods.
+        try:
+            subprocess.call(command, timeout=5 * 60)
+        except Exception as e:  # Catch all the things, pylint: disable=broad-except
+            if e.__class__.__name__ == "TimeoutExpired":
+                test_logger.warning(
+                    "Timeout encountered when running dependency walker."
+                )
+                return []
+            else:
+                raise
 
         inside = False
         for line in getFileContentByLine(path + ".depends"):
