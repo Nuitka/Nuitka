@@ -44,11 +44,10 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 import platform
 import subprocess
 
-import SCons  # pylint: disable=import-error
-from SCons.Script import (  # pylint: disable=import-error
+import SCons  # pylint: disable=I0021,import-error
+from SCons.Script import (  # pylint: disable=I0021,import-error
     ARGUMENTS,
     Environment,
-    File,
     GetOption,
 )
 
@@ -897,7 +896,7 @@ if win_target:
     static_lib_filename = detectStaticLibPython()
 
     if gcc_mode and static_libpython and os.path.exists(static_lib_filename):
-        env.Append(LIBS=[File(static_lib_filename)])
+        env.Append(LIBS=[env.File(static_lib_filename)])
     else:
 
         def addWinLib():
@@ -930,7 +929,7 @@ elif not module_mode:
     )
 
     if not module_mode and static_libpython and os.path.exists(static_lib_filename):
-        env.Append(LIBS=[File(static_lib_filename)])
+        env.Append(LIBS=[env.File(static_lib_filename)])
     else:
         # Debian and Ubuntu distinguish the system libraries like this.
         if (
