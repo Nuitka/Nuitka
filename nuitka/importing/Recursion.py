@@ -141,7 +141,7 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
         module_filename, module_name, module_kind
     )
 
-    if plugin_decision:
+    if plugin_decision is not None:
         return plugin_decision
 
     if module_kind == "shlib":
