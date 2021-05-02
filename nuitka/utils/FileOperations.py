@@ -384,14 +384,17 @@ def getFileContents(filename, mode="r", encoding=None):
     """
 
     with withFileLock("reading file %s" % filename):
-        if encoding is not None:
-            import codecs
+        with openTextFile(filename, mode, encoding=encoding) as f:
+            return f.read()
 
-            with codecs.open(filename, mode, encoding=encoding) as f:
-                return f.read()
-        else:
-            with open(filename, mode) as f:
-                return f.read()
+
+def openTextFile(filename, mode, encoding=None):
+    if encoding is not None:
+        import codecs
+
+        return codecs.open(filename, mode, encoding=encoding)
+    else:
+        return open(filename, mode)
 
 
 def putTextFileContents(filename, contents, encoding=None):
@@ -414,14 +417,8 @@ def putTextFileContents(filename, contents, encoding=None):
                 print(line, file=output_file)
 
     with withFileLock("writing file %s" % filename):
-        if encoding is not None:
-            import codecs
-
-            with codecs.open(filename, "w", encoding=encoding) as output_file:
-                _writeContents(output_file)
-        else:
-            with open(filename, "w") as output_file:
-                _writeContents(output_file)
+        with openTextFile(filename, "w", encoding=encoding) as output_file:
+            _writeContents(output_file)
 
 
 @contextmanager

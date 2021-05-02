@@ -28,7 +28,10 @@ from nuitka.PythonVersions import (
     isUninstalledPython,
     python_version_str,
 )
-from nuitka.utils.FileOperations import resolveShellPatternToFilenames
+from nuitka.utils.FileOperations import (
+    openTextFile,
+    resolveShellPatternToFilenames,
+)
 from nuitka.utils.Utils import getOS, hasOnefileSupportedOS, isWin32Windows
 
 options = None
@@ -73,7 +76,7 @@ def parseArgs(will_reexec):
     if options.verbose_output and not will_reexec:
         Tracing.optimization_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
-            open(options.verbose_output, "w")
+            openTextFile(options.verbose_output, "w", encoding="utf8")
         )
 
         options.verbose = True
@@ -83,7 +86,7 @@ def parseArgs(will_reexec):
     if options.show_inclusion_output and not will_reexec:
         Tracing.inclusion_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
-            open(options.show_inclusion_output, "w")
+            openTextFile(options.show_inclusion_output, "w", encoding="utf8")
         )
 
         options.show_inclusion = True
