@@ -67,7 +67,7 @@ def getModuleImportableFilesHash(full_name):
 
 
 def _getCacheFilename(full_name, module_importables_hash, extension):
-    module_cache_dir = os.path.join(getCacheDir(), "module-imports-cache")
+    module_cache_dir = os.path.join(getCacheDir(), "module-cache")
     makePath(module_cache_dir)
 
     return os.path.join(
@@ -85,12 +85,12 @@ def demoteCompiledModuleToBytecode(module):
 
     if Options.isShowProgress():
         inclusion_logger.info(
-            "Demoting module %r to bytecode from %r." % (full_name, filename)
+            "Demoting module %r to bytecode from %r." % (full_name.asString(), filename)
         )
 
     module_importables_hash = getModuleImportableFilesHash(full_name)
     if os.path.exists(_getCacheFilename(full_name, module_importables_hash, "txt")):
-        inclusion_logger.info("The module %r is already demoted" % (full_name))
+        inclusion_logger.info("The module %r is already demoted" % (full_name.asString()))
         already_demoted = True
 
     else:
@@ -121,7 +121,6 @@ def demoteCompiledModuleToBytecode(module):
     )
 
     used_modules = module.getUsedModules()
-    print(used_modules)
     uncompiled_module.setUsedModules(used_modules)
     module.finalize()
 
