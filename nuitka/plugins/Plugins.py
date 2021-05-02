@@ -481,6 +481,11 @@ class Plugins(object):
             if must_recurse is None:
                 continue
 
+            if type(must_recurse) is not tuple and must_recurse not in (True, False):
+                plugin.sysexit(
+                    "Error, onModuleEncounter code failed to return a None or tuple(bool, reason) result."
+                )
+
             if result is not None:
                 # false alarm, pylint: disable=unsubscriptable-object
                 assert result[0] == must_recurse[0]
