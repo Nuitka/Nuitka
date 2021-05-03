@@ -26,7 +26,7 @@ extern volatile int _Py_Ticker;
 #define _Py_CheckInterval 20
 #endif
 
-#if PYTHON_VERSION >= 0x390
+#ifdef NUITKA_USE_PYCORE_THREADSTATE
 
 NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
     PyThreadState *tstate = PyThreadState_GET();

@@ -1965,7 +1965,7 @@ void _initBuiltinOriginalValues() {
 #endif
 
 // Used for threading.
-#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION >= 0x300 && !defined(NUITKA_USE_PYCORE_THREADSTATE)
 volatile int _Py_Ticker = _Py_CheckInterval;
 #endif
 
