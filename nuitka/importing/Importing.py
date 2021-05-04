@@ -624,7 +624,7 @@ def _findModule2(module_name):
 
     preloaded_path = getPreloadedPackagePath(module_name)
 
-    if preloaded_path is not None:
+    if preloaded_path:
         return preloaded_path[0]
 
     return _findModuleInPath(module_name=module_name)
