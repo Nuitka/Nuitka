@@ -111,6 +111,11 @@ void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) 
 }
 
 #if defined(_WIN32)
+
+#if _NUITKA_ONEFILE_TEMP == 1
+#include <shellapi.h>
+#endif
+
 bool expandWindowsPath(wchar_t *target, wchar_t const *source, size_t buffer_size) {
     target[0] = 0;
 
