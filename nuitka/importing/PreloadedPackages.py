@@ -38,7 +38,7 @@ def getLoadedPackages():
     """
 
     for module_name, module in sys.modules.items():
-        if not hasattr(module, "__path__"):
+        if not getattr(module, "__path__", None):
             continue
 
         if hasattr(module, "__file__"):
