@@ -770,55 +770,6 @@ if gcc_mode and "linux" in sys.platform:
             )
 
 
-# For Nuitka, it generally is OK to break out of the virtualenv, and use the
-# original install. Mind you, this is not about executing anything, this is
-# about building, and finding the headers to compile against that Python, we
-# do not care about any site packages, and so on.
-
-# Some virtualenv, at least on macOS, have such handy links, pointing to the
-# Python installation.
-
-if not win_target and os.path.islink(os.path.join(python_prefix, ".Python")):
-    python_prefix = os.path.normpath(
-        os.path.join(os.readlink(os.path.join(python_prefix, ".Python")), "..")
-    )
-
-# Some virtualenv created by "venv" seem to have a different structure, where
-# library and include files are outside of it.
-
-if (
-    not win_target
-    and python_version >= (3, 3)
-    and os.path.exists(os.path.join(python_prefix, "bin/activate"))
-):
-    python_binary = os.path.join(python_prefix, "bin", "python")
-    python_binary = os.path.realpath(python_binary)
-
-    python_prefix = os.path.normpath(os.path.join(python_binary, "..", ".."))
-
-# Some virtualenv contain the "orig-prefix.txt" as a textual link to
-# the target, this is Windows and standard virtualenv. There are two
-# places to look for.
-def _detectVirtualEnvPrefix():
-    for candidate in (
-        "Lib/orig-prefix.txt",
-        "lib/python%s/orig-prefix.txt" % python_version_str,
-    ):
-        # we change the global value, pylint: disable=global-statement
-        global python_prefix
-
-        candidate = os.path.join(python_prefix, candidate)
-        if os.path.exists(candidate):
-            with open(candidate) as f:
-                python_prefix = f.read()
-
-            # Trailing spaces in the python prefix, please not.
-            assert python_prefix == python_prefix.strip()
-
-
-_detectVirtualEnvPrefix()
-
-
 def _detectPythonHeaderPath():
     if win_target:
         # On Windows, the CPython installation layout is relatively fixed, but on MSYS2

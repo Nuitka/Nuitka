@@ -49,6 +49,7 @@ from nuitka.Progress import (
 from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
+    getSystemPrefixPath,
     python_version,
     python_version_str,
 )
@@ -407,7 +408,7 @@ def runSconsBackend(quiet):
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "python_version": python_version_str,
         "target_arch": Utils.getArchitecture(),
-        "python_prefix": getDirectoryRealPath(sys.prefix),
+        "python_prefix": getDirectoryRealPath(getSystemPrefixPath()),
         "nuitka_src": SconsInterface.getSconsDataPath(),
         "module_count": "%d"
         % (
