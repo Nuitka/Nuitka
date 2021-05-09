@@ -50,6 +50,7 @@ from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
     getSystemPrefixPath,
+    getSystemStaticLibPythonPath,
     python_version,
     python_version_str,
 )
@@ -421,8 +422,8 @@ def runSconsBackend(quiet):
     if not Options.shallMakeModule():
         options["result_exe"] = OutputDirectories.getResultFullpath(onefile=False)
 
-    if Options.shallUseStaticLibPython():
-        options["static_libpython"] = asBoolStr(True)
+    if Options.shallUseStaticLibPython() and getSystemStaticLibPythonPath() is not None:
+        options["static_libpython"] = getSystemStaticLibPythonPath()
 
     if Options.isStandaloneMode():
         options["standalone_mode"] = asBoolStr(True)

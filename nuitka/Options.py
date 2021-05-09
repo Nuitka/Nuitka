@@ -25,6 +25,7 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import parseOptions
 from nuitka.PythonVersions import (
     getSupportedPythonVersions,
+    getSystemStaticLibPythonPath,
     isUninstalledPython,
     python_version_str,
 )
@@ -330,6 +331,11 @@ the selection of onefile temp directory mode. Check --help output."""
                 % pattern
             )
 
+    if options.static_libpython == "yes" and getSystemStaticLibPythonPath() is None:
+        Tracing.options_logger.sysexit(
+            "Error, static libpython is not found for this Python installation."
+        )
+
     is_debug = _isDebug()
     is_nondebug = not is_debug
     is_fullcompat = _isFullCompat()
@@ -422,6 +428,11 @@ def commentArgs():
     if options.dependency_tool:
         Tracing.options_logger.warning(
             "Using removed option '--windows-dependency-tool' is deprecated and has no impact anymore."
+        )
+
+    if shallMakeModule() and options.static_libpython == "yes":
+        Tracing.options_logger.warning(
+            "In module mode, providing --static-libpython has no effect, it's not used."
         )
 
 
@@ -658,11 +669,19 @@ def shallUseStaticLibPython():
 
         # For Anaconda default to trying static lib python library, which
         # normally is just not available or if it is even unusable.
-        return (
+        if (
             os.path.exists(os.path.join(sys.prefix, "conda-meta"))
             and not isWin32Windows()
             and not getOS() == "Darwin"
-        )
+        ):
+            return True
+
+        options.static_libpython = "no"
+
+        if getSystemStaticLibPythonPath() is not None:
+            Tracing.options_logger.info(
+                "Detected static libpython as existing, consider using '--static-libpython=yes'."
+            )
 
     return options.static_libpython == "yes"
 

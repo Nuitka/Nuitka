@@ -160,7 +160,9 @@ trace_mode = getArgumentBool("trace_mode", False)
 # support, the compiled result would not run correctly.
 lto_mode = getArgumentBool("lto_mode", False)
 
-static_libpython = getArgumentBool("static_libpython", False)
+static_libpython = getArgumentDefaulted("static_libpython", "")
+if static_libpython:
+    assert os.path.exists(static_libpython), static_libpython
 
 # Windows target mode: Compile for Windows. Used to be an option, but we
 # no longer cross compile this way.
@@ -821,33 +823,10 @@ def getWindowsPythonDLLPath():
     return os.environ["NUITKA_PYTHON_DLL_PATH"]
 
 
-def detectStaticLibPython():
-    candidates = [
-        # Anaconda has this.
-        os.path.join(
-            python_prefix,
-            "libs",
-            "libpython" + python_abi_version.replace(".", "") + ".dll.a",
-        ),
-        # MSYS2 mingw64 Python has this.
-        os.path.join(
-            python_prefix,
-            "lib",
-            "libpython" + python_abi_version + ".dll.a",
-        ),
-    ]
-
-    for candidate in candidates:
-        if os.path.exists(candidate):
-            return candidate
-
-
 if win_target:
     # Some non standard Pythons on Windows have this.
-    static_lib_filename = detectStaticLibPython()
-
-    if gcc_mode and static_libpython and os.path.exists(static_lib_filename):
-        env.Append(LIBS=[env.File(static_lib_filename)])
+    if gcc_mode and static_libpython:
+        env.Append(LIBS=[env.File(static_libpython)])
     else:
 
         def addWinLib():
@@ -875,12 +854,8 @@ elif not module_mode:
     python_lib_path = os.path.join(python_prefix, "lib")
     env.Append(LIBPATH=[python_lib_path])
 
-    static_lib_filename = os.path.join(
-        python_lib_path, "libpython" + python_abi_version + ".a"
-    )
-
-    if not module_mode and static_libpython and os.path.exists(static_lib_filename):
-        env.Append(LIBS=[env.File(static_lib_filename)])
+    if not module_mode and static_libpython:
+        env.Append(LIBS=[env.File(static_libpython)])
     else:
         # Debian and Ubuntu distinguish the system libraries like this.
         if (
