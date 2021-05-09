@@ -644,22 +644,27 @@ def shallClearPythonPathEnvironment():
 
 
 def shallUseStaticLibPython():
-    """*bool* = derived from `sys.prefix` and `os.name`
+    """*bool* = "--static-libpython=yes|auto"
 
     Notes:
-        Currently only Anaconda on non-Windows can do this.
+        Currently only Anaconda on non-Windows can do this and MSYS2.
     """
 
-    if isWin32Windows() and os.path.exists(os.path.join(sys.prefix, "etc/config.site")):
-        return True
+    if options.static_libpython == "auto":
+        if isWin32Windows() and os.path.exists(
+            os.path.join(sys.prefix, "etc/config.site")
+        ):
+            return True
 
-    # For Anaconda default to trying static lib python library, which
-    # normally is just not available or if it is even unusable.
-    return (
-        os.path.exists(os.path.join(sys.prefix, "conda-meta"))
-        and not isWin32Windows()
-        and not getOS() == "Darwin"
-    )
+        # For Anaconda default to trying static lib python library, which
+        # normally is just not available or if it is even unusable.
+        return (
+            os.path.exists(os.path.join(sys.prefix, "conda-meta"))
+            and not isWin32Windows()
+            and not getOS() == "Darwin"
+        )
+
+    return options.static_libpython == "yes"
 
 
 def shallTreatUninstalledPython():
