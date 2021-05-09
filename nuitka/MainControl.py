@@ -64,6 +64,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from . import ModuleRegistry, Options, OutputDirectories, TreeXML
 from .build import SconsInterface
@@ -677,7 +678,10 @@ def main():
     # Main has to fulfill many options, leading to many branches and statements
     # to deal with them.  pylint: disable=too-many-branches,too-many-statements
     if not Options.shallDumpBuiltTreeXML():
-        general.info("Starting Python compilation.")
+        general.info(
+            "Starting Python compilation with Nuitka %r on Python %r commercial %r."
+            % (getNuitkaVersion(), python_version_str, getCommercialVersion())
+        )
 
     filename = Options.getPositionalArgs()[0]
 

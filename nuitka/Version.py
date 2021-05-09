@@ -36,3 +36,13 @@ def getNuitkaVersionYear():
     """The year of Nuitka copyright for use in generations."""
 
     return int(version_string.split()[4])
+
+
+def getCommercialVersion():
+    """Return Nuitka commercial version if installed."""
+    try:
+        from nuitka.tools.commercial import Version
+    except ImportError:
+        return None
+    else:
+        return Version.__version__
