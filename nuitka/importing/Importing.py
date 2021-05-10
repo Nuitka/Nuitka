@@ -77,6 +77,10 @@ def setMainScriptDirectory(main_dir):
     main_path = main_dir
 
 
+def getMainScriptDirectory():
+    return main_path
+
+
 def isPackageDir(dirname):
     """Decide if a directory is a package.
 
