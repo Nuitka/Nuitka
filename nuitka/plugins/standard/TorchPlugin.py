@@ -24,7 +24,7 @@ from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
-def get_torch_core_binaries(module):
+def getTorchCoreFiles(module):
     """Return required files from the torch folders.
 
     Notes:
@@ -106,11 +106,12 @@ class TorchPlugin(NuitkaPluginBase):
 
         if module.getFullName() == "torch":
             self.files_copied = True  # fall through next time
-            binaries = get_torch_core_binaries(module)
+            binaries = getTorchCoreFiles(module)
             bin_total = len(binaries)
             if bin_total == 0:
                 return ()
             self.info("Copying files from 'torch' installation:")
+
             for f in binaries:
                 bin_file = f[0]  # full binary file name
                 idx = bin_file.find("torch")  # this will always work (idx > 0)
