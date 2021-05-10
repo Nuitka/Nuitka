@@ -502,6 +502,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
         (
             ".patch",
             ".txt",
+            ".qml",
             ".rst",
             ".sh",
             ".in",
