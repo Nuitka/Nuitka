@@ -422,10 +422,6 @@ def commentArgs():
         )
 
 
-def getCacheDir():
-    return options.cache_dir
-
-
 def isVerbose():
     """*bool* = "--verbose" """
     return options is not None and options.verbose

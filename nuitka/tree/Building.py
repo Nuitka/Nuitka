@@ -62,6 +62,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     long,
     unicode,
 )
+from nuitka.Caching import filenameToBytecode
 from nuitka.freezer.Standalone import detectEarlyImports
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
@@ -101,6 +102,7 @@ from nuitka.nodes.ModuleAttributeNodes import (
 from nuitka.nodes.ModuleNodes import (
     CompiledPythonModule,
     CompiledPythonPackage,
+    UncompiledPythonModule,
     PythonMainModule,
     PythonShlibModule,
 )
@@ -115,7 +117,7 @@ from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import memory_logger, plugins_logger, unusual_logger
+from nuitka.Tracing import memory_logger, plugins_logger, unusual_logger, optimization_logger
 from nuitka.utils import MemoryUsage
 from nuitka.utils.FileOperations import splitPath
 from nuitka.utils.ModuleNames import ModuleName
@@ -989,13 +991,25 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 source_ref=source_ref,
             )
         else:
-            result = CompiledPythonModule(
-                module_name=module_name,
-                is_top=is_top,
-                mode=decideCompilationMode(is_top, module_name, source_ref),
-                future_spec=None,
-                source_ref=source_ref,
-            )
+            mode = decideCompilationMode(is_top, module_name, source_ref)
+            if mode == "bytecode" and not is_top:
+                optimization_logger.info("%r is included as bytecode." % (module_name.asString()))
+                result = UncompiledPythonModule(
+                    module_name=module_name,
+                    filename=filename,
+                    bytecode=filenameToBytecode(filename, module_name.asString()),
+                    source_ref=source_ref,
+                    user_provided=False,
+                    technical=False,
+                    )
+            else:
+                result = CompiledPythonModule(
+                    module_name=module_name,
+                    is_top=is_top,
+                    mode=mode,
+                    future_spec=None,
+                    source_ref=source_ref,
+                )
 
     elif Importing.isPackageDir(filename):
         if is_top:

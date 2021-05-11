@@ -90,14 +90,6 @@ but a compressed executable is created and used. Experimental at this time,
 and not supported on all OSes. Defaults to off.""",
 )
 
-parser.add_option(
-    "--set-cache-dir",
-    action="store",
-    dest="cache_dir",
-    default=None,
-    help="""\
-Set the path of the nuitka cache."""
-)
 
 if os.name == "nt":
     parser.add_option(

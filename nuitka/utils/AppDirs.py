@@ -28,7 +28,6 @@ import tempfile
 
 from .FileOperations import makePath
 from .Importing import importFromInlineCopy
-from nuitka import Options
 
 try:
     import appdirs  # pylint: disable=I0021,import-error
@@ -41,10 +40,7 @@ _cache_dir = None
 
 def getCacheDir():
     global _cache_dir  # singleton, pylint: disable=global-statement
-    if Options.getCacheDir() is not None:
-        _cache_dir = os.path.join(Options.getCacheDir(), "Nuitka")
-
-    elif _cache_dir is None:
+    if _cache_dir is None:
         if appdirs is not None:
             _cache_dir = appdirs.user_cache_dir("Nuitka", None)
         else:

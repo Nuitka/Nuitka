@@ -23,7 +23,7 @@ import hashlib
 import marshal
 import os
 
-from nuitka import Options
+from nuitka.Caching import isAlreadyCached, loadBytecodeFromCache, writeModulesNamesToCache, writeBytecodeToCache
 from nuitka.importing.ImportCache import (
     isImportedModuleByName,
     replaceImportedModule,
@@ -33,8 +33,7 @@ from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import inclusion_logger
-from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.FileOperations import listDir, makePath, getFileContents
+from nuitka.utils.FileOperations import listDir, makePath
 from nuitka.utils.Importing import getAllModuleSuffixes
 
 
@@ -66,17 +65,6 @@ def getModuleImportableFilesHash(full_name):
     return result_hash.hexdigest()
 
 
-def _getCacheFilename(full_name, module_importables_hash, extension):
-    module_cache_dir = os.path.join(getCacheDir(), "module-cache")
-    makePath(module_cache_dir)
-
-    return os.path.join(
-        module_cache_dir, "%s-%s.%s" % (full_name.asString(), module_importables_hash, extension)
-    )
-
-def _loadBytecodeFromCache(cache_filename):
-    return getFileContents(cache_filename, "rb")
-
 def demoteCompiledModuleToBytecode(module):
     """Demote a compiled module to uncompiled (bytecode)."""
 
@@ -89,7 +77,7 @@ def demoteCompiledModuleToBytecode(module):
         )
 
     module_importables_hash = getModuleImportableFilesHash(full_name)
-    if os.path.exists(_getCacheFilename(full_name, module_importables_hash, "txt")):
+    if isAlreadyCached():
         inclusion_logger.info("The module %r is already demoted" % (full_name.asString()))
         already_demoted = True
 
@@ -112,9 +100,7 @@ def demoteCompiledModuleToBytecode(module):
     uncompiled_module = makeUncompiledPythonModule(
         module_name=full_name,
         filename=filename,
-        bytecode=marshal.dumps(bytecode) if not already_demoted else _loadBytecodeFromCache(_getCacheFilename(
-            full_name, module_importables_hash, "dat")
-        ),
+        bytecode=marshal.dumps(bytecode) if not already_demoted else loadBytecodeFromCache(full_name, module_importables_hash),
         is_package=module.isCompiledPythonPackage(),
         user_provided=True,
         technical=False,
@@ -134,9 +120,5 @@ def demoteCompiledModuleToBytecode(module):
         replaceTriggerModule(old=module, new=uncompiled_module)
 
     if not already_demoted:
-        with open(_getCacheFilename(full_name, module_importables_hash, "txt"), "w") as modules_cache_file:
-            for module_name, _filename in used_modules:
-                modules_cache_file.write(module_name.asString() + "\n")
-
-        with open(_getCacheFilename(full_name, module_importables_hash, "dat"), "wb") as bytecode_cache_file:
-            bytecode_cache_file.write(marshal.dumps(bytecode))
+        writeModulesNamesToCache(full_name, module_importables_hash, used_modules)
+        writeBytecodeToCache(full_name, module_importables_hash, bytecode)

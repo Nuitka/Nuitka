@@ -46,7 +46,7 @@ from nuitka.utils.MemoryUsage import (
 )
 
 from . import Graphs
-from .BytecodeDemotion import demoteCompiledModuleToBytecode
+#from .BytecodeDemotion import demoteCompiledModuleToBytecode
 from .Tags import TagSet
 from .TraceCollections import withChangeIndicationsTo
 
@@ -360,12 +360,12 @@ def optimize(output_filename):
 
     # Demote compiled modules to bytecode, now that imports had a chance to be resolved, and
     # dependencies were handled.
-    for module in ModuleRegistry.getDoneModules():
-        if (
-            module.isCompiledPythonModule()
-            and module.getCompilationMode() == "bytecode"
-        ):
-            demoteCompiledModuleToBytecode(module)
+#    for module in ModuleRegistry.getDoneModules():
+#        if (
+#            module.isCompiledPythonModule()
+#            and module.getCompilationMode() == "bytecode"
+#        ):
+#            demoteCompiledModuleToBytecode(module)
 
     global pass_count  # Singleton, pylint: disable=global-statement
 
