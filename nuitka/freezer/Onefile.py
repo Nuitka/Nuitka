@@ -116,8 +116,8 @@ for onefile creation to work on Linux."""
     with open(apprun_filename, "w") as output_file:
         output_file.write(
             """\
-#!/bin/sh
-exec $APPDIR/%s $@"""
+#!/bin/bash
+exec -a $ARGV0 $APPDIR/%s $@"""
             % os.path.basename(binary_filename)
         )
 
