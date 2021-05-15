@@ -271,12 +271,19 @@ def addResourceToFile(target_filename, data, resource_kind, lang_id, res_name, l
                 logger.warning(
                     """
 Failed to add resources to file %r in attempt %d.
-Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying in a second delay."""
+Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
                     % (target_filename, attempt)
                 )
+            else:
+                logger.warning(
+                    """
+Failed to add resources to file %r in attempt %d with error code %d.
+Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
+                    % (target_filename, attempt, e.errno)
+                )
 
-                time.sleep(1)
-                continue
+            time.sleep(1)
+            continue
         else:
             if attempt != 1:
                 logger.warning(
