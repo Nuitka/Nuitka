@@ -229,6 +229,7 @@ import %(binding_name)s.QtCore
                     ".png",
                     ".ttf",
                     ".metainfo",
+                    ".mesh",
                 )
             )
             if not os.path.isdir(filename)
