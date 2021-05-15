@@ -1075,6 +1075,9 @@ def _expandProjectArg(arg, filename_arg, for_eval):
 
 def _getProjectOptions(logger, filename_arg, module_mode):
     # Complex stuff, pylint: disable=too-many-branches,too-many-locals
+    # Do it only once.
+    if os.environ.get("NUITKA_REEXECUTION", "0") == "1":
+        return
 
     if os.path.isdir(filename_arg):
         if module_mode:
