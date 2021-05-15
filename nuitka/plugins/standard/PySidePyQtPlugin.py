@@ -27,6 +27,7 @@ from abc import abstractmethod
 
 from nuitka import Options
 from nuitka.containers.oset import OrderedSet
+from nuitka.freezer.IncludedDataFiles import makeIncludedDataFile
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import (
@@ -196,14 +197,47 @@ import %(binding_name)s.QtCore
         # TODO: Special case "xml".
         return False
 
-    def copyQmlFiles(self, full_name, target_plugin_dir):
+    def _getQmlDirectory(self):
         for plugin_dir in self.getQtPluginDirs():
             qml_plugin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "qml"))
 
             if os.path.exists(qml_plugin_dir):
-                break
+                return qml_plugin_dir
+
+        self.sysexit("Error, no such Qt plugin family: qml")
+
+    def _getQmlFileList(self, dlls):
+        qml_plugin_dir = self._getQmlDirectory()
+
+        # List all file types of the QML plugin folder that are datafiles and not DLLs.
+        datafile_suffixes = (
+            ".qml",
+            ".qmlc",
+            ".qmltypes",
+            ".js",
+            ".jsc",
+            ".png",
+            ".ttf",
+            ".metainfo",
+            ".mesh",
+        )
+
+        if dlls:
+            ignore_suffixes = datafile_suffixes
+            only_suffixes = ()
         else:
-            self.sysexit("Error, no such Qt plugin family: qml")
+            ignore_suffixes = ()
+            only_suffixes = datafile_suffixes
+
+        return getFileList(
+            qml_plugin_dir,
+            ignore_filenames=("qmldir",),
+            ignore_suffixes=ignore_suffixes,
+            only_suffixes=only_suffixes,
+        )
+
+    def copyQmlFiles(self, full_name, target_plugin_dir):
+        qml_plugin_dir = self._getQmlDirectory()
 
         qml_target_dir = os.path.normpath(self._getQmlTargetDir(target_plugin_dir))
 
@@ -218,22 +252,7 @@ import %(binding_name)s.QtCore
                 os.path.join(qml_target_dir, os.path.relpath(filename, qml_plugin_dir)),
                 full_name,
             )
-            for filename in getFileList(qml_plugin_dir)
-            if not filename.endswith(
-                (
-                    ".qml",
-                    ".qmlc",
-                    ".qmltypes",
-                    ".js",
-                    ".jsc",
-                    ".png",
-                    ".ttf",
-                    ".metainfo",
-                    ".mesh",
-                )
-            )
-            if not os.path.isdir(filename)
-            if not os.path.basename(filename) == "qmldir"
+            for filename in self._getQmlFileList(dlls=True)
         ]
 
     def findDLLs(self, full_name, target_plugin_dir):
@@ -473,6 +492,26 @@ if not path.startswith(__nuitka_binary_dir):
                 code,
                 "Adding binary folder to runtime 'PATH' environment variable for proper loading.",
             )
+
+    # TODO: Make this work
+    def xconsiderDataFiles(self, module):
+        full_name = module.getFullName()
+
+        if full_name == self.binding_name and (
+            "qml" in self.getQtPluginsSelected() or "all" in self.getQtPluginsSelected()
+        ):
+            qml_plugin_dir = self._getQmlDirectory()
+            qml_target_dir = os.path.normpath(self._getQmlTargetDir(self.binding_name))
+
+            for filename in self._getQmlFileList(dlls=False):
+                yield makeIncludedDataFile(
+                    filename,
+                    os.path.join(
+                        qml_target_dir,
+                        os.path.relpath(os.path.relpath(filename, qml_plugin_dir)),
+                    ),
+                    "Qt QML datafile",
+                )
 
     def considerExtraDlls(self, dist_dir, module):
         # pylint: disable=too-many-branches,too-many-locals,too-many-statements

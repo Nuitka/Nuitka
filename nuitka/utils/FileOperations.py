@@ -218,14 +218,22 @@ def listDir(path):
     )
 
 
-def getFileList(path, ignore_dirs=(), ignore_suffixes=(), normalize=True):
+def getFileList(
+    path,
+    ignore_dirs=(),
+    ignore_filenames=(),
+    ignore_suffixes=(),
+    only_suffixes=(),
+    normalize=True,
+):
     """Get all files below a given path.
 
     Args:
         path: directory to create a recurseive listing from
         ignore_dirs: Don't descend into these directory, ignore them
+        ignore_filenames: Ignore files named exactly like this
         ignore_suffixes: Don't return files with these suffixes
-
+        only_suffixes: If not empty, limit returned files to these suffixes
 
     Returns:
         Sorted list of all filenames below that directory,
@@ -235,10 +243,15 @@ def getFileList(path, ignore_dirs=(), ignore_suffixes=(), normalize=True):
         This function descends into directories, but does
         not follow symlinks.
     """
+    # We work with a lot of details here, pylint: disable=too-many-locals
+
     result = []
 
     # Normalize ignoredirs for better matching.
     ignore_dirs = [os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs]
+    ignore_filenames = [
+        os.path.normcase(ignore_filename) for ignore_filename in ignore_filenames
+    ]
 
     for root, dirnames, filenames in os.walk(path):
         dirnames.sort()
@@ -246,12 +259,21 @@ def getFileList(path, ignore_dirs=(), ignore_suffixes=(), normalize=True):
 
         # Normalize dirnames for better matching.
         dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
-        for dirname in ignore_dirs:
-            if dirname in dirnames_normalized:
-                dirnames.remove(dirname)
+        for ignore_dir in ignore_dirs:
+            if ignore_dir in dirnames_normalized:
+                dirnames.remove(ignore_dir)
+
+        # Normalize filenames for better matching.
+        filenames_normalized = [os.path.normcase(filename) for filename in filenames]
+        for ignore_filename in ignore_filenames:
+            if ignore_filename in filenames_normalized:
+                filenames.remove(ignore_filename)
 
         for filename in filenames:
             if os.path.normcase(filename).endswith(ignore_suffixes):
+                continue
+
+            if only_suffixes and not os.path.normcase(filename).endswith(only_suffixes):
                 continue
 
             fullname = os.path.join(root, filename)
