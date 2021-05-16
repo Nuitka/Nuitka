@@ -149,6 +149,13 @@ import %(binding_name)s.QtCore
                         "getattr(%(binding_name)s, '_nuitka_patch_level', 0)"
                     ),
                 ),
+                (
+                    # TODO: Expose this as an option to add it.
+                    "translations_path",
+                    applyBindingName(
+                        "%(binding_name)s.QtCore.QLibraryInfo.location(%(binding_name)s.QtCore.QLibraryInfo.TranslationsPath)"
+                    ),
+                ),
             ),
         )
 
@@ -236,7 +243,7 @@ import %(binding_name)s.QtCore
             only_suffixes=only_suffixes,
         )
 
-    def copyQmlFiles(self, full_name, target_plugin_dir):
+    def copyQmlFiles(self, target_plugin_dir):
         qml_plugin_dir = self._getQmlDirectory()
 
         qml_target_dir = os.path.normpath(self._getQmlTargetDir(target_plugin_dir))
@@ -245,12 +252,12 @@ import %(binding_name)s.QtCore
 
         copyTree(qml_plugin_dir, qml_target_dir)
 
-        # We try to filter here, not for DLLs.
+        # We try to filter here, for the DLLs.
         return [
             (
                 filename,
                 os.path.join(qml_target_dir, os.path.relpath(filename, qml_plugin_dir)),
-                full_name,
+                self.binding_name,
             )
             for filename in self._getQmlFileList(dlls=True)
         ]
@@ -589,7 +596,6 @@ if not path.startswith(__nuitka_binary_dir):
                 or "all" in self.getQtPluginsSelected()
             ):
                 result += self.copyQmlFiles(
-                    full_name=full_name,
                     target_plugin_dir=target_plugin_dir,
                 )
 
