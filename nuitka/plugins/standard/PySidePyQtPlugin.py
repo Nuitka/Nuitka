@@ -452,6 +452,12 @@ QCoreApplication.setLibraryPaths(
         )
     ]
 )
+
+os.environ["QML2_IMPORT_PATH"] = os.path.join(
+    os.path.dirname(__file__),
+    "qml"
+)
+
 """ % {
                 "package_name": full_name
             }
