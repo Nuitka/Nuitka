@@ -87,6 +87,8 @@ def _createNodeTree(filename):
 
     """
 
+    # Many cases to deal with, pylint: disable=too-many-branches
+
     # First, build the raw node tree from the source code.
     main_module = Building.buildModuleTree(
         filename=filename,
@@ -109,9 +111,15 @@ def _createNodeTree(filename):
         removeDirectory(path=standalone_dir, ignore_errors=True)
         makePath(standalone_dir)
 
+    # Delete result file, to avoid confusion with previous build and to
+    # avoid locking issues after the build.
     deleteFile(
         path=OutputDirectories.getResultFullpath(onefile=False), must_exist=False
     )
+    if Options.isOnefileMode():
+        deleteFile(
+            path=OutputDirectories.getResultFullpath(onefile=True), must_exist=False
+        )
 
     # Second, do it for the directories given.
     for plugin_filename in Options.getShallFollowExtra():
