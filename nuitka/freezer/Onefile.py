@@ -41,6 +41,7 @@ from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
     getFileList,
     removeDirectory,
+    getFileContents
 )
 from nuitka.utils.SharedLibraries import locateDLL
 from nuitka.utils.Utils import getArchitecture, getOS, hasOnefileSupportedOS
@@ -175,7 +176,6 @@ Categories=Utility;"""
         stderr=stderr_file,
     )
 
-    # TODO: Exit code should be checked.
     result = appimagetool_process.wait()
 
     stdout_file.close()
@@ -187,12 +187,25 @@ Categories=Utility;"""
             % (onefile_output_filename, stdout_filename, stderr_filename)
         )
 
+    if result != 0:
+        # Useless now.
+        os.unlink(onefile_output_filename)
+
+        if b"Text file busy" in getFileContents(stderr_filename, mode="rb"):
+            postprocessing_logger.sysexit(
+                "Error, error exit from AppImage because target file is locked."
+            )
+
+        postprocessing_logger.sysexit(
+            "Error, error exit from AppImage, check its outputs %r and %r."
+            % (stdout_filename, stderr_filename)
+        )
+
+
     os.unlink(stdout_filename)
     os.unlink(stderr_filename)
 
     postprocessing_logger.info("Completed onefile creation.")
-
-    assert result == 0, result
 
 
 def _runOnefileScons(quiet):
