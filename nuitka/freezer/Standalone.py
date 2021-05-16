@@ -585,7 +585,7 @@ _detected_python_rpath = None
 ldd_result_cache = {}
 
 
-def _detectBinaryPathDLLsPosix(dll_filename):
+def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     # This is complex, as it also includes the caching mechanism
     # pylint: disable=too-many-branches
 
@@ -608,7 +608,16 @@ def _detectBinaryPathDLLsPosix(dll_filename):
                 "$ORIGIN", os.path.dirname(sys.executable)
             )
 
-    with withEnvironmentPathAdded("LD_LIBRARY_PATH", _detected_python_rpath):
+    ld_library_path = OrderedSet()
+    if _detected_python_rpath:
+        ld_library_path.add(_detected_python_rpath)
+    ld_library_path.update(getPackageSpecificDLLDirectories(package_name))
+
+    if original_dir is not None:
+        ld_library_path.add(original_dir)
+        # ld_library_path.update(getSubDirectories(original_dir, ignore_dirs=("__pycache__",)))
+
+    with withEnvironmentPathAdded("LD_LIBRARY_PATH", *ld_library_path):
         process = subprocess.Popen(
             args=["ldd", dll_filename],
             stdin=getNullInput(),
@@ -708,7 +717,13 @@ def _detectBinaryPathDLLsPosix(dll_filename):
     sub_result = set(result)
 
     for sub_dll_filename in result:
-        sub_result = sub_result.union(_detectBinaryPathDLLsPosix(sub_dll_filename))
+        sub_result = sub_result.union(
+            _detectBinaryPathDLLsPosix(
+                dll_filename=sub_dll_filename,
+                package_name=package_name,
+                original_dir=original_dir,
+            )
+        )
 
     return sub_result
 
@@ -836,6 +851,25 @@ def _getCacheFilename(
 
 
 _scan_dir_cache = {}
+
+
+def getPackageSpecificDLLDirectories(package_name):
+    scan_dirs = OrderedSet()
+
+    if package_name is not None:
+        from nuitka.importing.Importing import findModule
+
+        package_dir = findModule(None, package_name, None, 0, False)[1]
+
+        if os.path.isdir(package_dir):
+            scan_dirs.add(package_dir)
+            scan_dirs.update(
+                getSubDirectories(package_dir, ignore_dirs=("__pycache__",))
+            )
+
+        scan_dirs.update(Plugins.getModuleSpecificDllPaths(package_name))
+
+    return scan_dirs
 
 
 def getScanDirectories(package_name, original_dir):
@@ -972,7 +1006,11 @@ def detectBinaryDLLs(
         Utils.getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD")
         or Utils.isPosixWindows()
     ):
-        return _detectBinaryPathDLLsPosix(dll_filename=original_filename)
+        return _detectBinaryPathDLLsPosix(
+            dll_filename=original_filename,
+            package_name=package_name,
+            original_dir=os.path.dirname(original_filename),
+        )
     elif Utils.isWin32Windows():
         with TimerReport(
             message="Running depends.exe for %s took %%.2f seconds" % binary_filename,
