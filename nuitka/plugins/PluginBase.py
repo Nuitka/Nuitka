@@ -497,6 +497,17 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    def getModuleSpecificDllPaths(self, module_name):
+        """Provide a list of directories, where DLLs should be searched for this package (or module).
+
+        Args:
+            module_name: name of a package or module, for which the DLL path addition applies.
+        Returns:
+            iterable of paths
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return ()
+
     def removeDllDependencies(self, dll_filename, dll_filenames):
         """Yield any DLLs / shared libraries not to be included in distribution.
 

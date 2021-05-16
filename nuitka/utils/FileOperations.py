@@ -286,7 +286,7 @@ def getFileList(
     return result
 
 
-def getSubDirectories(path):
+def getSubDirectories(path, ignore_dirs=()):
     """Get all directories below a given path.
 
     Args:
@@ -303,7 +303,15 @@ def getSubDirectories(path):
 
     result = []
 
+    ignore_dirs = [os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs]
+
     for root, dirnames, _filenames in os.walk(path):
+        # Normalize dirnames for better matching.
+        dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
+        for ignore_dir in ignore_dirs:
+            if ignore_dir in dirnames_normalized:
+                dirnames.remove(ignore_dir)
+
         dirnames.sort()
 
         for dirname in dirnames:
