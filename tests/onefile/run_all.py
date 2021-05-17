@@ -92,7 +92,6 @@ def main():
 
         extra_flags = [
             "expect_success",
-            "--onefile",
             "remove_output",
             # Keep the binary, normally "remove_output" includes that.
             "--keep-binary",
