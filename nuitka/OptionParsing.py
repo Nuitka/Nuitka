@@ -90,6 +90,14 @@ but a compressed executable is created and used. Experimental at this time,
 and not supported on all OSes. Defaults to off.""",
 )
 
+parser.add_option(
+    "--no-onefile",
+    action="store_false",
+    dest="is_onefile",
+    default=False,
+    help=SUPPRESS_HELP
+)
+
 
 if os.name == "nt":
     parser.add_option(
