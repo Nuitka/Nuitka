@@ -153,7 +153,8 @@ import %(binding_name)s.QtCore
                     # TODO: Expose this as an option to add it.
                     "translations_path",
                     applyBindingName(
-                        "%(binding_name)s.QtCore.QLibraryInfo.location(%(binding_name)s.QtCore.QLibraryInfo.TranslationsPath)"
+                        """\
+%(binding_name)s.QtCore.QLibraryInfo.location(%(binding_name)s.QtCore.QLibraryInfo.TranslationsPath)"""
                     ),
                 ),
             ),
@@ -700,7 +701,7 @@ if not path.startswith(__nuitka_binary_dir):
 
 
 class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
-    """This is for plugins of PyQt5 and PySide once it is supported.
+    """This is for plugins of PyQt5.
 
     When loads an image, it may use a plug-in, which in turn used DLLs,
     which for standalone mode, can cause issues of not having it.
@@ -741,7 +742,7 @@ class NuitkaPluginDetectorPyQt5QtPluginsPlugin(NuitkaPluginBase):
 
 
 class NuitkaPluginPySide2Plugins(NuitkaPluginQtBindingsPluginBase):
-    """This is for plugins of PySide2 once it is supported.
+    """This is for plugins of PySide2.
 
     When Qt loads an image, it may use a plug-in, which in turn used DLLs,
     which for standalone mode, can cause issues of not having it.
