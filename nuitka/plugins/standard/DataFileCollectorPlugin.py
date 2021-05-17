@@ -147,6 +147,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         "skimage.feature._orb_descriptor_positions": (
             ("skimage/feature", "orb_descriptor_positions.txt"),
         ),
+        "tzdata": ((None, "zones"),),
     }
 
     # data files to be copied are contained in subfolders named as the second item
@@ -158,6 +159,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         "pyphen": "dictionaries",
         "pytz": "zoneinfo",
         "pytzdata": "zoneinfo",
+        "tzdata": "zoneinfo",
         "pywt": "data",
         "skimage": "data",
         "weasyprint": "css",
