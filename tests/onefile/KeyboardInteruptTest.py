@@ -21,6 +21,11 @@
 
 """
 
+# nuitka-project: --onefile
+
+# nuitka-project-if: {OS} == "Windows":
+#    nuitka-project: --windows-onefile-tempdir
+
 import sys
 import time
 
