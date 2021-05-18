@@ -335,6 +335,7 @@ def _cleanupImportSortOrder(filename):
             isort_call
             + [
                 "-q",  # quiet, but stdout is still garbage
+                "--overwrite-in-place",  # avoid using another temp file, this is already on one.
                 "-ot",  # Order imports by type in addition to alphabetically
                 "-m3",  # "vert-hanging"
                 "-tc",  # Trailing commas
