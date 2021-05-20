@@ -228,6 +228,7 @@ import %(binding_name)s.QtCore
             ".ttf",
             ".metainfo",
             ".mesh",
+            ".frag",
         )
 
         if dlls:
@@ -274,7 +275,6 @@ import %(binding_name)s.QtCore
             for plugin_dir in self.getQtPluginDirs()
             for filename in getFileList(plugin_dir)
             if not filename.endswith(".qml")
-            if not filename.endswith(".mesh")
             if os.path.exists(
                 os.path.join(target_plugin_dir, os.path.relpath(filename, plugin_dir))
             )
