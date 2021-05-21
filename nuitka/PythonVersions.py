@@ -335,6 +335,12 @@ def getSystemStaticLibPythonPath():
                 "lib",
                 "libpython" + python_abi_version + ".dll.a",
             ),
+            # Nuitka Python has this.
+            os.path.join(
+                sys_prefix,
+                "libs",
+                "python" + python_abi_version.replace(".", "") + ".lib",
+            ),
         ]
 
         for candidate in candidates:

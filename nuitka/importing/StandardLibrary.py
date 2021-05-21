@@ -92,7 +92,8 @@ def getStandardLibraryPaths():
             if os.path.isdir(candidate):
                 stdlib_paths.add(candidate)
 
-        if getOS() == "Windows":
+        from nuitka.Options import shallUseStaticLibPython
+        if getOS() == "Windows" and not shallUseStaticLibPython():
             import _ctypes
 
             stdlib_paths.add(os.path.dirname(_ctypes.__file__))
