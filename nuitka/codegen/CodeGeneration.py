@@ -604,6 +604,7 @@ setExpressionDispatchDict(
         "EXPRESSION_CONSTANT_SLICE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_XRANGE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_SUBSCRIPTABLE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_BYTEARRAY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONDITIONAL": generateConditionalCode,
         "EXPRESSION_CONDITIONAL_OR": generateConditionalAndOrCode,
