@@ -1158,7 +1158,9 @@ def _getProjectOptions(logger, filename_arg, module_mode):
                 expect_block = True
                 cond_level = level
             elif command == "":
-                yield _expandProjectArg(arg.lstrip(), filename_arg, for_eval=False)
+                arg = re.sub(r"""^([\w-]*=)(['"])(.*)\2$""", r"\1\3", arg.lstrip())
+
+                yield _expandProjectArg(arg, filename_arg, for_eval=False)
             else:
                 assert False, (command, line)
 
