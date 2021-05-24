@@ -27,6 +27,7 @@ import sys
 
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     BytesIO,
+    GenericAlias,
     long,
     to_byte,
     unicode,
@@ -272,6 +273,10 @@ def _writeConstantValue(output, constant_value):
         output.write(b"E")
         output.write(constant_value.__name__.encode("utf8"))
         output.write(b"\0")
+    elif constant_type is GenericAlias:
+        output.write(b"G")
+        _writeConstantValue(output, constant_value.__origin__)
+        _writeConstantValue(output, constant_value.__args__)
     else:
         assert False, constant_value
 

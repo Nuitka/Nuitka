@@ -130,6 +130,12 @@ else:
         return value[0]
 
 
+try:
+    from typing import GenericAlias
+except ImportError:
+    GenericAlias = None
+
+
 def getMetaClassBase(meta_class_prefix):
     """For Python2/3 compatible source, we create a base class that has the metaclass
     used and doesn't require making a choice.
@@ -165,3 +171,4 @@ assert builtins
 assert Iterable
 assert MutableSet
 assert subprocess
+assert GenericAlias or intern

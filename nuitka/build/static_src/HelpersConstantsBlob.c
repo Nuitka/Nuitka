@@ -1048,6 +1048,21 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
             break;
         }
+#if PYTHON_VERSION >= 0x390
+        case 'G': {
+            // Slice object
+            PyObject *items[2];
+            data = _unpackBlobConstants(&items[0], data, 2);
+
+            PyObject *g = Py_GenericAlias(items[0], items[1]);
+
+            // TODO: Maybe deduplicate.
+            *output = g;
+
+            is_object = true;
+            break;
+        }
+#endif
         case '.': {
             PRINT_FORMAT("Missing values %d\n", count - _i);
             NUITKA_CANNOT_GET_HERE("Corrupt constants blob");

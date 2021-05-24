@@ -27,6 +27,7 @@ from nuitka.Builtins import builtin_type_names
 from nuitka.PythonVersions import python_version
 
 from .__past__ import (  # pylint: disable=I0021,redefined-builtin
+    GenericAlias,
     iterItems,
     long,
     unicode,
@@ -195,6 +196,8 @@ def isConstant(constant):
         # then probably should go into other node types, e.g. str.join is
         # a candidate.
         return True
+    elif constant_type is GenericAlias:
+        return True
     else:
         return False
 
@@ -243,6 +246,8 @@ def isMutable(constant):
         return False
     elif constant is NotImplemented:
         return False
+    elif constant_type is GenericAlias:
+        return isMutable(constant.__origin__) or isMutable(constant.__args__)
     else:
         assert False, repr(constant)
 

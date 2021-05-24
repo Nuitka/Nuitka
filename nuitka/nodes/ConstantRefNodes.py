@@ -21,6 +21,7 @@
 
 from nuitka import Options
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    GenericAlias,
     iterItems,
     long,
     unicode,
@@ -1352,6 +1353,15 @@ class ExpressionConstantTypeSubscriptableRef(ExpressionConstantTypeRef):
     __slots__ = ()
 
     def computeExpressionSubscript(self, lookup_node, subscript, trace_collection):
+        if subscript.isCompileTimeConstant():
+            return trace_collection.getCompileTimeComputationResult(
+                node=lookup_node,
+                computation=lambda: self.getCompileTimeConstant()[
+                    subscript.getCompileTimeConstant()
+                ],
+                description="Subscript of subscriptable type with constant value.",
+            )
+
         # TODO: Not true, in fact these should become GenericAlias always.
         trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -1556,6 +1566,13 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
             return ExpressionBuiltinExceptionRef(
                 exception_name=exception_name, source_ref=source_ref
             )
+        elif constant_type is GenericAlias:
+            from .BuiltinTypeNodes import ExpressionConstantGenericAlias
+
+            return ExpressionConstantGenericAlias(
+                generic_alias=constant, source_ref=source_ref
+            )
+
         else:
             # Missing constant type, ought to not happen, please report.
             assert False, (constant, constant_type)
