@@ -129,7 +129,9 @@ Insist on PyLint to be installed. Default is %default.""",
         ignore_list.append("nuitka")
 
     filenames = list(
-        scanTargets(positional_args, suffixes=(".py",), ignore_list=ignore_list)
+        scanTargets(
+            positional_args, suffixes=(".py", ".scons"), ignore_list=ignore_list
+        )
     )
     PyLint.executePyLint(
         filenames=filenames,

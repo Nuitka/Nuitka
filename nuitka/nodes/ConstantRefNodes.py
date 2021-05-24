@@ -21,6 +21,7 @@
 
 from nuitka import Options
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    GenericAlias,
     iterItems,
     long,
     unicode,
@@ -37,6 +38,7 @@ from nuitka.Constants import (
     isHashable,
     isMutable,
 )
+from nuitka.PythonVersions import python_version
 from nuitka.Tracing import optimization_logger
 
 from .ExpressionBases import CompileTimeConstantExpressionBase
@@ -380,7 +382,7 @@ class ExpressionConstantTrueRef(ExpressionConstantBoolRefBase):
 
     @staticmethod
     def getTruthValue():
-        """ Return known truth value. """
+        """Return known truth value."""
 
         return True
 
@@ -401,7 +403,7 @@ class ExpressionConstantFalseRef(ExpressionConstantBoolRefBase):
 
     @staticmethod
     def getTruthValue():
-        """ Return known truth value. """
+        """Return known truth value."""
 
         return False
 
@@ -442,7 +444,7 @@ class ExpressionConstantEllipsisRef(ExpressionConstantUntrackedRefBase):
 
     @staticmethod
     def getTruthValue():
-        """ Return known truth value. """
+        """Return known truth value."""
 
         return True
 
@@ -1345,6 +1347,27 @@ class ExpressionConstantTypeRef(ExpressionConstantUntrackedRefBase):
         return True
 
 
+class ExpressionConstantTypeSubscriptableRef(ExpressionConstantTypeRef):
+    kind = "EXPRESSION_CONSTANT_TYPE_SUBSCRIPTABLE_REF"
+
+    __slots__ = ()
+
+    def computeExpressionSubscript(self, lookup_node, subscript, trace_collection):
+        if subscript.isCompileTimeConstant():
+            return trace_collection.getCompileTimeComputationResult(
+                node=lookup_node,
+                computation=lambda: self.getCompileTimeConstant()[
+                    subscript.getCompileTimeConstant()
+                ],
+                description="Subscript of subscriptable type with constant value.",
+            )
+
+        # TODO: Not true, in fact these should become GenericAlias always.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return lookup_node, None, None
+
+
 def makeConstantRefNode(constant, source_ref, user_provided=False):
     # This is dispatching per constant value and types, every case
     # to be a return statement, pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
@@ -1496,6 +1519,17 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
                 source_ref=source_ref,
             )
         elif constant_type is type:
+            if python_version >= 0x390 and constant in (
+                set,
+                frozenset,
+                tuple,
+                list,
+                dict,
+            ):
+                return ExpressionConstantTypeSubscriptableRef(
+                    constant=constant, source_ref=source_ref
+                )
+
             return ExpressionConstantTypeRef(constant=constant, source_ref=source_ref)
         elif constant_type is xrange:
             return ExpressionConstantXrangeRef(
@@ -1532,6 +1566,13 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
             return ExpressionBuiltinExceptionRef(
                 exception_name=exception_name, source_ref=source_ref
             )
+        elif constant_type is GenericAlias:
+            from .BuiltinTypeNodes import ExpressionConstantGenericAlias
+
+            return ExpressionConstantGenericAlias(
+                generic_alias=constant, source_ref=source_ref
+            )
+
         else:
             # Missing constant type, ought to not happen, please report.
             assert False, (constant, constant_type)

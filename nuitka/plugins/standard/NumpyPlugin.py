@@ -265,7 +265,7 @@ print(repr("MATPLOTLIBDATA" in getsource(get_data_path)))
         return self.matplotlib_info
 
     def copyMplDataFiles(self, dist_dir):
-        """ Write matplotlib data files ('mpl-data')."""
+        """Write matplotlib data files ('mpl-data')."""
 
         matplotlib_info = self._getMatplotlibInfo()
 

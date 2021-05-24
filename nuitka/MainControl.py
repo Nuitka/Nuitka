@@ -49,6 +49,8 @@ from nuitka.Progress import (
 from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
+    getSystemPrefixPath,
+    getSystemStaticLibPythonPath,
     python_version,
     python_version_str,
 )
@@ -64,6 +66,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from . import ModuleRegistry, Options, OutputDirectories, TreeXML
 from .build import SconsInterface
@@ -83,6 +86,8 @@ def _createNodeTree(filename):
     optimization, or immediately through recursed directory paths.
 
     """
+
+    # Many cases to deal with, pylint: disable=too-many-branches
 
     # First, build the raw node tree from the source code.
     main_module = Building.buildModuleTree(
@@ -106,9 +111,15 @@ def _createNodeTree(filename):
         removeDirectory(path=standalone_dir, ignore_errors=True)
         makePath(standalone_dir)
 
+    # Delete result file, to avoid confusion with previous build and to
+    # avoid locking issues after the build.
     deleteFile(
         path=OutputDirectories.getResultFullpath(onefile=False), must_exist=False
     )
+    if Options.isOnefileMode():
+        deleteFile(
+            path=OutputDirectories.getResultFullpath(onefile=True), must_exist=False
+        )
 
     # Second, do it for the directories given.
     for plugin_filename in Options.getShallFollowExtra():
@@ -406,7 +417,7 @@ def runSconsBackend(quiet):
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "python_version": python_version_str,
         "target_arch": Utils.getArchitecture(),
-        "python_prefix": getDirectoryRealPath(sys.prefix),
+        "python_prefix": getDirectoryRealPath(getSystemPrefixPath()),
         "nuitka_src": SconsInterface.getSconsDataPath(),
         "module_count": "%d"
         % (
@@ -419,8 +430,8 @@ def runSconsBackend(quiet):
     if not Options.shallMakeModule():
         options["result_exe"] = OutputDirectories.getResultFullpath(onefile=False)
 
-    if Options.shallUseStaticLibPython():
-        options["static_libpython"] = asBoolStr(True)
+    if Options.shallUseStaticLibPython() and getSystemStaticLibPythonPath() is not None:
+        options["static_libpython"] = getSystemStaticLibPythonPath()
 
     if Options.isStandaloneMode():
         options["standalone_mode"] = asBoolStr(True)
@@ -677,7 +688,10 @@ def main():
     # Main has to fulfill many options, leading to many branches and statements
     # to deal with them.  pylint: disable=too-many-branches,too-many-statements
     if not Options.shallDumpBuiltTreeXML():
-        general.info("Starting Python compilation.")
+        general.info(
+            "Starting Python compilation with Nuitka %r on Python %r commercial %r."
+            % (getNuitkaVersion(), python_version_str, getCommercialVersion())
+        )
 
     filename = Options.getPositionalArgs()[0]
 

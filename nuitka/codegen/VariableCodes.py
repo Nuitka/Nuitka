@@ -208,7 +208,7 @@ def _getVariableCodeName(in_context, variable):
 
 
 def getPickedCType(variable, context):
-    """ Return type to use for specific context. """
+    """Return type to use for specific context."""
 
     user = context.getEntryPoint()
     owner = variable.getEntryPoint()

@@ -122,7 +122,7 @@ Removed type taking for unused result.""",
 
 
 class ExpressionBuiltinSuper2(ExpressionChildrenHavingBase):
-    """ Two arguments form of super. """
+    """Two arguments form of super."""
 
     kind = "EXPRESSION_BUILTIN_SUPER2"
 
@@ -143,7 +143,7 @@ class ExpressionBuiltinSuper2(ExpressionChildrenHavingBase):
 
 
 class ExpressionBuiltinSuper0(ExpressionChildrenHavingBase):
-    """ Python3 form of super, arguments determined from cells and function arguments. """
+    """Python3 form of super, arguments determined from cells and function arguments."""
 
     kind = "EXPRESSION_BUILTIN_SUPER0"
 

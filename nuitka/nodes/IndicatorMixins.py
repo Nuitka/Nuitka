@@ -53,11 +53,11 @@ class MarkNeedsAnnotationsMixin(object):
         self.needs_annotations_dict = False
 
     def markAsNeedsAnnotationsDictionary(self):
-        """ For use during building only. Indicate "__annotations__" need. """
+        """For use during building only. Indicate "__annotations__" need."""
         self.needs_annotations_dict = True
 
     def needsAnnotationsDictionary(self):
-        """ For use during building only. Indicate "__annotations__" need. """
+        """For use during building only. Indicate "__annotations__" need."""
         return self.needs_annotations_dict
 
 

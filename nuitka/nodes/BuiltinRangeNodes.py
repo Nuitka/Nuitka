@@ -42,7 +42,7 @@ from .shapes.BuiltinTypeShapes import tshape_list, tshape_xrange
 
 
 class ExpressionBuiltinRangeMixin(object):
-    """ Mixin class for range nodes with 1/2/3 arguments. """
+    """Mixin class for range nodes with 1/2/3 arguments."""
 
     # Mixins are required to slots
     __slots__ = ()
@@ -391,7 +391,7 @@ class ExpressionBuiltinRange3(
 
 
 class ExpressionBuiltinXrangeMixin(object):
-    """ Mixin class for xrange nodes with 1/2/3 arguments. """
+    """Mixin class for xrange nodes with 1/2/3 arguments."""
 
     # Mixins are required to slots
     __slots__ = ()

@@ -564,7 +564,7 @@ class ValueShapeUnknown(ValueShapeBase):
 
     @staticmethod
     def isConstant():
-        """ Can't say if it's constant, we don't know anything. """
+        """Can't say if it's constant, we don't know anything."""
         return None
 
 

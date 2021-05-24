@@ -30,6 +30,7 @@ import re
 from types import BuiltinFunctionType
 
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    GenericAlias,
     long,
     unicode,
     xrange,
@@ -47,7 +48,9 @@ def namifyConstant(constant):
     # statement, that encodes the naming policy of constants, with often complex
     # conditions, pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
 
-    if type(constant) is int:
+    constant_type = type(constant)
+
+    if constant_type is int:
         if constant == 0:
             result = "int_0"
         elif constant > 0:
@@ -59,7 +62,7 @@ def namifyConstant(constant):
             result = _digest(result)
 
         return result
-    elif type(constant) is long:
+    elif constant_type is long:
         if constant == 0:
             result = "long_0"
         elif constant > 0:
@@ -79,17 +82,17 @@ def namifyConstant(constant):
         return "false"
     elif constant is Ellipsis:
         return "ellipsis"
-    elif type(constant) is str:
+    elif constant_type is str:
         return "str_" + _namifyString(constant)
-    elif type(constant) is bytes:
+    elif constant_type is bytes:
         return "bytes_" + _namifyString(constant)
-    elif type(constant) is unicode:
+    elif constant_type is unicode:
         if _isAscii(constant):
             return "unicode_" + _namifyString(str(constant))
         else:
             # Others are better digested to not cause compiler trouble
             return "unicode_digest_" + _digest(repr(constant))
-    elif type(constant) is float:
+    elif constant_type is float:
         if math.isnan(constant):
             return "float_%s_nan" % (
                 "minus" if math.copysign(1, constant) < 0 else "plus"
@@ -98,7 +101,7 @@ def namifyConstant(constant):
         return "float_%s" % repr(constant).replace(".", "_").replace(
             "-", "minus_"
         ).replace("+", "")
-    elif type(constant) is complex:
+    elif constant_type is complex:
         value = "%s__%s" % (constant.real, constant.imag)
 
         value = value.replace("+", "p").replace("-", "m").replace(".", "_")
@@ -107,22 +110,22 @@ def namifyConstant(constant):
             value = value[1:-1]
 
         return "complex_%s" % value
-    elif type(constant) is dict:
+    elif constant_type is dict:
         if constant == {}:
             return "dict_empty"
         else:
             return "dict_" + _digest(repr(constant))
-    elif type(constant) is set:
+    elif constant_type is set:
         if constant == set():
             return "set_empty"
         else:
             return "set_" + _digest(repr(constant))
-    elif type(constant) is frozenset:
+    elif constant_type is frozenset:
         if constant == frozenset():
             return "frozenset_empty"
         else:
             return "frozenset_" + _digest(repr(constant))
-    elif type(constant) is tuple:
+    elif constant_type is tuple:
         if constant == ():
             return "tuple_empty"
         else:
@@ -137,7 +140,7 @@ def namifyConstant(constant):
                 general.warning("Couldn't namify '%r'" % (constant,))
 
                 return "tuple_" + _digest(repr(constant))
-    elif type(constant) is list:
+    elif constant_type is list:
         if constant == []:
             return "list_empty"
         else:
@@ -152,16 +155,16 @@ def namifyConstant(constant):
                 general.warning("Couldn't namify '%r'" % value)
 
                 return "list_" + _digest(repr(constant))
-    elif type(constant) is bytearray:
+    elif constant_type is bytearray:
         return "bytearray_" + _digest(repr(constant))
-    elif type(constant) is xrange:
+    elif constant_type is xrange:
         return "xrange_%s" % (
             str(constant)[7 if str is bytes else 6 : -1]
             .replace(" ", "")
             .replace(",", "_")
             .replace("-", "neg")
         )
-    elif type(constant) is slice:
+    elif constant_type is slice:
         return "slice_%s_%s_%s" % (
             namifyConstant(constant.start),
             namifyConstant(constant.stop),
@@ -169,16 +172,21 @@ def namifyConstant(constant):
         )
     elif constant in builtin_anon_values:
         return "anon_%s" % builtin_anon_values[constant]
-    elif type(constant) is type:
+    elif constant_type is type:
         return "type_%s" % constant.__name__
-    elif type(constant) is BuiltinFunctionType:
+    elif constant_type is BuiltinFunctionType:
         assert constant in builtin_named_values_list
 
         return "builtin_%s" % constant.__name__
     elif constant is NotImplemented:
         return "type_notimplemented"
+    elif constant_type is GenericAlias:
+        return "genalias_%s_%s" % (
+            namifyConstant(constant.__origin__),
+            namifyConstant(constant.__args__),
+        )
     else:
-        raise ExceptionCannotNamify("%r" % constant, type(constant))
+        raise ExceptionCannotNamify("%r" % constant, constant_type)
 
 
 _re_str_needs_no_digest = re.compile(r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S)

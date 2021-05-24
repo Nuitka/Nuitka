@@ -17,25 +17,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" In this test, we get killed after some time has passed, and want to see the KeyboardInterrupt exit.
+# nuitka-project: --standalone
+# nuitka-project: --include-data-file={MAIN_DIRECTORY}/for_import.zip=for_import.zip
+import sys, os
 
-"""
+zip_filename = os.path.join(os.path.dirname(__file__) or ".", "for_import.zip")
 
-# nuitka-project: --onefile
+assert os.path.exists(zip_filename)
+sys.path.insert(0, zip_filename)
 
-# nuitka-project-if: {OS} == "Windows":
-#    nuitka-project: --windows-onefile-tempdir
-
-import sys
-import time
-
-print("Hello world, will you kill me?")
-print(sys.version_info)
-try:
-    time.sleep(10)
-except KeyboardInterrupt:
-    print("Received KeyboardInterrupt.")
-    sys.exit(0)
-else:
-    print("Received no KeyboardInterrupt.")
-    sys.exit(1)
+import zip_module

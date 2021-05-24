@@ -70,7 +70,7 @@ class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
 
 
 class ExpressionOperationUnaryRepr(ExpressionOperationUnaryBase):
-    """ Python unary operator `x` and repr built-in. """
+    """Python unary operator `x` and repr built-in."""
 
     kind = "EXPRESSION_OPERATION_UNARY_REPR"
 
@@ -120,7 +120,7 @@ class ExpressionOperationUnaryRepr(ExpressionOperationUnaryBase):
 
 
 class ExpressionOperationUnarySub(ExpressionOperationUnaryBase):
-    """ Python unary operator - """
+    """Python unary operator -"""
 
     kind = "EXPRESSION_OPERATION_UNARY_SUB"
 
@@ -136,7 +136,7 @@ class ExpressionOperationUnarySub(ExpressionOperationUnaryBase):
 
 
 class ExpressionOperationUnaryAdd(ExpressionOperationUnaryBase):
-    """ Python unary operator + """
+    """Python unary operator +"""
 
     kind = "EXPRESSION_OPERATION_UNARY_ADD"
 
@@ -152,7 +152,7 @@ class ExpressionOperationUnaryAdd(ExpressionOperationUnaryBase):
 
 
 class ExpressionOperationUnaryInvert(ExpressionOperationUnaryBase):
-    """ Python unary operator ~ """
+    """Python unary operator ~"""
 
     kind = "EXPRESSION_OPERATION_UNARY_INVERT"
 

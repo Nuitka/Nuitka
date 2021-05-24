@@ -22,6 +22,8 @@
 import marshal
 
 from nuitka import Options
+from nuitka.Bytecodes import compileSourceToBytecode
+from nuitka.Caching import writeImportedModulesNamesToCache
 from nuitka.importing.ImportCache import (
     isImportedModuleByName,
     replaceImportedModule,
@@ -32,6 +34,22 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import inclusion_logger
 
 
+def demoteSourceCodeToBytecode(module_name, source_code, filename):
+    # Second chance for plugins to modify source code just before turning it
+    # to bytecode.
+    source_code = Plugins.onFrozenModuleSourceCode(
+        module_name=module_name, is_package=False, source_code=source_code
+    )
+
+    bytecode = compileSourceToBytecode(source_code, filename)
+
+    bytecode = Plugins.onFrozenModuleBytecode(
+        module_name=module_name, is_package=False, bytecode=bytecode
+    )
+
+    return marshal.dumps(bytecode)
+
+
 def demoteCompiledModuleToBytecode(module):
     """Demote a compiled module to uncompiled (bytecode)."""
 
@@ -40,33 +58,26 @@ def demoteCompiledModuleToBytecode(module):
 
     if Options.isShowProgress():
         inclusion_logger.info(
-            "Demoting module %r to bytecode from %r." % (full_name, filename)
+            "Demoting module %r to bytecode from %r." % (full_name.asString(), filename)
         )
 
     source_code = module.getSourceCode()
 
-    # Second chance for plugins to modify source code just before turning it
-    # to bytecode.
-    source_code = Plugins.onFrozenModuleSourceCode(
-        module_name=full_name, is_package=False, source_code=source_code
-    )
-
-    bytecode = compile(source_code, filename, "exec", dont_inherit=True)
-
-    bytecode = Plugins.onFrozenModuleBytecode(
-        module_name=full_name, is_package=False, bytecode=bytecode
+    bytecode = demoteSourceCodeToBytecode(
+        module_name=full_name, source_code=source_code, filename=filename
     )
 
     uncompiled_module = makeUncompiledPythonModule(
         module_name=full_name,
         filename=filename,
-        bytecode=marshal.dumps(bytecode),
+        bytecode=bytecode,
         is_package=module.isCompiledPythonPackage(),
         user_provided=True,
         technical=False,
     )
 
-    uncompiled_module.setUsedModules(module.getUsedModules())
+    used_modules = module.getUsedModules()
+    uncompiled_module.setUsedModules(used_modules)
     module.finalize()
 
     if isImportedModuleByName(full_name):
@@ -77,3 +88,7 @@ def demoteCompiledModuleToBytecode(module):
 
     if isTriggerModule(module):
         replaceTriggerModule(old=module, new=uncompiled_module)
+
+    writeImportedModulesNamesToCache(
+        module_name=full_name, source_code=source_code, used_modules=used_modules
+    )

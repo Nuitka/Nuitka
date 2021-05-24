@@ -254,14 +254,100 @@ def getPythonABI():
     return abiflags
 
 
+_the_sys_prefix = None
+
+
 def getSystemPrefixPath():
-    """Return real sys.prefix as an absolute path.
+    """Return real sys.prefix as an absolute path breaking out of virtualenv.
 
-    Note: This breaks out of virtualenvs as necessary.
+    Note:
 
-    Returns: path to system prefix
+        For Nuitka, it often is OK to break out of the virtualenv, and use the
+        original install. Mind you, this is not about executing anything, this is
+        about building, and finding the headers to compile against that Python, we
+        do not care about any site packages, and so on.
+
+    Returns:
+        str - path to system prefix
     """
 
-    sys_prefix = getattr(sys, "real_prefix", getattr(sys, "base_prefix", sys.prefix))
-    sys_prefix = os.path.abspath(sys_prefix)
-    return sys_prefix
+    global _the_sys_prefix  # Cached result, pylint: disable=global-statement
+    if _the_sys_prefix is None:
+
+        sys_prefix = getattr(
+            sys, "real_prefix", getattr(sys, "base_prefix", sys.prefix)
+        )
+        sys_prefix = os.path.abspath(sys_prefix)
+
+        # Some virtualenv contain the "orig-prefix.txt" as a textual link to the
+        # target, this is often on Windows with virtualenv. There are two places to
+        # look for.
+        for candidate in (
+            "Lib/orig-prefix.txt",
+            "lib/python%s/orig-prefix.txt" % python_version_str,
+        ):
+            candidate = os.path.join(sys_prefix, candidate)
+            if os.path.exists(candidate):
+                with open(candidate) as f:
+                    sys_prefix = f.read()
+
+                # Trailing spaces in the python prefix, please not.
+                assert sys_prefix == sys_prefix.strip()
+
+        # This is another for of virtualenv references:
+        if os.name != "nt" and os.path.islink(os.path.join(sys_prefix, ".Python")):
+            sys_prefix = os.path.normpath(
+                os.path.join(os.readlink(os.path.join(sys_prefix, ".Python")), "..")
+            )
+
+        # Some virtualenv created by "venv" seem to have a different structure, where
+        # library and include files are outside of it.
+        if (
+            os.name != "nt"
+            and python_version >= 0x330
+            and os.path.exists(os.path.join(sys_prefix, "bin/activate"))
+        ):
+            python_binary = os.path.join(sys_prefix, "bin", "python")
+            python_binary = os.path.realpath(python_binary)
+
+            sys_prefix = os.path.normpath(os.path.join(python_binary, "..", ".."))
+
+        _the_sys_prefix = sys_prefix
+
+    return _the_sys_prefix
+
+
+def getSystemStaticLibPythonPath():
+    sys_prefix = getSystemPrefixPath()
+    python_abi_version = python_version_str + getPythonABI()
+
+    if os.name == "nt":
+        candidates = [
+            # Anaconda has this.
+            os.path.join(
+                sys_prefix,
+                "libs",
+                "libpython" + python_abi_version.replace(".", "") + ".dll.a",
+            ),
+            # MSYS2 mingw64 Python has this.
+            os.path.join(
+                sys_prefix,
+                "lib",
+                "libpython" + python_abi_version + ".dll.a",
+            ),
+        ]
+
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                return candidate
+    else:
+        python_lib_path = os.path.join(sys_prefix, "lib")
+
+        candidate = os.path.join(
+            python_lib_path, "libpython" + python_abi_version + ".a"
+        )
+
+        if os.path.exists(candidate):
+            return candidate
+
+    return None

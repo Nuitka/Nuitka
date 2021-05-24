@@ -35,6 +35,8 @@ from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.PythonVersions import python_version
 from nuitka.Version import getNuitkaVersion
 
+from .CodeHelpers import withObjectCodeTemporaryAssignment
+from .ErrorCodes import getAssertionCode
 from .GlobalConstants import getConstantDefaultPopulation
 from .Namify import namifyConstant
 from .templates.CodeTemplatesConstants import template_constants_reading
@@ -42,7 +44,7 @@ from .templates.CodeTemplatesModules import template_header_guard
 
 
 def generateConstantReferenceCode(to_name, expression, emit, context):
-    """ Assign the constant behind the expression to to_name."""
+    """Assign the constant behind the expression to to_name."""
 
     to_name.getCType().emitAssignmentCodeFromConstant(
         to_name=to_name,
@@ -50,6 +52,36 @@ def generateConstantReferenceCode(to_name, expression, emit, context):
         emit=emit,
         context=context,
     )
+
+
+def generateConstantGenericAliasCode(to_name, expression, emit, context):
+    # TODO: Have these as prepared constants as well, if args are not mutable.
+
+    origin_name = context.allocateTempName("generic_alias_origin")
+    args_name = context.allocateTempName("generic_alias_args")
+
+    origin_name.getCType().emitAssignmentCodeFromConstant(
+        to_name=origin_name,
+        constant=expression.getCompileTimeConstant().__origin__,
+        emit=emit,
+        context=context,
+    )
+
+    args_name.getCType().emitAssignmentCodeFromConstant(
+        to_name=args_name,
+        constant=expression.getCompileTimeConstant().__args__,
+        emit=emit,
+        context=context,
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "builtin_value", expression, emit, context
+    ) as value_name:
+        emit("%s = Py_GenericAlias(%s, %s);" % (value_name, origin_name, args_name))
+
+        getAssertionCode(check="%s != NULL" % value_name, emit=emit)
+
+        context.addCleanupTempName(value_name)
 
 
 def getConstantsDefinitionCode():

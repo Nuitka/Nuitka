@@ -104,7 +104,7 @@ class ModuleName(str):
         return self.splitModuleBasename()[1]
 
     def splitModuleBasename(self):
-        """ Split a module into package name and module name."""
+        """Split a module into package name and module name."""
 
         if "." in self:
             package_part = ModuleName(self[: self.rfind(".")])
@@ -116,7 +116,7 @@ class ModuleName(str):
         return package_part, module_name
 
     def splitPackageName(self):
-        """ Split a module into the top level package name and remaining module name."""
+        """Split a module into the top level package name and remaining module name."""
 
         if "." in self:
             package_part = ModuleName(self[: self.find(".")])

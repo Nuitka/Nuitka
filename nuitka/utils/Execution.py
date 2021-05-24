@@ -85,7 +85,7 @@ def _getExecutablePath(filename, search_path):
 
 
 def getExecutablePath(filename):
-    """ Find an execute in PATH environment. """
+    """Find an execute in PATH environment."""
 
     # Search in PATH environment.
     search_path = os.environ.get("PATH", "")
@@ -245,7 +245,7 @@ def withEnvironmentPathAdded(env_var_name, *paths):
 
 @contextmanager
 def withEnvironmentVarOverriden(env_var_name, value):
-    """ Change an environment and restore it after context. """
+    """Change an environment and restore it after context."""
 
     if env_var_name in os.environ:
         old_value = os.environ[env_var_name]
@@ -268,7 +268,7 @@ def withEnvironmentVarOverriden(env_var_name, value):
 
 @contextmanager
 def withEnvironmentVarsOverriden(mapping):
-    """ Change multiple environment variables and restore them after context. """
+    """Change multiple environment variables and restore them after context."""
 
     old_values = {}
 
@@ -416,7 +416,7 @@ def getNullInput():
 
 
 def executeToolChecked(logger, command, absence_message, stderr_filter=None):
-    """Execute external tool, checking for success and no error outputs, returning result. """
+    """Execute external tool, checking for success and no error outputs, returning result."""
 
     tool = command[0]
 

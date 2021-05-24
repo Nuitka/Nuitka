@@ -13,17 +13,24 @@ up to here:
 
 * Nuitka version, full Python version and Platform (Windows, OSX, Linux ...)
 
-  python -m nuitka --version
+  > python -m nuitka --version
 
 * How did you install Nuitka and Python
 
   Did you use pip, anaconda, deb, rpm, from source, in a virtualenv or not,
   this is very important usually.
 
+* The specific PyPI names and versions
+
+  It should be taken from this output if there specific packages involved, e.g.
+  `numpy`, you are expected to shorten this to the relevant ones.
+
+  > python -m pip freeze
+
 * Many times when you get an error from Nuitka, your setup may be special
 
-  Then even a "hello world" program will not work, please try that and report
-  it instead.
+  Then even a `print("hello world")` program will not work, please try that and report
+  that instead.
 
 * Also supply a [Short, Self Contained, Correct, Example](http://sscce.org/)
 
@@ -32,12 +39,11 @@ up to here:
   external dependencies. Issues without this may get rejected without much
   consideration.
 
-* The specific PyPI names and versions
+* In your issue the options used
 
-  It should be taken from this output if there specific packages involved, e.g.
-  numpy, you are expected to shorten this to the relevant ones.
+  Ideally use the project feature, so options and example code go alone
 
-  python -m pip freeze
+  [Nuitka Options in the code](https://nuitka.net/doc/user-manual.html#nuitka-options-in-the-code)
 
 * Note if this is a regression
 

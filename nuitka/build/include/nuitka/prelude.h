@@ -50,6 +50,28 @@
 #include "methodobject.h"
 #include "pydebug.h"
 
+#if PYTHON_VERSION >= 0x390
+#define NUITKA_USE_PYCORE_THREADSTATE
+#else
+#endif
+
+#ifdef NUITKA_USE_PYCORE_THREADSTATE
+#define Py_BUILD_CORE
+#undef _PyGC_FINALIZED
+#include "internal/pycore_pystate.h"
+#if PYTHON_VERSION >= 0x390
+#include <internal/pycore_interp.h>
+#include <internal/pycore_runtime.h>
+#endif
+
+#undef PyThreadState_GET
+#define _PyThreadState_Current _PyRuntime.gilstate.tstate_current
+#define PyThreadState_GET() ((PyThreadState *)_Py_atomic_load_relaxed(&_PyThreadState_Current))
+
+#undef Py_BUILD_CORE
+
+#endif
+
 /* See above. */
 #if PYTHON_VERSION < 0x300
 #undef initproc

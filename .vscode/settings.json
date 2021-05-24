@@ -23,7 +23,8 @@
         "*.sco": "python",
         "*.h": "c",
         "*.c": "c",
-        "typeinfo": "c"
+        "typeinfo": "c",
+        "cstring": "c"
     },
     "python.linting.pylintArgs": ["--disable=I0011,I0012,no-init,bad-whitespace,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none",
         "--method-rgx=[a-z_][a-zA-Z0-9_]{2,40}$",
@@ -55,7 +56,7 @@
         "tests/syntax/**"
     ],
     "python.analysis.autoSearchPaths": false,
-    "python.analysis.extraPaths": ["nuitka/build/inline_copy/lib/scons-3.1.2"],
+    "python.analysis.extraPaths": ["nuitka/build/inline_copy/lib/scons-3.1.2", "nuitka/build/inline_copy/clcache"],
     "python.formatting.provider": "black",
     "restructuredtext.confPath": "",
 }

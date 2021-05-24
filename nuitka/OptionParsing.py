@@ -90,6 +90,14 @@ but a compressed executable is created and used. Experimental at this time,
 and not supported on all OSes. Defaults to off.""",
 )
 
+parser.add_option(
+    "--no-onefile",
+    action="store_false",
+    dest="is_onefile",
+    default=False,
+    help=SUPPRESS_HELP,
+)
+
 
 if os.name == "nt":
     parser.add_option(
@@ -673,8 +681,19 @@ c_compiler_group.add_option(
     dest="lto",
     default=False,
     help="""\
-Use link time optimizations if available and usable (MSVC or gcc 4.6 and higher).
+Use link time optimizations if available and usable (MSVC, gcc >=4.6, clang).
 Defaults to off.""",
+)
+
+c_compiler_group.add_option(
+    "--static-libpython",
+    action="store",
+    dest="static_libpython",
+    default="auto",
+    choices=("yes", "no", "auto"),
+    help="""\
+Use static link library of Python if available. Defaults to auto, i.e. enabled for where
+we know it's working.""",
 )
 
 parser.add_option_group(c_compiler_group)
@@ -1064,6 +1083,9 @@ def _expandProjectArg(arg, filename_arg, for_eval):
 
 def _getProjectOptions(logger, filename_arg, module_mode):
     # Complex stuff, pylint: disable=too-many-branches,too-many-locals
+    # Do it only once.
+    if os.environ.get("NUITKA_REEXECUTION", "0") == "1":
+        return
 
     if os.path.isdir(filename_arg):
         if module_mode:
@@ -1136,7 +1158,9 @@ def _getProjectOptions(logger, filename_arg, module_mode):
                 expect_block = True
                 cond_level = level
             elif command == "":
-                yield _expandProjectArg(arg.lstrip(), filename_arg, for_eval=False)
+                arg = re.sub(r"""^([\w-]*=)(['"])(.*)\2$""", r"\1\3", arg.lstrip())
+
+                yield _expandProjectArg(arg, filename_arg, for_eval=False)
             else:
                 assert False, (command, line)
 

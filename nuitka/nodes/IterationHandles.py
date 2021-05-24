@@ -120,7 +120,7 @@ class ConstantIterationHandleBase(IterationHandleBase):
             return None
 
     def getNextValueTruth(self):
-        """ Return the truth value of the next iteration value or StopIteration."""
+        """Return the truth value of the next iteration value or StopIteration."""
         try:
             iteration_value = next(self.iter)
         except StopIteration:

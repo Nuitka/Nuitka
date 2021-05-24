@@ -40,7 +40,6 @@ _cache_dir = None
 
 def getCacheDir():
     global _cache_dir  # singleton, pylint: disable=global-statement
-
     if _cache_dir is None:
         if appdirs is not None:
             _cache_dir = appdirs.user_cache_dir("Nuitka", None)

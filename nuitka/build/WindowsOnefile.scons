@@ -42,7 +42,7 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 
 # isort:start
 
-from SCons.Script import (  # pylint: disable=import-error
+from SCons.Script import (  # pylint: disable=I0021,import-error
     ARGUMENTS,
     Environment,
     GetOption,

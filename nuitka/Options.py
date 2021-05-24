@@ -25,10 +25,14 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import parseOptions
 from nuitka.PythonVersions import (
     getSupportedPythonVersions,
+    getSystemStaticLibPythonPath,
     isUninstalledPython,
     python_version_str,
 )
-from nuitka.utils.FileOperations import resolveShellPatternToFilenames
+from nuitka.utils.FileOperations import (
+    openTextFile,
+    resolveShellPatternToFilenames,
+)
 from nuitka.utils.Utils import getOS, hasOnefileSupportedOS, isWin32Windows
 
 options = None
@@ -73,7 +77,7 @@ def parseArgs(will_reexec):
     if options.verbose_output and not will_reexec:
         Tracing.optimization_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
-            open(options.verbose_output, "w")
+            openTextFile(options.verbose_output, "w", encoding="utf8")
         )
 
         options.verbose = True
@@ -83,7 +87,7 @@ def parseArgs(will_reexec):
     if options.show_inclusion_output and not will_reexec:
         Tracing.inclusion_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
-            open(options.show_inclusion_output, "w")
+            openTextFile(options.show_inclusion_output, "w", encoding="utf8")
         )
 
         options.show_inclusion = True
@@ -327,6 +331,11 @@ the selection of onefile temp directory mode. Check --help output."""
                 % pattern
             )
 
+    if options.static_libpython == "yes" and getSystemStaticLibPythonPath() is None:
+        Tracing.options_logger.sysexit(
+            "Error, static libpython is not found for this Python installation."
+        )
+
     is_debug = _isDebug()
     is_nondebug = not is_debug
     is_fullcompat = _isFullCompat()
@@ -419,6 +428,11 @@ def commentArgs():
     if options.dependency_tool:
         Tracing.options_logger.warning(
             "Using removed option '--windows-dependency-tool' is deprecated and has no impact anymore."
+        )
+
+    if shallMakeModule() and options.static_libpython == "yes":
+        Tracing.options_logger.warning(
+            "In module mode, providing --static-libpython has no effect, it's not used."
         )
 
 
@@ -641,22 +655,35 @@ def shallClearPythonPathEnvironment():
 
 
 def shallUseStaticLibPython():
-    """*bool* = derived from `sys.prefix` and `os.name`
+    """*bool* = "--static-libpython=yes|auto"
 
     Notes:
-        Currently only Anaconda on non-Windows can do this.
+        Currently only Anaconda on non-Windows can do this and MSYS2.
     """
 
-    if isWin32Windows() and os.path.exists(os.path.join(sys.prefix, "etc/config.site")):
-        return True
+    if options.static_libpython == "auto":
+        if isWin32Windows() and os.path.exists(
+            os.path.join(sys.prefix, "etc/config.site")
+        ):
+            return True
 
-    # For Anaconda default to trying static lib python library, which
-    # normally is just not available or if it is even unusable.
-    return (
-        os.path.exists(os.path.join(sys.prefix, "conda-meta"))
-        and not isWin32Windows()
-        and not getOS() == "Darwin"
-    )
+        # For Anaconda default to trying static lib python library, which
+        # normally is just not available or if it is even unusable.
+        if (
+            os.path.exists(os.path.join(sys.prefix, "conda-meta"))
+            and not isWin32Windows()
+            and not getOS() == "Darwin"
+        ):
+            return True
+
+        options.static_libpython = "no"
+
+        if getSystemStaticLibPythonPath() is not None:
+            Tracing.options_logger.info(
+                "Detected static libpython as existing, consider using '--static-libpython=yes'."
+            )
+
+    return options.static_libpython == "yes"
 
 
 def shallTreatUninstalledPython():
@@ -811,7 +838,7 @@ def getWindowsOnefileTempDirSpec(use_default):
 
 
 def getIconPaths():
-    """*list of str*, values of "--windows-icon-from-ico" and "--linux-onefile-icon """
+    """*list of str*, values of "--windows-icon-from-ico" and "--linux-onefile-icon"""
 
     result = options.icon_path
 
@@ -836,7 +863,7 @@ def getWindowsIconExecutablePath():
 
 
 def shallAskForWindowsAdminRights():
-    """*bool*, value of "--windows-uac-admin" or --windows-uac-uiaccess """
+    """*bool*, value of "--windows-uac-admin" or --windows-uac-uiaccess"""
     return options.windows_uac_admin
 
 
@@ -882,22 +909,22 @@ def _parseWindowsVersionNumber(value):
 
 
 def getWindowsProductVersion():
-    """*tuple of 4 ints* or None --windows-product-version """
+    """*tuple of 4 ints* or None --windows-product-version"""
     return _parseWindowsVersionNumber(options.windows_product_version)
 
 
 def getWindowsFileVersion():
-    """*tuple of 4 ints* or None --windows-file-version """
+    """*tuple of 4 ints* or None --windows-file-version"""
     return _parseWindowsVersionNumber(options.windows_file_version)
 
 
 def getWindowsCompanyName():
-    """*str* name of the company to use """
+    """*str* name of the company to use"""
     return options.windows_company_name
 
 
 def getWindowsProductName():
-    """*str* name of the product to use """
+    """*str* name of the product to use"""
     return options.windows_product_name
 
 
@@ -938,13 +965,13 @@ def getPythonFlags():
 
 
 def hasPythonFlagNoSite():
-    """*bool* = "no_site" in python flags given """
+    """*bool* = "no_site" in python flags given"""
 
     return "no_site" in getPythonFlags()
 
 
 def hasPythonFlagNoAnnotations():
-    """*bool* = "no_annotations" in python flags given """
+    """*bool* = "no_annotations" in python flags given"""
 
     return "no_annotations" in getPythonFlags()
 

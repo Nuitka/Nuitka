@@ -31,7 +31,7 @@ STATUS_BUFFER_TOO_SMALL = 0xC0000023
 
 
 def getWindowsAllProcessandles():
-    """ Return all process system handles. """
+    """Return all process system handles."""
 
     i = 2048
 

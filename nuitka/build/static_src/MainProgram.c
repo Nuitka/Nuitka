@@ -552,6 +552,7 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TRACE("main(): Calling patchTracebackDealloc().");
     patchTracebackDealloc();
 
+#ifndef NUITKA_USE_PYCORE_THREADSTATE
     /* Allow to override the ticker value, to remove checks for threads in
      * CPython core from impact on benchmarks. */
     char const *ticker_value = getenv("NUITKA_TICKER");
@@ -559,6 +560,7 @@ int main(int argc, char **argv) {
         _Py_Ticker = atoi(ticker_value);
         assert(_Py_Ticker >= 20);
     }
+#endif
 
     /* At least on Windows, we support disabling the console via linker flag, but now
        need to provide the NUL standard file handles manually in this case. */

@@ -129,6 +129,8 @@ def main():
 
         os.environ["PYTHONHASHSEED"] = "0"
 
+        os.environ["NUITKA_REEXECUTION"] = "1"
+
         from nuitka.utils import Execution  # isort:skip
 
         Execution.callExec(args)

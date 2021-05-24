@@ -39,6 +39,7 @@ from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import getNullInput, withEnvironmentVarsOverriden
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
+    getFileContents,
     getFileList,
     removeDirectory,
 )
@@ -51,10 +52,10 @@ def packDistFolderToOnefile(dist_dir, binary_filename):
 
     onefile_output_filename = getResultFullpath(onefile=True)
 
-    if getOS() == "Linux":
+    if getOS() == "Windows" or Options.isExperimental("onefile-bootstrap"):
+        packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir)
+    elif getOS() == "Linux":
         packDistFolderToOnefileLinux(onefile_output_filename, dist_dir, binary_filename)
-    elif getOS() == "Windows":
-        packDistFolderToOnefileWindows(onefile_output_filename, dist_dir)
     else:
         postprocessing_logger.sysexit(
             "Onefile mode is not yet available on %r." % getOS()
@@ -116,8 +117,8 @@ for onefile creation to work on Linux."""
     with open(apprun_filename, "w") as output_file:
         output_file.write(
             """\
-#!/bin/sh
-exec $APPDIR/%s $@"""
+#!/bin/bash
+exec -a $ARGV0 $APPDIR/%s $@"""
             % os.path.basename(binary_filename)
         )
 
@@ -175,7 +176,6 @@ Categories=Utility;"""
         stderr=stderr_file,
     )
 
-    # TODO: Exit code should be checked.
     result = appimagetool_process.wait()
 
     stdout_file.close()
@@ -187,12 +187,24 @@ Categories=Utility;"""
             % (onefile_output_filename, stdout_filename, stderr_filename)
         )
 
+    if result != 0:
+        # Useless now.
+        os.unlink(onefile_output_filename)
+
+        if b"Text file busy" in getFileContents(stderr_filename, mode="rb"):
+            postprocessing_logger.sysexit(
+                "Error, error exit from AppImage because target file is locked."
+            )
+
+        postprocessing_logger.sysexit(
+            "Error, error exit from AppImage, check its outputs %r and %r."
+            % (stdout_filename, stderr_filename)
+        )
+
     os.unlink(stdout_filename)
     os.unlink(stderr_filename)
 
     postprocessing_logger.info("Completed onefile creation.")
-
-    assert result == 0, result
 
 
 def _runOnefileScons(quiet):
@@ -220,7 +232,7 @@ def _runOnefileScons(quiet):
 
     onefile_env_values = {}
 
-    if Options.isWindowsOnefileTempDirMode():
+    if Options.isWindowsOnefileTempDirMode() or getOS() != "Windows":
         onefile_env_values["ONEFILE_TEMP_SPEC"] = Options.getWindowsOnefileTempDirSpec(
             use_default=True
         )
@@ -271,7 +283,7 @@ def _pickCompressor():
         return b"X", lambda data: data
 
 
-def packDistFolderToOnefileWindows(onefile_output_filename, dist_dir):
+def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
     postprocessing_logger.info(
         "Creating single file from dist folder, this may take a while."
     )

@@ -218,14 +218,22 @@ def listDir(path):
     )
 
 
-def getFileList(path, ignore_dirs=(), ignore_suffixes=(), normalize=True):
+def getFileList(
+    path,
+    ignore_dirs=(),
+    ignore_filenames=(),
+    ignore_suffixes=(),
+    only_suffixes=(),
+    normalize=True,
+):
     """Get all files below a given path.
 
     Args:
         path: directory to create a recurseive listing from
         ignore_dirs: Don't descend into these directory, ignore them
+        ignore_filenames: Ignore files named exactly like this
         ignore_suffixes: Don't return files with these suffixes
-
+        only_suffixes: If not empty, limit returned files to these suffixes
 
     Returns:
         Sorted list of all filenames below that directory,
@@ -235,10 +243,15 @@ def getFileList(path, ignore_dirs=(), ignore_suffixes=(), normalize=True):
         This function descends into directories, but does
         not follow symlinks.
     """
+    # We work with a lot of details here, pylint: disable=too-many-locals
+
     result = []
 
     # Normalize ignoredirs for better matching.
     ignore_dirs = [os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs]
+    ignore_filenames = [
+        os.path.normcase(ignore_filename) for ignore_filename in ignore_filenames
+    ]
 
     for root, dirnames, filenames in os.walk(path):
         dirnames.sort()
@@ -246,12 +259,21 @@ def getFileList(path, ignore_dirs=(), ignore_suffixes=(), normalize=True):
 
         # Normalize dirnames for better matching.
         dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
-        for dirname in ignore_dirs:
-            if dirname in dirnames_normalized:
-                dirnames.remove(dirname)
+        for ignore_dir in ignore_dirs:
+            if ignore_dir in dirnames_normalized:
+                dirnames.remove(ignore_dir)
+
+        # Normalize filenames for better matching.
+        filenames_normalized = [os.path.normcase(filename) for filename in filenames]
+        for ignore_filename in ignore_filenames:
+            if ignore_filename in filenames_normalized:
+                filenames.remove(ignore_filename)
 
         for filename in filenames:
             if os.path.normcase(filename).endswith(ignore_suffixes):
+                continue
+
+            if only_suffixes and not os.path.normcase(filename).endswith(only_suffixes):
                 continue
 
             fullname = os.path.join(root, filename)
@@ -264,7 +286,7 @@ def getFileList(path, ignore_dirs=(), ignore_suffixes=(), normalize=True):
     return result
 
 
-def getSubDirectories(path):
+def getSubDirectories(path, ignore_dirs=()):
     """Get all directories below a given path.
 
     Args:
@@ -281,7 +303,15 @@ def getSubDirectories(path):
 
     result = []
 
+    ignore_dirs = [os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs]
+
     for root, dirnames, _filenames in os.walk(path):
+        # Normalize dirnames for better matching.
+        dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
+        for ignore_dir in ignore_dirs:
+            if ignore_dir in dirnames_normalized:
+                dirnames.remove(ignore_dir)
+
         dirnames.sort()
 
         for dirname in dirnames:
@@ -313,12 +343,12 @@ def deleteFile(path, must_exist):
 
 
 def splitPath(path):
-    """ Split path, skipping empty elements. """
+    """Split path, skipping empty elements."""
     return tuple(element for element in os.path.split(path) if element)
 
 
 def hasFilenameExtension(path, extensions):
-    """ Has a filename one of the given extensions. """
+    """Has a filename one of the given extensions."""
 
     extension = os.path.splitext(os.path.normcase(path))[1]
 
@@ -384,14 +414,17 @@ def getFileContents(filename, mode="r", encoding=None):
     """
 
     with withFileLock("reading file %s" % filename):
-        if encoding is not None:
-            import codecs
+        with openTextFile(filename, mode, encoding=encoding) as f:
+            return f.read()
 
-            with codecs.open(filename, mode, encoding=encoding) as f:
-                return f.read()
-        else:
-            with open(filename, mode) as f:
-                return f.read()
+
+def openTextFile(filename, mode, encoding=None):
+    if encoding is not None:
+        import codecs
+
+        return codecs.open(filename, mode, encoding=encoding)
+    else:
+        return open(filename, mode)
 
 
 def putTextFileContents(filename, contents, encoding=None):
@@ -414,14 +447,8 @@ def putTextFileContents(filename, contents, encoding=None):
                 print(line, file=output_file)
 
     with withFileLock("writing file %s" % filename):
-        if encoding is not None:
-            import codecs
-
-            with codecs.open(filename, "w", encoding=encoding) as output_file:
-                _writeContents(output_file)
-        else:
-            with open(filename, "w") as output_file:
-                _writeContents(output_file)
+        with openTextFile(filename, "w", encoding=encoding) as output_file:
+            _writeContents(output_file)
 
 
 @contextmanager
@@ -487,7 +514,7 @@ def copyTree(source_path, dest_path):
     # False alarm on travis, pylint: disable=I0021,import-error,no-name-in-module
     from distutils.dir_util import copy_tree
 
-    copy_tree(source_path, dest_path)
+    return copy_tree(source_path, dest_path)
 
 
 def getWindowsDrive(path):

@@ -20,7 +20,7 @@
 """
 
 version_string = """\
-Nuitka V0.6.14.7
+Nuitka V0.6.15
 Copyright (C) 2021 Kay Hayen."""
 
 
@@ -33,6 +33,16 @@ def getNuitkaVersion():
 
 
 def getNuitkaVersionYear():
-    """ The year of Nuitka copyright for use in generations. """
+    """The year of Nuitka copyright for use in generations."""
 
     return int(version_string.split()[4])
+
+
+def getCommercialVersion():
+    """Return Nuitka commercial version if installed."""
+    try:
+        from nuitka.tools.commercial import Version
+    except ImportError:
+        return None
+    else:
+        return Version.__version__

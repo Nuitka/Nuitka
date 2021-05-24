@@ -109,12 +109,6 @@ def _checkRequiredVersion(tool, tool_call):
     else:
         sys.exit("Error, cannot find %r in requirements-devel.txt" % tool)
 
-    if tool == "rstfmt":
-        if "-m" in tool_call:
-            return False, "rstfmt doesn't support that yet."
-        else:
-            return True, "unchecked"
-
     tool_call = list(tool_call) + ["--version"]
 
     try:
@@ -132,6 +126,9 @@ def _checkRequiredVersion(tool, tool_call):
             actual_version = line.split()[-1]
             break
         if line.startswith("VERSION "):
+            actual_version = line.split()[-1]
+            break
+        if line.startswith("rstfmt "):
             actual_version = line.split()[-1]
             break
 
@@ -338,6 +335,7 @@ def _cleanupImportSortOrder(filename):
             isort_call
             + [
                 "-q",  # quiet, but stdout is still garbage
+                "--overwrite-in-place",  # avoid using another temp file, this is already on one.
                 "-ot",  # Order imports by type in addition to alphabetically
                 "-m3",  # "vert-hanging"
                 "-tc",  # Trailing commas
@@ -505,6 +503,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
         (
             ".patch",
             ".txt",
+            ".qml",
             ".rst",
             ".sh",
             ".in",

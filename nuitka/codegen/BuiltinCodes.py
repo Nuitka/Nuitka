@@ -61,7 +61,7 @@ def generateBuiltinRefCode(to_name, expression, emit, context):
             % (value_name, context.getConstantCode(constant=builtin_name))
         )
 
-        getAssertionCode(check="%s != NULL" % to_name, emit=emit)
+        getAssertionCode(check="%s != NULL" % value_name, emit=emit)
 
         # Gives no reference
 

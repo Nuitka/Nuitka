@@ -130,6 +130,12 @@ else:
         return value[0]
 
 
+try:
+    from typing import GenericAlias
+except ImportError:
+    GenericAlias = None
+
+
 def getMetaClassBase(meta_class_prefix):
     """For Python2/3 compatible source, we create a base class that has the metaclass
     used and doesn't require making a choice.
@@ -141,6 +147,15 @@ def getMetaClassBase(meta_class_prefix):
     MetaClassBase = MetaClass("%sMetaClassBase" % meta_class_prefix, (object,), {})
 
     return MetaClassBase
+
+
+if str is bytes:
+    try:
+        import subprocess32 as subprocess
+    except ImportError:
+        import subprocess
+else:
+    import subprocess
 
 
 # For PyLint to be happy.
@@ -155,3 +170,5 @@ assert intern
 assert builtins
 assert Iterable
 assert MutableSet
+assert subprocess
+assert GenericAlias or intern

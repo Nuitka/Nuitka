@@ -200,7 +200,7 @@ def loadStandardPluginClasses():
 class Plugins(object):
     @staticmethod
     def isPluginActive(plugin_name):
-        """ Is a plugin activated. """
+        """Is a plugin activated."""
 
         return plugin_name in active_plugins
 
@@ -381,6 +381,21 @@ class Plugins(object):
         return result
 
     @staticmethod
+    def getModuleSpecificDllPaths(module_name):
+        """Provide a list of directories, where DLLs should be searched for this package (or module).
+
+        Args:
+            module_name: name of a package or module, for which the DLL path addition applies.
+
+        """
+        result = OrderedSet()
+        for plugin in getActivePlugins():
+            for dll_path in plugin.getModuleSpecificDllPaths(module_name):
+                result.add(dll_path)
+
+        return result
+
+    @staticmethod
     def removeDllDependencies(dll_filename, dll_filenames):
         """Create list of removable shared libraries by scanning through the plugins.
 
@@ -480,6 +495,11 @@ class Plugins(object):
 
             if must_recurse is None:
                 continue
+
+            if type(must_recurse) is not tuple and must_recurse not in (True, False):
+                plugin.sysexit(
+                    "Error, onModuleEncounter code failed to return a None or tuple(bool, reason) result."
+                )
 
             if result is not None:
                 # false alarm, pylint: disable=unsubscriptable-object

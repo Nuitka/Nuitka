@@ -719,7 +719,7 @@ class UncompiledPythonModule(PythonModuleBase):
         return self.user_provided
 
     def isTechnical(self):
-        """ Must be bytecode as it's used in CPython library initialization. """
+        """Must be bytecode as it's used in CPython library initialization."""
         return self.technical
 
     def getByteCode(self):
@@ -880,7 +880,7 @@ class PythonShlibModule(PythonModuleBase):
         pass
 
     def getPyIFilename(self):
-        """ Get Python type description filename. """
+        """Get Python type description filename."""
 
         path = self.getFilename()
         filename = os.path.basename(path)
@@ -889,7 +889,7 @@ class PythonShlibModule(PythonModuleBase):
         return os.path.join(dirname, filename.split(".")[0]) + ".pyi"
 
     def _readPyPIFile(self):
-        """ Read the .pyi file if present and scan for dependencies. """
+        """Read the .pyi file if present and scan for dependencies."""
 
         # Complex stuff, pylint: disable=too-many-branches,too-many-statements
 

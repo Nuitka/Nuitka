@@ -44,11 +44,10 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 import platform
 import subprocess
 
-import SCons  # pylint: disable=import-error
-from SCons.Script import (  # pylint: disable=import-error
+import SCons  # pylint: disable=I0021,import-error
+from SCons.Script import (  # pylint: disable=I0021,import-error
     ARGUMENTS,
     Environment,
-    File,
     GetOption,
 )
 
@@ -161,7 +160,9 @@ trace_mode = getArgumentBool("trace_mode", False)
 # support, the compiled result would not run correctly.
 lto_mode = getArgumentBool("lto_mode", False)
 
-static_libpython = getArgumentBool("static_libpython", False)
+static_libpython = getArgumentDefaulted("static_libpython", "")
+if static_libpython:
+    assert os.path.exists(static_libpython), static_libpython
 
 # Windows target mode: Compile for Windows. Used to be an option, but we
 # no longer cross compile this way.
@@ -771,55 +772,6 @@ if gcc_mode and "linux" in sys.platform:
             )
 
 
-# For Nuitka, it generally is OK to break out of the virtualenv, and use the
-# original install. Mind you, this is not about executing anything, this is
-# about building, and finding the headers to compile against that Python, we
-# do not care about any site packages, and so on.
-
-# Some virtualenv, at least on macOS, have such handy links, pointing to the
-# Python installation.
-
-if not win_target and os.path.islink(os.path.join(python_prefix, ".Python")):
-    python_prefix = os.path.normpath(
-        os.path.join(os.readlink(os.path.join(python_prefix, ".Python")), "..")
-    )
-
-# Some virtualenv created by "venv" seem to have a different structure, where
-# library and include files are outside of it.
-
-if (
-    not win_target
-    and python_version >= (3, 3)
-    and os.path.exists(os.path.join(python_prefix, "bin/activate"))
-):
-    python_binary = os.path.join(python_prefix, "bin", "python")
-    python_binary = os.path.realpath(python_binary)
-
-    python_prefix = os.path.normpath(os.path.join(python_binary, "..", ".."))
-
-# Some virtualenv contain the "orig-prefix.txt" as a textual link to
-# the target, this is Windows and standard virtualenv. There are two
-# places to look for.
-def _detectVirtualEnvPrefix():
-    for candidate in (
-        "Lib/orig-prefix.txt",
-        "lib/python%s/orig-prefix.txt" % python_version_str,
-    ):
-        # we change the global value, pylint: disable=global-statement
-        global python_prefix
-
-        candidate = os.path.join(python_prefix, candidate)
-        if os.path.exists(candidate):
-            with open(candidate) as f:
-                python_prefix = f.read()
-
-            # Trailing spaces in the python prefix, please not.
-            assert python_prefix == python_prefix.strip()
-
-
-_detectVirtualEnvPrefix()
-
-
 def _detectPythonHeaderPath():
     if win_target:
         # On Windows, the CPython installation layout is relatively fixed, but on MSYS2
@@ -871,33 +823,10 @@ def getWindowsPythonDLLPath():
     return os.environ["NUITKA_PYTHON_DLL_PATH"]
 
 
-def detectStaticLibPython():
-    candidates = [
-        # Anaconda has this.
-        os.path.join(
-            python_prefix,
-            "libs",
-            "libpython" + python_abi_version.replace(".", "") + ".dll.a",
-        ),
-        # MSYS2 mingw64 Python has this.
-        os.path.join(
-            python_prefix,
-            "lib",
-            "libpython" + python_abi_version + ".dll.a",
-        ),
-    ]
-
-    for candidate in candidates:
-        if os.path.exists(candidate):
-            return candidate
-
-
 if win_target:
     # Some non standard Pythons on Windows have this.
-    static_lib_filename = detectStaticLibPython()
-
-    if gcc_mode and static_libpython and os.path.exists(static_lib_filename):
-        env.Append(LIBS=[File(static_lib_filename)])
+    if gcc_mode and static_libpython:
+        env.Append(LIBS=[env.File(static_libpython)])
     else:
 
         def addWinLib():
@@ -925,12 +854,8 @@ elif not module_mode:
     python_lib_path = os.path.join(python_prefix, "lib")
     env.Append(LIBPATH=[python_lib_path])
 
-    static_lib_filename = os.path.join(
-        python_lib_path, "libpython" + python_abi_version + ".a"
-    )
-
-    if not module_mode and static_libpython and os.path.exists(static_lib_filename):
-        env.Append(LIBS=[File(static_lib_filename)])
+    if not module_mode and static_libpython:
+        env.Append(LIBS=[env.File(static_libpython)])
     else:
         # Debian and Ubuntu distinguish the system libraries like this.
         if (

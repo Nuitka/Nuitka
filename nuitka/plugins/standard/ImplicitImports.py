@@ -1033,6 +1033,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "cytoolz.utils"
         elif full_name == "cytoolz.functoolz":
             yield "cytoolz._signatures"
+        elif full_name == "exchangelib":
+            yield "tzdata"
 
     def getImportsByFullname(self, full_name, module_filename):
         """Recursively create a set of imports for a fullname.
@@ -1339,6 +1341,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "pyVmomi.ServerObjects",  # Too large generated code
         "pyglet.gl",  # Too large generated code
         "telethon.tl.types",  # Not performance relevant and slow C compile
+        "importlib_metadata",  # Not performance relevant and slow C compile
     )
 
     def decideCompilation(self, module_name, source_ref):

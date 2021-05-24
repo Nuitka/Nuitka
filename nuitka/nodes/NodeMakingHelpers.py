@@ -27,6 +27,7 @@ making it more difficult to use.
 """
 
 from nuitka import Options
+from nuitka.__past__ import GenericAlias
 from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
 from nuitka.PythonVersions import python_version
@@ -217,6 +218,13 @@ def makeCompileTimeConstantReplacementNode(value, node, user_provided):
             )
         else:
             return node
+    elif isinstance(value, GenericAlias):
+        from .BuiltinTypeNodes import ExpressionConstantGenericAlias
+
+        return ExpressionConstantGenericAlias(
+            generic_alias=value,
+            source_ref=node.getSourceReference(),
+        )
     else:
         return node
 
@@ -264,7 +272,7 @@ def makeStatementExpressionOnlyReplacementNode(expression, node):
 
 
 def mergeStatements(statements, allow_none=False):
-    """ Helper function that merges nested statement sequences. """
+    """Helper function that merges nested statement sequences."""
     merged_statements = []
 
     for statement in statements:

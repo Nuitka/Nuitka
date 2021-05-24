@@ -271,12 +271,19 @@ def addResourceToFile(target_filename, data, resource_kind, lang_id, res_name, l
                 logger.warning(
                     """
 Failed to add resources to file %r in attempt %d.
-Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying in a second delay."""
+Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
                     % (target_filename, attempt)
                 )
+            else:
+                logger.warning(
+                    """
+Failed to add resources to file %r in attempt %d with error code %d.
+Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
+                    % (target_filename, attempt, e.errno)
+                )
 
-                time.sleep(1)
-                continue
+            time.sleep(1)
+            continue
         else:
             if attempt != 1:
                 logger.warning(
@@ -302,11 +309,11 @@ class WindowsExecutableManifest(object):
         )
 
     def addUacAdmin(self):
-        """ Add indication, the binary should request admin rights. """
+        """Add indication, the binary should request admin rights."""
         self._getRequestedExecutionLevelNode().attrib["level"] = "requireAdministrator"
 
     def addUacUiAccess(self):
-        """ Add indication, the binary be allowed for remote desktop. """
+        """Add indication, the binary be allowed for remote desktop."""
         self._getRequestedExecutionLevelNode().attrib["uiAccess"] = "true"
 
     def _getTrustInfoNode(self):
@@ -387,7 +394,7 @@ class VsFixedFileInfoStructure(ctypes.Structure):
 
 
 def convertStructureToBytes(c_value):
-    """ Convert ctypes structure to bytes for output. """
+    """Convert ctypes structure to bytes for output."""
 
     result = (ctypes.c_char * ctypes.sizeof(c_value)).from_buffer_copy(c_value)
     r = b"".join(result)

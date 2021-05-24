@@ -42,9 +42,9 @@ sys.path.insert(
 )
 
 # isort:start
-
 from nuitka.tools.testing.Common import (
     addExtendedExtraOptions,
+    checkLoadedFileAccesses,
     checkRequirements,
     compareWithCPython,
     createSearchMode,
@@ -56,7 +56,6 @@ from nuitka.tools.testing.Common import (
     setup,
     test_logger,
 )
-from nuitka.utils.FileOperations import areSamePaths
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import getOS
 
@@ -69,9 +68,6 @@ def displayError(dirname, filename):
 
 
 def main():
-    # Complex stuff, even more should become common code though.
-    # pylint: disable=too-many-branches,too-many-statements
-
     python_version = setup(needs_io_encoding=True)
 
     search_mode = createSearchMode()
@@ -96,7 +92,6 @@ def main():
 
         extra_flags = [
             "expect_success",
-            "--onefile",
             "remove_output",
             # Keep the binary, normally "remove_output" includes that.
             "--keep-binary",
@@ -158,332 +153,17 @@ def main():
                 logger=test_logger, path=binary_filename
             )
 
-        current_dir = os.path.normpath(os.getcwd())
-        current_dir = os.path.normcase(current_dir)
+        illegal_accesses = checkLoadedFileAccesses(
+            loaded_filenames=loaded_filenames, current_dir=os.getcwd()
+        )
 
-        illegal_access = False
-
-        for loaded_filename in loaded_filenames:
-            loaded_filename = os.path.normpath(loaded_filename)
-            loaded_filename = os.path.normcase(loaded_filename)
-            loaded_basename = os.path.basename(loaded_filename)
-
-            if os.name == "nt":
-                if areSamePaths(
-                    os.path.dirname(loaded_filename),
-                    os.path.normpath(
-                        os.path.join(os.environ["SYSTEMROOT"], "System32")
-                    ),
-                ):
-                    continue
-                if areSamePaths(
-                    os.path.dirname(loaded_filename),
-                    os.path.normpath(
-                        os.path.join(os.environ["SYSTEMROOT"], "SysWOW64")
-                    ),
-                ):
-                    continue
-
-                if r"windows\winsxs" in loaded_filename:
-                    continue
-
-                # Github actions have these in PATH overriding SYSTEMROOT
-                if r"windows performance toolkit" in loaded_filename:
-                    continue
-                if r"powershell" in loaded_filename:
-                    continue
-                if r"azure dev spaces cli" in loaded_filename:
-                    continue
-                if r"tortoisesvn" in loaded_filename:
-                    continue
-
-            if loaded_filename.startswith(current_dir):
-                continue
-
-            if loaded_filename.startswith(os.path.abspath(current_dir)):
-                continue
-
-            if loaded_filename.startswith("/etc/"):
-                continue
-
-            if loaded_filename.startswith("/proc/") or loaded_filename == "/proc":
-                continue
-
-            if loaded_filename.startswith("/dev/"):
-                continue
-
-            if loaded_filename.startswith("/tmp/") or loaded_filename == "/tmp":
-                continue
-
-            if loaded_filename.startswith("/run/"):
-                continue
-
-            if loaded_filename.startswith("/usr/lib/locale/"):
-                continue
-
-            if loaded_filename.startswith("/usr/share/locale/"):
-                continue
-
-            if loaded_filename.startswith("/usr/share/X11/locale/"):
-                continue
-
-            # Themes may of course be loaded.
-            if loaded_filename.startswith("/usr/share/themes"):
-                continue
-            if "gtk" in loaded_filename and "/engines/" in loaded_filename:
-                continue
-
-            if loaded_filename in (
-                "/usr",
-                "/usr/local",
-                "/usr/local/lib",
-                "/usr/share",
-                "/usr/local/share",
-                "/usr/lib64",
-            ):
-                continue
-
-            # TCL/tk for tkinter for non-Windows is OK.
-            if loaded_filename.startswith(
-                (
-                    "/usr/lib/tcltk/",
-                    "/usr/share/tcltk/",
-                    "/usr/lib/tcl/",
-                    "/usr/lib64/tcl/",
-                )
-            ):
-                continue
-            if loaded_filename in (
-                "/usr/lib/tcltk",
-                "/usr/share/tcltk",
-                "/usr/lib/tcl",
-                "/usr/lib64/tcl",
-            ):
-                continue
-
-            if loaded_filename in (
-                "/lib",
-                "/lib64",
-                "/lib/sse2",
-                "/lib/tls",
-                "/lib64/tls",
-                "/usr/lib/sse2",
-                "/usr/lib/tls",
-                "/usr/lib64/tls",
-            ):
-                continue
-
-            if loaded_filename in ("/usr/share/tcl8.6", "/usr/share/tcl8.5"):
-                continue
-            if loaded_filename in (
-                "/usr/share/tcl8.6/init.tcl",
-                "/usr/share/tcl8.5/init.tcl",
-            ):
-                continue
-            if loaded_filename in (
-                "/usr/share/tcl8.6/encoding",
-                "/usr/share/tcl8.5/encoding",
-            ):
-                continue
-
-            # System SSL config on Linux. TODO: Should this not be included and
-            # read from dist folder.
-            if loaded_basename == "openssl.cnf":
-                continue
-
-            # Taking these from system is harmless and desirable
-            if loaded_basename.startswith(("libz.so", "libgcc_s.so")):
-                continue
-
-            # System C libraries are to be expected.
-            if loaded_basename.startswith(
-                (
-                    "ld-linux-x86-64.so",
-                    "libc.so.",
-                    "libpthread.so.",
-                    "libm.so.",
-                    "libdl.so.",
-                    "libBrokenLocale.so.",
-                    "libSegFault.so",
-                    "libanl.so.",
-                    "libcidn.so.",
-                    "libcrypt.so.",
-                    "libmemusage.so",
-                    "libmvec.so.",
-                    "libnsl.so.",
-                    "libnss_compat.so.",
-                    "libnss_db.so.",
-                    "libnss_dns.so.",
-                    "libnss_files.so.",
-                    "libnss_hesiod.so.",
-                    "libnss_nis.so.",
-                    "libnss_nisplus.so.",
-                    "libpcprofile.so",
-                    "libresolv.so.",
-                    "librt.so.",
-                    "libthread_db-1.0.so",
-                    "libthread_db.so.",
-                    "libutil.so.",
-                )
-            ):
-                continue
-
-            # Loaded by C library potentially for DNS lookups.
-            if loaded_basename.startswith(
-                (
-                    "libnss_",
-                    "libnsl",
-                    # Some systems load a lot more, this is CentOS 7 on OBS
-                    "libattr.so.",
-                    "libbz2.so.",
-                    "libcap.so.",
-                    "libdw.so.",
-                    "libelf.so.",
-                    "liblzma.so.",
-                    # Some systems load a lot more, this is Fedora 26 on OBS
-                    "libselinux.so.",
-                    "libpcre.so.",
-                    # And this is Fedora 29 on OBS
-                    "libblkid.so.",
-                    "libmount.so.",
-                    "libpcre2-8.so.",
-                    # CentOS 8 on OBS
-                    "libuuid.so.",
-                )
-            ):
-                continue
-
-            # Loaded by dtruss on macOS X.
-            if loaded_filename.startswith("/usr/lib/dtrace/"):
-                continue
-
-            # Loaded by cowbuilder and pbuilder on Debian
-            if loaded_basename == ".ilist":
-                continue
-            if "cowdancer" in loaded_filename:
-                continue
-            if "eatmydata" in loaded_filename:
-                continue
-
-            # Loading from home directories is OK too.
-            if (
-                loaded_filename.startswith("/home/")
-                or loaded_filename.startswith("/data/")
-                or loaded_filename.startswith("/root/")
-                or loaded_filename in ("/home", "/data", "/root")
-            ):
-                continue
-
-            # For Debian builders, /build is OK too.
-            if loaded_filename.startswith("/build/") or loaded_filename == "/build":
-                continue
-
-            # TODO: Unclear, loading gconv from filesystem of installed system
-            # may be OK or not. I think it should be.
-            if loaded_basename == "gconv-modules.cache":
-                continue
-            if "/gconv/" in loaded_filename:
-                continue
-            if loaded_basename.startswith("libicu"):
-                continue
-            if loaded_filename.startswith("/usr/share/icu/"):
-                continue
-
-            # Loading from caches is OK.
-            if loaded_filename.startswith("/var/cache/"):
-                continue
-
-            lib_prefix_dir = "/usr/lib/python%d.%s" % (
-                python_version[0],
-                python_version[1],
-            )
-
-            # PySide accesses its directory.
-            if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/PySide"):
-                continue
-
-            # GTK accesses package directories only.
-            if loaded_filename == os.path.join(
-                lib_prefix_dir, "dist-packages/gtk-2.0/gtk"
-            ):
-                continue
-            if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/glib"):
-                continue
-            if loaded_filename == os.path.join(
-                lib_prefix_dir, "dist-packages/gtk-2.0/gio"
-            ):
-                continue
-            if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/gobject"):
-                continue
-
-            # PyQt5 seems to do this, but won't use contents then.
-            if loaded_filename in (
-                "/usr/lib/qt5/plugins",
-                "/usr/lib/qt5",
-                "/usr/lib64/qt5/plugins",
-                "/usr/lib64/qt5",
-                "/usr/lib/x86_64-linux-gnu/qt5/plugins",
-                "/usr/lib/x86_64-linux-gnu/qt5",
-                "/usr/lib/x86_64-linux-gnu",
-                "/usr/lib",
-            ):
-                continue
-
-            # Can look at the interpreter of the system.
-            if loaded_basename == "python3":
-                continue
-
-            # Current Python executable can actually be a symlink and
-            # the real executable which it points to will be on the
-            # loaded_filenames list. This is all fine, let's ignore it.
-            # Also, because the loaded_filename can be yet another symlink
-            # (this is weird, but it's true), let's better resolve its real
-            # path too.
-            if os.path.realpath(loaded_filename) == os.path.realpath(sys.executable):
-                continue
-
-            # Accessing SE-Linux is OK.
-            if loaded_filename in ("/sys/fs/selinux", "/selinux"):
-                continue
-
-            # Allow reading time zone info of local system.
-            if loaded_filename.startswith("/usr/share/zoneinfo/"):
-                continue
-
-            # The access to .pth files has no effect.
-            if loaded_filename.endswith(".pth"):
-                continue
-
-            # Looking at site-package dir alone is alone.
-            if loaded_filename.endswith(("site-packages", "dist-packages")):
-                continue
-
-            # QtNetwork insist on doing this it seems.
-            if loaded_basename.startswith(("libcrypto.so", "libssl.so")):
-                continue
-
-            # macOS uses these:
-            if loaded_basename in (
-                "libcrypto.1.0.0.dylib",
-                "libssl.1.0.0.dylib",
-                "libcrypto.1.1.dylib",
-            ):
-                continue
-
-            # Linux onefile uses this
-            if loaded_basename.startswith("libfuse.so."):
-                continue
-
-            # MSVC run time DLLs, due to SxS come from system.
-            if loaded_basename.upper() in ("MSVCRT.DLL", "MSVCR90.DLL"):
-                continue
-
-            test_logger.warning("Should not access '%s'." % loaded_filename)
-            illegal_access = True
-
-        if illegal_access:
+        if illegal_accesses:
             displayError(None, filename)
             displayRuntimeTraces(test_logger, binary_filename)
+
+            test_logger.warning(
+                "Should not access these file(s): '%r'." % illegal_accesses
+            )
 
             search_mode.onErrorDetected(1)
 

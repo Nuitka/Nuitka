@@ -40,7 +40,7 @@ class CTypeBase(object):
 
     @classmethod
     def getInitValue(cls, init_from):
-        """ Convert to init value for the type. """
+        """Convert to init value for the type."""
 
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type

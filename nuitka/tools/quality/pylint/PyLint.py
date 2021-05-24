@@ -296,7 +296,7 @@ def hasPyLintBugTrigger(filename):
 
 
 def isSpecificPythonOnly(filename):
-    """ Decide if something is not used for this specific Python. """
+    """Decide if something is not used for this specific Python."""
 
     # Currently everything is portable, but it's a good hook, pylint: disable=unused-argument
     return False

@@ -66,7 +66,7 @@ class ExpressionMakeSequenceBase(
 
     @abstractmethod
     def getSimulator(self):
-        """ The simulator for the container making, for overload. """
+        """The simulator for the container making, for overload."""
 
     def computeExpression(self, trace_collection):
         elements = self.subnode_elements

@@ -23,7 +23,9 @@ that should allow some important optimizations.
 
 from nuitka.specs import BuiltinParameterSpecs
 
+from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import (
+    CompileTimeConstantExpressionBase,
     ExpressionBuiltinSingleArgBase,
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
@@ -208,7 +210,7 @@ class ExpressionBuiltinUnicodeBase(
 
 
 class ExpressionBuiltinStrP2(ExpressionBuiltinTypeBase):
-    """ Python2 built-in str call. """
+    """Python2 built-in str call."""
 
     kind = "EXPRESSION_BUILTIN_STR_P2"
 
@@ -240,7 +242,7 @@ class ExpressionBuiltinStrP2(ExpressionBuiltinTypeBase):
 
 
 class ExpressionBuiltinUnicodeP2(ExpressionBuiltinUnicodeBase):
-    """ Python2 built-in unicode call. """
+    """Python2 built-in unicode call."""
 
     kind = "EXPRESSION_BUILTIN_UNICODE_P2"
 
@@ -252,7 +254,7 @@ class ExpressionBuiltinUnicodeP2(ExpressionBuiltinUnicodeBase):
 
 
 class ExpressionBuiltinStrP3(ExpressionBuiltinUnicodeBase):
-    """ Python3 built-in str call. """
+    """Python3 built-in str call."""
 
     kind = "EXPRESSION_BUILTIN_STR_P3"
 
@@ -330,3 +332,42 @@ class ExpressionBuiltinBytearray3(ExpressionChildrenHavingBase):
     @staticmethod
     def getTypeShape():
         return tshape_bytearray
+
+
+class ExpressionConstantGenericAlias(CompileTimeConstantExpressionBase):
+    kind = "EXPRESSION_CONSTANT_GENERIC_ALIAS"
+
+    __slots__ = ("generic_alias",)
+
+    def __init__(self, generic_alias, source_ref):
+        CompileTimeConstantExpressionBase.__init__(self, source_ref=source_ref)
+
+        self.generic_alias = generic_alias
+
+    def finalize(self):
+        del self.parent
+
+    def getDetails(self):
+        return {"generic_alias": self.generic_alias}
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return False
+
+    def getCompileTimeConstant(self):
+        return self.generic_alias
+
+    def getStrValue(self):
+        return makeConstantRefNode(
+            constant=str(self.getCompileTimeConstant()),
+            user_provided=True,
+            source_ref=self.source_ref,
+        )
+
+    def computeExpressionRaw(self, trace_collection):
+        # Nothing much to do.
+        return self, None, None

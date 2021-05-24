@@ -51,7 +51,7 @@ def getSconsDataPath():
 
 
 def _getSconsInlinePath():
-    """ Return path to inline copy of scons. """
+    """Return path to inline copy of scons."""
 
     return os.path.join(getSconsDataPath(), "inline_copy")
 
@@ -299,13 +299,13 @@ def runScons(options, quiet, scons_filename):
 
 
 def asBoolStr(value):
-    """ Encode booleans for transfer via command line. """
+    """Encode booleans for transfer via command line."""
 
     return "true" if value else "false"
 
 
 def cleanSconsDirectory(source_dir):
-    """ Clean scons build directory. """
+    """Clean scons build directory."""
 
     extensions = (
         ".bin",

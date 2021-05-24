@@ -68,3 +68,7 @@ class NuitkaCodeDeficit(NuitkaErrorBase):
 
 class NuitkaNodeDesignError(Exception):
     pass
+
+
+class NuitkaForbiddenImportEncounter(Exception):
+    pass
