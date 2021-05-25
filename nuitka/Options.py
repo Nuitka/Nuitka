@@ -662,6 +662,9 @@ def shallUseStaticLibPython():
     """
 
     if options.static_libpython == "auto":
+        if sys.implementation.name == "nuitkapython":
+            return True
+
         if isWin32Windows() and os.path.exists(
             os.path.join(sys.prefix, "etc/config.site")
         ):

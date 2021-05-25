@@ -41,6 +41,7 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 
 # isort:start
 
+import json
 import platform
 import subprocess
 
@@ -741,6 +742,7 @@ if python_debug:
 if static_libpython:
     env.Append(CPPDEFINES=["Py_NO_ENABLE_SHARED"])
 
+
 def detectHostMultiarch():
     pipe = SCons.Action._subproc(  # pylint: disable=protected-access
         env,
@@ -827,11 +829,18 @@ def getWindowsPythonDLLPath():
 
 if win_target:
     # Some non standard Pythons on Windows have this.
-    if static_libpython:
+    if sys.implementation.name == "nuitkapython":
+        with open(os.path.join(python_prefix, "link.json")) as f:
+            linkData = json.load(f)
+            env.Append(LIBS=linkData["libraries"])
+            env.Append(LIBPATH=linkData["library_dirs"])
+            for define, value in linkData["macros"]:
+                if value:
+                    env.Append(CPPDEFINES=[define + "=" + value])
+                else:
+                    env.Append(CPPDEFINES=[define])
+    elif gcc_mode and static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
-        env.Append(LIBPATH=[os.path.join(python_prefix, 'libs')])
-
-        env.Append(LIBS=["User32.lib", "Advapi32.lib", "Ole32.lib", "OleAut32.lib", "Ws2_32.lib", "version.lib", "Iphlpapi.lib", "crypt32.lib", "Rpcrt4.lib", "Shlwapi.lib", "libcrypto.lib", "libssl.lib", "_asyncio.lib", "_bz2.lib", "ffi.lib", "_ctypes.lib", "_decimal.lib", "_elementtree.lib", "_hashlib.lib", "liblzma.lib", "_lzma.lib", "cabinet.lib", "msi.lib", "_msi.lib", "_multiprocessing.lib", "_overlapped.lib", "_queue.lib", "_socket.lib", "sqlite3.lib", "_sqlite3.lib", "_ssl.lib", "tcl86t.lib", "tk86t.lib", "_tkinter.lib", "_uuid.lib", "_zoneinfo.lib", "pyexpat.lib", "select.lib", "unicodedata.lib", "winsound.lib", "Winmm.lib"])
     else:
 
         def addWinLib():
