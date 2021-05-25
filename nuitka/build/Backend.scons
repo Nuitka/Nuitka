@@ -829,7 +829,7 @@ def getWindowsPythonDLLPath():
 
 if win_target:
     # Some non standard Pythons on Windows have this.
-    if sys.implementation.name == "nuitkapython":
+    if sys.version_info[0] > 2 and sys.implementation.name == "nuitkapython":
         with open(os.path.join(python_prefix, "link.json")) as f:
             linkData = json.load(f)
             env.Append(LIBS=linkData["libraries"])
