@@ -118,3 +118,7 @@ def encodeNonAscii(var_name):
 
 def hasOnefileSupportedOS():
     return getOS() in ("Linux", "Windows")
+
+
+def isNuitkaPython():
+    return python_version > 0x300 and sys.implementation.name == "nuitkapython"

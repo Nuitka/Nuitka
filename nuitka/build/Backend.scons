@@ -58,6 +58,7 @@ from nuitka.Tracing import (
     scons_logger,
     setQuiet,
 )
+from nuitka.utils.Utils import isNuitkaPython
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
@@ -829,7 +830,7 @@ def getWindowsPythonDLLPath():
 
 if win_target:
     # Some non standard Pythons on Windows have this.
-    if sys.version_info[0] > 2 and sys.implementation.name == "nuitkapython":
+    if isNuitkaPython():
         with open(os.path.join(python_prefix, "link.json")) as f:
             linkData = json.load(f)
             env.Append(LIBS=linkData["libraries"])

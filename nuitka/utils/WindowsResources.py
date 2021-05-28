@@ -155,7 +155,7 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
 
 
 def _openFileWindowsResources(filename):
-    absFilename = os.path.abspath(filename)
+    fullpath = os.path.abspath(filename)
     if type(filename) is str and str is bytes:
         BeginUpdateResource = ctypes.windll.kernel32.BeginUpdateResourceA
         BeginUpdateResource.argtypes = [ctypes.wintypes.LPCSTR, ctypes.wintypes.BOOL]
@@ -165,7 +165,7 @@ def _openFileWindowsResources(filename):
 
     BeginUpdateResource.restype = ctypes.wintypes.HANDLE
 
-    update_handle = BeginUpdateResource(absFilename, False)
+    update_handle = BeginUpdateResource(fullpath, False)
 
     if not update_handle:
         raise ctypes.WinError()
