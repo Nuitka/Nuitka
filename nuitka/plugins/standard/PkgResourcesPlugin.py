@@ -49,10 +49,9 @@ class NuitkaPluginResources(NuitkaPluginBase):
 
         try:
             from importlib import metadata
-        except ImportError:
-            self.metadata = None
-        else:
             self.metadata = metadata
+        except ImportError:
+            pass
 
     def onModuleSourceCode(self, module_name, source_code):
         if self.pkg_resources:
