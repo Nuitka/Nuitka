@@ -33,7 +33,12 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     resolveShellPatternToFilenames,
 )
-from nuitka.utils.Utils import getOS, hasOnefileSupportedOS, isWin32Windows
+from nuitka.utils.Utils import (
+    getOS,
+    hasOnefileSupportedOS,
+    isNuitkaPython,
+    isWin32Windows,
+)
 
 options = None
 positional_args = None
@@ -662,7 +667,7 @@ def shallUseStaticLibPython():
     """
 
     if options.static_libpython == "auto":
-        if sys.implementation.name == "nuitkapython":
+        if isNuitkaPython():
             return True
 
         if isWin32Windows() and os.path.exists(
