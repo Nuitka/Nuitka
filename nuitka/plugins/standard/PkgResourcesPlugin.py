@@ -42,17 +42,23 @@ class NuitkaPluginResources(NuitkaPluginBase):
 
         try:
             import importlib_metadata
-        except ImportError:
+        except (ImportError, SyntaxError):
             self.metadata = None
         else:
             self.metadata = importlib_metadata
 
+        # Note: This one is overriding above import, but doesn't need to initialize
+        # the value, since it will already be set in case of a problem.
         try:
-            import metadata
+            from importlib import metadata
 
             self.metadata = metadata
         except ImportError:
             pass
+
+    @staticmethod
+    def isAlwaysEnabled():
+        return True
 
     def onModuleSourceCode(self, module_name, source_code):
         if self.pkg_resources:
@@ -82,26 +88,3 @@ class NuitkaPluginResources(NuitkaPluginBase):
                 source_code = source_code.replace(match[0], value)
 
         return source_code
-
-
-class NuitkaPluginDetectorPkgResources(NuitkaPluginBase):
-    detector_for = NuitkaPluginResources
-
-    def checkModuleSourceCode(self, module_name, source_code):
-        if re.search(
-            r"""\bpkg_resources\.get_distribution\(\s*['"].*?['"]\s*\)\.(?:parsed_)?version""",
-            source_code,
-        ):
-            self.warnUnusedPlugin(
-                "Resolve 'pkg_resources' distribution version information."
-            )
-
-        if re.search(r"""\bimportlib_metadata\.version\(['"].*?['"]\)""", source_code):
-            self.warnUnusedPlugin(
-                "Resolve 'importlib_metadata' distribution version information."
-            )
-
-        if re.search(r"""\bmetadata\.version\(\s*['"].*?['"]\s*\)""", source_code):
-            self.warnUnusedPlugin(
-                "Resolve 'metadata' distribution version information."
-            )
