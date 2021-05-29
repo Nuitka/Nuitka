@@ -44,7 +44,12 @@ from nuitka.utils.FileOperations import (
     removeDirectory,
 )
 from nuitka.utils.SharedLibraries import locateDLL
-from nuitka.utils.Utils import getArchitecture, getOS, hasOnefileSupportedOS
+from nuitka.utils.Utils import (
+    getArchitecture,
+    getOS,
+    hasOnefileSupportedOS,
+    isWin32Windows,
+)
 
 
 def packDistFolderToOnefile(dist_dir, binary_filename):
@@ -253,7 +258,7 @@ def _runOnefileScons(quiet):
 
     with withEnvironmentVarsOverriden(onefile_env_values):
         result = SconsInterface.runScons(
-            options=options, quiet=quiet, scons_filename="WindowsOnefile.scons"
+            options=options, quiet=quiet, scons_filename="Onefile.scons"
         )
 
     # Exit if compilation failed.
@@ -293,7 +298,8 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
     # First need to create the bootstrap binary for unpacking.
     _runOnefileScons(quiet=not Options.isShowScons())
 
-    executePostProcessingResources(manifest=None, onefile=True)
+    if isWin32Windows():
+        executePostProcessingResources(manifest=None, onefile=True)
 
     # Now need to append to payload it, potentially compressing it.
     compression_indicator, compressor = _pickCompressor()
@@ -315,7 +321,11 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
 
         for filename_full in file_list:
             filename_relative = os.path.relpath(filename_full, dist_dir)
-            filename_encoded = filename_relative.encode("utf-16le") + b"\0\0"
+
+            if isWin32Windows():
+                filename_encoded = filename_relative.encode("utf-16le") + b"\0\0"
+            else:
+                filename_encoded = filename_relative.encode("utf8") + b"\0"
 
             output_file.write(filename_encoded)
 

@@ -597,7 +597,7 @@ int main(int argc, char **argv) {
         wchar_t filename_buffer[1024];
         wchar_t const *pattern = L"" NUITKA_FORCED_STDOUT_PATH;
 
-        bool res = expandWindowsPath(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
+        bool res = expandTemplatePathW(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
 
         if (res == false) {
             puts("Error, couldn't expand pattern:");
@@ -622,7 +622,7 @@ int main(int argc, char **argv) {
         wchar_t filename_buffer[1024];
         wchar_t const *pattern = L"" NUITKA_FORCED_STDERR_PATH;
 
-        bool res = expandWindowsPath(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
+        bool res = expandTemplatePathW(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
 
         if (res == false) {
             puts("Error, couldn't expand pattern:");
