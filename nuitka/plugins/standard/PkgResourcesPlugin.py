@@ -51,7 +51,6 @@ class NuitkaPluginResources(NuitkaPluginBase):
         # the value, since it will already be set in case of a problem.
         try:
             from importlib import metadata
-
             self.metadata = metadata
         except ImportError:
             pass
