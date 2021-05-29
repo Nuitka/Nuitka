@@ -536,15 +536,16 @@ if trace_mode:
 
 # For MinGW and cross compilation, we need to tell the subsystem
 # to target as well as to automatically import everything used.
-if gcc_mode:
-    if not clang_mode:
-        env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
+if win_target:
+    if gcc_mode:
+        if not clang_mode:
+            env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
+
+        if win_disable_console:
+            env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
 
     if win_disable_console:
-        env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
-
-if win_disable_console:
-    env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
+        env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
 # For shell API usage to lookup app folders we need this.
 if msvc_mode:
@@ -670,7 +671,7 @@ def discoverSourceFiles():
     # Main onefile bootstrap program
     result.append(
         provideStaticSourceFile(
-            sub_path="WindowsOnefile.c",
+            sub_path="OnefileBootstrap.c",
             nuitka_src=nuitka_src,
             source_dir=source_dir,
             c11_mode=c11_mode,

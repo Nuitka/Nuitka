@@ -116,7 +116,7 @@ void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) 
 #include <shellapi.h>
 #endif
 
-bool expandWindowsPath(wchar_t *target, wchar_t const *source, size_t buffer_size) {
+bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_size) {
     target[0] = 0;
 
     wchar_t var_name[1024];

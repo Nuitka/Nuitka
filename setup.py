@@ -300,7 +300,7 @@ setup(
         "": ["*.txt", "*.rst", "*.c", "*.h", "*.ui"],
         "nuitka.build": [
             "Backend.scons",
-            "WindowsOnefile.scons",
+            "Onefile.scons",
             "static_src/*.c",
             "static_src/*/*.c",
             "static_src/*/*.h",
