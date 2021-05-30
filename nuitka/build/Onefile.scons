@@ -792,6 +792,6 @@ writeSconsReport(
     clangcl_mode=clangcl_mode,
 )
 
-setSconsProgressBarTotal(len(source_files))
+setSconsProgressBarTotal("Onefile", len(source_files))
 
 env.Default(target)
