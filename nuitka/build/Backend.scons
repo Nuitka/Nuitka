@@ -732,7 +732,7 @@ if win_target:
 
     if msvc_mode:
         # This is used for "GetCommandLineW" used in Windows code for Python3.
-        if python_version >= (3,):
+        if python_version >= (3,) or onefile_temp_mode:
             env.Append(LIBS=["Shell32"])
 
 if python_debug:

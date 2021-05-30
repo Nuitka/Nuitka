@@ -67,8 +67,23 @@
 #define ONEFILE_VERSION "SomeVersion"
 #endif
 
-#ifdef _NUITKA_EXPERIMENTAL_ZSTD2
-#include "WindowsDecompression.c"
+#ifdef _NUITKA_ONEFILE_COMPRESSION
+// Header goes first.
+#include "zstd.h"
+
+// Should be in our inline copy, we include all C files into this one.
+#include "common/error_private.c"
+#include "common/fse_decompress.c"
+#include "common/xxhash.c"
+#include "common/zstd_common.c"
+// Need to make sure this is last in common as it depends on the others.
+#include "common/entropy_common.c"
+
+// Decompression stuff.
+#include "decompress/huf_decompress.c"
+#include "decompress/zstd_ddict.c"
+#include "decompress/zstd_decompress.c"
+#include "decompress/zstd_decompress_block.c"
 #endif
 
 #include "HelpersSafeStrings.c"
@@ -159,7 +174,40 @@ static void setEnvironVar(char const *var_name, char const *value) {
 // Note: Made payload file handle global until we properly abstracted compression.
 static FILE_HANDLE exe_file;
 
+#ifdef _NUITKA_ONEFILE_COMPRESSION
+
+static ZSTD_DCtx *dctx = NULL;
+static ZSTD_inBuffer input = {NULL, 0, 0};
+static ZSTD_outBuffer output = {NULL, 0, 0};
+
+static void initZSTD() {
+    size_t const buffInSize = ZSTD_DStreamInSize();
+    input.src = malloc(buffInSize);
+    assert(input.src);
+
+    size_t const buffOutSize = ZSTD_DStreamOutSize();
+    output.dst = malloc(buffOutSize);
+    assert(output.dst);
+
+    dctx = ZSTD_createDCtx();
+    assert(dctx != NULL);
+}
+
+#endif
+
+static size_t stream_end_pos;
+
+static size_t getPosition() {
+#if defined(_WIN32)
+    return SetFilePointer(exe_file, 0, NULL, FILE_CURRENT);
+#else
+    return ftell(exe_file);
+#endif
+}
+
 static void readChunk(void *buffer, size_t size) {
+    // printf("Reading %d\n", size);
+
 #if defined(_WIN32)
     DWORD read_size;
     BOOL bool_res = ReadFile(exe_file, buffer, size, &read_size, NULL);
@@ -179,21 +227,104 @@ static unsigned long long readSizeValue() {
     return result;
 }
 
-static filename_char_t readChar() {
-    filename_char_t result;
+static void readPayloadChunk(void *buffer, size_t size) {
+#ifdef _NUITKA_ONEFILE_COMPRESSION
 
-    readChunk(&result, sizeof(filename_char_t));
+    // bool no_payload = false;
+    bool end_of_buffer = false;
+
+    // Loop until finished with asked chunk.
+    while (size > 0) {
+        size_t available = output.size - output.pos;
+
+        // printf("already available %d asking for %d\n", available, size);
+
+        // Consider available data.
+        if (available != 0) {
+            size_t use = available;
+            if (size < use) {
+                use = size;
+            }
+
+            memcpy(buffer, ((char *)output.dst) + output.pos, use);
+            buffer = (void *)(((char *)buffer) + use);
+            size -= use;
+
+            output.pos += use;
+
+            // Loop end check may exist when "size" is "use".
+            continue;
+        }
+
+        // Nothing available, make sure to make it available from existing input.
+        if (input.pos < input.size || end_of_buffer) {
+            output.pos = 0;
+            output.size = ZSTD_DStreamOutSize();
+
+            size_t const ret = ZSTD_decompressStream(dctx, &output, &input);
+            // printf("return output %d %d\n", output.pos, output.size);
+            end_of_buffer = (output.pos == output.size);
+
+            assert(!ZSTD_isError(ret));
+            output.size = output.pos;
+            output.pos = 0;
+
+            // printf("made output %d %d\n", output.pos, output.size);
+
+            // Above code gets a turn.
+            continue;
+        }
+
+        assert(input.size == input.pos);
+
+        // No input available, make it available from stream respecting end.
+        size_t to_read = ZSTD_DStreamInSize();
+        size_t payload_available = stream_end_pos - getPosition();
+
+        static size_t payload_so_far = 0;
+
+        if (payload_available == 0) {
+            continue;
+        }
+
+        if (to_read > payload_available) {
+            to_read = payload_available;
+        }
+
+        readChunk((void *)input.src, to_read);
+        input.pos = 0;
+        input.size = to_read;
+
+        payload_so_far += to_read;
+    }
+
+#else
+    readChunk(buffer, size);
+#endif
+}
+
+static unsigned long long readPayloadSizeValue() {
+    unsigned long long result;
+    readPayloadChunk(&result, sizeof(unsigned long long));
 
     return result;
 }
 
-static filename_char_t *readFilename() {
+static filename_char_t readPayloadChar() {
+    filename_char_t result;
+
+    readPayloadChunk(&result, sizeof(filename_char_t));
+
+    return result;
+}
+
+static filename_char_t *readPayloadFilename() {
     static filename_char_t buffer[1024];
 
     filename_char_t *w = buffer;
 
     for (;;) {
-        *w = readChar();
+        *w = readPayloadChar();
 
         if (*w == 0) {
             break;
@@ -537,8 +668,11 @@ int main(int argc, char **argv) {
     res = SetFilePointer(exe_file, -8, NULL, FILE_END);
     assert(res != INVALID_SET_FILE_POINTER);
 #else
-    fseek(exe_file, -8, SEEK_END);
+    int res = fseek(exe_file, -8, SEEK_END);
+    assert(res == 0);
 #endif
+    stream_end_pos = getPosition();
+
     unsigned long long start_pos = readSizeValue();
 
     // printf("Start at %lld\n", start_pos);
@@ -558,13 +692,22 @@ int main(int argc, char **argv) {
     assert(header[0] == 'K');
     assert(header[1] == 'A');
 
-    // TODO: The 'X' stands for no compression, 'Y' is compressed, handle that.
+// The 'X' stands for no compression, 'Y' is compressed, handle that.
+#ifdef _NUITKA_ONEFILE_COMPRESSION
+    assert(header[2] == 'Y');
+    initZSTD();
+#else
     assert(header[2] == 'X');
+#endif
 
     static filename_char_t first_filename[1024] = {0};
 
+    // printf("Entering decompression loop:");
+
     for (;;) {
-        filename_char_t *filename = readFilename();
+        filename_char_t *filename = readPayloadFilename();
+
+        // printf("Filename: %s\n", filename);
 
         // Detect EOF from empty filename.
         if (filename[0] == 0) {
@@ -610,7 +753,7 @@ int main(int argc, char **argv) {
 
         FILE_HANDLE target_file = createFileForWriting(target_path);
 
-        unsigned long long file_size = readSizeValue();
+        unsigned long long file_size = readPayloadSizeValue();
 
         while (file_size > 0) {
             static char chunk[32768];
@@ -624,7 +767,7 @@ int main(int argc, char **argv) {
                 chunk_size = sizeof(chunk);
             }
 
-            readChunk(chunk, chunk_size);
+            readPayloadChunk(chunk, chunk_size);
             writeToFile(target_file, chunk, chunk_size);
 
             file_size -= chunk_size;

@@ -41,5 +41,8 @@ virtualenv ; python_version >= '3.5'
 # Tests of PyPI packages need that usually.
 pytest; python_version == '2.7' or python_version >= '3.4'
 
+# Onefile compression
+zstandard; python_version >= '3.5'
+
 # Packaging
 wheel

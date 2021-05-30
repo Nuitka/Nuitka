@@ -24,17 +24,24 @@ import shutil
 import struct
 import subprocess
 import sys
+from contextlib import contextmanager
 
 from nuitka import Options, OutputDirectories
 from nuitka.build import SconsInterface
-from nuitka.Options import assumeYesForDownloads, getIconPaths, getJobLimit
+from nuitka.Options import assumeYesForDownloads, getIconPaths
 from nuitka.OutputDirectories import getResultBasepath, getResultFullpath
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import (
     executePostProcessingResources,
     version_resources,
 )
-from nuitka.Tracing import general, postprocessing_logger, scons_logger
+from nuitka.Progress import (
+    closeProgressBar,
+    reportProgressBar,
+    setupProgressBar,
+)
+from nuitka.PythonVersions import python_version
+from nuitka.Tracing import onefile_logger, postprocessing_logger
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import getNullInput, withEnvironmentVarsOverriden
 from nuitka.utils.FileOperations import (
@@ -57,7 +64,7 @@ def packDistFolderToOnefile(dist_dir, binary_filename):
 
     onefile_output_filename = getResultFullpath(onefile=True)
 
-    if getOS() == "Windows" or Options.isExperimental("onefile-bootstrap"):
+    if getOS() == "Windows" or Options.isOnefileTempDirMode():
         packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir)
     elif getOS() == "Linux":
         packDistFolderToOnefileLinux(onefile_output_filename, dist_dir, binary_filename)
@@ -212,7 +219,7 @@ Categories=Utility;"""
     postprocessing_logger.info("Completed onefile creation.")
 
 
-def _runOnefileScons(quiet):
+def _runOnefileScons(quiet, onefile_compression):
 
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True)
     SconsInterface.cleanSconsDirectory(source_dir)
@@ -231,14 +238,15 @@ def _runOnefileScons(quiet):
         "python_prefix": sys.prefix,
         "nuitka_src": SconsInterface.getSconsDataPath(),
         "compiled_exe": OutputDirectories.getResultFullpath(onefile=False),
+        "onefile_compression": asBoolStr(onefile_compression),
     }
 
     SconsInterface.setCommonOptions(options)
 
     onefile_env_values = {}
 
-    if Options.isWindowsOnefileTempDirMode() or getOS() != "Windows":
-        onefile_env_values["ONEFILE_TEMP_SPEC"] = Options.getWindowsOnefileTempDirSpec(
+    if Options.isOnefileTempDirMode():
+        onefile_env_values["ONEFILE_TEMP_SPEC"] = Options.getOnefileTempDirSpec(
             use_default=True
         )
     else:
@@ -263,54 +271,75 @@ def _runOnefileScons(quiet):
 
     # Exit if compilation failed.
     if not result:
-        scons_logger.sysexit("Error, one file bootstrap build for Windows failed.")
+        onefile_logger.sysexit("Error, onefile bootstrap binary build failed.")
 
     if Options.isRemoveBuildDir():
-        general.info("Removing onefile build directory %r." % source_dir)
+        onefile_logger.info("Removing onefile build directory %r." % source_dir)
 
         removeDirectory(path=source_dir, ignore_errors=False)
         assert not os.path.exists(source_dir)
     else:
-        general.info("Keeping onefile build directory %r." % source_dir)
+        onefile_logger.info("Keeping onefile build directory %r." % source_dir)
 
 
 def _pickCompressor():
-    if Options.isExperimental("zstd"):
-        try:
-            from zstd import ZSTD_compress  # pylint: disable=I0021,import-error
-        except ImportError:
-            general.warning(
-                "Onefile mode cannot compress without 'zstd' module on '%s'." % getOS()
+    try:
+        from zstandard import ZstdCompressor  # pylint: disable=I0021,import-error
+    except ImportError:
+        if python_version < 0x350:
+            onefile_logger.info(
+                "Onefile compression is not supported before Python3.5 at this time."
             )
         else:
-            return b"Y", lambda data: ZSTD_compress(data, 9, getJobLimit())
+            onefile_logger.warning(
+                "Onefile mode cannot compress without 'zstandard' module installed."
+            )
     else:
-        return b"X", lambda data: data
+        cctx = ZstdCompressor(level=22)
+
+        @contextmanager
+        def useCompressedFile(output_file):
+            with cctx.stream_writer(output_file, closefd=False) as compressed_file:
+                yield compressed_file
+
+        onefile_logger.info("Using zstandard compression for payload.")
+
+        return b"Y", useCompressedFile
+
+    # By default use the same file handle that does not compress.
+    @contextmanager
+    def useSameFile(output_file):
+        yield output_file
+
+    return b"X", useSameFile
 
 
 def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
+    # Dealing with details, pylint: disable=too-many-locals
+
     postprocessing_logger.info(
         "Creating single file from dist folder, this may take a while."
     )
 
-    general.info("Running bootstrap binary compilation via Scons.")
-
-    # First need to create the bootstrap binary for unpacking.
-    _runOnefileScons(quiet=not Options.isShowScons())
-
-    if isWin32Windows():
-        executePostProcessingResources(manifest=None, onefile=True)
+    onefile_logger.info("Running bootstrap binary compilation via Scons.")
 
     # Now need to append to payload it, potentially compressing it.
     compression_indicator, compressor = _pickCompressor()
+
+    # First need to create the bootstrap binary for unpacking.
+    _runOnefileScons(
+        quiet=not Options.isShowScons(),
+        onefile_compression=compression_indicator == b"Y",
+    )
+
+    if isWin32Windows():
+        executePostProcessingResources(manifest=None, onefile=True)
 
     with open(onefile_output_filename, "ab") as output_file:
         # Seeking to end of file seems necessary on Python2 at least, maybe it's
         # just that tell reports wrong value initially.
         output_file.seek(0, 2)
-
         start_pos = output_file.tell()
-
         output_file.write(b"KA" + compression_indicator)
 
         # Move the binary to start immediately to the start position
@@ -319,24 +348,49 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
         file_list.remove(start_binary)
         file_list.insert(0, start_binary)
 
-        for filename_full in file_list:
-            filename_relative = os.path.relpath(filename_full, dist_dir)
+        if isWin32Windows():
+            filename_encoding = "utf-16le"
+        else:
+            filename_encoding = "utf8"
 
-            if isWin32Windows():
-                filename_encoded = filename_relative.encode("utf-16le") + b"\0\0"
-            else:
-                filename_encoded = filename_relative.encode("utf8") + b"\0"
+        payload_size = 0
 
-            output_file.write(filename_encoded)
+        with compressor(output_file) as compressed_file:
+            # TODO: Use progress bar here.
+            for filename_full in file_list:
+                filename_relative = os.path.relpath(filename_full, dist_dir)
 
-            with open(filename_full, "rb") as input_file:
-                compressed = compressor(input_file.read())
+                filename_encoded = (filename_relative + "\0").encode(filename_encoding)
 
-                output_file.write(struct.pack("Q", len(compressed)))
-                output_file.write(compressed)
+                compressed_file.write(filename_encoded)
+                payload_size += len(filename_encoded)
 
-        # Using empty filename as a terminator.
-        output_file.write(b"\0\0")
+                with open(filename_full, "rb") as input_file:
+                    input_file.seek(0, 2)
+                    input_size = input_file.tell()
+                    input_file.seek(0, 0)
+
+                    compressed_file.write(struct.pack("Q", input_size))
+                    shutil.copyfileobj(input_file, compressed_file)
+
+                    payload_size += input_size + 8
+
+            # Using empty filename as a terminator.
+            filename_encoded = "\0".encode(filename_encoding)
+            compressed_file.write(filename_encoded)
+            payload_size += len(filename_encoded)
+
+            compressed_size = compressed_file.tell()
+
+        if compression_indicator == b"Y":
+            onefile_logger.info(
+                "Onefile payload compression ratio (%.2f%%) size %d to %d."
+                % (
+                    (float(compressed_size) / payload_size) * 100,
+                    payload_size,
+                    compressed_size,
+                )
+            )
 
         output_file.write(struct.pack("Q", start_pos))
 

@@ -30,3 +30,6 @@ orderedset == 2.0.3
 
 # More capable subprocess.
 subprocess32==3.5.4 ; python_version == '2.7'
+
+# Onefile compression
+zstandard; python_version >= '3.5'
