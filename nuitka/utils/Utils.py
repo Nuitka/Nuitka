@@ -117,4 +117,4 @@ def encodeNonAscii(var_name):
 
 
 def hasOnefileSupportedOS():
-    return getOS() in ("Linux", "Windows")
+    return getOS() in ("Linux", "Windows", "Darwin")
