@@ -377,7 +377,7 @@ if "clang" in the_cc_name:
         env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
 # Support details for real g++, not clang++.
-if gcc_mode and "clang" not in the_cc_name:
+if gcc_mode and not clang_mode:
     # Enforce the minimum version, selecting a potentially existing g++-4.5
     # binary if it's not high enough. This is esp. useful under Debian which
     # allows all compiler to exist next to each other and where g++ might not be

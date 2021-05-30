@@ -29,6 +29,7 @@
 #endif
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -354,7 +355,7 @@ static void printError(char const *message) {
 #if defined(_WIN32)
 HANDLE handle_process = 0;
 #else
-__pid_t handle_process = 0;
+pid_t handle_process = 0;
 #endif
 
 static filename_char_t payload_path[4096] = {0};

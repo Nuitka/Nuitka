@@ -241,6 +241,9 @@ def _runOnefileScons(quiet, onefile_compression):
         "onefile_compression": asBoolStr(onefile_compression),
     }
 
+    if Options.isClang():
+        options["clang_mode"] = "true"
+
     SconsInterface.setCommonOptions(options)
 
     onefile_env_values = {}
