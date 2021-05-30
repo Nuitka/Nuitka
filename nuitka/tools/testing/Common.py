@@ -525,7 +525,7 @@ Error, needs 'dtruss' on your system to scan used libraries."""
 Error, needs 'sudo' on your system to scan used libraries."""
                 )
 
-            args = ("sudo", "dtruss", "-t", "open", path)
+            args = ("sudo", "dtruss", "-t", "open", os.path.abspath(path))
         else:
             if not isExecutableCommand("strace"):
                 sys.exit(
