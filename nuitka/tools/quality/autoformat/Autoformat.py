@@ -122,7 +122,9 @@ def _checkRequiredVersion(tool, tool_call):
     for line in version_output.splitlines():
         line = line.strip()
 
-        if line.startswith(("black, version", "__main__.py, version ")):
+        if line.startswith(
+            ("black, version", "python -m black, version", "__main__.py, version ")
+        ):
             actual_version = line.split()[-1]
             break
         if line.startswith("VERSION "):

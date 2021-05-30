@@ -558,7 +558,9 @@ def getWindowsShortPathName(filename):
     output_buf_size = 0
     while True:
         output_buf = ctypes.create_unicode_buffer(output_buf_size)
-        needed = GetShortPathNameW(filename, output_buf, output_buf_size)
+        needed = GetShortPathNameW(
+            os.path.abspath(filename), output_buf, output_buf_size
+        )
 
         if needed == 0:
             # Windows only code, pylint: disable=I0021,undefined-variable

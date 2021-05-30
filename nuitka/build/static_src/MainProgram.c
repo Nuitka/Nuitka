@@ -409,6 +409,10 @@ int main(int argc, char **argv) {
     Py_UTF8Mode = SYSFLAG_UTF8;
 #endif
 
+#ifdef NUITKA_PYTHON_STATIC
+    Py_InitStaticModules();
+#endif
+
     /* This suppresses warnings from getpath.c */
     Py_FrozenFlag = 1;
 

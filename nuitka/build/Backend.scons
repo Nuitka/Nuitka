@@ -41,6 +41,7 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 
 # isort:start
 
+import json
 import platform
 import subprocess
 
@@ -57,6 +58,7 @@ from nuitka.Tracing import (
     scons_logger,
     setQuiet,
 )
+from nuitka.utils.Utils import isNuitkaPython
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
@@ -738,6 +740,9 @@ if win_target:
 if python_debug:
     env.Append(CPPDEFINES=["Py_DEBUG"])
 
+if static_libpython:
+    env.Append(CPPDEFINES=["Py_NO_ENABLE_SHARED"])
+
 
 def detectHostMultiarch():
     pipe = SCons.Action._subproc(  # pylint: disable=protected-access
@@ -825,7 +830,17 @@ def getWindowsPythonDLLPath():
 
 if win_target:
     # Some non standard Pythons on Windows have this.
-    if gcc_mode and static_libpython:
+    if isNuitkaPython():
+        with open(os.path.join(python_prefix, "link.json")) as f:
+            linkData = json.load(f)
+            env.Append(LIBS=linkData["libraries"])
+            env.Append(LIBPATH=linkData["library_dirs"])
+            for define, value in linkData["macros"]:
+                if value:
+                    env.Append(CPPDEFINES=[define + "=" + value])
+                else:
+                    env.Append(CPPDEFINES=[define])
+    elif gcc_mode and static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
     else:
 
