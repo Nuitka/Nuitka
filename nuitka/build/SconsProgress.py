@@ -38,8 +38,8 @@ def enableSconsProgressBar():
     atexit.register(closeSconsProgressBar)
 
 
-def setSconsProgressBarTotal(total):
-    setupProgressBar(stage="Backend C", unit="file", total=total)
+def setSconsProgressBarTotal(name, total):
+    setupProgressBar(stage="%s C" % name, unit="file", total=total)
 
 
 def updateSconsProgressBar():
