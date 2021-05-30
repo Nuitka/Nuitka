@@ -262,13 +262,11 @@ in the main file should prove to be very useful.
 
    .. code:: python
 
-      # Compilation mode, support OS specific. Note that macOS is going to gain onefile mode "soon".
+      # Compilation mode, support OS specific.
       # nuitka-project-if: {OS} in ("Windows", "Linux"):
       #    nuitka-project: --onefile
       # nuitka-project-if: {OS} not in ("Windows", "Linux"):
       #    nuitka-project: --standalone
-      # nuitka-project-if: {OS} == "Windows":
-      #    nuitka-project: --windows-onefile-tempdir
 
       # The PySide2 plugin covers qt-plugins
       # nuitka-project: --enable-plugin=pyside2

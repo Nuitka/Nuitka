@@ -459,7 +459,7 @@ With data files, you are largely on your own. Nuitka keeps track of ones
 that are needed by popular packages, but it might be incomplete. Raise
 issues if you encounter something in these.
 
-When that is working, you can use the onefile if you so desire.
+When that is working, you can use the onefile mode if you so desire.
 
 .. code:: bash
 
@@ -476,11 +476,7 @@ it in the temporary directory. You need to do one this this.
 .. code:: bash
 
    # Create a binary that unpacks into a temporary folder
-   python -m nuitka --onefile --windows-onefile-tempdir program.py
-
-   # Create a binary that unpacks to your company Appdata folder on the system
-   # and is not deleted, there are more options.
-   python -m nuitka --onefile --windows-company-name=Change_This --windows-product-version=1.2.3.4 program.py
+   python -m nuitka --onefile program.py
 
 .. note::
 
@@ -490,8 +486,8 @@ it in the temporary directory. You need to do one this this.
 
 Again, on Windows, for the temporary file directory, by default the user
 one is used, however this is overridable with a path specification given
-in ``--windows-onefile-tempdir=%TEMP%\\onefile_%PID%_%TIME%`` which is
-the default and asserts that the temporary directories created cannot
+in ``--windows-onefile-tempdir-spec=%TEMP%\\onefile_%PID%_%TIME%`` which
+is the default and asserts that the temporary directories created cannot
 collide.
 
 Currently these expanded tokens are available:
@@ -611,13 +607,11 @@ variables, this is an example:
 
 .. code:: python
 
-   # Compilation mode, support OS specific. Note that macOS is going to gain onefile mode "soon".
-   # nuitka-project-if: {OS} in ("Windows", "Linux"):
+   # Compilation mode, support OS specific.
+   # nuitka-project-if: {OS} in ("Windows", "Linux", "Darwin"):
    #    nuitka-project: --onefile
-   # nuitka-project-if: {OS} not in ("Windows", "Linux"):
+   # nuitka-project-if: {OS} not in ("Windows", "Linux", "Darwin"):
    #    nuitka-project: --standalone
-   # nuitka-project-if: {OS} == "Windows":
-   #    nuitka-project: --windows-onefile-tempdir
 
    # The PySide2 plugin covers qt-plugins
    # nuitka-project: --enable-plugin=pyside2

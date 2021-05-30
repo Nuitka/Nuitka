@@ -21,7 +21,4 @@ from __future__ import print_function
 
 # nuitka-project: --onefile
 
-# nuitka-project-if: {OS} == "Windows":
-#    nuitka-project: --windows-onefile-tempdir
-
 print("Hello Onefile World!")

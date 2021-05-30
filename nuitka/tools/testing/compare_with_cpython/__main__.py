@@ -476,9 +476,6 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
             extra_options.append("--module")
         elif onefile_mode:
             extra_options.append("--onefile")
-
-            if os.name == "nt":
-                extra_options.append("--windows-onefile-tempdir")
         elif standalone_mode:
             extra_options.append("--standalone")
 
