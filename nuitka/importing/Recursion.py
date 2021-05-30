@@ -273,10 +273,9 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
                 if Options.isShowInclusion():
                     recursion_logger.info(
-                        "Recursed to %s %s %s"
+                        "Recursed to '%s' %s"
                         % (
-                            module.getName(),
-                            module.getFullName().getPackageName(),
+                            module.getFullName(),
                             module,
                         )
                     )
@@ -322,6 +321,9 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
                 elif module.isCompiledPythonModule():
                     ModuleRegistry.addRootModule(module)
+                elif module.isPythonShlibModule():
+                    if Options.isStandaloneMode():
+                        ModuleRegistry.addRootModule(module)
 
             else:
                 recursion_logger.warning(
