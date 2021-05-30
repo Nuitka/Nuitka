@@ -163,7 +163,7 @@ def _setupSconsEnvironment():
         if os.getcwd() != os.getcwdu():
             os.chdir(getWindowsShortPathName(os.getcwdu()))
 
-    if Utils.isWin32Windows():
+    if Utils.isWin32Windows() and not Options.shallUseStaticLibPython():
         # On Win32, we use the Python.DLL path for some things. We pass it
         # via environment variable
         os.environ["NUITKA_PYTHON_DLL_PATH"] = getTargetPythonDLLPath()
@@ -197,7 +197,7 @@ def _setupSconsEnvironment():
     if old_pythonhome is not None:
         os.environ["PYTHONHOME"] = old_pythonhome
 
-    if Utils.isWin32Windows():
+    if "NUITKA_PYTHON_DLL_PATH" in os.environ:
         del os.environ["NUITKA_PYTHON_DLL_PATH"]
 
     del os.environ["NUITKA_PYTHON_EXE_PATH"]

@@ -51,6 +51,7 @@ from nuitka.PythonVersions import (
     getSupportedPythonVersions,
     getSystemPrefixPath,
     getSystemStaticLibPythonPath,
+    isNuitkaPython,
     python_version,
     python_version_str,
 )
@@ -409,6 +410,7 @@ def runSconsBackend(quiet):
     options = {
         "result_name": OutputDirectories.getResultBasepath(onefile=False),
         "source_dir": OutputDirectories.getSourceDirectoryPath(),
+        "nuitka_python": asBoolStr(isNuitkaPython()),
         "debug_mode": asBoolStr(Options.is_debug),
         "python_debug": asBoolStr(Options.isPythonDebug()),
         "unstripped_mode": asBoolStr(Options.isUnstripped()),

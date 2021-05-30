@@ -41,6 +41,7 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 
 # isort:start
 
+import json
 import platform
 import subprocess
 
@@ -140,6 +141,8 @@ python_version = tuple(int(d) for d in python_version_str.split("."))
 # The ABI flags to target.
 abiflags = getArgumentDefaulted("abiflags", "")
 python_abi_version = python_version_str + abiflags
+
+nuitka_python = getArgumentBool("nuitka_python", False)
 
 # Python debug mode: reference count checking, assertions in CPython core.
 python_debug = getArgumentBool("python_debug", False)
@@ -738,6 +741,9 @@ if win_target:
 if python_debug:
     env.Append(CPPDEFINES=["Py_DEBUG"])
 
+if static_libpython:
+    env.Append(CPPDEFINES=["Py_NO_ENABLE_SHARED"])
+
 
 def detectHostMultiarch():
     pipe = SCons.Action._subproc(  # pylint: disable=protected-access
@@ -824,11 +830,20 @@ def getWindowsPythonDLLPath():
 
 
 if win_target:
-    # Some non standard Pythons on Windows have this.
-    if gcc_mode and static_libpython:
+    if nuitka_python:
+        with open(os.path.join(python_prefix, "link.json")) as f:
+            linkData = json.load(f)
+            env.Append(LIBS=linkData["libraries"])
+            env.Append(LIBPATH=linkData["library_dirs"])
+            for define, value in linkData["macros"]:
+                if value:
+                    env.Append(CPPDEFINES=[define + "=" + value])
+                else:
+                    env.Append(CPPDEFINES=[define])
+    elif gcc_mode and static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
     else:
-
+        # Some non standard Pythons on Windows have this.
         def addWinLib():
             # Make sure to locate the Python link library from multiple potential
             # locations (installed vs. self-built).

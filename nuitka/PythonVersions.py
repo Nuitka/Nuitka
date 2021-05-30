@@ -64,6 +64,12 @@ python_version_full_str = ".".join(str(s) for s in sys.version_info[0:3])
 python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
 
 
+def isNuitkaPython():
+    """Is this our own fork of CPython named Nuitka-Python."""
+
+    return python_version > 0x300 and sys.implementation.name == "nuitkapython"
+
+
 def getErrorMessageExecWithNestedFunction():
     """Error message of the concrete Python in case an exec occurs in a
     function that takes a closure variable.
@@ -320,6 +326,14 @@ def getSystemPrefixPath():
 def getSystemStaticLibPythonPath():
     sys_prefix = getSystemPrefixPath()
     python_abi_version = python_version_str + getPythonABI()
+
+    if isNuitkaPython():
+        # Nuitka Python has this.
+        return os.path.join(
+            sys_prefix,
+            "libs",
+            "python" + python_abi_version.replace(".", "") + ".lib",
+        )
 
     if os.name == "nt":
         candidates = [
