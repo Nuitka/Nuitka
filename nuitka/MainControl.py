@@ -158,7 +158,8 @@ def _createNodeTree(filename):
 
         if kind != "absolute":
             inclusion_logger.sysexit(
-                "Error, failed to locate module %r you asked to include." % module_name
+                "Error, failed to locate module '%s' you asked to include."
+                % module_name
             )
 
         Recursion.checkPluginSinglePath(
@@ -295,7 +296,7 @@ def makeSourceDirectory():
                 else:
                     ModuleRegistry.removeUncompiledModule(uncompiled_module)
 
-    # Lets check if the recurse-to modules are actually present, and warn the
+    # Lets check if the asked modules are actually present, and warn the
     # user if one of those was not found.
     for any_case_module in Options.getShallFollowModules():
         if "*" in any_case_module or "{" in any_case_module:
