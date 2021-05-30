@@ -916,19 +916,19 @@ added, e.g. to specify product name, or company name. Defaults to nonsense.""",
 
 windows_group.add_option(
     "--windows-onefile-tempdir",
+    "--onefile-tempdir",
     action="store_true",
-    dest="is_windows_onefile_tempdir",
-    metavar="WINDOWS_ONEFILE_TEMPDIR",
+    dest="is_onefile_tempdir",
+    metavar="ONEFILE_TEMPDIR",
     default=False,
-    help="""\
-Use temporary folder rather than company AppData. Defaults to off.""",
+    help=SUPPRESS_HELP,
 )
 
 windows_group.add_option(
     "--windows-onefile-tempdir-spec",
     action="store",
-    dest="windows_onefile_tempdir_spec",
-    metavar="WINDOWS_ONEFILE_TEMPDIR_SPEC",
+    dest="onefile_tempdir_spec",
+    metavar="ONEFILE_TEMPDIR_SPEC",
     default=None,
     help="""\
 Use this as a temporary folder. Defaults to '%TEMP%\\onefile_%PID%_%TIME%', i.e. system temporary directory.""",

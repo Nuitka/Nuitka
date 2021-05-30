@@ -98,9 +98,9 @@ def parseArgs(will_reexec):
     if options.is_onefile:
         options.is_standalone = True
 
-    # Provide a tempdir spec implies onefile tempdir.
-    if options.windows_onefile_tempdir_spec:
-        options.is_windows_onefile_tempdir = True
+    # Provide a tempdir spec implies onefile tempdir, even on Linux.
+    if options.onefile_tempdir_spec:
+        options.is_onefile_tempdir = True
 
     # Standalone mode implies an executable, not importing "site" module, which is
     # only for this machine, recursing to all modules, and even including the
@@ -231,15 +231,6 @@ sane default used inside the dist folder."""
     if isOnefileMode() and not hasOnefileSupportedOS():
         Tracing.options_logger.sysexit("Error, unsupported OS for onefile %r" % getOS())
 
-    if isOnefileMode() and os.name == "nt":
-        if not getWindowsCompanyName() and not isWindowsOnefileTempDirMode():
-            Tracing.options_logger.sysexit(
-                """Error, onefile on Windows needs more options.
-
-It requires either company name and product version to be given or
-the selection of onefile temp directory mode. Check --help output."""
-            )
-
     if options.recurse_none and options.recurse_all:
         Tracing.options_logger.sysexit(
             "Conflicting options '--follow-imports' and '--nofollow-imports' given."
@@ -343,7 +334,7 @@ the selection of onefile temp directory mode. Check --help output."""
 
 def commentArgs():
     """Comment on options, where we know something is not having the intended effect."""
-    # A ton of cases to consider, pylint: disable=too-many-boolean-expressions,too-many-branches
+    # A ton of cases to consider, pylint: disable=too-many-branches
 
     # Inform the user about potential issues with the running version. e.g. unsupported
     # version.
@@ -383,21 +374,12 @@ def commentArgs():
             or getWindowsProductName()
             or getWindowsProductVersion()
             or getWindowsFileVersion()
-            or isWindowsOnefileTempDirMode()
-            or getWindowsOnefileTempDirSpec(use_default=False)
             or getForcedStderrPath()  # not yet for other platforms
             or getForcedStdoutPath()
         ):
             Tracing.options_logger.warning(
                 "Using Windows specific options has no effect on other platforms."
             )
-
-    if not isOnefileMode() and (
-        isWindowsOnefileTempDirMode() or getWindowsOnefileTempDirSpec(use_default=False)
-    ):
-        Tracing.options_logger.warning(
-            "Using onefile specific option for Windows without --onefile enabled."
-        )
 
     if isOnefileMode():
         standalone_mode = "onefile"
@@ -825,16 +807,16 @@ def isOnefileMode():
     return options.is_onefile
 
 
-def isWindowsOnefileTempDirMode():
-    """*bool* = "--windows-onefile-tempdir" """
-    return options.is_windows_onefile_tempdir
+def isOnefileTempDirMode():
+    """*bool* = "--onefile-tempdir" """
+    return options.is_onefile_tempdir or getOS() != "Linux"
 
 
-def getWindowsOnefileTempDirSpec(use_default):
+def getOnefileTempDirSpec(use_default):
     if use_default:
-        return options.windows_onefile_tempdir_spec or r"%TEMP%\onefile_%PID%_%TIME%"
+        return options.onefile_tempdir_spec or r"%TEMP%\onefile_%PID%_%TIME%"
     else:
-        return options.windows_onefile_tempdir_spec
+        return options.onefile_tempdir_spec
 
 
 def getIconPaths():

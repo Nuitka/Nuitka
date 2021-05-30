@@ -183,6 +183,10 @@ compiler_version_mode = getArgumentBool("compiler_version", False)
 
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 
+# Onefile compression is optional.
+onefile_compression = getArgumentBool("onefile_compression", False)
+
+
 if getArgumentBool("progress_bar", True):
     enableSconsProgressBar()
 
@@ -773,6 +777,9 @@ if "ONEFILE_TEMP_SPEC" in os.environ:
     onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 1
 else:
     onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 0
+
+if onefile_compression:
+    onefile_definitions["_NUITKA_ONEFILE_COMPRESSION"] = 1
 
 createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
 
