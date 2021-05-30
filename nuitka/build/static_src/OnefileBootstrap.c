@@ -130,11 +130,20 @@ static void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size) {
 static FILE_HANDLE createFileForWriting(filename_char_t const *filename) {
 #if defined(_WIN32)
     FILE_HANDLE result = CreateFileW(filename, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, 0, NULL);
-    assert(result != INVALID_HANDLE_VALUE);
-    return result;
+    if (result == INVALID_HANDLE_VALUE) {
+        fprintf(stderr, "Error, failed to open '%ls' for writing.", filename);
+        exit(2);
+    }
 #else
-    return fopen(filename, "wb");
+    FILE *result = fopen(filename, "wb");
+
+    if (result == NULL) {
+        fprintf(stderr, "Error, failed to open '%s' for writing.", filename);
+        exit(2);
+    }
 #endif
+
+    return result;
 }
 
 static void writeToFile(FILE_HANDLE target_file, void *chunk, size_t chunk_size) {
@@ -574,49 +583,6 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-#if _NUITKA_ONEFILE_TEMP == 0
-    res = SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, payload_path);
-
-    if (res != S_OK) {
-        char error_message[1024];
-        int size;
-
-        unsigned int error_code = GetLastError();
-
-        size = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, error_code, 0,
-                             (LPTSTR)error_message, sizeof(error_message), NULL);
-
-        if (size == 0) {
-            printf("SHGetFolderPathW failed with error code %d\n", error_code);
-        } else {
-
-            // Strip trailing newline.
-            if (size >= 2 && error_message[size - 2] == '\r' && error_message[size - 1] == '\n') {
-                size -= 2;
-                error_message[size] = '\0';
-            }
-            printf("SHGetFolderPathW failed: %s\n", error_message);
-        }
-
-        return 1;
-    }
-
-    // _putws(payload_path);
-    appendCharSafeFilename(payload_path, L'\\', sizeof(payload_path) / sizeof(wchar_t));
-    appendStringSafeFilename(payload_path, L"" ONEFILE_COMPANY, sizeof(payload_path) / sizeof(wchar_t));
-
-    BOOL bool_res = CreateDirectoryW(payload_path, NULL);
-
-    appendCharSafeFilename(payload_path, L'\\', sizeof(payload_path));
-    appendStringSafeFilename(payload_path, L"" ONEFILE_PRODUCT, sizeof(payload_path) / sizeof(wchar_t));
-    bool_res = CreateDirectoryW(payload_path, NULL);
-
-    appendCharSafeFilename(payload_path, L'\\', sizeof(payload_path));
-    appendStringSafeFilename(payload_path, L"" ONEFILE_VERSION, sizeof(payload_path) / sizeof(wchar_t));
-
-#else
-
-#if defined(_WIN32)
     wchar_t const *pattern = L"" _NUITKA_ONEFILE_TEMP_SPEC;
     BOOL bool_res = expandTemplatePathW(payload_path, pattern, sizeof(payload_path) / sizeof(wchar_t));
 
@@ -628,17 +594,13 @@ int main(int argc, char **argv) {
 
 #else
     char const *pattern = "" _NUITKA_ONEFILE_TEMP_SPEC;
-    bool_res = expandTemplatePath(payload_path, pattern, sizeof(payload_path));
+    bool bool_res = expandTemplatePath(payload_path, pattern, sizeof(payload_path));
 
     if (bool_res == false) {
         puts("Error, couldn't runtime expand temporary directory pattern:");
         puts(pattern);
         abort();
     }
-
-#endif
-
-#endif
 
 #endif
 
