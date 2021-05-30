@@ -1329,8 +1329,7 @@ Contributors to Nuitka
 ======================
 
 Thanks go to these individuals for their much-valued contributions to
-Nuitka. Contributors have the license to use Nuitka for their own code
-even if Closed Source.
+Nuitka.
 
 The order is sorted by time.
 
