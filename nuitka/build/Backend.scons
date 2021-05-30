@@ -174,8 +174,6 @@ noelf_mode = getArgumentBool("noelf_mode", False)
 
 macosx_target = sys.platform == "darwin"
 
-openbsd_target = sys.platform.startswith("openbsd")
-
 # Windows subsystem mode: Disable console for windows builds.
 win_disable_console = getArgumentBool("win_disable_console", False)
 
@@ -194,12 +192,6 @@ mingw_mode = getArgumentBool("mingw_mode", False)
 
 # Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getArgumentBool("clang_mode", False)
-if (
-    macosx_target
-    or openbsd_target
-    or ("freebsd" in sys.platform and target_arch != "powerpc")
-):
-    clang_mode = True
 
 # Clang on Windows is always clang-cl for now.
 clangcl_mode = False

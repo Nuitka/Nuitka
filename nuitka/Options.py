@@ -34,6 +34,7 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Utils import (
+    getArchitecture,
     getOS,
     hasOnefileSupportedOS,
     isNuitkaPython,
@@ -712,8 +713,15 @@ def isLto():
 
 
 def isClang():
-    """*bool* = "--clang" """
-    return options.clang
+    """*bool* = "--clang" or enforced by platform, e.g. macOS or FreeBSD some targets."""
+
+    # TODO: What does OpenBSD/FreeBSD say for getOS, it would be nice to use that.
+    return (
+        options.clang
+        or getOS() == "Darwin"
+        or sys.platform.startswith("openbsd")
+        or (sys.platform.startswith("freebsd") and getArchitecture() == "powerpc")
+    )
 
 
 def isMingw64():
