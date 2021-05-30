@@ -355,10 +355,22 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
 
         payload_size = 0
 
+        setupProgressBar(
+            stage="Onefile Payload",
+            unit="module",
+            total=len(file_list),
+        )
+
         with compressor(output_file) as compressed_file:
+
             # TODO: Use progress bar here.
             for filename_full in file_list:
                 filename_relative = os.path.relpath(filename_full, dist_dir)
+
+                reportProgressBar(
+                    item=filename_relative,
+                    update=False,
+                )
 
                 filename_encoded = (filename_relative + "\0").encode(filename_encoding)
 
@@ -374,6 +386,11 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
                     shutil.copyfileobj(input_file, compressed_file)
 
                     payload_size += input_size + 8
+
+                reportProgressBar(
+                    item=filename_relative,
+                    update=True,
+                )
 
             # Using empty filename as a terminator.
             filename_encoded = "\0".encode(filename_encoding)
@@ -393,6 +410,8 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
             )
 
         output_file.write(struct.pack("Q", start_pos))
+
+    closeProgressBar()
 
 
 def checkOnefileReadiness(assume_yes_for_downloads):
