@@ -106,6 +106,11 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "cairo"
         elif full_name == "cairo._cairo":
             yield "gi._gobject"
+        elif full_name == "gi.overrides":
+            yield "gi.overrides.Gtk"
+            yield "gi.overrides.Gdk"
+            yield "gi.overrides.GLib"
+            yield "gi.overrides.GObject"
         elif full_name in ("Tkinter", "tkinter"):
             yield "_tkinter"
         elif full_name == "cryptography":
