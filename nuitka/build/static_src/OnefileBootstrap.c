@@ -29,6 +29,7 @@
 #endif
 
 #include <assert.h>
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -802,7 +803,7 @@ int main(int argc, char **argv) {
         int status;
         int res = waitpid(handle_process, &status, 0);
 
-        if (res == -1) {
+        if (res == -1 && errno != ECHILD) {
             printError("waitpid");
             cleanupChildProcess();
             exit_code = 2;
