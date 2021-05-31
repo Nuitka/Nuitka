@@ -27,6 +27,7 @@ from nuitka.PythonVersions import (
     getSupportedPythonVersions,
     getSystemStaticLibPythonPath,
     isNuitkaPython,
+    isStaticallyLinkedPython,
     isUninstalledPython,
     python_version_str,
 )
@@ -692,6 +693,10 @@ def shallTreatUninstalledPython():
     """
 
     if shallMakeModule() or isStandaloneMode():
+        return False
+
+    # Of course only if there is a DLL.
+    if isStaticallyLinkedPython():
         return False
 
     return isUninstalledPython()
