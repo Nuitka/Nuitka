@@ -522,7 +522,11 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
             exe_filename = exe_filename[:-3]
 
         exe_filename = exe_filename.replace(")", "").replace("(", "")
-        exe_filename += ".exe" if os.name == "nt" else ".bin"
+
+        if os.name == "nt":
+            exe_filename += ".exe"
+        else:
+            exe_filename += ".bin"
 
         nuitka_cmd2 = [os.path.join(output_dir, exe_filename)]
 
@@ -622,6 +626,9 @@ Stderr was:
             else:
                 # No execution second step for coverage mode.
                 if comparison_mode:
+                    if os.path.exists(nuitka_cmd2[0][:-4] + ".cmd"):
+                        nuitka_cmd2[0] = nuitka_cmd2[0][:-4] + ".cmd"
+
                     if trace_command:
                         my_print("Nuitka command 2:", nuitka_cmd2)
 

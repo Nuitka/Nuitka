@@ -816,7 +816,11 @@ __name__ = ...
 
         # Execute the module immediately if option was given.
         if Options.shallExecuteImmediately():
-            general.info("Launching %r." % final_filename)
+            run_filename = OutputDirectories.getResultRunFilename(
+                onefile=Options.isOnefileMode()
+            )
+
+            general.info("Launching %r." % run_filename)
 
             if Options.shallMakeModule():
                 executeModule(
@@ -825,6 +829,6 @@ __name__ = ...
                 )
             else:
                 executeMain(
-                    binary_filename=final_filename,
+                    binary_filename=run_filename,
                     clean_path=Options.shallClearPythonPathEnvironment(),
                 )

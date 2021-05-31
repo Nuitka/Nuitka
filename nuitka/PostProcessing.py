@@ -21,7 +21,6 @@
 
 import ctypes
 import os
-import shutil
 import sys
 
 from nuitka import Options, OutputDirectories
@@ -34,8 +33,10 @@ from nuitka.PythonVersions import (
 )
 from nuitka.Tracing import postprocessing_logger
 from nuitka.utils.FileOperations import (
+    getExternalUsePath,
     getFileContents,
     makePath,
+    putTextFileContents,
     removeFileExecutablePermission,
 )
 from nuitka.utils.SharedLibraries import callInstallNameTool
@@ -371,4 +372,18 @@ def executePostProcessing():
             os.unlink(candidate)
 
     if isWin32Windows() and Options.shallTreatUninstalledPython():
-        shutil.copy(getTargetPythonDLLPath(), os.path.dirname(result_filename) or ".")
+        dll_directory = getExternalUsePath(os.path.dirname(getTargetPythonDLLPath()))
+
+        cmd_filename = OutputDirectories.getResultRunFilename(onefile=False)
+
+        cmd_contents = """
+@echo off
+rem This script was created by Nuitka to execute '%(exe_filename)s' with Python DLL being found.
+set PATH=%(dll_directory)s;%%PATH%%
+"%%~dp0.\\%(exe_filename)s"
+""" % {
+            "dll_directory": dll_directory,
+            "exe_filename": os.path.basename(result_filename),
+        }
+
+        putTextFileContents(cmd_filename, cmd_contents)
