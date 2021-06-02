@@ -1,8 +1,8 @@
-nuitka (0.6.16~rc1+ds-1) experimental; urgency=medium
+nuitka (0.6.16~rc2+ds-1) experimental; urgency=medium
 
   * New upstream pre-release.
 
- -- Kay Hayen <kay.hayen@gmail.com>  Tue, 25 May 2021 11:35:48 +0200
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 02 Jun 2021 12:57:47 +0200
 
 nuitka (0.6.15+ds-1) experimental; urgency=medium
 
