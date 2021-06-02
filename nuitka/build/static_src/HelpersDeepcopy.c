@@ -25,6 +25,14 @@
 #include "nuitka/prelude.h"
 #endif
 
+#if PYTHON_VERSION >= 0x390
+typedef struct {
+    PyObject_HEAD PyObject *origin;
+    PyObject *args;
+    PyObject *parameters;
+} GenericAliasObject;
+#endif
+
 PyObject *DEEP_COPY(PyObject *value) {
     if (PyDict_Check(value)) {
 #if PYTHON_VERSION < 0x330
@@ -152,6 +160,20 @@ PyObject *DEEP_COPY(PyObject *value) {
     } else if (PyByteArray_Check(value)) {
         // TODO: Could make an exception for zero size.
         return PyByteArray_FromObject(value);
+#if PYTHON_VERSION >= 0x390
+    } else if (Py_TYPE(value) == &Py_GenericAliasType) {
+        GenericAliasObject *generic_alias = (GenericAliasObject *)value;
+
+        PyObject *args = DEEP_COPY(generic_alias->args);
+        PyObject *origin = DEEP_COPY(generic_alias->origin);
+
+        if (generic_alias->args == args && generic_alias->origin == origin) {
+            Py_INCREF(value);
+            return value;
+        } else {
+            return Py_GenericAlias(origin, args);
+        }
+#endif
     } else {
         PyErr_Format(PyExc_TypeError, "DEEP_COPY does not implement: %s", value->ob_type->tp_name);
 
