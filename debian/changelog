@@ -1,3 +1,9 @@
+nuitka (0.6.15.2+ds-1) experimental; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 03 Jun 2021 11:41:07 +0200
+
 nuitka (0.6.15.1+ds-1) experimental; urgency=medium
 
   * New upstream hotfix release.
