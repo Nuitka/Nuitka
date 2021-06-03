@@ -1001,19 +1001,32 @@ def shallNotStoreDependsExeCachedResults():
     return getattr(options, "no_dependency_cache", False)
 
 
+def getPluginNameConsideringRenames(plugin_name):
+    """Name of the plugin with renames considered."""
+
+    if plugin_name == "qt-plugins":
+        return "pyqt5"
+    elif plugin_name == "etherium":
+        return "ethereum"
+    else:
+        return plugin_name
+
+
 def getPluginsEnabled():
     """*tuple*, user enabled (standard) plugins (not including user plugins)
 
     Note:
-        Do not use this outside of main binary, as other plugins, e.g.
-        hinted compilation will activate plugins themselves and this
-        will not be visible here.
+        Do not use this outside of main binary, as plugins are allowed
+        to activate plugins themselves and that will not be visible here.
     """
     result = OrderedSet()
 
     if options:
         for plugin_enabled in options.plugins_enabled:
-            result.update(plugin_enabled.split(","))
+            result.update(
+                getPluginNameConsideringRenames(plugin_name)
+                for plugin_name in plugin_enabled.split(",")
+            )
 
     return tuple(result)
 
@@ -1026,10 +1039,16 @@ def getPluginsDisabled():
         hinted compilation will activate plugins themselves and this
         will not be visible here.
     """
-    if not options:
-        return ()
+    result = OrderedSet()
 
-    return tuple(set(options.plugins_disabled))
+    if options:
+        for plugin_disabled in options.plugins_disabled:
+            result.update(
+                getPluginNameConsideringRenames(plugin_name)
+                for plugin_name in plugin_disabled.split(",")
+            )
+
+    return tuple(result)
 
 
 def getUserPlugins():

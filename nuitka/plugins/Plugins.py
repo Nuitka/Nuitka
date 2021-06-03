@@ -114,6 +114,9 @@ def getPluginClass(plugin_name):
     # First, load plugin classes, to know what we are talking about.
     loadPlugins()
 
+    # Backward compatibility.
+    plugin_name = Options.getPluginNameConsideringRenames(plugin_name)
+
     if plugin_name not in plugin_name2plugin_classes:
         plugins_logger.sysexit("Error, unknown plug-in '%s' referenced." % plugin_name)
 
@@ -188,7 +191,7 @@ def loadStandardPluginClasses():
 
     Notes:
         Scan through the 'standard' and 'commercial' sub-folder of the folder
-        where this script resides. Import each valid Python module (but not
+        where this module resides. Import each valid Python module (but not
         packages) and process it as a plugin.
     Returns:
         None

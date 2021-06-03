@@ -707,8 +707,8 @@ class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
     which for standalone mode, can cause issues of not having it.
     """
 
-    plugin_name = "qt-plugins"
-    plugin_desc = "Required by the PyQt and PySide packages"
+    plugin_name = "pyqt5"
+    plugin_desc = "Required by the PyQt5 package."
 
     binding_name = "PyQt5"
 
