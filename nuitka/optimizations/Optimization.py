@@ -26,6 +26,7 @@ make others possible.
 import inspect
 
 from nuitka import ModuleRegistry, Options, Variables
+from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.importing import ImportCache
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Progress import (
@@ -115,6 +116,8 @@ def optimizeCompiledPythonModule(module):
             # print("Compute module")
             with withChangeIndicationsTo(signalChange):
                 scopes_were_incomplete = module.computeModule()
+        except NuitkaForbiddenImportEncounter as e:
+            optimization_logger.sysexit("Error, forbidden import '%s' encountered." % e)
         except BaseException:
             general.info("Interrupted while working on '%s'." % module)
             raise
