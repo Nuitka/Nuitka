@@ -42,7 +42,19 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
             self.handled_modules["setuptools"] = setuptools_mode
 
         for custom_choice in custom_choices:
+            if ":" not in custom_choice:
+                self.sysexit(
+                    "Error, malformed value  '%s' for '--noinclude-custom-mode' used."
+                    % custom_choice
+                )
+
             module_name, mode = custom_choice.rsplit(":", 1)
+
+            if mode not in ("error", "warning", "nofollow", "allow"):
+                self.sysexit(
+                    "Error, illegal mode given '%s' in '--noinclude-custom-mode=%s'"
+                    % (mode, custom_choice)
+                )
 
             self.handled_modules[ModuleName(module_name)] = mode
 
@@ -67,15 +79,18 @@ dependencies, and should definitely be avoided.""",
             help="""\
 What to do if a specific import is encountered. Format is module name,
 which can and should be a top level package and then one choice, "error",
-"warning", "nofollow".""",
+"warning", "nofollow", e.g. PyQt5:error.""",
         )
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         for handled_module_name, mode in self.handled_modules.items():
             if module_name.hasNamespace(handled_module_name):
+                # Make sure the compilation abrts.
                 if mode == "error":
                     raise NuitkaForbiddenImportEncounter(module_name)
 
+                # Either issue a warning, or pretend the module doesn't exist for standalone or
+                # at least will not be included.
                 if mode == "warning":
                     self.warning("Forbidden import of '%s' encountered." % module_name)
                 elif mode == "nofollow":
