@@ -86,8 +86,8 @@ class TensorflowPlugin(NuitkaPluginBase):
             create the actual application. Therefore, compilation makes no
             sense for it and the packages it references.
         """
-        elements = module_name.split(".")
-        if elements[0] in (
+
+        if module_name.getTopLevelPackageName() in (
             "tensor",
             "boto",
             "google",
