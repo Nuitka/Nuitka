@@ -35,7 +35,7 @@ class NuitkaPluginResources(NuitkaPluginBase):
     def __init__(self):
         try:
             import pkg_resources
-        except ImportError:
+        except (ImportError, RuntimeError):
             self.pkg_resources = None
         else:
             self.pkg_resources = pkg_resources
@@ -49,6 +49,7 @@ class NuitkaPluginResources(NuitkaPluginBase):
 
         try:
             from importlib import metadata
+
             self.metadata = metadata
         except ImportError:
             pass

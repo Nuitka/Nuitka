@@ -56,6 +56,7 @@ from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import getNullInput, withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
+    copyFileWithPermissions,
     copyTree,
     getDirectoryRealPath,
     getFileContentByLine,
@@ -1372,7 +1373,7 @@ def _handleDataFile(dist_dir, tracer, included_datafile):
                 ) as output:
                     output.write(content)
         else:
-            shutil.copy2(source_desc, target_filename)
+            copyFileWithPermissions(source_desc, target_filename)
 
 
 def copyDataFiles(dist_dir):

@@ -24,6 +24,7 @@ stuff. It will also frequently add sorting for determism.
 
 from __future__ import print_function
 
+import errno
 import glob
 import os
 import shutil
@@ -515,6 +516,24 @@ def copyTree(source_path, dest_path):
     from distutils.dir_util import copy_tree
 
     return copy_tree(source_path, dest_path)
+
+
+def copyFileWithPermissions(source_path, dest_path):
+    """Improved version of shutil.copy2.
+
+    File systems might not allow to transfer extended attributes, which we then ignore
+    and only copy permissions.
+    """
+
+    try:
+        shutil.copy2(source_path, dest_path)
+    except PermissionError as e:
+        if e.errno != errno.EACCES:
+            raise
+
+        source_mode = os.stat(source_path).st_mode
+        shutil.copy(source_path, dest_path)
+        os.chmod(dest_path, source_mode)
 
 
 def getWindowsDrive(path):

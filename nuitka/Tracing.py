@@ -199,6 +199,10 @@ class OurLogger(object):
             self.my_print(message, style=style, file=sys.stderr)
 
     def sysexit(self, message, exit_code=1):
+        from nuitka.Progress import closeProgressBar
+
+        closeProgressBar()
+
         self.my_print("FATAL: %s" % message, style="red", file=sys.stderr)
 
         sys.exit(exit_code)
@@ -230,10 +234,11 @@ class FileLogger(OurLogger):
     def my_print(self, message, **kwargs):
         message = message + "\n"
 
-        file_handle = self.file_handle or sys.stdout
+        if "file" not in kwargs:
+            kwargs["file"] = self.file_handle or sys.stdout
 
-        file_handle.write(message)
-        file_handle.flush()
+        my_print(message, **kwargs)
+        kwargs["file"].flush()
 
     def setFileHandle(self, file_handle):
         self.file_handle = file_handle
