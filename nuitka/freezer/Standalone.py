@@ -1389,19 +1389,24 @@ def copyDataFiles(dist_dir):
 
     # Many details to deal with, pylint: disable=too-many-branches,too-many-locals
 
-    for pattern, dest, arg in Options.getShallIncludeDataFiles():
+    for pattern, src, dest, arg in Options.getShallIncludeDataFiles():
         filenames = resolveShellPatternToFilenames(pattern)
 
         if not filenames:
-            inclusion_logger.warning("No match data file to be included: %r" % pattern)
+            inclusion_logger.warning(
+                "No matching data file to be included for '%s'." % pattern
+            )
 
         for filename in filenames:
-            file_reason = "specified data file %r on command line" % arg
+            file_reason = "specified data file '%s' on command line" % arg
 
-            rel_path = dest
+            if src is None:
+                rel_path = dest
 
-            if rel_path.endswith(("/", os.path.sep)):
-                rel_path = os.path.join(rel_path, os.path.basename(filename))
+                if rel_path.endswith(("/", os.path.sep)):
+                    rel_path = os.path.join(rel_path, os.path.basename(filename))
+            else:
+                rel_path = os.path.join(dest, relpath(filename, src))
 
             _handleDataFile(
                 dist_dir,

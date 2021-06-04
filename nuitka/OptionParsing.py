@@ -330,11 +330,13 @@ data_group.add_option(
     metavar="DATA_FILES",
     default=[],
     help="""\
-Include data files by filenames in the distribution. Could use patterns for
-use in glob, if specifying a directory with trailing slash. An example would
-be --include-data-file=/etc/somefile.txt=etc/somefile.txt for plain file copy,
-and you can copy multiple like --include-data-file=/etc/*.txt=etc/ with a
-trailing slash required to use the pattern. Default empty.""",
+Include data files by filenames in the distribution. There are many
+allowed forms. With '--include-data-file=/path/to/file/*.txt=folder_name/some.txt' it
+will copy a single file and complain if it's multiple. With
+'--include-data-file=/path/to/files/*.txt=folder_name/' it will put
+all matching files into that folder. For recursive copy there is a
+form with 3 values that '--include-data-file=/path/to/scan=folder_name=**/*.txt'
+that will preserve directory structure. Default empty.""",
 )
 
 data_group.add_option(
@@ -345,8 +347,8 @@ data_group.add_option(
     default=[],
     help="""\
 Include data files from complete directory in the distribution. This is
-recursive. Check --include-data-file with patterns if you want non-recursive
-inclusion. An example would be --include-data-dir=/path/somedir=data/somedir
+recursive. Check '--include-data-file' with patterns if you want non-recursive
+inclusion. An example would be '--include-data-dir=/path/somedir=data/somedir'
 for plain copy, of the whole directory. All files are copied, if you want to
 exclude files you need to remove them beforehand. Default empty.""",
 )

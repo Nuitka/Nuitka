@@ -37,7 +37,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     basestring,
 )
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import my_print
+from nuitka.Tracing import my_print, options_logger
 
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
@@ -673,9 +673,26 @@ def resolveShellPatternToFilenames(pattern):
         list - filenames that matched.
     """
 
-    result = glob.glob(pattern)
-    result.sort()
-    return result
+    if "**" in pattern:
+        if python_version >= 0x350:
+            result = glob.glob(pattern, recursive=True)
+            result.sort()
+            return result
+        else:
+            glob2 = importFromInlineCopy("glob2", must_exist=True)
+
+            if glob2 is None:
+                options_logger.sysexit(
+                    "Using pattern with ** is not supported before Python 3.5 unless glob2 is installed."
+                )
+
+            result = glob2.glob(pattern)
+            result.sort()
+            return result
+    else:
+        result = glob.glob(pattern)
+        result.sort()
+        return result
 
 
 @contextmanager

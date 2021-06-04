@@ -283,19 +283,34 @@ standalone where there is a sane default used inside the dist folder."""
     for data_file in options.data_files:
         if "=" not in data_file:
             Tracing.options_logger.sysexit(
-                "Error, malformed data file description, must specify relative target path with =."
+                "Error, malformed data file description, must specify relative target path separated with '='."
             )
 
-        src, dst = data_file.split("=", 1)
+        if data_file.count("=") == 1:
+            src, dst = data_file.split("=", 1)
+
+            filenames = resolveShellPatternToFilenames(src)
+
+            if len(filenames) > 1 and not dst.endswith(("/", os.path.sep)):
+                Tracing.options_logger.sysexit(
+                    "Error, pattern '%s' matches more than one file, but target has no trailing slash, not a directory."
+                    % src
+                )
+        else:
+            src, dst, pattern = data_file.split("=", 2)
+
+            filenames = resolveShellPatternToFilenames(os.path.join(src, pattern))
+
+        if not filenames:
+            Tracing.options_logger.sysexit(
+                "Error, '%s' does not match any files." % src
+            )
 
         if os.path.isabs(dst):
             Tracing.options_logger.sysexit(
-                "Error, must specify relative target path for data file, not %r."
+                "Error, must specify relative target path for data file, not absolute path '%s'."
                 % data_file
             )
-
-        if not resolveShellPatternToFilenames(src):
-            Tracing.options_logger.sysexit("Error, %r does not match any files." % src)
 
     for data_dir in options.data_dirs:
         if "=" not in data_dir:
@@ -551,10 +566,16 @@ def getShallIncludePackageData():
 def getShallIncludeDataFiles():
     """*list*, items of "--include-data-file=" """
     for data_file in options.data_files:
-        src, dest = data_file.split("=", 1)
+        if data_file.count("=") == 1:
+            src, dest = data_file.split("=", 1)
 
-        for pattern in _splitShellPattern(src):
-            yield pattern, dest, data_file
+            for pattern in _splitShellPattern(src):
+                yield pattern, None, dest, data_file
+        else:
+            src, dest, pattern = data_file.split("=", 2)
+
+            for pattern in _splitShellPattern(pattern):
+                yield os.path.join(src, pattern), src, dest, data_file
 
 
 def getShallIncludeDataDirs():
