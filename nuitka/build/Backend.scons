@@ -401,7 +401,7 @@ Error, compiler %s is apparently a C++ compiler, specify a C compiler instead.
             % the_cc_name
         )
 
-    # Consider switching too ikd gcc to its g++ compiler as a workaround that makes us work without C11.
+    # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
     the_compiler, the_gcc_name = switchFromGccToGpp(
         gcc_version=gcc_version,
         the_compiler=the_compiler,

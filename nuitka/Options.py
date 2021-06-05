@@ -741,12 +741,10 @@ def isLto():
 def isClang():
     """*bool* = "--clang" or enforced by platform, e.g. macOS or FreeBSD some targets."""
 
-    # TODO: What does OpenBSD/FreeBSD say for getOS, it would be nice to use that.
     return (
         options.clang
-        or getOS() == "Darwin"
-        or sys.platform.startswith("openbsd")
-        or (sys.platform.startswith("freebsd") and getArchitecture() == "powerpc")
+        or getOS() in ("Darwin", "OpenBSD")
+        or (getOS() == "FreeBSD" and getArchitecture() != "powerpc")
     )
 
 
