@@ -54,7 +54,7 @@ Requirements
    -  The ``gcc`` compiler of at least version 5.1, or the ``g++``
       compiler of at least version 4.4 as an alternative.
 
-   -  The ``clang`` compiler on macOS X or FreeBSD.
+   -  The ``clang`` compiler on macOS X and FreeBSD.
 
    -  The MinGW64 C11 compiler on Windows, must be based on gcc 8 or
       higher. It will be automatically downloaded if not found, which is
@@ -70,7 +70,7 @@ Requirements
 
 -  Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9
 
-   .. admonition:: For Python 3.3, and 3.4 and *only* those versions, we need other Python versions as a *compile time* dependency.
+   .. admonition:: For Python 3.3/3.4 and *only* those, we need other Python version as a *compile time* dependency.
 
       Nuitka itself is fully compatible with all listed versions, but
       Scons as an internally used tool is not.
@@ -566,16 +566,16 @@ Nuitka will have to learn effective caching to deal with this in the
 future. Right now, you will have to deal with huge compilation times for
 these.
 
-Onefile on Windows: Finding files
-=================================
+Onefile: Finding files
+======================
 
 There is a difference between ``sys.argv[0]`` and ``__file__`` of the
-main module on Windows, that is caused by using a bootstrap to a
-temporary or permanent location. The first one will be the original
-executable path, where as the second one will be the temporary or
-permanent path the bootstrap executable unpacks to. Data files will be
-in the later location, your original environment files will be in the
-former location.
+main module for onefile more, that is caused by using a bootstrap to a
+temporary location. The first one will be the original executable path,
+where as the second one will be the temporary or permanent path the
+bootstrap executable unpacks to. Data files will be in the later
+location, your original environment files will be in the former
+location.
 
 Given 2 files, one which you expect to be near your executable, and one
 which you expect to be inside the onefile binary, access them like this.
@@ -608,9 +608,9 @@ variables, this is an example:
 .. code:: python
 
    # Compilation mode, support OS specific.
-   # nuitka-project-if: {OS} in ("Windows", "Linux", "Darwin"):
+   # nuitka-project-if: {OS} in ("Windows", "Linux", "Darwin", "FreeBSD"):
    #    nuitka-project: --onefile
-   # nuitka-project-if: {OS} not in ("Windows", "Linux", "Darwin"):
+   # nuitka-project-if: {OS} not in ("Windows", "Linux", "Darwin", "FreeBSD"):
    #    nuitka-project: --standalone
 
    # The PySide2 plugin covers qt-plugins
@@ -624,11 +624,12 @@ other keywords than the used ones demonstrated above.
 +------------------+--------------------------------------+--------------------------------+
 | Variable         | What this Expands to                 | Example                        |
 +==================+======================================+================================+
-| {OS}             | Name of the OS used                  | Linux, Windows, Darwin         |
+| {OS}             | Name of the OS used                  | Linux, Windows, Darwin,        |
+|                  |                                      | FreeBSD, OpenBSD               |
 +------------------+--------------------------------------+--------------------------------+
 | {Version}        | Version of Nuitka                    | (0, 6, 14)                     |
 +------------------+--------------------------------------+--------------------------------+
-| {Arch}           | Architecture used                    | x86_64                         |
+| {Arch}           | Architecture used                    | x86_64, arm64, etc.            |
 +------------------+--------------------------------------+--------------------------------+
 | {MAIN_DIRECTORY} | Directory of the compiled file       | some_dir/maybe_relative        |
 +------------------+--------------------------------------+--------------------------------+
@@ -1452,7 +1453,7 @@ Projects used by Nuitka
 This document is written in REST. That is an ASCII format which is
 readable as ASCII, but used to generate PDF or HTML documents.
 
-You will find the current source under:
-https://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=README.rst
+You will find the current version at:
+https://nuitka.net/doc/user-manual.html
 
 And the current PDF under: https://nuitka.net/doc/README.pdf
