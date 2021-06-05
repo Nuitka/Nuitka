@@ -118,3 +118,13 @@ def encodeNonAscii(var_name):
 
 def hasOnefileSupportedOS():
     return getOS() in ("Linux", "Windows", "Darwin")
+
+
+def getUserName():
+    """Return the user name.
+
+    Notes: Currently doesn't work on Windows.
+    """
+    import pwd
+
+    return pwd.getpwuid(os.getuid())[0]
