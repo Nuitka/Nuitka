@@ -1317,7 +1317,7 @@ def _handleDataFile(dist_dir, tracer, included_datafile):
     if isinstance(included_datafile, IncludedDataFile):
         if included_datafile.kind == "empty_dirs":
             tracer.info(
-                "Included empty directories %s due to %s."
+                "Included empty directories '%s' due to %s."
                 % (
                     ",".join(included_datafile.dest_path),
                     included_datafile.reason,
@@ -1330,7 +1330,7 @@ def _handleDataFile(dist_dir, tracer, included_datafile):
             dest_path = os.path.join(dist_dir, included_datafile.dest_path)
 
             tracer.info(
-                "Included data file %r due to %s."
+                "Included data file '%s' due to %s."
                 % (
                     included_datafile.dest_path,
                     included_datafile.reason,
