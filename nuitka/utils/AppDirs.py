@@ -40,8 +40,13 @@ _cache_dir = None
 
 def getCacheDir():
     global _cache_dir  # singleton, pylint: disable=global-statement
+
     if _cache_dir is None:
-        if appdirs is not None:
+        _cache_dir = os.getenv("NUITKA_CACHE_DIR")
+
+        if _cache_dir:
+            _cache_dir = os.path.expanduser(_cache_dir)
+        elif appdirs is not None:
             _cache_dir = appdirs.user_cache_dir("Nuitka", None)
         else:
             _cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "Nuitka")
