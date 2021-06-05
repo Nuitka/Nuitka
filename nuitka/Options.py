@@ -854,7 +854,10 @@ def isOnefileTempDirMode():
 
 def getOnefileTempDirSpec(use_default):
     if use_default:
-        return options.onefile_tempdir_spec or r"%TEMP%\onefile_%PID%_%TIME%"
+        return (
+            options.onefile_tempdir_spec
+            or "%TEMP%" + os.path.sep + "onefile_%PID%_%TIME%"
+        )
     else:
         return options.onefile_tempdir_spec
 
