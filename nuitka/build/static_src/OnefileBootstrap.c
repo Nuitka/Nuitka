@@ -516,6 +516,10 @@ void ourConsoleCtrlHandler(int sig) { cleanupChildProcess(); }
 #define MAXPATHLEN 2048
 #endif
 
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
+#include <sys/sysctl.h>
+#endif
+
 #if !defined(_WIN32)
 char const *getBinaryPath() {
     static char binary_filename[MAXPATHLEN];
