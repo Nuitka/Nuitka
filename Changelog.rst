@@ -15220,11 +15220,11 @@ are some bug fixes.
  Organizational
 ****************
 
--  The `gitweb interface <https://nuitka.net/gitweb>`__ might be
-   considered an alternative to downloading the source if you want to
-   provide a pointer, or want to take a quick glance at the source code.
-   You can already download with git, follow the link below to the page
-   explaining it.
+-  The `gitweb interface <https://nuitka.net/gitweb>`__ (since disabled)
+   might be considered an alternative to downloading the source if you
+   want to provide a pointer, or want to take a quick glance at the
+   source code. You can already download with git, follow the link below
+   to the page explaining it.
 
 -  The "README.txt" has documented more of the differences and I
    consequently updated the Differences page. There is now a distinction
