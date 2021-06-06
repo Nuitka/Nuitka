@@ -452,7 +452,7 @@ output_group.add_option(
     help="""\
 Specify how the executable should be named. For extension modules there is no
 choice, also not for standalone mode and using it will be an error. This may
-include path information that needs to exist though. Defaults to %s on this
+include path information that needs to exist though. Defaults to '%s' on this
 platform.
 """
     % "<program_name>"

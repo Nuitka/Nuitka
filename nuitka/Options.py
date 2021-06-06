@@ -159,13 +159,13 @@ Error, '--nofollow-import-to' takes only module names, not directory path '%s'."
         )
 
     if options.output_filename is not None and (
-        isStandaloneMode() or shallMakeModule()
+        (isStandaloneMode() and not isOnefileMode()) or shallMakeModule()
     ):
         Tracing.options_logger.sysexit(
             """\
-Error, can only specify output filename for acceleration mode, not for module
-mode where filenames are mandatory, and not for standalone where there is a
-sane default used inside the dist folder."""
+Error, may only specify output filename for acceleration and onefile mode,
+but not for module mode where filenames are mandatory, and not for
+standalone where there is a sane default used inside the dist folder."""
         )
 
     if getOS() == "Linux":
