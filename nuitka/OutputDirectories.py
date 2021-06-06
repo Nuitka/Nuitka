@@ -88,7 +88,7 @@ def getResultFullpath(onefile):
     if Options.shallMakeModule():
         result += getSharedLibrarySuffix(preferred=True)
     else:
-        if Options.getOutputFilename() is not None:
+        if onefile and Options.getOutputFilename() is not None:
             result = Options.getOutputFilename()
         elif getOS() == "Windows":
             result += ".exe"
