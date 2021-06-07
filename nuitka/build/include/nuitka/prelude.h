@@ -50,7 +50,7 @@
 #include "methodobject.h"
 #include "pydebug.h"
 
-#if PYTHON_VERSION >= 0x390
+#if PYTHON_VERSION >= 0x380
 #define NUITKA_USE_PYCORE_THREADSTATE
 #else
 #endif
