@@ -566,6 +566,15 @@ Nuitka will have to learn effective caching to deal with this in the
 future. Right now, you will have to deal with huge compilation times for
 these.
 
+For now, a major weapon in fighting dependency creap should be applied,
+namely the ``anti-bloat`` plugin, which offers interesting abilities,
+that can be put to use and block unneeded imports, giving an error for
+where they occur. Use it e.g. like this ``--enable-plugin=anti-bloat
+--noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow``
+and check its help output. It can take for each module of your choice,
+e.g. forcing also that PyQt5 is considered uninstalled for standalone
+mode.
+
 Onefile: Finding files
 ======================
 
@@ -665,6 +674,16 @@ in CI systems.
 
 For the MSVC compilers and ClangCL setups, using the ``clcache`` is
 automatic and included in Nuitka.
+
+Control where Caches live
+=========================
+
+The storage for cache results of all kinds, downloads, cached
+compilation results from C and Nuitka, is done in a platform dependent
+directory as determined by the ``appdirs`` package. However, you can
+override it with setting the environment variable ``NUITKA_CACHE_DIR``
+to a base directory. This is for use in environments where the home
+directory is not persisted, but other paths are.
 
 Runners
 =======
