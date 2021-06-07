@@ -57,17 +57,17 @@ jobs:
 
       - name: PyLint on Nuitka source code
         run: |
-          ./bin/check-nuitka-with-pylint
+          python ./bin/check-nuitka-with-pylint
         if: matrix.python_version == '3.7'
 
       - name: RestLint on Nuitka source code
         run: |
-          ./bin/check-nuitka-with-restlint
+          python ./bin/check-nuitka-with-restlint
         if: matrix.python_version == '3.7'
 
       - name: Codespell on Nuitka source code
         run: |
-          ./bin/check-nuitka-with-codespell
+          python ./bin/check-nuitka-with-codespell
         if: matrix.python_version == '3.7'
 
   mac:
