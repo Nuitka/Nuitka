@@ -19,6 +19,7 @@
 
 """
 
+import collections
 import os
 
 from nuitka import Options
@@ -30,7 +31,10 @@ from nuitka.freezer.IncludedDataFiles import (
     makeIncludedEmptyDirectories,
 )
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.FileOperations import getFileList, listDir
+from nuitka.utils.FileOperations import (
+    getFileList,
+    resolveShellPatternToFilenames,
+)
 
 
 def _createEmptyDirText(filename):
@@ -111,43 +115,81 @@ def _getSubDirectoryFolders(module, subdirs):
 class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     plugin_name = "data-files"
 
+    KnownDataFileDesc = collections.namedtuple(
+        "KnownDataFileDesc", ("dest_path", "filename_pattern")
+    )
+
     known_data_files = {
         # Key is the package name to trigger it
         # Value is a tuple of 2 element tuples, thus trailing commas, where
         # the target path can be specified (None is just default, i.e. the
         # package directory) and the filename relative to the source package
         # directory
-        "botocore": ((None, "cacert.pem"),),
-        "site": ((None, "orig-prefix.txt"),),
-        "nose.core": ((None, "usage.txt"),),
-        "scrapy": ((None, "VERSION"),),
-        "dask": (("", "dask.yaml"),),
-        "cairocffi": ((None, "VERSION"),),
-        "cairosvg": ((None, "VERSION"),),
-        "weasyprint": ((None, "VERSION"),),
-        "tinycss2": ((None, "VERSION"),),
-        "certifi": ((None, "cacert.pem"),),
-        "importlib_resources": ((None, "version.txt"),),
+        "botocore": (KnownDataFileDesc(filename_pattern="cacert.pem", dest_path=None),),
+        "site": (
+            KnownDataFileDesc(filename_pattern="orig-prefix.txt", dest_path=None),
+        ),
+        "nose.core": (KnownDataFileDesc(filename_pattern="usage.txt", dest_path=None),),
+        "scrapy": (KnownDataFileDesc(filename_pattern="VERSION", dest_path=None),),
+        "dask": (KnownDataFileDesc(filename_pattern="dask.yaml", dest_path=""),),
+        "cairocffi": (KnownDataFileDesc(filename_pattern="VERSION", dest_path=None),),
+        "cairosvg": (KnownDataFileDesc(filename_pattern="VERSION", dest_path=None),),
+        "weasyprint": (KnownDataFileDesc(filename_pattern="VERSION", dest_path=None),),
+        "tinycss2": (KnownDataFileDesc(filename_pattern="VERSION", dest_path=None),),
+        "certifi": (KnownDataFileDesc(filename_pattern="cacert.pem", dest_path=None),),
+        "importlib_resources": (
+            KnownDataFileDesc(filename_pattern="version.txt", dest_path=None),
+        ),
         "moto": (
-            (None, "ec2/resources/instance_types.json"),
-            (None, "ec2/resources/amis.json"),
+            KnownDataFileDesc(
+                filename_pattern="ec2/resources/instance_types.json", dest_path=None
+            ),
+            KnownDataFileDesc(
+                filename_pattern="ec2/resources/amis.json", dest_path=None
+            ),
         ),
         "skimage": (
-            (None, "io/_plugins/fits_plugin.ini"),
-            (None, "io/_plugins/gdal_plugin.ini"),
-            (None, "io/_plugins/gtk_plugin.ini"),
-            (None, "io/_plugins/imageio_plugin.ini"),
-            (None, "io/_plugins/imread_plugin.ini"),
-            (None, "io/_plugins/matplotlib_plugin.ini"),
-            (None, "io/_plugins/pil_plugin.ini"),
-            (None, "io/_plugins/qt_plugin.ini"),
-            (None, "io/_plugins/simpleitk_plugin.ini"),
-            (None, "io/_plugins/tifffile_plugin.ini"),
+            # TODO: Probably should use *.ini with patterns being supported.
+            KnownDataFileDesc(
+                filename_pattern="io/_plugins/fits_plugin.ini", dest_path=None
+            ),
+            KnownDataFileDesc(
+                filename_pattern="io/_plugins/gdal_plugin.ini", dest_path=None
+            ),
+            KnownDataFileDesc(
+                filename_pattern="io/_plugins/gtk_plugin.ini", dest_path=None
+            ),
+            KnownDataFileDesc(
+                filename_pattern="io/_plugins/imageio_plugin.ini", dest_path=None
+            ),
+            KnownDataFileDesc(
+                filename_pattern="io/_plugins/imread_plugin.ini", dest_path=None
+            ),
+            KnownDataFileDesc(
+                filename_pattern="io/_plugins/matplotlib_plugin.ini", dest_path=None
+            ),
+            KnownDataFileDesc(
+                filename_pattern="io/_plugins/pil_plugin.ini", dest_path=None
+            ),
+            KnownDataFileDesc(
+                filename_pattern="io/_plugins/qt_plugin.ini", dest_path=None
+            ),
+            KnownDataFileDesc(
+                filename_pattern="io/_plugins/simpleitk_plugin.ini", dest_path=None
+            ),
+            KnownDataFileDesc(
+                filename_pattern="io/_plugins/tifffile_plugin.ini", dest_path=None
+            ),
         ),
         "skimage.feature._orb_descriptor_positions": (
-            ("skimage/feature", "orb_descriptor_positions.txt"),
+            KnownDataFileDesc(
+                filename_pattern="orb_descriptor_positions.txt", dest_path=None
+            ),
         ),
-        "tzdata": ((None, "zones"),),
+        "tzdata": (KnownDataFileDesc(filename_pattern="zones", dest_path=None),),
+        "lib2to3.pgen2": (
+            KnownDataFileDesc(filename_pattern="../*.pickle", dest_path="lib2to3"),
+        ),
     }
 
     # data files to be copied are contained in subfolders named as the second item
@@ -196,16 +238,33 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         module_folder = module.getCompileTimeDirectory()
 
         if module_name in self.known_data_files:
-            for target_dir, filename in self.known_data_files[module_name]:
-                source_path = os.path.join(module_folder, filename)
+            for know_data_file_desc in self.known_data_files[module_name]:
+                target_dir = know_data_file_desc.dest_path
+                filename_pattern = know_data_file_desc.filename_pattern
 
-                if os.path.isfile(source_path):
-                    if target_dir is None:
+                if target_dir is None:
+                    if (
+                        module.isCompiledPythonPackage()
+                        or module.isUncompiledPythonPackage()
+                    ):
                         target_dir = module_name.asPath()
+                    else:
+                        package_name = module_name.getPackageName()
 
-                    yield (
-                        source_path,
-                        os.path.normpath(os.path.join(target_dir, filename)),
+                        if package_name is not None:
+                            target_dir = module_name.getPackageName().asPath()
+                        else:
+                            target_dir = "."
+
+                source_path_pattern = os.path.join(module_folder, filename_pattern)
+
+                for filename in resolveShellPatternToFilenames(source_path_pattern):
+                    yield makeIncludedDataFile(
+                        source_path=filename,
+                        dest_path=os.path.normpath(
+                            os.path.join(target_dir, os.path.basename(filename))
+                        ),
+                        reason="package data for %r" % module_name.asString(),
                     )
 
         if module_name in self.known_data_dirs:
@@ -216,9 +275,9 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
 
             for data_dir in data_dirs:
                 yield makeIncludedDataDirectory(
-                    os.path.join(module_folder, data_dir),
-                    os.path.join(module_name.asPath(), data_dir),
-                    "package data for %r" % module_name.asString(),
+                    source_path=os.path.join(module_folder, data_dir),
+                    dest_path=os.path.join(module_name.asPath(), data_dir),
+                    reason="package data directory for %r" % module_name.asString(),
                 )
 
         if module_name in self.known_data_dir_structure:
@@ -232,16 +291,3 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                     target_dir = module_name.replace(".", os.path.sep)
 
                 yield (func, os.path.normpath(os.path.join(target_dir, filename)))
-
-        if module_name == "lib2to3.pgen2":
-            # TODO: Support patterns of files in known_data_files as
-            # that would cover this.
-            for source_path, filename in listDir(os.path.join(module_folder, "..")):
-                if not filename.endswith(".pickle"):
-                    continue
-
-                yield makeIncludedDataFile(
-                    source_path,
-                    os.path.join("lib2to3", filename),
-                    "package data for %r" % module_name.asString(),
-                )

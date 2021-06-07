@@ -23,6 +23,9 @@ for dependency analysis.
 """
 
 import collections
+import os
+
+from nuitka.utils.FileOperations import isRelativePath
 
 IncludedDataFile = collections.namedtuple(
     "IncludedDataFile", ("kind", "source_path", "dest_path", "reason")
@@ -30,18 +33,28 @@ IncludedDataFile = collections.namedtuple(
 
 
 def makeIncludedEmptyDirectories(source_path, dest_paths, reason):
+    for dest_path in dest_paths:
+        assert not os.path.isabs(dest_path)
+
+    # Require that to not be empty.
+    assert dest_paths
+
     return IncludedDataFile(
         kind="empty_dirs", source_path=source_path, dest_path=dest_paths, reason=reason
     )
 
 
 def makeIncludedDataFile(source_path, dest_path, reason):
+    assert isRelativePath(dest_path), dest_path
+
     return IncludedDataFile(
         kind="data_file", source_path=source_path, dest_path=dest_path, reason=reason
     )
 
 
 def makeIncludedDataDirectory(source_path, dest_path, reason):
+    assert isRelativePath(dest_path), dest_path
+
     return IncludedDataFile(
         kind="data_dir", source_path=source_path, dest_path=dest_path, reason=reason
     )

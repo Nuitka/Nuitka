@@ -138,6 +138,15 @@ def relpath(path, start="."):
         raise
 
 
+def isRelativePath(path):
+    if os.path.isabs(path):
+        return False
+    if path.startswith((".." + os.path.sep, "../")):
+        return False
+
+    return True
+
+
 def makePath(path):
     """Create a directory if it doesn't exist.
 
@@ -676,8 +685,6 @@ def resolveShellPatternToFilenames(pattern):
     if "**" in pattern:
         if python_version >= 0x350:
             result = glob.glob(pattern, recursive=True)
-            result.sort()
-            return result
         else:
             glob2 = importFromInlineCopy("glob2", must_exist=True)
 
@@ -687,12 +694,12 @@ def resolveShellPatternToFilenames(pattern):
                 )
 
             result = glob2.glob(pattern)
-            result.sort()
-            return result
     else:
         result = glob.glob(pattern)
-        result.sort()
-        return result
+
+    result = [os.path.normpath(filename) for filename in result]
+    result.sort()
+    return result
 
 
 @contextmanager
