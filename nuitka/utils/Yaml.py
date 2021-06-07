@@ -15,24 +15,23 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Nuitka yaml utility functions.
 
-# Folders to use for cache files.
-appdirs == 1.4.4
+Because we want to work with Python2.6 or higher, we play a few tricks with
+what library to use for what Python. We have an inline copy of PyYAML that
+still does 2.6, on other Pythons, we expect the system to have it installed.
+"""
 
-# Scons is the backend building tool to turn C files to binaries.
-scons == 3.1.2
+from nuitka.PythonVersions import python_version
 
-# For the progress bar to look nicely.
-tqdm == 4.60.0
+from .Importing import importFromInlineCopy
 
-# Faster OrderedSet
-orderedset == 2.0.3
 
-# More capable subprocess.
-subprocess32 == 3.5.4 ; python_version == '2.7'
+def parseYaml(data):
+    if python_version < 0x270:
+        yaml = importFromInlineCopy("yaml", must_exist=False)
+        return yaml.load(data)
+    else:
+        import yaml
 
-# Onefile compression
-zstandard; python_version >= '3.5'
-
-# Plugins need that
-pyyaml == 5.4.1; python_version >= '2.7'
+        return yaml.safe_load(data)

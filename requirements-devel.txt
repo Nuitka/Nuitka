@@ -2,7 +2,7 @@
 orderedset == 2.0.3 ; python_version >= '3.4' or os.name != "nt"
 
 # Make testing more reliable on Python2 with timeout features added.
-subprocess32==3.5.4 ; python_version == '2.7'
+subprocess32 == 3.5.4 ; python_version == '2.7'
 
 # PyLint wouldn't be installable on 2.6 and not work with too old Python3
 pylint == 2.7.4 ; python_version >= '3.7'
@@ -43,6 +43,9 @@ pytest; python_version == '2.7' or python_version >= '3.4'
 
 # Onefile compression
 zstandard; python_version >= '3.5'
+
+# Plugins need that
+pyyaml == 5.4.1; python_version >= '2.7'
 
 # Packaging
 wheel
