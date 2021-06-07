@@ -56,6 +56,7 @@
 #endif
 
 #ifdef NUITKA_USE_PYCORE_THREADSTATE
+#undef Py_BUILD_CORE
 #define Py_BUILD_CORE
 #undef _PyGC_FINALIZED
 #include "internal/pycore_pystate.h"
