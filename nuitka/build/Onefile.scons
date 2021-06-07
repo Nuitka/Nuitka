@@ -60,6 +60,7 @@ from .SconsCompilerSettings import (
     checkWindowsCompilerFound,
     enableC11Settings,
     enableExperimentalSettings,
+    enableLtoSettings,
 )
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
 from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
@@ -364,7 +365,6 @@ if gcc_mode:
     # to negative values.
     env.Append(CCFLAGS=["-fwrapv"])
 
-
 # Support for clang.
 if "clang" in the_cc_name:
     env.Append(CCFLAGS=["-w"])
@@ -375,6 +375,9 @@ if "clang" in the_cc_name:
 
     if debug_mode:
         env.Append(CCFLAGS=["-Wunused-but-set-variable"])
+
+# Enable LTO for compiler.
+lto_mode = enableLtoSettings(env=env, lto_mode=lto_mode, msvc_mode=msvc_mode)
 
 # Support details for real g++, not clang++.
 if gcc_mode and not clang_mode:

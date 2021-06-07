@@ -66,6 +66,7 @@ from .SconsCompilerSettings import (
     decideConstantsBlobResourceMode,
     enableC11Settings,
     enableExperimentalSettings,
+    enableLtoSettings,
     enableWindowsStackSize,
 )
 from .SconsHacks import (
@@ -487,6 +488,9 @@ if "clang" in the_cc_name:
 
     if debug_mode:
         env.Append(CCFLAGS=["-Wunused-but-set-variable"])
+
+# Enable LTO for compiler.
+lto_mode = enableLtoSettings(env=env, lto_mode=lto_mode, msvc_mode=msvc_mode)
 
 if lto_mode and mingw_mode:
     scons_logger.warning(
@@ -1005,10 +1009,6 @@ else:
     if msvc_mode:
         env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
 
-# Tell compiler to use link time optimization for MSVC
-if msvc_mode and lto_mode:
-    env.Append(CCFLAGS=["/GL"])
-    env.Append(LINKFLAGS=["/LTCG"])
 
 if module_mode:
     env.Append(CPPDEFINES=["_NUITKA_MODULE"])
