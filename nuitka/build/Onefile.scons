@@ -580,15 +580,6 @@ env.Append(
     ],
 )
 
-# The inline copy of zstd has a header file to discover.
-env.Append(
-    CPPPATH=[
-        source_dir,
-        nuitka_include,
-    ]
-)
-
-
 if debug_mode or unstripped_mode:
     # Use debug format, so we get good tracebacks from it.
     if gcc_mode:
