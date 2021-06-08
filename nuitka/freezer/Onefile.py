@@ -193,24 +193,31 @@ Categories=Utility;"""
     stdout_file.close()
     stderr_file.close()
 
-    if not os.path.exists(onefile_output_filename):
-        postprocessing_logger.sysexit(
-            "Error, expected output file %r not created by AppImage, check its outputs %r and %r."
-            % (onefile_output_filename, stdout_filename, stderr_filename)
-        )
-
     if result != 0:
         # Useless now.
         os.unlink(onefile_output_filename)
 
-        if b"Text file busy" in getFileContents(stderr_filename, mode="rb"):
+        stderr = getFileContents(stderr_filename, mode="rb")
+
+        if b"Text file busy" in stderr:
             postprocessing_logger.sysexit(
                 "Error, error exit from AppImage because target file is locked."
             )
 
+        if b"modprobe fuse" in stderr:
+            postprocessing_logger.sysexit(
+                "Error, error exit from AppImage because fuse kernel module was not loaded."
+            )
+
         postprocessing_logger.sysexit(
-            "Error, error exit from AppImage, check its outputs %r and %r."
+            "Error, error exit from AppImage, check its outputs '%s' and '%s'."
             % (stdout_filename, stderr_filename)
+        )
+
+    if not os.path.exists(onefile_output_filename):
+        postprocessing_logger.sysexit(
+            "Error, expected output file %r not created by AppImage, check its outputs '%s' and '%s'."
+            % (onefile_output_filename, stdout_filename, stderr_filename)
         )
 
     os.unlink(stdout_filename)
