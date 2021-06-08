@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -102,7 +102,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
                 Py_INCREF(method->m_object);
 
                 for (Py_ssize_t i = 0; i < %(args_count)d; i++) {
-                    python_pars[i+1] = args[i];
+                    python_pars[i + 1] = args[i];
                     Py_INCREF(args[i]);
                 }
 
@@ -185,7 +185,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
                 return NULL;
             }
 #else
-            PyErr_Format(
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(
                 PyExc_TypeError,
                 "%%s() takes no arguments (%(args_count)d given)",
                 ((PyCFunctionObject *)called)->m_ml->ml_name
@@ -205,7 +205,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
             }
 #endif
 
-            PyObject *result = (*method)( self, args[0] );
+            PyObject *result = (*method)( self, args[0]);
 
 #ifdef _NUITKA_FULL_COMPAT
             Py_LeaveRecursiveCall();
@@ -230,7 +230,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
                 return NULL;
             }
 #else
-            PyErr_Format(PyExc_TypeError,
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError,
                 "%%s() takes exactly one argument (%(args_count)d given)",
                  ((PyCFunctionObject *)called)->m_ml->ml_name
             );
@@ -252,7 +252,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
             }
 #endif
 
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else {
@@ -262,7 +262,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
             if (flags == (METH_VARARGS|METH_KEYWORDS)) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
                 result = (*(_PyCFunctionFast)method)(self, &PyTuple_GET_ITEM(pos_args, 0), %(args_count)d, NULL);
 #else
                 result = (*(_PyCFunctionFast)method)(self, &pos_args, %(args_count)d);
@@ -345,17 +345,15 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
         PyObject *descr = _PyType_Lookup(type, attr_name);
         descrgetfunc func = NULL;
 
-        if (descr != NULL)
-        {
+        if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
 #endif
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr))
-                {
+                if (func != NULL && PyDescr_IsData(descr)) {
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -366,7 +364,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
                     Py_DECREF(called_object);
                     return result;
                 }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             }
 #endif
         }
@@ -374,17 +372,16 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
         Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
-        if ( dictoffset != 0 )
-        {
+        if (dictoffset != 0) {
             // Negative dictionary offsets have special meaning.
-            if ( dictoffset < 0 )
-            {
+            if (dictoffset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
 
                 tsize = ((PyVarObject *)source)->ob_size;
-                if (tsize < 0)
+                if (tsize < 0) {
                     tsize = -tsize;
+                }
                 size = _PyObject_VAR_SIZE( type, tsize );
 
                 dictoffset += (long)size;
@@ -394,17 +391,14 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
             dict = *dictptr;
         }
 
-        if (dict != NULL)
-        {
+        if (dict != NULL) {
             CHECK_OBJECT(dict);
 
             Py_INCREF(dict);
 
-            PyObject *called_object = PyDict_GetItem(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
 
-            if (called_object != NULL)
-            {
-                Py_INCREF(called_object);
+            if (called_object != NULL) {
                 Py_XDECREF(descr);
                 Py_DECREF(dict);
 
@@ -459,12 +453,12 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
             return result;
         }
 
-#if PYTHON_VERSION < 300
-        PyErr_Format(
+#if PYTHON_VERSION < 0x300
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(
             PyExc_AttributeError,
             "'%%s' object has no attribute '%%s'",
             type->tp_name,
-            PyString_AS_STRING( attr_name )
+            PyString_AS_STRING(attr_name)
         );
 #else
         PyErr_Format(
@@ -476,7 +470,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
 #endif
         return NULL;
     }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     else if (type == &PyInstance_Type) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
@@ -534,11 +528,11 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
             }
 
         } else if (unlikely(source_instance->in_class->cl_getattr == NULL)) {
-            PyErr_Format(
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(
                 PyExc_AttributeError,
                 "%%s instance has no attribute '%%s'",
-                PyString_AS_STRING( source_instance->in_class->cl_name ),
-                PyString_AS_STRING( attr_name )
+                PyString_AS_STRING(source_instance->in_class->cl_name),
+                PyString_AS_STRING(attr_name)
             );
 
             return NULL;
@@ -556,8 +550,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
                 args2
             );
 
-            if (unlikely(called_object == NULL))
-            {
+            if (unlikely(called_object == NULL)) {
                 return NULL;
             }
 
@@ -592,8 +585,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
             (char *)Nuitka_String_AsString_Unchecked(attr_name)
         );
 
-        if (unlikely(called_object == NULL))
-        {
+        if (unlikely(called_object == NULL)) {
             return NULL;
         }
 
@@ -604,7 +596,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
         Py_DECREF(called_object);
         return result;
     } else {
-        PyErr_Format(
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(
             PyExc_AttributeError,
             "'%%s' object has no attribute '%%s'",
             type->tp_name,

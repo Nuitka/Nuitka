@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,9 +29,9 @@ from contextlib import contextmanager
 
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.utils.Execution import check_call
-from nuitka.utils.FileOperations import removeDirectory
+from nuitka.utils.FileOperations import removeDirectory, withDirectoryChange
 
-from .Common import my_print, withDirectoryChange
+from .Common import my_print
 
 
 class Virtualenv(object):
@@ -84,9 +84,9 @@ class Virtualenv(object):
 
 @contextmanager
 def withVirtualenv(env_name, base_dir=None, python=None, delete=True, style=None):
-    """ Create a virtualenv and change into it.
+    """Create a virtualenv and change into it.
 
-        Activating for actual use will be your task.
+    Activating for actual use will be your task.
     """
 
     print("Creating virtualenv for quick test:")

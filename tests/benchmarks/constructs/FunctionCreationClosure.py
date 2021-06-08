@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -20,23 +20,25 @@
 
 module_var = None
 
-def calledRepeatedly():
-    # We measure making a local function that will remain unused.
-    closure_var = module_var
+def calledRepeatedly(x):
+    # Force a local frame for now
+    module_var
 
 # construct_begin
     def empty():
-        return closure_var
+        return x
 
 # construct_alternative
-    empty = 1
+    def empty():
+        return module_var
+
 # construct_end
 
-    return empty, closure_var
+    return empty, x
 
 
 import itertools
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
+    calledRepeatedly(x)
 
 print("OK.")

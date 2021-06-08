@@ -1,4 +1,4 @@
-{#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
 {#                                                                              #}
 {#     Python test originally created or extracted from other peoples work. The #}
 {#     parts from me are licensed as below. It is at least Free Software where  #}
@@ -23,10 +23,6 @@
 
 from __future__ import print_function
 
-# Condition value not seen through, TODO: Might want to variate it, so
-# we cover more cases.
-cond = 8
-
 # Function to hide type because it is not seen through
 def forgetType(value):
     return value
@@ -38,7 +34,7 @@ def forgetType(value):
 
 {% set operation_id = op_name + "_" + l_type + "_" + r_type %}
 
-def {{operation_id}}():
+def {{operation_id}}(cond):
     # First value, which we expect to be compile time computed.
     left = {{left_1}}
     right = {{right_1}}
@@ -75,7 +71,6 @@ def {{operation_id}}():
     else:
         print("{{operation_id}} runtime result:", x)
 
-
     # Now we forget one type, forcing run time error checking.
     left = forgetType({{left_1}})
     right = {{right_1}}
@@ -111,7 +106,8 @@ def {{operation_id}}():
     else:
         print("{{operation_id}} runtime result:", x)
 
-{{operation_id}}()
+{{operation_id}}(1)
+{{operation_id}}(0)
 
 {% endfor %}
 {% endfor %}

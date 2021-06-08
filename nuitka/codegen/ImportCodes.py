@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,6 +20,7 @@
 That is import as expression, and star import.
 """
 
+from nuitka.nodes.ImportNodes import hard_modules
 from nuitka.nodes.LocalsScopes import GlobalsDictHandle
 from nuitka.PythonVersions import python_version
 
@@ -132,8 +133,7 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
     ) as value_name:
-
-        emit("""%s = PyImport_ImportModule("%s");""" % (value_name, module_name))
+        emit("""%s = IMPORT_HARD_%s();""" % (value_name, module_name.upper()))
 
         getErrorExitCode(
             check_name=value_name, needs_check=needs_check, emit=emit, context=context
@@ -151,23 +151,21 @@ def generateImportModuleNameHardCode(to_name, expression, emit, context):
 
         if module_name == "sys":
             emit("""%s = PySys_GetObject((char *)"%s");""" % (value_name, import_name))
-        elif module_name in ("os", "__future__", "importlib._bootstrap"):
+        elif module_name in hard_modules:
             emitLineNumberUpdateCode(emit, context)
 
+            # TODO: The import name wouldn't have to be an object really, could do with a
+            # C string only.
             emit(
                 """\
 {
-    PyObject *hard_module = PyImport_ImportModule("%(module_name)s");
-    if (likely(hard_module != NULL)) {
-        %(to_name)s = PyObject_GetAttr(hard_module, %(import_name)s);
-    } else {
-        %(to_name)s = NULL;
-    }
+    PyObject *hard_module = IMPORT_HARD_%(module_name)s();
+    %(to_name)s = LOOKUP_ATTRIBUTE(hard_module, %(import_name)s);
 }
 """
                 % {
                     "to_name": value_name,
-                    "module_name": module_name,
+                    "module_name": module_name.upper(),
                     "import_name": context.getConstantCode(import_name),
                 }
             )
@@ -184,7 +182,7 @@ def generateImportStarCode(statement, emit, context):
 
     generateExpressionCode(
         to_name=module_name,
-        expression=statement.getSourceModule(),
+        expression=statement.subnode_module,
         emit=emit,
         context=context,
     )
@@ -231,7 +229,7 @@ def generateImportNameCode(to_name, expression, emit, context):
 
     generateExpressionCode(
         to_name=from_arg_name,
-        expression=expression.getModule(),
+        expression=expression.subnode_module,
         emit=emit,
         context=context,
     )
@@ -240,7 +238,7 @@ def generateImportNameCode(to_name, expression, emit, context):
         to_name, "imported_value", expression, emit, context
     ) as value_name:
 
-        if python_version >= 350:
+        if python_version >= 0x350:
             emit(
                 """\
 if (PyModule_Check(%(from_arg_name)s)) {

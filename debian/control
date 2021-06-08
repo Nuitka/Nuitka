@@ -18,6 +18,7 @@ Build-Depends: debhelper (>= 9),
                rst2pdf,
                base-files (>= 11) | python-pil | python-imaging,
                python3-pil | base-files (<< 11),
+               ccache,
                strace,
                chrpath,
                gdb | lldb
@@ -34,14 +35,15 @@ Depends: gcc (>= 5.0) | g++ (>= 4.4) | clang (>= 3.0),
          scons (>= 2.0.0),
          python3-appdirs | base-files (<< 7.2),
          python3-dev,
-         base-files (>= 11) | python-dev (>= 2.6.6-2),
+         ccache,
          ${misc:Depends},
          ${python:Depends},
          ${python3:Depends}
 Recommends: python3-lxml,
+            python3-tqdm,
             strace,
-            chrpath
-Suggests: ccache
+            chrpath,
+            libfuse2
 Description: Python compiler with full language support and CPython compatibility
  This Python compiler achieves full language compatibility and compiles Python
  code into compiled objects that are not second class at all. Instead they can

@@ -1,4 +1,4 @@
-#     Copyright 2020, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2021, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,23 +24,26 @@ from nuitka.utils.Utils import getOS
 
 
 class GeventPlugin(NuitkaPluginBase):
-    """ This class represents the main logic of the plugin.
-    """
+    """This class represents the main logic of the plugin."""
 
     plugin_name = "gevent"
     plugin_desc = "Required by the gevent package"
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    @classmethod
+    def isRelevant(cls):
+        """One time only check: may this plugin be required?
 
+        Returns:
+            True if this is a standalone compilation.
+        """
+        return Options.isStandaloneMode()
+
+    def onModuleEncounter(self, module_filename, module_name, module_kind):
         if module_name.hasNamespace("gevent"):
             return True, "everything from gevent"
 
-        return None
-
     def onModuleSourceCode(self, module_name, source_code):
-        """ Append a statement to gevent/_config.py.
-
-        """
+        """Append a statement to gevent/_config.py."""
         if module_name != "gevent._config":
             return source_code
         source_lines = source_code.splitlines()
@@ -49,14 +52,12 @@ class GeventPlugin(NuitkaPluginBase):
         return "\n".join(source_lines)
 
     def decideCompilation(self, module_name, source_ref):
-        if (
-            module_name == "gevent" or module_name.startswith("gevent.")
-        ) and getOS() == "Windows":
+        if module_name.hasNamespace("gevent") and getOS() == "Windows":
             return "bytecode"
 
 
 class GeventPluginDetector(NuitkaPluginBase):
-    """ Only used if plugin is NOT activated.
+    """Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
@@ -66,7 +67,7 @@ class GeventPluginDetector(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        """ One time only check: may this plugin be required?
+        """One time only check: may this plugin be required?
 
         Returns:
             True if this is a standalone compilation.
@@ -74,7 +75,7 @@ class GeventPluginDetector(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):
-        """ This method checks whether gevent is imported.
+        """This method checks whether gevent is imported.
 
         Notes:
             Issue a warning if package gevent is encountered.
@@ -83,6 +84,5 @@ class GeventPluginDetector(NuitkaPluginBase):
         Returns:
             None
         """
-        full_name = module.getFullName()
-        if full_name.startswith("gevent"):
+        if module.getFullName().hasNamespace("gevent"):
             self.warnUnusedPlugin("gevent support.")

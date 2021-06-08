@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,6 +25,9 @@ As such this is the place that knows how to take a condition and two code
 branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
+
+from nuitka.plugins.Plugins import Plugins
+from nuitka.utils.CStrings import encodePythonStringToC
 
 from . import Contexts
 from .AsyncgenCodes import (
@@ -75,18 +78,18 @@ from .ClassCodes import generateBuiltinSuperCode, generateSelectMetaclassCode
 from .CodeHelpers import setExpressionDispatchDict, setStatementDispatchDict
 from .ComparisonCodes import (
     generateBuiltinIsinstanceCode,
+    generateBuiltinIssubclassCode,
     generateComparisonExpressionCode,
+    generateTypeCheckCode,
 )
 from .ConditionalCodes import (
     generateConditionalAndOrCode,
     generateConditionalCode,
 )
 from .ConstantCodes import (
-    generateConstantEllipsisReferenceCode,
-    generateConstantFalseReferenceCode,
-    generateConstantNoneReferenceCode,
+    generateConstantGenericAliasCode,
     generateConstantReferenceCode,
-    generateConstantTrueReferenceCode,
+    getConstantsDefinitionCode,
 )
 from .CoroutineCodes import (
     generateAsyncIterCode,
@@ -132,6 +135,7 @@ from .FrameCodes import (
 from .FunctionCodes import (
     generateFunctionCallCode,
     generateFunctionCreationCode,
+    generateFunctionErrorStrCode,
     generateFunctionOutlineCode,
     getExportScopeCode,
     getFunctionCode,
@@ -182,7 +186,6 @@ from .ListCodes import (
     generateListOperationExtendCode,
     generateListOperationPopCode,
 )
-from .LoaderCodes import getMetapathLoaderBodyCode
 from .LocalsDictCodes import (
     generateLocalsDictDelCode,
     generateLocalsDictSetCode,
@@ -202,7 +205,6 @@ from .ModuleCodes import (
     generateModuleAttributeFileCode,
     generateNuitkaLoaderCreationCode,
     getModuleCode,
-    getModuleValues,
 )
 from .OperationCodes import (
     generateOperationBinaryCode,
@@ -220,7 +222,7 @@ from .ReturnCodes import (
     generateGeneratorReturnValueCode,
     generateReturnCode,
     generateReturnConstantCode,
-    generateReturnedValueRefCode,
+    generateReturnedValueCode,
 )
 from .SetCodes import (
     generateBuiltinFrozensetCode,
@@ -232,7 +234,9 @@ from .SetCodes import (
 )
 from .SliceCodes import (
     generateAssignmentSliceCode,
-    generateBuiltinSliceCode,
+    generateBuiltinSlice1Code,
+    generateBuiltinSlice2Code,
+    generateBuiltinSlice3Code,
     generateDelSliceCode,
     generateSliceLookupCode,
 )
@@ -361,8 +365,8 @@ def generateFunctionBodyCode(function_body, context):
             function_identifier=function_identifier,
             parameters=None,
             closure_variables=function_body.getClosureVariables(),
-            user_variables=function_body.getUserLocalVariables(),
-            outline_variables=function_body.getOutlineLocalVariables(),
+            user_variables=function_body.getUserLocalVariables()
+            + function_body.getOutlineLocalVariables(),
             temp_variables=function_body.getTempVariables(),
             function_doc=function_body.getDoc(),
             needs_exception_exit=needs_exception_exit,
@@ -377,15 +381,13 @@ def generateFunctionBodyCode(function_body, context):
         )
 
     else:
-        parameters = function_body.getParameters()
-
         function_code = getFunctionCode(
             context=function_context,
             function_identifier=function_identifier,
-            parameters=parameters,
+            parameters=function_body.getParameters(),
             closure_variables=function_body.getClosureVariables(),
-            user_variables=function_body.getUserLocalVariables(),
-            outline_variables=function_body.getOutlineLocalVariables(),
+            user_variables=function_body.getUserLocalVariables()
+            + function_body.getOutlineLocalVariables(),
             temp_variables=function_body.getTempVariables(),
             function_doc=function_body.getDoc(),
             needs_exception_exit=needs_exception_exit,
@@ -409,7 +411,7 @@ def generateFunctionBodyCode(function_body, context):
     return function_code, function_decl
 
 
-def prepareModuleCode(global_context, module, module_name):
+def generateModuleCode(module, data_filename):
     # As this not only creates all modules, but also functions, it deals
     # also with its functions.
 
@@ -417,10 +419,7 @@ def prepareModuleCode(global_context, module, module_name):
 
     context = Contexts.PythonModuleContext(
         module=module,
-        module_name=module_name,
-        code_name=module.getCodeName(),
-        filename=module.getFilename(),
-        global_context=global_context,
+        data_filename=data_filename,
     )
 
     context.setExceptionEscape("module_exception_exit")
@@ -429,8 +428,12 @@ def prepareModuleCode(global_context, module, module_name):
     function_body_codes = []
 
     for function_body in module.getUsedFunctions():
-        # Empty functions get no code.
-        if function_body.getBody() is None:
+        # Constant function returners get no code.
+        (
+            is_constant_returning,
+            _constant_return_value,
+        ) = function_body.getConstantReturnValue()
+        if is_constant_returning:
             continue
 
         function_code, function_decl = generateFunctionBodyCode(
@@ -460,38 +463,30 @@ def prepareModuleCode(global_context, module, module_name):
 
         function_decl_codes.append(function_decl)
 
-    template_values = getModuleValues(
-        module_name=module_name,
-        module_identifier=module.getCodeName(),
+    return getModuleCode(
+        module=module,
         function_decl_codes=function_decl_codes,
         function_body_codes=function_body_codes,
-        temp_variables=module.getTempVariables(),
-        outline_variables=module.getOutlineLocalVariables(),
-        is_main_module=module.isMainModule(),
-        is_internal_module=module.isInternalModule(),
-        is_package=module.isCompiledPythonPackage(),
-        is_top=module.isTopModule(),
+        module_const_blob_name=encodePythonStringToC(
+            Plugins.deriveModuleConstantsBlobName(data_filename)
+        ),
         context=context,
     )
 
-    return template_values, context
 
-
-def generateModuleCode(module_context, template_values):
-    return getModuleCode(module_context=module_context, template_values=template_values)
-
-
-def generateHelpersCode(other_modules):
+def generateHelpersCode():
     calls_decl_code = getCallsDecls()
 
-    loader_code = getMetapathLoaderBodyCode(other_modules)
     calls_body_code = getCallsCode()
 
-    return calls_decl_code, calls_body_code + loader_code
+    constants_header_code, constants_body_code = getConstantsDefinitionCode()
 
-
-def makeGlobalContext():
-    return Contexts.PythonGlobalContext()
+    return (
+        calls_decl_code,
+        calls_body_code,
+        constants_header_code,
+        constants_body_code,
+    )
 
 
 setExpressionDispatchDict(
@@ -499,7 +494,9 @@ setExpressionDispatchDict(
         "EXPRESSION_ATTRIBUTE_CHECK": generateAttributeCheckCode,
         "EXPRESSION_ATTRIBUTE_LOOKUP": generateAttributeLookupCode,
         "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL": generateAttributeLookupSpecialCode,
-        "EXPRESSION_BUILTIN_SLICE": generateBuiltinSliceCode,
+        "EXPRESSION_BUILTIN_SLICE3": generateBuiltinSlice3Code,
+        "EXPRESSION_BUILTIN_SLICE2": generateBuiltinSlice2Code,
+        "EXPRESSION_BUILTIN_SLICE1": generateBuiltinSlice1Code,
         "EXPRESSION_BUILTIN_HASH": generateBuiltinHashCode,
         "EXPRESSION_BUILTIN_ID": generateBuiltinIdCode,
         "EXPRESSION_BUILTIN_COMPILE": generateBuiltinCompileCode,
@@ -527,10 +524,11 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_COMPLEX1": generateBuiltinComplex1Code,
         "EXPRESSION_BUILTIN_COMPLEX2": generateBuiltinComplex2Code,
         "EXPRESSION_BUILTIN_LEN": generateBuiltinLenCode,
-        "EXPRESSION_BUILTIN_STR": generateBuiltinStrCode,
+        "EXPRESSION_BUILTIN_STR_P2": generateBuiltinStrCode,
+        "EXPRESSION_BUILTIN_STR_P3": generateBuiltinStrCode,
         "EXPRESSION_BUILTIN_BYTES1": generateBuiltinBytes1Code,
         "EXPRESSION_BUILTIN_BYTES3": generateBuiltinBytes3Code,
-        "EXPRESSION_BUILTIN_UNICODE": generateBuiltinUnicodeCode,
+        "EXPRESSION_BUILTIN_UNICODE_P2": generateBuiltinUnicodeCode,
         "EXPRESSION_BUILTIN_CHR": generateBuiltinChrCode,
         "EXPRESSION_BUILTIN_ORD": generateBuiltinOrdCode,
         "EXPRESSION_BUILTIN_BIN": generateBuiltinBinCode,
@@ -547,8 +545,11 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_LOCALS_UPDATED": generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_REF": generateBuiltinLocalsRefCode,
         "EXPRESSION_BUILTIN_GLOBALS": generateBuiltinGlobalsCode,
-        "EXPRESSION_BUILTIN_SUPER": generateBuiltinSuperCode,
+        "EXPRESSION_BUILTIN_SUPER0": generateBuiltinSuperCode,
+        "EXPRESSION_BUILTIN_SUPER2": generateBuiltinSuperCode,
         "EXPRESSION_BUILTIN_ISINSTANCE": generateBuiltinIsinstanceCode,
+        "EXPRESSION_BUILTIN_ISSUBCLASS": generateBuiltinIssubclassCode,
+        "EXPRESSION_TYPE_CHECK": generateTypeCheckCode,
         "EXPRESSION_BUILTIN_DIR1": generateBuiltinDir1Code,
         "EXPRESSION_BUILTIN_VARS": generateBuiltinVarsCode,
         "EXPRESSION_BUILTIN_HASATTR": generateBuiltinHasattrCode,
@@ -566,6 +567,7 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION": generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR": generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_REF": generateBuiltinRefCode,
+        "EXPRESSION_BUILTIN_WITH_CONTEXT_REF": generateBuiltinRefCode,
         "EXPRESSION_BUILTIN_EXCEPTION_REF": generateExceptionRefCode,
         "EXPRESSION_BUILTIN_ANONYMOUS_REF": generateBuiltinAnonymousRefCode,
         "EXPRESSION_CAUGHT_EXCEPTION_TYPE_REF": generateExceptionCaughtTypeCode,
@@ -575,21 +577,25 @@ setExpressionDispatchDict(
         "EXPRESSION_CALL_KEYWORDS_ONLY": generateCallCode,
         "EXPRESSION_CALL_NO_KEYWORDS": generateCallCode,
         "EXPRESSION_CALL": generateCallCode,
-        "EXPRESSION_CONSTANT_NONE_REF": generateConstantNoneReferenceCode,
-        "EXPRESSION_CONSTANT_TRUE_REF": generateConstantTrueReferenceCode,
-        "EXPRESSION_CONSTANT_FALSE_REF": generateConstantFalseReferenceCode,
+        "EXPRESSION_CONSTANT_NONE_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TRUE_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_FALSE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_STR_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_STR_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_UNICODE_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_UNICODE_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_BYTES_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_BYTES_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_INT_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_LONG_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_FLOAT_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_COMPLEX_REF": generateConstantReferenceCode,
-        "EXPRESSION_CONSTANT_ELLIPSIS_REF": generateConstantEllipsisReferenceCode,
+        "EXPRESSION_CONSTANT_ELLIPSIS_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_DICT_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_DICT_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TUPLE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TUPLE_EMPTY_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TUPLE_MUTABLE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_LIST_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_LIST_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SET_REF": generateConstantReferenceCode,
@@ -599,7 +605,9 @@ setExpressionDispatchDict(
         "EXPRESSION_CONSTANT_SLICE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_XRANGE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_SUBSCRIPTABLE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_BYTEARRAY_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_GENERIC_ALIAS": generateConstantGenericAliasCode,
         "EXPRESSION_CONDITIONAL": generateConditionalCode,
         "EXPRESSION_CONDITIONAL_OR": generateConditionalAndOrCode,
         "EXPRESSION_CONDITIONAL_AND": generateConditionalAndOrCode,
@@ -621,10 +629,12 @@ setExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_NOT_IN": generateDictOperationInCode,
         "EXPRESSION_FUNCTION_CREATION": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
+        "EXPRESSION_FUNCTION_ERROR_STR": generateFunctionErrorStrCode,
         "EXPRESSION_IMPORT_MODULE_HARD": generateImportModuleHardCode,
         "EXPRESSION_IMPORT_MODULE_NAME_HARD": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORT_NAME": generateImportNameCode,
         "EXPRESSION_LIST_OPERATION_EXTEND": generateListOperationExtendCode,
+        "EXPRESSION_LIST_OPERATION_EXTEND_FOR_UNPACK": generateListOperationExtendCode,
         "EXPRESSION_LIST_OPERATION_POP": generateListOperationPopCode,
         "EXPRESSION_MODULE_ATTRIBUTE_FILE_REF": generateModuleAttributeFileCode,
         "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF": generateModuleAttributeCode,
@@ -668,14 +678,16 @@ setExpressionDispatchDict(
         "EXPRESSION_OPERATION_INPLACE_BIT_AND": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_INPLACE_BIT_XOR": generateOperationBinaryCode,
         "EXPRESSION_OPERATION_INPLACE_MAT_MULT": generateOperationBinaryCode,
-        "EXPRESSION_OPERATION_UNARY": generateOperationUnaryCode,
+        "EXPRESSION_OPERATION_UNARY_REPR": generateOperationUnaryCode,
+        "EXPRESSION_OPERATION_UNARY_SUB": generateOperationUnaryCode,
+        "EXPRESSION_OPERATION_UNARY_ADD": generateOperationUnaryCode,
+        "EXPRESSION_OPERATION_UNARY_INVERT": generateOperationUnaryCode,
+        "EXPRESSION_OPERATION_UNARY_ABS": generateBuiltinAbsCode,
         "EXPRESSION_OPERATION_NOT": generateOperationNotCode,
-        "EXPRESSION_OPERATION_ABS": generateBuiltinAbsCode,
         "EXPRESSION_OUTLINE_BODY": generateFunctionOutlineCode,
         "EXPRESSION_OUTLINE_FUNCTION": generateFunctionOutlineCode,
         # TODO: Rename to make more clear it is an outline
         "EXPRESSION_CLASS_BODY": generateFunctionOutlineCode,
-        "EXPRESSION_RETURNED_VALUE_REF": generateReturnedValueRefCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP": generateSubscriptLookupCode,
         "EXPRESSION_SLICE_LOOKUP": generateSliceLookupCode,
         "EXPRESSION_SET_OPERATION_UPDATE": generateSetOperationUpdateCode,
@@ -683,6 +695,7 @@ setExpressionDispatchDict(
         "EXPRESSION_SPECIAL_UNPACK": generateSpecialUnpackCode,
         "EXPRESSION_TEMP_VARIABLE_REF": generateVariableReferenceCode,
         "EXPRESSION_VARIABLE_REF": generateVariableReferenceCode,
+        "EXPRESSION_VARIABLE_OR_BUILTIN_REF": generateVariableReferenceCode,
         "EXPRESSION_YIELD": generateYieldCode,
         "EXPRESSION_YIELD_FROM": generateYieldFromCode,
         "EXPRESSION_YIELD_FROM_WAITABLE": generateYieldFromWaitableCode,
@@ -722,6 +735,7 @@ setStatementDispatchDict(
         "STATEMENT_RETURN_FALSE": generateReturnConstantCode,
         "STATEMENT_RETURN_NONE": generateReturnConstantCode,
         "STATEMENT_RETURN_CONSTANT": generateReturnConstantCode,
+        "STATEMENT_RETURN_RETURNED_VALUE": generateReturnedValueCode,
         "STATEMENT_GENERATOR_RETURN": generateGeneratorReturnValueCode,
         "STATEMENT_GENERATOR_RETURN_NONE": generateGeneratorReturnNoneCode,
         "STATEMENT_CONDITIONAL": generateBranchCode,

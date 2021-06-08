@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,7 +21,6 @@
 
 import os
 import re
-import sys
 
 from nuitka import Options
 from nuitka.__past__ import StringIO
@@ -82,19 +81,19 @@ class NuitkaPluginPmw(NuitkaPluginBase):
     @classmethod
     def addPluginCommandLineOptions(cls, group):
         group.add_option(
-            "--exclude-pmw-blt",
-            action="store_false",
+            "--include-pmw-blt",
+            action="store_true",
             dest="need_blt",
-            default=True,
+            default=False,
             help="""\
 Should 'Pmw.Blt' not be included, Default is to include it.""",
         )
 
         group.add_option(
-            "--exclude-pmw-color",
-            action="store_false",
+            "--include-pmw-color",
+            action="store_true",
             dest="need_color",
-            default=True,
+            default=False,
             help="""\
 Should 'Pmw.Color' not be included, Default is to include it.""",
         )
@@ -108,7 +107,10 @@ Should 'Pmw.Color' not be included, Default is to include it.""",
         return source_code
 
     def _packagePmw(self, pmw_path):
-        # From the "__init__.py" of Pwm:
+        self.info("Packaging Pmw into single module fpor freezing.")
+
+        # Algorithm is from the "__init__.py" of Pwm:
+
         def _hasLoader(dirname):
             # Only accept Pmw_V_R_P with single digits, since ordering will
             # not work correctly with multiple digits (for example, Pmw_10_0
@@ -130,10 +132,16 @@ Should 'Pmw.Color' not be included, Default is to include it.""",
         candidates.reverse()
 
         if not candidates:
-            sys.exit("Error, cannot find any Pmw versions.")
+            self.sysexit("Error, cannot find any Pmw versions.")
+
+        self.info(
+            "Found the following Pmw version candidates %s." % ",".join(candidates)
+        )
 
         candidate = os.path.join(pmw_path, candidates[0], "lib")
         version = candidates[0][4:].replace("_", ".")
+
+        self.info("Picked version %s." % version)
 
         return self._packagePmw2(candidate, version)
 
@@ -151,24 +159,24 @@ Should 'Pmw.Color' not be included, Default is to include it.""",
             return text
 
         # Code to import the Color module.
-        colorCode = """
+        color_code = """
 from . import PmwColor
 Color = PmwColor
 del PmwColor
 """
         # Code to import the Blt module.
-        bltCode = """
+        blt_code = """
 from . import PmwBlt
 Blt = PmwBlt
 del PmwBlt
 """
         # Code used when not linking with PmwBlt.py.
-        ignoreBltCode = """
+        ignore_blt_code = """
 _bltImported = 1
 _bltbusyOK = 0
 """
         # Code to define the functions normally supplied by the dynamic loader.
-        extraCode = """
+        extra_code = """
 
 ### Loader functions:
 
@@ -199,12 +207,12 @@ def installedversions(alpha = 0):
         outfile = StringIO()
 
         if self.need_color:
-            outfile.write(colorCode)
+            outfile.write(color_code)
 
         if self.need_blt:
-            outfile.write(bltCode)
+            outfile.write(blt_code)
 
-        outfile.write(extraCode % version)
+        outfile.write(extra_code % version)
 
         # Specially handle PmwBase.py filename:
         text = mungeFile("Base")
@@ -212,8 +220,9 @@ def installedversions(alpha = 0):
         text = re.sub("import PmwLogicalFont", "", text)
         text = re.sub("PmwLogicalFont._font_initialise", "_font_initialise", text)
         outfile.write(text)
+
         if not self.need_blt:
-            outfile.write(ignoreBltCode)
+            outfile.write(ignore_blt_code)
 
         files.append("LogicalFont")
 

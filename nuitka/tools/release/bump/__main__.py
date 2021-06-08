@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -125,5 +125,5 @@ The mode of update, prerelease, hotfix, release, auto (default auto determines f
 
             options_file.write(line)
 
-    # Debian is currently not in freeze, change to "experimental" once that changes.
-    updateDebianChangelog(old_version, new_version, "unstable")
+    # Debian is currently in freeze, change to "unstable" once that changes.
+    updateDebianChangelog(old_version, new_version, "experimental")

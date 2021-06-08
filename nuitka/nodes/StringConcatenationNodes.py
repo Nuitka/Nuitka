@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,7 +31,6 @@ class ExpressionStringConcatenation(ExpressionChildHavingBase):
     kind = "EXPRESSION_STRING_CONCATENATION"
 
     named_child = "values"
-    getValues = ExpressionChildHavingBase.childGetter("values")
 
     def __init__(self, values, source_ref):
         assert values
@@ -40,12 +39,13 @@ class ExpressionStringConcatenation(ExpressionChildHavingBase):
             self, value=tuple(values), source_ref=source_ref
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str_or_unicode
 
     def computeExpression(self, trace_collection):
         # TODO: Could remove itself if only one argument or merge arguments
-        # of mergable types.
+        # of mergeable types.
         streaks = []
 
         start = None
@@ -78,6 +78,7 @@ class ExpressionStringConcatenation(ExpressionChildHavingBase):
                         for value in values[streak[0] : streak[1]]
                     ),
                     source_ref=values[streak[0]].source_ref,
+                    user_provided=True,
                 )
 
                 values[streak[0] : streak[1]] = (new_element,)

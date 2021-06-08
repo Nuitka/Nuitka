@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -48,16 +48,24 @@ special attribute lookups for "__enter__" and "__exit__", calls of them,
 catching and passing in exceptions raised.
 
 """
-
 import os
 import sys
-from logging import info, warning
 
-from nuitka import Options, OutputDirectories, SourceCodeReferences
+from nuitka import (
+    ModuleRegistry,
+    Options,
+    OutputDirectories,
+    SourceCodeReferences,
+)
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     long,
     unicode,
 )
+from nuitka.Caching import (
+    getCachedImportedModulesNames,
+    hasCachedImportedModulesNames,
+)
+from nuitka.containers.oset import OrderedSet
 from nuitka.freezer.Standalone import detectEarlyImports
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
@@ -71,7 +79,8 @@ from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinAscii,
     ExpressionBuiltinFormat,
 )
-from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStr
+from nuitka.nodes.BuiltinRefNodes import quick_names
+from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStrP3
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     makeStatementConditional,
@@ -87,6 +96,7 @@ from nuitka.nodes.ExceptionNodes import (
     StatementReraiseException,
 )
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
+from nuitka.nodes.ImportNodes import makeExpressionAbsoluteImportNode
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleAttributeNodes import (
     ExpressionModuleAttributeFileRef,
@@ -97,23 +107,26 @@ from nuitka.nodes.ModuleNodes import (
     CompiledPythonPackage,
     PythonMainModule,
     PythonShlibModule,
+    UncompiledPythonModule,
 )
-from nuitka.nodes.OperatorNodes import (
-    ExpressionOperationUnary,
-    makeBinaryOperationNode,
-)
-from nuitka.nodes.ReturnNodes import (
-    StatementReturn,
-    StatementReturnNone,
-    makeStatementReturnConstant,
-)
+from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
+from nuitka.nodes.OperatorNodesUnary import makeExpressionOperationUnary
+from nuitka.nodes.ReturnNodes import makeStatementReturn
+from nuitka.nodes.SliceNodes import makeExpressionBuiltinSlice
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
 from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
 from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
+from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import (
+    memory_logger,
+    optimization_logger,
+    plugins_logger,
+    unusual_logger,
+)
 from nuitka.utils import MemoryUsage
 from nuitka.utils.FileOperations import splitPath
 from nuitka.utils.ModuleNames import ModuleName
@@ -162,7 +175,11 @@ from .ReformulationNamespacePackages import (
     createPathAssignment,
 )
 from .ReformulationPrintStatements import buildPrintNode
-from .ReformulationSequenceCreation import buildSequenceCreationNode
+from .ReformulationSequenceCreation import (
+    buildListCreationNode,
+    buildSetCreationNode,
+    buildTupleCreationNode,
+)
 from .ReformulationSubscriptExpressions import buildSubscriptNode
 from .ReformulationTryExceptStatements import buildTryExceptionNode
 from .ReformulationTryFinallyStatements import buildTryFinallyNode
@@ -180,7 +197,6 @@ from .TreeHelpers import (
     extractDocFromBody,
     getBuildContext,
     getKind,
-    makeAbsoluteImportNode,
     makeModuleFrame,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
@@ -191,13 +207,30 @@ from .TreeHelpers import (
 )
 from .VariableClosure import completeVariableClosures
 
+if str is not bytes:
 
-def buildVariableReferenceNode(provider, node, source_ref):
-    return ExpressionVariableNameRef(
-        provider=provider,
-        variable_name=mangleName(node.id, provider),
-        source_ref=source_ref,
-    )
+    def buildVariableReferenceNode(provider, node, source_ref):
+        # Shortcut for Python3, which gives syntax errors for assigning these.
+        if node.id in quick_names:
+            return makeConstantRefNode(
+                constant=quick_names[node.id], source_ref=source_ref
+            )
+
+        return ExpressionVariableNameRef(
+            provider=provider,
+            variable_name=mangleName(node.id, provider),
+            source_ref=source_ref,
+        )
+
+
+else:
+
+    def buildVariableReferenceNode(provider, node, source_ref):
+        return ExpressionVariableNameRef(
+            provider=provider,
+            variable_name=mangleName(node.id, provider),
+            source_ref=source_ref,
+        )
 
 
 # Python3.4 or higher, True and False, are not given as variables anymore.
@@ -277,7 +310,7 @@ def buildRaiseNode(provider, node, source_ref):
     # Raise statements. Under Python2 they may have type, value and traceback
     # attached, for Python3, you can only give type (actually value) and cause.
 
-    if python_version < 300:
+    if python_version < 0x300:
         exception_type = buildNode(provider, node.type, source_ref, allow_none=True)
         exception_value = buildNode(provider, node.inst, source_ref, allow_none=True)
         exception_trace = buildNode(provider, node.tback, source_ref, allow_none=True)
@@ -328,9 +361,9 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
     # On the module level, there is nothing to do.
     if provider.isCompiledPythonModule():
         if shallWarnUnusualCode():
-            warning(
-                "%s: Using 'global' statement on module level has no effect.",
-                source_ref.getAsString(),
+            unusual_logger.warning(
+                "%s: Using 'global' statement on module level has no effect."
+                % source_ref.getAsString(),
             )
 
         return None
@@ -344,7 +377,10 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
             if variable_name in parameters.getParameterNames():
                 SyntaxErrors.raiseSyntaxError(
                     "name '%s' is %s and global"
-                    % (variable_name, "local" if python_version < 300 else "parameter"),
+                    % (
+                        variable_name,
+                        "local" if python_version < 0x300 else "parameter",
+                    ),
                     source_ref.atColumnNumber(node.col_offset),
                 )
 
@@ -376,13 +412,13 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
         assert closure_variable.isModuleVariable()
 
         if (
-            python_version < 340
+            python_version < 0x340
             and provider.isExpressionClassBody()
             and closure_variable.getName() == "__class__"
         ):
             SyntaxErrors.raiseSyntaxError("cannot make __class__ global", source_ref)
 
-        provider.registerProvidedVariable(variable=closure_variable)
+        provider.getLocalsScope().registerClosureVariable(variable=closure_variable)
 
     # Drop this, not really part of our tree.
     return None
@@ -445,7 +481,7 @@ def buildBytesNode(node, source_ref):
 
 
 def buildEllipsisNode(source_ref):
-    return ExpressionConstantEllipsisRef(source_ref=source_ref, user_provided=True)
+    return ExpressionConstantEllipsisRef(source_ref=source_ref)
 
 
 def buildStatementLoopContinue(node, source_ref):
@@ -453,7 +489,7 @@ def buildStatementLoopContinue(node, source_ref):
 
     # Python forbids this, although technically it's probably not much of
     # an issue.
-    if getBuildContext() == "finally" and python_version < 380:
+    if getBuildContext() == "finally" and python_version < 0x380:
         SyntaxErrors.raiseSyntaxError(
             "'continue' not supported inside 'finally' clause", source_ref
         )
@@ -471,7 +507,7 @@ def buildStatementLoopBreak(provider, node, source_ref):
 def buildAttributeNode(provider, node, source_ref):
     return ExpressionAttributeLookup(
         expression=buildNode(provider, node.value, source_ref),
-        attribute_name=node.attr,
+        attribute_name=mangleName(node.attr, provider),
         source_ref=source_ref,
     )
 
@@ -485,7 +521,7 @@ def buildReturnNode(provider, node, source_ref):
     expression = buildNode(provider, node.value, source_ref, allow_none=True)
 
     if provider.isExpressionGeneratorObjectBody():
-        if expression is not None and python_version < 300:
+        if expression is not None and python_version < 0x300:
             SyntaxErrors.raiseSyntaxError(
                 "'return' with argument inside generator",
                 source_ref.atColumnNumber(node.col_offset),
@@ -503,20 +539,11 @@ def buildReturnNode(provider, node, source_ref):
         or provider.isExpressionAsyncgenObjectBody()
     ):
         if expression is None:
-            expression = ExpressionConstantNoneRef(
-                source_ref=source_ref, user_provided=True
-            )
+            expression = ExpressionConstantNoneRef(source_ref=source_ref)
 
         return StatementGeneratorReturn(expression=expression, source_ref=source_ref)
     else:
-        if expression is None:
-            return StatementReturnNone(source_ref=source_ref)
-        elif expression.isExpressionConstantRef():
-            return makeStatementReturnConstant(
-                constant=expression.getCompileTimeConstant(), source_ref=source_ref
-            )
-        else:
-            return StatementReturn(expression=expression, source_ref=source_ref)
+        return makeStatementReturn(expression=expression, source_ref=source_ref)
 
 
 def buildExprOnlyNode(provider, node, source_ref):
@@ -525,21 +552,24 @@ def buildExprOnlyNode(provider, node, source_ref):
     )
 
     result.setCompatibleSourceReference(
-        result.getExpression().getCompatibleSourceReference()
+        result.subnode_expression.getCompatibleSourceReference()
     )
 
     return result
 
 
 def buildUnaryOpNode(provider, node, source_ref):
-    if getKind(node.op) == "Not":
+    operator = getKind(node.op)
+
+    # Delegate this one to boolean operation code.
+    if operator == "Not":
         return buildBoolOpNode(provider=provider, node=node, source_ref=source_ref)
-    else:
-        return ExpressionOperationUnary(
-            operator=getKind(node.op),
-            operand=buildNode(provider, node.operand, source_ref),
-            source_ref=source_ref,
-        )
+
+    operand = buildNode(provider, node.operand, source_ref)
+
+    return makeExpressionOperationUnary(
+        operator=operator, operand=operand, source_ref=source_ref
+    )
 
 
 def buildBinaryOpNode(provider, node, source_ref):
@@ -561,7 +591,7 @@ def buildBinaryOpNode(provider, node, source_ref):
 
 
 def buildReprNode(provider, node, source_ref):
-    return ExpressionOperationUnary(
+    return makeExpressionOperationUnary(
         operator="Repr",
         operand=buildNode(provider, node.value, source_ref),
         source_ref=source_ref,
@@ -595,11 +625,14 @@ def buildFormattedValueNode(provider, node, source_ref):
     if conversion == 0:
         pass
     elif conversion == 3:
-        value = ExpressionBuiltinStr(
+        # TODO: We might start using this for Python2 too.
+        assert str is not bytes
+
+        value = ExpressionBuiltinStrP3(
             value=value, encoding=None, errors=None, source_ref=source_ref
         )
     elif conversion == 2:
-        value = ExpressionOperationUnary(
+        value = makeExpressionOperationUnary(
             operator="Repr", operand=value, source_ref=source_ref
         )
     elif conversion == 1:
@@ -624,6 +657,16 @@ def buildJoinedStrNode(provider, node, source_ref):
         return makeConstantRefNode(constant="", source_ref=source_ref)
 
 
+def buildSliceNode(provider, node, source_ref):
+    """Python3.9 or higher, slice notations."""
+    return makeExpressionBuiltinSlice(
+        start=buildNode(provider, node.lower, source_ref, allow_none=True),
+        stop=buildNode(provider, node.upper, source_ref, allow_none=True),
+        step=buildNode(provider, node.step, source_ref, allow_none=True),
+        source_ref=source_ref,
+    )
+
+
 setBuildingDispatchers(
     path_args3={
         "Name": buildVariableReferenceNode,
@@ -641,9 +684,9 @@ setBuildingDispatchers(
         "DictComp": buildDictContractionNode,
         "SetComp": buildSetContractionNode,
         "Dict": buildDictionaryNode,
-        "Set": buildSequenceCreationNode,
-        "Tuple": buildSequenceCreationNode,
-        "List": buildSequenceCreationNode,
+        "Set": buildSetCreationNode,
+        "Tuple": buildTupleCreationNode,
+        "List": buildListCreationNode,
         "Global": handleGlobalDeclarationNode,
         "Nonlocal": handleNonlocalDeclarationNode,
         "TryExcept": buildTryExceptionNode,
@@ -678,6 +721,7 @@ setBuildingDispatchers(
         "JoinedStr": buildJoinedStrNode,
         "FormattedValue": buildFormattedValueNode,
         "NamedExpr": buildNamedExprNode,
+        "Slice": buildSliceNode,
     },
     path_args2={
         "Constant": buildNamedConstantNode,  # Python3.8
@@ -697,7 +741,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
     pushFutureSpec()
     if is_module:
-        provider.future_spec = getFutureSpec()
+        provider.setFutureSpec(getFutureSpec())
 
     body = parseSourceCodeToAst(
         source_code=source_code,
@@ -707,11 +751,13 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
     body, doc = extractDocFromBody(body)
 
-    if is_module and is_main and python_version >= 360:
+    if is_module and is_main and python_version >= 0x360:
         provider.markAsNeedsAnnotationsDictionary()
 
     result = buildStatementsNode(provider=provider, nodes=body, source_ref=source_ref)
 
+    # After building, we can verify that all future statements were where they
+    # belong, namely at the start of the module.
     checkFutureImportsOnlyAtStart(body)
 
     internal_source_ref = source_ref.atInternal()
@@ -721,11 +767,11 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     if is_module:
         # Add import of "site" module of main programs visibly in the node tree,
         # so recursion and optimization can pick it up, checking its effects.
-        if is_main and "no_site" not in Options.getPythonFlags():
+        if is_main and not Options.hasPythonFlagNoSite():
             for path_imported_name in getPthImportedPackages():
                 statements.append(
                     StatementExpressionOnly(
-                        expression=makeAbsoluteImportNode(
+                        expression=makeExpressionAbsoluteImportNode(
                             module_name=path_imported_name, source_ref=source_ref
                         ),
                         source_ref=source_ref,
@@ -734,7 +780,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
             statements.append(
                 StatementExpressionOnly(
-                    expression=makeAbsoluteImportNode(
+                    expression=makeExpressionAbsoluteImportNode(
                         module_name="site", source_ref=source_ref
                     ),
                     source_ref=source_ref,
@@ -771,7 +817,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                 createImporterCacheAssignment(provider, internal_source_ref)
             )
 
-        if python_version >= 340 and not is_main:
+        if python_version >= 0x340 and not is_main:
             statements += (
                 StatementAssignmentAttribute(
                     expression=ExpressionModuleAttributeSpecRef(
@@ -813,19 +859,19 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                     )
                 )
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         statements.append(
             StatementAssignmentVariableName(
                 provider=provider,
                 variable_name="__cached__",
-                source=ExpressionConstantNoneRef(
-                    source_ref=internal_source_ref, user_provided=True
-                ),
+                source=ExpressionConstantNoneRef(source_ref=internal_source_ref),
                 source_ref=internal_source_ref,
             )
         )
 
-    needs__initializing__ = not provider.isMainModule() and 300 <= python_version < 340
+    needs__initializing__ = (
+        not provider.isMainModule() and 0x300 <= python_version < 0x340
+    )
 
     if needs__initializing__:
         # Set "__initializing__" at the beginning to True
@@ -855,7 +901,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
     # Now the module body if there is any at all.
     if result is not None:
-        statements.extend(result.getStatements())
+        statements.extend(result.subnode_statements)
 
     if needs__initializing__:
         # Set "__initializing__" at the end to False
@@ -886,7 +932,7 @@ def decideCompilationMode(is_top, module_name, source_ref):
     result = Plugins.decideCompilation(module_name, source_ref)
 
     if result == "bytecode" and is_top:
-        warning(
+        plugins_logger.warning(
             """\
 Ignoring plugin decision to compile top level package '%s'
 as bytecode, the extension module entry point is technically
@@ -899,7 +945,8 @@ required to compiled."""
 
 
 def decideModuleTree(filename, package, is_shlib, is_top, is_main):
-    # Many variables, branches, due to the many cases, pylint: disable=too-many-branches
+    # Many variables, branches, due to the many cases
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     assert package is None or type(package) is ModuleName
     assert filename is not None
@@ -946,21 +993,79 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
 
         if is_shlib:
             result = PythonShlibModule(module_name=module_name, source_ref=source_ref)
-        elif is_main:
-            result = PythonMainModule(
-                main_added=main_added,
-                mode=decideCompilationMode(False, module_name, source_ref),
-                future_spec=None,
-                source_ref=source_ref,
-            )
+            source_code = None
         else:
-            result = CompiledPythonModule(
-                module_name=module_name,
-                is_top=is_top,
-                mode=decideCompilationMode(is_top, module_name, source_ref),
-                future_spec=None,
-                source_ref=source_ref,
+            source_code = readSourceCodeFromFilename(
+                module_name=module_name, source_filename=source_filename
             )
+
+            if is_main:
+                result = PythonMainModule(
+                    main_added=main_added,
+                    mode=decideCompilationMode(False, module_name, source_ref),
+                    future_spec=None,
+                    source_ref=source_ref,
+                )
+
+                checkPythonVersionFromCode(source_code)
+            else:
+                mode = decideCompilationMode(is_top, module_name, source_ref)
+
+                if (
+                    mode == "bytecode"
+                    and not is_top
+                    and hasCachedImportedModulesNames(module_name, source_code)
+                ):
+
+                    optimization_logger.info(
+                        "%r is included as bytecode." % (module_name.asString())
+                    )
+                    result = UncompiledPythonModule(
+                        module_name=module_name,
+                        filename=filename,
+                        bytecode=demoteSourceCodeToBytecode(
+                            module_name=module_name,
+                            source_code=source_code,
+                            filename=filename,
+                        ),
+                        source_ref=source_ref,
+                        user_provided=False,
+                        technical=False,
+                    )
+
+                    used_modules = OrderedSet()
+
+                    for used_module_name in getCachedImportedModulesNames(
+                        module_name=module_name, source_code=source_code
+                    ):
+                        (
+                            _module_package,
+                            module_filename,
+                            _finding,
+                        ) = Importing.findModule(
+                            importing=result,
+                            module_name=used_module_name,
+                            parent_package=None,
+                            level=-1,
+                            warn=False,
+                        )
+
+                        used_modules.add(
+                            (used_module_name, os.path.relpath(module_filename))
+                        )
+
+                    result.setUsedModules(used_modules)
+
+                    # Not used anymore
+                    source_code = None
+                else:
+                    result = CompiledPythonModule(
+                        module_name=module_name,
+                        is_top=is_top,
+                        mode=mode,
+                        future_spec=None,
+                        source_ref=source_ref,
+                    )
 
     elif Importing.isPackageDir(filename):
         if is_top:
@@ -977,6 +1082,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 module_name=module_name, is_top=is_top, module_relpath=filename
             )
             source_filename = None
+            source_code = None
         else:
             source_ref = SourceCodeReferences.fromFilename(
                 filename=os.path.abspath(source_filename)
@@ -989,22 +1095,26 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 future_spec=None,
                 source_ref=source_ref,
             )
+
+            source_code = readSourceCodeFromFilename(
+                module_name=module_name, source_filename=source_filename
+            )
     else:
         sys.stderr.write(
             "%s: can't open file '%s'.\n" % (os.path.basename(sys.argv[0]), filename)
         )
         sys.exit(2)
 
-    return result, source_ref, source_filename
+    return result, source_ref, source_code
 
 
 class CodeTooComplexCode(Exception):
-    """ The code of the module is too complex.
+    """The code of the module is too complex.
 
-        It cannot be compiled, with recursive code, and therefore the bytecode
-        should be used instead.
+    It cannot be compiled, with recursive code, and therefore the bytecode
+    should be used instead.
 
-        Example of this is "idnadata".
+    Example of this is "idnadata".
     """
 
 
@@ -1031,21 +1141,21 @@ def createModuleTree(module, source_ref, source_code, is_main):
     if module_body.isStatementsFrame():
         module_body = makeStatementsSequenceFromStatement(statement=module_body)
 
-    module.setBody(module_body)
+    module.setChild("body", module_body)
 
     completeVariableClosures(module)
 
     if Options.isShowMemory():
         memory_watch.finish()
 
-        info(
+        memory_logger.info(
             "Memory usage changed loading module '%s': %s"
             % (module.getFullName(), memory_watch.asStr())
         )
 
 
 def buildModuleTree(filename, package, is_top, is_main):
-    module, source_ref, source_filename = decideModuleTree(
+    module, source_ref, source_code = decideModuleTree(
         filename=filename,
         package=package,
         is_top=is_top,
@@ -1054,23 +1164,18 @@ def buildModuleTree(filename, package, is_top, is_main):
     )
 
     if is_top:
+        ModuleRegistry.addRootModule(module)
+
         OutputDirectories.setMainModule(module)
 
         # Detect to be frozen modules if any, so we can consider to not recurse
         # to them.
         if Options.isStandaloneMode():
-            detectEarlyImports()
+            module.setEarlyModules(detectEarlyImports())
 
     # If there is source code associated (not the case for namespace packages of
-    # Python3.3 or higher, then read it.
-    if source_filename is not None:
-        source_code = readSourceCodeFromFilename(
-            module_name=module.getFullName(), source_filename=source_filename
-        )
-
-        if is_main:
-            checkPythonVersionFromCode(source_code)
-
+    # Python3), then read it.
+    if source_code is not None:
         # Read source code.
         createModuleTree(
             module=module,
@@ -1079,7 +1184,10 @@ def buildModuleTree(filename, package, is_top, is_main):
             is_main=is_main,
         )
 
-    if not module.isMainModule():
+    # Main modules do not get added to the import cache, but plugins get to see it.
+    if module.isMainModule():
+        Plugins.onModuleDiscovered(module)
+    else:
         addImportedModule(imported_module=module)
 
     return module

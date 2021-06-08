@@ -1,4 +1,4 @@
-#     Copyright 2020, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2021, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,54 +18,37 @@
 """ Details see below in class definition.
 """
 
-from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
 class EventletPlugin(NuitkaPluginBase):
-    """ This class represents the main logic of the plugin.
-    """
+    """This class represents the main logic of the plugin."""
 
     plugin_name = "eventlet"
-    plugin_desc = "Required by the eventlet package"
+    plugin_desc = "Support for including 'eventlet' dependencies and its need for 'dns' package monkey patching"
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    @staticmethod
+    def isAlwaysEnabled():
+        return True
 
-        elements = module_name.split(".")
-        if elements[0] == "dns":  # do not include any of the dns package
-            return False, "dns package included as source only"
-
-        return None
-
-
-class EventlettPluginDetector(NuitkaPluginBase):
-    """ Only used if plugin is NOT activated.
-
-    Notes:
-        We are given the chance to issue a warning if we think we may be required.
-    """
-
-    detector_for = EventletPlugin
-
-    @classmethod
-    def isRelevant(cls):
-        """ One time only check: may this plugin be required?
-
-        Returns:
-            True if this is a standalone compilation.
-        """
-        return Options.isStandaloneMode()
-
-    def onModuleDiscovered(self, module):
-        """ This method checks whether eventlet is imported.
-
-        Notes:
-            Issue a warning if package eventlet is encountered.
-        Args:
-            module: the module object
-        Returns:
-            None
-        """
+    def getImplicitImports(self, module):
         full_name = module.getFullName()
-        if full_name.startswith("eventlet"):
-            self.warnUnusedPlugin("eventlet support.")
+
+        if full_name == "eventlet":
+            for dns_module_name in self.locateModules(module, "dns"):
+                yield dns_module_name
+
+            yield "eventlet.hubs"
+
+        elif full_name == "eventlet.hubs":
+            yield "eventlet.hubs.epolls"
+            yield "eventlet.hubs.hub"
+            yield "eventlet.hubs.kqueue"
+            yield "eventlet.hubs.poll"
+            yield "eventlet.hubs.pyevent"
+            yield "eventlet.hubs.selects"
+            yield "eventlet.hubs.timer"
+
+    def decideCompilation(self, module_name, source_ref):
+        if module_name.hasNamespace("dns"):
+            return "bytecode"

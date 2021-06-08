@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -56,36 +56,23 @@ def generateBuiltinLocalsRefCode(to_name, expression, emit, context):
 
 
 def generateBuiltinLocalsCode(to_name, expression, emit, context):
-    provider = expression.getParentVariableProvider()
-
     variable_traces = expression.getVariableTraces()
     updated = expression.isExpressionBuiltinLocalsUpdated()
+    locals_scope = expression.getLocalsScope()
 
     # Locals is sorted of course.
     def _sorted(variables):
-        locals_owner = context.getOwner()
-
-        if locals_owner.isExpressionOutlineBody():
-            locals_owner = locals_owner.getParentVariableProvider()
-
-        variable_order = locals_owner.getProvidedVariableOrder()
+        variable_order = tuple(locals_scope.getProvidedVariables())
 
         return sorted(
-            variables,
-            key=lambda variable_desc: variable_order.index(variable_desc[0].getName()),
+            variables, key=lambda variable_desc: variable_order.index(variable_desc[0])
         )
-
-    # Optimization will have made this "globals", and it wouldn't be
-    # about local variables at all.
-    assert not provider.isCompiledPythonModule(), provider
 
     with withObjectCodeTemporaryAssignment(
         to_name, "locals_ref_value", expression, emit, context
     ) as value_name:
 
         if updated:
-            locals_scope = expression.getLocalsScope()
-
             locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
             is_dict = locals_scope.getTypeShape() is tshape_dict
             # For Python3 it may really not be a dictionary.
@@ -141,7 +128,7 @@ def _getLocalVariableList(provider):
 
     return [
         variable
-        for variable in provider.getVariables()
+        for variable in provider.getProvidedVariables()
         if not variable.isModuleVariable()
         if (include_closure or variable.getOwner() is provider)
     ]
@@ -159,8 +146,8 @@ def _getVariableDictUpdateCode(
 
     variable_c_type = variable_declaration.getCType()
 
-    test_code = variable_c_type.getLocalVariableInitTestCode(
-        variable_declaration, False
+    test_code = variable_c_type.getInitTestConditionCode(
+        value_name=variable_declaration, inverted=False
     )
 
     access_code = SourceCodeCollector()
@@ -218,7 +205,7 @@ def generateBuiltinDir1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PyObject_Dir",
-        arg_desc=(("dir_arg", expression.getValue()),),
+        arg_desc=(("dir_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -231,7 +218,7 @@ def generateBuiltinVarsCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="LOOKUP_VARS",
-        arg_desc=(("vars_arg", expression.getSource()),),
+        arg_desc=(("vars_arg", expression.subnode_source),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),

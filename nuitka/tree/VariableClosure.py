@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -43,7 +43,7 @@ from nuitka.nodes.NodeMakingHelpers import (
 from nuitka.nodes.OperatorNodes import makeExpressionOperationBinaryInplace
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
-    ExpressionVariableRef,
+    makeExpressionVariableRef,
 )
 from nuitka.PythonVersions import (
     getErrorMessageExecWithNestedFunction,
@@ -67,14 +67,14 @@ from .SyntaxErrors import raiseSyntaxError
 
 
 class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
-    """ Variable closure phase 1: Find assignments and early closure references.
+    """Variable closure phase 1: Find assignments and early closure references.
 
-        In class context, a reference to a variable must be obeyed immediately,
-        so that "variable = variable" takes first "variable" as a closure and
-        then adds a new local "variable" to override it from there on. For the
-        not early closure case of a function, this will not be done and only
-        assignments shall add local variables, and references will be ignored
-        until phase 2.
+    In class context, a reference to a variable must be obeyed immediately,
+    so that "variable = variable" takes first "variable" as a closure and
+    then adds a new local "variable" to override it from there on. For the
+    not early closure case of a function, this will not be done and only
+    assignments shall add local variables, and references will be ignored
+    until phase 2.
     """
 
     @staticmethod
@@ -90,7 +90,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
                 variable = node.takeVariableForClosure(variable_name=non_local_name)
 
-                node.registerProvidedVariable(variable)
+                node.getLocalsScope().registerClosureVariable(variable)
 
                 if variable.isModuleVariable() and user_provided:
                     raiseSyntaxError(
@@ -117,7 +117,9 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         qualname_node = qualname_assign.subnode_source
 
                         new_node = makeConstantReplacementNode(
-                            constant=class_variable.getName(), node=qualname_node
+                            constant=class_variable.getName(),
+                            node=qualname_node,
+                            user_provided=True,
                         )
 
                         parent = qualname_node.parent
@@ -167,7 +169,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         statements=(
                             StatementAssignmentVariable(
                                 variable=tmp_variable,
-                                source=node.subnode_source.getLeft(),
+                                source=node.subnode_source.subnode_left,
                                 source_ref=node.source_ref,
                             ),
                             makeTryFinallyStatement(
@@ -180,14 +182,14 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                                                 variable=tmp_variable,
                                                 source_ref=node.source_ref,
                                             ),
-                                            right=node.subnode_source.getRight(),
+                                            right=node.subnode_source.subnode_right,
                                             operator=node.subnode_source.getOperator(),
                                             source_ref=node.source_ref,
                                         ),
                                         source_ref=node.source_ref,
                                     ),
                                     StatementLocalsDictOperationSet(
-                                        locals_scope=provider.getFunctionLocalsScope(),
+                                        locals_scope=provider.getLocalsScope(),
                                         variable_name=variable_name,
                                         value=ExpressionTempVariableRef(
                                             variable=tmp_variable,
@@ -208,7 +210,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
                 else:
                     new_node = StatementLocalsDictOperationSet(
-                        locals_scope=provider.getFunctionLocalsScope(),
+                        locals_scope=provider.getLocalsScope(),
                         variable_name=variable_name,
                         value=node.subnode_source,
                         source_ref=node.source_ref,
@@ -241,7 +243,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                 # Classes always assign to locals dictionary except for closure
                 # variables taken.
                 new_node = StatementLocalsDictOperationDel(
-                    locals_scope=provider.getFunctionLocalsScope(),
+                    locals_scope=provider.getLocalsScope(),
                     variable_name=variable_name,
                     tolerant=node.tolerant,
                     source_ref=node.source_ref,
@@ -265,9 +267,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             parent.replaceChild(node, new_node)
 
     def onEnterNode(self, node):
-        # Mighty complex code with lots of branches and statements, but it
-        # couldn't be less without making it more difficult.
-        # pylint: disable=too-many-branches,too-many-statements
+        # Mighty complex code with lots of branches, but we aim to get rid of it.
+        # pylint: disable=too-many-branches
 
         if node.isExpressionVariableNameRef():
             provider = node.provider
@@ -279,10 +280,12 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     )
 
                     new_node = ExpressionLocalsVariableRefOrFallback(
-                        locals_scope=provider.getFunctionLocalsScope(),
+                        locals_scope=provider.getLocalsScope(),
                         variable_name=node.getVariableName(),
-                        fallback=ExpressionVariableRef(
-                            variable=variable, source_ref=node.source_ref
+                        fallback=makeExpressionVariableRef(
+                            variable=variable,
+                            locals_scope=provider.getLocalsScope(),
+                            source_ref=node.source_ref,
                         ),
                         source_ref=node.source_ref,
                     )
@@ -290,7 +293,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     variable.addVariableUser(provider)
                 else:
                     new_node = ExpressionLocalsVariableRef(
-                        locals_scope=provider.getFunctionLocalsScope(),
+                        locals_scope=provider.getLocalsScope(),
                         variable_name=node.getVariableName(),
                         source_ref=node.source_ref,
                     )
@@ -303,11 +306,11 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             if node.getVariable().getOwner() != node.getParentVariableProvider():
                 node.getParentVariableProvider().addClosureVariable(node.getVariable())
         elif node.isExpressionGeneratorObjectBody():
-            if python_version >= 300:
+            if python_version >= 0x300:
                 self._handleNonLocal(node)
 
             # Only Python3.4 or later allows for generators to have qualname.
-            if python_version >= 340:
+            if python_version >= 0x340:
                 self._handleQualnameSetup(node)
         elif node.isExpressionCoroutineObjectBody():
             self._handleNonLocal(node)
@@ -318,51 +321,21 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
             self._handleQualnameSetup(node)
         elif node.isExpressionClassBody():
-            if python_version >= 300:
+            if python_version >= 0x300:
                 self._handleNonLocal(node)
 
             # Python3.4 allows for class declarations to be made global, even
             # after they were declared, so we need to fix this up.
-            if python_version >= 340:
+            if python_version >= 0x340:
                 self._handleQualnameSetup(node)
         elif node.isExpressionFunctionBody():
-            if python_version >= 300:
+            if python_version >= 0x300:
                 self._handleNonLocal(node)
 
             # Python 3.4 allows for class declarations to be made global, even
             # after they were declared, so we need to fix this up.
-            if python_version >= 340:
+            if python_version >= 0x340:
                 self._handleQualnameSetup(node)
-        # Attribute access of names of class functions should be mangled, if
-        # they start with "__", but do not end in "__" as well.
-        elif (
-            node.isExpressionAttributeLookup()
-            or node.isStatementAssignmentAttribute()
-            or node.isStatementDelAttribute()
-        ):
-            attribute_name = node.getAttributeName()
-
-            if attribute_name.startswith("__") and not attribute_name.endswith("__"):
-                seen_function = False
-
-                current = node
-
-                while True:
-                    current = current.getParentVariableProvider()
-
-                    if current.isCompiledPythonModule():
-                        break
-
-                    if current.isExpressionClassBody():
-                        if seen_function:
-                            node.setAttributeName(
-                                "_%s%s"
-                                % (current.getName().lstrip("_"), attribute_name)
-                            )
-
-                        break
-
-                    seen_function = True
         # Check if continue and break are properly in loops. If not, raise a
         # syntax error.
         elif node.isStatementLoopBreak() or node.isStatementLoopContinue():
@@ -384,14 +357,14 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
 
 class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
-    """ Variable closure phase 2: Find assignments and references.
+    """Variable closure phase 2: Find assignments and references.
 
-        In class context, a reference to a variable must be obeyed immediately,
-        so that "variable = variable" takes first "variable" as a closure and
-        then adds a new local "variable" to override it from there on.
+    In class context, a reference to a variable must be obeyed immediately,
+    so that "variable = variable" takes first "variable" as a closure and
+    then adds a new local "variable" to override it from there on.
 
-        So, assignments for early closure, accesses will already have a
-        variable set now, the others, only in this phase.
+    So, assignments for early closure, accesses will already have a
+    variable set now, the others, only in this phase.
     """
 
     @staticmethod
@@ -403,7 +376,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
         variable = provider.getVariableForReference(variable_name=variable_name)
 
         # Need to catch functions with "exec" and closure variables not allowed.
-        if python_version < 300 and provider.isExpressionFunctionBodyBase():
+        if python_version < 0x300 and provider.isExpressionFunctionBodyBase():
             was_taken = provider.hasTakenVariable(variable_name)
 
             if not was_taken and variable.getOwner() is not provider:
@@ -435,19 +408,22 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
                 variable_name = node.getVariableName()
 
                 new_node = ExpressionLocalsVariableRefOrFallback(
-                    locals_scope=provider.getFunctionLocalsScope(),
+                    locals_scope=provider.getLocalsScope(),
                     variable_name=variable_name,
-                    fallback=ExpressionVariableRef(
+                    fallback=makeExpressionVariableRef(
                         variable=node.getParentModule().getVariableForReference(
                             variable_name
                         ),
+                        locals_scope=provider.getLocalsScope(),
                         source_ref=node.source_ref,
                     ),
                     source_ref=node.source_ref,
                 )
             else:
-                new_node = ExpressionVariableRef(
-                    variable=variable, source_ref=node.source_ref
+                new_node = makeExpressionVariableRef(
+                    variable=variable,
+                    locals_scope=provider.getLocalsScope(),
+                    source_ref=node.source_ref,
                 )
 
                 variable.addVariableUser(provider)
@@ -459,18 +435,18 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
 
 
 class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
-    """ Variable closure phase 3: Find errors and complete frame variables.
+    """Variable closure phase 3: Find errors and complete frame variables.
 
-        In this phase, we can do some fix-ups and find errors. We might e.g.
-        detect that a "del" was executed on a shared variable, which is not
-        allowed for Python 2.x, so it must be caught. The parsing wouldn't do
-        that.
+    In this phase, we can do some fix-ups and find errors. We might e.g.
+    detect that a "del" was executed on a shared variable, which is not
+    allowed for Python 2.x, so it must be caught. The parsing wouldn't do
+    that.
 
-        Also, frame objects for functions should learn their variable names.
+    Also, frame objects for functions should learn their variable names.
     """
 
     def onEnterNode(self, node):
-        if python_version < 300 and node.isStatementDelVariable():
+        if python_version < 0x300 and node.isStatementDelVariable():
             variable = node.getVariable()
 
             if not variable.isModuleVariable() and isSharedAmongScopes(variable):
@@ -492,10 +468,10 @@ can not delete variable '%s' referenced in nested scope"""
                     class_var = node.takeVariableForClosure("__class__")
                     class_var.addVariableUser(node)
 
-                    node.registerProvidedVariable(class_var)
+                    node.getLocalsScope().registerClosureVariable(class_var)
                     while node != class_var.getOwner():
                         node = node.getParentVariableProvider()
-                        node.registerProvidedVariable(class_var)
+                        node.getLocalsScope().registerClosureVariable(class_var)
 
 
 def completeVariableClosures(tree):

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -84,7 +84,7 @@ def catcher():
             % sys.exc_info()[2].tb_next.tb_next.tb_frame.f_code.co_name
         )
         print(
-            "Previous frame locals (module) are",
+            "Third traceback locals (function) are",
             displayDict(sys.exc_info()[2].tb_next.tb_next.tb_frame.f_locals),
         )
 

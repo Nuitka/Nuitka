@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -160,8 +160,6 @@ static void Nuitka_Coroutine_release_closure(struct Nuitka_CoroutineObject *coro
 
     coroutine->m_closure_given = 0;
 }
-
-extern PyObject *const_str_plain_send, *const_str_plain_throw, *const_str_plain_close;
 
 // Note: Shared with asyncgen.
 static PyObject *_Nuitka_YieldFromCore(PyObject *yieldfrom, PyObject *send_value, PyObject **returned_value,
@@ -571,7 +569,7 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
         /* This check got added in Python 3.5.2 only. It's good to do it, but
          * not fully compatible, therefore guard it.
          */
-#if PYTHON_VERSION >= 352 || !defined(_NUITKA_FULL_COMPAT)
+#if PYTHON_VERSION >= 0x352 || !defined(_NUITKA_FULL_COMPAT)
         if (closing == false) {
 #if _DEBUG_COROUTINE
             PRINT_COROUTINE_STATUS("Finished coroutine sent into -> RuntimeError", coroutine);
@@ -656,9 +654,7 @@ static PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine
     }
 }
 
-extern PyObject *const_str_plain_throw;
-
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
 static bool Nuitka_AsyncgenAsend_Check(PyObject *object);
 struct Nuitka_AsyncgenAsendObject;
 static PyObject *_Nuitka_AsyncgenAsend_throw2(struct Nuitka_AsyncgenAsendObject *asyncgen_asend,
@@ -748,7 +744,7 @@ static PyObject *_Nuitka_Coroutine_throw2(struct Nuitka_CoroutineObject *corouti
             coroutine->m_running = 1;
             ret = _Nuitka_Coroutine_throw2(coro, true, exception_type, exception_value, exception_tb);
             coroutine->m_running = 0;
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
         } else if (Nuitka_AsyncgenAsend_Check(coroutine->m_yieldfrom)) {
             struct Nuitka_AsyncgenAsendObject *asyncgen_asend =
                 ((struct Nuitka_AsyncgenAsendObject *)coroutine->m_yieldfrom);
@@ -865,7 +861,7 @@ throw_here:
         /* This check got added in Python 3.5.2 only. It's good to do it, but
          * not fully compatible, therefore guard it.
          */
-#if PYTHON_VERSION >= 352 || !defined(_NUITKA_FULL_COMPAT)
+#if PYTHON_VERSION >= 0x352 || !defined(_NUITKA_FULL_COMPAT)
         if (closing == false) {
 #if _DEBUG_COROUTINE
             PRINT_STRING("Finished coroutine thrown into -> RuntimeError\n");
@@ -1115,7 +1111,7 @@ static PyGetSetDef Nuitka_Coroutine_getsetlist[] = {
 
 static PyMemberDef Nuitka_Coroutine_members[] = {
     {(char *)"cr_running", T_BOOL, offsetof(struct Nuitka_CoroutineObject, m_running), READONLY},
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
     {(char *)"cr_origin", T_OBJECT, offsetof(struct Nuitka_CoroutineObject, m_origin), READONLY},
 
 #endif
@@ -1287,7 +1283,7 @@ PyTypeObject Nuitka_CoroutineWrapper_Type = {
     0,                                                 /* tp_free */
 };
 
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
 static PyObject *computeCoroutineOrigin(int origin_depth) {
     PyFrameObject *frame = PyEval_GetFrame();
 
@@ -1374,7 +1370,7 @@ PyObject *Nuitka_Coroutine_New(coroutine_code code, PyObject *module, PyObject *
 
     result->m_resume_frame = NULL;
 
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
     PyThreadState *tstate = PyThreadState_GET();
     int origin_depth = tstate->coroutine_origin_tracking_depth;
 
@@ -1385,7 +1381,7 @@ PyObject *Nuitka_Coroutine_New(coroutine_code code, PyObject *module, PyObject *
     }
 #endif
 
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
     result->m_exc_state.exc_type = NULL;
     result->m_exc_state.exc_value = NULL;
     result->m_exc_state.exc_traceback = NULL;
@@ -1394,8 +1390,6 @@ PyObject *Nuitka_Coroutine_New(coroutine_code code, PyObject *module, PyObject *
     Nuitka_GC_Track(result);
     return (PyObject *)result;
 }
-
-extern PyObject *const_str_plain_send;
 
 static int gen_is_coroutine(PyObject *object) {
     if (PyGen_CheckExact(object)) {
@@ -1459,7 +1453,7 @@ static PyObject *Nuitka_GetAwaitableIter(PyObject *value) {
     return NULL;
 }
 
-#if PYTHON_VERSION >= 366
+#if PYTHON_VERSION >= 0x366
 static void FORMAT_AWAIT_ERROR(PyObject *value, int await_kind) {
     CHECK_OBJECT(value);
 
@@ -1491,13 +1485,13 @@ PyObject *ASYNC_AWAIT(PyObject *awaitable, int await_kind) {
     PyObject *awaitable_iter = Nuitka_GetAwaitableIter(awaitable);
 
     if (unlikely(awaitable_iter == NULL)) {
-#if PYTHON_VERSION >= 366
+#if PYTHON_VERSION >= 0x366
         FORMAT_AWAIT_ERROR(awaitable, await_kind);
 #endif
         return NULL;
     }
 
-#if PYTHON_VERSION >= 352 || !defined(_NUITKA_FULL_COMPAT)
+#if PYTHON_VERSION >= 0x352 || !defined(_NUITKA_FULL_COMPAT)
     /* This check got added in Python 3.5.2 only. It's good to do it, but
      * not fully compatible, therefore guard it.
      */
@@ -1524,7 +1518,7 @@ PyObject *ASYNC_AWAIT(PyObject *awaitable, int await_kind) {
     return awaitable_iter;
 }
 
-#if PYTHON_VERSION >= 352
+#if PYTHON_VERSION >= 0x352
 
 /* Our "aiter" wrapper clone */
 struct Nuitka_AIterWrapper {
@@ -1541,7 +1535,7 @@ static PyObject *Nuitka_AIterWrapper_tp_repr(struct Nuitka_AIterWrapper *aw) {
 static PyObject *Nuitka_AIterWrapper_iternext(struct Nuitka_AIterWrapper *aw) {
     CHECK_OBJECT(aw);
 
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
     SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_StopIteration, aw->aw_aiter);
 #else
     if (!PyTuple_Check(aw->aw_aiter) && !PyExceptionInstance_Check(aw->aw_aiter)) {
@@ -1681,7 +1675,7 @@ PyObject *ASYNC_MAKE_ITERATOR(PyObject *value) {
         return NULL;
     }
 
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
     if (unlikely(Py_TYPE(iter)->tp_as_async == NULL || Py_TYPE(iter)->tp_as_async->am_anext == NULL)) {
         PyErr_Format(PyExc_TypeError,
                      "'async for' received an object from __aiter__ that does not implement __anext__: %s",
@@ -1692,7 +1686,7 @@ PyObject *ASYNC_MAKE_ITERATOR(PyObject *value) {
     }
 #endif
 
-#if PYTHON_VERSION >= 352
+#if PYTHON_VERSION >= 0x352
     /* Starting with Python 3.5.2 it is acceptable to return an async iterator
      * directly, instead of an awaitable.
      */
@@ -1707,7 +1701,7 @@ PyObject *ASYNC_MAKE_ITERATOR(PyObject *value) {
     PyObject *awaitable_iter = Nuitka_GetAwaitableIter(iter);
 
     if (unlikely(awaitable_iter == NULL)) {
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
         _PyErr_FormatFromCause(
 #else
         PyErr_Format(
@@ -1756,7 +1750,7 @@ PyObject *ASYNC_ITERATOR_NEXT(PyObject *value) {
     PyObject *awaitable_iter = Nuitka_GetAwaitableIter(next_value);
 
     if (unlikely(awaitable_iter == NULL)) {
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
         _PyErr_FormatFromCause(
 #else
         PyErr_Format(
@@ -1777,7 +1771,7 @@ static void _initCompiledCoroutineTypes(void) {
     PyType_Ready(&Nuitka_Coroutine_Type);
     PyType_Ready(&Nuitka_CoroutineWrapper_Type);
 
-#if PYTHON_VERSION >= 352
+#if PYTHON_VERSION >= 0x352
     PyType_Ready(&Nuitka_AIterWrapper_Type);
 #endif
 }
@@ -1785,6 +1779,6 @@ static void _initCompiledCoroutineTypes(void) {
 // Chain asyncgen code to coroutine and generator code, as it uses same functions,
 // and then we can have some things static if both are in the same compilation unit.
 
-#if PYTHON_VERSION >= 360
+#if PYTHON_VERSION >= 0x360
 #include "CompiledAsyncgenType.c"
 #endif

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -129,10 +129,11 @@ def otherFunction():
         def __iter__(self):
             return BasicIterClass(self.n)
 
+    print("Exception from iterating over too short class:", end=" ")
     try:
         a, b, c = IteratingSequenceClass(2)
     except ValueError:
-        print("Exception from iterating over too short class", sys.exc_info())
+        print("gave", sys.exc_info())
 
 
 def anotherFunction():

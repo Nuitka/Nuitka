@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -43,75 +43,37 @@ sys.path.insert(
 
 # isort:start
 
-import subprocess
-
 from nuitka.tools.testing.Common import (
+    checkLoadedFileAccesses,
+    checkRequirements,
     compareWithCPython,
     createSearchMode,
     decideFilenameVersionSkip,
-    getPythonVendor,
+    displayFileContents,
+    displayFolderContents,
+    displayRuntimeTraces,
     getRuntimeTraceOfLoadedFiles,
-    hasModule,
-    my_print,
     reportSkip,
     setup,
+    test_logger,
 )
-from nuitka.tree.SourceReading import readSourceCodeFromFilename
-from nuitka.utils.FileOperations import areSamePaths, removeDirectory
+from nuitka.utils.FileOperations import removeDirectory
+from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import getOS
-
-
-# checks requirements needed to run each test module, according to the specified special comment
-# special comments are in the following formats:
-#     "# nuitka-skip-unless-expression: expression to be evaluated"
-#       OR
-#     "# nuitka-skip-unless-imports: module1,module2,..."
-def checkRequirements(filename):
-    for line in readSourceCodeFromFilename(None, filename).splitlines():
-        if line.startswith("# nuitka-skip-unless-"):
-            if line[21:33] == "expression: ":
-                expression = line[33:]
-                with open(os.devnull, "w") as devnull:
-                    result = subprocess.call(
-                        (
-                            os.environ["PYTHON"],
-                            "-c",
-                            "import sys, os; sys.exit(not bool(%s))" % expression,
-                        ),
-                        stdout=devnull,
-                        stderr=subprocess.STDOUT,
-                    )
-                if result != 0:
-                    return (False, "Expression '%s' evaluated to false" % expression)
-
-            elif line[21:30] == "imports: ":
-                imports_needed = line[30:].rstrip().split(",")
-                for i in imports_needed:
-                    if not hasModule(i):
-                        return (
-                            False,
-                            i
-                            + " not installed for this Python version, but test needs it",
-                        )
-    # default return value
-    return (True, "")
 
 
 def displayError(dirname, filename):
     assert dirname is None
 
-    my_print("Listing of dist folder:")
+    dist_path = filename[:-3] + ".dist"
+    displayFolderContents("dist folder", dist_path)
 
-    if os.name == "nt":
-        command = "dir /b /s /a:-D %s"
-    else:
-        command = "ls -Rla %s"
-
-    os.system(command % filename)
+    inclusion_log_path = filename[:-3] + ".py.inclusion.log"
+    displayFileContents("inclusion log", inclusion_log_path)
 
 
 def main():
-    # Complex stuff, even more should become common code though.
+    # Complex stuff, even more should become common code or project options though.
     # pylint: disable=too-many-branches,too-many-statements
 
     python_version = setup(needs_io_encoding=True)
@@ -128,15 +90,19 @@ def main():
         active = search_mode.consider(dirname=None, filename=filename)
 
         if not active:
-            my_print("Skipping", filename)
+            test_logger.info("Skipping %s" % filename)
             continue
 
         extra_flags = [
             "expect_success",
-            "standalone",
+            "--standalone",
             "remove_output",
-            # For enum plugin info
-            "ignore_infos",
+            # Cache the CPython results for re-use, they will normally not change.
+            "cpython_cache",
+            # To understand what is slow.
+            "timing",
+            # TODO: This plugin probably ought to be on by default.
+            "plugin_enable:pkg-resources",
         ]
 
         # skip each test if their respective requirements are not met
@@ -152,7 +118,7 @@ def main():
 
         if "Idna" in filename:
             # For the warnings of Python2.
-            if python_version.startswith("2"):
+            if python_version < (3,):
                 extra_flags.append("ignore_stderr")
 
         if filename == "CtypesUsing.py":
@@ -161,7 +127,7 @@ def main():
         if filename == "GtkUsing.py":
             # Don't test on platforms not supported by current Debian testing, and
             # which should be considered irrelevant by now.
-            if python_version.startswith("2.6"):
+            if python_version < (2, 7):
                 reportSkip("irrelevant Python version", ".", filename)
                 continue
 
@@ -178,6 +144,10 @@ def main():
                 reportSkip("Not working macOS yet", ".", filename)
                 continue
 
+            if getOS() == "Windows":
+                reportSkip("Can hang on Windows CI.", ".", filename)
+                continue
+
             # For the plug-in information.
             extra_flags.append("plugin_enable:tk-inter")
 
@@ -186,11 +156,19 @@ def main():
             extra_flags.append("ignore_warnings")
 
         if filename == "NumpyUsing.py":
+            extra_flags.append("plugin_enable:numpy")
+
             # TODO: Disabled for now.
             reportSkip("numpy.test not fully working yet", ".", filename)
             continue
 
-            # extra_flags.append("plugin_enable:data-files")
+        if filename == "PandasUsing.py":
+            extra_flags.append("plugin_enable:numpy")
+            extra_flags.append("plugin_disable:pylint-warnings")
+            extra_flags.append("plugin_disable:qt-plugins")
+            extra_flags.append("plugin_disable:pyside2")
+            extra_flags.append("plugin_disable:pyside6")
+
         if filename == "PmwUsing.py":
             extra_flags.append("plugin_enable:pmw-freezer")
 
@@ -198,32 +176,37 @@ def main():
             # For the warnings.
             extra_flags.append("ignore_warnings")
 
+        if filename == "GlfwUsing.py":
+            # For the warnings.
+            extra_flags.append("plugin_enable:glfw")
+            extra_flags.append("plugin_enable:numpy")
+
         if filename == "PasslibUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
-
-        if filename == "PySideUsing.py":
-            # TODO: Disabled due to lack of upstream support.
-            reportSkip("PySide not supported yet", ".", filename)
-            continue
 
         if filename == "Win32ComUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
 
-        if filename.startswith(("PySide", "PyQt")):
-            if python_version.startswith("2.6"):
+        if filename.startswith(("PySide6", "PyQt5", "PyQt6")):
+            # Don't test on platforms not supported by current Debian testing, and
+            # which should be considered irrelevant by now.
+            if python_version < (2, 7) or ((3,) <= python_version < (3, 7)):
                 reportSkip("irrelevant Python version", ".", filename)
                 continue
 
-            # For the plug-in information.
-            if getPythonVendor() != "Anaconda":
+            # For the plug-in information
+            if filename.startswith("PySide6"):
+                extra_flags.append("plugin_enable:pyside6")
+            elif filename.startswith("PyQt5"):
                 extra_flags.append("plugin_enable:qt-plugins")
-            else:
-                # For the plug-in not used information.
-                extra_flags.append("ignore_warnings")
+            elif filename.startswith("PyQt6"):
+                extra_flags.append("plugin_enable:pyqt6")
 
-        my_print("Consider output of recursively compiled program:", filename)
+        test_logger.info(
+            "Consider output of standalone mode compiled program: %s" % filename
+        )
 
         # First compare so we know the program behaves identical.
         compareWithCPython(
@@ -272,7 +255,7 @@ def main():
                 found_glibc_libs.append(dist_filename)
 
         if found_glibc_libs:
-            my_print(
+            test_logger.warning(
                 "Should not ship glibc libraries with the standalone executable (found %s)"
                 % found_glibc_libs
             )
@@ -283,343 +266,28 @@ def main():
         )
 
         # Then use "strace" on the result.
-        loaded_filenames = getRuntimeTraceOfLoadedFiles(binary_filename)
+        with TimerReport(
+            "Determining run time loaded files took %.2f", logger=test_logger
+        ):
+            loaded_filenames = getRuntimeTraceOfLoadedFiles(
+                logger=test_logger, path=binary_filename
+            )
 
-        current_dir = os.path.normpath(os.getcwd())
-        current_dir = os.path.normcase(current_dir)
+        illegal_accesses = checkLoadedFileAccesses(
+            loaded_filenames=loaded_filenames, current_dir=os.getcwd()
+        )
 
-        illegal_access = False
+        if illegal_accesses:
+            displayError(None, filename)
+            displayRuntimeTraces(test_logger, binary_filename)
 
-        for loaded_filename in loaded_filenames:
-            loaded_filename = os.path.normpath(loaded_filename)
-            loaded_filename = os.path.normcase(loaded_filename)
-            loaded_basename = os.path.basename(loaded_filename)
-
-            if os.name == "nt":
-                if areSamePaths(
-                    os.path.dirname(loaded_filename),
-                    os.path.normpath(
-                        os.path.join(os.environ["SYSTEMROOT"], "System32")
-                    ),
-                ):
-                    continue
-                if areSamePaths(
-                    os.path.dirname(loaded_filename),
-                    os.path.normpath(
-                        os.path.join(os.environ["SYSTEMROOT"], "SysWOW64")
-                    ),
-                ):
-                    continue
-
-                if r"windows\winsxs" in loaded_filename:
-                    continue
-
-                # Github actions have these in PATH overriding SYSTEMROOT
-                if r"windows performance toolkit" in loaded_filename:
-                    continue
-                if r"powershell" in loaded_filename:
-                    continue
-
-            if loaded_filename.startswith(current_dir):
-                continue
-
-            if loaded_filename.startswith(os.path.abspath(current_dir)):
-                continue
-
-            if loaded_filename.startswith("/etc/"):
-                continue
-
-            if loaded_filename.startswith("/proc/") or loaded_filename == "/proc":
-                continue
-
-            if loaded_filename.startswith("/dev/"):
-                continue
-
-            if loaded_filename.startswith("/tmp/"):
-                continue
-
-            if loaded_filename.startswith("/run/"):
-                continue
-
-            if loaded_filename.startswith("/usr/lib/locale/"):
-                continue
-
-            if loaded_filename.startswith("/usr/share/locale/"):
-                continue
-
-            if loaded_filename.startswith("/usr/share/X11/locale/"):
-                continue
-
-            # Themes may of course be loaded.
-            if loaded_filename.startswith("/usr/share/themes"):
-                continue
-            if "gtk" in loaded_filename and "/engines/" in loaded_filename:
-                continue
-
-            if loaded_filename in (
-                "/usr",
-                "/usr/local",
-                "/usr/local/lib",
-                "/usr/share",
-                "/usr/local/share",
-                "/usr/lib64",
-            ):
-                continue
-
-            # TCL/tk for tkinter for non-Windows is OK.
-            if loaded_filename.startswith(
-                (
-                    "/usr/lib/tcltk/",
-                    "/usr/share/tcltk/",
-                    "/usr/lib/tcl/",
-                    "/usr/lib64/tcl/",
-                )
-            ):
-                continue
-            if loaded_filename in (
-                "/usr/lib/tcltk",
-                "/usr/share/tcltk",
-                "/usr/lib/tcl",
-                "/usr/lib64/tcl",
-            ):
-                continue
-
-            if loaded_filename in (
-                "/lib",
-                "/lib64",
-                "/lib/sse2",
-                "/lib/tls",
-                "/lib64/tls",
-                "/usr/lib/sse2",
-                "/usr/lib/tls",
-                "/usr/lib64/tls",
-            ):
-                continue
-
-            if loaded_filename in ("/usr/share/tcl8.6", "/usr/share/tcl8.5"):
-                continue
-            if loaded_filename in (
-                "/usr/share/tcl8.6/init.tcl",
-                "/usr/share/tcl8.5/init.tcl",
-            ):
-                continue
-            if loaded_filename in (
-                "/usr/share/tcl8.6/encoding",
-                "/usr/share/tcl8.5/encoding",
-            ):
-                continue
-
-            # System SSL config on Linux. TODO: Should this not be included and
-            # read from dist folder.
-            if loaded_basename == "openssl.cnf":
-                continue
-
-            # Taking these from system is harmless and desirable
-            if loaded_basename.startswith(("libz.so", "libgcc_s.so")):
-                continue
-
-            # System C libraries are to be expected.
-            if loaded_basename.startswith(
-                (
-                    "ld-linux-x86-64.so",
-                    "libc.so.",
-                    "libpthread.so.",
-                    "libm.so.",
-                    "libdl.so.",
-                    "libBrokenLocale.so.",
-                    "libSegFault.so",
-                    "libanl.so.",
-                    "libcidn.so.",
-                    "libcrypt.so.",
-                    "libmemusage.so",
-                    "libmvec.so.",
-                    "libnsl.so.",
-                    "libnss_compat.so.",
-                    "libnss_db.so.",
-                    "libnss_dns.so.",
-                    "libnss_files.so.",
-                    "libnss_hesiod.so.",
-                    "libnss_nis.so.",
-                    "libnss_nisplus.so.",
-                    "libpcprofile.so",
-                    "libresolv.so.",
-                    "librt.so.",
-                    "libthread_db-1.0.so",
-                    "libthread_db.so.",
-                    "libutil.so.",
-                )
-            ):
-                continue
-
-            # Loaded by C library potentially for DNS lookups.
-            if loaded_basename.startswith(
-                (
-                    "libnss_",
-                    "libnsl",
-                    # Some systems load a lot more, this is CentOS 7 on OBS
-                    "libattr.so.",
-                    "libbz2.so.",
-                    "libcap.so.",
-                    "libdw.so.",
-                    "libelf.so.",
-                    "liblzma.so.",
-                    # Some systems load a lot more, this is Fedora 26 on OBS
-                    "libselinux.so.",
-                    "libpcre.so.",
-                    # And this is Fedora 29 on OBS
-                    "libblkid.so.",
-                    "libmount.so.",
-                    "libpcre2-8.so.",
-                    # CentOS 8 on OBS
-                    "libuuid.so.",
-                )
-            ):
-                continue
-
-            # Loaded by dtruss on macOS X.
-            if loaded_filename.startswith("/usr/lib/dtrace/"):
-                continue
-
-            # Loaded by cowbuilder and pbuilder on Debian
-            if loaded_basename == ".ilist":
-                continue
-            if "cowdancer" in loaded_filename:
-                continue
-            if "eatmydata" in loaded_filename:
-                continue
-
-            # Loading from home directories is OK too.
-            if (
-                loaded_filename.startswith("/home/")
-                or loaded_filename.startswith("/data/")
-                or loaded_filename.startswith("/root/")
-                or loaded_filename in ("/home", "/data", "/root")
-            ):
-                continue
-
-            # For Debian builders, /build is OK too.
-            if loaded_filename.startswith("/build/") or loaded_filename == "/build":
-                continue
-
-            # TODO: Unclear, loading gconv from filesystem of installed system
-            # may be OK or not. I think it should be.
-            if loaded_basename == "gconv-modules.cache":
-                continue
-            if "/gconv/" in loaded_filename:
-                continue
-            if loaded_basename.startswith("libicu"):
-                continue
-            if loaded_filename.startswith("/usr/share/icu/"):
-                continue
-
-            # Loading from caches is OK.
-            if loaded_filename.startswith("/var/cache/"):
-                continue
-
-            # PySide accesses its directory.
-            if (
-                loaded_filename
-                == "/usr/lib/python" + python_version[:3] + "/dist-packages/PySide"
-            ):
-                continue
-
-            # GTK accesses package directories only.
-            if (
-                loaded_filename
-                == "/usr/lib/python" + python_version[:3] + "/dist-packages/gtk-2.0/gtk"
-            ):
-                continue
-            if (
-                loaded_filename
-                == "/usr/lib/python" + python_version[:3] + "/dist-packages/glib"
-            ):
-                continue
-            if (
-                loaded_filename
-                == "/usr/lib/python" + python_version[:3] + "/dist-packages/gtk-2.0/gio"
-            ):
-                continue
-            if (
-                loaded_filename
-                == "/usr/lib/python" + python_version[:3] + "/dist-packages/gobject"
-            ):
-                continue
-
-            # PyQt5 seems to do this, but won't use contents then.
-            if loaded_filename in (
-                "/usr/lib/qt5/plugins",
-                "/usr/lib/qt5",
-                "/usr/lib64/qt5/plugins",
-                "/usr/lib64/qt5",
-                "/usr/lib/x86_64-linux-gnu/qt5/plugins",
-                "/usr/lib/x86_64-linux-gnu/qt5",
-                "/usr/lib/x86_64-linux-gnu",
-                "/usr/lib",
-            ):
-                continue
-
-            # Can look at the interpreter of the system.
-            if loaded_basename == "python3":
-                continue
-
-            # Current Python executable can actually be a symlink and
-            # the real executable which it points to will be on the
-            # loaded_filenames list. This is all fine, let's ignore it.
-            # Also, because the loaded_filename can be yet another symlink
-            # (this is weird, but it's true), let's better resolve its real
-            # path too.
-            if os.path.realpath(loaded_filename) == os.path.realpath(sys.executable):
-                continue
-
-            # Accessing SE-Linux is OK.
-            if loaded_filename in ("/sys/fs/selinux", "/selinux"):
-                continue
-
-            # Allow reading time zone info of local system.
-            if loaded_filename.startswith("/usr/share/zoneinfo/"):
-                continue
-
-            # The access to .pth files has no effect.
-            if loaded_filename.endswith(".pth"):
-                continue
-
-            # Looking at site-package dir alone is alone.
-            if loaded_filename.endswith(("site-packages", "dist-packages")):
-                continue
-
-            # QtNetwork insist on doing this it seems.
-            if loaded_basename.startswith(("libcrypto.so", "libssl.so")):
-                continue
-
-            # macOS uses these:
-            if loaded_basename in (
-                "libcrypto.1.0.0.dylib",
-                "libssl.1.0.0.dylib",
-                "libcrypto.1.1.dylib",
-            ):
-                continue
-
-            # MSVC run time DLLs, seem to sometimes come from system.
-            if loaded_basename.upper() in ("MSVCRT.DLL", "MSVCR90.DLL"):
-                continue
-
-            my_print("Should not access '%s'." % loaded_filename)
-            illegal_access = True
-
-        if illegal_access:
-            if os.name != "nt":
-                my_print("Listing of dist folder:")
-                os.system("ls -Rla %s" % filename[:-3] + ".dist")
-
-                my_print("strace:")
-                os.system("strace -s4096 -e file %s" % binary_filename)
+            test_logger.warning(
+                "Should not access these file(s): '%r'." % illegal_accesses
+            )
 
             search_mode.onErrorDetected(1)
 
         removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
-
-        if search_mode.abortIfExecuted():
-            break
 
     search_mode.finish()
 

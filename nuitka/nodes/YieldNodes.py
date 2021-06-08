@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,7 +31,7 @@ from .ExpressionBases import ExpressionChildHavingBase
 
 
 class ExpressionYieldBase(ExpressionChildHavingBase):
-    if python_version >= 300:
+    if python_version >= 0x300:
         __slots__ = ("exception_preserving",)
     else:
         __slots__ = ()
@@ -39,10 +39,10 @@ class ExpressionYieldBase(ExpressionChildHavingBase):
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
-        if python_version >= 300:
+        if python_version >= 0x300:
             self.exception_preserving = False
 
-    if python_version >= 300:
+    if python_version >= 0x300:
 
         def markAsExceptionPreserving(self):
             self.exception_preserving = True
@@ -57,7 +57,8 @@ class ExpressionYieldBase(ExpressionChildHavingBase):
             return False
 
     def computeExpression(self, trace_collection):
-        trace_collection.removeKnowledge(self.getExpression())
+        # TODO: That's actually only needed if the value is mutable.
+        trace_collection.removeKnowledge(self.subnode_expression)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -68,64 +69,61 @@ class ExpressionYieldBase(ExpressionChildHavingBase):
 
 
 class ExpressionYield(ExpressionYieldBase):
-    """ Yielding an expression.
+    """Yielding an expression.
 
-        Typical code: yield expression
+    Typical code: yield expression
 
-        Can only happen in a generator. Kind of explicitly suspends and
-        resumes the execution. The user may inject any kind of exception
-        or give any return value. The value of "None" is the most common
-        though, esp. if it's not used.
+    Can only happen in a generator. Kind of explicitly suspends and
+    resumes the execution. The user may inject any kind of exception
+    or give any return value. The value of "None" is the most common
+    though, esp. if it's not used.
 
     """
 
     kind = "EXPRESSION_YIELD"
 
     named_child = "expression"
-    getExpression = ExpressionChildHavingBase.childGetter("expression")
 
     def __init__(self, expression, source_ref):
         ExpressionYieldBase.__init__(self, value=expression, source_ref=source_ref)
 
 
 class ExpressionYieldFrom(ExpressionYieldBase):
-    """ Yielding from an expression.
+    """Yielding from an expression.
 
-        Typical code: yield from expression (Python3)
+    Typical code: yield from expression (Python3)
 
-        Can only happen in a generator and only in Python3. Similar to yield,
-        but implies a loop and exception propagation to the yield from generator
-        if such. Kind of explicitly suspends and resumes the execution. The
-        user may inject any kind of exception or give any return value. Having
-        a return value is what makes Python3 generators special, and with yield
-        from, that value is the expression result.
+    Can only happen in a generator and only in Python3. Similar to yield,
+    but implies a loop and exception propagation to the yield from generator
+    if such. Kind of explicitly suspends and resumes the execution. The
+    user may inject any kind of exception or give any return value. Having
+    a return value is what makes Python3 generators special, and with yield
+    from, that value is the expression result.
     """
 
     kind = "EXPRESSION_YIELD_FROM"
 
     named_child = "expression"
-    getExpression = ExpressionChildHavingBase.childGetter("expression")
 
     def __init__(self, expression, source_ref):
         ExpressionYieldBase.__init__(self, value=expression, source_ref=source_ref)
 
 
 class ExpressionYieldFromWaitable(ExpressionYieldBase):
-    """ Yielding from an expression.
+    """Yielding from an expression.
 
-        Typical code: await x, async for ..., async with (Python3.5)
+    Typical code: await x, async for ..., async with (Python3.5)
 
-        Can only happen in a coroutine or asyncgen and only in Python3.5
-        or higher.
+    Can only happen in a coroutine or asyncgen and only in Python3.5
+    or higher.
 
-        Similar to yield from. The actual lookups of awaitable go through
-        slots and have dedicated nodes.
+    Similar to yield from. The actual lookups of awaitable go through
+    slots and have dedicated nodes.
     """
 
     kind = "EXPRESSION_YIELD_FROM_WAITABLE"
 
     named_child = "expression"
-    getExpression = ExpressionChildHavingBase.childGetter("expression")
 
     def __init__(self, expression, source_ref):
         ExpressionYieldBase.__init__(self, value=expression, source_ref=source_ref)

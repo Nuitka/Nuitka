@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,17 +29,13 @@ import sys
 
 
 def getSupportedPythonVersions():
-    """ Officially supported Python versions for Nuitka.
+    """Officially supported Python versions for Nuitka."""
 
-    """
-
-    return ("2.6", "2.7", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8")
+    return ("2.6", "2.7", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8", "3.9")
 
 
 def getPartiallySupportedPythonVersions():
-    """ Partially supported Python versions for Nuitka.
-
-    """
+    """Partially supported Python versions for Nuitka."""
 
     return ()
 
@@ -59,7 +55,7 @@ def _getPythonVersion():
     big, major, minor = sys.version_info[0:3]
 
     # TODO: Give up on decimal versions already.
-    return big * 100 + major * 10 + min(9, minor)
+    return big * 256 + major * 16 + min(15, minor)
 
 
 python_version = _getPythonVersion()
@@ -68,22 +64,18 @@ python_version_full_str = ".".join(str(s) for s in sys.version_info[0:3])
 python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
 
 
-def isAtLeastSubVersion(version):
-    if version < 280 <= python_version < 300:
-        return True
+def isNuitkaPython():
+    """Is this our own fork of CPython named Nuitka-Python."""
 
-    if version // 10 != python_version // 10:
-        return False
-
-    return python_version >= version
+    return python_version > 0x300 and sys.implementation.name == "nuitkapython"
 
 
 def getErrorMessageExecWithNestedFunction():
-    """ Error message of the concrete Python in case an exec occurs in a
-        function that takes a closure variable.
+    """Error message of the concrete Python in case an exec occurs in a
+    function that takes a closure variable.
     """
 
-    assert python_version < 300
+    assert python_version < 0x300
 
     # Need to use "exec" to detect the syntax error, pylint: disable=W0122
 
@@ -108,7 +100,10 @@ def getComplexCallSequenceErrorTemplate():
             f(*None)
         except TypeError as e:
             result = (
-                e.args[0].replace("NoneType object", "%s").replace("NoneType", "%s")
+                e.args[0]
+                .replace("NoneType object", "%s")
+                .replace("NoneType", "%s")
+                .replace("None ", "%s ")
             )
             getComplexCallSequenceErrorTemplate.result = result
         else:
@@ -117,17 +112,27 @@ def getComplexCallSequenceErrorTemplate():
     return getComplexCallSequenceErrorTemplate.result
 
 
+_needs_set_literal_reverse_insertion = None
+
+
 def needsSetLiteralReverseInsertion():
-    try:
-        value = eval("{1,1.0}.pop()")  # pylint: disable=eval-used
-    except SyntaxError:
-        return False
-    else:
-        return type(value) is float
+    """For Python3, until Python3.5 ca. the order of set literals was reversed."""
+    # Cached result, pylint: disable=global-statement
+    global _needs_set_literal_reverse_insertion
+
+    if _needs_set_literal_reverse_insertion is None:
+        try:
+            value = eval("{1,1.0}.pop()")  # pylint: disable=eval-used
+        except SyntaxError:
+            _needs_set_literal_reverse_insertion = False
+        else:
+            _needs_set_literal_reverse_insertion = type(value) is float
+
+    return _needs_set_literal_reverse_insertion
 
 
 def needsDuplicateArgumentColOffset():
-    if python_version < 353:
+    if python_version < 0x353:
         return False
     else:
         return True
@@ -253,3 +258,110 @@ def getPythonABI():
         abiflags = ""
 
     return abiflags
+
+
+_the_sys_prefix = None
+
+
+def getSystemPrefixPath():
+    """Return real sys.prefix as an absolute path breaking out of virtualenv.
+
+    Note:
+
+        For Nuitka, it often is OK to break out of the virtualenv, and use the
+        original install. Mind you, this is not about executing anything, this is
+        about building, and finding the headers to compile against that Python, we
+        do not care about any site packages, and so on.
+
+    Returns:
+        str - path to system prefix
+    """
+
+    global _the_sys_prefix  # Cached result, pylint: disable=global-statement
+    if _the_sys_prefix is None:
+
+        sys_prefix = getattr(
+            sys, "real_prefix", getattr(sys, "base_prefix", sys.prefix)
+        )
+        sys_prefix = os.path.abspath(sys_prefix)
+
+        # Some virtualenv contain the "orig-prefix.txt" as a textual link to the
+        # target, this is often on Windows with virtualenv. There are two places to
+        # look for.
+        for candidate in (
+            "Lib/orig-prefix.txt",
+            "lib/python%s/orig-prefix.txt" % python_version_str,
+        ):
+            candidate = os.path.join(sys_prefix, candidate)
+            if os.path.exists(candidate):
+                with open(candidate) as f:
+                    sys_prefix = f.read()
+
+                # Trailing spaces in the python prefix, please not.
+                assert sys_prefix == sys_prefix.strip()
+
+        # This is another for of virtualenv references:
+        if os.name != "nt" and os.path.islink(os.path.join(sys_prefix, ".Python")):
+            sys_prefix = os.path.normpath(
+                os.path.join(os.readlink(os.path.join(sys_prefix, ".Python")), "..")
+            )
+
+        # Some virtualenv created by "venv" seem to have a different structure, where
+        # library and include files are outside of it.
+        if (
+            os.name != "nt"
+            and python_version >= 0x330
+            and os.path.exists(os.path.join(sys_prefix, "bin/activate"))
+        ):
+            python_binary = os.path.join(sys_prefix, "bin", "python")
+            python_binary = os.path.realpath(python_binary)
+
+            sys_prefix = os.path.normpath(os.path.join(python_binary, "..", ".."))
+
+        _the_sys_prefix = sys_prefix
+
+    return _the_sys_prefix
+
+
+def getSystemStaticLibPythonPath():
+    sys_prefix = getSystemPrefixPath()
+    python_abi_version = python_version_str + getPythonABI()
+
+    if isNuitkaPython():
+        # Nuitka Python has this.
+        return os.path.join(
+            sys_prefix,
+            "libs",
+            "python" + python_abi_version.replace(".", "") + ".lib",
+        )
+
+    if os.name == "nt":
+        candidates = [
+            # Anaconda has this.
+            os.path.join(
+                sys_prefix,
+                "libs",
+                "libpython" + python_abi_version.replace(".", "") + ".dll.a",
+            ),
+            # MSYS2 mingw64 Python has this.
+            os.path.join(
+                sys_prefix,
+                "lib",
+                "libpython" + python_abi_version + ".dll.a",
+            ),
+        ]
+
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                return candidate
+    else:
+        python_lib_path = os.path.join(sys_prefix, "lib")
+
+        candidate = os.path.join(
+            python_lib_path, "libpython" + python_abi_version + ".a"
+        )
+
+        if os.path.exists(candidate):
+            return candidate
+
+    return None

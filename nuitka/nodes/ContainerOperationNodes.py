@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,8 +19,6 @@
 
 """
 
-from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
-
 from .ExpressionBases import (
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
@@ -31,17 +29,14 @@ from .NodeBases import StatementChildrenHavingBase
 class StatementListOperationAppend(StatementChildrenHavingBase):
     kind = "STATEMENT_LIST_OPERATION_APPEND"
 
-    named_children = ("list", "value")
-    getList = StatementChildrenHavingBase.childGetter("list")
-    getValue = StatementChildrenHavingBase.childGetter("value")
+    named_children = ("list_arg", "value")
 
-    @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, list_arg, value, source_ref):
         assert list_arg is not None
         assert value is not None
 
         StatementChildrenHavingBase.__init__(
-            self, values={"list": list_arg, "value": value}, source_ref=source_ref
+            self, values={"list_arg": list_arg, "value": value}, source_ref=source_ref
         )
 
     def computeStatement(self, trace_collection):
@@ -52,7 +47,8 @@ class StatementListOperationAppend(StatementChildrenHavingBase):
         if result is not self:
             return result, change_tags, change_desc
 
-        trace_collection.removeKnowledge(self.getList())
+        # TODO: Until we have proper list tracing.
+        trace_collection.removeKnowledge(self.subnode_list_arg)
 
         return self, None, None
 
@@ -60,41 +56,43 @@ class StatementListOperationAppend(StatementChildrenHavingBase):
 class ExpressionListOperationExtend(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_LIST_OPERATION_EXTEND"
 
-    named_children = ("list", "value")
-    getList = ExpressionChildrenHavingBase.childGetter("list")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
+    named_children = ("list_arg", "value")
 
-    @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, list_arg, value, source_ref):
         assert list_arg is not None
         assert value is not None
 
         ExpressionChildrenHavingBase.__init__(
-            self, values={"list": list_arg, "value": value}, source_ref=source_ref
+            self, values={"list_arg": list_arg, "value": value}, source_ref=source_ref
         )
 
     def computeExpression(self, trace_collection):
-        trace_collection.removeKnowledge(self.getList())
+        # TODO: Until we have proper list tracing.
+        trace_collection.removeKnowledge(self.subnode_list_arg)
 
         return self, None, None
+
+
+class ExpressionListOperationExtendForUnpack(ExpressionListOperationExtend):
+    kind = "EXPRESSION_LIST_OPERATION_EXTEND_FOR_UNPACK"
 
 
 class ExpressionListOperationPop(ExpressionChildHavingBase):
     kind = "EXPRESSION_LIST_OPERATION_POP"
 
-    named_child = "list"
-    getList = ExpressionChildHavingBase.childGetter("list")
+    named_child = "list_arg"
 
-    @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, list_arg, source_ref):
         assert list_arg is not None
 
         ExpressionChildHavingBase.__init__(self, value=list_arg, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
-        # We might be able to tell that element, or know that it cannot exist
-        # and raise an exception instead.
-        trace_collection.removeKnowledge(self.getList())
+        if not self.subnode_list_arg.isKnownToBeIterableAtMin(1):
+            trace_collection.onExceptionRaiseExit(IndexError)
+
+        # TODO: Until we have proper list tracing.
+        trace_collection.removeKnowledge(self.subnode_list_arg)
 
         return self, None, None
 
@@ -102,17 +100,14 @@ class ExpressionListOperationPop(ExpressionChildHavingBase):
 class StatementSetOperationAdd(StatementChildrenHavingBase):
     kind = "STATEMENT_SET_OPERATION_ADD"
 
-    named_children = ("set", "value")
-    getSet = StatementChildrenHavingBase.childGetter("set")
-    getValue = StatementChildrenHavingBase.childGetter("value")
+    named_children = ("set_arg", "value")
 
-    @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, set_arg, value, source_ref):
         assert set_arg is not None
         assert value is not None
 
         StatementChildrenHavingBase.__init__(
-            self, values={"set": set_arg, "value": value}, source_ref=source_ref
+            self, values={"set_arg": set_arg, "value": value}, source_ref=source_ref
         )
 
     def computeStatement(self, trace_collection):
@@ -123,7 +118,7 @@ class StatementSetOperationAdd(StatementChildrenHavingBase):
         if result is not self:
             return result, change_tags, change_desc
 
-        trace_collection.removeKnowledge(self.getSet())
+        trace_collection.removeKnowledge(self.subnode_set_arg)
 
         return self, None, None
 
@@ -131,20 +126,17 @@ class StatementSetOperationAdd(StatementChildrenHavingBase):
 class ExpressionSetOperationUpdate(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SET_OPERATION_UPDATE"
 
-    named_children = ("set", "value")
-    getSet = ExpressionChildrenHavingBase.childGetter("set")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
+    named_children = ("set_arg", "value")
 
-    @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, set_arg, value, source_ref):
         assert set_arg is not None
         assert value is not None
 
         ExpressionChildrenHavingBase.__init__(
-            self, values={"set": set_arg, "value": value}, source_ref=source_ref
+            self, values={"set_arg": set_arg, "value": value}, source_ref=source_ref
         )
 
     def computeExpression(self, trace_collection):
-        trace_collection.removeKnowledge(self.getSet())
+        trace_collection.removeKnowledge(self.subnode_set_arg)
 
         return self, None, None

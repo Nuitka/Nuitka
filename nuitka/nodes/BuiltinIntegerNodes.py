@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -46,12 +46,12 @@ class ExpressionBuiltinInt1(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_INT1"
 
     named_child = "value"
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         # TODO: Depending on input type shape and value, we should improve this.
         return tshape_int_or_long_derived
 
@@ -68,8 +68,6 @@ class ExpressionBuiltinIntLong2Base(
     ExpressionSpecBasedComputationMixin, ExpressionChildrenHavingBase
 ):
     named_children = ("value", "base")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
-    getBase = ExpressionChildrenHavingBase.childGetter("base")
 
     # Note: Version specific, may be allowed or not.
     try:
@@ -122,22 +120,23 @@ class ExpressionBuiltinInt2(ExpressionBuiltinIntLong2Base):
     builtin_spec = BuiltinParameterSpecs.builtin_int_spec
     builtin = int
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_int_or_long
 
 
-if python_version < 300:
+if python_version < 0x300:
 
     class ExpressionBuiltinLong1(ExpressionChildHavingBase):
         kind = "EXPRESSION_BUILTIN_LONG1"
 
         named_child = "value"
-        getValue = ExpressionChildHavingBase.childGetter("value")
 
         def __init__(self, value, source_ref):
             ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
-        def getTypeShape(self):
+        @staticmethod
+        def getTypeShape():
             # TODO: Depending on input type shape and value, we should improve this.
             return tshape_long_derived
 
@@ -155,5 +154,6 @@ if python_version < 300:
         builtin_spec = BuiltinParameterSpecs.builtin_long_spec
         builtin = long
 
-        def getTypeShape(self):
+        @staticmethod
+        def getTypeShape():
             return tshape_long

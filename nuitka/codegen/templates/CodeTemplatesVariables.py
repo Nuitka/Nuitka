@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -150,18 +150,11 @@ template_del_shared_known = """\
 """
 
 
-# TODO: We could know, if we could loop, and only set the
-# variable to NULL then, using a different template.
-template_release_unclear = """\
-Py_XDECREF(%(identifier)s);
-%(identifier)s = NULL;
-"""
+template_release_object_unclear = """\
+Py_XDECREF(%(identifier)s);"""
 
-template_release_clear = """\
-CHECK_OBJECT(%(identifier)s);
-Py_DECREF(%(identifier)s);
-%(identifier)s = NULL;
-"""
+template_release_object_clear = """\
+Py_DECREF(%(identifier)s);"""
 
 template_read_shared_known = """\
 %(tmp_name)s = Nuitka_Cell_GET(%(identifier)s);
@@ -174,15 +167,11 @@ template_read_shared_known = """\
 # by keeping track of things that were added by "site.py" mechanisms. Then
 # we can avoid the second call entirely for most cases.
 template_read_mvar_unclear = """\
-%(tmp_name)s = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(var_name)s);
-
-if (unlikely(%(tmp_name)s == NULL)) {
-    %(tmp_name)s = GET_STRING_DICT_VALUE(dict_builtin, (Nuitka_StringObject *)%(var_name)s);
-}
+%(tmp_name)s = LOOKUP_MODULE_VALUE(moduledict_%(module_identifier)s, %(var_name)s);
 """
 
 template_read_locals_dict_with_fallback = """\
-%(to_name)s = PyDict_GetItem(%(locals_dict)s, %(var_name)s);
+%(to_name)s = DICT_GET_ITEM0(%(locals_dict)s, %(var_name)s);
 
 if (%(to_name)s == NULL) {
 %(fallback)s
@@ -190,7 +179,7 @@ if (%(to_name)s == NULL) {
 """
 
 template_read_locals_dict_without_fallback = """\
-%(to_name)s = PyDict_GetItem(%(locals_dict)s, %(var_name)s);
+%(to_name)s = DICT_GET_ITEM0(%(locals_dict)s, %(var_name)s);
 """
 
 

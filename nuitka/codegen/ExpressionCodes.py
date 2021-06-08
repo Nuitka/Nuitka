@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,7 @@ from .ErrorCodes import getReleaseCode
 
 def generateExpressionOnlyCode(statement, emit, context):
     return getStatementOnlyCode(
-        value=statement.getExpression(), emit=emit, context=context
+        value=statement.subnode_expression, emit=emit, context=context
     )
 
 
@@ -48,12 +48,12 @@ def getStatementOnlyCode(value, emit, context):
 
 
 def generateSideEffectsCode(to_name, expression, emit, context):
-    for side_effect in expression.getSideEffects():
+    for side_effect in expression.subnode_side_effects:
         getStatementOnlyCode(value=side_effect, emit=emit, context=context)
 
     generateExpressionCode(
         to_name=to_name,
-        expression=expression.getExpression(),
+        expression=expression.subnode_expression,
         emit=emit,
         context=context,
     )

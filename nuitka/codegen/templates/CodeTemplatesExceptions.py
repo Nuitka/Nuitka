@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -66,6 +66,18 @@ if (%(condition)s) {
     goto %(exception_exit)s;
 }
 """
+
+template_error_format_name_error_exception = """\
+if (unlikely(%(condition)s)) {
+%(release_temps)s
+%(set_exception)s
+
+%(line_number_code)s
+%(var_description_code)s
+    goto %(exception_exit)s;
+}
+"""
+
 
 from . import TemplateDebugWrapper  # isort:skip
 

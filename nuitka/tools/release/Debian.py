@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,11 +23,30 @@ import os
 import shutil
 import sys
 
+from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import getFileContentByLine, listDir
 
 
-def _bumpVersion(debian_version):
-    assert os.system('debchange --newversion=%s ""' % debian_version) == 0
+def _callDebchange(*args):
+    args = ["debchange"] + list(args)
+
+    os.environ["EDITOR"] = ""
+
+    with open(os.devnull, "r") as devnull:
+        check_call(args, stdin=devnull)
+
+
+def _discardDebianChangelogLastEntry():
+    with open("debian/changelog") as f:
+        changelog_lines = f.readlines()
+    with open("debian/changelog", "w") as output:
+        first = True
+        for line in changelog_lines[1:]:
+            if line.startswith("nuitka") and first:
+                first = False
+
+            if not first:
+                output.write(line)
 
 
 def updateDebianChangelog(old_version, new_version, distribution):
@@ -36,48 +55,42 @@ def updateDebianChangelog(old_version, new_version, distribution):
     os.environ["DEBEMAIL"] = "Kay Hayen <kay.hayen@gmail.com>"
 
     if "rc" in new_version:
-        if "rc1" in new_version:
-            assert os.system('debchange -R "New upstream pre-release."') == 0
+        if "rc" in old_version:
+            # Initial final release after pre-releases.
+            _discardDebianChangelogLastEntry()
 
-        _bumpVersion(debian_version)
+        message = "New upstream pre-release."
 
         with open("Changelog.rst") as f:
             changelog = f.read()
-        if "(Draft)" not in changelog.splitlines()[0]:
+        if "(Draft)" not in changelog.splitlines()[1]:
             title = "Nuitka Release " + new_version[:-3] + " (Draft)"
 
             with open("Changelog.rst", "w") as changelog_file:
-                changelog_file.write(title + "\n" + ("=" * len(title) + "\n\n"))
-                changelog_file.write("This release is not done yet.\n\n\n")
+                marker = "#" * (len(title) + 2)
+
+                changelog_file.write(marker + "\n " + title + "\n" + marker + "\n\n")
+                changelog_file.write("This release is not done yet.\n\n")
                 changelog_file.write(changelog)
 
     else:
         if "rc" in old_version:
             # Initial final release after pre-releases.
-            with open("debian/changelog") as f:
-                changelog_lines = f.readlines()
-            with open("debian/changelog", "w") as output:
-                first = True
-                for line in changelog_lines[1:]:
-                    if line.startswith("nuitka") and first:
-                        first = False
+            _discardDebianChangelogLastEntry()
 
-                    if not first:
-                        output.write(line)
-
-            os.system('debchange -R "New upstream release."')
+            message = "New upstream release."
         else:
-            # Hotfix release after previous final or hotfix release.
-            os.system('debchange -R "New upstream hotfix release."')
+            # Initial final release after pre-releases.
 
-    _bumpVersion(debian_version)
-    assert os.system('debchange -r "" --distribution "%s"' % distribution) == 0
+            # Hotfix release after previous final or hotfix release.
+            message = "New upstream hotfix release."
+
+    _callDebchange("--newversion=%s" % debian_version, message)
+    _callDebchange("-r", "--distribution", distribution, "")
 
 
 def checkChangeLog(message):
-    """ Check debian changelog for given message to be present.
-
-    """
+    """Check debian changelog for given message to be present."""
 
     for line in getFileContentByLine("debian/changelog"):
         if line.startswith(" --"):
@@ -90,42 +103,42 @@ def checkChangeLog(message):
 
 
 def cleanupTarfileForDebian(filename, new_name):
-    """ Remove files that shouldn't be in Debian.
+    """Remove files that shouldn't be in Debian.
 
     The inline copies should definitely not be there. Also remove the
-    PDF files for now.
+    PDF files.
     """
 
     shutil.copyfile(filename, new_name)
-    assert os.system("gunzip " + new_name) == 0
-    assert (
-        os.system(
-            "tar --wildcards --delete --file "
-            + new_name[:-3]
-            + " Nuitka*/*.pdf Nuitka*/build/inline_copy"
-        )
-        == 0
+    check_call(["gunzip", new_name])
+    check_call(
+        [
+            "tar",
+            "--wildcards",
+            "--delete",
+            "--file",
+            new_name[:-3],
+            "Nuitka*/*.pdf",
+            "Nuitka*/build/inline_copy",
+        ],
     )
-    assert os.system("gzip -9 -n " + new_name[:-3]) == 0
+    check_call(["gzip", "-9", "-n", new_name[:-3]])
 
 
 def runPy2dsc(filename, new_name):
-    assert os.system("py2dsc " + new_name) == 0
+    check_call(["py2dsc", new_name])
 
     # Fixup for py2dsc not taking our custom suffix into account, so we need
     # to rename it ourselves.
     before_deb_name = filename[:-7].lower().replace("-", "_")
     after_deb_name = before_deb_name.replace("rc", "~rc")
 
-    assert (
-        os.system(
-            "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'"
-            % (before_deb_name, after_deb_name)
-        )
-        == 0
+    os.rename(
+        "deb_dist/%s.orig.tar.gz" % before_deb_name,
+        "deb_dist/%s+ds.orig.tar.gz" % after_deb_name,
     )
 
-    assert os.system("rm -f deb_dist/*_source*") == 0
+    check_call(["rm -f deb_dist/*_source*"], shell=True)
 
     # Remove the now useless input, py2dsc has copied it, and we don't
     # publish it.
@@ -147,14 +160,19 @@ def runPy2dsc(filename, new_name):
 
     # Import the "debian" directory from above. It's not in the original tar and
     # overrides fully what py2dsc did.
-    assert os.system("rm -r deb_dist/%s/debian/*" % entry) == 0
-    assert (
-        os.system(
-            "rsync -a --exclude pbuilder-hookdir ../debian/ deb_dist/%s/debian/" % entry
-        )
-        == 0
+    check_call(["rm -r deb_dist/%s/debian/*" % entry], shell=True)
+
+    check_call(
+        [
+            "rsync",
+            "-a",
+            "--exclude",
+            "pbuilder-hookdir",
+            "../debian/",
+            "deb_dist/%s/debian/" % entry,
+        ]
     )
 
-    assert os.system("rm deb_dist/*.dsc deb_dist/*.debian.tar.xz") == 0
+    check_call(["rm deb_dist/*.dsc deb_dist/*.debian.tar.xz"], shell=True)
 
     return entry

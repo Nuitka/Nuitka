@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -43,16 +43,21 @@ sys.path.insert(
 import subprocess
 import tempfile
 
-from nuitka.PythonVersions import python_version
 from nuitka.tools.testing.Common import (
     checkCompilesNotWithCPython,
     compileLibraryTest,
     createSearchMode,
+    getPythonArch,
+    getPythonVendor,
     my_print,
     setup,
 )
+from nuitka.utils.Importing import getSharedLibrarySuffix
 
-setup(needs_io_encoding=True)
+python_version = setup(needs_io_encoding=True)
+python_vendor = getPythonVendor()
+python_arch = getPythonArch()
+
 search_mode = createSearchMode()
 
 tmp_dir = tempfile.gettempdir()
@@ -61,12 +66,14 @@ tmp_dir = tempfile.gettempdir()
 if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
     tmp_dir = "/var/tmp"
 
-blacklist = (
+ignore_list = (
     "__phello__.foo.py",  # Triggers error for "." in module name
     "idnadata",  # Avoid too complex code for main program.
     "joined_strings.py",
     # Incredible amount of memory in C compiler for test code
     "test_spin.py",
+    # Uses outside modules up the chain
+    "cheshire_tomography.py",
 )
 
 nosyntax_errors = (
@@ -81,7 +88,7 @@ nosyntax_errors = (
 def decide(_root, filename):
     return (
         filename.endswith(".py")
-        and filename not in blacklist
+        and filename not in ignore_list
         and "(" not in filename
         and filename.count(".") == 1
     )
@@ -116,12 +123,9 @@ def action(stage_dir, _root, path):
     else:
         my_print("OK")
 
-        if os.name == "nt":
-            suffix = "pyd"
-        else:
-            suffix = "so"
+        suffix = getSharedLibrarySuffix(preferred=True)
 
-        target_filename = os.path.basename(path).replace(".py", "." + suffix)
+        target_filename = os.path.basename(path)[:-3] + suffix
         target_filename = target_filename.replace("(", "").replace(")", "")
 
         os.unlink(os.path.join(stage_dir, target_filename))
@@ -129,7 +133,11 @@ def action(stage_dir, _root, path):
 
 compileLibraryTest(
     search_mode=search_mode,
-    stage_dir=os.path.join(tmp_dir, "compile_library_%s" % python_version),
+    stage_dir=os.path.join(
+        tmp_dir,
+        "compile_library_%s-%s-%s"
+        % (".".join(python_version), python_arch, python_vendor),
+    ),
     decide=decide,
     action=action,
 )

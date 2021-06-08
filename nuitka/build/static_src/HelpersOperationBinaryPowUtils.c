@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -24,5 +24,3 @@
 #include <float.h>
 
 #define DOUBLE_IS_ODD_INTEGER(x) (fmod(fabs(x), 2.0) == 1.0)
-
-extern PyObject *const_float_minus_1_0, *const_float_1_0, *const_float_0_0;

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,13 +17,17 @@
 #
 """ Standard shapes that commonly appear. """
 
+from abc import abstractmethod
+
+from nuitka.__past__ import getMetaClassBase
 from nuitka.codegen.c_types.CTypePyObjectPtrs import CTypePyObjectPtr
 from nuitka.codegen.Reports import onMissingOperation
 
 from .ControlFlowDescriptions import ControlFlowDescriptionFullEscape
+from .ShapeMixins import ShapeIteratorMixin
 
 
-class ShapeBase(object):
+class ShapeBase(getMetaClassBase("Shape")):
     def __repr__(self):
         return "<%s %s %s>" % (
             self.__class__.__name__,
@@ -93,6 +97,10 @@ class ShapeBase(object):
     def hasShapeSlotContains():
         return None
 
+    @staticmethod
+    def hasShapeSlotHash():
+        return None
+
     add_shapes = {}
 
     def getOperationBinaryAddShape(self, right_shape):
@@ -117,9 +125,7 @@ class ShapeBase(object):
     iadd_shapes = {}
 
     def getOperationInplaceAddShape(self, right_shape):
-        """ Inplace add operation shape, for overload.
-
-        """
+        """Inplace add operation shape, for overload."""
         if self.iadd_shapes:
             result = self.iadd_shapes.get(right_shape)
 
@@ -389,6 +395,32 @@ class ShapeBase(object):
 
             return operation_result_unknown
 
+    ibitor_shapes = {}
+
+    def getOperationInplaceBitOrShape(self, right_shape):
+        """Inplace bitor operation shape, for overload."""
+        if self.ibitor_shapes:
+            result = self.ibitor_shapes.get(right_shape)
+
+            if result is not None:
+                return result
+            else:
+                right_shape_type = type(right_shape)
+                if right_shape_type is ShapeLoopCompleteAlternative:
+                    return right_shape.getOperationBinaryBitOrLShape(self)
+
+                if right_shape_type is ShapeLoopInitialAlternative:
+                    return operation_result_unknown
+
+                onMissingOperation("IBitOr", self, right_shape)
+
+                return operation_result_unknown
+        else:
+            # By default, inplace add is the same as plain add, the
+            # only exception known right now is list, which extend
+            # from all iterables, but don't add with them.
+            return self.getOperationBinaryBitOrShape(right_shape)
+
     matmult_shapes = {}
 
     def getOperationBinaryMatMultShape(self, right_shape):
@@ -427,6 +459,10 @@ class ShapeBase(object):
 
     def getComparisonNeqShape(self, right_shape):
         return self.getComparisonLtShape(right_shape)
+
+    @abstractmethod
+    def getOperationUnaryReprEscape(self):
+        pass
 
     def emitAlternatives(self, emit):
         emit(self)
@@ -497,6 +533,10 @@ class ShapeTypeUnknown(ShapeBase):
     def getComparisonLtShape(right_shape):
         return operation_result_unknown
 
+    @staticmethod
+    def getOperationUnaryReprEscape():
+        return ControlFlowDescriptionFullEscape
+
 
 tshape_unknown = ShapeTypeUnknown()
 
@@ -524,7 +564,7 @@ class ValueShapeUnknown(ValueShapeBase):
 
     @staticmethod
     def isConstant():
-        """ Can't say if it's constant, we don't know anything. """
+        """Can't say if it's constant, we don't know anything."""
         return None
 
 
@@ -559,7 +599,9 @@ class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
         self.predictor = predictor
 
 
-class ShapeIterator(ShapeBase):
+class ShapeIterator(ShapeBase, ShapeIteratorMixin):
+    """Iterator created by iter with 2 arguments, TODO: could be way more specific."""
+
     @staticmethod
     def hasShapeSlotBool():
         return None
@@ -581,34 +623,26 @@ class ShapeIterator(ShapeBase):
         return None
 
     @staticmethod
-    def hasShapeSlotIter():
-        return True
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return True
-
-    @staticmethod
     def getShapeIter():
-        return ShapeIterator
+        return tshape_iterator
 
     @staticmethod
-    def hasShapeSlotContains():
-        return True
+    def getOperationUnaryReprEscape():
+        return ControlFlowDescriptionFullEscape
 
 
 tshape_iterator = ShapeIterator()
 
 
 class ShapeLoopInitialAlternative(ShapeBase):
-    """ Merge of loop wrap around with loop start value.
+    """Merge of loop wrap around with loop start value.
 
-        Happens at the start of loop blocks. This is for loop closed SSA, to
-        make it clear, that the entered value, can be anything really, and
-        will only later be clarified.
+    Happens at the start of loop blocks. This is for loop closed SSA, to
+    make it clear, that the entered value, can be anything really, and
+    will only later be clarified.
 
-        They will start out with just one previous, and later be updated with
-        all of the variable versions at loop continue times.
+    They will start out with just one previous, and later be updated with
+    all of the variable versions at loop continue times.
     """
 
     __slots__ = ("type_shapes",)
@@ -872,16 +906,20 @@ class ShapeLoopInitialAlternative(ShapeBase):
     def getComparisonNeqShape(self, right_shape):
         return self.getComparisonLtShape(right_shape)
 
+    @staticmethod
+    def getOperationUnaryReprEscape():
+        return ControlFlowDescriptionFullEscape
+
 
 class ShapeLoopCompleteAlternative(ShapeBase):
-    """ Merge of loop wrap around with loop start value.
+    """Merge of loop wrap around with loop start value.
 
-        Happens at the start of loop blocks. This is for loop closed SSA, to
-        make it clear, that the entered value, can be one of multiple types,
-        but only those.
+    Happens at the start of loop blocks. This is for loop closed SSA, to
+    make it clear, that the entered value, can be one of multiple types,
+    but only those.
 
-        They will start out with just one previous, and later be updated with
-        all of the variable versions at loop continue times.
+    They will start out with just one previous, and later be updated with
+    all of the variable versions at loop continue times.
     """
 
     __slots__ = ("type_shapes",)
@@ -939,6 +977,8 @@ class ShapeLoopCompleteAlternative(ShapeBase):
                     escape_description = ControlFlowDescriptionFullEscape
                 else:
                     assert False
+            else:
+                (escape_description,) = escape_description
 
             return ShapeLoopCompleteAlternative(result), escape_description
 
@@ -1241,6 +1281,11 @@ class ShapeLoopCompleteAlternative(ShapeBase):
     def getComparisonNeqShape(self, right_shape):
         return self.getComparisonLtShape(right_shape)
 
+    @staticmethod
+    def getOperationUnaryReprEscape():
+        # TODO: We could collect information.
+        return ControlFlowDescriptionFullEscape
+
     def _delegatedCheck(self, check):
         result = None
 
@@ -1295,5 +1340,7 @@ class ShapeLoopCompleteAlternative(ShapeBase):
     def hasShapeModule(self):
         return self._delegatedCheck(lambda x: x.hasShapeModule())
 
+
+tshape_unknown_loop = ShapeLoopCompleteAlternative(shapes=(tshape_unknown,))
 
 operation_result_unknown = tshape_unknown, ControlFlowDescriptionFullEscape

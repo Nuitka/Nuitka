@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,7 +30,6 @@ class ExpressionMakeCoroutineObject(ExpressionChildHavingBase):
     kind = "EXPRESSION_MAKE_COROUTINE_OBJECT"
 
     named_child = "coroutine_ref"
-    getCoroutineRef = ExpressionChildHavingBase.childGetter("coroutine_ref")
 
     __slots__ = ("variable_closure_traces",)
 
@@ -44,26 +43,28 @@ class ExpressionMakeCoroutineObject(ExpressionChildHavingBase):
         self.variable_closure_traces = None
 
     def getDetailsForDisplay(self):
-        return {"coroutine": self.getCoroutineRef().getFunctionBody().getCodeName()}
+        return {"coroutine": self.subnode_coroutine_ref.getFunctionBody().getCodeName()}
 
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []
 
-        for closure_variable in (
-            self.getCoroutineRef().getFunctionBody().getClosureVariables()
-        ):
+        for (
+            closure_variable
+        ) in self.subnode_coroutine_ref.getFunctionBody().getClosureVariables():
             trace = trace_collection.getVariableCurrentTrace(closure_variable)
-            trace.addClosureUsage()
+            trace.addNameUsage()
 
             self.variable_closure_traces.append((closure_variable, trace))
 
         # TODO: Coroutine body may know something too.
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         return False
 
     def getClosureVariableVersions(self):
@@ -73,7 +74,7 @@ class ExpressionMakeCoroutineObject(ExpressionChildHavingBase):
 class ExpressionCoroutineObjectBody(ExpressionFunctionEntryPointBase):
     kind = "EXPRESSION_COROUTINE_OBJECT_BODY"
 
-    qualname_setup = None
+    __slots__ = ("qualname_setup", "needs_generator_return_exit")
 
     def __init__(self, provider, name, code_object, flags, auto_release, source_ref):
         ExpressionFunctionEntryPointBase.__init__(
@@ -88,6 +89,8 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionEntryPointBase):
         )
 
         self.needs_generator_return_exit = False
+
+        self.qualname_setup = None
 
     def getFunctionName(self):
         return self.name
@@ -114,7 +117,6 @@ class ExpressionAsyncWait(ExpressionChildHavingBase):
     kind = "EXPRESSION_ASYNC_WAIT"
 
     named_child = "expression"
-    getValue = ExpressionChildHavingBase.childGetter("expression")
 
     __slots__ = ("exception_preserving",)
 

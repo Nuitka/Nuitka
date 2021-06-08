@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,9 +30,7 @@ from nuitka.containers.oset import OrderedSet
 
 
 def parseTypesFromHelper(helper_name):
-    """ Function to parse helper names.
-
-    """
+    """Function to parse helper names."""
 
     if "_INPLACE" not in helper_name:
         target_code = helper_name.split("_")[3]
@@ -47,11 +45,11 @@ def parseTypesFromHelper(helper_name):
 
 
 def deriveInplaceFromBinaryOperations(operations_set):
-    """ Derive the in-place operations from the binary ones.
+    """Derive the in-place operations from the binary ones.
 
-        These can largely be the same, or should be, and keeping them inline is easier when
-        generating them. Obviously the templates might both need changes to optimize equally
-        well for all variants.
+    These can largely be the same, or should be, and keeping them inline is easier when
+    generating them. Obviously the templates might both need changes to optimize equally
+    well for all variants.
     """
 
     if not operations_set:
@@ -102,7 +100,7 @@ def makeFriendOps(op_code, include_nbool, *type_names):
                 continue
 
             yield "BINARY_OPERATION_%s_OBJECT_%s_%s" % (op_code, type_name1, type_name2)
-            yield "BINARY_OPERATION_%s_OBJECT_%s_%s" % (op_code, type_name1, type_name2)
+            yield "BINARY_OPERATION_%s_OBJECT_%s_%s" % (op_code, type_name2, type_name1)
 
             if include_nbool:
                 yield "BINARY_OPERATION_%s_NBOOL_%s_%s" % (
@@ -112,8 +110,8 @@ def makeFriendOps(op_code, include_nbool, *type_names):
                 )
                 yield "BINARY_OPERATION_%s_NBOOL_%s_%s" % (
                     op_code,
-                    type_name1,
                     type_name2,
+                    type_name1,
                 )
 
 
@@ -145,6 +143,8 @@ specialized_add_helpers_set = buildOrderedSet(
     makeTypeOps("ADD", "LIST", include_nbool=True),
     # These are friends naturally, they all add with another
     makeFriendOps("ADD", True, "INT", "LONG", "FLOAT"),
+    # TODO: Make CLONG ready to join above group.
+    # makeFriendOps("ADD", True, "INT", "CLONG"),
     # These are friends too.
     makeFriendOps("ADD", True, "STR", "UNICODE"),
     # Default implementation.
@@ -183,6 +183,8 @@ specialized_mult_helpers_set = buildOrderedSet(
         "BINARY_OPERATION_MULT_OBJECT_CLONG_CLONG",
         "BINARY_OPERATION_MULT_OBJECT_INT_CLONG",
         "BINARY_OPERATION_MULT_OBJECT_CLONG_INT",
+        #        "BINARY_OPERATION_MULT_OBJECT_LONG_CLONG",
+        #        "BINARY_OPERATION_MULT_OBJECT_CLONG_LONG",
         "BINARY_OPERATION_MULT_OBJECT_OBJECT_STR",
         "BINARY_OPERATION_MULT_OBJECT_STR_OBJECT",
         "BINARY_OPERATION_MULT_OBJECT_INT_STR",
@@ -407,6 +409,9 @@ specialized_pow_helpers_set = OrderedSet(
         "BINARY_OPERATION_POW_NBOOL_OBJECT_LONG",
         "BINARY_OPERATION_POW_OBJECT_LONG_OBJECT",
         "BINARY_OPERATION_POW_NBOOL_LONG_OBJECT",
+        # TODO: Enable these later.
+        #        "BINARY_OPERATION_POW_OBJECT_LONG_FLOAT",
+        #        "BINARY_OPERATION_POW_NBOOL_LONG_FLOAT",
         "BINARY_OPERATION_POW_OBJECT_INT_INT",
         "BINARY_OPERATION_POW_NBOOL_INT_INT",
         "BINARY_OPERATION_POW_OBJECT_OBJECT_INT",

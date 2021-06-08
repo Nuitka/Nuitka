@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,6 +21,7 @@ Holds the information necessary to make C code declarations related to a variabl
 """
 from contextlib import contextmanager
 
+from .c_types.CTypeBools import CTypeBool
 from .c_types.CTypeModuleDictVariables import CTypeModuleDictVariable
 from .c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
 from .c_types.CTypeNuitkaInts import CTypeNuitkaIntOrLongStruct
@@ -107,6 +108,8 @@ class VariableDeclaration(object):
             return CTypePyObjectPtrPtr
         elif c_type == "nuitka_bool":
             return CTypeNuitkaBoolEnum
+        elif c_type == "bool":
+            return CTypeBool
         elif c_type == "nuitka_ilong":
             return CTypeNuitkaIntOrLongStruct
         elif c_type == "module_var":
@@ -153,10 +156,10 @@ class VariableStorage(object):
 
     @contextmanager
     def withLocalStorage(self):
-        """ Local storage for only just during context usage.
+        """Local storage for only just during context usage.
 
-            This is for automatic removal of that scope. These are supposed
-            to be nestable eventually.
+        This is for automatic removal of that scope. These are supposed
+        to be nestable eventually.
 
         """
 

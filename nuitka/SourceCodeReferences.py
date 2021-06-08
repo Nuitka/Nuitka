@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,7 +22,11 @@ the future flags in use there.
 """
 
 from nuitka.__past__ import total_ordering
-from nuitka.utils.InstanceCounters import counted_del, counted_init
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 
 
 @total_ordering
@@ -38,7 +42,8 @@ class SourceCodeReference(object):
 
         return result
 
-    __del__ = counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     @counted_init
     def __init__(self):
@@ -48,6 +53,9 @@ class SourceCodeReference(object):
 
     def __repr__(self):
         return "<%s to %s:%s>" % (self.__class__.__name__, self.filename, self.line)
+
+    def __hash__(self):
+        return hash((self.filename, self.line, self.column))
 
     def __lt__(self, other):
         # Many cases decide early, pylint: disable=too-many-return-statements
@@ -97,16 +105,14 @@ class SourceCodeReference(object):
         return self.isInternal() is other.isInternal()
 
     def _clone(self, line):
-        """ Make a copy it itself.
-
-        """
+        """Make a copy it itself."""
         return self.fromFilenameAndLine(filename=self.filename, line=line)
 
     def atInternal(self):
-        """ Make a copy it itself but mark as internal code.
+        """Make a copy it itself but mark as internal code.
 
-            Avoids useless copies, by returning an internal object again if
-            it is already internal.
+        Avoids useless copies, by returning an internal object again if
+        it is already internal.
         """
         if not self.isInternal():
             result = self._clone(self.line)
@@ -116,10 +122,10 @@ class SourceCodeReference(object):
             return self
 
     def atLineNumber(self, line):
-        """ Make a reference to the same file, but different line.
+        """Make a reference to the same file, but different line.
 
-            Avoids useless copies, by returning same object if the line is
-            the same.
+        Avoids useless copies, by returning same object if the line is
+        the same.
         """
 
         assert type(line) is int, line
@@ -158,12 +164,6 @@ class SourceCodeReference(object):
 
 class SourceCodeReferenceInternal(SourceCodeReference):
     __slots__ = ()
-
-    __del__ = counted_del()
-
-    @counted_init
-    def __init__(self):
-        SourceCodeReference.__init__(self)
 
     @staticmethod
     def isInternal():

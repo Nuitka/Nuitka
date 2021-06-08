@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -29,6 +29,7 @@ NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_NewVar(PyTypeObject *tp, Py_ssize_t 
     Py_SIZE(op) = size;
     Py_REFCNT(op) = 1;
 
+    // TODO: Above assignments might replace this actually.
     op = PyObject_INIT_VAR(op, tp, nitems);
 
     return op;

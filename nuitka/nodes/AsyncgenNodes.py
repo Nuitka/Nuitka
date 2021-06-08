@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,7 +30,6 @@ class ExpressionMakeAsyncgenObject(ExpressionChildHavingBase):
     kind = "EXPRESSION_MAKE_ASYNCGEN_OBJECT"
 
     named_child = "asyncgen_ref"
-    getAsyncgenRef = ExpressionChildHavingBase.childGetter("asyncgen_ref")
 
     __slots__ = ("variable_closure_traces",)
 
@@ -44,16 +43,16 @@ class ExpressionMakeAsyncgenObject(ExpressionChildHavingBase):
         self.variable_closure_traces = []
 
     def getDetailsForDisplay(self):
-        return {"asyncgen": self.getAsyncgenRef().getFunctionBody().getCodeName()}
+        return {"asyncgen": self.subnode_asyncgen_ref.getFunctionBody().getCodeName()}
 
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []
 
-        for closure_variable in (
-            self.getAsyncgenRef().getFunctionBody().getClosureVariables()
-        ):
+        for (
+            closure_variable
+        ) in self.subnode_asyncgen_ref.getFunctionBody().getClosureVariables():
             trace = trace_collection.getVariableCurrentTrace(closure_variable)
-            trace.addClosureUsage()
+            trace.addNameUsage()
 
             self.variable_closure_traces.append((closure_variable, trace))
 
@@ -73,7 +72,7 @@ class ExpressionMakeAsyncgenObject(ExpressionChildHavingBase):
 class ExpressionAsyncgenObjectBody(ExpressionFunctionEntryPointBase):
     kind = "EXPRESSION_ASYNCGEN_OBJECT_BODY"
 
-    qualname_setup = None
+    __slots__ = ("qualname_setup", "needs_generator_return_exit")
 
     def __init__(self, provider, name, code_object, flags, auto_release, source_ref):
         ExpressionFunctionEntryPointBase.__init__(
@@ -88,6 +87,8 @@ class ExpressionAsyncgenObjectBody(ExpressionFunctionEntryPointBase):
         )
 
         self.needs_generator_return_exit = False
+
+        self.qualname_setup = None
 
     def getFunctionName(self):
         return self.name

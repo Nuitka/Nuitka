@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -41,9 +41,9 @@ class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_FORMAT"
 
     named_children = ("value", "format_spec")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
-    getFormatSpec = ExpressionChildrenHavingBase.childGetter("format_spec")
-    setFormatSpec = ExpressionChildrenHavingBase.childSetter("format_spec")
+
+    # Using slots, they don't need that
+    # pylint: disable=access-member-before-definition,attribute-defined-outside-init
 
     def __init__(self, value, format_spec, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -52,22 +52,19 @@ class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
             source_ref=source_ref,
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str_or_unicode
 
     def computeExpression(self, trace_collection):
         # TODO: Can use the format built-in on compile time constants at least.
 
-        value = self.getValue()
-        format_spec = self.getFormatSpec()
+        value = self.subnode_value
+        format_spec = self.subnode_format_spec
 
         # Go to default way if possible.
-        if (
-            format_spec is not None
-            and format_spec.isExpressionConstantStrRef()
-            and not format_spec.getCompileTimeConstant()
-        ):
-            self.setFormatSpec(None)
+        if format_spec is not None and format_spec.isExpressionConstantStrEmptyRef():
+            self.subnode_format_spec = None
             format_spec = None
 
         # Strings format themselves as what they are.
@@ -95,10 +92,11 @@ Removed useless 'format' on '%s' value."""
 class ExpressionBuiltinAscii(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_ASCII"
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         builtin_spec = BuiltinParameterSpecs.builtin_ascii_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str
 
 
@@ -107,7 +105,8 @@ class ExpressionBuiltinBin(ExpressionBuiltinSingleArgBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_bin_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str
 
 
@@ -116,7 +115,8 @@ class ExpressionBuiltinOct(ExpressionBuiltinSingleArgBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_oct_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str
 
 
@@ -125,7 +125,8 @@ class ExpressionBuiltinHex(ExpressionBuiltinSingleArgBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_hex_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str
 
 
@@ -145,7 +146,8 @@ class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
     def getIntValue(self):
         return self
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_int_or_long
 
     def computeExpressionDrop(self, statement, trace_collection):

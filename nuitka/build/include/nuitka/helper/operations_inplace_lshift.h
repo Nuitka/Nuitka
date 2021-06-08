@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -33,27 +33,27 @@ extern bool BINARY_OPERATION_LSHIFT_OBJECT_LONG_INPLACE(PyObject **operand1, PyO
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 extern bool BINARY_OPERATION_LSHIFT_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 extern bool BINARY_OPERATION_LSHIFT_INT_INT_INPLACE(PyObject **operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 extern bool BINARY_OPERATION_LSHIFT_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 extern bool BINARY_OPERATION_LSHIFT_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern bool BINARY_OPERATION_LSHIFT_INT_LONG_INPLACE(PyObject **operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 extern bool BINARY_OPERATION_LSHIFT_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2);
 #endif

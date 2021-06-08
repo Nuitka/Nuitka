@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -48,9 +48,17 @@ from .ControlFlowDescriptions import (
     ControlFlowDescriptionValueErrorNoEscape,
     ControlFlowDescriptionZeroDivisionNoEscape,
 )
+from .ShapeMixins import (
+    ShapeContainerImmutableMixin,
+    ShapeContainerMixin,
+    ShapeContainerMutableMixin,
+    ShapeIteratorMixin,
+    ShapeNotContainerMixin,
+    ShapeNotNumberMixin,
+    ShapeNumberMixin,
+)
 from .StandardShapes import (
     ShapeBase,
-    ShapeIterator,
     ShapeLoopCompleteAlternative,
     ShapeLoopInitialAlternative,
     ShapeTypeUnknown,
@@ -153,7 +161,12 @@ matmult_shapes_float = matmult_shapes_none
 add_shapes_complex = {}
 sub_shapes_complex = {}
 mult_shapes_complex = {}
-floordiv_shapes_complex = floordiv_shapes_none
+
+if python_version < 0x300:
+    floordiv_shapes_complex = {}
+else:
+    floordiv_shapes_complex = floordiv_shapes_none
+
 truediv_shapes_complex = {}
 olddiv_shapes_complex = {}
 mod_shapes_complex = {}
@@ -235,7 +248,8 @@ olddiv_shapes_dict = olddiv_shapes_none
 mod_shapes_dict = mod_shapes_none
 divmod_shapes_dict = divmod_shapes_none
 pow_shapes_dict = pow_shapes_none
-bitor_shapes_dict = bitor_shapes_none
+bitor_shapes_dict = dict(bitor_shapes_none)
+ibitor_shapes_dict = dict(bitor_shapes_none)
 bitand_shapes_dict = bitand_shapes_none
 bitxor_shapes_dict = bitxor_shapes_none
 lshift_shapes_dict = lshift_shapes_none
@@ -340,7 +354,7 @@ def _getComparisonEqShapeGeneric(self, right_shape):
     return operation_result_unknown
 
 
-class ShapeTypeNoneType(ShapeBase):
+class ShapeTypeNoneType(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = None
 
     @staticmethod
@@ -348,44 +362,8 @@ class ShapeTypeNoneType(ShapeBase):
         return "NoneType"
 
     @staticmethod
-    def hasShapeSlotBool():
-        return False
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return False
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return False
+    def hasShapeSlotHash():
+        return True
 
     add_shapes = add_shapes_none
     sub_shapes = sub_shapes_none
@@ -403,7 +381,7 @@ class ShapeTypeNoneType(ShapeBase):
     rshift_shapes = rshift_shapes_none
     matmult_shapes = matmult_shapes_none
 
-    if python_version < 300:
+    if python_version < 0x300:
 
         def getComparisonLtShape(self, right_shape):
             if right_shape is tshape_unknown:
@@ -440,11 +418,15 @@ class ShapeTypeNoneType(ShapeBase):
         def getComparisonNeqShape(self, right_shape):
             return self.getComparisonEqShape(right_shape)
 
+    @staticmethod
+    def getOperationUnaryReprEscape():
+        return ControlFlowDescriptionNoEscape
+
 
 tshape_none = ShapeTypeNoneType()
 
 
-class ShapeTypeBool(ShapeBase):
+class ShapeTypeBool(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
     typical_value = True
 
     @staticmethod
@@ -454,46 +436,6 @@ class ShapeTypeBool(ShapeBase):
     @staticmethod
     def getCType():
         return CTypeNuitkaBoolEnum
-
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return True
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return True
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return True
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return False
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return False
 
     add_shapes = add_shapes_bool
     sub_shapes = sub_shapes_bool
@@ -533,54 +475,14 @@ class ShapeTypeBool(ShapeBase):
 tshape_bool = ShapeTypeBool()
 
 
-class ShapeTypeInt(ShapeBase):
+class ShapeTypeInt(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
     typical_value = 7
 
     @staticmethod
     def getTypeName():
         return "int"
 
-    helper_code = "INT" if python_version < 300 else "LONG"
-
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return True
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return True
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return True
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return False
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return False
+    helper_code = "INT" if python_version < 0x300 else "LONG"
 
     add_shapes = add_shapes_int
     sub_shapes = sub_shapes_int
@@ -623,56 +525,16 @@ class ShapeTypeInt(ShapeBase):
 
 tshape_int = ShapeTypeInt()
 
-if python_version < 300:
+if python_version < 0x300:
 
-    class ShapeTypeLong(ShapeBase):
+    class ShapeTypeLong(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
         typical_value = long(7)  # pylint: disable=I0021,undefined-variable
 
         @staticmethod
         def getTypeName():
             return "long"
 
-        helper_code = "LONG" if python_version < 300 else "INVALID"
-
-        @staticmethod
-        def hasShapeSlotBool():
-            return True
-
-        @staticmethod
-        def hasShapeSlotAbs():
-            return True
-
-        @staticmethod
-        def hasShapeSlotLen():
-            return False
-
-        @staticmethod
-        def hasShapeSlotInt():
-            return True
-
-        @staticmethod
-        def hasShapeSlotLong():
-            return True
-
-        @staticmethod
-        def hasShapeSlotFloat():
-            return True
-
-        @staticmethod
-        def hasShapeSlotComplex():
-            return True
-
-        @staticmethod
-        def hasShapeSlotIter():
-            return False
-
-        @staticmethod
-        def hasShapeSlotNext():
-            return False
-
-        @staticmethod
-        def hasShapeSlotContains():
-            return False
+        helper_code = "LONG" if python_version < 0x300 else "INVALID"
 
         add_shapes = add_shapes_long
         sub_shapes = sub_shapes_long
@@ -717,7 +579,7 @@ if python_version < 300:
 
     tshape_long_derived = ShapeTypeLongDerived()
 
-    class ShapeTypeIntOrLong(ShapeBase):
+    class ShapeTypeIntOrLong(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
         if isExperimental("nuitka_ilong"):
 
             @staticmethod
@@ -725,44 +587,9 @@ if python_version < 300:
                 return CTypeNuitkaIntOrLongStruct
 
         @staticmethod
-        def hasShapeSlotBool():
-            return True
-
-        @staticmethod
-        def hasShapeSlotAbs():
-            return True
-
-        @staticmethod
-        def hasShapeSlotLen():
-            return False
-
-        @staticmethod
-        def hasShapeSlotInt():
-            return True
-
-        @staticmethod
-        def hasShapeSlotLong():
-            return True
-
-        @staticmethod
-        def hasShapeSlotFloat():
-            return True
-
-        @staticmethod
-        def hasShapeSlotComplex():
-            return True
-
-        @staticmethod
-        def hasShapeSlotIter():
-            return False
-
-        @staticmethod
-        def hasShapeSlotNext():
-            return False
-
-        @staticmethod
-        def hasShapeSlotContains():
-            return False
+        def emitAlternatives(emit):
+            emit(tshape_int)
+            emit(tshape_long)
 
         add_shapes = add_shapes_intorlong
         sub_shapes = sub_shapes_intorlong
@@ -807,6 +634,7 @@ else:
     tshape_int_or_long = tshape_int
 
 
+# TODO: Make this Python2 only, and use ShapeTypeIntDerived for Python3
 class ShapeTypeIntOrLongDerived(ShapeTypeUnknown):
     pass
 
@@ -814,7 +642,7 @@ class ShapeTypeIntOrLongDerived(ShapeTypeUnknown):
 tshape_int_or_long_derived = ShapeTypeIntOrLongDerived()
 
 
-class ShapeTypeFloat(ShapeBase):
+class ShapeTypeFloat(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
     typical_value = 0.1
 
     @staticmethod
@@ -822,46 +650,6 @@ class ShapeTypeFloat(ShapeBase):
         return "float"
 
     helper_code = "FLOAT"
-
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return True
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return True
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return True
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return False
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return False
 
     add_shapes = add_shapes_float
     sub_shapes = sub_shapes_float
@@ -908,52 +696,12 @@ class ShapeTypeFloatDerived(ShapeTypeUnknown):
 tshape_float_derived = ShapeTypeFloatDerived()
 
 
-class ShapeTypeComplex(ShapeBase):
+class ShapeTypeComplex(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
     typical_value = 0j
 
     @staticmethod
     def getTypeName():
         return "complex"
-
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return True
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return False
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return False
 
     add_shapes = add_shapes_complex
     sub_shapes = sub_shapes_complex
@@ -975,7 +723,7 @@ class ShapeTypeComplex(ShapeBase):
 tshape_complex = ShapeTypeComplex()
 
 
-class ShapeTypeTuple(ShapeBase):
+class ShapeTypeTuple(ShapeContainerMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = ()
 
     @staticmethod
@@ -985,48 +733,8 @@ class ShapeTypeTuple(ShapeBase):
     helper_code = "TUPLE"
 
     @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return True
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return True
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
     def getShapeIter():
         return tshape_tuple_iterator
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return True
 
     add_shapes = add_shapes_tuple
     sub_shapes = sub_shapes_tuple
@@ -1052,26 +760,18 @@ class ShapeTypeTuple(ShapeBase):
 tshape_tuple = ShapeTypeTuple()
 
 
-class TypeShapeTupleIterator(ShapeIterator):
+class TypeShapeTupleIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = iter(tshape_tuple.typical_value)
 
     @staticmethod
     def getTypeName():
-        return "tupleiterator" if python_version < 300 else "tuple_iterator"
-
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
+        return "tupleiterator" if python_version < 0x300 else "tuple_iterator"
 
 
 tshape_tuple_iterator = TypeShapeTupleIterator()
 
 
-class ShapeTypeList(ShapeBase):
+class ShapeTypeList(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = []
 
     @staticmethod
@@ -1081,48 +781,8 @@ class ShapeTypeList(ShapeBase):
     helper_code = "LIST"
 
     @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return True
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return True
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
     def getShapeIter():
         return tshape_list_iterator
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return True
 
     add_shapes = add_shapes_list
     sub_shapes = sub_shapes_list
@@ -1151,7 +811,7 @@ class ShapeTypeList(ShapeBase):
             return operation_result_bool_elementbased
 
         if right_shape is tshape_xrange:
-            if python_version < 300:
+            if python_version < 0x300:
                 return operation_result_bool_elementbased
             else:
                 # TODO: Actually unorderable, but this requires making a
@@ -1164,26 +824,18 @@ class ShapeTypeList(ShapeBase):
 tshape_list = ShapeTypeList()
 
 
-class ShapeTypeListIterator(ShapeIterator):
+class ShapeTypeListIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = iter(tshape_list.typical_value)
 
     @staticmethod
     def getTypeName():
-        return "listiterator" if python_version < 300 else "list_iterator"
-
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
+        return "listiterator" if python_version < 0x300 else "list_iterator"
 
 
 tshape_list_iterator = ShapeTypeListIterator()
 
 
-class ShapeTypeSet(ShapeBase):
+class ShapeTypeSet(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = set()
 
     @staticmethod
@@ -1191,48 +843,8 @@ class ShapeTypeSet(ShapeBase):
         return "set"
 
     @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return True
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return True
-
-    @staticmethod
     def getShapeIter():
         return tshape_set_iterator
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return True
 
     add_shapes = add_shapes_set
     sub_shapes = sub_shapes_set
@@ -1258,26 +870,18 @@ class ShapeTypeSet(ShapeBase):
 tshape_set = ShapeTypeSet()
 
 
-class ShapeTypeSetIterator(ShapeIterator):
+class ShapeTypeSetIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = iter(tshape_set.typical_value)
 
     @staticmethod
     def getTypeName():
-        return "setiterator" if python_version < 300 else "set_iterator"
-
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
+        return "setiterator" if python_version < 0x300 else "set_iterator"
 
 
 tshape_set_iterator = ShapeTypeSetIterator()
 
 
-class ShapeTypeFrozenset(ShapeBase):
+class ShapeTypeFrozenset(ShapeContainerImmutableMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = frozenset()
 
     @staticmethod
@@ -1285,48 +889,8 @@ class ShapeTypeFrozenset(ShapeBase):
         return "frozenset"
 
     @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return True
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return True
-
-    @staticmethod
     def getShapeIter():
         return tshape_set_iterator
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return True
 
     add_shapes = add_shapes_frozenset
     sub_shapes = sub_shapes_frozenset
@@ -1348,7 +912,7 @@ class ShapeTypeFrozenset(ShapeBase):
 tshape_frozenset = ShapeTypeFrozenset()
 
 
-class ShapeTypeDict(ShapeBase):
+class ShapeTypeDict(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = {}
 
     @staticmethod
@@ -1356,48 +920,8 @@ class ShapeTypeDict(ShapeBase):
         return "dict"
 
     @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return True
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return True
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
     def getShapeIter():
         return tshape_dict_iterator
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return True
 
     add_shapes = add_shapes_dict
     sub_shapes = sub_shapes_dict
@@ -1415,6 +939,8 @@ class ShapeTypeDict(ShapeBase):
     rshift_shapes = rshift_shapes_dict
     matmult_shapes = matmult_shapes_dict
 
+    ibitor_shapes = ibitor_shapes_dict
+
     def getComparisonLtShape(self, right_shape):
         # Need to consider value shape for this
 
@@ -1426,46 +952,42 @@ class ShapeTypeDict(ShapeBase):
 tshape_dict = ShapeTypeDict()
 
 
-class ShapeTypeDictIterator(ShapeIterator):
+class ShapeTypeDictIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = iter(tshape_dict.typical_value)
 
     @staticmethod
     def getTypeName():
-        return "dictionary-keyiterator" if python_version < 300 else "dictkey_iterator"
-
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
+        return (
+            "dictionary-keyiterator" if python_version < 0x300 else "dictkey_iterator"
+        )
 
 
 tshape_dict_iterator = ShapeTypeDictIterator()
 
 
-class ShapeTypeStr(ShapeBase):
+class ShapeTypeStr(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = "a"
 
     @staticmethod
     def getTypeName():
         return "str"
 
-    helper_code = "STR" if python_version < 300 else "UNICODE"
+    helper_code = "STR" if python_version < 0x300 else "UNICODE"
 
+    # Not a container, but has these.
     @staticmethod
-    def hasShapeSlotBool():
+    def hasShapeSlotIter():
         return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
 
     @staticmethod
     def hasShapeSlotLen():
         return True
 
+    @staticmethod
+    def hasShapeSlotContains():
+        return True
+
+    # Not a number, but has these.
     @staticmethod
     def hasShapeSlotInt():
         return True
@@ -1483,20 +1005,12 @@ class ShapeTypeStr(ShapeBase):
         return True
 
     @staticmethod
-    def hasShapeSlotIter():
+    def hasShapeSlotHash():
         return True
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
 
     @staticmethod
     def getShapeIter():
         return tshape_str_iterator
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return True
 
     add_shapes = add_shapes_str
     sub_shapes = sub_shapes_str
@@ -1525,7 +1039,7 @@ class ShapeTypeStr(ShapeBase):
             return operation_result_unknown
 
         if right_shape is tshape_bytearray:
-            if python_version < 300:
+            if python_version < 0x300:
                 return operation_result_bool_noescape
             else:
                 return operation_result_unknown
@@ -1543,28 +1057,20 @@ class TypeShapeStrDerived(ShapeTypeUnknown):
 tshape_str_derived = TypeShapeStrDerived()
 
 
-class ShapeTypeStrIterator(ShapeIterator):
+class ShapeTypeStrIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
     tyical_value = iter(tshape_str.typical_value)
 
     @staticmethod
     def getTypeName():
-        return "iterator" if python_version < 300 else "str_iterator"
-
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
+        return "iterator" if python_version < 0x300 else "str_iterator"
 
 
 tshape_str_iterator = ShapeTypeStrIterator()
 
 
-if python_version < 300:
+if python_version < 0x300:
 
-    class ShapeTypeUnicode(ShapeBase):
+    class ShapeTypeUnicode(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
         typical_value = u"a"
 
         @staticmethod
@@ -1573,18 +1079,20 @@ if python_version < 300:
 
         helper_code = "UNICODE"
 
+        # Not a container, but has these.
         @staticmethod
-        def hasShapeSlotBool():
+        def hasShapeSlotIter():
             return True
-
-        @staticmethod
-        def hasShapeSlotAbs():
-            return False
 
         @staticmethod
         def hasShapeSlotLen():
             return True
 
+        @staticmethod
+        def hasShapeSlotContains():
+            return True
+
+        # Not a number, but has these.
         @staticmethod
         def hasShapeSlotInt():
             return True
@@ -1602,20 +1110,12 @@ if python_version < 300:
             return True
 
         @staticmethod
-        def hasShapeSlotIter():
+        def hasShapeSlotHash():
             return True
-
-        @staticmethod
-        def hasShapeSlotNext():
-            return False
 
         @staticmethod
         def getShapeIter():
             return tshape_unicode_iterator
-
-        @staticmethod
-        def hasShapeSlotContains():
-            return True
 
         add_shapes = add_shapes_unicode
         sub_shapes = sub_shapes_unicode
@@ -1652,20 +1152,12 @@ if python_version < 300:
 
     tshape_unicode_derived = ShapeTypeUnicodeDerived()
 
-    class ShapeTypeUnicodeIterator(ShapeIterator):
+    class ShapeTypeUnicodeIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
         typical_value = iter(tshape_unicode.typical_value)
 
         @staticmethod
         def getTypeName():
             return "iterator"
-
-        @staticmethod
-        def hasShapeSlotBool():
-            return True
-
-        @staticmethod
-        def hasShapeSlotLen():
-            return False
 
     tshape_unicode_iterator = ShapeTypeUnicodeIterator()
 else:
@@ -1674,19 +1166,24 @@ else:
     tshape_unicode_derived = tshape_str_derived
 
 
-if python_version < 300:
+if python_version < 0x300:
 
-    class ShapeTypeStrOrUnicode(ShapeBase):
+    class ShapeTypeStrOrUnicode(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
         @staticmethod
-        def hasShapeSlotBool():
+        def emitAlternatives(emit):
+            emit(tshape_str)
+            emit(tshape_unicode)
+
+        @staticmethod
+        def hasShapeSlotIter():
             return True
 
         @staticmethod
-        def hasShapeSlotAbs():
-            return False
+        def hasShapeSlotLen():
+            return True
 
         @staticmethod
-        def hasShapeSlotLen():
+        def hasShapeSlotContains():
             return True
 
         @staticmethod
@@ -1706,17 +1203,10 @@ if python_version < 300:
             return True
 
         @staticmethod
-        def hasShapeSlotIter():
+        def hasShapeSlotHash():
             return True
 
-        @staticmethod
-        def hasShapeSlotNext():
-            return False
-
-        @staticmethod
-        def hasShapeSlotContains():
-            return True
-
+        # TODO: There seem to be missing a few here.
         add_shapes = add_shapes_strorunicode
         sub_shapes = sub_shapes_strorunicode
         mult_shapes = mult_shapes_strorunicode
@@ -1732,9 +1222,9 @@ else:
     tshape_str_or_unicode = tshape_str
 
 
-if python_version >= 300:
+if python_version >= 0x300:
 
-    class ShapeTypeBytes(ShapeBase):
+    class ShapeTypeBytes(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
         typical_value = b"b"
 
         @staticmethod
@@ -1743,49 +1233,39 @@ if python_version >= 300:
 
         helper_code = "BYTES"
 
+        # Not a container, but has these.
         @staticmethod
-        def hasShapeSlotBool():
+        def hasShapeSlotIter():
             return True
-
-        @staticmethod
-        def hasShapeSlotAbs():
-            return False
 
         @staticmethod
         def hasShapeSlotLen():
             return True
 
         @staticmethod
+        def hasShapeSlotContains():
+            return True
+
+        # Not a number, but has these.
+        @staticmethod
         def hasShapeSlotInt():
-            return False
+            return True
 
         @staticmethod
         def hasShapeSlotLong():
-            return False
+            return True
 
         @staticmethod
         def hasShapeSlotFloat():
             return True
 
         @staticmethod
-        def hasShapeSlotComplex():
-            return False
-
-        @staticmethod
-        def hasShapeSlotIter():
+        def hasShapeSlotHash():
             return True
-
-        @staticmethod
-        def hasShapeSlotNext():
-            return False
 
         @staticmethod
         def getShapeIter():
             return tshape_bytes_iterator
-
-        @staticmethod
-        def hasShapeSlotContains():
-            return True
 
         add_shapes = add_shapes_bytes
         sub_shapes = sub_shapes_bytes
@@ -1822,20 +1302,12 @@ if python_version >= 300:
 
     tshape_bytes_derived = TypeShapeBytesDerived()
 
-    class TypeShapeBytesIterator(ShapeIterator):
+    class TypeShapeBytesIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
         typical_value = iter(tshape_bytes.typical_value)
 
         @staticmethod
         def getTypeName():
             return "bytes_iterator"
-
-        @staticmethod
-        def hasShapeSlotBool():
-            return True
-
-        @staticmethod
-        def hasShapeSlotLen():
-            return False
 
     tshape_bytes_iterator = TypeShapeBytesIterator()
 
@@ -1847,7 +1319,7 @@ else:
     tshape_bytes_derived = None
 
 
-class ShapeTypeBytearray(ShapeBase):
+class ShapeTypeBytearray(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = bytearray(b"b")
 
     @staticmethod
@@ -1855,48 +1327,8 @@ class ShapeTypeBytearray(ShapeBase):
         return "bytearray"
 
     @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return True
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return True
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
     def getShapeIter():
         return tshape_bytearray_iterator
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return True
 
     add_shapes = add_shapes_bytearray
     sub_shapes = sub_shapes_bytearray
@@ -1922,7 +1354,7 @@ class ShapeTypeBytearray(ShapeBase):
             return operation_result_bool_noescape
 
         if right_shape is tshape_str:
-            if python_version < 300:
+            if python_version < 0x300:
                 return operation_result_bool_noescape
             else:
                 # TODO: Exception actually for static optimization.
@@ -1934,26 +1366,18 @@ class ShapeTypeBytearray(ShapeBase):
 tshape_bytearray = ShapeTypeBytearray()
 
 
-class ShapeTypeBytearrayIterator(ShapeIterator):
+class ShapeTypeBytearrayIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = iter(tshape_bytearray.typical_value)
 
     @staticmethod
     def getTypeName():
         return "bytearray_iterator"
 
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
-
 
 tshape_bytearray_iterator = ShapeTypeBytearrayIterator()
 
 
-class ShapeTypeEllipsis(ShapeBase):
+class ShapeTypeEllipsis(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = Ellipsis
 
     @staticmethod
@@ -1961,50 +1385,14 @@ class ShapeTypeEllipsis(ShapeBase):
         return "ellipsis"
 
     @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return False
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
-    def hasShapeSlotContains():
+    def hasShapeSlotHash():
         return True
 
 
 tshape_ellipsis = ShapeTypeEllipsis()
 
 
-class ShapeTypeSlice(ShapeBase):
+class ShapeTypeSlice(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = slice(7)
 
     @staticmethod
@@ -2012,103 +1400,27 @@ class ShapeTypeSlice(ShapeBase):
         return "slice"
 
     @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return False
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
-    def hasShapeSlotContains():
+    def hasShapeSlotHash():
         return False
 
 
 tshape_slice = ShapeTypeSlice()
 
 
-class ShapeTypeXrange(ShapeBase):
+class ShapeTypeXrange(ShapeContainerImmutableMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = (
         xrange(1)  # pylint: disable=I0021,undefined-variable
-        if python_version < 300
+        if python_version < 0x300
         else range(1)
     )
 
     @staticmethod
     def getTypeName():
-        return "xrange" if python_version < 300 else "range"
-
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return True
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return True
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
+        return "xrange" if python_version < 0x300 else "range"
 
     @staticmethod
     def getShapeIter():
         return tshape_xrange_iterator
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return True
 
     def getComparisonLtShape(self, right_shape):
         if right_shape is tshape_unknown:
@@ -2116,12 +1428,13 @@ class ShapeTypeXrange(ShapeBase):
 
         # TODO: Maybe split in two shapes, they are quite different in the
         # end when it comes to operations.
-        if python_version < 300:
+        if python_version < 0x300:
             # Need to consider value shape for this.
             if right_shape in (tshape_list, tshape_tuple):
                 return operation_result_bool_elementbased
 
             if right_shape is tshape_xrange:
+                # TODO: This is value escaping, but that doesn't really apply
                 return operation_result_bool_elementbased
         else:
             # TODO: Actually unorderable, but this requires making a
@@ -2134,26 +1447,18 @@ class ShapeTypeXrange(ShapeBase):
 tshape_xrange = ShapeTypeXrange()
 
 
-class ShapeTypeXrangeIterator(ShapeIterator):
+class ShapeTypeXrangeIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = iter(tshape_xrange.typical_value)
 
     @staticmethod
     def getTypeName():
-        return "rangeiterator" if python_version < 300 else "range_iterator"
-
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
+        return "rangeiterator" if python_version < 0x300 else "range_iterator"
 
 
 tshape_xrange_iterator = ShapeTypeXrangeIterator()
 
 
-class ShapeTypeType(ShapeBase):
+class ShapeTypeType(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = int
 
     @staticmethod
@@ -2161,44 +1466,8 @@ class ShapeTypeType(ShapeBase):
         return "type"
 
     @staticmethod
-    def hasShapeSlotBool():
+    def hasShapeSlotHash():
         return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return False
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return False
 
     def getComparisonLtShape(self, right_shape):
         if right_shape is tshape_unknown:
@@ -2213,7 +1482,7 @@ class ShapeTypeType(ShapeBase):
 tshape_type = ShapeTypeType()
 
 
-class ShapeTypeModule(ShapeBase):
+class ShapeTypeModule(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = __import__("sys")
 
     @staticmethod
@@ -2225,47 +1494,26 @@ class ShapeTypeModule(ShapeBase):
         return True
 
     @staticmethod
-    def hasShapeSlotBool():
+    def hasShapeSlotHash():
         return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return False
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return False
 
 
 tshape_module = ShapeTypeModule()
+
+
+class ShapeTypeFunction(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    # TODO: Add typical value.
+
+    @staticmethod
+    def getTypeName():
+        return "function"
+
+    @staticmethod
+    def hasShapeSlotHash():
+        return True
+
+
+tshape_function = ShapeTypeFunction()
 
 
 class ShapeTypeBuiltinModule(ShapeTypeModule):
@@ -2275,41 +1523,15 @@ class ShapeTypeBuiltinModule(ShapeTypeModule):
 tshape_module_builtin = ShapeTypeBuiltinModule()
 
 
-class ShapeTypeFile(ShapeBase):
+class ShapeTypeFile(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    # TODO: That need not really be a file, find something better.
     typical_value = __import__("sys").stdout
 
     @staticmethod
     def getTypeName():
         return "file"
 
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
+    # Files are self-iterators.
     @staticmethod
     def hasShapeSlotIter():
         return True
@@ -2320,109 +1542,37 @@ class ShapeTypeFile(ShapeBase):
 
     @staticmethod
     def hasShapeSlotContains():
+        return True
+
+    @staticmethod
+    def hasShapeSlotHash():
         return True
 
 
 tshape_file = ShapeTypeFile()
 
 
-class ShapeTypeStaticmethod(ShapeBase):
+class ShapeTypeStaticmethod(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     # TODO: Add typical value.
 
     @staticmethod
     def getTypeName():
         return "staticmethod"
 
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return False
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return False
+    # TODO: These probably reject all kinds of operations.
 
 
 tshape_staticmethod = ShapeTypeStaticmethod()
 
 
-class ShapeTypeClassmethod(ShapeBase):
+class ShapeTypeClassmethod(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     # TODO: Add typical value.
 
     @staticmethod
     def getTypeName():
         return "classmethod"
 
-    @staticmethod
-    def hasShapeSlotBool():
-        return True
-
-    @staticmethod
-    def hasShapeSlotAbs():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return False
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return False
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return False
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return False
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return False
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return False
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return False
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return False
+    # TODO: These probably reject all kinds of operations.
 
 
 tshape_classmethod = ShapeTypeClassmethod()
@@ -2447,6 +1597,10 @@ operation_result_strorunicode_noescape = (
 )
 operation_result_bytes_noescape = tshape_bytes, ControlFlowDescriptionNoEscape
 operation_result_bytearray_noescape = tshape_bytearray, ControlFlowDescriptionNoEscape
+
+operation_result_dict_noescape = tshape_dict, ControlFlowDescriptionNoEscape
+operation_result_dict_valueerror = tshape_dict, ControlFlowDescriptionValueErrorNoEscape
+
 
 operation_result_bool_elementbased = (
     tshape_bool,
@@ -2474,6 +1628,7 @@ operation_result_unsupported_olddiv = (
     ControlFlowDescriptionOldDivUnsupported,
 )
 operation_result_unsupported_mod = tshape_unknown, ControlFlowDescriptionModUnsupported
+
 operation_result_unsupported_divmod = (
     tshape_unknown,
     ControlFlowDescriptionDivmodUnsupported,
@@ -2798,7 +1953,9 @@ mod_shapes_bool.update(
         tshape_int_or_long: operation_result_zerodiv_intorlong,
         tshape_bool: operation_result_zerodiv_int,
         tshape_float: operation_result_zerodiv_float,
-        tshape_complex: operation_result_unsupported_mod,
+        tshape_complex: operation_result_zerodiv_complex
+        if python_version < 0x300
+        else operation_result_unsupported_mod,
         # Unsupported:
         tshape_str: operation_result_unsupported_mod,
         tshape_bytes: operation_result_unsupported_mod,
@@ -2857,12 +2014,12 @@ pow_shapes_bool.update(
         tshape_unicode_derived: operation_result_unknown,
         tshape_bytes_derived: operation_result_unknown,
         # Int keep their type, as bool is 0 or 1 int.
-        tshape_int: operation_result_unknown,  # TODO: operation_result_intorfloat,
-        tshape_long: operation_result_unknown,  # TODO: operation_result_longorfloat,
-        tshape_int_or_long: operation_result_unknown,  # TODO: operation_result_intorlongorfloat,
+        tshape_int: operation_result_unknown,  # TODO: operation_result_zerodiv_intorfloat,
+        tshape_long: operation_result_unknown,  # TODO: operation_result_zerodiv_longorfloat,
+        tshape_int_or_long: operation_result_unknown,  # TODO: operation_result_izerodiv_ntorlongorfloat,
         tshape_bool: operation_result_int_noescape,
-        tshape_float: operation_result_float_noescape,
-        tshape_complex: operation_result_complex_noescape,
+        tshape_float: operation_result_zerodiv_float,
+        tshape_complex: operation_result_zerodiv_complex,
         # Unsupported:
         tshape_str: operation_result_unsupported_pow,
         tshape_bytes: operation_result_unsupported_pow,
@@ -3133,7 +2290,9 @@ mod_shapes_int.update(
         tshape_int_or_long: operation_result_zerodiv_intorlong,
         tshape_bool: operation_result_zerodiv_int,
         tshape_float: operation_result_zerodiv_float,
-        tshape_complex: operation_result_unsupported_mod,
+        tshape_complex: operation_result_zerodiv_complex
+        if python_version < 0x300
+        else operation_result_unsupported_mod,
         # Unsupported:
         tshape_str: operation_result_unsupported_mod,
         tshape_bytes: operation_result_unsupported_mod,
@@ -3435,7 +2594,9 @@ mod_shapes_long.update(
         tshape_int_or_long: operation_result_zerodiv_long,
         tshape_bool: operation_result_zerodiv_long,
         tshape_float: operation_result_zerodiv_float,
-        tshape_complex: operation_result_unsupported_mod,
+        tshape_complex: operation_result_zerodiv_complex
+        if python_version < 0x300
+        else operation_result_unsupported_mod,
         # Unsupported:
         tshape_str: operation_result_unsupported_mod,
         tshape_bytes: operation_result_unsupported_mod,
@@ -3913,6 +3074,39 @@ truediv_shapes_complex.update(
     }
 )
 
+if python_version < 0x300:
+    floordiv_shapes_complex.update(
+        {
+            # Standard
+            tshape_unknown: operation_result_unknown,
+            tshape_long_derived: operation_result_unknown,
+            tshape_int_or_long_derived: operation_result_unknown,
+            tshape_float_derived: operation_result_unknown,
+            tshape_str_derived: operation_result_unknown,
+            tshape_unicode_derived: operation_result_unknown,
+            tshape_bytes_derived: operation_result_unknown,
+            # floats do math ops
+            tshape_int: operation_result_zerodiv_complex,
+            tshape_long: operation_result_zerodiv_complex,
+            tshape_int_or_long: operation_result_zerodiv_complex,
+            tshape_bool: operation_result_zerodiv_complex,
+            tshape_float: operation_result_zerodiv_complex,
+            tshape_complex: operation_result_zerodiv_complex,
+            # Unsupported:
+            tshape_str: operation_result_unsupported_floordiv,
+            tshape_bytes: operation_result_unsupported_floordiv,
+            tshape_bytearray: operation_result_unsupported_floordiv,
+            tshape_unicode: operation_result_unsupported_floordiv,
+            tshape_tuple: operation_result_unsupported_floordiv,
+            tshape_list: operation_result_unsupported_floordiv,
+            tshape_set: operation_result_unsupported_floordiv,
+            tshape_frozenset: operation_result_unsupported_floordiv,
+            tshape_dict: operation_result_unsupported_floordiv,
+            tshape_type: operation_result_unsupported_floordiv,
+            tshape_none: operation_result_unsupported_floordiv,
+        }
+    )
+
 olddiv_shapes_complex.update(
     cloneWithUnsupportedChange(
         truediv_shapes_complex, operation_result_unsupported_olddiv
@@ -4291,7 +3485,7 @@ add_shapes_str.update(
         tshape_str: operation_result_str_noescape,
         tshape_bytes: operation_result_unsupported_add,
         tshape_bytearray: operation_result_bytearray_noescape
-        if python_version < 300
+        if python_version < 0x300
         else operation_result_unsupported_add,
         tshape_unicode: operation_result_unicode_noescape,
         tshape_tuple: operation_result_unsupported_add,
@@ -4431,7 +3625,7 @@ mult_shapes_bytes.update(
     }
 )
 
-if python_version < 350:
+if python_version < 0x350:
     operation_result_350_bytes_mod_noescape = operation_result_unsupported_mod
 else:
     operation_result_350_bytes_mod_noescape = operation_result_bytes_formaterror
@@ -4481,7 +3675,7 @@ add_shapes_bytearray.update(
         tshape_float: operation_result_unsupported_add,
         # Sequence repeat is not allowed
         tshape_str: operation_result_bytearray_noescape
-        if python_version < 300
+        if python_version < 0x300
         else operation_result_unsupported_add,
         tshape_bytes: operation_result_bytearray_noescape,
         tshape_bytearray: operation_result_bytearray_noescape,
@@ -4529,7 +3723,7 @@ mult_shapes_bytearray.update(
     }
 )
 
-if python_version < 350:
+if python_version < 0x350:
     operation_result_350_bytearray_mod_noescape = operation_result_unsupported_mod
 else:
     operation_result_350_bytearray_mod_noescape = operation_result_bytearray_formaterror
@@ -4720,3 +3914,24 @@ bitand_shapes_strorunicode.update(
 bitxor_shapes_strorunicode.update(
     mergeStrOrUnicode(bitxor_shapes_str, bitxor_shapes_unicode)
 )
+
+if python_version >= 0x390:
+    bitor_shapes_dict[tshape_dict] = operation_result_dict_noescape
+
+    ibitor_shapes_dict[tshape_dict] = operation_result_dict_noescape
+    ibitor_shapes_dict[tshape_tuple] = operation_result_dict_valueerror
+    ibitor_shapes_dict[tshape_list] = operation_result_dict_valueerror
+    ibitor_shapes_dict[tshape_set] = operation_result_dict_valueerror
+    ibitor_shapes_dict[tshape_frozenset] = operation_result_dict_valueerror
+    ibitor_shapes_dict[tshape_str] = operation_result_dict_valueerror
+    ibitor_shapes_dict[tshape_bytes] = operation_result_dict_valueerror
+    ibitor_shapes_dict[tshape_bytearray] = operation_result_dict_valueerror
+
+
+class ShapeTypeBuiltinExceptionClass(
+    ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase
+):
+    typical_value = None
+
+
+tshape_exception_class = ShapeTypeBuiltinExceptionClass()

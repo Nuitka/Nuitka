@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,22 +21,18 @@
 
 import collections
 import hashlib
-import sys
 from abc import abstractmethod
 
 from nuitka import Options
-from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
-from nuitka.__past__ import xrange  # pylint: disable=I0021,redefined-builtin
 from nuitka.__past__ import getMetaClassBase, iterItems
-from nuitka.Builtins import (
-    builtin_anon_codes,
-    builtin_anon_values,
-    builtin_exception_values_list,
-)
+from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.PythonVersions import python_version
-from nuitka.utils.InstanceCounters import counted_del, counted_init
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 
-from .Namify import namifyConstant
 from .VariableDeclarations import VariableDeclaration, VariableStorage
 
 # Many methods won't use self, but it's the interface. pylint: disable=no-self-use
@@ -178,7 +174,7 @@ class TempMixin(object):
 
         # For finally handlers of Python3, which have conditions on assign and
         # use, the NULL init is needed.
-        debug = Options.isDebug() and python_version >= 300
+        debug = Options.is_debug and python_version >= 0x300
 
         if debug:
             keeper_obj_init = "NULL"
@@ -221,7 +217,7 @@ class TempMixin(object):
         # use.
         if preserver_id not in self.preserver_variable_declaration:
 
-            debug = Options.isDebug() and python_version >= 300
+            debug = Options.is_debug and python_version >= 0x300
 
             if debug:
                 preserver_obj_init = "NULL"
@@ -301,7 +297,7 @@ CodeObjectHandle = collections.namedtuple(
         "line_number",
         "future_flags",
         "co_new_locals",
-        "has_closure",
+        "co_freevars",
         "is_optimized",
     ),
 )
@@ -322,6 +318,7 @@ class CodeObjectsMixin(object):
             line_number=code_object.getLineNumber(),
             co_varnames=code_object.getVarNames(),
             co_argcount=code_object.getArgumentCount(),
+            co_freevars=code_object.getFreeVarNames(),
             co_posonlyargcount=code_object.getPosOnlyParameterCount(),
             co_kwonlyargcount=code_object.getKwOnlyParameterCount(),
             co_kind=code_object.getCodeObjectKind(),
@@ -329,7 +326,6 @@ class CodeObjectsMixin(object):
             co_new_locals=code_object.getFlagNewLocalsValue(),
             co_has_starlist=code_object.hasStarListArg(),
             co_has_stardict=code_object.hasStarDictArg(),
-            has_closure=code_object.getFlagHasClosureValue(),
             future_flags=code_object.getFutureSpec().asFlags(),
         )
 
@@ -338,7 +334,7 @@ class CodeObjectsMixin(object):
 
         return self.code_objects[key]
 
-    if python_version < 300:
+    if python_version < 0x300:
 
         def _calcHash(self, key):
             hash_value = hashlib.md5("-".join(str(s) for s in key))
@@ -361,7 +357,8 @@ class PythonContextBase(getMetaClassBase("Context")):
         self.current_source_ref = None
         self.last_source_ref = None
 
-    __del__ = counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     def getCurrentSourceCodeReference(self):
         return self.current_source_ref
@@ -584,233 +581,6 @@ class PythonChildContextBase(PythonContextBase):
         return self.parent.addFunctionCreationInfo(creation_info)
 
 
-def _getConstantDefaultPopulation():
-    # Lots of cases, pylint: disable=too-many-branches
-
-    # Note: Can't work with set here, because we need to put in some values that
-    # cannot be hashed.
-
-    result = [
-        # Basic values that the helper code uses all the times.
-        (),
-        {},
-        "",
-        True,
-        False,
-        0,
-        1,
-        -1,
-        # Some math operations shortcut to these
-        0.0,
-        -0.0,
-        1.0,
-        -1.0,
-        # For Python3 empty bytes, no effect for Python2, same as "", used for
-        # code objects.
-        b"",
-        # Python mechanics, used in various helpers.
-        "__module__",
-        "__class__",
-        "__name__",
-        "__package__",
-        "__metaclass__",
-        "__dict__",
-        "__doc__",
-        "__file__",
-        "__path__",
-        "__enter__",
-        "__exit__",
-        "__builtins__",
-        "__all__",
-        "__cmp__",
-        "__iter__",
-        # Nuitka specific
-        "__compiled__",
-        # Patched module name.
-        "inspect",
-        # Names of built-ins used in helper code.
-        "compile",
-        "range",
-        "open",
-        "sum",
-        "format",
-        "__import__",
-        "bytearray",
-        "staticmethod",
-        "classmethod",
-        # Arguments of __import__ built-in used in helper code.
-        "name",
-        "globals",
-        "locals",
-        "fromlist",
-        "level",
-        # Meta path based loader.
-        "read",
-        "rb",
-    ]
-
-    # Pickling of instance methods.
-    if python_version < 340:
-        result += ("__newobj__",)
-    else:
-        result += ("getattr",)
-
-    if python_version >= 300:
-        # For Python3 modules
-        result += ("__cached__", "__loader__")
-
-        # For Python3 print
-        result += ("print", "end", "file")
-
-        # For Python3 "bytes" built-in.
-        result.append("bytes")
-
-    # For meta path based loader, iter_modules and Python3 "__name__" to
-    # "__package__" parsing
-    result.append(".")
-
-    if python_version >= 300:
-        # Modules have that attribute starting with 3.3
-        result.append("__loader__")
-
-    if python_version >= 340:
-        result.append(
-            # YIELD_FROM uses this starting 3.4, with 3.3 other code is used.
-            "send"
-        )
-
-    if python_version >= 300:
-        result += (
-            # YIELD_FROM uses this
-            "throw",
-            "close",
-        )
-
-    if python_version < 300:
-        # For patching Python2 internal class type
-        result += ("__getattr__", "__setattr__", "__delattr__")
-
-        # For patching Python2 "sys" attributes for current exception
-        result += ("exc_type", "exc_value", "exc_traceback")
-
-    # The xrange built-in is Python2 only.
-    if python_version < 300:
-        result.append("xrange")
-
-    # Executables only
-    if not Options.shallMakeModule():
-        result.append("__main__")
-
-        # The "site" module is referenced in inspect patching.
-        result.append("site")
-
-    # Built-in original values
-    if not Options.shallMakeModule():
-        result += ("type", "len", "range", "repr", "int", "iter")
-
-        if python_version < 300:
-            result.append("long")
-
-    if python_version >= 340:
-        # Setting the __spec__ module attribute.
-        result += ("__spec__", "_initializing", "submodule_search_locations")
-
-    if python_version >= 350:
-        # Patching the types module.
-        result.append("types")
-
-    if not Options.shallMakeModule():
-        result += (sys.executable, sys.prefix)
-
-    if python_version >= 370:
-        result.append("__class_getitem__")
-
-    return result
-
-
-class PythonGlobalContext(object):
-    def __init__(self):
-        self.constants = {}
-        self.constant_use_count = {}
-
-        for constant in _getConstantDefaultPopulation():
-            code = self.getConstantCode(constant)
-
-            # Force them to be global.
-            self.countConstantUse(code)
-            self.countConstantUse(code)
-
-    def getConstantCode(self, constant):
-        # Use in user code, or for constants building code itself, many
-        # constant types get special code immediately.
-        # pylint: disable=too-many-branches
-        if constant is None:
-            key = "Py_None"
-        elif constant is True:
-            key = "Py_True"
-        elif constant is False:
-            key = "Py_False"
-        elif constant is Ellipsis:
-            key = "Py_Ellipsis"
-        elif constant is NotImplemented:
-            key = "Py_NotImplemented"
-        elif type(constant) is type:
-            # TODO: Maybe make this a mapping in nuitka.Builtins
-
-            if constant is None:
-                key = "(PyObject *)Py_TYPE(Py_None)"
-            elif constant is object:
-                key = "(PyObject *)&PyBaseObject_Type"
-            elif constant is staticmethod:
-                key = "(PyObject *)&PyStaticMethod_Type"
-            elif constant is classmethod:
-                key = "(PyObject *)&PyClassMethod_Type"
-            elif constant is bytearray:
-                key = "(PyObject *)&PyByteArray_Type"
-            elif constant is enumerate:
-                key = "(PyObject *)&PyEnum_Type"
-            elif constant is frozenset:
-                key = "(PyObject *)&PyFrozenSet_Type"
-            elif python_version >= 270 and constant is memoryview:
-                key = "(PyObject *)&PyMemoryView_Type"
-            elif python_version < 300 and constant is basestring:
-                key = "(PyObject *)&PyBaseString_Type"
-            elif python_version < 300 and constant is xrange:
-                key = "(PyObject *)&PyRange_Type"
-            elif constant in builtin_anon_values:
-                key = "(PyObject *)" + builtin_anon_codes[builtin_anon_values[constant]]
-            elif constant in builtin_exception_values_list:
-                key = "(PyObject *)PyExc_%s" % constant.__name__
-            else:
-                type_name = constant.__name__
-
-                if constant is int and python_version >= 300:
-                    type_name = "long"
-                elif constant is str:
-                    type_name = "string" if python_version < 300 else "unicode"
-
-                key = "(PyObject *)&Py%s_Type" % type_name.title()
-        else:
-            key = "const_" + namifyConstant(constant)
-
-        if key not in self.constants:
-            self.constants[key] = constant
-
-        return key
-
-    def countConstantUse(self, constant):
-        if constant not in self.constant_use_count:
-            self.constant_use_count[constant] = 0
-
-        self.constant_use_count[constant] += 1
-
-    def getConstantUseCount(self, constant):
-        return self.constant_use_count[constant]
-
-    def getConstants(self):
-        return self.constants
-
-
 class FrameDeclarationsMixin(object):
     def __init__(self):
         # Frame is active or not, default not.
@@ -826,7 +596,7 @@ class FrameDeclarationsMixin(object):
         # Currently active frame stack inside the context.
         self.frame_stack = [None]
 
-        self.locals_dict_names = set()
+        self.locals_dict_names = None
 
     def getFrameHandle(self):
         return self.frame_stack[-1]
@@ -871,12 +641,12 @@ class FrameDeclarationsMixin(object):
         return self.frames_used
 
     def pushFrameVariables(self, frame_variables):
-        """ Set current the frame variables. """
+        """Set current the frame variables."""
         self.frame_variables_stack.append(frame_variables)
         self.frame_type_descriptions.append(set())
 
     def popFrameVariables(self):
-        """ End of frame, restore previous ones. """
+        """End of frame, restore previous ones."""
         del self.frame_variables_stack[-1]
         del self.frame_type_descriptions[-1]
 
@@ -924,7 +694,7 @@ class FrameDeclarationsMixin(object):
         return result
 
     def getLocalsDictNames(self):
-        return self.locals_dict_names
+        return self.locals_dict_names or ()
 
     def addLocalsDictName(self, locals_dict_name):
         result = self.variable_storage.getVariableDeclarationTop(locals_dict_name)
@@ -933,6 +703,9 @@ class FrameDeclarationsMixin(object):
             result = self.variable_storage.addVariableDeclarationTop(
                 "PyObject *", locals_dict_name, "NULL"
             )
+
+        if self.locals_dict_names is None:
+            self.locals_dict_names = set()
 
         self.locals_dict_names.add(result)
 
@@ -989,7 +762,7 @@ class PythonModuleContext(
     # Plenty of attributes, because it's storing so many different things.
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, module, module_name, code_name, filename, global_context):
+    def __init__(self, module, data_filename):
         PythonContextBase.__init__(self)
 
         TempMixin.__init__(self)
@@ -1001,27 +774,24 @@ class PythonModuleContext(
         ReturnValueNameMixin.__init__(self)
 
         self.module = module
-        self.name = module_name
-        self.code_name = code_name
-        self.filename = filename
-
-        self.global_context = global_context
+        self.name = module.getFullName()
+        self.code_name = module.getCodeName()
 
         self.declaration_codes = {}
         self.helper_codes = {}
 
-        self.constants = set()
-
         self.frame_handle = None
-
-        self.needs_module_filename_object = False
 
         self.variable_storage = VariableStorage(heap_name=None)
 
         self.function_table_entries = []
 
+        self.constant_accessor = ConstantAccessor(
+            top_level_name="mod_consts", data_filename=data_filename
+        )
+
     def __repr__(self):
-        return "<PythonModuleContext instance for module %s>" % self.filename
+        return "<PythonModuleContext instance for module %s>" % self.name
 
     def getOwner(self):
         return self.module
@@ -1035,11 +805,8 @@ class PythonModuleContext(
     def getName(self):
         return self.name
 
-    def getFilename(self):
-        return self.filename
-
     def mayRaiseException(self):
-        body = self.module.getBody()
+        body = self.module.subnode_body
 
         return body is not None and body.mayRaiseException(BaseException)
 
@@ -1074,22 +841,10 @@ class PythonModuleContext(
         return False
 
     def getConstantCode(self, constant):
-        result = self.global_context.getConstantCode(constant)
+        return self.constant_accessor.getConstantCode(constant)
 
-        if result not in self.constants:
-            self.constants.add(result)
-            self.global_context.countConstantUse(result)
-
-        return result
-
-    def getConstants(self):
-        return self.constants
-
-    def markAsNeedsModuleFilenameObject(self):
-        self.needs_module_filename_object = True
-
-    def needsModuleFilenameObject(self):
-        return self.needs_module_filename_object
+    def getConstantsCount(self):
+        return self.constant_accessor.getConstantsCount()
 
     def addFunctionCreationInfo(self, creation_info):
         self.function_table_entries.append(creation_info)
@@ -1175,7 +930,7 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
         return "generator"
 
     def getGeneratorReturnValueName(self):
-        if python_version >= 300:
+        if python_version >= 0x300:
             return self.allocateTempName("return_value", "PyObject *", unique=True)
         else:
             return self.allocateTempName("generator_return", "bool", unique=True)

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,7 +30,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.Tracing import my_print, printError
 
 from .Emission import withSubCollector
-from .LabelCodes import getStatementTrace
+from .LabelCodes import getGotoCode, getLabelCode, getStatementTrace
 from .Reports import onMissingHelper
 
 expression_dispatch_dict = {}
@@ -194,14 +194,14 @@ def _generateStatementSequenceCode(statement_sequence, emit, context):
     if statement_sequence is None:
         return
 
-    for statement in statement_sequence.getStatements():
+    for statement in statement_sequence.subnode_statements:
         if shallTraceExecution():
             source_ref = statement.getSourceReference()
 
             statement_repr = repr(statement)
             source_repr = source_ref.getAsString()
 
-            if python_version >= 300:
+            if python_version >= 0x300:
                 statement_repr = statement_repr.encode("utf8")
                 source_repr = source_repr.encode("utf8")
 
@@ -241,8 +241,41 @@ def decideConversionCheckNeeded(to_name, expression):
     return conversion_check
 
 
+# TODO: Get rid of the duplication of code with
+# "withObjectCodeTemporaryAssignment" by setting on one of them.
+
+
+@contextmanager
+def withObjectCodeTemporaryAssignment2(
+    to_name, value_name, needs_conversion_check, emit, context
+):
+    """Converting to the target type, provide temporary object value name only if necessary."""
+
+    if to_name.c_type == "PyObject *":
+        value_name = to_name
+    else:
+        value_name = context.allocateTempName(value_name)
+
+    yield value_name
+
+    if to_name is not value_name:
+        to_name.getCType().emitAssignConversionCode(
+            to_name=to_name,
+            value_name=value_name,
+            needs_check=needs_conversion_check,
+            emit=emit,
+            context=context,
+        )
+
+        from .ErrorCodes import getReleaseCode
+
+        getReleaseCode(value_name, emit, context)
+
+
 @contextmanager
 def withObjectCodeTemporaryAssignment(to_name, value_name, expression, emit, context):
+    """Converting to the target type, provide temporary object value name only if necessary."""
+
     if to_name.c_type == "PyObject *":
         value_name = to_name
     else:
@@ -316,15 +349,23 @@ class HelperCallHandle(object):
         )
 
         # TODO: Move helper calling to something separate.
-        from .ErrorCodes import getErrorExitCode, getReleaseCode
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_names=arg_names,
-            needs_check=needs_check,
-            emit=emit,
-            context=context,
+        from .ErrorCodes import (
+            getErrorExitCode,
+            getReleaseCode,
+            getReleaseCodes,
         )
+
+        # TODO: Have a method to indicate these.
+        if value_name.getCType().c_type != "bool":
+            getErrorExitCode(
+                check_name=value_name,
+                release_names=arg_names,
+                needs_check=needs_check,
+                emit=emit,
+                context=context,
+            )
+        else:
+            getReleaseCodes(arg_names, emit, context)
 
         if ref_count:
             context.addCleanupTempName(value_name)
@@ -333,7 +374,7 @@ class HelperCallHandle(object):
             self.target_type is not None
             and self.target_type.helper_code != self.helper_target.helper_code
         ):
-            if self.target_type.helper_code in ("NBOOL", "NVOID"):
+            if self.target_type.helper_code in ("NBOOL", "NVOID", "CBOOL"):
                 self.target_type.emitAssignConversionCode(
                     to_name=to_name,
                     value_name=value_name,
@@ -433,3 +474,37 @@ def pickCodeHelper(
         right_shape=right_shape,
         helper_right=CTypePyObjectPtr,
     )
+
+
+@contextmanager
+def withCleanupFinally(name, release_name, needs_exception, emit, context):
+
+    assert not context.needsCleanup(release_name)
+
+    if needs_exception:
+        exception_target = context.allocateLabel("%s_exception" % name)
+        old_exception_target = context.setExceptionEscape(exception_target)
+
+    with withSubCollector(emit, context) as guarded_emit:
+        yield guarded_emit
+
+    assert not context.needsCleanup(release_name)
+    context.addCleanupTempName(release_name)
+
+    if needs_exception:
+        noexception_exit = context.allocateLabel("%s_noexception" % name)
+        getGotoCode(noexception_exit, emit)
+
+        context.setExceptionEscape(old_exception_target)
+
+        emit("// Exception handling pass through code for %s:" % name)
+        getLabelCode(exception_target, emit)
+
+        from .ErrorCodes import getErrorExitReleaseCode
+
+        emit(getErrorExitReleaseCode(context))
+
+        getGotoCode(old_exception_target, emit)
+
+        emit("// Finished with no exception for %s:" % name)
+        getLabelCode(noexception_exit, emit)

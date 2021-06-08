@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,8 +28,6 @@ from __future__ import print_function
 import runpy
 import sys
 import tempfile
-
-import vmprof  # pylint: disable=I0021,import-error
 
 
 def _namelen(e):
@@ -69,6 +67,8 @@ def show(stats):
 
 
 def main():
+    import vmprof  # pylint: disable=I0021,import-error
+
     with tempfile.NamedTemporaryFile() as prof_file:
         vmprof.enable(prof_file.fileno(), 0.001)
 

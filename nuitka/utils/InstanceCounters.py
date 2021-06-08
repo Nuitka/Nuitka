@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,6 +31,10 @@ counted_inits = {}
 counted_dels = {}
 
 
+def isCountingInstances():
+    return isShowMemory()
+
+
 def counted_init(init):
     if isShowMemory():
 
@@ -50,32 +54,25 @@ def counted_init(init):
         return init
 
 
-empty_del = lambda x: 0
+def _wrapped_del(self):
+    # This cannot be necessary, because in program finalization, the
+    # global variables were assign to None.
+    if counted_dels is None:
+        return
+
+    name = self.__class__.__name__
+    assert type(name) is str
+
+    if name not in counted_dels:
+        counted_dels[name] = 0
+
+    counted_dels[name] += 1
 
 
-def counted_del(del_func=empty_del):
-    if isShowMemory():
+def counted_del():
+    assert isShowMemory()
 
-        def wrapped_del(self):
-            # This cannot be necessary, because in program finalization, the
-            # global variables were assign to None.
-            if counted_dels is None:
-                return
-
-            name = self.__class__.__name__
-            assert type(name) is str
-
-            if name not in counted_dels:
-                counted_dels[name] = 0
-
-            counted_dels[name] += 1
-
-            if del_func is not empty_del:
-                del_func(self)
-
-        return wrapped_del
-    else:
-        return empty_del
+    return _wrapped_del
 
 
 def printStats():

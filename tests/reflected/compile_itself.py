@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -45,14 +45,14 @@ import time
 from nuitka.tools.testing.Common import getTempDir, my_print, setup
 from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
 from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
-from nuitka.utils.Utils import getSharedLibrarySuffix
+from nuitka.utils.Importing import getSharedLibrarySuffix
 
 nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
 
 tmp_dir = getTempDir()
 
-# Cannot detect this more automatic, either need whitelist or
-# blacklist not needed stuff.
+# Cannot detect this more automatic, so we need to list them, avoiding
+# the ones not needed.
 PACKAGE_LIST = (
     "nuitka",
     "nuitka/nodes",
@@ -70,6 +70,7 @@ PACKAGE_LIST = (
     "nuitka/plugins",
     "nuitka/plugins/standard",
     "nuitka/plugins/commercial",
+    "nuitka/constants",
     "nuitka/containers",
     "nuitka/utils",
 )
@@ -112,6 +113,7 @@ def diffRecursive(dir1, dir2):
                 ".sconsign",
                 ".txt",
                 ".bin",
+                ".const",
                 ".exp",
             )
         ):
@@ -203,7 +205,6 @@ def executePASS1():
                     os.environ["PYTHON"],
                     nuitka_main_path,
                     "--module",
-                    "--debug",
                     "--nofollow-imports",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % target_dir,
@@ -248,8 +249,8 @@ def executePASS1():
         copyTree(scons_inline_copy_path, os.path.join("nuitka", "build", "inline_copy"))
 
     shutil.copyfile(
-        os.path.join(base_dir, "nuitka", "build", "SingleExe.scons"),
-        os.path.join("nuitka", "build", "SingleExe.scons"),
+        os.path.join(base_dir, "nuitka", "build", "Backend.scons"),
+        os.path.join("nuitka", "build", "Backend.scons"),
     )
     copyTree(
         os.path.join(base_dir, "nuitka", "build", "static_src"),
@@ -258,6 +259,12 @@ def executePASS1():
     copyTree(
         os.path.join(base_dir, "nuitka", "build", "include"),
         os.path.join("nuitka", "build", "include"),
+    )
+
+    # The data composer tool, use it by source.
+    copyTree(
+        os.path.join(base_dir, "nuitka", "tools"),
+        os.path.join("nuitka", "tools"),
     )
 
 
@@ -293,7 +300,6 @@ def compileAndCompareWith(nuitka):
                 command = [
                     nuitka,
                     "--module",
-                    "--debug",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % tmp_dir,
                     "--no-pyi-file",
@@ -421,7 +427,7 @@ def executePASS5():
 
 
 def main():
-    _python_version = setup(needs_io_encoding=True)
+    setup(needs_io_encoding=True)
 
     executePASS1()
     executePASS2()
@@ -431,9 +437,6 @@ def main():
     shutil.rmtree("nuitka")
 
     executePASS5()
-
-    os.unlink(os.path.join(tmp_dir, "nuitka" + exe_suffix))
-    os.rmdir(tmp_dir)
 
 
 if __name__ == "__main__":

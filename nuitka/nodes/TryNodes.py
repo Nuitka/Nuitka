@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -40,20 +40,6 @@ class StatementTry(StatementChildrenHavingBase):
         "continue_handler",
         "return_handler",
     )
-    getBlockTry = StatementChildrenHavingBase.childGetter("tried")
-    setBlockTry = StatementChildrenHavingBase.childSetter("tried")
-    getBlockExceptHandler = StatementChildrenHavingBase.childGetter("except_handler")
-    setBlockExceptHandler = StatementChildrenHavingBase.childSetter("except_handler")
-    getBlockBreakHandler = StatementChildrenHavingBase.childGetter("break_handler")
-    setBlockBreakHandler = StatementChildrenHavingBase.childSetter("break_handler")
-    getBlockContinueHandler = StatementChildrenHavingBase.childGetter(
-        "continue_handler"
-    )
-    setBlockContinueHandler = StatementChildrenHavingBase.childSetter(
-        "continue_handler"
-    )
-    getBlockReturnHandler = StatementChildrenHavingBase.childGetter("return_handler")
-    setBlockReturnHandler = StatementChildrenHavingBase.childSetter("return_handler")
 
     checkers = {
         "tried": checkStatementsSequence,
@@ -86,12 +72,12 @@ class StatementTry(StatementChildrenHavingBase):
 
     def computeStatement(self, trace_collection):
         # This node has many children to handle, pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
-        tried = self.getBlockTry()
+        tried = self.subnode_tried
 
-        except_handler = self.getBlockExceptHandler()
-        break_handler = self.getBlockBreakHandler()
-        continue_handler = self.getBlockContinueHandler()
-        return_handler = self.getBlockReturnHandler()
+        except_handler = self.subnode_except_handler
+        break_handler = self.subnode_break_handler
+        continue_handler = self.subnode_continue_handler
+        return_handler = self.subnode_return_handler
 
         # The tried block must be considered as a branch, if it is not empty
         # already.
@@ -117,7 +103,7 @@ class StatementTry(StatementChildrenHavingBase):
 
             # Might be changed.
             if result is not tried:
-                self.setBlockTry(result)
+                self.setChild("tried", result)
                 tried = result
 
             break_collections = trace_collection.getLoopBreakCollections()
@@ -131,7 +117,7 @@ class StatementTry(StatementChildrenHavingBase):
             if except_handler is not None:
                 except_handler.finalize()
 
-                self.setBlockExceptHandler(None)
+                self.clearChild("except_handler")
                 trace_collection.signalChange(
                     tags="new_statements",
                     message="Removed useless exception handler.",
@@ -150,7 +136,7 @@ class StatementTry(StatementChildrenHavingBase):
             # When no exception exits are there, this is a problem, we just
             # found an inconsistency that is a bug.
             if not exception_collections:
-                for statement in tried.getStatements():
+                for statement in tried.subnode_statements:
                     if statement.mayRaiseException(BaseException):
                         raise NuitkaOptimizationError(
                             "This statement does raise but didn't annotate an exception exit.",
@@ -171,14 +157,14 @@ class StatementTry(StatementChildrenHavingBase):
 
                 # Might be changed.
                 if result is not except_handler:
-                    self.setBlockExceptHandler(result)
+                    self.setChild("except_handler", result)
                     except_handler = result
 
         if break_handler is not None:
             if not tried.mayBreak():
                 break_handler.finalize()
 
-                self.setBlockBreakHandler(None)
+                self.clearChild("break_handler")
                 break_handler = None
 
         if break_handler is not None:
@@ -194,14 +180,14 @@ class StatementTry(StatementChildrenHavingBase):
 
             # Might be changed.
             if result is not break_handler:
-                self.setBlockBreakHandler(result)
+                self.setChild("break_handler", result)
                 break_handler = result
 
         if continue_handler is not None:
             if not tried.mayContinue():
                 continue_handler.finalize()
 
-                self.setBlockContinueHandler(None)
+                self.clearChild("continue_handler")
                 continue_handler = None
 
         if continue_handler is not None:
@@ -217,14 +203,14 @@ class StatementTry(StatementChildrenHavingBase):
 
             # Might be changed.
             if result is not continue_handler:
-                self.setBlockContinueHandler(result)
+                self.setChild("continue_handler", result)
                 continue_handler = result
 
         if return_handler is not None:
             if not tried.mayReturn():
                 return_handler.finalize()
 
-                self.setBlockReturnHandler(None)
+                self.clearChild("return_handler")
                 return_handler = None
 
         if return_handler is not None:
@@ -240,21 +226,16 @@ class StatementTry(StatementChildrenHavingBase):
 
             # Might be changed.
             if result is not return_handler:
-                self.setBlockReturnHandler(result)
+                self.setChild("return_handler", result)
                 return_handler = result
 
         # Check for trivial return handlers that immediately return, they can
         # just be removed.
         if return_handler is not None:
-            if (
-                return_handler.getStatements()[0].isStatementReturn()
-                and return_handler.getStatements()[0]
-                .getExpression()
-                .isExpressionReturnedValueRef()
-            ):
+            if return_handler.subnode_statements[0].isStatementReturnReturnedValue():
                 return_handler.finalize()
 
-                self.setBlockReturnHandler(None)
+                self.clearChild("return_handler")
                 return_handler = None
 
         # Merge exception handler only if it is used. Empty means it is not
@@ -272,7 +253,9 @@ class StatementTry(StatementChildrenHavingBase):
                 not tried_may_raise
                 or (
                     except_handler is not None
-                    and except_handler.getStatements()[0].isStatementReraiseException()
+                    and except_handler.subnode_statements[
+                        0
+                    ].isStatementReraiseException()
                 )
             )
             and break_handler is None
@@ -281,7 +264,7 @@ class StatementTry(StatementChildrenHavingBase):
         ):
             return tried, "new_statements", "Removed useless try, all handlers removed."
 
-        tried_statements = tried.getStatements()
+        tried_statements = tried.subnode_statements
 
         pre_statements = []
 
@@ -331,11 +314,11 @@ class StatementTry(StatementChildrenHavingBase):
         if pre_statements or post_statements:
             assert tried_statements  # Should be dealt with already
 
-            tried.setStatements(tried_statements)
+            tried.setChild("statements", tried_statements)
 
             result = StatementsSequence(
                 statements=pre_statements + [self] + post_statements,
-                source_ref=self.getSourceReference(),
+                source_ref=self.source_ref,
             )
 
             def explain():
@@ -367,25 +350,25 @@ class StatementTry(StatementChildrenHavingBase):
     def mayReturn(self):
         # TODO: If we optimized return handler away, this would be not needed
         # or even non-optimal.
-        if self.getBlockTry().mayReturn():
+        if self.subnode_tried.mayReturn():
             return True
 
-        except_handler = self.getBlockExceptHandler()
+        except_handler = self.subnode_except_handler
 
         if except_handler is not None and except_handler.mayReturn():
             return True
 
-        break_handler = self.getBlockBreakHandler()
+        break_handler = self.subnode_break_handler
 
         if break_handler is not None and break_handler.mayReturn():
             return True
 
-        continue_handler = self.getBlockContinueHandler()
+        continue_handler = self.subnode_continue_handler
 
         if continue_handler is not None and continue_handler.mayReturn():
             return True
 
-        return_handler = self.getBlockReturnHandler()
+        return_handler = self.subnode_return_handler
 
         if return_handler is not None and return_handler.mayReturn():
             return True
@@ -395,25 +378,25 @@ class StatementTry(StatementChildrenHavingBase):
     def mayBreak(self):
         # TODO: If we optimized return handler away, this would be not needed
         # or even non-optimal.
-        if self.getBlockTry().mayBreak():
+        if self.subnode_tried.mayBreak():
             return True
 
-        except_handler = self.getBlockExceptHandler()
+        except_handler = self.subnode_except_handler
 
         if except_handler is not None and except_handler.mayBreak():
             return True
 
-        break_handler = self.getBlockBreakHandler()
+        break_handler = self.subnode_break_handler
 
         if break_handler is not None and break_handler.mayBreak():
             return True
 
-        continue_handler = self.getBlockContinueHandler()
+        continue_handler = self.subnode_continue_handler
 
         if continue_handler is not None and continue_handler.mayBreak():
             return True
 
-        return_handler = self.getBlockReturnHandler()
+        return_handler = self.subnode_return_handler
 
         if return_handler is not None and return_handler.mayBreak():
             return True
@@ -423,25 +406,25 @@ class StatementTry(StatementChildrenHavingBase):
     def mayContinue(self):
         # TODO: If we optimized return handler away, this would be not needed
         # or even non-optimal.
-        if self.getBlockTry().mayContinue():
+        if self.subnode_tried.mayContinue():
             return True
 
-        except_handler = self.getBlockExceptHandler()
+        except_handler = self.subnode_except_handler
 
         if except_handler is not None and except_handler.mayContinue():
             return True
 
-        break_handler = self.getBlockBreakHandler()
+        break_handler = self.subnode_break_handler
 
         if break_handler is not None and break_handler.mayContinue():
             return True
 
-        continue_handler = self.getBlockContinueHandler()
+        continue_handler = self.subnode_continue_handler
 
         if continue_handler is not None and continue_handler.mayContinue():
             return True
 
-        return_handler = self.getBlockReturnHandler()
+        return_handler = self.subnode_return_handler
 
         if return_handler is not None and return_handler.mayContinue():
             return True
@@ -449,54 +432,54 @@ class StatementTry(StatementChildrenHavingBase):
         return False
 
     def isStatementAborting(self):
-        except_handler = self.getBlockExceptHandler()
+        except_handler = self.subnode_except_handler
 
         if except_handler is None or not except_handler.isStatementAborting():
             return False
 
-        break_handler = self.getBlockBreakHandler()
+        break_handler = self.subnode_break_handler
 
         if break_handler is not None and not break_handler.isStatementAborting():
             return False
 
-        continue_handler = self.getBlockContinueHandler()
+        continue_handler = self.subnode_continue_handler
 
         if continue_handler is not None and not continue_handler.isStatementAborting():
             return False
 
-        return_handler = self.getBlockReturnHandler()
+        return_handler = self.subnode_return_handler
 
         if return_handler is not None and not return_handler.isStatementAborting():
             return False
 
-        return self.getBlockTry().isStatementAborting()
+        return self.subnode_tried.isStatementAborting()
 
     def mayRaiseException(self, exception_type):
-        tried = self.getBlockTry()
+        tried = self.subnode_tried
 
         if tried.mayRaiseException(exception_type):
-            except_handler = self.getBlockExceptHandler()
+            except_handler = self.subnode_except_handler
 
             if except_handler is not None and except_handler.mayRaiseException(
                 exception_type
             ):
                 return True
 
-        break_handler = self.getBlockBreakHandler()
+        break_handler = self.subnode_break_handler
 
         if break_handler is not None and break_handler.mayRaiseException(
             exception_type
         ):
             return True
 
-        continue_handler = self.getBlockContinueHandler()
+        continue_handler = self.subnode_continue_handler
 
         if continue_handler is not None and continue_handler.mayRaiseException(
             exception_type
         ):
             return True
 
-        return_handler = self.getBlockReturnHandler()
+        return_handler = self.subnode_return_handler
 
         if return_handler is not None and return_handler.mayRaiseException(
             exception_type
@@ -506,27 +489,28 @@ class StatementTry(StatementChildrenHavingBase):
         return False
 
     def needsFrame(self):
-        except_handler = self.getBlockExceptHandler()
+        except_handler = self.subnode_except_handler
 
         if except_handler is not None and except_handler.needsFrame():
             return True
 
-        break_handler = self.getBlockBreakHandler()
+        break_handler = self.subnode_break_handler
 
         if break_handler is not None and break_handler.needsFrame():
             return True
 
-        continue_handler = self.getBlockContinueHandler()
+        continue_handler = self.subnode_continue_handler
 
         if continue_handler is not None and continue_handler.needsFrame():
             return True
 
-        return_handler = self.getBlockReturnHandler()
+        return_handler = self.subnode_return_handler
 
         if return_handler is not None and return_handler.needsFrame():
             return True
 
-        return self.getBlockTry().needsFrame()
+        return self.subnode_tried.needsFrame()
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "tried block statement"

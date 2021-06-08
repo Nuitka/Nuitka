@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -34,7 +34,10 @@ import stat
 
 from nuitka.tools.Basics import goHome
 from nuitka.utils.Execution import getExecutablePath
-from nuitka.utils.FileOperations import getFileContents, getWindowsShortPathName
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    getWindowsShortPathName,
+)
 
 
 def main():
@@ -89,11 +92,11 @@ please improve this script."""
                     hook_contents[10:],
                 )
 
-                # Also use sys.executable to make sure we find autoformat.
-                hook_contents = hook_contents.replace(
-                    "./bin/autoformat-nuitka-source",
-                    "'%s' ./bin/autoformat-nuitka-source" % sys.executable,
-                )
+            # Also use sys.executable to make sure we find autoformat.
+            hook_contents = hook_contents.replace(
+                "./bin/autoformat-nuitka-source",
+                "'%s' ./bin/autoformat-nuitka-source" % sys.executable,
+            )
         else:
             sys.exit("Error, unknown hook contents.")
 

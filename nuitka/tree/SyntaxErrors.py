@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,6 +20,8 @@
 Format SyntaxError/IndentationError exception for output, as well as
 raise it for the given source code reference.
 """
+
+from nuitka.PythonVersions import python_version
 
 
 def formatOutput(e):
@@ -44,7 +46,9 @@ def formatOutput(e):
     if hasattr(e, "msg"):
         reason = e.msg
 
-    if colno is not None:
+    if colno is not None and (
+        not e.__class__ is IndentationError or python_version < 0x390
+    ):
         colno = colno - len(message) + len(message.lstrip())
 
         return """\

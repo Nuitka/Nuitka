@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -33,16 +33,16 @@ from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
-from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
+from nuitka.SourceCodeReferences import fromFilename
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.FileOperations import getFileContentByLine, relpath
 from nuitka.utils.ModuleNames import ModuleName
 
 from .Checkers import checkStatementsSequenceOrNone
-from .FutureSpecs import FutureSpec, fromFlags
+from .FutureSpecs import fromFlags
 from .IndicatorMixins import EntryPointMixin, MarkNeedsAnnotationsMixin
-from .LocalsScopes import getLocalsDictHandle, setLocalsDictType
+from .LocalsScopes import getLocalsDictHandle
 from .NodeBases import (
     ChildrenHavingMixin,
     ClosureGiverNodeMixin,
@@ -78,10 +78,6 @@ class PythonModuleBase(NodeBase):
     def isTopModule():
         return False
 
-    @staticmethod
-    def isInternalModule():
-        return False
-
     def attemptRecursion(self):
         # Make sure the package is recursed to if any
         package_name = self.module_name.getPackageName()
@@ -99,12 +95,12 @@ class PythonModuleBase(NodeBase):
                 module_name=package_name,
                 parent_package=None,
                 level=1,
-                warn=python_version < 300,
+                warn=python_version < 0x300,
             )
 
             # TODO: Temporary, if we can't find the package for Python3.3 that
             # is semi-OK, maybe.
-            if python_version >= 300 and not package_filename:
+            if python_version >= 0x300 and not package_filename:
                 return ()
 
             if package_name == "uniconvertor.app.modules":
@@ -150,7 +146,7 @@ class PythonModuleBase(NodeBase):
         return None
 
     def getCompileTimeFilename(self):
-        """ The compile time filename for the module.
+        """The compile time filename for the module.
 
         Returns:
             Full path to module file at compile time.
@@ -160,10 +156,10 @@ class PythonModuleBase(NodeBase):
             all.
 
         """
-        return os.path.abspath(self.getSourceReference().getFilename())
+        return os.path.abspath(self.source_ref.getFilename())
 
     def getCompileTimeDirectory(self):
-        """ The compile time directory for the module.
+        """The compile time directory for the module.
 
         Returns:
             Full path to module directory at compile time.
@@ -215,19 +211,36 @@ class CompiledPythonModule(
     EntryPointMixin,
     PythonModuleBase,
 ):
-    """ Compiled Python Module
-
-    """
+    """Compiled Python Module"""
 
     # This one has a few indicators, pylint: disable=too-many-instance-attributes
 
     kind = "COMPILED_PYTHON_MODULE"
 
+    __slots__ = (
+        "is_top",
+        "name",
+        "code_prefix",
+        "code_name",
+        "uids",
+        "temp_variables",
+        "temp_scopes",
+        "preserver_id",
+        "needs_annotations_dict",
+        "trace_collection",
+        "mode",
+        "variables",
+        "active_functions",
+        "visited_functions",
+        "cross_used_functions",
+        "used_modules",
+        "future_spec",
+        "source_code",
+        "module_dict_name",
+        "locals_scope",
+    )
+
     named_children = ("body", "functions")
-    getBody = ChildrenHavingMixin.childGetter("body")
-    setBody = ChildrenHavingMixin.childSetter("body")
-    getFunctions = ChildrenHavingMixin.childGetter("functions")
-    setFunctions = ChildrenHavingMixin.childSetter("functions")
 
     checkers = {"body": checkStatementsSequenceOrNone}
 
@@ -252,7 +265,12 @@ class CompiledPythonModule(
 
         self.variables = {}
 
+        # Functions that have been used.
         self.active_functions = OrderedSet()
+
+        # Functions that should be visited again.
+        self.visited_functions = set()
+
         self.cross_used_functions = OrderedSet()
 
         self.used_modules = OrderedSet()
@@ -264,7 +282,14 @@ class CompiledPythonModule(
         self.source_code = None
 
         self.module_dict_name = "globals_%s" % (self.getCodeName(),)
-        setLocalsDictType(self.module_dict_name, "module_dict")
+
+        self.locals_scope = getLocalsDictHandle(
+            self.module_dict_name, "module_dict", self
+        )
+
+    @staticmethod
+    def isCompiledPythonModule():
+        return True
 
     def getDetails(self):
         return {
@@ -290,6 +315,9 @@ class CompiledPythonModule(
 
     def getFutureSpec(self):
         return self.future_spec
+
+    def setFutureSpec(self, future_spec):
+        self.future_spec = future_spec
 
     def isTopModule(self):
         return self.is_top
@@ -334,10 +362,8 @@ class CompiledPythonModule(
 
                 attrs = {"style": "filled"}
 
-                if variable_trace.hasDefiniteUsages():
+                if variable_trace.getUsageCount():
                     attrs["color"] = "blue"
-                elif variable_trace.hasPotentialUsages():
-                    attrs["color"] = "yellow"
                 else:
                     attrs["color"] = "red"
 
@@ -354,10 +380,6 @@ class CompiledPythonModule(
                     graph.add_edge(node_names[previous], node_name)
 
         return graph
-
-    @staticmethod
-    def isCompiledPythonModule():
-        return True
 
     def getSourceCode(self):
         if self.source_code is not None:
@@ -382,7 +404,7 @@ class CompiledPythonModule(
     def hasVariableName(self, variable_name):
         return variable_name in self.variables or variable_name in self.temp_variables
 
-    def getVariables(self):
+    def getProvidedVariables(self):
         return self.variables.values()
 
     def getFilename(self):
@@ -425,14 +447,17 @@ class CompiledPythonModule(
         return encodePythonIdentifierToC(self.getFullName())
 
     def addFunction(self, function_body):
-        functions = self.getFunctions()
+        functions = self.subnode_functions
         assert function_body not in functions
         functions += (function_body,)
-        self.setFunctions(functions)
+        self.setChild("functions", functions)
 
     def startTraversal(self):
         self.used_modules = OrderedSet()
         self.active_functions = OrderedSet()
+
+    def restartTraversal(self):
+        self.visited_functions = set()
 
     def addUsedModule(self, key):
         self.used_modules.add(key)
@@ -441,7 +466,7 @@ class CompiledPythonModule(
         return self.used_modules
 
     def addUsedFunction(self, function_body):
-        assert function_body in self.getFunctions()
+        assert function_body in self.subnode_functions, function_body
 
         assert (
             function_body.isExpressionFunctionBody()
@@ -451,9 +476,10 @@ class CompiledPythonModule(
             or function_body.isExpressionAsyncgenObjectBody()
         )
 
-        result = function_body not in self.active_functions
-        if result:
-            self.active_functions.add(function_body)
+        self.active_functions.add(function_body)
+
+        result = function_body not in self.visited_functions
+        self.visited_functions.add(function_body)
 
         return result
 
@@ -461,7 +487,7 @@ class CompiledPythonModule(
         return self.active_functions
 
     def getUnusedFunctions(self):
-        for function in self.getFunctions():
+        for function in self.subnode_functions:
             if function not in self.active_functions:
                 yield function
 
@@ -473,7 +499,7 @@ class CompiledPythonModule(
         return self.cross_used_functions
 
     def getFunctionFromCodeName(self, code_name):
-        for function in self.getFunctions():
+        for function in self.subnode_functions:
             if function.getCodeName() == code_name:
                 return function
 
@@ -492,11 +518,13 @@ class CompiledPythonModule(
         return result.replace(")", "").replace("(", "")
 
     def computeModule(self):
+        self.restartTraversal()
+
         old_collection = self.trace_collection
 
         self.trace_collection = TraceCollectionModule(self)
 
-        module_body = self.getBody()
+        module_body = self.subnode_body
 
         if module_body is not None:
             result = module_body.computeStatementsSequence(
@@ -504,7 +532,7 @@ class CompiledPythonModule(
             )
 
             if result is not module_body:
-                self.setBody(result)
+                self.setChild("body", result)
 
         new_modules = self.attemptRecursion()
 
@@ -515,9 +543,44 @@ class CompiledPythonModule(
                 message="Recursed to module package.",
             )
 
+        # Finalize locals scopes previously determined for removal in last pass.
         self.trace_collection.updateVariablesFromCollection(
             old_collection, self.source_ref
         )
+
+        # Indicate if this is pass 1 for the module as return value.
+        was_complete = not self.locals_scope.complete
+
+        def markAsComplete(body, trace_collection):
+            if (
+                body.locals_scope is not None
+                and body.locals_scope.isMarkedForPropagation()
+            ):
+                body.locals_scope = None
+
+            if body.locals_scope is not None:
+                body.locals_scope.markAsComplete(trace_collection)
+
+        def markEntryPointAsComplete(body):
+            markAsComplete(body, body.trace_collection)
+
+            outline_bodies = body.trace_collection.getOutlineFunctions()
+
+            if outline_bodies is not None:
+                for outline_body in outline_bodies:
+                    markAsComplete(outline_body, body.trace_collection)
+
+            body.optimizeUnusedTempVariables()
+
+        markEntryPointAsComplete(self)
+
+        for function_body in self.getUsedFunctions():
+            markEntryPointAsComplete(function_body)
+
+            function_body.optimizeUnusedClosureVariables()
+            function_body.optimizeVariableReleases()
+
+        return was_complete
 
     def getTraceCollections(self):
         yield self.trace_collection
@@ -539,9 +602,7 @@ class CompiledPythonModule(
 
     @staticmethod
     def getFunctionVariablesWithAutoReleases():
-        """ Return the list of function variables that should be released at exit.
-
-        """
+        """Return the list of function variables that should be released at exit."""
         return ()
 
     def getOutlineLocalVariables(self):
@@ -555,7 +616,7 @@ class CompiledPythonModule(
         for outline in outlines:
             result.extend(outline.getUserLocalVariables())
 
-        return tuple(result)
+        return result
 
     def hasClosureVariable(self, variable):
         # Modules don't do this, pylint: disable=no-self-use,unused-argument
@@ -571,13 +632,8 @@ class CompiledPythonModule(
                 outline.removeUserVariable(variable)
                 break
 
-    @staticmethod
-    def getFunctionLocalsScope():
-        """ Modules have no locals scope. """
-        return None
-
-    def getModuleDictScope(self):
-        return getLocalsDictHandle(self.module_dict_name)
+    def getLocalsScope(self):
+        return self.locals_scope
 
 
 class CompiledPythonPackage(CompiledPythonModule):
@@ -632,9 +688,7 @@ def makeUncompiledPythonModule(
 
 
 class UncompiledPythonModule(PythonModuleBase):
-    """ Compiled Python Module
-
-    """
+    """Compiled Python Module"""
 
     kind = "UNCOMPILED_PYTHON_MODULE"
 
@@ -665,7 +719,7 @@ class UncompiledPythonModule(PythonModuleBase):
         return self.user_provided
 
     def isTechnical(self):
-        """ Must be bytecode as it's used in CPython library initialization. """
+        """Must be bytecode as it's used in CPython library initialization."""
         return self.technical
 
     def getByteCode(self):
@@ -691,7 +745,10 @@ class UncompiledPythonPackage(UncompiledPythonModule):
 class PythonMainModule(CompiledPythonModule):
     kind = "PYTHON_MAIN_MODULE"
 
+    __slots__ = ("main_added", "early_modules")
+
     def __init__(self, main_added, mode, future_spec, source_ref):
+        # Is this one from a "__main__.py" file.
         self.main_added = main_added
 
         CompiledPythonModule.__init__(
@@ -702,6 +759,8 @@ class PythonMainModule(CompiledPythonModule):
             future_spec=future_spec,
             source_ref=source_ref,
         )
+
+        self.early_modules = ()
 
     def getDetails(self):
         return {
@@ -773,38 +832,19 @@ class PythonMainModule(CompiledPythonModule):
         else:
             return CompiledPythonModule.getOutputFilename(self)
 
+    def setEarlyModules(self, early_modules):
+        self.early_modules = early_modules
 
-class PythonInternalModule(CompiledPythonModule):
-    """ The internal module is the parent for Python helpers.
+    def getEarlyModules(self):
+        return self.early_modules
 
-        For some operations, e.g. merging star arguments with
-        normal keyword arguments for a function call, there are
-        Python helpers.
+    def computeModule(self):
+        CompiledPythonModule.computeModule(self)
 
-        This module is the home for these functions to live in,
-        but has no own module code.
-    """
+        from nuitka.ModuleRegistry import addUsedModule
 
-    kind = "PYTHON_INTERNAL_MODULE"
-
-    def __init__(self):
-        CompiledPythonModule.__init__(
-            self,
-            module_name=ModuleName("__internal__"),
-            is_top=False,
-            mode="compiled",
-            source_ref=SourceCodeReference.fromFilenameAndLine(
-                filename="internal", line=0
-            ),
-            future_spec=FutureSpec(),
-        )
-
-    @staticmethod
-    def isInternalModule():
-        return True
-
-    def getOutputFilename(self):
-        return "__internal"
+        for early_module in self.early_modules:
+            addUsedModule(early_module)
 
 
 class PythonShlibModule(PythonModuleBase):
@@ -834,13 +874,13 @@ class PythonShlibModule(PythonModuleBase):
         del self.used_modules
 
     def getFilename(self):
-        return self.getSourceReference().getFilename()
+        return self.source_ref.getFilename()
 
     def startTraversal(self):
         pass
 
     def getPyIFilename(self):
-        """ Get Python type description filename. """
+        """Get Python type description filename."""
 
         path = self.getFilename()
         filename = os.path.basename(path)
@@ -849,9 +889,9 @@ class PythonShlibModule(PythonModuleBase):
         return os.path.join(dirname, filename.split(".")[0]) + ".pyi"
 
     def _readPyPIFile(self):
-        """ Read the .pyi file if present and scan for dependencies. """
+        """Read the .pyi file if present and scan for dependencies."""
 
-        # Complex stuff, pylint: disable=too-many-branches
+        # Complex stuff, pylint: disable=too-many-branches,too-many-statements
 
         if self.used_modules is None:
             pyi_filename = self.getPyIFilename()
@@ -876,10 +916,18 @@ class PythonShlibModule(PythonModuleBase):
                             assert parts[0] == "from"
                             assert parts[2] == "import"
 
-                            if parts[1] == "typing":
+                            origin_name = parts[1]
+
+                            if origin_name == "typing":
                                 continue
 
-                            pyi_deps.add(parts[1])
+                            if origin_name == ".":
+                                origin_name = self.getFullName()
+
+                            # TODO: Might want to add full relative import handling.
+
+                            if origin_name != self.getFullName():
+                                pyi_deps.add(origin_name)
 
                             imported = parts[3]
                             if imported.startswith("("):
@@ -887,7 +935,7 @@ class PythonShlibModule(PythonModuleBase):
                                 if not imported.endswith(")"):
                                     in_import = True
                                     imported = imported[1:]
-                                    in_import_part = parts[1]
+                                    in_import_part = origin_name
                                     assert in_import_part, (
                                         "Multiline part in file %s cannot be empty"
                                         % pyi_filename
@@ -903,7 +951,7 @@ class PythonShlibModule(PythonModuleBase):
                             for name in imported.split(","):
                                 if name:
                                     name = name.strip()
-                                    pyi_deps.add(parts[1] + "." + name)
+                                    pyi_deps.add(origin_name + "." + name)
 
                     else:  # In import
                         imported = line
@@ -918,6 +966,13 @@ class PythonShlibModule(PythonModuleBase):
 
                 if "typing" in pyi_deps:
                     pyi_deps.discard("typing")
+                if "__future__" in pyi_deps:
+                    pyi_deps.discard("__future__")
+
+                if self.getFullName() in pyi_deps:
+                    pyi_deps.discard(self.getFullName())
+                if self.getFullName().getPackageName() in pyi_deps:
+                    pyi_deps.discard(self.getFullName().getPackageName())
 
                 self.used_modules = tuple((pyi_dep, None) for pyi_dep in pyi_deps)
             else:
@@ -925,6 +980,8 @@ class PythonShlibModule(PythonModuleBase):
 
     def getUsedModules(self):
         self._readPyPIFile()
+
+        assert "." not in self.used_modules, self
 
         return self.used_modules
 

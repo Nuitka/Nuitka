@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,15 +27,15 @@ this.
 import os
 
 from nuitka import Options
-from nuitka.utils import FileOperations, Utils
+from nuitka.utils.FileOperations import makePath
+from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.utils.Utils import getOS, isWin32Windows
 
 _main_module = None
 
 
 def setMainModule(main_module):
-    """ Call this before using other methods of this module.
-
-    """
+    """Call this before using other methods of this module."""
     # Technically required.
     assert main_module.isCompiledPythonModule()
 
@@ -44,16 +44,20 @@ def setMainModule(main_module):
     _main_module = main_module
 
 
-def getSourceDirectoryPath():
-    """ Return path inside the build directory.
+def getSourceDirectoryPath(onefile=False):
+    """Return path inside the build directory."""
 
-    """
+    # Distinct build folders for oneline mode.
+    if onefile:
+        suffix = ".onefile-build"
+    else:
+        suffix = ".build"
 
     result = Options.getOutputPath(
-        path=os.path.basename(getTreeFilenameWithSuffix(_main_module, ".build"))
+        path=os.path.basename(getTreeFilenameWithSuffix(_main_module, suffix))
     )
 
-    FileOperations.makePath(result)
+    makePath(result)
 
     return result
 
@@ -64,8 +68,8 @@ def getStandaloneDirectoryPath():
     )
 
 
-def getResultBasepath():
-    if Options.isStandaloneMode():
+def getResultBasepath(onefile=False):
+    if Options.isStandaloneMode() and not onefile:
         return os.path.join(
             getStandaloneDirectoryPath(),
             os.path.basename(getTreeFilenameWithSuffix(_main_module, "")),
@@ -76,22 +80,29 @@ def getResultBasepath():
         )
 
 
-def getResultFullpath():
-    """ Get the final output binary result full path.
+def getResultFullpath(onefile):
+    """Get the final output binary result full path."""
 
-    """
-
-    result = getResultBasepath()
+    result = getResultBasepath(onefile=onefile)
 
     if Options.shallMakeModule():
-        result += Utils.getSharedLibrarySuffix(preferred=True)
+        result += getSharedLibrarySuffix(preferred=True)
     else:
-        if Options.getOutputFilename() is not None:
+        if onefile and Options.getOutputFilename() is not None:
             result = Options.getOutputFilename()
-        elif Utils.getOS() == "Windows":
+        elif getOS() == "Windows":
             result += ".exe"
-        elif not Options.isStandaloneMode():
+        elif not Options.isStandaloneMode() or onefile:
             result += ".bin"
+
+    return result
+
+
+def getResultRunFilename(onefile):
+    result = getResultFullpath(onefile=onefile)
+
+    if isWin32Windows() and Options.shallTreatUninstalledPython():
+        result = getResultBasepath(onefile=onefile) + ".cmd"
 
     return result
 

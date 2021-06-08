@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,7 +36,7 @@ from .PythonAPICodes import generateCAPIObjectCode
 def generateSetCreationCode(to_name, expression, emit, context):
     element_name = context.allocateTempName("set_element")
 
-    elements = expression.getElements()
+    elements = expression.subnode_elements
 
     # Supposed to optimize empty set to constant value.
     assert elements, expression
@@ -84,12 +84,12 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
 
         context.addCleanupTempName(result_name)
 
-        elements = expression.getElements()
+        elements = expression.subnode_elements
 
         element_names = []
 
-        for count, element in enumerate(elements):
-            element_name = context.allocateTempName("set_element_%d" % (count + 1))
+        for count, element in enumerate(elements, 1):
+            element_name = context.allocateTempName("set_element_%d" % count)
             element_names.append(element_name)
 
             generateExpressionCode(
@@ -116,15 +116,19 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
 
 
 def generateSetOperationAddCode(statement, emit, context):
-    set_arg_name = context.allocateTempName("append_list")
+
+    set_arg_name = context.allocateTempName("add_set")
     generateExpressionCode(
-        to_name=set_arg_name, expression=statement.getSet(), emit=emit, context=context
+        to_name=set_arg_name,
+        expression=statement.subnode_set_arg,
+        emit=emit,
+        context=context,
     )
 
-    value_arg_name = context.allocateTempName("append_value")
+    value_arg_name = context.allocateTempName("add_value")
     generateExpressionCode(
         to_name=value_arg_name,
-        expression=statement.getValue(),
+        expression=statement.subnode_value,
         emit=emit,
         context=context,
     )
@@ -176,7 +180,7 @@ def generateBuiltinSetCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PySet_New",
-        arg_desc=(("set_arg", expression.getValue()),),
+        arg_desc=(("set_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -189,7 +193,7 @@ def generateBuiltinFrozensetCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PyFrozenSet_New",
-        arg_desc=(("frozenset_arg", expression.getValue()),),
+        arg_desc=(("frozenset_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),

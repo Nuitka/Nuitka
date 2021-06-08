@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -18,8 +18,6 @@
 #ifndef __NUITKA_CALLING_H__
 #define __NUITKA_CALLING_H__
 
-extern PyObject *const_tuple_empty;
-
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION(PyObject *function_object, PyObject *positional_args,
                                                     PyObject *named_args) {
     // Not allowed to enter with an error set. This often catches leaked errors from
@@ -33,7 +31,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION(PyObject *function_object, P
     ternaryfunc call_slot = Py_TYPE(function_object)->tp_call;
 
     if (unlikely(call_slot == NULL)) {
-        PyErr_Format(PyExc_TypeError, "'%s' object is not callable", function_object->ob_type->tp_name);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object is not callable", function_object);
 
         return NULL;
     }
@@ -79,8 +77,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS(PyObject *funct
 // Method call variant with no arguments provided at all.
 extern PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attribute);
 
-// Convenience wrapper for single argument calls to not require an array
-// of args.
+// Forms for single argument calls to not require an array of args from the user side.
 extern PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg);
+extern PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyObject *arg);
 
 #endif

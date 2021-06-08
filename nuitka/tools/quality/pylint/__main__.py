@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,31 +23,35 @@
 
 from __future__ import print_function
 
-import glob
-import os
 import sys
 from optparse import OptionParser
 
 from nuitka.PythonVersions import python_version
-from nuitka.tools.Basics import addPYTHONPATH, goHome, setupPATH
+from nuitka.tools.Basics import addPYTHONPATH, getHomePath, goHome, setupPATH
+from nuitka.tools.quality.Git import getModifiedPaths
 from nuitka.tools.quality.pylint import PyLint
-from nuitka.tools.quality.ScanSources import scanTargets
+from nuitka.tools.quality.ScanSources import isPythonFile, scanTargets
 from nuitka.tools.testing.Common import hasModule, setup
-
-
-def resolveShellPatternToFilenames(pattern):
-    return glob.glob(pattern)
+from nuitka.utils.FileOperations import resolveShellPatternToFilenames
 
 
 def main():
-    setup()
-    goHome()
+    setup(go_main=False)
 
     # So PyLint finds nuitka package.
-    addPYTHONPATH(os.getcwd())
+    addPYTHONPATH(getHomePath())
     setupPATH()
 
     parser = OptionParser()
+
+    parser.add_option(
+        "--diff",
+        action="store_true",
+        dest="diff",
+        default=False,
+        help="""\
+Analyse the changed files in git. Default is %default.""",
+    )
 
     parser.add_option(
         "--show-todos",
@@ -92,8 +96,18 @@ Insist on PyLint to be installed. Default is %default.""",
         print("PyLint is not installed for this interpreter version: SKIPPED")
         sys.exit(0)
 
-    if not positional_args:
-        positional_args = ["bin", "nuitka", "tests/*/run_all.py"]
+    if positional_args:
+        if options.diff:
+            sys.exit("Error, no filenames argument allowed in git diff mode.")
+    else:
+        goHome()
+
+        if options.diff:
+            positional_args = [
+                filename for filename in getModifiedPaths() if isPythonFile(filename)
+            ]
+        else:
+            positional_args = ["bin", "nuitka", "setup.py", "tests/*/run_all.py"]
 
     positional_args = sum(
         (
@@ -103,15 +117,22 @@ Insist on PyLint to be installed. Default is %default.""",
         [],
     )
 
+    if not positional_args:
+        sys.exit("No files found.")
+
     print("Working on:", positional_args)
 
-    blacklist = []
+    ignore_list = []
 
     # Avoid checking the Python2 runner along with the one for Python3, it has name collisions.
-    if python_version >= 300:
-        blacklist.append("nuitka")
+    if python_version >= 0x300:
+        ignore_list.append("nuitka")
 
-    filenames = list(scanTargets(positional_args, (".py",), blacklist))
+    filenames = list(
+        scanTargets(
+            positional_args, suffixes=(".py", ".scons"), ignore_list=ignore_list
+        )
+    )
     PyLint.executePyLint(
         filenames=filenames,
         show_todos=options.todos,

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -28,19 +28,23 @@ a = (
    1, 2, 3, 4, 5
 )
 
-def calledRepeatedly():
+def calledRepeatedly(python_f):
     # This is supposed to make a call to a non-compiled function, which is
     # being optimized separately.
+
+    # Force a frame for now.
     args = a
 
 # construct_begin
-    python_func(3, *a)
+    python_f(3, *args)
 # construct_alternative
     pass
 # construct_end
 
+    return python_f, args
+
 import itertools
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
+    calledRepeatedly(python_func)
 
 print("OK.")

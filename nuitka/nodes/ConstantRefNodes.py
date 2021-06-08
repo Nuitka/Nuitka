@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,9 +19,9 @@
 
 """
 
-from logging import warning
-
+from nuitka import Options
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    GenericAlias,
     iterItems,
     long,
     unicode,
@@ -33,24 +33,28 @@ from nuitka.Builtins import (
     builtin_named_values,
 )
 from nuitka.Constants import (
-    getConstantIterationLength,
     getUnhashableConstant,
     isConstant,
     isHashable,
-    isIndexConstant,
-    isIterableConstant,
     isMutable,
-    isNumberConstant,
 )
-from nuitka.Options import isDebug
+from nuitka.PythonVersions import python_version
+from nuitka.Tracing import optimization_logger
 
 from .ExpressionBases import CompileTimeConstantExpressionBase
 from .IterationHandles import (
-    ConstantIndexableIterationHandle,
-    ConstantSetAndDictIterationHandle,
+    ConstantBytearrayIterationHandle,
+    ConstantBytesIterationHandle,
+    ConstantDictIterationHandle,
+    ConstantFrozensetIterationHandle,
+    ConstantListIterationHandle,
+    ConstantRangeIterationHandle,
+    ConstantSetIterationHandle,
+    ConstantStrIterationHandle,
+    ConstantTupleIterationHandle,
+    ConstantUnicodeIterationHandle,
 )
 from .NodeMakingHelpers import (
-    getComputationResult,
     makeRaiseExceptionReplacementExpression,
     wrapExpressionWithSideEffects,
 )
@@ -77,52 +81,27 @@ from .shapes.BuiltinTypeShapes import (
 )
 
 
-class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
-    __slots__ = "constant", "user_provided"
+class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
+    __slots__ = ("constant",)
 
-    def __init__(self, constant, source_ref, user_provided=False):
+    def __init__(self, constant, source_ref):
         CompileTimeConstantExpressionBase.__init__(self, source_ref=source_ref)
 
-        assert isConstant(constant), repr(constant)
-
         self.constant = constant
-
-        # Memory saving method, have the attribute only where necessary.
-        self.user_provided = user_provided
-
-        if not user_provided and isDebug():
-            try:
-                if type(constant) in (str, unicode, bytes):
-                    max_size = 1000
-                elif type(constant) is xrange:
-                    max_size = None
-                else:
-                    max_size = 256
-
-                if max_size is not None and len(constant) > max_size:
-                    warning(
-                        "Too large constant (%s %d) encountered at %s.",
-                        type(constant),
-                        len(constant),
-                        source_ref.getAsString(),
-                    )
-            except TypeError:
-                pass
 
     def finalize(self):
         del self.parent
         del self.constant
 
     def __repr__(self):
-        return "<Node %s value %r at %s %s>" % (
+        return "<Node %s value %r at %s>" % (
             self.kind,
             self.constant,
             self.source_ref.getAsString(),
-            self.user_provided,
         )
 
     def getDetails(self):
-        return {"constant": self.constant, "user_provided": self.user_provided}
+        return {"constant": self.constant}
 
     def getDetailsForDisplay(self):
         result = self.getDetails()
@@ -141,7 +120,6 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-
         # The arguments don't matter. All constant values cannot be called, and
         # we just need to make and error out of that.
         new_node = wrapExpressionWithSideEffects(
@@ -166,22 +144,17 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
     def getCompileTimeConstant(self):
         return self.constant
 
-    def isUserProvidedConstant(self):
-        return self.user_provided
-
-    getConstant = getCompileTimeConstant
-
-    def getIterationHandle(self):
-        if self.isIterableConstant():
-            return ConstantIndexableIterationHandle(self)
-        else:
-            return None
+    @staticmethod
+    def getIterationHandle():
+        return None
 
     def isMutable(self):
-        return isMutable(self.constant)
+        # This is expected to be overloaded by child classes.
+        assert False, self
 
     def isKnownToBeHashable(self):
-        return isHashable(self.constant)
+        # This is expected to be overloaded by child classes.
+        assert False, self
 
     def extractUnhashableNode(self):
         value = getUnhashableConstant(self.constant)
@@ -189,18 +162,23 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
         if value is not None:
             return makeConstantRefNode(constant=value, source_ref=self.source_ref)
 
-    def isNumberConstant(self):
-        return isNumberConstant(self.constant)
+    @staticmethod
+    def isNumberConstant():
+        # This is expected to be overloaded by child classes that disagree, bool, int, long and float
+        return False
 
-    def isIndexConstant(self):
-        return isIndexConstant(self.constant)
+    @staticmethod
+    def isIndexConstant():
+        # This is expected to be overloaded by child classes that disagree, bool, int, long and float
+        return False
 
     def isIndexable(self):
+        # TODO: Suspiciously this doesn't use isIndexConstant, which includes float, bug?
         return self.constant is None or self.isNumberConstant()
 
     def isKnownToBeIterable(self, count):
-        if isIterableConstant(self.constant):
-            return count is None or getConstantIterationLength(self.constant) == count
+        if self.isIterableConstant():
+            return count is None or len(self.constant) == count
         else:
             return False
 
@@ -226,7 +204,7 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
         ]
 
     def getIterationValues(self):
-        source_ref = self.getSourceReference()
+        source_ref = self.source_ref
 
         return tuple(
             makeConstantRefNode(
@@ -235,171 +213,161 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
             for value in self.constant
         )
 
-    def isMapping(self):
-        return type(self.constant) is dict
-
-    def isMappingWithConstantStringKeys(self):
-        assert self.isMapping()
-
-        for key in self.constant:
-            if type(key) not in (str, unicode):
-                return False
-        return True
-
-    def getMappingPairs(self):
-        assert self.isMapping()
-
-        pairs = []
-
-        source_ref = self.getSourceReference()
-
-        for key, value in iterItems(self.constant):
-            pairs.append(
-                makeConstantRefNode(constant=key, source_ref=source_ref),
-                makeConstantRefNode(constant=value, source_ref=source_ref),
-            )
-
-        return pairs
-
-    def getMappingStringKeyPairs(self):
-        assert self.isMapping()
-
-        pairs = []
-
-        source_ref = self.getSourceReference()
-
-        for key, value in iterItems(self.constant):
-            pairs.append(
-                (key, makeConstantRefNode(constant=value, source_ref=source_ref))
-            )
-
-        return pairs
-
-    @staticmethod
-    def isBoolConstant():
-        return False
-
-    def mayHaveSideEffects(self):
-        # Constants have no side effects
-        return False
-
-    def extractSideEffects(self):
-        # Constants have no side effects
-        return ()
-
     def getIntegerValue(self):
         if self.isNumberConstant():
             return int(self.constant)
         else:
             return None
 
-    def getIndexValue(self):
-        if self.isIndexConstant():
-            return int(self.constant)
-        else:
-            return None
-
-    def getStringValue(self):
-        if self.isStringConstant():
-            return self.constant
-        else:
-            return None
+    def isIterableConstant(self):
+        # This is expected to be overloaded by child classes.
+        assert False, self
 
     def getIterationLength(self):
-        if isIterableConstant(self.constant):
-            return getConstantIterationLength(self.constant)
-        else:
-            return None
+        # This is expected to be overloaded by child classes if they are iterable
+        assert not self.isIterableConstant(), self
 
-    def isIterableConstant(self):
-        return isIterableConstant(self.constant)
-
-    def isUnicodeConstant(self):
-        return type(self.constant) is unicode
-
-    def isStringConstant(self):
-        return type(self.constant) is str
+        return None
 
     def getStrValue(self):
-        if type(self.constant) is str:
-            # Nothing to do.
-            return self
-        else:
-            try:
-                return makeConstantRefNode(
-                    constant=str(self.constant),
-                    user_provided=self.user_provided,
-                    source_ref=self.getSourceReference(),
-                )
-            except UnicodeEncodeError:
-                # Unicode constants may not be possible to encode.
-                return None
+        return makeConstantRefNode(
+            constant=str(self.constant),
+            user_provided=False,
+            source_ref=self.source_ref,
+        )
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        constant_type = type(self.constant)
+        # Note, this is overloaded for all the others.
+        assert not self.isIterableConstant()
 
-        if constant_type in (list, set, frozenset, dict):
-            result = makeConstantRefNode(
-                constant=tuple(self.constant),
-                user_provided=self.user_provided,
-                source_ref=self.getSourceReference(),
-            )
-
-            self.parent.replaceChild(self, result)
-            self.finalize()
-
-            return (
-                iter_node,
-                "new_constant",
-                """\
-Iteration over constant %s changed to tuple."""
-                % constant_type.__name__,
-            )
-
-        if not isIterableConstant(self.constant):
-            # An exception may be raised.
-            trace_collection.onExceptionRaiseExit(TypeError)
-
-            return getComputationResult(
-                node=iter_node,
-                computation=lambda: iter_node.simulator(self.constant),
-                description="Iteration of non-iterable constant.",
-            )
+        # TODO: Raise static exception.
 
         return iter_node, None, None
 
 
-class ExpressionConstantNoneRef(ExpressionConstantRefBase):
+class ExpressionConstantRefBase(ExpressionConstantUntrackedRefBase):
+    """Constants reference base class.
+
+    Use this for cases, for which it makes sense to track origin, e.g.
+    large lists are from computation or from user literals.
+    """
+
+    __slots__ = ("user_provided",)
+
+    def __init__(self, constant, user_provided, source_ref):
+        ExpressionConstantUntrackedRefBase.__init__(
+            self, constant=constant, source_ref=source_ref
+        )
+
+        self.user_provided = user_provided
+
+        if not user_provided and Options.is_debug:
+            try:
+                if type(constant) in (str, unicode, bytes):
+                    max_size = 1000
+                elif type(constant) is xrange:
+                    max_size = None
+                else:
+                    max_size = 256
+
+                if max_size is not None and len(constant) > max_size:
+                    optimization_logger.warning(
+                        "Too large constant (%s %d) encountered at %s."
+                        % (
+                            type(constant),
+                            len(constant),
+                            source_ref.getAsString(),
+                        )
+                    )
+            except TypeError:
+                pass
+
+    def getDetails(self):
+        return {"constant": self.constant, "user_provided": self.user_provided}
+
+    def __repr__(self):
+        return "<Node %s value %r at %s %s>" % (
+            self.kind,
+            self.constant,
+            self.source_ref.getAsString(),
+            self.user_provided,
+        )
+
+    def getStrValue(self):
+        try:
+            return makeConstantRefNode(
+                constant=str(self.constant),
+                user_provided=self.user_provided,
+                source_ref=self.source_ref,
+            )
+        except UnicodeEncodeError:
+            # Unicode constants may not be possible to encode.
+            return None
+
+
+class ExpressionConstantNoneRef(ExpressionConstantUntrackedRefBase):
     kind = "EXPRESSION_CONSTANT_NONE_REF"
 
     __slots__ = ()
 
-    def __init__(self, source_ref, user_provided=False):
-        ExpressionConstantRefBase.__init__(
-            self, constant=None, user_provided=user_provided, source_ref=source_ref
+    def __init__(self, source_ref):
+        ExpressionConstantUntrackedRefBase.__init__(
+            self, constant=None, source_ref=source_ref
         )
 
-    def getDetails(self):
+    @staticmethod
+    def getDetails():
         return {}
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_none
 
-
-class ExpressionConstantBoolRefBase(ExpressionConstantRefBase):
     @staticmethod
-    def isBoolConstant():
+    def isMutable():
+        return False
+
+    @staticmethod
+    def isKnownToBeHashable():
         return True
 
+    @staticmethod
+    def isIterableConstant():
+        return False
+
+
+class ExpressionConstantBoolRefBase(ExpressionConstantUntrackedRefBase):
     def computeExpressionBool(self, trace_collection):
         # Best case already.
         pass
 
-    def getDetails(self):
+    @staticmethod
+    def getDetails():
         return {}
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bool
+
+    @staticmethod
+    def isMutable():
+        return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isNumberConstant():
+        return True
+
+    @staticmethod
+    def isIndexConstant():
+        return True
+
+    @staticmethod
+    def isIterableConstant():
+        return False
 
 
 class ExpressionConstantTrueRef(ExpressionConstantBoolRefBase):
@@ -407,10 +375,20 @@ class ExpressionConstantTrueRef(ExpressionConstantBoolRefBase):
 
     __slots__ = ()
 
-    def __init__(self, source_ref, user_provided=False):
+    def __init__(self, source_ref):
         ExpressionConstantBoolRefBase.__init__(
-            self, constant=True, user_provided=user_provided, source_ref=source_ref
+            self, constant=True, source_ref=source_ref
         )
+
+    @staticmethod
+    def getTruthValue():
+        """Return known truth value."""
+
+        return True
+
+    @staticmethod
+    def getIndexValue():
+        return 1
 
 
 class ExpressionConstantFalseRef(ExpressionConstantBoolRefBase):
@@ -418,33 +396,63 @@ class ExpressionConstantFalseRef(ExpressionConstantBoolRefBase):
 
     __slots__ = ()
 
-    def __init__(self, source_ref, user_provided=False):
+    def __init__(self, source_ref):
         ExpressionConstantBoolRefBase.__init__(
-            self, constant=False, user_provided=user_provided, source_ref=source_ref
+            self, constant=False, source_ref=source_ref
         )
 
+    @staticmethod
+    def getTruthValue():
+        """Return known truth value."""
 
-class ExpressionConstantEllipsisRef(ExpressionConstantRefBase):
+        return False
+
+    @staticmethod
+    def getIndexValue():
+        return 0
+
+
+class ExpressionConstantEllipsisRef(ExpressionConstantUntrackedRefBase):
     kind = "EXPRESSION_CONSTANT_ELLIPSIS_REF"
 
     __slots__ = ()
 
-    def __init__(self, source_ref, user_provided=False):
-        ExpressionConstantRefBase.__init__(
-            self, constant=Ellipsis, user_provided=user_provided, source_ref=source_ref
+    def __init__(self, source_ref):
+        ExpressionConstantUntrackedRefBase.__init__(
+            self, constant=Ellipsis, source_ref=source_ref
         )
 
-    def getDetails(self):
+    @staticmethod
+    def getDetails():
         return {}
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_ellipsis
+
+    @staticmethod
+    def isMutable():
+        return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isIterableConstant():
+        return False
+
+    @staticmethod
+    def getTruthValue():
+        """Return known truth value."""
+
+        return True
 
 
 class ExpressionConstantDictRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_DICT_REF"
 
-    def __init__(self, source_ref, constant, user_provided=False):
+    def __init__(self, constant, user_provided, source_ref):
         ExpressionConstantRefBase.__init__(
             self, constant=constant, user_provided=user_provided, source_ref=source_ref
         )
@@ -453,14 +461,106 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
     def isExpressionConstantDictRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_dict
 
-    def hasShapeDictionaryExact(self):
+    @staticmethod
+    def hasShapeDictionaryExact():
+        return True
+
+    @staticmethod
+    def isMutable():
+        return True
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
+
+    @staticmethod
+    def isIterableConstant():
         return True
 
     def getIterationHandle(self):
-        return ConstantSetAndDictIterationHandle(self)
+        return ConstantDictIterationHandle(self)
+
+    def getIterationLength(self):
+        return len(self.constant)
+
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        result = makeConstantRefNode(
+            constant=tuple(self.constant),
+            user_provided=self.user_provided,
+            source_ref=self.source_ref,
+        )
+
+        self.parent.replaceChild(self, result)
+        self.finalize()
+
+        return (
+            iter_node,
+            "new_constant",
+            """Iteration over constant dict lowered to tuple.""",
+        )
+
+    def isMappingWithConstantStringKeys(self):
+        return all(type(key) in (str, unicode) for key in self.constant)
+
+    def getMappingStringKeyPairs(self):
+        pairs = []
+
+        for key, value in iterItems(self.constant):
+            pairs.append(
+                (key, makeConstantRefNode(constant=value, source_ref=self.source_ref))
+            )
+
+        return pairs
+
+    @staticmethod
+    def getTruthValue():
+        """Return known truth value.
+
+        The empty dict is not allowed here, so we can hardcode it.
+        """
+
+        return True
+
+
+class EmptyContainerMixin(object):
+    __slots__ = ()
+
+    def getDetails(self):
+        return {"user_provided": self.user_provided}
+
+    @staticmethod
+    def getIterationLength():
+        return 0
+
+    @staticmethod
+    def getTruthValue():
+        """Return known truth value.
+
+        The empty container is false, so we can hardcode it.
+        """
+
+        return False
+
+
+_the_empty_dict = {}
+
+
+class ExpressionConstantDictEmptyRef(EmptyContainerMixin, ExpressionConstantDictRef):
+    kind = "EXPRESSION_CONSTANT_DICT_EMPTY_REF"
+
+    __slots__ = ()
+
+    def __init__(self, user_provided, source_ref):
+        ExpressionConstantDictRef.__init__(
+            self,
+            constant=_the_empty_dict,
+            user_provided=user_provided,
+            source_ref=source_ref,
+        )
 
 
 class ExpressionConstantTupleRef(ExpressionConstantRefBase):
@@ -468,7 +568,7 @@ class ExpressionConstantTupleRef(ExpressionConstantRefBase):
 
     __slots__ = ()
 
-    def __init__(self, source_ref, constant, user_provided=False):
+    def __init__(self, constant, user_provided, source_ref):
         ExpressionConstantRefBase.__init__(
             self, constant=constant, user_provided=user_provided, source_ref=source_ref
         )
@@ -477,28 +577,71 @@ class ExpressionConstantTupleRef(ExpressionConstantRefBase):
     def isExpressionConstantTupleRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_tuple
 
+    @staticmethod
+    def isMutable():
+        return False
 
-the_empty_tuple = ()
+    def isKnownToBeHashable(self):
+        # There are a few exceptions, where non-mutable can be non-hashable, e.g. slice.
+        return isHashable(self.constant)
+
+    @staticmethod
+    def isIterableConstant():
+        return True
+
+    def getIterationHandle(self):
+        return ConstantTupleIterationHandle(self)
+
+    def getIterationLength(self):
+        return len(self.constant)
+
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        # Note: Tuples are as good as it gets.
+        return iter_node, None, None
+
+    @staticmethod
+    def getTruthValue():
+        """Return known truth value.
+
+        The empty dict is not allowed here, so we can hardcode it.
+        """
+
+        return True
 
 
-class ExpressionConstantTupleEmptyRef(ExpressionConstantTupleRef):
+class ExpressionConstantTupleMutableRef(ExpressionConstantTupleRef):
+    kind = "EXPRESSION_CONSTANT_TUPLE_MUTABLE_REF"
+
+    __slots__ = ()
+
+    @staticmethod
+    def isMutable():
+        return True
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
+
+
+_the_empty_tuple = ()
+
+
+class ExpressionConstantTupleEmptyRef(EmptyContainerMixin, ExpressionConstantTupleRef):
     kind = "EXPRESSION_CONSTANT_TUPLE_EMPTY_REF"
 
     __slots__ = ()
 
-    def __init__(self, source_ref, user_provided=False):
+    def __init__(self, user_provided, source_ref):
         ExpressionConstantTupleRef.__init__(
             self,
-            constant=the_empty_tuple,
+            constant=_the_empty_tuple,
             user_provided=user_provided,
             source_ref=source_ref,
         )
-
-    def getDetails(self):
-        return {}
 
 
 class ExpressionConstantListRef(ExpressionConstantRefBase):
@@ -506,7 +649,7 @@ class ExpressionConstantListRef(ExpressionConstantRefBase):
 
     __slots__ = ()
 
-    def __init__(self, source_ref, constant, user_provided=False):
+    def __init__(self, constant, user_provided, source_ref):
         ExpressionConstantRefBase.__init__(
             self, constant=constant, user_provided=user_provided, source_ref=source_ref
         )
@@ -515,28 +658,60 @@ class ExpressionConstantListRef(ExpressionConstantRefBase):
     def isExpressionConstantListRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_list
 
+    @staticmethod
+    def isMutable():
+        return True
 
-the_empty_list = []
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
+
+    @staticmethod
+    def isIterableConstant():
+        return True
+
+    def getIterationHandle(self):
+        return ConstantListIterationHandle(self)
+
+    def getIterationLength(self):
+        return len(self.constant)
+
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        result = makeConstantRefNode(
+            constant=tuple(self.constant),
+            user_provided=self.user_provided,
+            source_ref=self.source_ref,
+        )
+
+        self.parent.replaceChild(self, result)
+        self.finalize()
+
+        return (
+            iter_node,
+            "new_constant",
+            """Iteration over constant list lowered to tuple.""",
+        )
 
 
-class ExpressionConstantListEmptyRef(ExpressionConstantListRef):
+_the_empty_list = []
+
+
+class ExpressionConstantListEmptyRef(EmptyContainerMixin, ExpressionConstantListRef):
     kind = "EXPRESSION_CONSTANT_LIST_EMPTY_REF"
 
     __slots__ = ()
 
-    def __init__(self, source_ref, user_provided=False):
+    def __init__(self, user_provided, source_ref):
         ExpressionConstantListRef.__init__(
             self,
-            constant=the_empty_list,
+            constant=_the_empty_list,
             user_provided=user_provided,
             source_ref=source_ref,
         )
-
-    def getDetails(self):
-        return {}
 
 
 class ExpressionConstantSetRef(ExpressionConstantRefBase):
@@ -544,7 +719,7 @@ class ExpressionConstantSetRef(ExpressionConstantRefBase):
 
     __slots__ = ()
 
-    def __init__(self, source_ref, constant, user_provided=False):
+    def __init__(self, constant, user_provided, source_ref):
         ExpressionConstantRefBase.__init__(
             self, constant=constant, user_provided=user_provided, source_ref=source_ref
         )
@@ -553,31 +728,60 @@ class ExpressionConstantSetRef(ExpressionConstantRefBase):
     def isExpressionConstantSetRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_set
 
+    @staticmethod
+    def isMutable():
+        return True
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
+
+    @staticmethod
+    def isIterableConstant():
+        return True
+
     def getIterationHandle(self):
-        return ConstantSetAndDictIterationHandle(self)
+        return ConstantSetIterationHandle(self)
+
+    def getIterationLength(self):
+        return len(self.constant)
+
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        result = makeConstantRefNode(
+            constant=tuple(self.constant),
+            user_provided=self.user_provided,
+            source_ref=self.source_ref,
+        )
+
+        self.parent.replaceChild(self, result)
+        self.finalize()
+
+        return (
+            iter_node,
+            "new_constant",
+            """Iteration over constant set lowered to tuple.""",
+        )
 
 
-the_empty_set = set()
+_the_empty_set = set()
 
 
-class ExpressionConstantSetEmptyRef(ExpressionConstantSetRef):
+class ExpressionConstantSetEmptyRef(EmptyContainerMixin, ExpressionConstantSetRef):
     kind = "EXPRESSION_CONSTANT_SET_EMPTY_REF"
 
     __slots__ = ()
 
-    def __init__(self, source_ref, user_provided=False):
+    def __init__(self, user_provided, source_ref):
         ExpressionConstantSetRef.__init__(
             self,
-            constant=the_empty_set,
+            constant=_the_empty_set,
             user_provided=user_provided,
             source_ref=source_ref,
         )
-
-    def getDetails(self):
-        return {}
 
 
 class ExpressionConstantFrozensetRef(ExpressionConstantRefBase):
@@ -585,7 +789,7 @@ class ExpressionConstantFrozensetRef(ExpressionConstantRefBase):
 
     __slots__ = ()
 
-    def __init__(self, source_ref, constant, user_provided=False):
+    def __init__(self, constant, user_provided, source_ref):
         ExpressionConstantRefBase.__init__(
             self, constant=constant, user_provided=user_provided, source_ref=source_ref
         )
@@ -594,46 +798,104 @@ class ExpressionConstantFrozensetRef(ExpressionConstantRefBase):
     def isExpressionConstantFrozensetRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_frozenset
 
+    @staticmethod
+    def isMutable():
+        return False
 
-the_empty_frozenset = frozenset()
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isIterableConstant():
+        return True
+
+    def getIterationHandle(self):
+        return ConstantFrozensetIterationHandle(self)
+
+    def getIterationLength(self):
+        return len(self.constant)
+
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        result = makeConstantRefNode(
+            constant=tuple(self.constant),
+            user_provided=self.user_provided,
+            source_ref=self.source_ref,
+        )
+
+        self.parent.replaceChild(self, result)
+        self.finalize()
+
+        return (
+            iter_node,
+            "new_constant",
+            """Iteration over constant frozenset lowered to tuple.""",
+        )
 
 
-class ExpressionConstantFrozensetEmptyRef(ExpressionConstantFrozensetRef):
+_the_empty_frozenset = frozenset()
+
+
+class ExpressionConstantFrozensetEmptyRef(
+    EmptyContainerMixin, ExpressionConstantFrozensetRef
+):
     kind = "EXPRESSION_CONSTANT_FROZENSET_EMPTY_REF"
 
     __slots__ = ()
 
-    def __init__(self, source_ref, user_provided=False):
+    def __init__(self, user_provided, source_ref):
         ExpressionConstantFrozensetRef.__init__(
             self,
-            constant=the_empty_frozenset,
+            constant=_the_empty_frozenset,
             user_provided=user_provided,
             source_ref=source_ref,
         )
 
-    def getDetails(self):
-        return {}
 
-
-class ExpressionConstantIntRef(ExpressionConstantRefBase):
+class ExpressionConstantIntRef(ExpressionConstantUntrackedRefBase):
     kind = "EXPRESSION_CONSTANT_INT_REF"
 
     __slots__ = ()
 
-    def __init__(self, source_ref, constant, user_provided=False):
-        ExpressionConstantRefBase.__init__(
-            self, constant=constant, user_provided=user_provided, source_ref=source_ref
+    def __init__(self, constant, source_ref):
+        ExpressionConstantUntrackedRefBase.__init__(
+            self, constant=constant, source_ref=source_ref
         )
 
     @staticmethod
     def isExpressionConstantIntRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_int
+
+    @staticmethod
+    def isMutable():
+        return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isNumberConstant():
+        return True
+
+    @staticmethod
+    def isIndexConstant():
+        return True
+
+    def getIndexValue(self):
+        return self.constant
+
+    @staticmethod
+    def isIterableConstant():
+        return False
 
 
 class ExpressionConstantLongRef(ExpressionConstantRefBase):
@@ -641,7 +903,7 @@ class ExpressionConstantLongRef(ExpressionConstantRefBase):
 
     __slots__ = ()
 
-    def __init__(self, source_ref, constant, user_provided=False):
+    def __init__(self, constant, user_provided, source_ref):
         ExpressionConstantRefBase.__init__(
             self, constant=constant, user_provided=user_provided, source_ref=source_ref
         )
@@ -650,8 +912,34 @@ class ExpressionConstantLongRef(ExpressionConstantRefBase):
     def isExpressionConstantLongRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_long
+
+    @staticmethod
+    def isMutable():
+        return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isNumberConstant():
+        return True
+
+    @staticmethod
+    def isIndexConstant():
+        return True
+
+    def getIndexValue(self):
+        # Use the int value if possible, otherwise that remains a long, which is
+        # also OK, but often unnecessary.
+        return int(self.constant)
+
+    @staticmethod
+    def isIterableConstant():
+        return False
 
 
 class ExpressionConstantStrRef(ExpressionConstantRefBase):
@@ -659,7 +947,7 @@ class ExpressionConstantStrRef(ExpressionConstantRefBase):
 
     __slots__ = ()
 
-    def __init__(self, source_ref, constant, user_provided=False):
+    def __init__(self, constant, user_provided, source_ref):
         ExpressionConstantRefBase.__init__(
             self, constant=constant, user_provided=user_provided, source_ref=source_ref
         )
@@ -668,8 +956,51 @@ class ExpressionConstantStrRef(ExpressionConstantRefBase):
     def isExpressionConstantStrRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_str
+
+    @staticmethod
+    def isMutable():
+        return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isIterableConstant():
+        return True
+
+    def getIterationHandle(self):
+        return ConstantStrIterationHandle(self)
+
+    def getIterationLength(self):
+        return len(self.constant)
+
+    def getStrValue(self):
+        return self
+
+    def getStringValue(self):
+        return self.constant
+
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        # Note: str are as good as it gets.
+        return iter_node, None, None
+
+
+class ExpressionConstantStrEmptyRef(EmptyContainerMixin, ExpressionConstantStrRef):
+    kind = "EXPRESSION_CONSTANT_STR_EMPTY_REF"
+
+    __slots__ = ()
+
+    def __init__(self, user_provided, source_ref):
+        ExpressionConstantStrRef.__init__(
+            self,
+            constant="",
+            user_provided=user_provided,
+            source_ref=source_ref,
+        )
 
 
 class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
@@ -677,7 +1008,7 @@ class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
 
     __slots__ = ()
 
-    def __init__(self, source_ref, constant, user_provided=False):
+    def __init__(self, constant, user_provided, source_ref):
         ExpressionConstantRefBase.__init__(
             self, constant=constant, user_provided=user_provided, source_ref=source_ref
         )
@@ -686,14 +1017,53 @@ class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
     def isExpressionConstantUnicodeRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_unicode
+
+    @staticmethod
+    def isMutable():
+        return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isIterableConstant():
+        return True
+
+    def getIterationHandle(self):
+        return ConstantUnicodeIterationHandle(self)
+
+    def getIterationLength(self):
+        return len(self.constant)
+
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        # Note: unicode are as good as it gets
+        return iter_node, None, None
+
+
+class ExpressionConstantUnicodeEmptyRef(
+    EmptyContainerMixin, ExpressionConstantUnicodeRef
+):
+    kind = "EXPRESSION_CONSTANT_UNICODE_EMPTY_REF"
+
+    __slots__ = ()
+
+    def __init__(self, user_provided, source_ref):
+        ExpressionConstantUnicodeRef.__init__(
+            self,
+            constant=u"",
+            user_provided=user_provided,
+            source_ref=source_ref,
+        )
 
 
 class ExpressionConstantBytesRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_BYTES_REF"
 
-    def __init__(self, source_ref, constant, user_provided=False):
+    def __init__(self, constant, user_provided, source_ref):
         ExpressionConstantRefBase.__init__(
             self, constant=constant, user_provided=user_provided, source_ref=source_ref
         )
@@ -702,14 +1072,51 @@ class ExpressionConstantBytesRef(ExpressionConstantRefBase):
     def isExpressionConstantBytesRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bytes
+
+    @staticmethod
+    def isMutable():
+        return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isIterableConstant():
+        return True
+
+    def getIterationHandle(self):
+        return ConstantBytesIterationHandle(self)
+
+    def getIterationLength(self):
+        return len(self.constant)
+
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        # Note: bytes are as good as it gets
+        return iter_node, None, None
+
+
+class ExpressionConstantBytesEmptyRef(EmptyContainerMixin, ExpressionConstantBytesRef):
+    kind = "EXPRESSION_CONSTANT_BYTES_EMPTY_REF"
+
+    __slots__ = ()
+
+    def __init__(self, user_provided, source_ref):
+        ExpressionConstantBytesRef.__init__(
+            self,
+            constant=b"",
+            user_provided=user_provided,
+            source_ref=source_ref,
+        )
 
 
 class ExpressionConstantBytearrayRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_BYTEARRAY_REF"
 
-    def __init__(self, source_ref, constant, user_provided=False):
+    def __init__(self, constant, user_provided, source_ref):
         ExpressionConstantRefBase.__init__(
             self, constant=constant, user_provided=user_provided, source_ref=source_ref
         )
@@ -718,101 +1125,200 @@ class ExpressionConstantBytearrayRef(ExpressionConstantRefBase):
     def isExpressionConstantBytearrayRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bytearray
 
+    @staticmethod
+    def isMutable():
+        return True
 
-class ExpressionConstantFloatRef(ExpressionConstantRefBase):
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
+
+    @staticmethod
+    def isIterableConstant():
+        return True
+
+    def getIterationHandle(self):
+        return ConstantBytearrayIterationHandle(self)
+
+    def getIterationLength(self):
+        return len(self.constant)
+
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        result = makeConstantRefNode(
+            constant=bytes(self.constant),
+            user_provided=self.user_provided,
+            source_ref=self.source_ref,
+        )
+
+        self.parent.replaceChild(self, result)
+        self.finalize()
+
+        return (
+            iter_node,
+            "new_constant",
+            """Iteration over constant bytesarray lowered to bytes.""",
+        )
+
+
+class ExpressionConstantFloatRef(ExpressionConstantUntrackedRefBase):
     kind = "EXPRESSION_CONSTANT_FLOAT_REF"
 
     __slots__ = ()
 
-    def __init__(self, source_ref, constant, user_provided=False):
-        ExpressionConstantRefBase.__init__(
-            self, constant=constant, user_provided=user_provided, source_ref=source_ref
+    def __init__(self, constant, source_ref):
+        ExpressionConstantUntrackedRefBase.__init__(
+            self, constant=constant, source_ref=source_ref
         )
 
     @staticmethod
     def isExpressionConstantFloatRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_float
 
+    @staticmethod
+    def isMutable():
+        return False
 
-class ExpressionConstantComplexRef(ExpressionConstantRefBase):
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isNumberConstant():
+        return True
+
+    @staticmethod
+    def isIterableConstant():
+        return False
+
+
+class ExpressionConstantComplexRef(ExpressionConstantUntrackedRefBase):
     kind = "EXPRESSION_CONSTANT_COMPLEX_REF"
 
     __slots__ = ()
 
-    def __init__(self, source_ref, constant, user_provided=False):
-        ExpressionConstantRefBase.__init__(
-            self, constant=constant, user_provided=user_provided, source_ref=source_ref
+    def __init__(self, constant, source_ref):
+        ExpressionConstantUntrackedRefBase.__init__(
+            self, constant=constant, source_ref=source_ref
         )
 
     @staticmethod
     def isExpressionConstantComplexRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_complex
 
+    @staticmethod
+    def isMutable():
+        return False
 
-class ExpressionConstantSliceRef(ExpressionConstantRefBase):
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isIterableConstant():
+        return False
+
+
+class ExpressionConstantSliceRef(ExpressionConstantUntrackedRefBase):
     kind = "EXPRESSION_CONSTANT_SLICE_REF"
 
     __slots__ = ()
 
-    def __init__(self, source_ref, constant, user_provided=False):
-        ExpressionConstantRefBase.__init__(
-            self, constant=constant, user_provided=user_provided, source_ref=source_ref
+    def __init__(self, constant, source_ref):
+        ExpressionConstantUntrackedRefBase.__init__(
+            self, constant=constant, source_ref=source_ref
         )
 
     @staticmethod
     def isExpressionConstantSliceRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_slice
 
+    @staticmethod
+    def isMutable():
+        return False
 
-class ExpressionConstantXrangeRef(ExpressionConstantRefBase):
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
+
+    @staticmethod
+    def isIterableConstant():
+        return False
+
+
+class ExpressionConstantXrangeRef(ExpressionConstantUntrackedRefBase):
     kind = "EXPRESSION_CONSTANT_XRANGE_REF"
 
     __slots__ = ()
 
-    def __init__(self, source_ref, constant, user_provided=False):
-        ExpressionConstantRefBase.__init__(
-            self, constant=constant, user_provided=user_provided, source_ref=source_ref
+    def __init__(self, constant, source_ref):
+        ExpressionConstantUntrackedRefBase.__init__(
+            self, constant=constant, source_ref=source_ref
         )
 
     @staticmethod
     def isExpressionConstantXrangeRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_xrange
 
+    @staticmethod
+    def isMutable():
+        return False
 
-class ExpressionConstantTypeRef(ExpressionConstantRefBase):
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isIterableConstant():
+        return True
+
+    def getIterationHandle(self):
+        return ConstantRangeIterationHandle(self)
+
+    def getIterationLength(self):
+        return len(self.constant)
+
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        # Note: xrange are as good as it gets.
+        return iter_node, None, None
+
+
+class ExpressionConstantTypeRef(ExpressionConstantUntrackedRefBase):
     kind = "EXPRESSION_CONSTANT_TYPE_REF"
 
     __slots__ = ()
-
-    def __init__(self, source_ref, constant, user_provided=False):
-        ExpressionConstantRefBase.__init__(
-            self, constant=constant, user_provided=user_provided, source_ref=source_ref
-        )
 
     @staticmethod
     def isExpressionConstantTypeRef():
         return True
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_type
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
+        from nuitka.optimizations.OptimizeBuiltinCalls import (
+            computeBuiltinCall,
+        )
 
         # Anything may happen. On next pass, if replaced, we might be better
         # but not now.
@@ -824,156 +1330,224 @@ class ExpressionConstantTypeRef(ExpressionConstantRefBase):
 
         return new_node, tags, message
 
+    @staticmethod
+    def isMutable():
+        return False
 
-the_empty_dict = {}
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isIterableConstant():
+        return False
+
+    @staticmethod
+    def getTruthValue():
+        return True
 
 
-class ExpressionConstantDictEmptyRef(ExpressionConstantDictRef):
-    kind = "EXPRESSION_CONSTANT_DICT_EMPTY_REF"
+class ExpressionConstantTypeSubscriptableRef(ExpressionConstantTypeRef):
+    kind = "EXPRESSION_CONSTANT_TYPE_SUBSCRIPTABLE_REF"
 
     __slots__ = ()
 
-    def __init__(self, source_ref, user_provided=False):
-        ExpressionConstantDictRef.__init__(
-            self,
-            constant=the_empty_dict,
-            user_provided=user_provided,
-            source_ref=source_ref,
-        )
+    def computeExpressionSubscript(self, lookup_node, subscript, trace_collection):
+        if subscript.isCompileTimeConstant():
+            return trace_collection.getCompileTimeComputationResult(
+                node=lookup_node,
+                computation=lambda: self.getCompileTimeConstant()[
+                    subscript.getCompileTimeConstant()
+                ],
+                description="Subscript of subscriptable type with constant value.",
+            )
 
-    def getDetails(self):
-        return {}
+        # TODO: Not true, in fact these should become GenericAlias always.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return lookup_node, None, None
 
 
 def makeConstantRefNode(constant, source_ref, user_provided=False):
     # This is dispatching per constant value and types, every case
-    # to be a return statement, pylint: disable=too-many-branches,too-many-return-statements
+    # to be a return statement, pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
 
     # Dispatch based on constants first.
     if constant is None:
-        return ExpressionConstantNoneRef(
-            source_ref=source_ref, user_provided=user_provided
-        )
+        return ExpressionConstantNoneRef(source_ref=source_ref)
     elif constant is True:
-        return ExpressionConstantTrueRef(
-            source_ref=source_ref, user_provided=user_provided
-        )
+        return ExpressionConstantTrueRef(source_ref=source_ref)
     elif constant is False:
-        return ExpressionConstantFalseRef(
-            source_ref=source_ref, user_provided=user_provided
-        )
+        return ExpressionConstantFalseRef(source_ref=source_ref)
     elif constant is Ellipsis:
-        return ExpressionConstantEllipsisRef(
-            source_ref=source_ref, user_provided=user_provided
-        )
+        return ExpressionConstantEllipsisRef(source_ref=source_ref)
     else:
         # Next, dispatch based on type.
         constant_type = type(constant)
 
         if constant_type is int:
-            return ExpressionConstantIntRef(
-                source_ref=source_ref, constant=constant, user_provided=user_provided
-            )
+            return ExpressionConstantIntRef(constant=constant, source_ref=source_ref)
         elif constant_type is str:
-            return ExpressionConstantStrRef(
-                source_ref=source_ref, constant=constant, user_provided=user_provided
-            )
-        elif constant_type is float:
-            return ExpressionConstantFloatRef(
-                source_ref=source_ref, constant=constant, user_provided=user_provided
-            )
-        elif constant_type is long:
-            return ExpressionConstantLongRef(
-                source_ref=source_ref, constant=constant, user_provided=user_provided
-            )
-        elif constant_type is unicode:
-            return ExpressionConstantUnicodeRef(
-                source_ref=source_ref, constant=constant, user_provided=user_provided
-            )
-        elif constant_type is bytes:
-            return ExpressionConstantBytesRef(
-                source_ref=source_ref, constant=constant, user_provided=user_provided
-            )
-        elif constant_type is dict:
             if constant:
-                return ExpressionConstantDictRef(
-                    source_ref=source_ref,
+                return ExpressionConstantStrRef(
                     constant=constant,
                     user_provided=user_provided,
+                    source_ref=source_ref,
+                )
+            else:
+                return ExpressionConstantStrEmptyRef(
+                    user_provided=user_provided,
+                    source_ref=source_ref,
+                )
+        elif constant_type is float:
+            return ExpressionConstantFloatRef(constant=constant, source_ref=source_ref)
+        elif constant_type is long:
+            return ExpressionConstantLongRef(
+                constant=constant,
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+        elif constant_type is unicode:
+            if constant:
+                return ExpressionConstantUnicodeRef(
+                    constant=constant,
+                    user_provided=user_provided,
+                    source_ref=source_ref,
+                )
+            else:
+                return ExpressionConstantUnicodeEmptyRef(
+                    user_provided=user_provided,
+                    source_ref=source_ref,
+                )
+        elif constant_type is bytes:
+            if constant:
+                return ExpressionConstantBytesRef(
+                    constant=constant,
+                    user_provided=user_provided,
+                    source_ref=source_ref,
+                )
+            else:
+                return ExpressionConstantBytesEmptyRef(
+                    user_provided=user_provided,
+                    source_ref=source_ref,
+                )
+        elif constant_type is dict:
+            if constant:
+                assert isConstant(constant), repr(constant)
+
+                return ExpressionConstantDictRef(
+                    constant=constant,
+                    user_provided=user_provided,
+                    source_ref=source_ref,
                 )
             else:
                 return ExpressionConstantDictEmptyRef(
-                    source_ref=source_ref, user_provided=user_provided
+                    user_provided=user_provided,
+                    source_ref=source_ref,
                 )
         elif constant_type is tuple:
             if constant:
-                return ExpressionConstantTupleRef(
-                    source_ref=source_ref,
-                    constant=constant,
-                    user_provided=user_provided,
-                )
+                assert isConstant(constant), repr(constant)
+
+                if isMutable(constant):
+                    return ExpressionConstantTupleMutableRef(
+                        constant=constant,
+                        user_provided=user_provided,
+                        source_ref=source_ref,
+                    )
+                else:
+                    return ExpressionConstantTupleRef(
+                        constant=constant,
+                        user_provided=user_provided,
+                        source_ref=source_ref,
+                    )
             else:
                 return ExpressionConstantTupleEmptyRef(
-                    source_ref=source_ref, user_provided=user_provided
+                    user_provided=user_provided,
+                    source_ref=source_ref,
                 )
         elif constant_type is list:
             if constant:
+                assert isConstant(constant), repr(constant)
+
                 return ExpressionConstantListRef(
-                    source_ref=source_ref,
                     constant=constant,
                     user_provided=user_provided,
+                    source_ref=source_ref,
                 )
             else:
                 return ExpressionConstantListEmptyRef(
-                    source_ref=source_ref, user_provided=user_provided
+                    user_provided=user_provided,
+                    source_ref=source_ref,
                 )
         elif constant_type is set:
             if constant:
+                assert isConstant(constant), repr(constant)
+
                 return ExpressionConstantSetRef(
-                    source_ref=source_ref,
                     constant=constant,
                     user_provided=user_provided,
+                    source_ref=source_ref,
                 )
             else:
                 return ExpressionConstantSetEmptyRef(
-                    source_ref=source_ref, user_provided=user_provided
+                    user_provided=user_provided,
+                    source_ref=source_ref,
                 )
         elif constant_type is frozenset:
             if constant:
+                assert isConstant(constant), repr(constant)
+
                 return ExpressionConstantFrozensetRef(
-                    source_ref=source_ref,
                     constant=constant,
                     user_provided=user_provided,
+                    source_ref=source_ref,
                 )
             else:
                 return ExpressionConstantFrozensetEmptyRef(
-                    source_ref=source_ref, user_provided=user_provided
+                    user_provided=user_provided,
+                    source_ref=source_ref,
                 )
         elif constant_type is complex:
             return ExpressionConstantComplexRef(
-                source_ref=source_ref, constant=constant, user_provided=user_provided
+                constant=constant,
+                source_ref=source_ref,
             )
         elif constant_type is slice:
             return ExpressionConstantSliceRef(
-                source_ref=source_ref, constant=constant, user_provided=user_provided
+                constant=constant,
+                source_ref=source_ref,
             )
         elif constant_type is type:
-            return ExpressionConstantTypeRef(
-                source_ref=source_ref, constant=constant, user_provided=user_provided
-            )
+            if python_version >= 0x390 and constant in (
+                set,
+                frozenset,
+                tuple,
+                list,
+                dict,
+            ):
+                return ExpressionConstantTypeSubscriptableRef(
+                    constant=constant, source_ref=source_ref
+                )
+
+            return ExpressionConstantTypeRef(constant=constant, source_ref=source_ref)
         elif constant_type is xrange:
             return ExpressionConstantXrangeRef(
-                source_ref=source_ref, constant=constant, user_provided=user_provided
+                constant=constant,
+                source_ref=source_ref,
             )
         elif constant_type is bytearray:
             return ExpressionConstantBytearrayRef(
-                source_ref=source_ref, constant=constant, user_provided=user_provided
+                constant=constant,
+                user_provided=user_provided,
+                source_ref=source_ref,
             )
         elif constant in builtin_anon_values:
             from .BuiltinRefNodes import ExpressionBuiltinAnonymousRef
 
             return ExpressionBuiltinAnonymousRef(
-                source_ref=source_ref, builtin_name=builtin_anon_values[constant]
+                builtin_name=builtin_anon_values[constant],
+                source_ref=source_ref,
             )
         elif constant in builtin_named_values:
             from .BuiltinRefNodes import ExpressionBuiltinRef
@@ -992,6 +1566,13 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
             return ExpressionBuiltinExceptionRef(
                 exception_name=exception_name, source_ref=source_ref
             )
+        elif constant_type is GenericAlias:
+            from .BuiltinTypeNodes import ExpressionConstantGenericAlias
+
+            return ExpressionConstantGenericAlias(
+                generic_alias=constant, source_ref=source_ref
+            )
+
         else:
             # Missing constant type, ought to not happen, please report.
             assert False, (constant, constant_type)

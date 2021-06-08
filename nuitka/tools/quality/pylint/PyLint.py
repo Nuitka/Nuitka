@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,7 +27,7 @@ import subprocess
 import sys
 
 from nuitka.tools.testing.Common import hasModule, my_print
-from nuitka.utils import Execution
+from nuitka.utils.Execution import check_output, getNullInput
 
 pylint_version = None
 
@@ -37,11 +37,14 @@ def checkVersion():
     global pylint_version
 
     if not hasModule("pylint"):
-        sys.exit("Error, pylint is not installed for this interpreter version.")
+        sys.exit(
+            "Error, pylint is not installed for this interpreter %r version."
+            % os.environ["PYTHON"]
+        )
 
     if pylint_version is None:
         with open(os.devnull, "w") as devnull:
-            pylint_version = Execution.check_output(
+            pylint_version = check_output(
                 [os.environ["PYTHON"], "-m", "pylint", "--version"], stderr=devnull
             )
 
@@ -49,9 +52,6 @@ def checkVersion():
             pylint_version = pylint_version.decode("utf8")
 
         pylint_version = pylint_version.split("\n")[0].split()[-1].strip(",")
-
-    if pylint_version < "1.6.5":
-        sys.exit("Error, needs PyLint 1.6.5 or higher not %r." % pylint_version)
 
     my_print("Using PyLint version:", pylint_version)
 
@@ -119,7 +119,11 @@ def checkVersion():
 # We like explicit None returns where the return value can be overloaded
 # to something else, or the function is used along others that do return
 # other things.
-
+#
+# ungrouped-imports
+# We let isort do its thing most of the time, and where not, it's good
+# enough for us to handle it manually.
+#
 # assignment-from-no-return
 # assignment-from-none
 # Overloaded functions are not detected, default value returns are all
@@ -132,7 +136,8 @@ def getOptions():
     default_pylint_options = """\
 --init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())
 --disable=I0011,I0012,no-init,bad-whitespace,bad-continuation,E1103,W0632,W1504,C0123,C0411,C0413,R0204,\
-similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
+similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none,ungrouped-imports,\
+no-else-return,c-extension-no-member,inconsistent-return-statements
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no
@@ -143,6 +148,7 @@ similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
 --variable-rgx=.*
 --argument-rgx=.*
 --dummy-variables-rgx=_.*|trace_collection
+--ignored-argument-names=_.*|trace_collection
 --const-rgx=.*
 --max-line-length=125
 --no-docstring-rgx=.*
@@ -150,29 +156,14 @@ similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
 --min-public-methods=0
 --max-public-methods=100
 --max-args=11
---max-parents=12
+--max-parents=13
 --max-statements=50
 --max-nested-blocks=10
---max-bool-expr=10\
+--max-bool-expr=10
+--score=no\
 """.split(
         "\n"
     )
-
-    if pylint_version >= "1.7":
-        default_pylint_options += """\
---score=no
---ignored-argument-names=_.*|trace_collection
---disable=no-else-return\
-""".split(
-            "\n"
-        )
-
-    if pylint_version >= "1.8":
-        default_pylint_options += """\
---disable=c-extension-no-member,inconsistent-return-statements\
-""".split(
-            "\n"
-        )
 
     if pylint_version >= "2.0":
         default_pylint_options += """\
@@ -184,6 +175,20 @@ similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
     if pylint_version >= "2.4":
         default_pylint_options += """\
 --disable=import-outside-toplevel\
+""".split(
+            "\n"
+        )
+
+    if pylint_version >= "2.6":
+        default_pylint_options += """\
+--disable=raise-missing-from\
+""".split(
+            "\n"
+        )
+
+    if pylint_version < "2.0":
+        default_pylint_options += """\
+--disable=slots-on-old-class\
 """.split(
             "\n"
         )
@@ -204,11 +209,9 @@ def _cleanupPylintOutput(output):
     # Normalize from Windows newlines potentially
     output = output.replace("\r\n", "\n")
 
-    lines = output.split("\n")
-
     lines = [
         line
-        for line in lines
+        for line in output.split("\n")
         if line
         if "Using config file" not in line
         if "Unable to import 'resource'" not in line
@@ -239,7 +242,11 @@ def _executePylint(filenames, pylint_options, extra_options):
     )
 
     process = subprocess.Popen(
-        args=command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False
+        args=command,
+        stdin=getNullInput(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=False,
     )
 
     stdout, stderr = process.communicate()
@@ -258,10 +265,9 @@ def _executePylint(filenames, pylint_options, extra_options):
             my_print(line)
 
     if stdout:
-        # If we filtered everything away, remove the leading file name report.
-        if len(stdout) == 1:
-            assert stdout[0].startswith("*****")
-            stdout = []
+        # If we filtered everything away, remove the leading file name reports.
+        while stdout and stdout[-1].startswith("******"):
+            del stdout[-1]
 
         for line in stdout:
             my_print(line)
@@ -270,6 +276,30 @@ def _executePylint(filenames, pylint_options, extra_options):
             our_exit_code = 1
 
     sys.stdout.flush()
+
+
+def hasPyLintBugTrigger(filename):
+    # Stack overflow core dumps with 1.9.x unfortunately.
+    if pylint_version < "2.0.0":
+        if os.path.basename(filename) in (
+            "ReformulationContractionExpressions.py",
+            "TreeHelpers.py",
+        ):
+            return True
+
+    # Slot warning that is impossible to disable
+    if pylint_version < "2.0.0":
+        if os.path.basename(filename) in ("Variables.py",):
+            return True
+
+    return False
+
+
+def isSpecificPythonOnly(filename):
+    """Decide if something is not used for this specific Python."""
+
+    # Currently everything is portable, but it's a good hook, pylint: disable=unused-argument
+    return False
 
 
 def executePyLint(filenames, show_todos, verbose, one_by_one):
@@ -282,24 +312,11 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
     if not show_todos:
         pylint_options.append("--notes=")
 
-    def hasPyLintBugTrigger(filename):
-        # Stack overflow core dumps with 1.9.x unfortunately.
-        if pylint_version < "2.0.0":
-            if os.path.basename(filename) in (
-                "ReformulationContractionExpressions.py",
-                "TreeHelpers.py",
-            ):
-                return True
-
-        # Slot warning that is impossible to disable
-        if pylint_version < "2.0.0":
-            if os.path.basename(filename) in ("Variables.py",):
-                return True
-
-        return False
-
     filenames = [
-        filename for filename in filenames if not hasPyLintBugTrigger(filename)
+        filename
+        for filename in filenames
+        if not hasPyLintBugTrigger(filename)
+        if not isSpecificPythonOnly(filename)
     ]
 
     extra_options = os.environ.get("PYLINT_EXTRA_OPTIONS", "").split()

@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -51,6 +51,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_CONCAT(PyObject *t1, PyObject *t2) {
     return (PyObject *)result;
 }
 
+// Like PyTuple_SET_ITEM but takes a reference to the item.
 #define PyTuple_SET_ITEM0(tuple, index, value)                                                                         \
     {                                                                                                                  \
         PyObject *tmp = value;                                                                                         \

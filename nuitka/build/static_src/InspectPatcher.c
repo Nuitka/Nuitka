@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -22,15 +22,10 @@
 
 #include "nuitka/prelude.h"
 
-#if PYTHON_VERSION >= 300
-extern PyObject *const_str_plain_inspect;
-extern PyObject *const_str_plain_site;
-extern PyObject *const_int_0;
-
+#if PYTHON_VERSION >= 0x300
 static PyObject *module_inspect;
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
 static PyObject *module_types;
-extern PyObject *const_str_plain_types;
 #endif
 
 static char *kwlist[] = {(char *)"object", NULL};
@@ -61,7 +56,7 @@ static PyObject *_inspect_getgeneratorstate_replacement(PyObject *self, PyObject
     }
 }
 
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
 static PyObject *old_getcoroutinestate = NULL;
 
 static PyObject *_inspect_getcoroutinestate_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
@@ -114,11 +109,11 @@ static PyObject *_types_coroutine_replacement(PyObject *self, PyObject *args, Py
 
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 static PyMethodDef _method_def_inspect_getgeneratorstate_replacement = {
     "getgeneratorstate", (PyCFunction)_inspect_getgeneratorstate_replacement, METH_VARARGS | METH_KEYWORDS, NULL};
 
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
 static PyMethodDef _method_def_inspect_getcoroutinestate_replacement = {
     "getcoroutinestate", (PyCFunction)_inspect_getcoroutinestate_replacement, METH_VARARGS | METH_KEYWORDS, NULL};
 
@@ -133,7 +128,7 @@ void patchInspectModule(void) {
     if (is_done)
         return;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 #ifdef _NUITKA_EXE
     // May need to import the "site" module, because otherwise the patching can
     // fail with it being unable to load it.
@@ -168,7 +163,7 @@ void patchInspectModule(void) {
         PyObject_SetAttrString(module_inspect, "getgeneratorstate", inspect_getgeneratorstate_replacement);
     }
 
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
     // Patch "inspect.getcoroutinestate" unless it is already patched.
     old_getcoroutinestate = PyObject_GetAttrString(module_inspect, "getcoroutinestate");
     CHECK_OBJECT(old_getcoroutinestate);
@@ -363,7 +358,7 @@ static void Nuitka_tb_dealloc(PyTracebackObject *tb) {
     PyObject_GC_UnTrack(tb);
 
 #if 0
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
     Py_TRASHCAN_BEGIN(tb, Nuitka_tb_dealloc);
 #else
     Py_TRASHCAN_SAFE_BEGIN(tb);
@@ -376,7 +371,7 @@ static void Nuitka_tb_dealloc(PyTracebackObject *tb) {
     releaseToFreeList(free_list_tracebacks, tb, MAX_TRACEBACK_FREE_LIST_COUNT);
 
 #if 0
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
     Py_TRASHCAN_END;
 #else
     Py_TRASHCAN_SAFE_END(tb);

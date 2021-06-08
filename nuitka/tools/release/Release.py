@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,7 +25,7 @@ from nuitka.utils.Execution import check_output
 from nuitka.Version import getNuitkaVersion
 
 
-def checkAtHome():
+def checkAtHome(expected="Nuitka Staging"):
     assert os.path.isfile("setup.py")
 
     if os.path.isdir(".git"):
@@ -42,7 +42,7 @@ def checkAtHome():
 
     with open(git_description_filename) as f:
         description = f.read().strip()
-        assert description == "Nuitka Staging", description
+        assert description == expected, (expected, description)
 
 
 def getBranchName():
@@ -71,9 +71,7 @@ def checkBranchName():
 
 
 def getBranchCategory(branch_name):
-    """ There are 3 categories of releases. Map branch name on them.
-
-    """
+    """There are 3 categories of releases. Map branch name on them."""
 
     if (
         branch_name.startswith("release")
@@ -93,9 +91,10 @@ def getBranchCategory(branch_name):
 
 def checkNuitkaChangelog():
     with open("Changelog.rst") as f:
-        first_line = f.readline()
+        _first_line = f.readline()
+        second_line = f.readline()
 
-    if "(Draft)" in first_line:
+    if "(Draft)" in second_line:
         return "draft"
     else:
         return "final"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -48,7 +48,7 @@ from nuitka.tools.testing.Common import (
 
 
 def main():
-    _python_version = setup(suite="basics", needs_io_encoding=True)
+    setup(suite="basics", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 
@@ -67,6 +67,8 @@ def main():
             "original_file",
             # Cache the CPython results for re-use, they will normally not change.
             "cpython_cache",
+            # To understand what is slow.
+            "timing",
             # We annotate some tests, use that to lower warnings.
             "plugin_enable:pylint-warnings",
         ]
@@ -74,8 +76,6 @@ def main():
         # This test should be run with the debug Python, and makes outputs to
         # standard error that might be ignored.
         if filename.startswith("Referencing"):
-            extra_flags.append("recurse_not:nuitka")
-
             if hasDebugPython():
                 extra_flags.append("python_debug")
 
@@ -109,9 +109,6 @@ def main():
                 search_mode=search_mode,
                 needs_2to3=decideNeeds2to3(filename),
             )
-
-            if search_mode.abortIfExecuted():
-                break
 
     search_mode.finish()
 

@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -81,7 +81,7 @@ static PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char 
 
 NUITKA_DEFINE_BUILTIN(compile)
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mode, PyObject *flags,
                        PyObject *dont_inherit)
 #else
@@ -118,7 +118,7 @@ PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mod
         PyDict_SetItemString(kw_args, "dont_inherit", dont_inherit);
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     if (optimize != NULL) {
         if (kw_args == NULL)
             kw_args = PyDict_New();
@@ -140,9 +140,8 @@ PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mod
  * Helper used to deal with exec statement
  */
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 
-extern PyObject *const_str_plain_read;
 bool EXEC_FILE_ARG_HANDLING(PyObject **prog, PyObject **name) {
     CHECK_OBJECT(*prog);
     CHECK_OBJECT(*name);
@@ -195,13 +194,13 @@ PyObject *EVAL_CODE(PyObject *code, PyObject *globals, PyObject *locals) {
     }
 
     // Set the __builtins__ in globals, it is expected to be present.
-    if (PyDict_GetItem(globals, const_str_plain___builtins__) == NULL) {
+    if (PyDict_Check(globals) && DICT_HAS_ITEM(globals, const_str_plain___builtins__) == 0) {
         if (PyDict_SetItem(globals, const_str_plain___builtins__, (PyObject *)builtin_module) != 0) {
             return NULL;
         }
     }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     PyObject *result = PyEval_EvalCode((PyCodeObject *)code, globals, locals);
 #else
     PyObject *result = PyEval_EvalCode(code, globals, locals);
@@ -223,13 +222,13 @@ PyObject *EVAL_CODE(PyObject *code, PyObject *globals, PyObject *locals) {
 
 NUITKA_DEFINE_BUILTIN(open);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering) {
     NUITKA_ASSIGN_BUILTIN(open);
 
     PyObject *args[] = {file_name, mode, buffering};
 
-    char const *arg_names[] = {"file_name", "mode", "buffering"};
+    char const *arg_names[] = {"name", "mode", "buffering"};
 
     return CALL_BUILTIN_KW_ARGS(NUITKA_ACCESS_BUILTIN(open), args, arg_names, 3);
 }
@@ -240,7 +239,7 @@ PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering,
 
     PyObject *args[] = {file_name, mode, buffering, encoding, errors, newline, closefd, opener};
 
-    char const *arg_names[] = {"file_name", "mode", "buffering", "encoding", "errors", "newline", "closefd", "opener"};
+    char const *arg_names[] = {"file", "mode", "buffering", "encoding", "errors", "newline", "closefd", "opener"};
 
     return CALL_BUILTIN_KW_ARGS(NUITKA_ACCESS_BUILTIN(open), args, arg_names, 8);
 }
@@ -271,7 +270,7 @@ PyObject *BUILTIN_CLASSMETHOD(PyObject *value) {
     return CALL_FUNCTION_WITH_SINGLE_ARG(NUITKA_ACCESS_BUILTIN(classmethod), value);
 }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 
 /** The "bytes" built-in.
  *
@@ -320,7 +319,7 @@ PyObject *BUILTIN_BIN(PyObject *value) {
  **/
 
 PyObject *BUILTIN_OCT(PyObject *value) {
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     PyObject *result = PyNumber_ToBase(value, 8);
 
     if (unlikely(result == NULL)) {
@@ -361,7 +360,7 @@ PyObject *BUILTIN_OCT(PyObject *value) {
  **/
 
 PyObject *BUILTIN_HEX(PyObject *value) {
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     PyObject *result = PyNumber_ToBase(value, 16);
 
     if (unlikely(result == NULL)) {
@@ -401,18 +400,92 @@ PyObject *BUILTIN_HEX(PyObject *value) {
  *
  **/
 
-PyObject *BUILTIN_HASH(PyObject *value) {
-    Py_hash_t hash = PyObject_Hash(value);
+static void SET_HASH_NOT_IMPLEMENTED_ERROR(PyObject *value) {
+    // TODO: Use our own formatting code.
 
-    if (unlikely(hash == -1)) {
-        return NULL;
+    PyErr_Format(PyExc_TypeError, "unhashable type: '%s'", Py_TYPE(value)->tp_name);
+}
+
+#if PYTHON_VERSION < 0x300
+// Helper to make hash from pointer value, compatible with CPython.
+static long Nuitka_HashFromPointer(void *p) {
+    size_t y = (size_t)p;
+    y = (y >> 4) | (y << (8 * SIZEOF_VOID_P - 4));
+    long x = (long)y;
+    if (unlikely(x == -1)) {
+        x = -2;
+    }
+    return x;
+}
+#endif
+
+PyObject *BUILTIN_HASH(PyObject *value) {
+    PyTypeObject *type = Py_TYPE(value);
+
+    if (likely(type->tp_hash != NULL)) {
+        Py_hash_t hash = (*type->tp_hash)(value);
+
+        if (unlikely(hash == -1)) {
+            return NULL;
+        }
+
+#if PYTHON_VERSION < 0x300
+        return PyInt_FromLong(hash);
+#else
+        return PyLong_FromSsize_t(hash);
+#endif
     }
 
-#if PYTHON_VERSION < 300
-    return PyInt_FromLong(hash);
-#else
-    return PyLong_FromSsize_t(hash);
+#if PYTHON_VERSION < 0x300
+    if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
+        Py_hash_t hash = Nuitka_HashFromPointer(value);
+        return PyInt_FromLong(hash);
+    }
 #endif
+
+    SET_HASH_NOT_IMPLEMENTED_ERROR(value);
+    return NULL;
+}
+
+Py_hash_t HASH_VALUE_WITH_ERROR(PyObject *value) {
+    PyTypeObject *type = Py_TYPE(value);
+
+    if (likely(type->tp_hash != NULL)) {
+        Py_hash_t hash = (*type->tp_hash)(value);
+        return hash;
+    }
+
+#if PYTHON_VERSION < 0x300
+    if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
+        return Nuitka_HashFromPointer(value);
+    }
+#endif
+
+    SET_HASH_NOT_IMPLEMENTED_ERROR(value);
+    return -1;
+}
+
+Py_hash_t HASH_VALUE_WITHOUT_ERROR(PyObject *value) {
+    PyTypeObject *type = Py_TYPE(value);
+
+    if (likely(type->tp_hash != NULL)) {
+        Py_hash_t hash = (*type->tp_hash)(value);
+
+        if (unlikely(hash == -1)) {
+            CLEAR_ERROR_OCCURRED();
+        }
+
+        return hash;
+    }
+
+#if PYTHON_VERSION < 0x300
+    if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
+        return Nuitka_HashFromPointer(value);
+    }
+#endif
+
+    CLEAR_ERROR_OCCURRED();
+    return -1;
 }
 
 /** The "bytearray" built-in.
@@ -506,8 +579,6 @@ PyObject *BUILTIN_TYPE1(PyObject *arg) {
     return result;
 }
 
-extern PyObject *const_str_plain___module__;
-
 PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict) {
     PyObject *pos_args = PyTuple_New(3);
     PyTuple_SET_ITEM(pos_args, 0, name);
@@ -528,7 +599,7 @@ PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, 
 
     if (likely(PyType_IsSubtype(type, &PyType_Type))) {
         if (
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             PyType_HasFeature(type, Py_TPFLAGS_HAVE_CLASS) &&
 #endif
             type->tp_init != NULL) {
@@ -568,9 +639,80 @@ typedef struct {
     PyTypeObject *obj_type;
 } superobject;
 
-extern PyObject *const_str_plain___class__;
+PyObject *BUILTIN_SUPER2(PyObject *type, PyObject *object) {
+    CHECK_OBJECT(type);
+    CHECK_OBJECT_X(object);
 
-PyObject *BUILTIN_SUPER(PyObject *type, PyObject *object) {
+    if (unlikely(PyType_Check(type) == false)) {
+#if PYTHON_VERSION < 0x300
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("super() argument 1 must be type, not %s", type);
+#elif PYTHON_VERSION < 0x352
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("must be type, not %s", type);
+#else
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("super() argument 1 must be type, not %s", type);
+#endif
+        return NULL;
+    }
+
+    if (object == Py_None) {
+        object = NULL;
+    }
+
+    PyTypeObject *obj_type = NULL;
+
+#if 0
+    PRINT_STRING("SUPER:");
+    PRINT_ITEM(type);
+    PRINT_ITEM(object);
+    PRINT_NEW_LINE();
+#endif
+
+    if (object != NULL) {
+
+        if (PyType_Check(object) && PyType_IsSubtype((PyTypeObject *)object, (PyTypeObject *)type)) {
+            obj_type = (PyTypeObject *)object;
+        } else if (object != NULL && PyType_IsSubtype(Py_TYPE(object), (PyTypeObject *)type)) {
+            obj_type = Py_TYPE(object);
+        } else {
+            PyObject *class_attr = PyObject_GetAttr(object, const_str_plain___class__);
+
+            if (likely(class_attr != NULL && PyType_Check(class_attr) &&
+                       (PyTypeObject *)class_attr != Py_TYPE(object) &&
+                       PyType_IsSubtype((PyTypeObject *)class_attr, (PyTypeObject *)type))) {
+
+                obj_type = (PyTypeObject *)class_attr;
+                Py_DECREF(class_attr);
+            } else {
+                Py_XDECREF(class_attr);
+
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
+                                                "super(type, obj): obj must be an instance or subtype of type");
+
+                return NULL;
+            }
+        }
+    }
+
+    superobject *result = PyObject_GC_New(superobject, &PySuper_Type);
+    assert(result);
+
+    result->type = (PyTypeObject *)type;
+    Py_INCREF(type);
+    result->obj = object;
+    Py_XINCREF(object);
+
+    result->obj_type = obj_type;
+    Py_XINCREF(obj_type);
+
+    Nuitka_GC_Track(result);
+
+    CHECK_OBJECT(result);
+    assert(Py_TYPE(result) == &PySuper_Type);
+
+    return (PyObject *)result;
+}
+
+PyObject *BUILTIN_SUPER0(PyObject *type, PyObject *object) {
     CHECK_OBJECT(type);
 
     superobject *result = PyObject_GC_New(superobject, &PySuper_Type);
@@ -648,7 +790,7 @@ PyObject *BUILTIN_CALLABLE(PyObject *value) {
  **/
 
 PyObject *BUILTIN_GETATTR(PyObject *object, PyObject *attribute, PyObject *default_value) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyUnicode_Check(attribute)) {
         attribute = _PyUnicode_AsDefaultEncodedString(attribute, NULL);
 
@@ -700,7 +842,7 @@ PyObject *BUILTIN_SETATTR(PyObject *object, PyObject *attribute, PyObject *value
 }
 
 PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
-#if PYTHON_VERSION < 340
+#if PYTHON_VERSION < 0x340
     long base_int = PyInt_AsLong(base);
 #else
     Py_ssize_t base_int = PyNumber_AsSsize_t(base, NULL);
@@ -710,12 +852,12 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
         PyObject *error = GET_ERROR_OCCURRED();
 
         if (likely(error)) {
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
             if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_OverflowError)) {
                 PyErr_Format(PyExc_ValueError,
-#if PYTHON_VERSION < 324
+#if PYTHON_VERSION < 0x324
                              "int() arg 2 must be >= 2 and <= 36"
-#elif PYTHON_VERSION < 364
+#elif PYTHON_VERSION < 0x364
                              "int() base must be >= 2 and <= 36"
 #else
                              "int() base must be >= 2 and <= 36, or 0"
@@ -727,12 +869,12 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
         }
     }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     if (unlikely((base_int != 0 && base_int < 2) || base_int > 36)) {
         PyErr_Format(PyExc_ValueError,
-#if PYTHON_VERSION < 324
+#if PYTHON_VERSION < 0x324
                      "int() arg 2 must be >= 2 and <= 36"
-#elif PYTHON_VERSION < 364
+#elif PYTHON_VERSION < 0x364
                      "int() base must be >= 2 and <= 36"
 #else
                      "int() base must be >= 2 and <= 36, or 0"
@@ -743,7 +885,7 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
     }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(!Nuitka_String_Check(value) && !PyUnicode_Check(value))) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "int() can't convert non-string with explicit base");
         return NULL;
@@ -794,7 +936,7 @@ PyObject *BUILTIN_INT2(PyObject *value, PyObject *base) {
 #endif
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 // Note: Python3 uses TO_INT2 function.
 PyObject *BUILTIN_LONG2(PyObject *value, PyObject *base) {
     long base_int = PyInt_AsLong(base);

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -60,12 +60,13 @@ os.environ["PYTHONHASHSEED"] = "0"
 os.environ["PYTHONPATH"] = os.pathsep.join(sys.path)
 
 os.system(
-    "%s %s --python-flag=-S --output-dir=%s %s %s %s"
+    "%s %s --python-flag=-S --output-dir=%s %s %s %s %s"
     % (
         sys.executable,
         nuitka_binary,
         tempdir,
         "--unstripped",
+        "--quiet",
         os.environ.get("NUITKA_EXTRA_OPTIONS", ""),
         input_file,
     )

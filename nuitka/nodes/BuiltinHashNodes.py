@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,19 +30,26 @@ class ExpressionBuiltinHash(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_HASH"
 
     named_child = "value"
-    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
+        value = self.subnode_value
 
-        # TODO: Have a computation slot for hashing.
+        # TODO: Have a computation slot for hashing and specialize for known cases.
         if not value.isKnownToBeHashable():
             trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: Static raise if it's known not to be hashable.
 
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        return not self.getValue().isKnownToBeHashable()
+        return (
+            self.subnode_value.mayRaiseException(exception_type)
+            or not self.subnode_value.isKnownToBeHashable()
+        )
+
+    def mayRaiseExceptionOperation(self):
+        return not self.subnode_value.isKnownToBeHashable()

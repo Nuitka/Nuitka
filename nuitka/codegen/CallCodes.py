@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,6 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ConstantCodes import getConstantAccess
 from .ErrorCodes import getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .templates.CodeTemplatesCalls import (
@@ -52,13 +51,13 @@ def _generateCallCodePosOnly(
     # TODO: Not yet specialized for method calls.
     # assert called_attribute_name is None
 
-    call_args = expression.getCallArgs()
+    call_args = expression.subnode_args
 
     if call_args is None or call_args.isExpressionConstantRef():
         context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
 
         if call_args is not None:
-            call_args_value = call_args.getConstant()
+            call_args_value = call_args.getCompileTimeConstant()
         else:
             call_args_value = ()
 
@@ -70,7 +69,7 @@ def _generateCallCodePosOnly(
             for call_arg_element in call_args_value:
                 call_arg_name = context.allocateTempName("call_arg_element")
 
-                getConstantAccess(
+                call_arg_name.getCType().emitAssignmentCodeFromConstant(
                     to_name=call_arg_name,
                     constant=call_arg_element,
                     emit=emit,
@@ -140,7 +139,7 @@ def _generateCallCodePosOnly(
     elif call_args.isExpressionMakeTuple():
         call_arg_names = []
 
-        for call_arg_element in call_args.getElements():
+        for call_arg_element in call_args.subnode_elements:
             call_arg_name = generateChildExpressionCode(
                 child_name=call_args.getChildName() + "_element",
                 expression=call_arg_element,
@@ -226,9 +225,9 @@ def generateCallCode(to_name, expression, emit, context):
     # optimized code, constant, with and without positional or keyword arguments
     # each, so there is lots of branches involved.
 
-    called = expression.getCalled()
-    call_kw = expression.getCallKw()
-    call_args = expression.getCallArgs()
+    called = expression.subnode_called
+    call_kw = expression.subnode_kwargs
+    call_args = expression.subnode_args
 
     # TODO: Make this work for all cases. Currently, the method calls that do
     # a combined lookup and call, do a re-ordering of things, and therefore it
@@ -266,9 +265,7 @@ def generateCallCode(to_name, expression, emit, context):
         to_name, "call_result", expression, emit, context
     ) as result_name:
 
-        if call_kw is None or (
-            call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}
-        ):
+        if call_kw is None or call_kw.isExpressionConstantDictEmptyRef():
             _generateCallCodePosOnly(
                 to_name=result_name,
                 called_name=called_name,
@@ -278,11 +275,9 @@ def generateCallCode(to_name, expression, emit, context):
                 context=context,
             )
         else:
-            call_args = expression.getCallArgs()
+            call_args = expression.subnode_args
 
-            if call_args is None or (
-                call_args.isExpressionConstantRef() and call_args.getConstant() == ()
-            ):
+            if call_args is None or call_args.isExpressionConstantTupleEmptyRef():
                 _generateCallCodeKwOnly(
                     to_name=result_name,
                     called_name=called_name,
@@ -361,28 +356,41 @@ def _getInstanceCallCodePosArgsQuick(
     to_name, called_name, called_attribute_name, arg_names, needs_check, emit, context
 ):
     arg_size = len(arg_names)
-    quick_instance_calls_used.add(arg_size)
 
     # For 0 arguments, NOARGS is supposed to be used.
     assert arg_size > 0
 
     emitLineNumberUpdateCode(emit, context)
 
-    emit(
-        """\
+    # For one argument, we have a dedicated helper function that might
+    # be more efficient.
+    if arg_size == 1:
+        emit(
+            """%s = CALL_METHOD_WITH_SINGLE_ARG(%s, %s, %s);"""
+            % (to_name, called_name, called_attribute_name, arg_names[0])
+        )
+    else:
+        quick_instance_calls_used.add(arg_size)
+
+        emit(
+            """\
 {
-    PyObject *call_args[] = {%s};
-    %s = CALL_METHOD_WITH_ARGS%d(%s, %s, call_args);
+    PyObject *call_args[] = {%(call_args)s};
+    %(to_name)s = CALL_METHOD_WITH_ARGS%(arg_size)d(
+        %(called_name)s,
+        %(called_attribute_name)s,
+        call_args
+    );
 }
 """
-        % (
-            ", ".join(str(arg_name) for arg_name in arg_names),
-            to_name,
-            arg_size,
-            called_name,
-            called_attribute_name,
+            % {
+                "call_args": ", ".join(str(arg_name) for arg_name in arg_names),
+                "to_name": to_name,
+                "arg_size": arg_size,
+                "called_name": called_name,
+                "called_attribute_name": called_attribute_name,
+            }
         )
-    )
 
     getErrorExitCode(
         check_name=to_name,
@@ -461,9 +469,19 @@ def _getInstanceCallCodeFromTuple(
 
     emit(
         """\
-%s = CALL_METHOD_WITH_ARGS%d(%s, %s, &PyTuple_GET_ITEM(%s, 0));
+%(to_name)s = CALL_METHOD_WITH_ARGS%(arg_size)d(
+    %(called_name)s,
+    %(called_attribute_name)s,
+    &PyTuple_GET_ITEM(%(arg_tuple)s, 0)
+);
 """
-        % (to_name, arg_size, called_name, called_attribute_name, arg_tuple)
+        % {
+            "to_name": to_name,
+            "arg_size": arg_size,
+            "called_name": called_name,
+            "called_attribute_name": called_attribute_name,
+            "arg_tuple": arg_tuple,
+        }
     )
 
     getErrorExitCode(

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -51,7 +51,7 @@ def main():
 
     titles = osc_reader.next()[1:]
 
-    # Nuitka (follow git master branch)
+    # Nuitka (follow git main branch)
     row1 = osc_reader.next()
     # Nuitka-Unstable (follow git develop branch)
     row2 = osc_reader.next()

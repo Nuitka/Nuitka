@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,7 +22,6 @@ options.
 
 """
 
-
 import contextlib
 import copy
 import os
@@ -31,30 +30,34 @@ import sys
 
 from nuitka import Options, Tracing
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Execution, Utils
 from nuitka.utils.FileOperations import (
+    deleteFile,
     getExternalUsePath,
     getWindowsShortPathName,
+    hasFilenameExtension,
+    listDir,
 )
+
+from .SconsCaching import checkCachingSuccess
 
 
 def getSconsDataPath():
-    """ Return path to where data for scons lives, e.g. static C source files.
-
-    """
+    """Return path to where data for scons lives, e.g. static C source files."""
 
     return os.path.dirname(__file__)
 
 
 def _getSconsInlinePath():
-    """ Return path to inline copy of scons. """
+    """Return path to inline copy of scons."""
 
     return os.path.join(getSconsDataPath(), "inline_copy")
 
 
 def _getSconsBinaryCall():
-    """ Return a way to execute Scons.
+    """Return a way to execute Scons.
 
     Using potentially in-line copy if no system Scons is available
     or if we are on Windows, there it is mandatory.
@@ -75,85 +78,64 @@ def _getSconsBinaryCall():
         if scons_path is not None:
             return [scons_path]
         else:
-            sys.exit(
-                "Error, the inline copy of scons is not present, nor scons in the system path."
+            Tracing.scons_logger.sysexit(
+                "Error, the inline copy of scons is not present, nor a scons binary in the PATH."
             )
 
 
 def _getPythonSconsExePathWindows():
-    """ Find Python2 on Windows.
+    """Find Python for Scons on Windows.
 
-    First try a few guesses, the look into registry for user or system wide
-    installations of Python2. Both Python 2.6 and 2.7, and 3.5 or higher
-    will do.
+    Only 3.5 or higher will do.
     """
 
     # Ordered in the list of preference.
-    scons_supported = ("2.7", "2.6", "3.5", "3.6", "3.7", "3.8")
+    python_dir = Execution.getPythonInstallPathWindows(
+        supported=("3.5", "3.6", "3.7", "3.8", "3.9")
+    )
 
-    # Shortcuts for the default installation directories, to avoid going to
-    # registry at all unless necessary. Any Python2 will do for Scons, so it
-    # might be avoided entirely.
-    for search in scons_supported:
-        candidate = r"c:\Python%s\python.exe" % search.replace(".", "")
-
-        if os.path.isfile(candidate):
-            return candidate
-
-    # Windows only code, pylint: disable=I0021,import-error,undefined-variable
-    if python_version < 300:
-        import _winreg as winreg  # pylint: disable=I0021,import-error,no-name-in-module
+    if python_dir is not None:
+        return os.path.join(python_dir, "python.exe")
     else:
-        import winreg  # pylint: disable=I0021,import-error,no-name-in-module
-
-    for search in scons_supported:
-        for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
-            for arch_key in (0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY):
-                try:
-                    key = winreg.OpenKey(
-                        hkey_branch,
-                        r"SOFTWARE\Python\PythonCore\%s\InstallPath" % search,
-                        0,
-                        winreg.KEY_READ | arch_key,
-                    )
-
-                    return os.path.join(winreg.QueryValue(key, ""), "python.exe")
-                except WindowsError:
-                    pass
+        return None
 
 
 def _getPythonForSconsExePath():
-    """ Find a way to call any Python2.
+    """Find a way to call any Python that works for Scons.
 
-    Scons needs it as it doesn't support Python3.
+    Scons needs it as it doesn't support all Python versions.
     """
     python_exe = Options.getPythonPathForScons()
 
     if python_exe is not None:
         return python_exe
 
-    if python_version < 300 or python_version >= 350:
+    if python_version < 0x300 and not Utils.isWin32Windows():
+        # Python 2.6 and 2.7 are fine for scons on all platforms, but not
+        # on Windows due to clcache usage.
         return sys.executable
-    elif Utils.getOS() == "Windows":
+    elif python_version >= 0x350:
+        # Python 3.5 or higher work on all platforms.
+        return sys.executable
+    elif Utils.isWin32Windows():
         python_exe = _getPythonSconsExePathWindows()
 
         if python_exe is not None:
             return python_exe
         else:
-            sys.exit(
+            Tracing.scons_logger.sysexit(
                 """\
-Error, while Nuitka works with Python 3.3 and 3.4, scons does not, and Nuitka
-needs to find a Python executable 2.6/2.7 or 3.5 or higher. Simply under the
-C:\\PythonXY, e.g. C:\\Python27 to execute the scons utility which is used
-to build the C files to binary.
+Error, while Nuitka works with older Python, Scons does not, and therefore
+Nuitka needs to find a Python 3.5 or higher executable, so please install
+it.
 
 You may provide it using option "--python-for-scons=path_to_python.exe"
 in case it is not visible in registry, e.g. due to using uninstalled
-AnaConda Python.
+Anaconda Python.
 """
             )
 
-    for version_candidate in ("2.7", "2.6", "3.5", "3.6", "3.7", "3.8"):
+    for version_candidate in ("2.7", "2.6", "3.5", "3.6", "3.7", "3.8", "3.9"):
         candidate = Execution.getExecutablePath("python" + version_candidate)
 
         if candidate is not None:
@@ -166,7 +148,7 @@ AnaConda Python.
 
 @contextlib.contextmanager
 def _setupSconsEnvironment():
-    """ Setup the scons execution environment.
+    """Setup the scons execution environment.
 
     For the target Python we provide "NUITKA_PYTHON_DLL_PATH" to see where the
     Python DLL lives, in case it needs to be copied, and then also the
@@ -177,11 +159,11 @@ def _setupSconsEnvironment():
     """
 
     # For Python2, avoid unicode working directory.
-    if Utils.isWin32Windows() and python_version < 300:
+    if Utils.isWin32Windows() and python_version < 0x300:
         if os.getcwd() != os.getcwdu():
             os.chdir(getWindowsShortPathName(os.getcwdu()))
 
-    if Utils.isWin32Windows():
+    if Utils.isWin32Windows() and not Options.shallUseStaticLibPython():
         # On Win32, we use the Python.DLL path for some things. We pass it
         # via environment variable
         os.environ["NUITKA_PYTHON_DLL_PATH"] = getTargetPythonDLLPath()
@@ -191,36 +173,40 @@ def _setupSconsEnvironment():
     # Remove environment variables that can only harm if we have to switch
     # major Python versions, these cannot help Python2 to execute scons, this
     # is a bit of noise, but helpful.
-    if python_version >= 300:
+    old_pythonpath = None
+    old_pythonhome = None
+
+    if python_version >= 0x300:
         if "PYTHONPATH" in os.environ:
             old_pythonpath = os.environ["PYTHONPATH"]
             del os.environ["PYTHONPATH"]
-        else:
-            old_pythonpath = None
 
         if "PYTHONHOME" in os.environ:
             old_pythonhome = os.environ["PYTHONHOME"]
             del os.environ["PYTHONHOME"]
-        else:
-            old_pythonhome = None
+
+    import nuitka
+
+    os.environ["NUITKA_PACKAGE_DIR"] = os.path.abspath(nuitka.__path__[0])
 
     yield
 
-    if python_version >= 300:
-        if old_pythonpath is not None:
-            os.environ["PYTHONPATH"] = old_pythonpath
+    if old_pythonpath is not None:
+        os.environ["PYTHONPATH"] = old_pythonpath
 
-        if old_pythonhome is not None:
-            os.environ["PYTHONHOME"] = old_pythonhome
+    if old_pythonhome is not None:
+        os.environ["PYTHONHOME"] = old_pythonhome
 
-    if Utils.isWin32Windows():
+    if "NUITKA_PYTHON_DLL_PATH" in os.environ:
         del os.environ["NUITKA_PYTHON_DLL_PATH"]
 
     del os.environ["NUITKA_PYTHON_EXE_PATH"]
 
+    del os.environ["NUITKA_PACKAGE_DIR"]
 
-def _buildSconsCommand(quiet, options):
-    """ Build the scons command to run.
+
+def _buildSconsCommand(quiet, options, scons_filename):
+    """Build the scons command to run.
 
     The options are a dictionary to be passed to scons as a command line,
     and other scons stuff is set.
@@ -234,7 +220,7 @@ def _buildSconsCommand(quiet, options):
     scons_command += [
         # The scons file
         "-f",
-        getExternalUsePath(os.path.join(getSconsDataPath(), "SingleExe.scons")),
+        getExternalUsePath(os.path.join(getSconsDataPath(), scons_filename)),
         # Parallel compilation.
         "--jobs",
         str(Options.getJobLimit()),
@@ -245,7 +231,7 @@ def _buildSconsCommand(quiet, options):
     ]
 
     if Options.isShowScons():
-        scons_command.append("--debug=explain")
+        scons_command.append("--debug=explain,stacktrace")
 
     # Python2, encoding unicode values
     def encode(value):
@@ -265,7 +251,7 @@ def _buildSconsCommand(quiet, options):
     return scons_command
 
 
-def runScons(options, quiet):
+def runScons(options, quiet, scons_filename):
     with _setupSconsEnvironment():
         if Options.shallCompileWithoutBuildDirectory():
             # Make sure we become non-local, by changing all paths to be
@@ -283,17 +269,127 @@ def runScons(options, quiet):
                 options["result_exe"] = getExternalUsePath(
                     options["result_exe"], only_dirname=True
                 )
-            if "icon_path" in options:
-                options["icon_path"] = getExternalUsePath(
-                    options["icon_path"], only_dirname=True
+            if "compiled_exe" in options:
+                options["compiled_exe"] = getExternalUsePath(
+                    options["compiled_exe"], only_dirname=True
                 )
+
         else:
             source_dir = None
 
-        scons_command = _buildSconsCommand(quiet, options)
+        scons_command = _buildSconsCommand(
+            quiet=quiet, options=options, scons_filename=scons_filename
+        )
 
         if Options.isShowScons():
             Tracing.printLine("Scons command:", " ".join(scons_command))
 
-        Tracing.flushStdout()
-        return subprocess.call(scons_command, shell=False, cwd=source_dir) == 0
+        Tracing.flushStandardOutputs()
+
+        # Call scons, make sure to pass on quiet setting.
+        with Execution.withEnvironmentVarOverriden(
+            "NUITKA_QUIET", "1" if Tracing.is_quiet else "0"
+        ):
+            result = subprocess.call(scons_command, shell=False, cwd=source_dir)
+
+        if result == 0:
+            checkCachingSuccess(source_dir or options["source_dir"])
+
+        return result == 0
+
+
+def asBoolStr(value):
+    """Encode booleans for transfer via command line."""
+
+    return "true" if value else "false"
+
+
+def cleanSconsDirectory(source_dir):
+    """Clean scons build directory."""
+
+    extensions = (
+        ".bin",
+        ".c",
+        ".cpp",
+        ".exp",
+        ".h",
+        ".lib",
+        ".manifest",
+        ".o",
+        ".obj",
+        ".os",
+        ".rc",
+        ".res",
+        ".S",
+        ".txt",
+        ".const",
+    )
+
+    def check(path):
+        if hasFilenameExtension(path, extensions):
+            deleteFile(path, must_exist=True)
+
+    if os.path.isdir(source_dir):
+        for path, _filename in listDir(source_dir):
+            check(path)
+
+        static_dir = os.path.join(source_dir, "static_src")
+
+        if os.path.exists(static_dir):
+            for path, _filename in listDir(static_dir):
+                check(path)
+
+        plugins_dir = os.path.join(source_dir, "plugins")
+
+        if os.path.exists(plugins_dir):
+            for path, _filename in listDir(plugins_dir):
+                check(path)
+
+
+def setCommonOptions(options):
+    # Scons gets transported many details, that we express as variables, and
+    # have checks for them, leading to many branches and statements,
+
+    if Options.shallRunInDebugger():
+        options["full_names"] = "true"
+
+    if Options.assumeYesForDownloads():
+        options["assume_yes_for_downloads"] = asBoolStr(True)
+
+    if not Options.shallUseProgressBar():
+        options["progress_bar"] = "false"
+
+    if Options.isClang():
+        options["clang_mode"] = "true"
+
+    if Options.isShowScons():
+        options["show_scons"] = "true"
+
+    if Options.isMingw64():
+        options["mingw_mode"] = "true"
+
+    if Options.getMsvcVersion():
+        msvc_version = Options.getMsvcVersion()
+
+        msvc_version = msvc_version.replace("exp", "Exp")
+        if "." not in msvc_version:
+            msvc_version += ".0"
+
+        options["msvc_version"] = msvc_version
+
+    if Options.shallDisableConsoleWindow():
+        options["win_disable_console"] = asBoolStr(True)
+
+    if Options.isLto():
+        options["lto_mode"] = asBoolStr(True)
+
+    cpp_defines = Plugins.getPreprocessorSymbols()
+    if cpp_defines:
+        options["cpp_defines"] = ",".join(
+            "%s%s%s" % (key, "=" if value else "", value or "")
+            for key, value in cpp_defines.items()
+        )
+
+    link_libraries = Plugins.getExtraLinkLibraries()
+    if link_libraries:
+        options["link_libraries"] = ",".join(link_libraries)

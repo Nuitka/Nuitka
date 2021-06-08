@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,6 +36,8 @@ from optparse import OptionParser
 from nuitka.tools.testing.Common import (
     check_output,
     convertUsing2to3,
+    decideNeeds2to3,
+    getPythonVersionString,
     getTempDir,
     my_print,
     setup,
@@ -86,20 +88,16 @@ def main():
     elif nuitka:
         sys.exit("Error, nuitka binary '%s' not found." % nuitka)
 
-    python_version = setup(silent=True, go_main=False)
+    setup(silent=True, go_main=False)
 
     assert os.path.exists(test_case), (test_case, os.getcwd())
 
-    my_print("PYTHON='%s'" % python_version)
+    my_print("PYTHON='%s'" % getPythonVersionString())
     my_print("PYTHON_BINARY='%s'" % os.environ["PYTHON"])
     with open(test_case, "rb") as f:
         my_print("TEST_CASE_HASH='%s'" % hashlib.md5(f.read()).hexdigest())
 
-    needs_2to3 = (
-        python_version.startswith("3")
-        and not test_case.endswith("32.py")
-        and not test_case.endswith("33.py")
-    )
+    needs_2to3 = decideNeeds2to3(test_case)
 
     if options.target_dir:
         shutil.copyfile(
@@ -144,6 +142,7 @@ def main():
         nuitka_call = [
             os.environ["PYTHON"],
             nuitka,
+            "--quiet",
             "--python-flag=-S",
             os.path.basename(test_case),
         ]

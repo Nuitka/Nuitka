@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -34,7 +34,6 @@ class ExpressionMakeGeneratorObject(ExpressionChildHavingBase):
     kind = "EXPRESSION_MAKE_GENERATOR_OBJECT"
 
     named_child = "generator_ref"
-    getGeneratorRef = ExpressionChildHavingBase.childGetter("generator_ref")
 
     __slots__ = ("variable_closure_traces",)
 
@@ -55,21 +54,23 @@ class ExpressionMakeGeneratorObject(ExpressionChildHavingBase):
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []
 
-        for closure_variable in (
-            self.getGeneratorRef().getFunctionBody().getClosureVariables()
-        ):
+        for (
+            closure_variable
+        ) in self.subnode_generator_ref.getFunctionBody().getClosureVariables():
             trace = trace_collection.getVariableCurrentTrace(closure_variable)
-            trace.addClosureUsage()
+            trace.addNameUsage()
 
             self.variable_closure_traces.append((closure_variable, trace))
 
         # TODO: Generator body may know something too.
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         return False
 
     def getClosureVariableVersions(self):
@@ -81,8 +82,15 @@ class ExpressionGeneratorObjectBody(
 ):
     kind = "EXPRESSION_GENERATOR_OBJECT_BODY"
 
-    if python_version >= 340:
-        qualname_setup = None
+    __slots__ = (
+        "unoptimized_locals",
+        "unqualified_exec",
+        "needs_generator_return_exit",
+        "qualname_provider",
+    )
+
+    if python_version >= 0x340:
+        __slots__ += ("qualname_setup",)
 
     def __init__(self, provider, name, code_object, flags, auto_release, source_ref):
         ExpressionFunctionEntryPointBase.__init__(
@@ -102,6 +110,9 @@ class ExpressionGeneratorObjectBody(
 
         self.trace_collection = None
 
+        if python_version >= 0x340:
+            self.qualname_setup = None
+
     def getFunctionName(self):
         return self.name
 
@@ -118,6 +129,15 @@ class ExpressionGeneratorObjectBody(
     def needsCreation():
         return False
 
+    def getConstantReturnValue(self):
+        """Special function that checks if code generation allows to use common C code."""
+        body = self.subnode_body
+
+        if body is None:
+            return True, None
+
+        return False, False
+
 
 class StatementGeneratorReturn(StatementReturn):
     kind = "STATEMENT_GENERATOR_RETURN"
@@ -125,14 +145,20 @@ class StatementGeneratorReturn(StatementReturn):
     def __init__(self, expression, source_ref):
         StatementReturn.__init__(self, expression=expression, source_ref=source_ref)
 
+    @staticmethod
+    def isStatementGeneratorReturn():
+        return True
+
     def computeStatement(self, trace_collection):
-        expression = trace_collection.onExpression(self.getExpression())
+        expression = trace_collection.onExpression(self.subnode_expression)
 
         if expression.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         if expression.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import (
+                makeStatementExpressionOnlyReplacementNode,
+            )
 
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=expression, node=self
@@ -160,10 +186,7 @@ Generator return value is always None.""",
         return self, None, None
 
     @staticmethod
-    def isStatementGeneratorReturn():
-        return True
-
-    def getStatementNiceName(self):
+    def getStatementNiceName():
         return "generator return statement"
 
 
@@ -179,5 +202,6 @@ class StatementGeneratorReturnNone(StatementReturnNone):
     def isStatementGeneratorReturn():
         return True
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "generator return statement"

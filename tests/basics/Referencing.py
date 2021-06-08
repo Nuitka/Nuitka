@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -21,6 +21,9 @@ These contain functions that do specific things, where we have a suspect
 that references may be lost or corrupted. Executing them repeatedly and
 checking the reference count is how they are used.
 """
+
+# While we use that for comparison code, no need to compile that.
+# nuitka-project: --nofollow-import-to=nuitka
 
 import os
 import sys
@@ -947,8 +950,7 @@ def simpleFunction104():
 
 
 def simpleFunction105():
-    """ Delete a started generator, not properly closing it before releasing.
-    """
+    """Delete a started generator, not properly closing it before releasing."""
 
     def generator():
         yield 1

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -54,14 +54,6 @@ def main():
             if os.path.dirname(os.path.abspath(__file__)) != path_element
         ]
 
-    # For re-execution, we might not have done this.
-    from nuitka import Options  # isort:skip
-
-    Options.parseArgs()
-
-    # TODO: Stop using logging module, then this can be removed.
-    from nuitka import Tracing  # isort:skip
-
     # We don't care, and these are triggered by run time calculations of "range" and
     # others, while on python2.7 they are disabled by default.
 
@@ -70,8 +62,6 @@ def main():
     # We will run with the Python configuration as specified by the user, if it does
     # not match, we restart ourselves with matching configuration.
     needs_reexec = False
-
-    current_version = "%d.%d" % (sys.version_info[0], sys.version_info[1])
 
     if sys.flags.no_site == 0:
         needs_reexec = True
@@ -84,8 +74,14 @@ def main():
     if os.environ.get("PYTHONHASHSEED", "-1") != "0":
         needs_reexec = True
 
+    # For re-execution, we might not have done this.
+    from nuitka import Options  # isort:skip
+
     # In case we need to re-execute.
     if needs_reexec:
+        # TODO: If that's the only one, why do it at all..
+        Options.parseArgs(will_reexec=True)
+
         if not Options.isAllowedToReexecute():
             sys.exit("Error, not allowed to re-execute, but that would be needed.")
 
@@ -95,12 +91,17 @@ def main():
         # libraries.
         args = [sys.executable, sys.executable]
 
-        if current_version >= "3.7" and sys.flags.utf8_mode:
+        from nuitka.PythonVersions import python_version
+
+        if python_version >= 0x370 and sys.flags.utf8_mode:
             args += ["-X", "utf8"]
 
         args += ["-S", our_filename]
 
         os.environ["NUITKA_BINARY_NAME"] = sys.modules["__main__"].__file__
+        os.environ["NUITKA_PACKAGE_HOME"] = os.path.dirname(
+            os.path.abspath(sys.modules["nuitka"].__path__[0])
+        )
 
         if Options.is_nuitka_run:
             args.append("--run")
@@ -123,36 +124,20 @@ def main():
             os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
 
         os.environ["NUITKA_SITE_FLAG"] = (
-            str(sys.flags.no_site) if "no_site" not in Options.getPythonFlags() else "1"
+            str(sys.flags.no_site) if not Options.hasPythonFlagNoSite() else "1"
         )
 
         os.environ["PYTHONHASHSEED"] = "0"
+
+        os.environ["NUITKA_REEXECUTION"] = "1"
 
         from nuitka.utils import Execution  # isort:skip
 
         Execution.callExec(args)
 
-    # Inform the user about potential issues.
-    from nuitka.PythonVersions import getSupportedPythonVersions
+    Options.parseArgs(will_reexec=False)
 
-    if current_version not in getSupportedPythonVersions():
-        # Do not disturb run of automatic tests, detected from the presence of
-        # that environment variable.
-        if "PYTHON" not in os.environ:
-            Tracing.general.warning(
-                "The version '%s' is not currently supported. Expect problems.",
-                current_version,
-            )
-
-    if os.name == "nt":
-        # Windows store Python's don't allow looking at the python, catch that.
-        try:
-            with open(sys.executable):
-                pass
-        except OSError:
-            sys.exit(
-                "Error, the Python from Windows store is not supported, check user manual."
-            )
+    Options.commentArgs()
 
     # Load plugins after we know, we don't execute again.
     from nuitka.plugins.Plugins import activatePlugins
@@ -192,4 +177,11 @@ def main():
 
 
 if __name__ == "__main__":
+    if "NUITKA_PACKAGE_HOME" in os.environ:
+        sys.path.insert(0, os.environ["NUITKA_PACKAGE_HOME"])
+
+        import nuitka  # just to have it loaded from there, pylint: disable=unused-import
+
+        del sys.path[0]
+
     main()

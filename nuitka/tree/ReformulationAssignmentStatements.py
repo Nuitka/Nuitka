@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -44,9 +44,15 @@ from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantEllipsisRef,
+    makeConstantRefNode,
+)
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
-from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionExpressionFromTemplate
+from nuitka.nodes.NodeMakingHelpers import (
+    makeRaiseExceptionExpressionFromTemplate,
+)
 from nuitka.nodes.OperatorNodes import (
     makeBinaryOperationNode,
     makeExpressionOperationBinaryInplace,
@@ -54,10 +60,10 @@ from nuitka.nodes.OperatorNodes import (
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SliceNodes import (
-    ExpressionBuiltinSlice,
     ExpressionSliceLookup,
     StatementAssignmentSlice,
     StatementDelSlice,
+    makeExpressionBuiltinSlice,
 )
 from nuitka.nodes.SubscriptNodes import (
     ExpressionSubscriptLookup,
@@ -69,6 +75,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableLocalNameRef,
     ExpressionVariableNameRef,
 )
+from nuitka.Options import hasPythonFlagNoAnnotations
 from nuitka.PythonVersions import python_version
 
 from .ReformulationImportStatements import getFutureSpec
@@ -78,8 +85,6 @@ from .TreeHelpers import (
     buildAnnotationNode,
     buildNode,
     getKind,
-    makeConstantRefNode,
-    makeSequenceCreationOrConstant,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
@@ -99,13 +104,11 @@ def buildExtSliceNode(provider, node, source_ref):
             upper = buildNode(provider, dim.upper, source_ref, True)
             step = buildNode(provider, dim.step, source_ref, True)
 
-            element = ExpressionBuiltinSlice(
+            element = makeExpressionBuiltinSlice(
                 start=lower, stop=upper, step=step, source_ref=source_ref
             )
         elif dim_kind == "Ellipsis":
-            element = ExpressionConstantEllipsisRef(
-                source_ref=source_ref, user_provided=True
-            )
+            element = ExpressionConstantEllipsisRef(source_ref=source_ref)
         elif dim_kind == "Index":
             element = buildNode(
                 provider=provider, node=dim.value, source_ref=source_ref
@@ -115,8 +118,8 @@ def buildExtSliceNode(provider, node, source_ref):
 
         elements.append(element)
 
-    return makeSequenceCreationOrConstant(
-        sequence_kind="tuple", elements=elements, source_ref=source_ref
+    return makeExpressionMakeTupleOrConstant(
+        elements=elements, user_provided=True, source_ref=source_ref
     )
 
 
@@ -137,7 +140,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
 
         return StatementAssignmentAttribute(
             expression=lookup_source,
-            attribute_name=attribute_name,
+            attribute_name=mangleName(attribute_name, provider),
             source=source,
             source_ref=source_ref,
         )
@@ -145,7 +148,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
         subscribed, subscript = detail
 
         return StatementAssignmentSubscript(
-            expression=subscribed,
+            subscribed=subscribed,
             subscript=subscript,
             source=source,
             source_ref=source_ref,
@@ -156,13 +159,13 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
         # For Python3 there is no slicing operation, this is always done
         # with subscript using a slice object. For Python2, it is only done
         # if no "step" is provided.
-        use_sliceobj = python_version >= 300
+        use_sliceobj = python_version >= 0x300
 
         if use_sliceobj:
             return StatementAssignmentSubscript(
-                expression=lookup_source,
+                subscribed=lookup_source,
                 source=source,
-                subscript=ExpressionBuiltinSlice(
+                subscript=makeExpressionBuiltinSlice(
                     start=lower, stop=upper, step=None, source_ref=source_ref
                 ),
                 source_ref=source_ref,
@@ -199,7 +202,9 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
             if element[0] == "Starred":
                 if starred_index is not None:
                     raiseSyntaxError(
-                        "two starred expressions in assignment",
+                        "two starred expressions in assignment"
+                        if python_version < 0x390
+                        else "multiple starred expressions in assignment",
                         source_ref.atColumnNumber(0),
                     )
 
@@ -308,7 +313,7 @@ not enough values to unpack (expected at least %d, got %%d)"""
                 ),
             )
 
-        if python_version >= 370:
+        if python_version >= 0x370:
             iter_creation_class = ExpressionBuiltinIterForUnpack
         else:
             iter_creation_class = ExpressionBuiltinIter1
@@ -444,7 +449,7 @@ def decodeAssignTarget(provider, node, source_ref, allow_none=False):
                     "Subscript",
                     (
                         buildNode(provider, node.value, source_ref),
-                        ExpressionBuiltinSlice(
+                        makeExpressionBuiltinSlice(
                             start=lower, stop=upper, step=step, source_ref=source_ref
                         ),
                     ),
@@ -468,6 +473,14 @@ def decodeAssignTarget(provider, node, source_ref, allow_none=False):
                 (
                     buildNode(provider, node.value, source_ref),
                     ExpressionConstantEllipsisRef(source_ref=source_ref),
+                ),
+            )
+        elif python_version >= 0x390:
+            return (
+                "Subscript",
+                (
+                    buildNode(provider, node.value, source_ref),
+                    buildNode(provider, node.slice, source_ref),
                 ),
             )
         else:
@@ -553,9 +566,7 @@ def buildAssignNode(provider, node, source_ref):
 
 
 def buildAnnAssignNode(provider, node, source_ref):
-    """ Python3.6 annotation assignment.
-
-    """
+    """Python3.6 annotation assignment."""
     # There are many cases to deal with here.
 
     if provider.isCompiledPythonModule() or provider.isExpressionClassBody():
@@ -596,21 +607,23 @@ def buildAnnAssignNode(provider, node, source_ref):
     # Only annotations for modules and classes are really made, for functions
     # they are ignored like comments.
     if variable_name is not None:
-        if provider.isExpressionClassBody() or provider.isCompiledPythonModule():
+        if not hasPythonFlagNoAnnotations() and (
+            provider.isExpressionClassBody() or provider.isCompiledPythonModule()
+        ):
             annotation = buildAnnotationNode(provider, node.annotation, source_ref)
 
             # TODO: As CPython core considers this implementation detail, and it seems
             # mostly useless to support having this as a closure taken name after a
             # __del__ on annotations, we might do this except in full compat mode. It
             # will produce only noise for all annotations in classes otherwise.
-            if python_version < 370:
+            if python_version < 0x370:
                 ref_class = ExpressionVariableLocalNameRef
             else:
                 ref_class = ExpressionVariableNameRef
 
             statements.append(
                 StatementAssignmentSubscript(
-                    expression=ref_class(
+                    subscribed=ref_class(
                         provider=provider,
                         variable_name="__annotations__",
                         source_ref=source_ref,
@@ -623,7 +636,7 @@ def buildAnnAssignNode(provider, node, source_ref):
                 )
             )
         else:
-            # Functions.
+            # Functions or disabled.
             if node.simple:
                 provider.getVariableForAssignment(variable_name)
 
@@ -633,6 +646,8 @@ def buildAnnAssignNode(provider, node, source_ref):
 
 
 def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
+    # This function is a case driven by returns, pylint: disable=too-many-return-statements
+
     if kind in ("Name", "Name_Exception"):
         # Note: Name_Exception is a "del" for exception handlers that doesn't
         # insist on the variable being defined, user code may do it too, and
@@ -648,24 +663,24 @@ def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
 
         return StatementDelAttribute(
             expression=lookup_source,
-            attribute_name=attribute_name,
+            attribute_name=mangleName(attribute_name, provider),
             source_ref=source_ref,
         )
     elif kind == "Subscript":
         subscribed, subscript = detail
 
         return StatementDelSubscript(
-            expression=subscribed, subscript=subscript, source_ref=source_ref
+            subscribed=subscribed, subscript=subscript, source_ref=source_ref
         )
     elif kind == "Slice":
         lookup_source, lower, upper = detail
 
-        use_sliceobj = python_version >= 300
+        use_sliceobj = python_version >= 0x300
 
         if use_sliceobj:
             return StatementDelSubscript(
-                expression=lookup_source,
-                subscript=ExpressionBuiltinSlice(
+                subscribed=lookup_source,
+                subscript=makeExpressionBuiltinSlice(
                     start=lower, stop=upper, step=None, source_ref=source_ref
                 ),
                 source_ref=source_ref,
@@ -690,9 +705,12 @@ def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
                 )
             )
 
-        return makeStatementsSequenceOrStatement(
-            statements=result, source_ref=source_ref
-        )
+        if result:
+            return makeStatementsSequenceOrStatement(
+                statements=result, source_ref=source_ref
+            )
+        else:
+            return None
     else:
         assert False, (kind, detail, source_ref)
 
@@ -847,7 +865,7 @@ def _buildInplaceAssignSubscriptNode(
             source_ref=source_ref,
         ),
         StatementAssignmentSubscript(
-            expression=ExpressionTempVariableRef(
+            subscribed=ExpressionTempVariableRef(
                 variable=tmp_variable1, source_ref=source_ref
             ),
             subscript=ExpressionTempVariableRef(
@@ -945,7 +963,7 @@ def _buildInplaceAssignSliceNode(
 
         upper_ref1 = upper_ref2 = None
 
-    use_sliceobj = python_version >= 300
+    use_sliceobj = python_version >= 0x300
 
     # Second assign the in-place result over the original value.
     if use_sliceobj:
@@ -956,7 +974,7 @@ def _buildInplaceAssignSliceNode(
                     expression=ExpressionTempVariableRef(
                         variable=tmp_variable1, source_ref=source_ref
                     ),
-                    subscript=ExpressionBuiltinSlice(
+                    subscript=makeExpressionBuiltinSlice(
                         start=lower_ref2,
                         stop=upper_ref2,
                         step=None,
@@ -979,10 +997,10 @@ def _buildInplaceAssignSliceNode(
                 source_ref=source_ref,
             ),
             StatementAssignmentSubscript(
-                expression=ExpressionTempVariableRef(
+                subscribed=ExpressionTempVariableRef(
                     variable=tmp_variable1, source_ref=source_ref
                 ),
-                subscript=ExpressionBuiltinSlice(
+                subscript=makeExpressionBuiltinSlice(
                     start=lower_ref1, stop=upper_ref1, step=None, source_ref=source_ref
                 ),
                 source=ExpressionTempVariableRef(
@@ -1076,7 +1094,7 @@ def buildInplaceAssignNode(provider, node, source_ref):
         statements = _buildInplaceAssignAttributeNode(
             provider=provider,
             lookup_source=lookup_source,
-            attribute_name=attribute_name,
+            attribute_name=mangleName(attribute_name, provider),
             operator=operator,
             expression=expression,
             source_ref=source_ref,
@@ -1153,9 +1171,7 @@ def buildInplaceAssignNode(provider, node, source_ref):
 
 
 def buildNamedExprNode(provider, node, source_ref):
-    """ Assignment expressions, Python3.8 or higher only.
-
-    """
+    """Assignment expressions, Python3.8 or higher only."""
 
     outline_body = ExpressionOutlineBody(
         provider=provider, name="assignment_expr", source_ref=source_ref
@@ -1197,7 +1213,8 @@ def buildNamedExprNode(provider, node, source_ref):
         ),
     )
 
-    outline_body.setBody(
+    outline_body.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             statement=makeTryFinallyStatement(
                 provider=provider,
@@ -1207,7 +1224,7 @@ def buildNamedExprNode(provider, node, source_ref):
                 ),
                 source_ref=source_ref,
             )
-        )
+        ),
     )
 
     return outline_body

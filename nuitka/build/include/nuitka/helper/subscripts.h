@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -19,10 +19,6 @@
 #define __NUITKA_HELPER_SUBSCRIPTS_H__
 
 extern PyObject *STRING_FROM_CHAR(unsigned char c);
-
-#if PYTHON_VERSION >= 370
-extern PyObject *const_str_plain___class_getitem__;
-#endif
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, PyObject *const_subscript,
                                                              Py_ssize_t int_subscript) {
@@ -57,7 +53,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, P
             Py_INCREF(result);
             return result;
         }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         else if (PyString_CheckExact(source)) {
             Py_ssize_t string_size = PyString_GET_SIZE(source);
 
@@ -93,8 +89,18 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, P
     } else if (type->tp_as_sequence) {
         result = PySequence_GetItem(source, int_subscript);
     } else {
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
         if (PyType_Check(source)) {
+#if PYTHON_VERSION >= 0x390
+            if (source == (PyObject *)&PyType_Type) {
+                PyObject *subscript = PyLong_FromSsize_t(int_subscript);
+                result = Py_GenericAlias(source, subscript);
+                Py_DECREF(subscript);
+
+                return result;
+            }
+#endif
+
             PyObject *meth = LOOKUP_ATTRIBUTE(source, const_str_plain___class_getitem__);
 
             if (meth) {
@@ -109,9 +115,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, P
 #endif
 
         PyErr_Format(PyExc_TypeError,
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
                      "'%s' object is unsubscriptable",
-#elif PYTHON_VERSION >= 300 || PYTHON_VERSION <= 272
+#elif PYTHON_VERSION >= 0x300 || PYTHON_VERSION <= 0x272
                      "'%s' object is not subscriptable",
 #else
                      "'%s' object has no attribute '__getitem__'",
@@ -148,12 +154,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
         } else if (type->tp_as_sequence->sq_item) {
             PyErr_Format(PyExc_TypeError, "sequence index must be integer, not '%s'", Py_TYPE(subscript)->tp_name);
             return NULL;
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
         } else {
             PyErr_Format(PyExc_TypeError,
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
                          "'%s' object is unsubscriptable",
-#elif PYTHON_VERSION >= 300 || PYTHON_VERSION <= 272
+#elif PYTHON_VERSION >= 0x300 || PYTHON_VERSION <= 0x272
                          "'%s' object is not subscriptable",
 #else
                          "'%s' object has no attribute '__getitem__'",
@@ -164,8 +170,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
         }
     }
 
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
     if (PyType_Check(source)) {
+#if PYTHON_VERSION >= 0x390
+        if (source == (PyObject *)&PyType_Type) {
+            return Py_GenericAlias(source, subscript);
+        }
+#endif
+
         PyObject *meth = LOOKUP_ATTRIBUTE(source, const_str_plain___class_getitem__);
 
         if (meth) {
@@ -177,9 +189,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
 #endif
 
     PyErr_Format(PyExc_TypeError,
-#if PYTHON_VERSION < 270
+#if PYTHON_VERSION < 0x270
                  "'%s' object is unsubscriptable",
-#elif PYTHON_VERSION >= 300 || PYTHON_VERSION <= 272
+#elif PYTHON_VERSION >= 0x300 || PYTHON_VERSION <= 0x272
                  "'%s' object is not subscriptable",
 #else
                  "'%s' object has no attribute '__getitem__'",

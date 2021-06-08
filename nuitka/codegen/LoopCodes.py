@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -65,7 +65,7 @@ def generateLoopCode(statement, emit, context):
     old_loop_continue = context.setLoopContinueTarget(loop_start_label)
 
     generateStatementSequenceCode(
-        statement_sequence=statement.getLoopBody(),
+        statement_sequence=statement.subnode_loop_body,
         allow_none=True,
         emit=emit,
         context=context,

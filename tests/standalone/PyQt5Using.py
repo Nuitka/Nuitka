@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -18,8 +18,6 @@
 #     limitations under the License.
 #
 from __future__ import print_function
-
-import sys
 
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtCore import QSettings

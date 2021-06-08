@@ -13,7 +13,7 @@ Before submitting a PR, please review the guidelines:
 
 - [ ] Correct base branch selected? Should be `develop` branch.
 - [ ] All tests still pass. Check the developer manual about `Running the Tests`.
-      There are Travis and Github Actions tests that cover the most important
+      There are Github Actions tests that cover the most important
       things however, and you are welcome to rely on those, but they might not
       cover enough.
 - [ ] Ideally new features or fixed regressions ought to be covered via new tests.

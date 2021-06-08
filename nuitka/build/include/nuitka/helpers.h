@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -36,22 +36,17 @@
 #else
 #define _DEBUG_ASYNCGEN 0
 #endif
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CLASSES
+#define _DEBUG_CLASSES 1
+#else
 #define _DEBUG_CLASSES 0
+#endif
 
 #ifdef _NUITKA_EXPERIMENTAL_REPORT_REFCOUNTS
 #define _DEBUG_REFCOUNTS 1
 #else
 #define _DEBUG_REFCOUNTS 0
 #endif
-
-extern PyObject *const_tuple_empty;
-extern PyObject *const_str_plain___dict__;
-extern PyObject *const_str_plain___class__;
-extern PyObject *const_str_plain___enter__;
-extern PyObject *const_str_plain___exit__;
-
-extern PyObject *const_int_0;
-extern PyObject *const_int_pos_1;
 
 // From CPython, to allow us quick access to the dictionary of an module, the
 // structure is normally private, but we need it for quick access to the module
@@ -116,7 +111,7 @@ static inline PyObject *Nuitka_Generator_GetName(PyObject *object);
 NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT(PyObject *value) {
     PyObject *result;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyString_CheckExact(value)) {
         result = PyFloat_FromString(value, NULL);
     }
@@ -142,10 +137,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT(PyObject *value) {
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *encoding, PyObject *errors) {
     CHECK_OBJECT(value);
-    if (encoding)
-        CHECK_OBJECT(encoding);
-    if (errors)
-        CHECK_OBJECT(errors);
+    CHECK_OBJECT_X(encoding);
+    CHECK_OBJECT_X(errors);
 
     char const *encoding_str;
 
@@ -154,7 +147,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *enc
     } else if (Nuitka_String_Check(encoding)) {
         encoding_str = Nuitka_String_AsString_Unchecked(encoding);
     }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     else if (PyUnicode_Check(encoding)) {
         PyObject *uarg2 = _PyUnicode_AsDefaultEncodedString(encoding, NULL);
         CHECK_OBJECT(uarg2);
@@ -163,7 +156,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *enc
     }
 #endif
     else {
-        PyErr_Format(PyExc_TypeError, "unicode() argument 2 must be string, not %s", Py_TYPE(encoding)->tp_name);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("unicode() argument 2 must be string, not %s", encoding);
         return NULL;
     }
 
@@ -174,7 +167,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *enc
     } else if (Nuitka_String_Check(errors)) {
         errors_str = Nuitka_String_AsString_Unchecked(errors);
     }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     else if (PyUnicode_Check(errors)) {
         PyObject *uarg3 = _PyUnicode_AsDefaultEncodedString(errors, NULL);
         CHECK_OBJECT(uarg3);
@@ -183,7 +176,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *enc
     }
 #endif
     else {
-        PyErr_Format(PyExc_TypeError, "unicode() argument 3 must be string, not %s", Py_TYPE(errors)->tp_name);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("unicode() argument 3 must be string, not %s", errors);
         return NULL;
     }
 
@@ -228,7 +221,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyObject *source) {
 #include "helper/operations.h"
 
 // Compile source code given, pretending the file name was given.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 extern PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mode, PyObject *flags,
                               PyObject *dont_inherit);
 #else
@@ -236,12 +229,12 @@ extern PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObje
                               PyObject *dont_inherit, PyObject *optimize);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 extern bool EXEC_FILE_ARG_HANDLING(PyObject **prog, PyObject **name);
 #endif
 
 // For quicker built-in open() functionality.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 extern PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering);
 #else
 extern PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering, PyObject *encoding,
@@ -282,8 +275,9 @@ extern PyObject *BUILTIN_LEN(PyObject *boundary);
 // For built-in built-in any() functionality.
 extern PyObject *BUILTIN_ANY(PyObject *value);
 
-// For built-in built-in super() functionality.
-extern PyObject *BUILTIN_SUPER(PyObject *type, PyObject *object);
+// For built-in built-in super() no args and 2 user args functionality.
+extern PyObject *BUILTIN_SUPER2(PyObject *type, PyObject *object);
+extern PyObject *BUILTIN_SUPER0(PyObject *type, PyObject *object);
 
 // For built-in built-in all() functionality.
 extern PyObject *BUILTIN_ALL(PyObject *value);
@@ -303,6 +297,8 @@ extern PyObject *BUILTIN_BYTEARRAY3(PyObject *string, PyObject *encoding, PyObje
 
 // For built-in hash() functionality.
 extern PyObject *BUILTIN_HASH(PyObject *value);
+extern Py_hash_t HASH_VALUE_WITHOUT_ERROR(PyObject *value);
+extern Py_hash_t HASH_VALUE_WITH_ERROR(PyObject *value);
 
 // For built-in sum() functionality.
 extern PyObject *BUILTIN_SUM1(PyObject *sequence);
@@ -312,12 +308,10 @@ extern PyObject *BUILTIN_SUM2(PyObject *sequence, PyObject *start);
 extern PyObject *BUILTIN_ABS(PyObject *o);
 
 // For built-in bytes() functionality.
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 extern PyObject *BUILTIN_BYTES1(PyObject *value);
 extern PyObject *BUILTIN_BYTES3(PyObject *value, PyObject *encoding, PyObject *errors);
 #endif
-
-extern PyObject *const_str_plain___builtins__;
 
 // For built-in eval() functionality, works on byte compiled code already.
 extern PyObject *EVAL_CODE(PyObject *code, PyObject *globals, PyObject *locals);
@@ -334,12 +328,15 @@ extern PyObject *BUILTIN_CLASSMETHOD(PyObject *function);
 // For built-in "int()" functionality with 2 arguments.
 extern PyObject *BUILTIN_INT2(PyObject *value, PyObject *base);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 // For built-in "long()" functionality with 2 arguments.
 extern PyObject *BUILTIN_LONG2(PyObject *value, PyObject *base);
 #endif
 
 #include "nuitka/importing.h"
+
+// Hard imports have their own helpers.
+#include "nuitka/helper/import_hard.h"
 
 // For the constant loading:
 
@@ -351,20 +348,13 @@ extern void createGlobalConstants(void);
 extern void checkGlobalConstants(void);
 #endif
 
+#if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED || _NUITKA_PLUGIN_TRACEBACK_ENCRYPTION_ENABLED
+// Call this to initialize __main__ constants in non-standard processes.
+extern void createMainModuleConstants(void);
+#endif
+
 // Unstreaming constants from a blob.
 #include "nuitka/constants_blob.h"
-
-extern void UNSTREAM_INIT(void);
-extern PyObject *UNSTREAM_STRING(unsigned char const *buffer, Py_ssize_t size, bool intern);
-extern PyObject *UNSTREAM_CHAR(unsigned char value, bool intern);
-#if PYTHON_VERSION < 300
-extern PyObject *UNSTREAM_UNICODE(unsigned char const *buffer, Py_ssize_t size);
-#else
-extern PyObject *UNSTREAM_BYTES(unsigned char const *buffer, Py_ssize_t size);
-extern PyObject *UNSTREAM_STRING_ASCII(unsigned char const *buffer, Py_ssize_t size, bool intern);
-#endif
-extern PyObject *UNSTREAM_FLOAT(unsigned char const *buffer);
-extern PyObject *UNSTREAM_BYTEARRAY(unsigned char const *buffer, Py_ssize_t size);
 
 // Performance enhancements to Python types.
 extern void enhancePythonTypes(void);
@@ -376,7 +366,7 @@ extern void setupMetaPathBasedLoader(void);
 extern void patchBuiltinModule(void);
 
 /* Replace inspect functions with ones that handle compiles types too. */
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 extern void patchInspectModule(void);
 #endif
 
@@ -388,29 +378,34 @@ extern void patchTypeComparison(void);
 // to be slightly faster for exception control flows.
 extern void patchTracebackDealloc(void);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 // Initialize value for "tp_compare" default.
 extern void _initSlotCompare(void);
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 // Select the metaclass from specified one and given bases.
 extern PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases);
 #endif
 
-extern PyObject *const_str_plain___name__;
-
-NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME(PyObject *module) {
+NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME1(PyObject *module) {
     assert(PyModule_Check(module));
     PyObject *module_dict = ((PyModuleObject *)module)->md_dict;
 
-    return PyDict_GetItem(module_dict, const_str_plain___name__);
+    return DICT_GET_ITEM1(module_dict, const_str_plain___name__);
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME0(PyObject *module) {
+    assert(PyModule_Check(module));
+    PyObject *module_dict = ((PyModuleObject *)module)->md_dict;
+
+    return DICT_GET_ITEM0(module_dict, const_str_plain___name__);
 }
 
 // Get the binary directory was wide characters.
 extern wchar_t const *getBinaryDirectoryWideChars();
 
-#if !defined(_WIN32) || PYTHON_VERSION < 300
+#if !defined(_WIN32) || PYTHON_VERSION < 0x300
 // Get the binary directory, translated to native path
 extern char const *getBinaryDirectoryHostEncoded();
 #endif
@@ -424,6 +419,12 @@ extern void setEarlyFrozenModulesFileAttribute(void);
  * instead just works on strings.
  */
 extern PyObject *MAKE_RELATIVE_PATH(PyObject *relative);
+
+/* For concatenating two elemented path, typically a dirname and a filename.
+
+   We do this in a lot of helper code, and this is shared functionality.
+*/
+extern PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename);
 
 #include <nuitka/threading.h>
 

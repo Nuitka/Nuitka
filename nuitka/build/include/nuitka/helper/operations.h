@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -18,7 +18,7 @@
 #ifndef __NUITKA_OPERATIONS_H__
 #define __NUITKA_OPERATIONS_H__
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 extern PyObject *UNICODE_CONCAT(PyObject *left, PyObject *right);
 extern bool UNICODE_APPEND(PyObject **p_left, PyObject *right);
 #else
@@ -29,13 +29,16 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNICODE_CONCAT(PyObject *left, PyObject *r
 #endif
 
 // This macro is necessary for Python2 to determine if the "coerce" slot
-// will have to be considered or not.
-#if PYTHON_VERSION < 300
+// will have to be considered or not, and if in-place operations are
+// allowed to be there or not.
+#if PYTHON_VERSION < 0x300
 #define NEW_STYLE_NUMBER(o) PyType_HasFeature(Py_TYPE(o), Py_TPFLAGS_CHECKTYPES)
 #define NEW_STYLE_NUMBER_TYPE(t) PyType_HasFeature(t, Py_TPFLAGS_CHECKTYPES)
+#define CAN_HAVE_INPLACE(t) PyType_HasFeature(t, Py_TPFLAGS_HAVE_INPLACEOPS)
 #else
 #define NEW_STYLE_NUMBER(o) (true)
 #define NEW_STYLE_NUMBER_TYPE(t) (true)
+#define CAN_HAVE_INPLACE(t) (true)
 #endif
 
 typedef PyObject *(unary_api)(PyObject *);
@@ -81,12 +84,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNARY_OPERATION(unary_api api, PyObject *o
 #include "nuitka/helper/operations_inplace_sub.h"
 #include "nuitka/helper/operations_inplace_truediv.h"
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 // Classical division is Python2 only.
 #include "nuitka/helper/operations_binary_olddiv.h"
 #include "nuitka/helper/operations_inplace_olddiv.h"
 #endif
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
 // Matrix multiplication is Python3.5 or higher only.
 #include "nuitka/helper/operations_binary_matmult.h"
 #include "nuitka/helper/operations_inplace_matmult.h"

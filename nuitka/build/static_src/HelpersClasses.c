@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -28,7 +28,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases) {
     CHECK_OBJECT(metaclass);
     CHECK_OBJECT(bases);
@@ -37,6 +37,12 @@ PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases) {
         // Determine the proper metaclass type
         Py_ssize_t nbases = PyTuple_GET_SIZE(bases);
         PyTypeObject *winner = (PyTypeObject *)metaclass;
+
+#if _DEBUG_CLASSES
+        PRINT_STRING("Bases:");
+        PRINT_ITEM((PyObject *)bases);
+        PRINT_NEW_LINE();
+#endif
 
         for (int i = 0; i < nbases; i++) {
             PyObject *base = PyTuple_GET_ITEM(bases, i);

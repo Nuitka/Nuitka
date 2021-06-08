@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -22,7 +22,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_COMPLEX1(PyObject *real) {
     CHECK_OBJECT(real);
 
     // TODO: Very lazy here, we should create the values ourselves, surely a
-    // a lot of optimization can be had that way.
+    // a lot of optimization can be had that way. At least use PyComplex_RealAsDouble
+    // where possible.
     return CALL_FUNCTION_WITH_SINGLE_ARG((PyObject *)&PyComplex_Type, real);
 }
 
@@ -37,7 +38,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_COMPLEX2(PyObject *real, PyObject 
     CHECK_OBJECT(imag);
 
     // TODO: Very lazy here, we should create the values ourselves, surely a
-    // a lot of optimization can be had that way.
+    // a lot of optimization can be had that way. At least use PyComplex_FromDoubles
     PyObject *args[] = {real, imag};
     return CALL_FUNCTION_WITH_ARGS2((PyObject *)&PyComplex_Type, args);
 }

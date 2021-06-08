@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,7 +31,11 @@ flexible.
 
 from nuitka import Variables
 from nuitka.PythonVersions import python_version
-from nuitka.utils.InstanceCounters import counted_del, counted_init
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 
 
 class TooManyArguments(Exception):
@@ -116,7 +120,8 @@ class ParameterSpec(object):
         self.pos_only_args = tuple(ps_pos_only_args)
         self.pos_only_variables = None
 
-    __del__ = counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     def makeClone(self):
         return ParameterSpec(
@@ -298,7 +303,7 @@ def matchCall(
     pairs,
     improved=False,
 ):
-    """ Match a call arguments to a signature.
+    """Match a call arguments to a signature.
 
     Args:
         func_name - Name of the function being matched, used to construct exception texts.
@@ -377,12 +382,12 @@ def matchCall(
         assign(arg, value)
 
     # Python3 does this check earlier.
-    if python_version >= 300 and not star_dict_arg:
+    if python_version >= 0x300 and not star_dict_arg:
         for pair in pairs:
             try:
                 arg_index = (args + kw_only_args).index(pair[0])
             except ValueError:
-                if improved or python_version >= 370:
+                if improved or python_version >= 0x370:
                     message = "'%s' is an invalid keyword argument for %s()" % (
                         pair[0],
                         func_name,
@@ -516,7 +521,7 @@ def matchCall(
                 )
 
             if num_required == 1:
-                arg_desc = "1 argument" if python_version < 350 else "one argument"
+                arg_desc = "1 argument" if python_version < 0x350 else "one argument"
             else:
                 arg_desc = "%d arguments" % num_required
 
@@ -537,7 +542,7 @@ def matchCall(
                 "%s expected %s%s, got %d"
                 % (
                     func_name,
-                    ("at least " if python_version < 300 else "")
+                    ("at least " if python_version < 0x300 else "")
                     if num_defaults > 0
                     else "exactly ",
                     "%d arguments" % num_required,

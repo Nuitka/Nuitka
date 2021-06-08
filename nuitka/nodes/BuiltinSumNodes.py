@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,6 +31,8 @@ from .ExpressionBases import (
 
 
 class ExpressionBuiltinSumMixin(object):
+    # Mixins are required to slots
+    __slots__ = ()
 
     builtin_spec = BuiltinParameterSpecs.builtin_sum_spec
 
@@ -56,7 +58,6 @@ class ExpressionBuiltinSum1(ExpressionBuiltinSumMixin, ExpressionChildHavingBase
     kind = "EXPRESSION_BUILTIN_SUM1"
 
     named_child = "sequence"
-    getSequence = ExpressionChildHavingBase.childGetter("sequence")
 
     def __init__(self, sequence, source_ref):
         assert sequence is not None
@@ -64,7 +65,7 @@ class ExpressionBuiltinSum1(ExpressionBuiltinSumMixin, ExpressionChildHavingBase
         ExpressionChildHavingBase.__init__(self, value=sequence, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
-        sequence = self.getSequence()
+        sequence = self.subnode_sequence
 
         # TODO: Protect against large xrange constants
         return self.computeBuiltinSpec(
@@ -76,8 +77,6 @@ class ExpressionBuiltinSum2(ExpressionBuiltinSumMixin, ExpressionChildrenHavingB
     kind = "EXPRESSION_BUILTIN_SUM2"
 
     named_children = ("sequence", "start")
-    getSequence = ExpressionChildrenHavingBase.childGetter("sequence")
-    getStart = ExpressionChildrenHavingBase.childGetter("start")
 
     def __init__(self, sequence, start, source_ref):
         assert sequence is not None
@@ -88,8 +87,8 @@ class ExpressionBuiltinSum2(ExpressionBuiltinSumMixin, ExpressionChildrenHavingB
         )
 
     def computeExpression(self, trace_collection):
-        sequence = self.getSequence()
-        start = self.getStart()
+        sequence = self.subnode_sequence
+        start = self.subnode_start
 
         # TODO: Protect against large xrange constants
         return self.computeBuiltinSpec(

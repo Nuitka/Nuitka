@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -90,7 +90,7 @@ def isConstantExpression(expression):
 
     return kind.startswith("Constant") or kind in (
         "ImportModuleHard",
-        "ImportName",
+        "ImportModuleNameHard",
         "ModuleAttributeFileRef",
         "ModuleLoaderRef",
     )
@@ -127,14 +127,6 @@ def checkSequence(filename, statements):
                 if getKind(called_expression) == "BuiltinRef":
                     if called_expression.attrib["builtin_name"] == "print":
                         continue
-
-        # Trying of printing is fine, but not needed
-        if kind == "Try" and False:
-            tried = getRole(statement, "tried")
-
-            checkSequence(filename, getRole(tried[0], "statements"))
-
-            continue
 
         if kind == "FrameModule":
             checkSequence(filename, getRole(statement, "statements"))
@@ -199,7 +191,7 @@ def main():
 
         if active:
             # Apply 2to3 conversion if necessary.
-            if python_version.startswith("3"):
+            if python_version >= (3,):
                 filename, changed = convertUsing2to3(filename)
             else:
                 changed = False
@@ -210,6 +202,7 @@ def main():
                 os.environ["PYTHON"],
                 os.path.abspath(os.path.join("..", "..", "bin", "nuitka")),
                 "--xml",
+                "--quiet",
                 "--module",
                 filename,
             ]
@@ -276,9 +269,6 @@ def main():
                 raise
 
             my_print("OK.")
-
-            if search_mode.abortIfExecuted():
-                break
 
     search_mode.finish()
 

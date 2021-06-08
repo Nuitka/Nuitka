@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,6 +29,7 @@ from nuitka import SourceCodeReferences
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version, python_version_str
+from nuitka.Tracing import general
 from nuitka.utils.Shebang import getShebangFromSource, parseShebang
 from nuitka.utils.Utils import getOS
 
@@ -113,7 +114,7 @@ see http://python.org/dev/peps/pep-0263/ for details"""
 
 
 def readSourceCodeFromFilename(module_name, source_filename):
-    if python_version < 300:
+    if python_version < 0x300:
         source_code = _readSourceCodeFromFilename2(source_filename)
     else:
         source_code = _readSourceCodeFromFilename3(source_filename)
@@ -145,30 +146,36 @@ def checkPythonVersionFromCode(source_code):
 
         # Not sure if we should do that.
         if basename == "python":
-            result = python_version < 300
+            result = python_version < 0x300
         elif basename == "python3":
-            result = python_version > 300
+            result = python_version > 0x300
         elif basename == "python2":
-            result = python_version < 300
+            result = python_version < 0x300
         elif basename == "python2.7":
-            result = python_version < 300
+            result = python_version < 0x300
         elif basename == "python2.6":
-            result = python_version < 270
+            result = python_version < 0x270
         elif basename == "python3.2":
-            result = 330 > python_version >= 300
+            result = 0x330 > python_version >= 0x300
         elif basename == "python3.3":
-            result = 340 > python_version >= 330
+            result = 0x340 > python_version >= 0x330
         elif basename == "python3.4":
-            result = 350 > python_version >= 340
+            result = 0x350 > python_version >= 0x340
         elif basename == "python3.5":
-            result = 360 > python_version >= 350
+            result = 0x360 > python_version >= 0x350
         elif basename == "python3.6":
-            result = 370 > python_version >= 360
+            result = 0x370 > python_version >= 0x360
+        elif basename == "python3.7":
+            result = 0x380 > python_version >= 0x370
+        elif basename == "python3.8":
+            result = 0x390 > python_version >= 0x380
+        elif basename == "python3.9":
+            result = 0x3A0 > python_version >= 0x390
         else:
             result = None
 
         if result is False:
-            sys.exit(
+            general.sysexit(
                 """\
 The program you compiled wants to be run with: %s.
 

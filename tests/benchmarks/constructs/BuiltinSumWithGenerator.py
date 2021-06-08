@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -20,21 +20,22 @@
 
 empty = ()
 
-def calledRepeatedly():
-    # We measure making a generator iterator step or not.
-    gen = (x for x in range(1000))
+def calledRepeatedly(iterable, empty):
+    # Force frame
+    itertools
 
-    # This should abort.
+    # We measure making a generator iterator step or not.
+
 # construct_begin
-    y = sum(gen)
+    y = sum(iterable)
 # construct_alternative
-    y = gen
+    y = sum(empty)
 # construct_end
 
-    return y, gen
+    return y
 
 import itertools
 for x in itertools.repeat(None, 500):
-    calledRepeatedly()
+    calledRepeatedly((x for x in range(1000)), empty)
 
 print("OK.")

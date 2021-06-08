@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -24,64 +24,82 @@
 
 /* C helpers for type in-place "/" (OLDDIV) operations */
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 extern bool BINARY_OPERATION_OLDDIV_INT_INT_INPLACE(PyObject **operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 extern bool BINARY_OPERATION_OLDDIV_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 extern bool BINARY_OPERATION_OLDDIV_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
 #endif
 
+#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern bool BINARY_OPERATION_OLDDIV_LONG_LONG_INPLACE(PyObject **operand1, PyObject *operand2);
+#endif
 
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 extern bool BINARY_OPERATION_OLDDIV_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2);
+#endif
 
+#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 extern bool BINARY_OPERATION_OLDDIV_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
+#endif
 
+#if PYTHON_VERSION < 0x300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 extern bool BINARY_OPERATION_OLDDIV_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2);
+#endif
 
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 extern bool BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2);
+#endif
 
+#if PYTHON_VERSION < 0x300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 extern bool BINARY_OPERATION_OLDDIV_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
+#endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern bool BINARY_OPERATION_OLDDIV_INT_LONG_INPLACE(PyObject **operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 300
-/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
-extern bool BINARY_OPERATION_OLDDIV_INT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 extern bool BINARY_OPERATION_OLDDIV_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2);
 #endif
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
-extern bool BINARY_OPERATION_OLDDIV_LONG_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2);
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
+extern bool BINARY_OPERATION_OLDDIV_INT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2);
+#endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
 extern bool BINARY_OPERATION_OLDDIV_FLOAT_INT_INPLACE(PyObject **operand1, PyObject *operand2);
 #endif
 
+#if PYTHON_VERSION < 0x300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
+extern bool BINARY_OPERATION_OLDDIV_LONG_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 extern bool BINARY_OPERATION_OLDDIV_FLOAT_LONG_INPLACE(PyObject **operand1, PyObject *operand2);
+#endif
 
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern bool BINARY_OPERATION_OLDDIV_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
+#endif

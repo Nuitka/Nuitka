@@ -1,0 +1,190 @@
+{#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+{% from 'HelperSlotsCommon.c.j2' import goto_exit, constant_long_exit_target, constant_int_exit_target %}
+
+{% macro long_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+{% if operator == "+" %}
+    if (Py_ABS(Py_SIZE({{ operand1 }})) <= 1 && Py_ABS(Py_SIZE({{ operand2 }})) <= 1) {
+{% if target == None %}
+        if (Py_REFCNT({{operand1}}) == 1) {
+            Nuitka_LongUpdateFromCLong(&{{operand1}}, MEDIUM_VALUE({{ operand1 }}) + MEDIUM_VALUE({{ operand2 }}));
+            {{ goto_exit(props, "exit_result_ok") }}
+        }
+{% endif %}
+        PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE({{ operand1 }}) + MEDIUM_VALUE({{ operand2 }}));
+        {{ goto_exit(props, "exit_result_object", "r") }}
+    }
+
+{% if target == None %}
+    if (Py_REFCNT({{operand1}}) == 1) {
+        digit const *b = Nuitka_LongGetDigitPointer({{ operand2 }});
+        Py_ssize_t size_b = Nuitka_LongGetDigitSize({{ operand2 }});
+
+#if 0
+        PyObject *r = BINARY_OPERATION_ADD_OBJECT_LONG_LONG( {{ operand1 }}, {{ operand2 }} );
+#endif
+        if (Py_SIZE({{ operand1 }}) < 0) {
+            if (Py_SIZE({{ operand2 }}) < 0) {
+                {{ operand1 }} = _Nuitka_LongAddInplaceDigits({{ operand1 }}, b, size_b);
+                Py_SIZE({{ operand1 }}) = -Py_ABS(Py_SIZE({{ operand1 }}));
+            } else {
+                {# Reversed operands order means sign inversion. #}
+                {{ operand1 }} = _Nuitka_LongSubInplaceDigits({{ operand1 }}, b, size_b, -1);
+            }
+        } else {
+            if (Py_SIZE({{ operand2 }}) < 0) {
+                {{ operand1 }} = _Nuitka_LongSubInplaceDigits({{ operand1 }}, b, size_b, 1);
+            } else {
+                {{ operand1 }} = _Nuitka_LongAddInplaceDigits({{ operand1 }}, b, size_b);
+            }
+        }
+
+#if 0
+        assert(PyObject_RichCompareBool(r, {{operand1}}, Py_EQ) == 1);
+        Py_DECREF(r);
+#endif
+
+        {{ goto_exit(props, "exit_result_ok") }}
+    }
+{% endif %}
+    {
+        PyLongObject *z;
+
+        digit const *a = Nuitka_LongGetDigitPointer({{ operand1 }});
+        Py_ssize_t size_a = Nuitka_LongGetDigitSize({{ operand1 }});
+        digit const *b = Nuitka_LongGetDigitPointer({{ operand2 }});
+        Py_ssize_t size_b = Nuitka_LongGetDigitSize({{ operand2 }});
+
+        if (Py_SIZE({{ operand1 }}) < 0) {
+            if (Py_SIZE({{ operand2 }}) < 0) {
+                z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+
+                Py_SIZE(z) = -(Py_SIZE(z));
+            } else {
+                {# Reversed operands order. #}
+                z = _Nuitka_LongSubDigits(b, size_b, a, size_a);
+            }
+        } else {
+            if (Py_SIZE({{ operand2 }}) < 0) {
+                z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+            } else {
+                z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+            }
+        }
+
+        {{ goto_exit(props, "exit_result_object", "(PyObject *)z") }}
+    }
+{% elif operator == "-" %}
+    if (Py_ABS(Py_SIZE({{ operand1 }})) <= 1 && Py_ABS(Py_SIZE({{ operand2 }})) <= 1) {
+{% if target == None %}
+        if (Py_REFCNT({{operand1}}) == 1) {
+            Nuitka_LongUpdateFromCLong(&{{operand1}}, MEDIUM_VALUE({{ operand1 }}) - MEDIUM_VALUE({{ operand2 }}));
+            {{ goto_exit(props, "exit_result_ok") }}
+        }
+{% endif %}
+        PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE({{ operand1 }}) - MEDIUM_VALUE({{ operand2 }}));
+        {{ goto_exit(props, "exit_result_object", "r") }}
+    }
+{% if target == None %}
+    if (Py_REFCNT({{operand1}}) == 1) {
+        digit const *b = Nuitka_LongGetDigitPointer({{ operand2 }});
+        Py_ssize_t size_b = Nuitka_LongGetDigitSize({{ operand2 }});
+
+#if 0
+        PyObject *r = BINARY_OPERATION_SUB_OBJECT_LONG_LONG( {{ operand1 }}, {{ operand2 }} );
+#endif
+        if (Py_SIZE({{ operand1 }}) < 0) {
+            if (Py_SIZE({{ operand2 }}) < 0) {
+                {# Reversed operands order means sign inversion. #}
+                {{ operand1 }} = _Nuitka_LongSubInplaceDigits({{ operand1 }}, b, size_b, -1);
+            } else {
+                {{ operand1 }} = _Nuitka_LongAddInplaceDigits({{ operand1 }}, b, size_b);
+                Py_SIZE({{ operand1 }}) = -Py_ABS(Py_SIZE({{ operand1 }}));
+            }
+        } else {
+            if (Py_SIZE({{ operand2 }}) < 0) {
+                {{ operand1 }} = _Nuitka_LongAddInplaceDigits({{ operand1 }}, b, size_b);
+            } else {
+                {{ operand1 }} = _Nuitka_LongSubInplaceDigits({{ operand1 }}, b, size_b, 1);
+            }
+        }
+
+#if 0
+        assert(PyObject_RichCompareBool(r, {{operand1}}, Py_EQ) == 1);
+        Py_DECREF(r);
+#endif
+
+        {{ goto_exit(props, "exit_result_ok") }}
+    }
+{% endif %}
+    {
+        PyLongObject *z;
+
+        digit const *a = Nuitka_LongGetDigitPointer({{ operand1 }});
+        Py_ssize_t size_a = Nuitka_LongGetDigitSize({{ operand1 }});
+        digit const *b = Nuitka_LongGetDigitPointer({{ operand2 }});
+        Py_ssize_t size_b = Nuitka_LongGetDigitSize({{ operand2 }});
+
+        if (Py_SIZE({{ operand1 }}) < 0) {
+            if (Py_SIZE({{ operand2 }}) < 0) {
+                z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+            } else {
+                z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+            }
+
+            Py_SIZE(z) = -(Py_SIZE(z));
+        } else {
+            if (Py_SIZE({{ operand2 }}) < 0) {
+                z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+            } else {
+                z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+            }
+        }
+
+        {{ goto_exit(props, "exit_result_object", "(PyObject *)z") }}
+    }
+{% else %}
+    {# TODO: Could and should in-line and specialize this for more operators #}
+    PyObject *x = {{ left.getSlotCallExpression(nb_slot, "PyLong_Type.tp_as_number->" + nb_slot, operand1, operand2) }};
+    assert(x != Py_NotImplemented);
+
+    {{ goto_exit(props, "exit_result_object", "x") }}
+{% endif %}
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        {{ goto_exit(props, exit_result_exception) }}
+    }
+{% if target %}
+    {{ target.getAssignFromObjectExpressionCode(result, "obj_result") }}
+{% else %}
+    {# TODO: Check the reference we were handed down and do it in-place really. #}
+    // We got an object handed, that we have to release.
+    Py_DECREF({{ operand1 }});
+    {{ operand1 }} = obj_result;
+{% endif %}
+    {{ goto_exit(props, exit_result_ok) }}
+
+{% if "exit_result_ok_const_long_0" in props["exits"] %}
+{{ constant_long_exit_target(props, target, result, left, operand1, "exit_result_ok_const_long_0", 0, exit_result_ok) }}
+{% endif %}
+
+{% endmacro %}

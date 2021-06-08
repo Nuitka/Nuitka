@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Reference counting tests.
+""" Reference counting tests for features of Python3.5 or higher.
 
 These contain functions that do specific things, where we have a suspect
 that references may be lost or corrupted. Executing them repeatedly and
@@ -24,6 +24,9 @@ checking the reference count is how they are used.
 These are Python3.5 specific constructs, that will give a SyntaxError or
 not be relevant on older versions.
 """
+
+# While we use that for comparison code, no need to compile that.
+# nuitka-project: --nofollow-import-to=nuitka
 
 import os
 import sys
@@ -221,7 +224,7 @@ tests_stderr = ()
 # Disabled tests
 tests_skipped = {}
 
-if python_version < 380:
+if python_version < 0x380:
     tests_skipped[10] = "Incompatible refcount bugs of asyncio with python prior 3.8"
 
 result = executeReferenceChecked(

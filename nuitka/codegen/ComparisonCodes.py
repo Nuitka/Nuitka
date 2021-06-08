@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,7 +26,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_bool
 
 from . import OperatorCodes
 from .CodeHelpers import generateExpressionCode, pickCodeHelper
-from .ErrorCodes import getErrorExitBoolCode, getReleaseCodes
+from .ErrorCodes import getErrorExitBoolCode, getReleaseCode, getReleaseCodes
 
 specialized_cmp_helpers_set = OrderedSet(
     (
@@ -104,8 +104,8 @@ specialized_cmp_helpers_set = OrderedSet(
 
 
 def generateComparisonExpressionCode(to_name, expression, emit, context):
-    left = expression.getLeft()
-    right = expression.getRight()
+    left = expression.subnode_left
+    right = expression.subnode_right
 
     comparator = expression.getComparator()
 
@@ -125,7 +125,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
     )
 
     if comparator in OperatorCodes.containing_comparison_codes:
-        needs_check = right.mayRaiseExceptionIn(BaseException, expression.getLeft())
+        needs_check = right.mayRaiseExceptionIn(BaseException, expression.subnode_left)
 
         res_name = context.getIntResName()
 
@@ -177,7 +177,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
             suffix="",
             target_type=to_name.getCType(),
             left_shape=left.getTypeShape(),
-            right_shape=expression.getRight().getTypeShape(),
+            right_shape=expression.subnode_right.getTypeShape(),
             helpers=specialized_cmp_helpers_set,
             nonhelpers=(),
             # TODO: Only temporary, we need to be more complete with these.
@@ -198,7 +198,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
             context=context,
         )
     elif comparator in ("exception_match", "exception_mismatch"):
-        needs_check = expression.mayRaiseExceptionBool(BaseException)
+        needs_check = expression.mayRaiseExceptionComparison()
 
         res_name = context.getIntResName()
 
@@ -228,13 +228,18 @@ def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
 
     generateExpressionCode(
         to_name=inst_name,
-        expression=expression.getInstance(),
+        expression=expression.subnode_instance,
         emit=emit,
         context=context,
     )
     generateExpressionCode(
-        to_name=cls_name, expression=expression.getCls(), emit=emit, context=context
+        to_name=cls_name,
+        expression=expression.subnode_classes,
+        emit=emit,
+        context=context,
     )
+
+    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
 
     res_name = context.getIntResName()
 
@@ -243,6 +248,67 @@ def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,
         release_names=(inst_name, cls_name),
+        emit=emit,
+        context=context,
+    )
+
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name=to_name, condition="%s != 0" % res_name, emit=emit
+    )
+
+
+def generateBuiltinIssubclassCode(to_name, expression, emit, context):
+    cls_name = context.allocateTempName("issubclass_cls")
+    classes_name = context.allocateTempName("issubclass_classes")
+
+    generateExpressionCode(
+        to_name=cls_name,
+        expression=expression.subnode_cls,
+        emit=emit,
+        context=context,
+    )
+    generateExpressionCode(
+        to_name=classes_name,
+        expression=expression.subnode_classes,
+        emit=emit,
+        context=context,
+    )
+
+    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
+
+    res_name = context.getIntResName()
+
+    emit("%s = PyObject_IsSubclass(%s, %s);" % (res_name, cls_name, classes_name))
+
+    getErrorExitBoolCode(
+        condition="%s == -1" % res_name,
+        release_names=(cls_name, classes_name),
+        emit=emit,
+        context=context,
+    )
+
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name=to_name, condition="%s != 0" % res_name, emit=emit
+    )
+
+
+def generateTypeCheckCode(to_name, expression, emit, context):
+    cls_name = context.allocateTempName("issubclass_cls")
+
+    generateExpressionCode(
+        to_name=cls_name,
+        expression=expression.subnode_cls,
+        emit=emit,
+        context=context,
+    )
+    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
+
+    res_name = context.getIntResName()
+
+    emit("%s = PyType_Check(%s);" % (res_name, cls_name))
+
+    getReleaseCode(
+        release_name=cls_name,
         emit=emit,
         context=context,
     )

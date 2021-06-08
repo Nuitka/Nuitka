@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,30 +26,50 @@ import hashlib
 import os
 import re
 import shutil
-import subprocess
+import signal
 import sys
 import tempfile
+import threading
+import time
 from contextlib import contextmanager
+from optparse import OptionGroup, OptionParser
 
-from nuitka.Tracing import my_print
-from nuitka.utils.AppDirs import getAppDir, getCacheDir
-from nuitka.utils.Execution import check_output, withEnvironmentVarOverriden
+from nuitka.__past__ import subprocess
+from nuitka.freezer.DependsExe import getDependsExePath
+from nuitka.PythonVersions import (
+    getPartiallySupportedPythonVersions,
+    getSupportedPythonVersions,
+)
+from nuitka.Tracing import OurLogger, my_print
+from nuitka.tree.SourceReading import readSourceCodeFromFilename
+from nuitka.utils.AppDirs import getCacheDir
+from nuitka.utils.Execution import (
+    check_output,
+    getNullInput,
+    isExecutableCommand,
+    withEnvironmentVarOverriden,
+)
 from nuitka.utils.FileOperations import (
+    areSamePaths,
+    getExternalUsePath,
     getFileContentByLine,
     getFileContents,
     getFileList,
     makePath,
     removeDirectory,
 )
+from nuitka.utils.Utils import getOS
 
 from .SearchModes import (
     SearchModeAll,
-    SearchModeBase,
     SearchModeByPattern,
     SearchModeCoverage,
+    SearchModeImmediate,
     SearchModeOnly,
     SearchModeResume,
 )
+
+test_logger = OurLogger("", base_style="blue")
 
 
 def check_result(*popenargs, **kwargs):
@@ -71,6 +91,7 @@ def goMainDir():
     os.chdir(os.path.dirname(os.path.abspath(sys.modules["__main__"].__file__)))
 
 
+_python_version_str = None
 _python_version = None
 _python_arch = None
 _python_executable = None
@@ -117,36 +138,46 @@ print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else 
         stderr=subprocess.STDOUT,
     )
 
-    global _python_version, _python_arch, _python_executable, _python_vendor  # singleton, pylint: disable=global-statement
+    global _python_version_str, _python_version, _python_arch, _python_executable, _python_vendor  # singleton, pylint: disable=global-statement
 
-    _python_version = version_output.split(b"\n")[0].strip()
+    _python_version_str = version_output.split(b"\n")[0].strip()
     _python_arch = version_output.split(b"\n")[1].strip()
     _python_executable = version_output.split(b"\n")[2].strip()
     _python_vendor = version_output.split(b"\n")[3].strip()
 
-    if sys.version.startswith("3"):
+    if str is not bytes:
+        _python_version_str = _python_version_str.decode("utf-8")
         _python_arch = _python_arch.decode("utf-8")
-        _python_version = _python_version.decode("utf-8")
         _python_executable = _python_executable.decode("utf-8")
         _python_vendor = _python_vendor.decode("utf-8")
 
-    if not silent:
-        my_print("Using concrete python", _python_version, "on", _python_arch)
-
-    assert type(_python_version) is str, repr(_python_version)
+    assert type(_python_version_str) is str, repr(_python_version_str)
     assert type(_python_arch) is str, repr(_python_arch)
     assert type(_python_executable) is str, repr(_python_executable)
+
+    if not silent:
+        my_print("Using concrete python", _python_version_str, "on", _python_arch)
 
     if "COVERAGE_FILE" not in os.environ:
         os.environ["COVERAGE_FILE"] = os.path.join(
             os.path.dirname(__file__), "..", "..", "..", ".coverage"
         )
 
+    _python_version = tuple(int(d) for d in _python_version_str.split("."))
+
     return _python_version
+
+
+def getPythonArch():
+    return _python_arch
 
 
 def getPythonVendor():
     return _python_vendor
+
+
+def getPythonVersionString():
+    return _python_version_str
 
 
 tmp_dir = None
@@ -234,7 +265,7 @@ def convertUsing2to3(path, force=False):
 
 
 def decideFilenameVersionSkip(filename):
-    """ Make decision whether to skip based on filename and Python version.
+    """Make decision whether to skip based on filename and Python version.
 
     This codifies certain rules that files can have as suffixes or prefixes
     to make them be part of the set of tests executed for a version or not.
@@ -248,10 +279,9 @@ def decideFilenameVersionSkip(filename):
     """
 
     # This will make many decisions with immediate returns.
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
-    assert type(filename) is str
-    assert type(_python_version) is str
+    assert type(filename) is str, repr(filename)
 
     # Skip runner scripts by default.
     if filename.startswith("run_"):
@@ -261,57 +291,55 @@ def decideFilenameVersionSkip(filename):
         filename = filename[:-3]
 
     # Skip tests that require Python 2.7 at least.
-    if filename.endswith("27.py") and _python_version.startswith("2.6"):
+    if filename.endswith("27.py") and _python_version < (2, 7):
         return False
 
     # Skip tests that require Python 2 at maximum.
-    if filename.endswith("_2.py") and _python_version.startswith("3"):
+    if filename.endswith("_2.py") and _python_version > (3,):
         return False
 
     # Skip tests that require Python 3.7 at maximum.
-    if filename.endswith("_37.py") and _python_version >= "3.8":
+    if filename.endswith("_37.py") and _python_version > (3, 8):
         return False
 
     # Skip tests that require Python 3.2 at least.
-    if filename.endswith("32.py") and _python_version < "3.2":
+    if filename.endswith("32.py") and _python_version < (3, 2):
         return False
 
     # Skip tests that require Python 3.3 at least.
-    if filename.endswith("33.py") and _python_version < "3.3":
+    if filename.endswith("33.py") and _python_version < (3, 3):
         return False
 
     # Skip tests that require Python 3.4 at least.
-    if filename.endswith("34.py") and _python_version < "3.4":
+    if filename.endswith("34.py") and _python_version < (3, 4):
         return False
 
     # Skip tests that require Python 3.5 at least.
-    if filename.endswith("35.py") and _python_version < "3.5":
+    if filename.endswith("35.py") and _python_version < (3, 5):
         return False
 
     # Skip tests that require Python 3.6 at least.
-    if filename.endswith("36.py") and _python_version < "3.6":
+    if filename.endswith("36.py") and _python_version < (3, 6):
         return False
 
     # Skip tests that require Python 3.7 at least.
-    if filename.endswith("37.py") and _python_version < "3.7":
+    if filename.endswith("37.py") and _python_version < (3, 7):
         return False
 
     # Skip tests that require Python 3.8 at least.
-    if filename.endswith("38.py") and _python_version < "3.8":
+    if filename.endswith("38.py") and _python_version < (3, 8):
+        return False
+
+    # Skip tests that require Python 3.9 at least.
+    if filename.endswith("39.py") and _python_version < (3, 9):
         return False
 
     return True
 
 
 def decideNeeds2to3(filename):
-    return (
-        _python_version.startswith("3")
-        and not filename.endswith("32.py")
-        and not filename.endswith("33.py")
-        and not filename.endswith("35.py")
-        and not filename.endswith("36.py")
-        and not filename.endswith("37.py")
-        and not filename.endswith("38.py")
+    return _python_version >= (3,) and not filename.endswith(
+        ("32.py", "33.py", "34.py", "35.py", "36.py", "37.py", "38.py", "39.py")
     )
 
 
@@ -337,7 +365,7 @@ def _removeCPythonTestSuiteDir():
 def compareWithCPython(
     dirname, filename, extra_flags, search_mode, needs_2to3, on_error=None
 ):
-    """ Call the comparison tool. For a given directory filename.
+    """Call the comparison tool. For a given directory filename.
 
     The search mode decides if the test case aborts on error or gets extra
     flags that are exceptions.
@@ -370,7 +398,7 @@ def compareWithCPython(
         if os.path.exists(compare_with_cpython):
             command = [sys.executable, compare_with_cpython, path, "silent"]
         else:
-            sys.exit("Error, cannot find Nuitka comparison runner.")
+            test_logger.sysexit("Error, cannot locate Nuitka comparison runner.")
 
     if extra_flags is not None:
         command += extra_flags
@@ -398,8 +426,7 @@ def compareWithCPython(
         os.unlink(path)
 
     if result == 2:
-        sys.stderr.write("Interrupted, with CTRL-C\n")
-        sys.exit(2)
+        test_logger.sysexit("Interrupted, with CTRL-C\n", exit_code=2)
 
 
 def checkCompilesNotWithCPython(dirname, filename, search_mode):
@@ -452,62 +479,56 @@ def hasDebugPython():
     return False
 
 
-def getDependsExePath():
-    if "APPDATA" not in os.environ:
-        sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
+def displayRuntimeTraces(logger, path):
+    if not os.path.exists(path):
+        # TODO: Have a logger package passed.
+        logger.sysexit("Error, cannot find %r (%r)." % (path, os.path.abspath(path)))
 
-    nuitka_app_dir = getAppDir()
+    path = os.path.abspath(path)
 
-    depends_dir = os.path.join(nuitka_app_dir, _python_arch)
-    depends_exe = os.path.join(depends_dir, "depends.exe")
+    # TODO: Merge code for building command with below function, this is otherwise
+    # horribly bad.
 
-    assert os.path.exists(depends_exe), depends_exe
-
-    return depends_exe
-
-
-def isExecutableCommand(command):
-    path = os.environ["PATH"]
-
-    suffixes = (".exe",) if os.name == "nt" else ("",)
-
-    for part in path.split(os.pathsep):
-        if not part:
-            continue
-
-        for suffix in suffixes:
-            if os.path.isfile(os.path.join(part, command + suffix)):
-                return True
-
-    return False
+    if os.name == "posix":
+        # Run with traces to help debugging, specifically in CI environment.
+        if getOS() in ("Darwin", "FreeBSD"):
+            test_logger.info("dtruss:")
+            os.system("sudo dtruss %s" % path)
+        else:
+            test_logger.info("strace:")
+            os.system("strace -s4096 -e file %s" % path)
 
 
-def getRuntimeTraceOfLoadedFiles(path, trace_error=True):
-    """ Returns the files loaded when executing a binary. """
+def getRuntimeTraceOfLoadedFiles(logger, path):
+    """Returns the files loaded when executing a binary."""
 
     # This will make a crazy amount of work,
     # pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
 
+    if not os.path.exists(path):
+        # TODO: Have a logger package passed.
+        logger.sysexit("Error, cannot find %r (%r)." % (path, os.path.abspath(path)))
+
     result = []
 
     if os.name == "posix":
-        if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
+        if getOS() in ("Darwin", "FreeBSD"):
             if not isExecutableCommand("dtruss"):
-                sys.exit(
+                test_logger.sysexit(
                     """\
 Error, needs 'dtruss' on your system to scan used libraries."""
                 )
 
             if not isExecutableCommand("sudo"):
-                sys.exit(
+                test_logger.sysexit(
                     """\
 Error, needs 'sudo' on your system to scan used libraries."""
                 )
 
-            args = ("sudo", "dtruss", "-t", "open", path)
+            args = ("sudo", "dtruss", "-t", "open", os.path.abspath(path))
         else:
             if not isExecutableCommand("strace"):
-                sys.exit(
+                test_logger.sysexit(
                     """\
 Error, needs 'strace' on your system to scan used libraries."""
                 )
@@ -516,13 +537,15 @@ Error, needs 'strace' on your system to scan used libraries."""
                 "strace",
                 "-e",
                 "file",
-                "-s4096",  # Some paths are truncated otherwise.
-                path,
+                "-s4096",  # Some paths are truncated in output otherwise
+                os.path.abspath(path),
             )
 
         # Ensure executable is not polluted with third party stuff,
         # tests may fail otherwise due to unexpected libs being loaded
         with withEnvironmentVarOverriden("LD_PRELOAD", None):
+            tracing_command = args[0] if args[0] != "sudo" else args[1]
+
             process = subprocess.Popen(
                 args=args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
@@ -534,15 +557,15 @@ Error, needs 'strace' on your system to scan used libraries."""
                 if str is not bytes:
                     stderr_strace = stderr_strace.decode("utf8")
 
-                my_print(stderr_strace, file=sys.stderr)
-                sys.exit("Failed to run strace.")
+                logger.warning(stderr_strace)
+                logger.sysexit("Failed to run %r." % tracing_command)
 
             with open(path + ".strace", "wb") as f:
                 f.write(stderr_strace)
 
             for line in stderr_strace.split(b"\n"):
-                if process.returncode != 0 and trace_error:
-                    my_print(line)
+                if process.returncode != 0:
+                    logger.my_print(line)
 
                 if not line:
                     continue
@@ -570,7 +593,8 @@ Error, needs 'strace' on your system to scan used libraries."""
                         continue
 
                     if filename in (
-                        b"/usr/bin/python3." + version for version in (b"5", b"6", b"7")
+                        b"/usr/bin/python3." + version
+                        for version in (b"5", b"6", b"7", b"8", b"9")
                     ):
                         continue
 
@@ -590,7 +614,11 @@ Error, needs 'strace' on your system to scan used libraries."""
                         binary_path = os.path.dirname(binary_path)
 
                         if filename == os.path.join(
-                            binary_path, b"python" + _python_version[:3].encode("utf8")
+                            binary_path,
+                            b"python"
+                            + (
+                                "%d%d" % (_python_version[0], _python_version[1])
+                            ).encode("utf8"),
                         ):
                             found = True
                             continue
@@ -606,19 +634,37 @@ Error, needs 'strace' on your system to scan used libraries."""
             if sys.version.startswith("3"):
                 result = [s.decode("utf-8") for s in result]
     elif os.name == "nt":
-        subprocess.call(
-            (
-                getDependsExePath(),
-                "-c",
-                "-ot%s" % path + ".depends",
-                "-f1",
-                "-pa1",
-                "-ps1",
-                "-pp0",
-                "-pl1",
-                path,
-            )
+        command = (
+            getDependsExePath(),
+            "-c",  # Console mode
+            "-ot%s" % path + ".depends",
+            "-f1",
+            "-pb",
+            "-pa1",  # Turn on all profiling options.
+            "-ps1",  # Simulate ShellExecute with app dirs in PATH.
+            "-pp1",  # Do not long DllMain calls.
+            "-po1",  # Log DllMain call for all other messages.
+            "-ph1",  # Hook the process.
+            "-pl1",  # Log LoadLibrary calls.
+            "-pt1",  # Thread information.
+            "-pe1",  # First chance exceptions.
+            "-pg1",  # Log GetProcAddress calls.
+            "-pf1",  # Use full paths.
+            "-pc1",  # Profile child processes.
+            path,
         )
+
+        # TODO: Move the handling of this into nuitka.tools.Execution module methods.
+        try:
+            subprocess.call(command, timeout=5 * 60)
+        except Exception as e:  # Catch all the things, pylint: disable=broad-except
+            if e.__class__.__name__ == "TimeoutExpired":
+                test_logger.warning(
+                    "Timeout encountered when running dependency walker."
+                )
+                return []
+            else:
+                raise
 
         inside = False
         for line in getFileContentByLine(path + ".depends"):
@@ -640,15 +686,13 @@ Error, needs 'strace' on your system to scan used libraries."""
                 continue
 
             dll_filename = line[line.find("]") + 2 :].rstrip()
-            assert os.path.isfile(dll_filename), dll_filename
+            dll_filename = os.path.normcase(dll_filename)
+
+            assert os.path.isfile(dll_filename), repr(dll_filename)
 
             # The executable itself is of course exempted.
-            if os.path.normcase(dll_filename) == os.path.normcase(
-                os.path.abspath(path)
-            ):
+            if dll_filename == os.path.normcase(os.path.abspath(path)):
                 continue
-
-            dll_filename = os.path.normcase(dll_filename)
 
             result.append(dll_filename)
 
@@ -688,7 +732,7 @@ def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
         if ok:
             continue
 
-        if loaded_filename.startswith("/etc/"):
+        if loaded_filename.startswith(("/etc/", "/usr/etc", "/usr/local/etc")):
             continue
 
         if loaded_filename.startswith("/proc/") or loaded_filename == "/proc":
@@ -783,7 +827,7 @@ def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
 def hasModule(module_name):
     with open(os.devnull, "w") as devnull:
         result = subprocess.call(
-            (os.environ["PYTHON"], "-c" "import %s" % module_name),
+            (os.environ["PYTHON"], "-c", "import %s" % module_name),
             stdout=devnull,
             stderr=subprocess.STDOUT,
         )
@@ -980,34 +1024,90 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
 
 
 def createSearchMode():
-    all_mode = len(sys.argv) > 1 and sys.argv[1] == "all"
-    search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
-    resume_mode = len(sys.argv) > 1 and sys.argv[1] == "resume"
-    only_mode = len(sys.argv) > 1 and sys.argv[1] == "only"
-    start_at = sys.argv[2] if len(sys.argv) > 2 else None
-    coverage_mode = len(sys.argv) > 1 and sys.argv[1] == "coverage"
+    # Dealing with many options, pylint: disable=too-many-branches
 
-    if coverage_mode:
-        return SearchModeCoverage()
-    elif all_mode:
-        return SearchModeAll()
-    elif resume_mode:
+    parser = OptionParser()
+
+    select_group = OptionGroup(parser, "Select Tests")
+
+    select_group.add_option(
+        "--pattern",
+        action="store",
+        dest="pattern",
+        default="",
+        help="""\
+Execute only tests matching the pattern. Defaults to all tests.""",
+    )
+    select_group.add_option(
+        "--all",
+        action="store_true",
+        dest="all",
+        default=False,
+        help="""\
+Execute all tests, continue execution even after failure of one.""",
+    )
+
+    parser.add_option_group(select_group)
+
+    debug_group = OptionGroup(parser, "Test features")
+
+    debug_group.add_option(
+        "--debug",
+        action="store_true",
+        dest="debug",
+        default=False,
+        help="""\
+Executing all self checks possible to find errors in Nuitka, good for test coverage.
+Defaults to off.""",
+    )
+
+    debug_group.add_option(
+        "--commands",
+        action="store_true",
+        dest="show_commands",
+        default=False,
+        help="""Output commands being done in output comparison.
+Defaults to off.""",
+    )
+
+    parser.add_option_group(debug_group)
+
+    options, positional_args = parser.parse_args()
+
+    if options.debug:
+        addExtendedExtraOptions("--debug")
+
+    if options.show_commands:
+        os.environ["NUITKA_TRACE_COMMANDS"] = "1"
+
+    # Default to searching.
+    mode = positional_args[0] if positional_args else "search"
+
+    # Avoid having to use options style.
+    if mode in ("search", "only"):
+        if len(positional_args) >= 2 and not options.pattern:
+            options.pattern = positional_args[1]
+
+    if mode == "search":
+        if options.all:
+            return SearchModeAll()
+        elif options.pattern:
+            pattern = options.pattern.replace("/", os.path.sep)
+            return SearchModeByPattern(pattern)
+        else:
+            return SearchModeImmediate()
+    elif mode == "resume":
         return SearchModeResume(sys.modules["__main__"].__file__)
-    elif search_mode and start_at:
-        start_at = start_at.replace("/", os.path.sep)
-        return SearchModeByPattern(start_at)
-    elif only_mode and start_at:
-        only_at = start_at.replace("/", os.path.sep)
-        return SearchModeOnly(only_at)
+    elif mode == "only":
+        if options.pattern:
+            pattern = options.pattern.replace("/", os.path.sep)
+            return SearchModeOnly(pattern)
+        else:
+            assert False
+    elif mode == "coverage":
+        return SearchModeCoverage()
     else:
-
-        class SearchModeImmediate(SearchModeBase):
-            def abortOnFinding(self, dirname, filename):
-                return search_mode and SearchModeBase.abortOnFinding(
-                    self, dirname, filename
-                )
-
-        return SearchModeImmediate()
+        test_logger.sysexit("Error, using unknown search mode %r" % mode)
 
 
 def reportSkip(reason, dirname, filename):
@@ -1111,10 +1211,8 @@ def withPythonPathChange(python_path):
             os.environ["PYTHONPATH"] = old_path
 
 
-@contextmanager
-def withExtendedExtraOptions(*args):
-    assert args
-    old_value = os.environ.get("NUITKA_EXTRA_OPTIONS", None)
+def addExtendedExtraOptions(*args):
+    old_value = os.environ.get("NUITKA_EXTRA_OPTIONS")
 
     value = old_value
 
@@ -1126,6 +1224,15 @@ def withExtendedExtraOptions(*args):
 
     os.environ["NUITKA_EXTRA_OPTIONS"] = value
 
+    return old_value
+
+
+@contextmanager
+def withExtendedExtraOptions(*args):
+    assert args
+
+    old_value = addExtendedExtraOptions(*args)
+
     yield
 
     if old_value is None:
@@ -1135,16 +1242,12 @@ def withExtendedExtraOptions(*args):
 
 
 def indentedCode(codes, count):
-    """ Indent code, used for generating test codes.
-
-    """
+    """Indent code, used for generating test codes."""
     return "\n".join(" " * count + line if line else "" for line in codes)
 
 
 def convertToPython(doctests, line_filter=None):
-    """ Convert give doctest string to static Python code.
-
-    """
+    """Convert give doctest string to static Python code."""
     # This is convoluted, but it just needs to work, pylint: disable=too-many-branches
 
     import doctest
@@ -1322,7 +1425,7 @@ def compileLibraryTest(search_mode, stage_dir, decide, action):
 
 
 def run_async(coro):
-    """ Execute a coroutine until it's done. """
+    """Execute a coroutine until it's done."""
 
     values = []
     result = None
@@ -1336,7 +1439,7 @@ def run_async(coro):
 
 
 def async_iterate(g):
-    """ Execute async generator until it's done. """
+    """Execute async generator until it's done."""
 
     # Test code for Python3, catches all kinds of exceptions.
     # pylint: disable=broad-except
@@ -1379,18 +1482,6 @@ def getTestingCPythonOutputsCacheDir():
 
     makePath(result)
     return result
-
-
-@contextmanager
-def withDirectoryChange(path, allow_none=False):
-    if path is not None or not allow_none:
-        old_cwd = os.getcwd()
-        os.chdir(path)
-
-    yield
-
-    if path is not None or not allow_none:
-        os.chdir(old_cwd)
 
 
 def scanDirectoryForTestCases(dirname, template_context=None):
@@ -1446,7 +1537,10 @@ def setupCacheHashSalt(test_code_path):
         git_cmd = ["git", "ls-tree", "-r", "HEAD", test_code_path]
 
         process = subprocess.Popen(
-            args=git_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            args=git_cmd,
+            stdin=getNullInput(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
 
         stdout_git, stderr_git = process.communicate()
@@ -1463,6 +1557,30 @@ def setupCacheHashSalt(test_code_path):
     os.environ["NUITKA_HASH_SALT"] = salt_value.hexdigest()
 
 
+def displayFolderContents(name, path):
+    test_logger.info("Listing of %s %r:" % (name, path))
+
+    if os.path.exists(path):
+        if os.name == "nt":
+            command = "dir /b /s /a:-D %s" % path
+        else:
+            command = "ls -Rla %s" % path
+
+        os.system(command)
+    else:
+        test_logger.info("Does not exist.")
+
+
+def displayFileContents(name, path):
+    test_logger.info("Contents of %s %r:" % (name, path))
+
+    if os.path.exists(path):
+        for line in getFileContentByLine(path):
+            my_print(line)
+    else:
+        test_logger.info("Does not exist.")
+
+
 def someGenerator():
     yield 1
     yield 2
@@ -1472,3 +1590,417 @@ def someGenerator():
 def someGeneratorRaising():
     yield 1
     raise TypeError(2)
+
+
+# checks requirements needed to run each test module, according to the specified special comment
+# special comments are in the following formats:
+#     "# nuitka-skip-unless-expression: expression to be evaluated"
+#       OR
+#     "# nuitka-skip-unless-imports: module1,module2,..."
+def checkRequirements(filename):
+    for line in readSourceCodeFromFilename(None, filename).splitlines():
+        if line.startswith("# nuitka-skip-unless-"):
+            if line[21:33] == "expression: ":
+                expression = line[33:]
+                with open(os.devnull, "w") as devnull:
+                    result = subprocess.call(
+                        (
+                            os.environ["PYTHON"],
+                            "-c",
+                            "import sys, os; sys.exit(not bool(%s))" % expression,
+                        ),
+                        stdout=devnull,
+                        stderr=subprocess.STDOUT,
+                    )
+                if result != 0:
+                    return (False, "Expression '%s' evaluated to false" % expression)
+
+            elif line[21:30] == "imports: ":
+                imports_needed = line[30:].rstrip().split(",")
+                for i in imports_needed:
+                    if not hasModule(i):
+                        return (
+                            False,
+                            i
+                            + " not installed for this Python version, but test needs it",
+                        )
+    # default return value
+    return (True, "")
+
+
+class DelayedExecutionThread(threading.Thread):
+    def __init__(self, timeout, func):
+        threading.Thread.__init__(self)
+        self.timeout = timeout
+
+        self.func = func
+
+    def run(self):
+        time.sleep(self.timeout)
+        self.func()
+
+
+def executeAfterTimePassed(timeout, func):
+    alarm = DelayedExecutionThread(timeout=timeout, func=func)
+    alarm.start()
+
+
+def killProcess(name, pid):
+    """Kill a process in a portable way.
+
+    Right now SIGINT is used, unclear what to do on Windows
+    with Python2 or non-related processes.
+    """
+
+    if str is bytes and os.name == "nt":
+        test_logger.info("Using taskkill on test process %r." % name)
+        os.system("taskkill.exe /PID %d" % pid)
+    else:
+        test_logger.info("Killing test process %r." % name)
+        os.kill(pid, signal.SIGINT)
+
+
+def checkLoadedFileAccesses(loaded_filenames, current_dir):
+    # Many details to consider, pylint: disable=too-many-branches,too-many-statements
+
+    current_dir = os.path.normpath(current_dir)
+    current_dir = os.path.normcase(current_dir)
+    current_dir_ext = os.path.normcase(getExternalUsePath(current_dir))
+
+    illegal_accesses = []
+
+    for loaded_filename in loaded_filenames:
+        orig_loaded_filename = loaded_filename
+
+        loaded_filename = os.path.normpath(loaded_filename)
+        loaded_filename = os.path.normcase(loaded_filename)
+        loaded_basename = os.path.basename(loaded_filename)
+
+        if os.name == "nt":
+            if areSamePaths(
+                os.path.dirname(loaded_filename),
+                os.path.normpath(os.path.join(os.environ["SYSTEMROOT"], "System32")),
+            ):
+                continue
+            if areSamePaths(
+                os.path.dirname(loaded_filename),
+                os.path.normpath(os.path.join(os.environ["SYSTEMROOT"], "SysWOW64")),
+            ):
+                continue
+
+            if r"windows\winsxs" in loaded_filename:
+                continue
+
+            # Github actions have these in PATH overriding SYSTEMROOT
+            if r"windows performance toolkit" in loaded_filename:
+                continue
+            if r"powershell" in loaded_filename:
+                continue
+            if r"azure dev spaces cli" in loaded_filename:
+                continue
+            if r"tortoisesvn" in loaded_filename:
+                continue
+
+        if loaded_filename.startswith(current_dir):
+            continue
+
+        if loaded_filename.startswith(os.path.abspath(current_dir)):
+            continue
+
+        if loaded_filename.startswith(current_dir_ext):
+            continue
+
+        if loaded_filename.startswith("/etc/"):
+            continue
+
+        if loaded_filename.startswith("/usr/etc/"):
+            continue
+
+        if loaded_filename.startswith("/proc/") or loaded_filename == "/proc":
+            continue
+
+        if loaded_filename.startswith("/dev/"):
+            continue
+
+        if loaded_filename.startswith("/tmp/"):
+            continue
+
+        if loaded_filename.startswith("/run/"):
+            continue
+
+        if loaded_filename.startswith("/usr/lib/locale/"):
+            continue
+
+        if loaded_filename.startswith("/usr/share/locale/"):
+            continue
+
+        if loaded_filename.startswith("/usr/share/X11/locale/"):
+            continue
+
+        # Themes may of course be loaded.
+        if loaded_filename.startswith("/usr/share/themes"):
+            continue
+        if "gtk" in loaded_filename and "/engines/" in loaded_filename:
+            continue
+
+        if loaded_filename in (
+            "/usr",
+            "/usr/local",
+            "/usr/local/lib",
+            "/usr/share",
+            "/usr/local/share",
+            "/usr/lib64",
+        ):
+            continue
+
+        # TCL/tk for tkinter for non-Windows is OK.
+        if loaded_filename.startswith(
+            (
+                "/usr/lib/tcltk/",
+                "/usr/share/tcltk/",
+                "/usr/lib/tcl/",
+                "/usr/lib64/tcl/",
+            )
+        ):
+            continue
+        if loaded_filename in (
+            "/usr/lib/tcltk",
+            "/usr/share/tcltk",
+            "/usr/lib/tcl",
+            "/usr/lib64/tcl",
+        ):
+            continue
+
+        if loaded_filename in (
+            "/lib",
+            "/lib64",
+            "/lib/sse2",
+            "/lib/tls",
+            "/lib64/tls",
+            "/usr/lib/sse2",
+            "/usr/lib/tls",
+            "/usr/lib64/tls",
+        ):
+            continue
+
+        if loaded_filename in ("/usr/share/tcl8.6", "/usr/share/tcl8.5"):
+            continue
+        if loaded_filename in (
+            "/usr/share/tcl8.6/init.tcl",
+            "/usr/share/tcl8.5/init.tcl",
+        ):
+            continue
+        if loaded_filename in (
+            "/usr/share/tcl8.6/encoding",
+            "/usr/share/tcl8.5/encoding",
+        ):
+            continue
+
+        # System SSL config on Linux. TODO: Should this not be included and
+        # read from dist folder.
+        if loaded_basename == "openssl.cnf":
+            continue
+
+        # Taking these from system is harmless and desirable
+        if loaded_basename.startswith(("libz.so", "libgcc_s.so")):
+            continue
+
+        # System C libraries are to be expected.
+        if loaded_basename.startswith(
+            (
+                "ld-linux-x86-64.so",
+                "libc.so.",
+                "libpthread.so.",
+                "libm.so.",
+                "libdl.so.",
+                "libBrokenLocale.so.",
+                "libSegFault.so",
+                "libanl.so.",
+                "libcidn.so.",
+                "libcrypt.so.",
+                "libmemusage.so",
+                "libmvec.so.",
+                "libnsl.so.",
+                "libnss_compat.so.",
+                "libnss_db.so.",
+                "libnss_dns.so.",
+                "libnss_files.so.",
+                "libnss_hesiod.so.",
+                "libnss_nis.so.",
+                "libnss_nisplus.so.",
+                "libpcprofile.so",
+                "libresolv.so.",
+                "librt.so.",
+                "libthread_db-1.0.so",
+                "libthread_db.so.",
+                "libutil.so.",
+            )
+        ):
+            continue
+
+        # Curses library is OK from system too.
+        if loaded_basename.startswith("libtinfo.so."):
+            continue
+
+        # Loaded by C library potentially for DNS lookups.
+        if loaded_basename.startswith(
+            (
+                "libnss_",
+                "libnsl",
+                # Some systems load a lot more, this is CentOS 7 on OBS
+                "libattr.so.",
+                "libbz2.so.",
+                "libcap.so.",
+                "libdw.so.",
+                "libelf.so.",
+                "liblzma.so.",
+                # Some systems load a lot more, this is Fedora 26 on OBS
+                "libselinux.so.",
+                "libpcre.so.",
+                # And this is Fedora 29 on OBS
+                "libblkid.so.",
+                "libmount.so.",
+                "libpcre2-8.so.",
+                # CentOS 8 on OBS
+                "libuuid.so.",
+            )
+        ):
+            continue
+
+        # Loaded by dtruss on macOS X.
+        if loaded_filename.startswith("/usr/lib/dtrace/"):
+            continue
+
+        # Loaded by cowbuilder and pbuilder on Debian
+        if loaded_basename == ".ilist":
+            continue
+        if "cowdancer" in loaded_filename:
+            continue
+        if "eatmydata" in loaded_filename:
+            continue
+
+        # Loading from home directories is OK too.
+        if (
+            loaded_filename.startswith("/home/")
+            or loaded_filename.startswith("/data/")
+            or loaded_filename.startswith("/root/")
+            or loaded_filename in ("/home", "/data", "/root")
+        ):
+            continue
+
+        # For Debian builders, /build is OK too.
+        if loaded_filename.startswith("/build/") or loaded_filename == "/build":
+            continue
+
+        # TODO: Unclear, loading gconv from filesystem of installed system
+        # may be OK or not. I think it should be.
+        if loaded_basename == "gconv-modules.cache":
+            continue
+        if "/gconv/" in loaded_filename:
+            continue
+        if loaded_basename.startswith("libicu"):
+            continue
+        if loaded_filename.startswith("/usr/share/icu/"):
+            continue
+
+        # Loading from caches is OK.
+        if loaded_filename.startswith("/var/cache/"):
+            continue
+
+        _python_version = tuple(int(d) for d in _python_version_str.split("."))
+
+        lib_prefix_dir = "/usr/lib/python%d.%s" % (
+            _python_version[0],
+            _python_version[1],
+        )
+
+        # PySide accesses its directory.
+        if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/PySide"):
+            continue
+
+        # GTK accesses package directories only.
+        if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/gtk-2.0/gtk"):
+            continue
+        if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/glib"):
+            continue
+        if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/gtk-2.0/gio"):
+            continue
+        if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/gobject"):
+            continue
+
+        # PyQt5 seems to do this, but won't use contents then.
+        if loaded_filename in (
+            "/usr/lib/qt5/plugins",
+            "/usr/lib/qt5",
+            "/usr/lib64/qt5/plugins",
+            "/usr/lib64/qt5",
+            "/usr/lib/x86_64-linux-gnu/qt5/plugins",
+            "/usr/lib/x86_64-linux-gnu/qt5",
+            "/usr/lib/x86_64-linux-gnu",
+            "/usr/lib",
+        ):
+            continue
+
+        # Can look at the interpreters of the system.
+        if loaded_basename in "python3":
+            continue
+        if loaded_basename in (
+            "python%s" + supported_version
+            for supported_version in (
+                getSupportedPythonVersions() + getPartiallySupportedPythonVersions()
+            )
+        ):
+            continue
+
+        # Current Python executable can actually be a symlink and
+        # the real executable which it points to will be on the
+        # loaded_filenames list. This is all fine, let's ignore it.
+        # Also, because the loaded_filename can be yet another symlink
+        # (this is weird, but it's true), let's better resolve its real
+        # path too.
+        if os.path.realpath(loaded_filename) == os.path.realpath(sys.executable):
+            continue
+
+        # Accessing SE-Linux is OK.
+        if loaded_filename in ("/sys/fs/selinux", "/selinux"):
+            continue
+
+        # Looking at device is OK.
+        if loaded_filename.startswith("/sys/devices/"):
+            continue
+
+        # Allow reading time zone info of local system.
+        if loaded_filename.startswith("/usr/share/zoneinfo/"):
+            continue
+
+        # The access to .pth files has no effect.
+        if loaded_filename.endswith(".pth"):
+            continue
+
+        # Looking at site-package dir alone is alone.
+        if loaded_filename.endswith(("site-packages", "dist-packages")):
+            continue
+
+        # QtNetwork insist on doing this it seems.
+        if loaded_basename.startswith(("libcrypto.so", "libssl.so")):
+            continue
+
+        # macOS uses these:
+        if loaded_basename in (
+            "libcrypto.1.0.0.dylib",
+            "libssl.1.0.0.dylib",
+            "libcrypto.1.1.dylib",
+        ):
+            continue
+
+        # Linux onefile uses this
+        if loaded_basename.startswith("libfuse.so."):
+            continue
+
+        # MSVC run time DLLs, due to SxS come from system.
+        if loaded_basename.upper() in ("MSVCRT.DLL", "MSVCR90.DLL"):
+            continue
+
+        illegal_accesses.append(orig_loaded_filename)
+
+    return illegal_accesses

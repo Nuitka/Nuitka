@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,18 +30,19 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementDelVariable,
     StatementReleaseVariable,
 )
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import (
     ExpressionKeyValuePair,
-    ExpressionMakeDict,
     StatementDictOperationUpdate,
+    makeExpressionMakeDict,
+    makeExpressionMakeDictOrConstant,
+    makeExpressionPairs,
 )
 from nuitka.nodes.ExceptionNodes import (
     ExpressionBuiltinMakeException,
@@ -73,23 +74,25 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildNode,
     buildNodeList,
-    makeDictCreationOrConstant,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
 )
 
 
 def buildDictionaryNode(provider, node, source_ref):
-    if python_version >= 350:
+    if python_version >= 0x350:
         for key in node.keys:
             if key is None:
                 return buildDictionaryUnpacking(
                     provider=provider, node=node, source_ref=source_ref
                 )
 
-    return makeDictCreationOrConstant(
-        keys=buildNodeList(provider, node.keys, source_ref),
-        values=buildNodeList(provider, node.values, source_ref),
+    return makeExpressionMakeDictOrConstant(
+        pairs=makeExpressionPairs(
+            keys=buildNodeList(provider, node.keys, source_ref),
+            values=buildNodeList(provider, node.values, source_ref),
+        ),
+        user_provided=True,
         source_ref=source_ref,
     )
 
@@ -156,7 +159,7 @@ def getDictUnpackingHelper():
                                 source_ref=internal_source_ref,
                                 user_provided=True,
                             ),
-                            right=ExpressionMakeTuple(
+                            right=makeExpressionMakeTuple(
                                 elements=(
                                     ExpressionAttributeLookup(
                                         expression=ExpressionBuiltinType1(
@@ -198,10 +201,6 @@ def getDictUnpackingHelper():
         StatementReleaseVariable(
             variable=tmp_item_variable, source_ref=internal_source_ref
         ),
-        # We get handed our args responsibility.
-        StatementDelVariable(
-            variable=args_variable, tolerant=False, source_ref=internal_source_ref
-        ),
     )
 
     tried = makeStatementsSequenceFromStatements(
@@ -220,7 +219,7 @@ def getDictUnpackingHelper():
             source=makeConstantRefNode(constant={}, source_ref=internal_source_ref),
             source_ref=internal_source_ref,
         ),
-        StatementLoop(body=loop_body, source_ref=internal_source_ref),
+        StatementLoop(loop_body=loop_body, source_ref=internal_source_ref),
         StatementReturn(
             expression=ExpressionTempVariableRef(
                 variable=tmp_result_variable, source_ref=internal_source_ref
@@ -229,7 +228,8 @@ def getDictUnpackingHelper():
         ),
     )
 
-    result.setBody(
+    result.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
                 provider=result,
@@ -237,7 +237,7 @@ def getDictUnpackingHelper():
                 final=final,
                 source_ref=internal_source_ref,
             )
-        )
+        ),
     )
 
     return result
@@ -253,7 +253,7 @@ def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
             result.append(buildNode(provider, value, source_ref))
         elif type(key) is str:
             result.append(
-                ExpressionMakeDict(
+                makeExpressionMakeDict(
                     pairs=(
                         ExpressionKeyValuePair(
                             key=makeConstantRefNode(
@@ -268,7 +268,7 @@ def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
             )
         else:
             result.append(
-                ExpressionMakeDict(
+                makeExpressionMakeDict(
                     pairs=(
                         ExpressionKeyValuePair(
                             key=buildNode(provider, key, source_ref),
@@ -298,7 +298,7 @@ def buildDictionaryUnpacking(provider, node, source_ref):
             annotations=None,
             source_ref=source_ref,
         ),
-        values=(ExpressionMakeTuple(helper_args, source_ref),),
+        values=(makeExpressionMakeTuple(helper_args, source_ref),),
         source_ref=source_ref,
     )
 

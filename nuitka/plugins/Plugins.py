@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,19 +27,24 @@ The base class in PluginBase will serve as documentation of available.
 
 """
 
+import inspect
 import os
 import pkgutil
-import sys
+import shutil
 from optparse import OptionGroup
 
 import nuitka.plugins.commercial
 import nuitka.plugins.standard
 from nuitka import Options
 from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
+from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
+from nuitka.Errors import NuitkaPluginError
+from nuitka.freezer.IncludedEntryPoints import makeDllEntryPointOld
 from nuitka.ModuleRegistry import addUsedModule
-from nuitka.Tracing import printLine
+from nuitka.Tracing import plugins_logger, printLine
+from nuitka.utils.FileOperations import makePath, relpath
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -74,7 +79,7 @@ def _addActivePlugin(plugin_class, args, force=False):
 
 
 def getActivePlugins():
-    """ Return list of active plugins.
+    """Return list of active plugins.
 
     Returns:
         list of plugins
@@ -85,7 +90,7 @@ def getActivePlugins():
 
 
 def hasActivePlugin(plugin_name):
-    """ Decide if a plugin is active.
+    """Decide if a plugin is active.
 
     Args:
         plugin_name - name of the plugin
@@ -101,7 +106,7 @@ def hasActivePlugin(plugin_name):
         return False
 
     # Detectors do not count.
-    plugin_instance = active_plugins.get[plugin_name]
+    plugin_instance = active_plugins.get(plugin_name)
     return not hasattr(plugin_instance, "detector_for")
 
 
@@ -109,8 +114,11 @@ def getPluginClass(plugin_name):
     # First, load plugin classes, to know what we are talking about.
     loadPlugins()
 
+    # Backward compatibility.
+    plugin_name = Options.getPluginNameConsideringRenames(plugin_name)
+
     if plugin_name not in plugin_name2plugin_classes:
-        sys.exit("Error, unknown plug-in '%s' referenced." % plugin_name)
+        plugins_logger.sysexit("Error, unknown plug-in '%s' referenced." % plugin_name)
 
     return plugin_name2plugin_classes[plugin_name][0]
 
@@ -131,7 +139,17 @@ def _loadPluginClassesFromPath(scan_path):
             # it was compiled with Nuitka.
             pass
 
-        plugin_module = module_loader.load_module(name)
+        try:
+            plugin_module = module_loader.load_module(name)
+        except Exception:
+            if Options.is_nondebug:
+                plugins_logger.warning(
+                    "Problem loading plugin %r (%s), ignored. Use --debug to make it visible."
+                    % (name, module_loader.get_filename())
+                )
+                continue
+
+            raise
 
         plugin_classes = set(
             obj
@@ -150,7 +168,11 @@ def _loadPluginClassesFromPath(scan_path):
             assert detector.plugin_name is None, detector
             detector.plugin_name = plugin_class.plugin_name
 
-            assert plugin_class in plugin_classes
+            if plugin_class not in plugin_classes:
+                plugins_logger.sysexit(
+                    "Plugin detector %r references unknown plugin %r"
+                    % (detector, plugin_class)
+                )
 
             plugin_classes.remove(detector)
             plugin_classes.remove(plugin_class)
@@ -165,11 +187,11 @@ def _loadPluginClassesFromPath(scan_path):
 
 
 def loadStandardPluginClasses():
-    """ Load plugin files located in 'standard' folder.
+    """Load plugin files located in 'standard' folder.
 
     Notes:
         Scan through the 'standard' and 'commercial' sub-folder of the folder
-        where this script resides. Import each valid Python module (but not
+        where this module resides. Import each valid Python module (but not
         packages) and process it as a plugin.
     Returns:
         None
@@ -181,16 +203,116 @@ def loadStandardPluginClasses():
 class Plugins(object):
     @staticmethod
     def isPluginActive(plugin_name):
-        """ Is a plugin activated. """
+        """Is a plugin activated."""
 
         return plugin_name in active_plugins
 
-    @staticmethod
-    def considerImplicitImports(module, signal_change):
-        for plugin in getActivePlugins():
-            plugin.considerImplicitImports(module, signal_change)
+    implicit_imports_cache = {}
 
-        # Post load code may have been created, if so indicate it's used.
+    @staticmethod
+    def _considerImplicitImports(plugin, module):
+        from nuitka.importing import Importing
+
+        result = []
+
+        for full_name in plugin.getImplicitImports(module):
+            if type(full_name) in (tuple, list):
+                raise NuitkaPluginError(
+                    "Plugin %r needs to be change to only return modules names, not %r"
+                    % (plugin, full_name)
+                )
+
+            full_name = ModuleName(full_name)
+
+            try:
+                _module_package, module_filename, _finding = Importing.findModule(
+                    importing=module,
+                    module_name=full_name,
+                    parent_package=None,
+                    level=-1,
+                    warn=False,
+                )
+
+                module_filename = plugin.locateModule(
+                    importing=module, module_name=full_name
+                )
+            except Exception:
+                plugin.warning(
+                    "Problem locating '%s' for implicit imports of '%s'."
+                    % (module.getFullName(), full_name)
+                )
+                raise
+
+            if module_filename is None:
+                if Options.isShowInclusion():
+                    plugin.info(
+                        "Implicit module '%s' suggested for '%s' not found."
+                        % (full_name, module.getFullName())
+                    )
+
+                continue
+
+            result.append((full_name, module_filename))
+
+        if result:
+            plugin.info(
+                "Implicit dependencies of module '%s' added '%s'."
+                % (module.getFullName(), ",".join(r[0] for r in result))
+            )
+
+        return result
+
+    @staticmethod
+    def _reportImplicitImports(implicit_imports, signal_change):
+        from nuitka.importing import Recursion
+        from nuitka.importing.Importing import getModuleNameAndKindFromFilename
+
+        for full_name, module_filename in implicit_imports:
+            _module_name2, module_kind = getModuleNameAndKindFromFilename(
+                module_filename
+            )
+
+            # This will get back to all other plugins allowing them to inhibit it though.
+            decision, reason = Recursion.decideRecursion(
+                module_filename=module_filename,
+                module_name=full_name,
+                module_kind=module_kind,
+            )
+
+            if decision:
+                imported_module, added_flag = Recursion.recurseTo(
+                    module_package=full_name.getPackageName(),
+                    module_filename=module_filename,
+                    module_relpath=relpath(module_filename),
+                    module_kind=module_kind,
+                    reason=reason,
+                )
+
+                addUsedModule(imported_module)
+
+                if added_flag:
+                    signal_change(
+                        "new_code",
+                        imported_module.getSourceReference(),
+                        "Recursed to module.",
+                    )
+
+    @classmethod
+    def considerImplicitImports(cls, module, signal_change):
+        for plugin in getActivePlugins():
+            key = (module.getFullName(), plugin)
+
+            if key not in cls.implicit_imports_cache:
+                cls.implicit_imports_cache[key] = tuple(
+                    cls._considerImplicitImports(plugin=plugin, module=module)
+                )
+
+            cls._reportImplicitImports(
+                implicit_imports=cls.implicit_imports_cache[key],
+                signal_change=signal_change,
+            )
+
+        # Pre and post load code may have been created, if so indicate it's used.
         full_name = module.getFullName()
 
         if full_name in pre_modules:
@@ -201,38 +323,84 @@ class Plugins(object):
 
     @staticmethod
     def onStandaloneDistributionFinished(dist_dir):
-        """ Let plugins postprocess the distribution folder if standalone
-        """
+        """Let plugins postprocess the distribution folder in standalone mode"""
         for plugin in getActivePlugins():
             plugin.onStandaloneDistributionFinished(dist_dir)
 
-        return None
+    @staticmethod
+    def onOnefileFinished(filename):
+        """Let plugins postprocess the onefile executable in onefile mode"""
+        for plugin in getActivePlugins():
+            plugin.onStandaloneDistributionFinished(filename)
+
+    @staticmethod
+    def onFinalResult(filename):
+        """Let plugins add to final binary in some way"""
+        for plugin in getActivePlugins():
+            plugin.onFinalResult(filename)
 
     @staticmethod
     def considerExtraDlls(dist_dir, module):
+        """Ask plugins to provide extra DLLs.
+
+        Notes:
+            These will be of type nuitka.freezer.IncludedEntryPoints.IncludedEntryPoint
+            and currently there is a backward compatibility for old style plugins that do
+            provide tuples of 3 elements. But plugins are really supposed to provide the
+            stuff created from factory functions for that type.
+
+        """
+
         result = []
 
         for plugin in getActivePlugins():
             for extra_dll in plugin.considerExtraDlls(dist_dir, module):
-                if not os.path.isfile(extra_dll[0]):
-                    sys.exit(
-                        "Error, attempting to copy plugin determined filename %r for module %r that is not a file."
-                        % (extra_dll[0], module.getFullName())
+                # Backward compatibility with plugins not yet migrated to getExtraDlls usage.
+                if len(extra_dll) == 3:
+                    extra_dll = makeDllEntryPointOld(
+                        source_path=extra_dll[0],
+                        dest_path=extra_dll[1],
+                        package_name=extra_dll[2],
                     )
 
-                if not os.path.isfile(extra_dll[1]):
-                    sys.exit(
-                        "Error, copied filename %r for module %r that is not a file."
-                        % (extra_dll[1], module.getFullName())
-                    )
+                    if not os.path.isfile(extra_dll.dest_path):
+                        plugin.sysexit(
+                            "Error, copied filename %r for module %r that is not a file."
+                            % (extra_dll.dest_path, module.getFullName())
+                        )
+                else:
+                    if not os.path.isfile(extra_dll.source_path):
+                        plugin.sysexit(
+                            "Error, attempting to copy plugin determined filename %r for module %r that is not a file."
+                            % (extra_dll.source_path, module.getFullName())
+                        )
+
+                    makePath(os.path.dirname(extra_dll.dest_path))
+
+                    shutil.copyfile(extra_dll.source_path, extra_dll.dest_path)
 
                 result.append(extra_dll)
 
         return result
 
     @staticmethod
+    def getModuleSpecificDllPaths(module_name):
+        """Provide a list of directories, where DLLs should be searched for this package (or module).
+
+        Args:
+            module_name: name of a package or module, for which the DLL path addition applies.
+
+        """
+        result = OrderedSet()
+        for plugin in getActivePlugins():
+            for dll_path in plugin.getModuleSpecificDllPaths(module_name):
+                result.add(dll_path)
+
+        return result
+
+    @staticmethod
     def removeDllDependencies(dll_filename, dll_filenames):
-        """ Create list of removable shared libraries by scanning through the plugins.
+        """Create list of removable shared libraries by scanning through the plugins.
 
         Args:
             dll_filename: shared library filename
@@ -242,19 +410,28 @@ class Plugins(object):
         """
         dll_filenames = tuple(sorted(dll_filenames))
 
-        result = []
+        to_remove = OrderedSet()
 
         for plugin in getActivePlugins():
-            for removed_dll in plugin.removeDllDependencies(
-                dll_filename, dll_filenames
-            ):
-                result.append(removed_dll)
+            removed_dlls = tuple(
+                plugin.removeDllDependencies(dll_filename, dll_filenames)
+            )
 
-        return result
+            if removed_dlls and Options.isShowInclusion():
+                plugin.info(
+                    "Removing DLLs %s of %s by plugin decision."
+                    % (dll_filename, removed_dlls)
+                )
+
+            for removed_dll in removed_dlls:
+                to_remove.add(removed_dll)
+
+        for removed in to_remove:
+            dll_filenames.discard(removed)
 
     @staticmethod
     def considerDataFiles(module):
-        """ For a given module, ask plugins for any needed data files it may require.
+        """For a given module, ask plugins for any needed data files it may require.
 
         Args:
             module: module object
@@ -265,7 +442,7 @@ class Plugins(object):
         for plugin in getActivePlugins():
             for value in plugin.considerDataFiles(module):
                 if value:
-                    yield plugin.plugin_name, value
+                    yield plugin, value
 
     @staticmethod
     def onModuleDiscovered(module):
@@ -278,7 +455,10 @@ class Plugins(object):
         assert type(source_code) is str
 
         for plugin in getActivePlugins():
-            source_code = plugin.onModuleSourceCode(module_name, source_code)
+            new_source_code = plugin.onModuleSourceCode(module_name, source_code)
+            if new_source_code is not None:
+                source_code = new_source_code
+
             assert type(source_code) is str
 
         return source_code
@@ -309,16 +489,36 @@ class Plugins(object):
 
     @staticmethod
     def onModuleEncounter(module_filename, module_name, module_kind):
-        result = False
+        result = None
 
         for plugin in getActivePlugins():
             must_recurse = plugin.onModuleEncounter(
                 module_filename, module_name, module_kind
             )
 
-            result = result or must_recurse
+            if must_recurse is None:
+                continue
+
+            if type(must_recurse) is not tuple and must_recurse not in (True, False):
+                plugin.sysexit(
+                    "Error, onModuleEncounter code failed to return a None or tuple(bool, reason) result."
+                )
+
+            if result is not None:
+                # false alarm, pylint: disable=unsubscriptable-object
+                assert result[0] == must_recurse[0]
+
+            result = must_recurse
 
         return result
+
+    @staticmethod
+    def onModuleInitialSet():
+        from nuitka.ModuleRegistry import addRootModule
+
+        for plugin in getActivePlugins():
+            for module in plugin.onModuleInitialSet():
+                addRootModule(module)
 
     @staticmethod
     def considerFailedImportReferrals(module_name):
@@ -332,7 +532,7 @@ class Plugins(object):
 
     @staticmethod
     def suppressUnknownImportWarning(importing, module_name):
-        """ Let plugins decide whether to suppress import warnings for an unknown module.
+        """Let plugins decide whether to suppress import warnings for an unknown module.
 
         Notes:
             If all plugins return False or None, the return will be False, else True.
@@ -359,7 +559,7 @@ class Plugins(object):
 
     @staticmethod
     def decideCompilation(module_name, source_ref):
-        """ Let plugins decide whether to compile a module.
+        """Let plugins decide whether to C compile a module or include as bytecode.
 
         Notes:
             The decision is made by the first plugin not returning None.
@@ -376,9 +576,11 @@ class Plugins(object):
 
         return "compiled"
 
-    @staticmethod
-    def getPreprocessorSymbols():
-        """ Let plugins provide C defines to be used in compilation.
+    preprocessor_symbols = None
+
+    @classmethod
+    def getPreprocessorSymbols(cls):
+        """Let plugins provide C defines to be used in compilation.
 
         Notes:
             The plugins can each contribute, but are hopefully using
@@ -388,20 +590,23 @@ class Plugins(object):
             OrderedDict(), where None value indicates no define value,
             i.e. "-Dkey=value" vs. "-Dkey"
         """
-        result = OrderedDict()
 
-        for plugin in getActivePlugins():
-            value = plugin.getPreprocessorSymbols()
+        if cls.preprocessor_symbols is None:
+            cls.preprocessor_symbols = OrderedDict()
 
-            if value is not None:
-                assert type(value) is dict
+            for plugin in getActivePlugins():
+                value = plugin.getPreprocessorSymbols()
 
-                # We order per plugin, but from the plugins, lets just take a dict
-                # and achieve determism by ordering the defines by name.
-                for key, value in sorted(value.items()):
-                    result[key] = value
+                if value is not None:
+                    assert type(value) is dict, value
 
-        return result
+                    # We order per plugin, but from the plugins, lets just take a dict
+                    # and achieve determism by ordering the defines by name.
+                    for key, value in sorted(value.items()):
+                        # False alarm, pylint: disable=I0021,unsupported-assignment-operation
+                        cls.preprocessor_symbols[key] = value
+
+        return cls.preprocessor_symbols
 
     @staticmethod
     def getExtraCodeFiles():
@@ -416,31 +621,62 @@ class Plugins(object):
                 # We order per plugin, but from the plugins, lets just take a dict
                 # and achieve determism by ordering the files by name.
                 for key, value in sorted(value.items()):
+                    if not key.startswith("nuitka_"):
+                        key = "plugin." + plugin.plugin_name + "." + key
+
                     assert key not in result, key
-                    result["plugin." + plugin.plugin_name + "." + key] = value
+                    result[key] = value
 
         return result
 
-    @staticmethod
-    def getExtraLinkLibraries():
-        result = OrderedSet()
+    extra_link_libraries = None
+
+    @classmethod
+    def getExtraLinkLibraries(cls):
+        if cls.extra_link_libraries is None:
+            cls.extra_link_libraries = OrderedSet()
+
+            for plugin in getActivePlugins():
+                value = plugin.getExtraLinkLibraries()
+
+                if value is not None:
+                    if isinstance(value, basestring):
+                        cls.extra_link_libraries.add(value)
+                    else:
+                        for library_name in value:
+                            cls.extra_link_libraries.add(library_name)
+
+        return cls.extra_link_libraries
+
+    @classmethod
+    def onDataComposerResult(cls, blob_filename):
+        for plugin in getActivePlugins():
+            plugin.onDataComposerResult(blob_filename)
+
+    @classmethod
+    def deriveModuleConstantsBlobName(cls, data_filename):
+        result = deriveModuleConstantsBlobName(data_filename)
+
+        return cls.encodeDataComposerName(result)
+
+    @classmethod
+    def encodeDataComposerName(cls, name):
+        if str is not bytes:
+            # Encoding needs to match generated source code output.
+            name = name.encode("latin1")
 
         for plugin in getActivePlugins():
-            value = plugin.getExtraLinkLibraries()
+            r = plugin.encodeDataComposerName(name)
 
-            if value is not None:
-                if isinstance(value, basestring):
-                    result.add(value)
-                else:
-                    for library_name in value:
-                        result.add(library_name)
+            if r is not None:
+                name = r
+                break
 
-        return result
+        return name
 
 
 def listPlugins():
-    """ Print available standard plugins.
-    """
+    """Print available standard plugins."""
 
     loadPlugins()
 
@@ -459,20 +695,21 @@ def listPlugins():
     for line in plist:
         printLine(" " + line[0].ljust(name_len), line[1])
 
-    sys.exit(0)
-
 
 def isObjectAUserPluginBaseClass(obj):
-    """ Verify that a user plugin inherits from UserPluginBase.
-    """
+    """Verify that a user plugin inherits from UserPluginBase."""
     try:
-        return obj is not NuitkaPluginBase and issubclass(obj, NuitkaPluginBase)
+        return (
+            obj is not NuitkaPluginBase
+            and issubclass(obj, NuitkaPluginBase)
+            and not inspect.isabstract(obj)
+        )
     except TypeError:
         return False
 
 
 def loadUserPlugin(plugin_filename):
-    """ Load of a user plugins and store them in list of active plugins.
+    """Load of a user plugins and store them in list of active plugins.
 
     Notes:
         A plugin is accepted only if it has a non-empty variable plugin_name, which
@@ -482,7 +719,7 @@ def loadUserPlugin(plugin_filename):
         None
     """
     if not os.path.exists(plugin_filename):
-        sys.exit("Error, cannot find '%s'." % plugin_filename)
+        plugins_logger.sysexit("Error, cannot find '%s'." % plugin_filename)
 
     user_plugin_module = importFileAsModule(plugin_filename)
 
@@ -501,7 +738,7 @@ def loadUserPlugin(plugin_filename):
             break  # do not look for more in that module
 
     if not valid_file:  # this is not a plugin file ...
-        sys.exit("Error, '%s' is not a plugin file." % plugin_filename)
+        plugins_logger.sysexit("Error, '%s' is not a plugin file." % plugin_filename)
 
     return plugin_class
 
@@ -510,7 +747,7 @@ _loaded_plugins = False
 
 
 def loadPlugins():
-    """ Initialize plugin class
+    """Initialize plugin class
 
     Notes:
         Load user plugins provided as Python script file names, and standard
@@ -535,7 +772,7 @@ def loadPlugins():
 
 
 def activatePlugins():
-    """ Activate selected plugin classes
+    """Activate selected plugin classes
 
     Args:
         None
@@ -555,19 +792,28 @@ def activatePlugins():
     # ensure plugin is known and not both, enabled and disabled
     for plugin_name in Options.getPluginsEnabled() + Options.getPluginsDisabled():
         if plugin_name not in plugin_name2plugin_classes:
-            sys.exit("Error, unknown plug-in '%s' referenced." % plugin_name)
+            plugins_logger.sysexit(
+                "Error, unknown plug-in '%s' referenced." % plugin_name
+            )
 
         if (
             plugin_name in Options.getPluginsEnabled()
             and plugin_name in Options.getPluginsDisabled()
         ):
-            sys.exit("Error, conflicting enable/disable of plug-in '%s'." % plugin_name)
+            plugins_logger.sysexit(
+                "Error, conflicting enable/disable of plug-in '%s'." % plugin_name
+            )
 
     for (plugin_name, (plugin_class, plugin_detector)) in sorted(
         plugin_name2plugin_classes.items()
     ):
         if plugin_name in Options.getPluginsEnabled():
-            _addActivePlugin(plugin_class, args=True)
+            if plugin_class.isRelevant():
+                _addActivePlugin(plugin_class, args=True)
+            else:
+                plugin_class.warning(
+                    "Not relevant with this OS, or Nuitka arguments given, not activated."
+                )
         elif plugin_name in Options.getPluginsDisabled():
             pass
         elif plugin_class.isAlwaysEnabled() and plugin_class.isRelevant():
@@ -584,9 +830,7 @@ def activatePlugins():
 
 
 def lateActivatePlugin(plugin_name, option_values):
-    """ Activate plugin after the command line parsing, expects options to be set.
-
-    """
+    """Activate plugin after the command line parsing, expects options to be set."""
 
     values = getPluginClass(plugin_name).getPluginDefaultOptionValues()
     values.update(option_values)
@@ -596,27 +840,32 @@ def lateActivatePlugin(plugin_name, option_values):
 
 
 def _addPluginCommandLineOptions(parser, plugin_class):
-    option_group = OptionGroup(parser, "Plugin %s" % plugin_class.plugin_name)
-    plugin_class.addPluginCommandLineOptions(option_group)
+    if plugin_class.plugin_name not in plugin_options:
+        option_group = OptionGroup(parser, "Plugin %s" % plugin_class.plugin_name)
+        plugin_class.addPluginCommandLineOptions(option_group)
 
-    if option_group.option_list:
-        parser.add_option_group(option_group)
-        plugin_options[plugin_class.plugin_name] = option_group.option_list
+        if option_group.option_list:
+            parser.add_option_group(option_group)
+            plugin_options[plugin_class.plugin_name] = option_group.option_list
+        else:
+            plugin_options[plugin_class.plugin_name] = ()
 
 
-def addPluginCommandLineOptions(parser, plugin_name):
-    """ Add option group for the plugin to the parser.
+def addPluginCommandLineOptions(parser, plugin_names):
+    """Add option group for the plugin to the parser.
 
     Notes:
         This is exclusively for use in the commandline parsing. Not all
         plugins have to have options. But this will add them to the
-        parser in a first pass.
+        parser in a first pass, so they can be recognized in a second
+        pass with them included.
 
     Returns:
         None
     """
-    plugin_class = getPluginClass(plugin_name)
-    _addPluginCommandLineOptions(parser, plugin_class)
+    for plugin_name in plugin_names:
+        plugin_class = getPluginClass(plugin_name)
+        _addPluginCommandLineOptions(parser, plugin_class)
 
 
 def addUserPluginCommandLineOptions(parser, filename):
@@ -627,7 +876,7 @@ def addUserPluginCommandLineOptions(parser, filename):
 
 
 def setPluginOptions(plugin_name, values):
-    """ Set the option values for the specified plugin.
+    """Set the option values for the specified plugin.
 
     Args:
         plugin_name: plugin identifier
@@ -645,7 +894,7 @@ def setPluginOptions(plugin_name, values):
 
 
 def getPluginOptions(plugin_name):
-    """ Return the options values for the specified plugin.
+    """Return the options values for the specified plugin.
 
     Args:
         plugin_name: plugin identifier
@@ -661,7 +910,10 @@ def getPluginOptions(plugin_name):
 
         if "[REQUIRED]" in option.help:
             if not arg_value:
-                sys.exit("Error, required plugin argument %r not given." % option_name)
+                plugins_logger.sysexit(
+                    "Error, required plugin argument %r of Nuitka plugin %s not given."
+                    % (option_name, plugin_name)
+                )
 
         result[option.dest] = arg_value
 

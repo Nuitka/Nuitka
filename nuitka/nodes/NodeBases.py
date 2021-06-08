@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,14 +28,15 @@ expression only stuff.
 from abc import abstractmethod
 
 from nuitka import Options, Tracing, TreeXML, Variables
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    intern,
-    iterItems,
-)
-from nuitka.Errors import NuitkaNodeError
+from nuitka.__past__ import iterItems
+from nuitka.Errors import NuitkaNodeDesignError, NuitkaNodeError
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
-from nuitka.utils.InstanceCounters import counted_del, counted_init
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 
 from .FutureSpecs import fromFlags
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
@@ -46,7 +47,7 @@ class NodeBase(NodeMetaClassBase):
     __slots__ = "parent", "source_ref"
 
     # Avoid the attribute unless it's really necessary.
-    if Options.isFullCompat():
+    if Options.is_fullcompat:
         __slots__ += ("effective_source_ref",)
 
     # String to identify the node class, to be consistent with its name.
@@ -65,7 +66,8 @@ class NodeBase(NodeMetaClassBase):
 
         self.source_ref = source_ref
 
-    __del__ = counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     @abstractmethod
     def finalize(self):
@@ -75,32 +77,32 @@ class NodeBase(NodeMetaClassBase):
         return "<Node %s>" % (self.getDescription())
 
     def getDescription(self):
-        """ Description of the node, intended for use in __repr__ and
-            graphical display.
+        """Description of the node, intended for use in __repr__ and
+        graphical display.
 
         """
-        details = self.getDetails()
+        details = self.getDetailsForDisplay()
 
         if details:
-            return "'%s' with %s" % (self.kind, self.getDetails())
+            return "'%s' with %s" % (self.kind, details)
         else:
             return "'%s'" % self.kind
 
     def getDetails(self):
-        """ Details of the node, intended for re-creation.
+        """Details of the node, intended for re-creation.
 
-            We are not using the pickle mechanisms, but this is basically
-            part of what the constructor call needs. Real children will
-            also be added.
+        We are not using the pickle mechanisms, but this is basically
+        part of what the constructor call needs. Real children will
+        also be added.
 
         """
         # Virtual method, pylint: disable=no-self-use
         return {}
 
     def getDetailsForDisplay(self):
-        """ Details of the node, intended for use in __repr__ and dumps.
+        """Details of the node, intended for use in __repr__ and dumps.
 
-            This is also used for XML.
+        This is also used for XML.
         """
         return self.getDetails()
 
@@ -139,9 +141,7 @@ class NodeBase(NodeMetaClassBase):
         return result
 
     def getParent(self):
-        """ Parent of the node. Every node except modules have to have a parent.
-
-        """
+        """Parent of the node. Every node except modules have to have a parent."""
 
         if self.parent is None and not self.isCompiledPythonModule():
             # print self.getVisitableNodesNamed()
@@ -150,9 +150,7 @@ class NodeBase(NodeMetaClassBase):
         return self.parent
 
     def getChildName(self):
-        """ Return the role in the current parent, subject to changes.
-
-        """
+        """Return the role in the current parent, subject to changes."""
         parent = self.getParent()
 
         for key, value in parent.getVisitableNodesNamed():
@@ -178,9 +176,7 @@ class NodeBase(NodeMetaClassBase):
             return child_name
 
     def getParentFunction(self):
-        """ Return the parent that is a function.
-
-        """
+        """Return the parent that is a function."""
 
         parent = self.getParent()
 
@@ -190,9 +186,7 @@ class NodeBase(NodeMetaClassBase):
         return parent
 
     def getParentModule(self):
-        """ Return the parent that is module.
-
-        """
+        """Return the parent that is module."""
         parent = self
 
         while not parent.isCompiledPythonModule():
@@ -247,21 +241,21 @@ class NodeBase(NodeMetaClassBase):
         return self.source_ref
 
     def setCompatibleSourceReference(self, source_ref):
-        """ Bug compatible line numbers information.
+        """Bug compatible line numbers information.
 
-            As CPython outputs the last bit of bytecode executed, and not the
-            line of the operation. For example calls, output the line of the
-            last argument, as opposed to the line of the operation start.
+        As CPython outputs the last bit of bytecode executed, and not the
+        line of the operation. For example calls, output the line of the
+        last argument, as opposed to the line of the operation start.
 
-            For tests, we wants to be compatible. In improved more, we are
-            not being fully compatible, and just drop it altogether.
+        For tests, we wants to be compatible. In improved more, we are
+        not being fully compatible, and just drop it altogether.
         """
 
         # Getting the same source reference can be dealt with quickly, so do
         # this first.
         if (
             self.source_ref is not source_ref
-            and Options.isFullCompat()
+            and Options.is_fullcompat
             and self.source_ref != source_ref
         ):
             # An attribute outside of "__init__", so we save one memory for the
@@ -271,14 +265,14 @@ class NodeBase(NodeMetaClassBase):
             self.effective_source_ref = source_ref
 
     def getCompatibleSourceReference(self):
-        """ Bug compatible line numbers information.
+        """Bug compatible line numbers information.
 
-            See above.
+        See above.
         """
         return getattr(self, "effective_source_ref", self.source_ref)
 
     def asXml(self):
-        line = self.getSourceReference().getLineNumber()
+        line = self.source_ref.getLineNumber()
 
         result = TreeXML.Element("node", kind=self.__class__.__name__, line="%s" % line)
 
@@ -349,6 +343,10 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
+    def isExpressionOperationUnary():
+        return False
+
+    @staticmethod
     def isExpressionOperationBinary():
         return False
 
@@ -356,31 +354,32 @@ class NodeBase(NodeMetaClassBase):
     def isExpressionOperationInplace():
         return False
 
-    def isExpressionSideEffects(self):
-        # Virtual method, pylint: disable=no-self-use
-
-        # We need to provide this, as these node kinds are only imported if
-        # necessary, but we test against them.
+    @staticmethod
+    def isExpressionComparison():
         return False
 
-    def isExpressionMakeSequence(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def isExpressionSideEffects():
         return False
 
-    def isNumberConstant(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def isExpressionMakeSequence():
         return False
 
-    def isExpressionCall(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def isNumberConstant():
         return False
 
-    def isExpressionFunctionBodyBase(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def isExpressionCall():
         return False
 
-    def isExpressionOutlineFunctionBodyBase(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def isExpressionFunctionBodyBase():
+        return False
+
+    @staticmethod
+    def isExpressionOutlineFunctionBase():
         return False
 
     def visit(self, context, visitor):
@@ -389,26 +388,29 @@ class NodeBase(NodeMetaClassBase):
         for visitable in self.getVisitableNodes():
             visitable.visit(context, visitor)
 
-    def getVisitableNodes(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def getVisitableNodes():
+
         return ()
 
-    def getVisitableNodesNamed(self):
-        """ Named children dictionary.
+    @staticmethod
+    def getVisitableNodesNamed():
+        """Named children dictionary.
 
-            For use in debugging and XML output.
+        For use in debugging and XML output.
         """
 
-        # Virtual method, pylint: disable=no-self-use
         return ()
 
-    def getName(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def getName():
+        """Name of the node if any."""
+
         return None
 
-    def mayHaveSideEffects(self):
-        """ Unless we are told otherwise, everything may have a side effect. """
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def mayHaveSideEffects():
+        """Unless we are told otherwise, everything may have a side effect."""
 
         return True
 
@@ -416,46 +418,51 @@ class NodeBase(NodeMetaClassBase):
         return self.mayHaveSideEffects()
 
     def extractSideEffects(self):
-        """ Unless defined otherwise, the expression is the side effect. """
+        """Unless defined otherwise, the expression is the side effect."""
 
         return (self,)
 
-    def mayRaiseException(self, exception_type):
-        """ Unless we are told otherwise, everything may raise everything. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def mayRaiseException(exception_type):
+        """Unless we are told otherwise, everything may raise everything."""
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayReturn(self):
-        return "_RETURN" in self.kind
-
-    def mayBreak(self):
-        # For overload, pylint: disable=no-self-use
+    @staticmethod
+    def mayReturn():
+        """May this node do a return exit, to be overloaded for things that might."""
         return False
 
-    def mayContinue(self):
-        # For overload, pylint: disable=no-self-use
+    @staticmethod
+    def mayBreak():
+        return False
+
+    @staticmethod
+    def mayContinue():
         return False
 
     def needsFrame(self):
-        """ Unless we are tolder otherwise, this depends on exception raise. """
+        """Unless we are tolder otherwise, this depends on exception raise."""
 
         return self.mayRaiseException(BaseException)
 
-    def willRaiseException(self, exception_type):
-        """ Unless we are told otherwise, nothing may raise anything. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
-
+    @staticmethod
+    def willRaiseException(exception_type):
+        """Unless we are told otherwise, nothing may raise anything."""
+        # Virtual method, pylint: disable=unused-argument
         return False
 
-    def isStatementAborting(self):
-        """ Is the node aborting, control flow doesn't continue after this node.  """
-        assert self.isStatement(), self.kind
-
+    @staticmethod
+    def isStatementAborting():
+        """Is the node aborting, control flow doesn't continue after this node."""
         return False
 
 
 class CodeNodeMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def __init__(self, name, code_prefix):
         assert name is not None
 
@@ -488,7 +495,7 @@ class CodeNodeMixin(object):
             if str is not bytes:
                 name = name.encode("ascii", "c_identifier").decode()
 
-            self.code_name = "%s$$$%s%s" % (parent_name, self.code_prefix, name)
+            self.code_name = "%s$$$%s_%s" % (parent_name, self.code_prefix, name)
 
         return self.code_name
 
@@ -502,19 +509,29 @@ class CodeNodeMixin(object):
 
 
 class ChildrenHavingMixin(object):
+    # Mixins are not allow to specify slots.
+    __slots__ = ()
+
     named_children = ()
 
     checkers = {}
 
     def __init__(self, values):
-        assert type(self.named_children) is tuple and self.named_children
+        assert (
+            type(self.named_children) is tuple and self.named_children
+        ), self.named_children
 
         # TODO: Make this true.
         # assert len(self.named_children) > 1, self.kind
 
         # Check for completeness of given values, everything should be there
         # but of course, might be put to None.
-        assert set(values.keys()) == set(self.named_children)
+        if set(values.keys()) != set(self.named_children):
+            raise NuitkaNodeDesignError(
+                "Must pass named children in value dictionary",
+                set(values.keys()),
+                set(self.named_children),
+            )
 
         for name, value in values.items():
             if name in self.checkers:
@@ -534,9 +551,9 @@ class ChildrenHavingMixin(object):
             setattr(self, attr_name, value)
 
     def setChild(self, name, value):
-        """ Set a child value.
+        """Set a child value.
 
-            Do not overload, provider self.checkers instead.
+        Do not overload, provider self.checkers instead.
         """
         # Only accept legal child names
         assert name in self.named_children, name
@@ -564,25 +581,25 @@ class ChildrenHavingMixin(object):
 
         setattr(self, attr_name, value)
 
+    def clearChild(self, name):
+        # Only accept legal child names
+        assert name in self.named_children, name
+
+        if name in self.checkers:
+            self.checkers[name](None)
+
+        attr_name = "subnode_" + name
+
+        # Determine old value, and inform it about losing its parent.
+        old_value = getattr(self, attr_name)
+
+        assert old_value is not None
+
+        setattr(self, attr_name, None)
+
     def getChild(self, name):
         attr_name = "subnode_" + name
         return getattr(self, attr_name)
-
-    @staticmethod
-    def childGetter(name):
-        attr_name = intern("subnode_" + name)
-
-        def getter(self):
-            return getattr(self, attr_name)
-
-        return getter
-
-    @staticmethod
-    def childSetter(name):
-        def setter(self, value):
-            self.setChild(name, value)
-
-        return setter
 
     def getVisitableNodes(self):
         # TODO: Consider if a generator would be faster.
@@ -607,9 +624,9 @@ class ChildrenHavingMixin(object):
         return tuple(result)
 
     def getVisitableNodesNamed(self):
-        """ Named children dictionary.
+        """Named children dictionary.
 
-            For use in debugging and XML output.
+        For use in debugging and XML output.
         """
         for name in self.named_children:
             attr_name = "subnode_" + name
@@ -684,13 +701,13 @@ class ChildrenHavingMixin(object):
 
 
 class ClosureGiverNodeMixin(CodeNodeMixin):
-    """ Blass class for nodes that provide variables for closure takers. """
+    """Base class for nodes that provide variables for closure takers."""
+
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
 
     def __init__(self, name, code_prefix):
         CodeNodeMixin.__init__(self, name=name, code_prefix=code_prefix)
-
-        self.providing = {}
-        self.variable_order = []
 
         self.temp_variables = {}
 
@@ -699,32 +716,18 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         self.preserver_id = 0
 
     def hasProvidedVariable(self, variable_name):
-        return variable_name in self.providing
+        return self.locals_scope.hasProvidedVariable(variable_name)
 
     def getProvidedVariable(self, variable_name):
-        if variable_name not in self.providing:
-            self.providing[variable_name] = self.createProvidedVariable(
-                variable_name=variable_name
-            )
-            self.variable_order.append(variable_name)
+        if not self.locals_scope.hasProvidedVariable(variable_name):
+            variable = self.createProvidedVariable(variable_name=variable_name)
+            self.locals_scope.registerProvidedVariable(variable)
 
-        return self.providing[variable_name]
+        return self.locals_scope.getProvidedVariable(variable_name)
 
+    @abstractmethod
     def createProvidedVariable(self, variable_name):
-        # Virtual method, pylint: disable=no-self-use
-        assert type(variable_name) is str
-
-        return None
-
-    def registerProvidedVariable(self, variable):
-        assert variable is not None
-
-        variable_name = variable.getName()
-        self.providing[variable_name] = variable
-        self.variable_order.append(variable_name)
-
-    def getProvidedVariableOrder(self):
-        return self.variable_order
+        """Create a variable provided by this function."""
 
     def allocateTempScope(self, name):
         self.temp_scopes[name] = self.temp_scopes.get(name, 0) + 1
@@ -760,7 +763,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         elif temp_type == "bool":
             temp_class = Variables.TempVariableBool
         else:
-            assert False, temp_class
+            assert False, temp_type
 
         result = temp_class(owner=self, variable_name=temp_name)
 
@@ -779,18 +782,33 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
     def getTempVariables(self):
         return self.temp_variables.values()
 
-    def removeTempVariable(self, variable):
+    def _removeTempVariable(self, variable):
         del self.temp_variables[variable.getName()]
 
+    def optimizeUnusedTempVariables(self):
+        remove = []
+
+        for temp_variable in self.getTempVariables():
+            empty = self.trace_collection.hasEmptyTraces(variable=temp_variable)
+
+            if empty:
+                remove.append(temp_variable)
+
+        for temp_variable in remove:
+            self._removeTempVariable(temp_variable)
+
     def allocatePreserverId(self):
-        if python_version >= 300:
+        if python_version >= 0x300:
             self.preserver_id += 1
 
         return self.preserver_id
 
 
 class ClosureTakerMixin(object):
-    """ Mixin for nodes that accept variables from closure givers. """
+    """Mixin for nodes that accept variables from closure givers."""
+
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
 
     def __init__(self, provider):
         self.provider = provider
@@ -847,24 +865,22 @@ class ClosureTakerMixin(object):
 
 
 class StatementBase(NodeBase):
-    """ Base class for all statements.
-
-    """
+    """Base class for all statements."""
 
     # Base classes can be abstract, pylint: disable=abstract-method
 
     # TODO: Have them all.
     # @abstractmethod
-    def getStatementNiceName(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def getStatementNiceName():
         return "undescribed statement"
 
     def computeStatementSubExpressions(self, trace_collection):
-        """ Compute a statement.
+        """Compute a statement.
 
-            Default behavior is to just visit the child expressions first, and
-            then the node "computeStatement". For a few cases this needs to
-            be overloaded.
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeStatement". For a few cases this needs to
+        be overloaded.
         """
         expressions = self.getVisitableNodes()
 
@@ -928,9 +944,9 @@ class StatementChildHavingBase(StatementBase):
         setattr(self, attr_name, value)
 
     def setChild(self, name, value):
-        """ Set a child value.
+        """Set a child value.
 
-            Do not overload, provider self.checkers instead.
+        Do not overload, provider self.checkers instead.
         """
         # Only accept legal child names
         assert name == self.named_child, name
@@ -963,22 +979,6 @@ class StatementChildHavingBase(StatementBase):
         attr_name = "subnode_" + name
         return getattr(self, attr_name)
 
-    @staticmethod
-    def childGetter(name):
-        attr_name = "subnode_" + name
-
-        def getter(self):
-            return getattr(self, attr_name)
-
-        return getter
-
-    @staticmethod
-    def childSetter(name):
-        def setter(self, value):
-            self.setChild(name, value)
-
-        return setter
-
     def getVisitableNodes(self):
         # TODO: Consider if a generator would be faster.
         attr_name = "subnode_" + self.named_child
@@ -994,9 +994,9 @@ class StatementChildHavingBase(StatementBase):
             raise AssertionError(self, "has illegal child", value, value.__class__)
 
     def getVisitableNodesNamed(self):
-        """ Named children dictionary.
+        """Named children dictionary.
 
-            For use in debugging and XML output.
+        For use in debugging and XML output.
         """
         attr_name = "subnode_" + self.named_child
         value = getattr(self, attr_name)
@@ -1073,6 +1073,9 @@ class StatementChildHavingBase(StatementBase):
 
 
 class SideEffectsFromChildrenMixin(object):
+    # Mixins are not allow to specify slots.
+    __slots__ = ()
+
     def mayHaveSideEffects(self):
         for child in self.getVisitableNodes():
             if child.mayHaveSideEffects():

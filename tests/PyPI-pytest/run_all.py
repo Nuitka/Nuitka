@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Tommy Li, mailto:<tommyli3318@gmail.com>
+#     Copyright 2021, Tommy Li, mailto:<tommyli3318@gmail.com>
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -82,7 +82,7 @@ def gitClone(package, url, directory):
 def main():
     # pylint: disable=broad-except,too-many-branches,too-many-locals,too-many-statements
 
-    _python_version = setup()
+    setup()
 
     # cache_dir is where the git clones are cached
     cache_dir = os.path.join(getCacheDir(), "pypi-git-clones")
@@ -109,27 +109,19 @@ def main():
             # running on python3
             if package_name in ("futures", "future"):
                 reportSkip("Does not run on Python3", ".", package_name)
-                if search_mode.abortIfExecuted():
-                    break
                 continue
 
         if os.name == "nt":
             if package_name in ("cryptography",):
                 reportSkip("Not working on Windows", ".", package_name)
-                if search_mode.abortIfExecuted():
-                    break
                 continue
 
         if package_name == "pyyaml":
             reportSkip("Not yet supported, see Issue #476", ".", package_name)
-            if search_mode.abortIfExecuted():
-                break
             continue
 
         if package_name in ("pycparser", "numpy"):
             reportSkip("Not yet supported, see Issue #477", ".", package_name)
-            if search_mode.abortIfExecuted():
-                break
             continue
 
         if package_name in (
@@ -139,8 +131,6 @@ def main():
             "pytz",  # need to 'make build'
             "rsa",  # Now uses Poetry (no setup.py)
         ):
-            if search_mode.abortIfExecuted():
-                break
             continue
 
         package_dir = os.path.join(cache_dir, package_name)
@@ -242,8 +232,6 @@ def main():
             my_print(e)
             results.append((package_name, "ERROR", "ERROR"))
 
-            if search_mode.abortIfExecuted():
-                break
             continue
 
         # compare outputs
@@ -252,7 +240,6 @@ def main():
             uncompiled_stdout,
             compiled_stdout,
             ignore_warnings=True,
-            ignore_infos=True,
             syntax_errors=True,
         )
 
@@ -261,7 +248,6 @@ def main():
             uncompiled_stderr,
             compiled_stderr,
             ignore_warnings=True,
-            ignore_infos=True,
             syntax_errors=True,
         )
 
@@ -286,9 +272,6 @@ def main():
         if exit_code != 0 and search_mode.abortOnFinding(
             dirname=None, filename=package_name
         ):
-            break
-
-        if search_mode.abortIfExecuted():
             break
 
     search_mode.finish()

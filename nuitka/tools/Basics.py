@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,9 +24,7 @@ import sys
 
 
 def goHome():
-    """ Go its own directory, to have it easy with path knowledge.
-
-    """
+    """Go its own directory, to have it easy with path knowledge."""
     os.chdir(getHomePath())
 
 
@@ -38,7 +36,7 @@ def getHomePath():
 
 
 def setupPATH():
-    """ Make sure installed tools are in PATH.
+    """Make sure installed tools are in PATH.
 
     For Windows, add this to the PATH, so pip installed PyLint will be found
     near the Python executing this script.

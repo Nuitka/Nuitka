@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,10 +21,11 @@ These are all very simple and have predictable properties, because we know their
 that should allow some important optimizations.
 """
 
-from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
+from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import (
+    CompileTimeConstantExpressionBase,
     ExpressionBuiltinSingleArgBase,
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
@@ -60,13 +61,12 @@ class ExpressionBuiltinContainerBase(
     builtin_spec = None
 
     named_child = "value"
-    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
+        value = self.subnode_value
 
         if value is None:
             return self.computeBuiltinSpec(
@@ -90,7 +90,8 @@ class ExpressionBuiltinTuple(ExpressionBuiltinContainerBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_tuple_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_tuple
 
 
@@ -99,7 +100,8 @@ class ExpressionBuiltinList(ExpressionBuiltinContainerBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_list_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_list
 
 
@@ -108,7 +110,8 @@ class ExpressionBuiltinSet(ExpressionBuiltinContainerBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_set_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_set
 
 
@@ -117,7 +120,8 @@ class ExpressionBuiltinFrozenset(ExpressionBuiltinContainerBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_frozenset_spec
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_frozenset
 
 
@@ -125,12 +129,12 @@ class ExpressionBuiltinFloat(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_FLOAT"
 
     named_child = "value"
-    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         # TODO: Depending on input type shape, we should improve this.
         return tshape_float_derived
 
@@ -149,28 +153,28 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
     builtin_spec = BuiltinParameterSpecs.builtin_bool_spec
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
+        value = self.subnode_value
 
-        if value is not None:
-            truth_value = self.getValue().getTruthValue()
+        truth_value = value.getTruthValue()
 
-            if truth_value is not None:
-                result = wrapExpressionWithNodeSideEffects(
-                    new_node=makeConstantReplacementNode(
-                        constant=truth_value, node=self
-                    ),
-                    old_node=self.getValue(),
-                )
+        if truth_value is not None:
+            result = wrapExpressionWithNodeSideEffects(
+                new_node=makeConstantReplacementNode(
+                    constant=truth_value, node=self, user_provided=False
+                ),
+                old_node=value,
+            )
 
-                return (
-                    result,
-                    "new_constant",
-                    "Predicted truth value of built-in bool argument",
-                )
+            return (
+                result,
+                "new_constant",
+                "Predicted truth value of built-in bool argument",
+            )
 
         return ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         # Note: Not allowed to subclass bool.
         return tshape_bool
 
@@ -179,9 +183,6 @@ class ExpressionBuiltinUnicodeBase(
     ExpressionSpecBasedComputationMixin, ExpressionChildrenHavingBase
 ):
     named_children = ("value", "encoding", "errors")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
-    getEncoding = ExpressionChildrenHavingBase.childGetter("encoding")
-    getErrors = ExpressionChildrenHavingBase.childGetter("errors")
 
     def __init__(self, value, encoding, errors, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -191,14 +192,14 @@ class ExpressionBuiltinUnicodeBase(
         )
 
     def computeExpression(self, trace_collection):
-        args = [self.getValue(), self.getEncoding(), self.getErrors()]
+        args = [self.subnode_value, self.subnode_encoding, self.subnode_errors]
 
         while args and args[-1] is None:
             del args[-1]
 
-        for arg in args:
-            # The value of that node escapes and could change its contents.
-            trace_collection.removeKnowledge(arg)
+        # The value of that node escapes and could change its contents.
+        if self.subnode_value is not None:
+            trace_collection.onValueEscapeStr(self.subnode_value)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -208,83 +209,92 @@ class ExpressionBuiltinUnicodeBase(
         )
 
 
-if python_version < 300:
+class ExpressionBuiltinStrP2(ExpressionBuiltinTypeBase):
+    """Python2 built-in str call."""
 
-    class ExpressionBuiltinStr(ExpressionBuiltinTypeBase):
-        kind = "EXPRESSION_BUILTIN_STR"
+    kind = "EXPRESSION_BUILTIN_STR_P2"
 
-        builtin_spec = BuiltinParameterSpecs.builtin_str_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_str_spec
 
-        def computeExpression(self, trace_collection):
-            (
-                new_node,
-                change_tags,
-                change_desc,
-            ) = ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
+    def computeExpression(self, trace_collection):
+        (
+            new_node,
+            change_tags,
+            change_desc,
+        ) = ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
 
-            if new_node is self:
-                str_value = self.getValue().getStrValue()
+        if new_node is self:
+            str_value = self.subnode_value.getStrValue()
 
-                if str_value is not None:
-                    new_node = wrapExpressionWithNodeSideEffects(
-                        new_node=str_value, old_node=self.getValue()
-                    )
+            if str_value is not None:
+                new_node = wrapExpressionWithNodeSideEffects(
+                    new_node=str_value, old_node=self.subnode_value
+                )
 
-                    change_tags = "new_expression"
-                    change_desc = "Predicted 'str' built-in result"
+                change_tags = "new_expression"
+                change_desc = "Predicted 'str' built-in result"
 
-            return new_node, change_tags, change_desc
+        return new_node, change_tags, change_desc
 
-        def getTypeShape(self):
-            return tshape_str_derived
-
-    class ExpressionBuiltinUnicode(ExpressionBuiltinUnicodeBase):
-        kind = "EXPRESSION_BUILTIN_UNICODE"
-
-        builtin_spec = BuiltinParameterSpecs.builtin_unicode_spec
-
-        def getTypeShape(self):
-            return tshape_unicode_derived
+    @staticmethod
+    def getTypeShape():
+        return tshape_str_derived
 
 
-else:
+class ExpressionBuiltinUnicodeP2(ExpressionBuiltinUnicodeBase):
+    """Python2 built-in unicode call."""
 
-    class ExpressionBuiltinStr(ExpressionBuiltinUnicodeBase):
-        kind = "EXPRESSION_BUILTIN_STR"
+    kind = "EXPRESSION_BUILTIN_UNICODE_P2"
 
-        builtin_spec = BuiltinParameterSpecs.builtin_str_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_unicode_p2_spec
 
-        def getTypeShape(self):
-            return tshape_str_derived
+    @staticmethod
+    def getTypeShape():
+        return tshape_unicode_derived
 
-    class ExpressionBuiltinBytes3(ExpressionBuiltinUnicodeBase):
-        kind = "EXPRESSION_BUILTIN_BYTES3"
 
-        builtin_spec = BuiltinParameterSpecs.builtin_bytes_spec
+class ExpressionBuiltinStrP3(ExpressionBuiltinUnicodeBase):
+    """Python3 built-in str call."""
 
-        def getTypeShape(self):
-            return tshape_bytes
+    kind = "EXPRESSION_BUILTIN_STR_P3"
 
-    class ExpressionBuiltinBytes1(ExpressionChildHavingBase):
-        kind = "EXPRESSION_BUILTIN_BYTES1"
+    builtin_spec = BuiltinParameterSpecs.builtin_str_spec
 
-        named_child = "value"
-        getValue = ExpressionChildHavingBase.childGetter("value")
+    @staticmethod
+    def getTypeShape():
+        return tshape_str_derived
 
-        def __init__(self, value, source_ref):
-            ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
-        def getTypeShape(self):
-            # TODO: Depending on input type shape, we should improve this.
-            return tshape_bytes_derived
+class ExpressionBuiltinBytes3(ExpressionBuiltinUnicodeBase):
+    kind = "EXPRESSION_BUILTIN_BYTES3"
 
-        def computeExpression(self, trace_collection):
-            return self.subnode_value.computeExpressionBytes(
-                bytes_node=self, trace_collection=trace_collection
-            )
+    builtin_spec = BuiltinParameterSpecs.builtin_bytes_p3_spec
 
-        def mayRaiseException(self, exception_type):
-            return self.subnode_value.mayRaiseExceptionBytes(exception_type)
+    @staticmethod
+    def getTypeShape():
+        return tshape_bytes
+
+
+class ExpressionBuiltinBytes1(ExpressionChildHavingBase):
+    kind = "EXPRESSION_BUILTIN_BYTES1"
+
+    named_child = "value"
+
+    def __init__(self, value, source_ref):
+        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
+
+    @staticmethod
+    def getTypeShape():
+        # TODO: Depending on input type shape, we should improve this.
+        return tshape_bytes_derived
+
+    def computeExpression(self, trace_collection):
+        return self.subnode_value.computeExpressionBytes(
+            bytes_node=self, trace_collection=trace_collection
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_value.mayRaiseExceptionBytes(exception_type)
 
 
 class ExpressionBuiltinBytearray1(ExpressionBuiltinTypeBase):
@@ -295,7 +305,8 @@ class ExpressionBuiltinBytearray1(ExpressionBuiltinTypeBase):
     def __init__(self, value, source_ref):
         ExpressionBuiltinTypeBase.__init__(self, value=value, source_ref=source_ref)
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bytearray
 
 
@@ -303,9 +314,6 @@ class ExpressionBuiltinBytearray3(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_BYTEARRAY3"
 
     named_children = ("string", "encoding", "errors")
-    getStringArg = ExpressionChildrenHavingBase.childGetter("string")
-    getEncoding = ExpressionChildrenHavingBase.childGetter("encoding")
-    getErrors = ExpressionChildrenHavingBase.childGetter("errors")
 
     builtin_spec = BuiltinParameterSpecs.builtin_bytearray_spec
 
@@ -321,5 +329,45 @@ class ExpressionBuiltinBytearray3(ExpressionChildrenHavingBase):
 
         return self, None, None
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bytearray
+
+
+class ExpressionConstantGenericAlias(CompileTimeConstantExpressionBase):
+    kind = "EXPRESSION_CONSTANT_GENERIC_ALIAS"
+
+    __slots__ = ("generic_alias",)
+
+    def __init__(self, generic_alias, source_ref):
+        CompileTimeConstantExpressionBase.__init__(self, source_ref=source_ref)
+
+        self.generic_alias = generic_alias
+
+    def finalize(self):
+        del self.parent
+
+    def getDetails(self):
+        return {"generic_alias": self.generic_alias}
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return False
+
+    def getCompileTimeConstant(self):
+        return self.generic_alias
+
+    def getStrValue(self):
+        return makeConstantRefNode(
+            constant=str(self.getCompileTimeConstant()),
+            user_provided=True,
+            source_ref=self.source_ref,
+        )
+
+    def computeExpressionRaw(self, trace_collection):
+        # Nothing much to do.
+        return self, None, None

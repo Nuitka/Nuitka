@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,10 +27,12 @@ and despite the long deprecation, it's in every later release.
 """
 
 import os
+import re
 import sys
 from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
 from nuitka.utils import Utils
+from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.Version import getNuitkaVersion
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
@@ -70,11 +72,30 @@ parser.add_option(
     dest="is_standalone",
     default=False,
     help="""\
-Enable standalone mode in build. This allows you to transfer the created binary
-to other machines without it relying on an existing Python installation. It
-implies these option: "--recurse-all". You may also want to use
-"--python-flag=no_site" to avoid the "site.py" module, which can save a lot
-of code dependencies. Defaults to off.""",
+Enable standalone mode for output. This allows you to transfer the created binary
+to other machines without it using an existing Python installation. This also
+means it will become big. It implies these option: "--follow-imports". You may also
+want to use "--python-flag=no_site" to avoid the "site.py" module, which can save
+a lot of code dependencies. Defaults to off.""",
+)
+
+parser.add_option(
+    "--onefile",
+    action="store_true",
+    dest="is_onefile",
+    default=False,
+    help="""\
+In case of standalone mode, enable single file mode. This means not a folder,
+but a compressed executable is created and used. Experimental at this time,
+and not supported on all OSes. Defaults to off.""",
+)
+
+parser.add_option(
+    "--no-onefile",
+    action="store_false",
+    dest="is_onefile",
+    default=False,
+    help=SUPPRESS_HELP,
 )
 
 
@@ -153,7 +174,9 @@ Allow Nuitka to download code if necessary, e.g. dependency walker on Windows.""
 )
 
 
-include_group = OptionGroup(parser, "Control the inclusion of modules and packages")
+include_group = OptionGroup(
+    parser, "Control the inclusion of modules and packages in result."
+)
 
 include_group.add_option(
     "--include-package",
@@ -199,7 +222,7 @@ include_group.add_option(
     metavar="PATTERN",
     default=[],
     help="""\
-Include into files matching the PATTERN. Overrides all recursion other options.
+Include into files matching the PATTERN. Overrides all other follow options.
 Can be given multiple times. Default empty.""",
 )
 
@@ -226,12 +249,11 @@ include_group.add_option(
 
 parser.add_option_group(include_group)
 
-recurse_group = OptionGroup(parser, "Control the recursion into imported modules")
+follow_group = OptionGroup(parser, "Control the following into imported modules")
 
 
-recurse_group.add_option(
+follow_group.add_option(
     "--follow-stdlib",
-    "--recurse-stdlib",
     action="store_true",
     dest="recurse_stdlib",
     default=False,
@@ -240,9 +262,8 @@ Also descend into imported modules from standard library. This will increase
 the compilation time by a lot. Defaults to off.""",
 )
 
-recurse_group.add_option(
+follow_group.add_option(
     "--nofollow-imports",
-    "--recurse-none",
     action="store_true",
     dest="recurse_none",
     default=False,
@@ -251,44 +272,90 @@ When --recurse-none is used, do not descend into any imported modules at all,
 overrides all other recursion options. Defaults to off.""",
 )
 
-recurse_group.add_option(
+follow_group.add_option(
     "--follow-imports",
-    "--recurse-all",
     action="store_true",
     dest="recurse_all",
     default=False,
     help="""\
-When --recurse-all is used, attempt to descend into all imported modules.
+When --follow-imports is used, attempt to descend into all imported modules.
 Defaults to off.""",
 )
 
-recurse_group.add_option(
+follow_group.add_option(
     "--follow-import-to",
-    "--recurse-to",
     action="append",
     dest="recurse_modules",
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\
-Recurse to that module, or if a package, to the whole package. Can be given
+Follow to that module if used, or if a package, to the whole package. Can be given
 multiple times. Default empty.""",
 )
 
-recurse_group.add_option(
+follow_group.add_option(
     "--nofollow-import-to",
-    "--recurse-not-to",
     action="append",
     dest="recurse_not_modules",
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\
-Do not recurse to that module name, or if a package name, to the whole package
-in any case, overrides all other options. Can be given multiple times. Default
+Do not follow to that module name even if used, or if a package name, to the
+whole package in any case, overrides all other options. Can be given multiple
+times. Default empty.""",
+)
+
+parser.add_option_group(follow_group)
+
+
+data_group = OptionGroup(parser, "Data files for standalone/onefile mode")
+
+data_group.add_option(
+    "--include-package-data",
+    action="append",
+    dest="package_data",
+    metavar="PACKAGE_DATA",
+    default=[],
+    help="""\
+Include data files of the given package name. Can use patterns. By default
+Nuitka does not unless hard coded and vital for operation of a package. This
+will include all non-DLL, non-extension modules in the distribution. Default
 empty.""",
 )
 
+data_group.add_option(
+    "--include-data-file",
+    action="append",
+    dest="data_files",
+    metavar="DATA_FILES",
+    default=[],
+    help="""\
+Include data files by filenames in the distribution. There are many
+allowed forms. With '--include-data-file=/path/to/file/*.txt=folder_name/some.txt' it
+will copy a single file and complain if it's multiple. With
+'--include-data-file=/path/to/files/*.txt=folder_name/' it will put
+all matching files into that folder. For recursive copy there is a
+form with 3 values that '--include-data-file=/path/to/scan=folder_name=**/*.txt'
+that will preserve directory structure. Default empty.""",
+)
 
-parser.add_option_group(recurse_group)
+data_group.add_option(
+    "--include-data-dir",
+    action="append",
+    dest="data_dirs",
+    metavar="DATA_DIRS",
+    default=[],
+    help="""\
+Include data files from complete directory in the distribution. This is
+recursive. Check '--include-data-file' with patterns if you want non-recursive
+inclusion. An example would be '--include-data-dir=/path/somedir=data/somedir'
+for plain copy, of the whole directory. All files are copied, if you want to
+exclude files you need to remove them beforehand. Default empty.""",
+)
+
+
+parser.add_option_group(data_group)
+
 
 execute_group = OptionGroup(parser, "Immediate execution after compilation")
 
@@ -310,7 +377,7 @@ execute_group.add_option(
     dest="debugger",
     default=False,
     help="""\
-Execute inside "gdb" to automatically get a stack trace.
+Execute inside a debugger, e.g. "gdb" or "lldb" to automatically get a stack trace.
 Defaults to off.""",
 )
 
@@ -387,7 +454,7 @@ output_group.add_option(
     help="""\
 Specify how the executable should be named. For extension modules there is no
 choice, also not for standalone mode and using it will be an error. This may
-include path information that needs to exist though. Defaults to %s on this
+include path information that needs to exist though. Defaults to '%s' on this
 platform.
 """
     % "<program_name>"
@@ -616,13 +683,34 @@ c_compiler_group.add_option(
     dest="lto",
     default=False,
     help="""\
-Use link time optimizations if available and usable (gcc 4.6 and higher).
+Use link time optimizations if available and usable (MSVC, gcc >=4.6, clang).
 Defaults to off.""",
+)
+
+c_compiler_group.add_option(
+    "--static-libpython",
+    action="store",
+    dest="static_libpython",
+    default="auto",
+    choices=("yes", "no", "auto"),
+    help="""\
+Use static link library of Python if available. Defaults to auto, i.e. enabled for where
+we know it's working.""",
 )
 
 parser.add_option_group(c_compiler_group)
 
 tracing_group = OptionGroup(parser, "Tracing features")
+
+tracing_group.add_option(
+    "--quiet",
+    action="store_true",
+    dest="quiet",
+    default=False,
+    help="""\
+Disable all information outputs, but show warnings.
+Defaults to off.""",
+)
 
 tracing_group.add_option(
     "--show-scons",
@@ -644,6 +732,16 @@ Defaults to off.""",
 )
 
 tracing_group.add_option(
+    "--no-progress",
+    action="store_false",
+    dest="progress_bar",
+    default=True,
+    help="""Disable progress bar outputs (if tqdm is installed).
+Defaults to off.""",
+)
+
+
+tracing_group.add_option(
     "--show-memory",
     action="store_true",
     dest="show_memory",
@@ -658,8 +756,18 @@ tracing_group.add_option(
     action="store_true",
     dest="show_inclusion",
     default=False,
-    help="""Provide a final summary on included modules.
+    help="""\
+Provide information for included modules and DLLs
 Defaults to off.""",
+)
+
+tracing_group.add_option(
+    "--show-modules-output",
+    action="store",
+    dest="show_inclusion_output",
+    default=None,
+    help="""\
+Where to output --show-modules, should be a filename. Default is standard output.""",
 )
 
 tracing_group.add_option(
@@ -672,6 +780,15 @@ Output details of actions taken, esp. in optimizations. Can become a lot.
 Defaults to off.""",
 )
 
+tracing_group.add_option(
+    "--verbose-output",
+    action="store",
+    dest="verbose_output",
+    default=None,
+    help="""\
+Where to output --verbose, should be a filename. Default is standard output.""",
+)
+
 parser.add_option_group(tracing_group)
 
 windows_group = OptionGroup(parser, "Windows specific controls")
@@ -680,10 +797,8 @@ windows_group.add_option(
     "--windows-dependency-tool",
     action="store",
     dest="dependency_tool",
-    default="depends.exe",
-    help="""\
-When compiling for Windows, use this dependency tool. Defaults to %default,
-other allowed value is 'pefile'.""",
+    default=None,
+    help=SUPPRESS_HELP,
 )
 
 windows_group.add_option(
@@ -696,15 +811,170 @@ When compiling for Windows, disable the console window. Defaults to off.""",
 )
 
 windows_group.add_option(
-    "--windows-icon",
-    action="store",
+    "--windows-icon-from-ico",
+    action="append",
     dest="icon_path",
     metavar="ICON_PATH",
-    default=None,
-    help="Add executable icon (Windows only).",
+    default=[],
+    help="""\
+Add executable icon. Can be given multiple times for different resolutions
+or files with multiple icons inside. In the later case, you may also suffix
+with #<n> where n is an integer index starting from 1, specifying a specific
+icon to be included, and all others to be ignored.""",
 )
 
+windows_group.add_option(
+    "--windows-icon-from-exe",
+    action="store",
+    dest="icon_exe_path",
+    metavar="ICON_EXE_PATH",
+    default=None,
+    help="Copy executable icons from this existing executable (Windows only).",
+)
+
+windows_group.add_option(
+    "--windows-uac-admin",
+    action="store_true",
+    dest="windows_uac_admin",
+    metavar="WINDOWS_UAC_ADMIN",
+    default=False,
+    help="Request Windows User Control, to grant admin rights on execution. (Windows only). Defaults to off.",
+)
+
+windows_group.add_option(
+    "--windows-uac-uiaccess",
+    action="store_true",
+    dest="windows_uac_uiaccess",
+    metavar="WINDOWS_UAC_UIACCESS",
+    default=False,
+    help="""\
+Request Windows User Control, to enforce running from a few folders only, remote
+desktop access. (Windows only). Defaults to off.""",
+)
+
+windows_group.add_option(
+    "--windows-company-name",
+    action="store",
+    dest="windows_company_name",
+    metavar="WINDOWS_COMPANY_NAME",
+    default=None,
+    help="""\
+Name of the company to use in Windows Version information.
+
+One of file or product version is required, when a version resource needs to be
+added, e.g. to specify product name, or company name. Defaults to unused.""",
+)
+
+windows_group.add_option(
+    "--windows-product-name",
+    action="store",
+    dest="windows_product_name",
+    metavar="WINDOWS_PRODUCT_NAME",
+    default=None,
+    help="""\
+Name of the product to use in Windows Version information. Defaults to base
+filename of the binary.""",
+)
+
+
+windows_group.add_option(
+    "--windows-file-version",
+    action="store",
+    dest="windows_file_version",
+    metavar="WINDOWS_FILE_VERSION",
+    default=None,
+    help="""\
+File version to use in Windows Version information. Must be a sequence of
+up to 4 numbers, nothing else allowed.
+One of file or product version is required, when a version resource needs to be
+added, e.g. to specify product name, or company name. Defaults to unused.""",
+)
+
+windows_group.add_option(
+    "--windows-product-version",
+    action="store",
+    dest="windows_product_version",
+    metavar="WINDOWS_PRODUCT_VERSION",
+    default=None,
+    help="""\
+Product version to use in Windows Version information. Must be a sequence of
+up to 4 numbers, nothing else allowed.
+One of file or product version is required, when a version resource needs to be
+added, e.g. to specify product name, or company name. Defaults to unused.""",
+)
+
+windows_group.add_option(
+    "--windows-file-description",
+    action="store",
+    dest="windows_file_description",
+    metavar="WINDOWS_FILE_DESCRIPTION",
+    default=None,
+    help="""\
+Description of the file use in Windows Version information.
+
+One of file or product version is required, when a version resource needs to be
+added, e.g. to specify product name, or company name. Defaults to nonsense.""",
+)
+
+windows_group.add_option(
+    "--windows-onefile-tempdir",
+    "--onefile-tempdir",
+    action="store_true",
+    dest="is_onefile_tempdir",
+    metavar="ONEFILE_TEMPDIR",
+    default=False,
+    help=SUPPRESS_HELP,
+)
+
+windows_group.add_option(
+    "--windows-onefile-tempdir-spec",
+    action="store",
+    dest="onefile_tempdir_spec",
+    metavar="ONEFILE_TEMPDIR_SPEC",
+    default=None,
+    help="""\
+Use this as a temporary folder. Defaults to '%TEMP%\\onefile_%PID%_%TIME%', i.e. system temporary directory.""",
+)
+
+windows_group.add_option(
+    "--windows-force-stdout-spec",
+    action="store",
+    dest="force_stdout_spec",
+    metavar="WINDOWS_FORCE_STDOUT_SPEC",
+    default=None,
+    help="""\
+Force standard output of the program to go to this location. Useful for programs with
+disabled console and programs using the Windows Services Plugin of Nuitka. Defaults
+to not active, use e.g. '%PROGRAM%.out.txt', i.e. file near your program.""",
+)
+
+windows_group.add_option(
+    "--windows-force-stderr-spec",
+    action="store",
+    dest="force_stderr_spec",
+    metavar="WINDOWS_FORCE_STDERR_SPEC",
+    default=None,
+    help="""\
+Force standard error of the program to go to this location. Useful for programs with
+disabled console and programs using the Windows Services Plugin of Nuitka. Defaults
+to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your program.""",
+)
+
+
 parser.add_option_group(windows_group)
+
+linux_group = OptionGroup(parser, "Linux specific controls")
+
+linux_group.add_option(
+    "--linux-onefile-icon",
+    action="append",
+    dest="icon_path",
+    metavar="ICON_PATH",
+    default=[],
+    help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to ",
+)
+
+parser.add_option_group(linux_group)
 
 plugin_group = OptionGroup(parser, "Plugin control")
 
@@ -764,7 +1034,8 @@ plugin_group.add_option(
 )
 
 
-def _considerPluginOptions():
+def _considerPluginOptions(logger):
+    # Recursive dependency on plugins during parsing of command line.
     from nuitka.plugins.Plugins import (
         addPluginCommandLineOptions,
         addUserPluginCommandLineOptions,
@@ -772,19 +1043,21 @@ def _considerPluginOptions():
 
     for arg in sys.argv[1:]:
         if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
-            plugin_name = arg[16:]
-            if "=" in plugin_name:
-                sys.exit(
+            plugin_names = arg[16:]
+            if "=" in plugin_names:
+                logger.sysexit(
                     "Error, plugin options format changed. Use '--plugin-enable=%s --help' to know new options."
-                    % plugin_name.split('=', 1)[0]
+                    % plugin_names.split("=", 1)[0]
                 )
 
-            addPluginCommandLineOptions(parser=parser, plugin_name=plugin_name)
+            addPluginCommandLineOptions(
+                parser=parser, plugin_names=plugin_names.split(",")
+            )
 
         if arg.startswith("--user-plugin="):
             plugin_name = arg[14:]
             if "=" in plugin_name:
-                sys.exit(
+                logger.sysexit(
                     "Error, plugin options format changed. Use '--user-plugin=%s --help' to know new options."
                     % plugin_name
                 )
@@ -792,8 +1065,115 @@ def _considerPluginOptions():
             addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
 
 
-def parseOptions():
+def _expandProjectArg(arg, filename_arg, for_eval):
+    def wrap(value):
+        if for_eval:
+            return repr(value)
+        else:
+            return value
+
+    values = {
+        "OS": wrap(Utils.getOS()),
+        "Arch": wrap(Utils.getArchitecture()),
+        "Version": getNuitkaVersion(),
+        "MAIN_DIRECTORY": wrap(os.path.dirname(filename_arg) or "."),
+    }
+    arg = arg.format(**values)
+
+    return arg
+
+
+def _getProjectOptions(logger, filename_arg, module_mode):
+    # Complex stuff, pylint: disable=too-many-branches,too-many-locals
+    # Do it only once.
+    if os.environ.get("NUITKA_REEXECUTION", "0") == "1":
+        return
+
+    if os.path.isdir(filename_arg):
+        if module_mode:
+            filename_arg = os.path.join(filename_arg, "__init__.py")
+        else:
+            filename_arg = os.path.join(filename_arg, "__main__.py")
+
+    # The file specified may not exist, let the later parts of Nuitka handle this.
+    try:
+        contents_by_line = getFileContentByLine(filename_arg, "rb")
+    except (OSError, IOError):
+        return
+
+    def sysexit(count, message):
+        logger.sysexit("%s:%d %s" % (filename_arg, count + 1, message))
+
+    execute_block = True
+    expect_block = False
+
+    cond_level = -1
+
+    for count, line in enumerate(contents_by_line):
+        match = re.match(b"^\\s*#(\\s+)nuitka-project(.*?):(.*)", line)
+
+        if match:
+            level, command, arg = match.groups()
+            level = len(level)
+
+            # Check for empty conditional blocks.
+            if expect_block and level <= cond_level:
+                sysexit(
+                    count,
+                    "Error, 'nuitka-project-if' is expected to be followed by block start.",
+                )
+
+            expect_block = False
+
+            if level <= cond_level:
+                execute_block = True
+
+            if level > cond_level and not execute_block:
+                continue
+
+            if str is not bytes:
+                command = command.decode("utf8")
+                arg = arg.decode("utf8")
+
+            if command == "-if":
+                if not arg.endswith(":"):
+                    sysexit(
+                        count,
+                        "Error, 'nuitka-project-if' needs to start a block with a colon.",
+                    )
+
+                arg = arg[:-1]
+
+                expanded = _expandProjectArg(arg, filename_arg, for_eval=True)
+                r = eval(  # We allow the user to run any code, pylint: disable=eval-used
+                    expanded
+                )
+
+                # Likely mistakes, e.g. with "in" tests.
+                if r is not True and r is not False:
+                    sys.exit(
+                        "Error, 'nuitka-project-if' condition %r (%r) does not yield boolean result %r"
+                        % (arg, expanded, r)
+                    )
+
+                execute_block = r
+                expect_block = True
+                cond_level = level
+            elif command == "":
+                arg = re.sub(r"""^([\w-]*=)(['"])(.*)\2$""", r"\1\3", arg.lstrip())
+
+                yield _expandProjectArg(arg, filename_arg, for_eval=False)
+            else:
+                assert False, (command, line)
+
+
+def parseOptions(logger):
+    # Pretty complex code, having a small options parser and many details as
+    # well as integrating with plugins and run modes, pylint: disable=too-many-branches
+
     # First, isolate the first non-option arguments.
+    extra_args = []
+
     if is_nuitka_run:
         count = 0
 
@@ -802,6 +1182,7 @@ def parseOptions():
                 continue
 
             if arg[0] != "-":
+                filename_arg = arg[0]
                 break
 
             # Treat "--" as a terminator.
@@ -812,11 +1193,26 @@ def parseOptions():
         if count > 0:
             extra_args = sys.argv[count + 1 :]
             sys.argv = sys.argv[0 : count + 1]
-    else:
-        extra_args = []
+
+    filename_arg = None
+
+    for count, arg in enumerate(sys.argv):
+        if count == 0:
+            continue
+
+        if arg[0] != "-":
+            filename_arg = arg
+            break
+
+    if filename_arg is not None:
+        sys.argv = (
+            [sys.argv[0]]
+            + list(_getProjectOptions(logger, filename_arg, "--module" in sys.argv[1:]))
+            + sys.argv[1:]
+        )
 
     # Next, lets activate plugins early, so they can inject more options to the parser.
-    _considerPluginOptions()
+    _considerPluginOptions(logger)
 
     options, positional_args = parser.parse_args()
 
@@ -829,7 +1225,7 @@ def parseOptions():
     if not positional_args:
         parser.print_help()
 
-        sys.exit(
+        logger.sysexit(
             """
 Error, need positional argument with python module or main program."""
         )
@@ -837,9 +1233,9 @@ Error, need positional argument with python module or main program."""
     if not options.immediate_execution and len(positional_args) > 1:
         parser.print_help()
 
-        sys.exit(
+        logger.sysexit(
             """
-Error, need only one positional argument unless "--run" is specified to
+Error, specify only one positional argument unless "--run" is specified to
 pass them to the compiled program execution."""
         )
 

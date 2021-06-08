@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -157,7 +157,7 @@ def _makeTryExceptSingleHandlerNode(
         )
     )
 
-    if python_version >= 300 and public_exc:
+    if python_version >= 0x300 and public_exc:
         handling = (
             makeTryFinallyStatement(
                 provider=provider,
@@ -233,7 +233,7 @@ def buildTryExceptionNode(provider, node, source_ref):
                     provider=provider, nodes=exception_block, source_ref=source_ref
                 )
             ]
-        elif python_version < 300:
+        elif python_version < 0x300:
             statements = [
                 buildAssignmentStatements(
                     provider=provider,
@@ -335,7 +335,7 @@ def buildTryExceptionNode(provider, node, source_ref):
         # For Python3, we need not publish at all, if all we do is to revert
         # that immediately. For Python2, the publish may release previously
         # published exception, which has side effects potentially.
-        if python_version < 300:
+        if python_version < 0x300:
             exception_handling = StatementsSequence(
                 statements=(
                     StatementPreserveFrameException(
@@ -347,8 +347,9 @@ def buildTryExceptionNode(provider, node, source_ref):
                 source_ref=source_ref.atInternal(),
             )
     else:
-        if python_version < 300:
-            exception_handling.setStatements(
+        if python_version < 0x300:
+            exception_handling.setChild(
+                "statements",
                 (
                     StatementPreserveFrameException(
                         preserver_id=0,  # unused with Python2
@@ -356,7 +357,7 @@ def buildTryExceptionNode(provider, node, source_ref):
                     ),
                     StatementPublishException(source_ref=source_ref.atInternal()),
                 )
-                + exception_handling.getStatements()
+                + exception_handling.subnode_statements,
             )
         else:
             preserver_id = provider.allocatePreserverId()

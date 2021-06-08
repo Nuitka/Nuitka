@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,13 +24,17 @@ code from other modules.
 """
 
 from nuitka.PythonVersions import python_version
-from nuitka.utils.InstanceCounters import counted_del, counted_init
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 
 # These defaults have changed with Python versions.
-_future_division_default = python_version >= 300
-_future_absolute_import_default = python_version >= 300
-_future_generator_stop_default = python_version >= 370
-_future_annotations_default = python_version >= 400
+_future_division_default = python_version >= 0x300
+_future_absolute_import_default = python_version >= 0x300
+_future_generator_stop_default = python_version >= 0x370
+_future_annotations_default = python_version >= 0x400
 
 
 class FutureSpec(object):
@@ -54,7 +58,8 @@ class FutureSpec(object):
         self.generator_stop = _future_generator_stop_default
         self.future_annotations = _future_annotations_default
 
-    __del__ = counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     def __repr__(self):
         return "<FutureSpec %s>" % ",".join(self.asFlags())
@@ -109,33 +114,33 @@ class FutureSpec(object):
         return self.future_annotations
 
     def asFlags(self):
-        """ Create a list of C identifiers to represent the flag values.
+        """Create a list of C identifiers to represent the flag values.
 
-            This is for use in code generation and to restore from
-            saved modules.
+        This is for use in code generation and to restore from
+        saved modules.
         """
 
         result = []
 
-        if python_version < 300 and self.future_division:
+        if python_version < 0x300 and self.future_division:
             result.append("CO_FUTURE_DIVISION")
 
         if self.unicode_literals:
             result.append("CO_FUTURE_UNICODE_LITERALS")
 
-        if python_version < 300 and self.absolute_import:
+        if python_version < 0x300 and self.absolute_import:
             result.append("CO_FUTURE_ABSOLUTE_IMPORT")
 
-        if python_version < 300 and self.future_print:
+        if python_version < 0x300 and self.future_print:
             result.append("CO_FUTURE_PRINT_FUNCTION")
 
-        if python_version >= 300 and self.barry_bdfl:
+        if python_version >= 0x300 and self.barry_bdfl:
             result.append("CO_FUTURE_BARRY_AS_BDFL")
 
-        if 350 <= python_version < 370 and self.generator_stop:
+        if 0x350 <= python_version < 0x370 and self.generator_stop:
             result.append("CO_FUTURE_GENERATOR_STOP")
 
-        if python_version >= 370 and self.future_annotations:
+        if python_version >= 0x370 and self.future_annotations:
             result.append("CO_FUTURE_ANNOTATIONS")
 
         return tuple(result)

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -42,6 +42,7 @@ from .ExceptionNodes import (
     ExpressionBuiltinMakeExceptionImportError,
 )
 from .ExpressionBases import CompileTimeConstantExpressionBase
+from .shapes.BuiltinTypeShapes import tshape_exception_class
 
 
 class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
@@ -63,44 +64,53 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
     def getBuiltinName(self):
         return self.builtin_name
 
-    def isKnownToBeHashable(self):
+    @staticmethod
+    def isKnownToBeHashable():
         return True
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         return False
 
     def getStrValue(self):
         return makeConstantRefNode(
             constant=str(self.getCompileTimeConstant()),
             user_provided=True,
-            source_ref=self.getSourceReference(),
+            source_ref=self.source_ref,
         )
 
 
-_debug_value = "no_asserts" not in getPythonFlags()
+def makeExpressionBuiltinTypeRef(builtin_name, source_ref):
+    return makeConstantRefNode(
+        constant=__builtins__[builtin_name], source_ref=source_ref
+    )
 
 
-def makeExpressionBuiltinRef(builtin_name, source_ref):
+quick_names = {"None": None, "True": True, "False": False, "Ellipsis": Ellipsis}
+
+
+def makeExpressionBuiltinRef(builtin_name, locals_scope, source_ref):
     assert builtin_name in builtin_names, builtin_name
-
-    quick_names = {
-        "None": None,
-        "True": True,
-        "False": False,
-        "__debug__": _debug_value,
-        "Ellipsis": Ellipsis,
-    }
 
     if builtin_name in quick_names:
         return makeConstantRefNode(
             constant=quick_names[builtin_name], source_ref=source_ref
         )
-    elif builtin_name in builtin_type_names:
+    elif builtin_name == "__debug__":
         return makeConstantRefNode(
-            constant=__builtins__[builtin_name], source_ref=source_ref
+            constant="no_asserts" not in getPythonFlags(), source_ref=source_ref
+        )
+    elif builtin_name in builtin_type_names:
+        return makeExpressionBuiltinTypeRef(
+            builtin_name=builtin_name, source_ref=source_ref
+        )
+    elif builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
+        return ExpressionBuiltinWithContextRef(
+            builtin_name=builtin_name, locals_scope=locals_scope, source_ref=source_ref
         )
     else:
         return ExpressionBuiltinRef(builtin_name=builtin_name, source_ref=source_ref)
@@ -110,6 +120,13 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_REF"
 
     __slots__ = ()
+
+    # For overload
+    locals_scope = None
+
+    @staticmethod
+    def isExpressionBuiltinRef():
+        return True
 
     def __init__(self, builtin_name, source_ref):
         ExpressionBuiltinRefBase.__init__(
@@ -123,7 +140,9 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
+        from nuitka.optimizations.OptimizeBuiltinCalls import (
+            computeBuiltinCall,
+        )
 
         # Anything may happen. On next pass, if replaced, we might be better
         # but not now.
@@ -135,16 +154,35 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
 
         if self.builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
             # Just inform the collection that all has escaped.
-            trace_collection.onLocalsUsage(self.getParentVariableProvider())
+            trace_collection.onLocalsUsage(locals_scope=self.getLocalsScope())
 
         return new_node, tags, message
 
-    def getStringValue(self):
-        return repr(self.getCompileTimeConstant())
-
-    def isKnownToBeIterable(self, count):
+    @staticmethod
+    def isKnownToBeIterable(count):
         # TODO: Why yes, some may be, could be told here.
         return None
+
+
+class ExpressionBuiltinWithContextRef(ExpressionBuiltinRef):
+    """Same as ExpressionBuiltinRef, but with a context it refers to."""
+
+    kind = "EXPRESSION_BUILTIN_WITH_CONTEXT_REF"
+
+    __slots__ = ("locals_scope",)
+
+    def __init__(self, builtin_name, locals_scope, source_ref):
+        ExpressionBuiltinRef.__init__(
+            self, builtin_name=builtin_name, source_ref=source_ref
+        )
+
+        self.locals_scope = locals_scope
+
+    def getDetails(self):
+        return {"builtin_name": self.builtin_name, "locals_scope": self.locals_scope}
+
+    def getLocalsScope(self):
+        return self.locals_scope
 
 
 class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
@@ -165,9 +203,6 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
 
-    def getStringValue(self):
-        return repr(self.getCompileTimeConstant())
-
 
 class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_EXCEPTION_REF"
@@ -186,11 +221,16 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
 
     getExceptionName = ExpressionBuiltinRefBase.getBuiltinName
 
+    @staticmethod
+    def getTypeShape():
+        return tshape_exception_class
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
     def getCompileTimeConstant(self):
         return builtin_exception_values[self.builtin_name]
-
-    def mayRaiseException(self, exception_type):
-        return False
 
     def computeExpressionRaw(self, trace_collection):
         # Not much that can be done here.
@@ -200,7 +240,7 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         exception_name = self.getExceptionName()
 
         def createBuiltinMakeException(args, name=None, path=None, source_ref=None):
-            if exception_name == "ImportError" and python_version >= 300:
+            if exception_name == "ImportError" and python_version >= 0x300:
                 return ExpressionBuiltinMakeExceptionImportError(
                     exception_name=exception_name,
                     args=args,

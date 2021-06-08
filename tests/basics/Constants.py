@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -16,6 +16,8 @@
 #     limitations under the License.
 #
 """ Playing around with constants only. """
+
+# pylint: disable=invalid-name,redefined-outer-name
 
 from __future__ import print_function
 
@@ -106,8 +108,7 @@ mutableConstantChanger()
 
 
 def defaultKeepsIdentity(arg="str_value"):
-    print("Default constant values are still shared if immutable:")
-    print(arg is "str_value")
+    print("Default constant values are still shared if immutable:", arg is "str_value")
 
 
 defaultKeepsIdentity()

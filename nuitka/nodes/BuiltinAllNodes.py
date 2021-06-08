@@ -1,4 +1,4 @@
-#     Copyright 2020, Batakrishna Sahu, mailto:<Batakrishna.Sahu@suiit.ac.in>
+#     Copyright 2021, Batakrishna Sahu, mailto:<Batakrishna.Sahu@suiit.ac.in>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,7 +36,7 @@ from .shapes.BuiltinTypeShapes import (
 
 
 class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
-    """ Builtin All Node class.
+    """Builtin All Node class.
 
     Args:
         ExpressionBase: 'all - expression'
@@ -51,7 +51,7 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
     builtin_spec = BuiltinParameterSpecs.builtin_all_spec
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
+        value = self.subnode_value
         shape = value.getTypeShape()
         if shape.hasShapeSlotIter() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -64,7 +64,9 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
         if shape in (tshape_str, tshape_bytes, tshape_unicode):
             return (
                 wrapExpressionWithNodeSideEffects(
-                    new_node=makeConstantReplacementNode(constant=True, node=self),
+                    new_node=makeConstantReplacementNode(
+                        constant=True, node=self, user_provided=False
+                    ),
                     old_node=value,
                 ),
                 "new_constant",
@@ -78,7 +80,9 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
 
             if all_true is not None:
                 result = wrapExpressionWithNodeSideEffects(
-                    new_node=makeConstantReplacementNode(constant=all_true, node=self),
+                    new_node=makeConstantReplacementNode(
+                        constant=all_true, node=self, user_provided=False
+                    ),
                     old_node=value,
                 )
 
@@ -98,17 +102,14 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
 
         return self, None, None
 
-    def getTypeShape(self):
-        """ returns type shape of the 'all' node
-
-        """
+    @staticmethod
+    def getTypeShape():
+        """returns type shape of the 'all' node"""
         return tshape_bool
 
     def mayRaiseException(self, exception_type):
-        """ returns boolean True if try/except/finally is needed else False
-
-        """
-        value = self.getValue()
+        """returns boolean True if try/except/finally is needed else False"""
+        value = self.subnode_value
 
         if value.mayRaiseException(exception_type):
             return True

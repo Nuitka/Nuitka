@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,6 +21,7 @@
 
 from nuitka import PythonOperators
 from nuitka.Errors import NuitkaAssumptionError
+from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import (
@@ -28,24 +29,23 @@ from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_bool
+from .shapes.BuiltinTypeShapes import tshape_bool, tshape_exception_class
 
 
 class ExpressionComparisonBase(ExpressionChildrenHavingBase):
     named_children = ("left", "right")
-    getLeft = ExpressionChildrenHavingBase.childGetter("left")
-    getRight = ExpressionChildrenHavingBase.childGetter("right")
 
     def __init__(self, left, right, source_ref):
-        assert left.isExpression()
-        assert right.isExpression()
-
         ExpressionChildrenHavingBase.__init__(
             self, values={"left": left, "right": right}, source_ref=source_ref
         )
 
+    @staticmethod
+    def copyTraceStateFrom(source):
+        pass
+
     def getOperands(self):
-        return (self.getLeft(), self.getRight())
+        return (self.subnode_left, self.subnode_right)
 
     def getComparator(self):
         return self.comparator
@@ -78,8 +78,8 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
             return self._computeCompileTimeConstantComparision(trace_collection)
 
         # The value of these nodes escaped and could change its contents.
-        trace_collection.removeKnowledge(left)
-        trace_collection.removeKnowledge(right)
+        # TODO: Comparisons don't do much, but add this.
+        # trace_collection.onValueEscapeRichComparison(left, right, self.comparator)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -88,14 +88,20 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
 
         return self, None, None
 
+    def makeInverseComparision(self):
+        # Making this accessing for tree building phase as well.
+        return makeComparisonExpression(
+            left=self.subnode_left,
+            right=self.subnode_right,
+            comparator=PythonOperators.comparison_inversions[self.comparator],
+            source_ref=self.source_ref,
+        )
+
     def computeExpressionOperationNot(self, not_node, trace_collection):
         if self.getTypeShape() is tshape_bool:
-            result = makeComparisonExpression(
-                left=self.subnode_left,
-                right=self.subnode_right,
-                comparator=PythonOperators.comparison_inversions[self.comparator],
-                source_ref=self.source_ref,
-            )
+            result = self.makeInverseComparision()
+
+            result.copyTraceStateFrom(self)
 
             return (
                 result,
@@ -108,6 +114,8 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
 
 
 class ExpressionComparisonRichBase(ExpressionComparisonBase):
+    __slots__ = "type_shape", "escape_desc"
+
     def __init__(self, left, right, source_ref):
         ExpressionComparisonBase.__init__(
             self, left=left, right=right, source_ref=source_ref
@@ -119,8 +127,13 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
     def getTypeShape(self):
         return self.type_shape
 
-    def getDetails(self):
+    @staticmethod
+    def getDetails():
         return {}
+
+    def copyTraceStateFrom(self, source):
+        self.type_shape = source.type_shape
+        self.escape_desc = source.escape_desc
 
     def canCreateUnsupportedException(self):
         return hasattr(self.subnode_left.getTypeShape(), "typical_value") and hasattr(
@@ -187,10 +200,11 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
                     ),
                 )
 
-        if self.escape_desc.isValueEscaping():
             # The value of these nodes escaped and could change its contents.
-            trace_collection.removeKnowledge(left)
-            trace_collection.removeKnowledge(right)
+
+            # TODO: Comparisons don't do much, but add this.
+            # if self.escape_desc.isValueEscaping():
+            #    trace_collection.onValueEscapeRichComparison(left, right, self.comparator)
 
         if self.escape_desc.isControlFlowEscape():
             # Any code could be run, note that.
@@ -307,6 +321,8 @@ class ExpressionComparisonNeq(ExpressionComparisonRichBase):
 
 
 class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
+    __slots__ = ("match_value",)
+
     def __init__(self, left, right, source_ref):
         ExpressionComparisonBase.__init__(
             self, left=left, right=right, source_ref=source_ref
@@ -317,16 +333,18 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
         # TODO: Forward propagate this one.
         self.match_value = self.comparator == "Is"
 
-    def getDetails(self):
+    @staticmethod
+    def getDetails():
         return {}
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bool
 
     def mayRaiseException(self, exception_type):
-        return self.getLeft().mayRaiseException(
+        return self.subnode_left.mayRaiseException(
             exception_type
-        ) or self.getRight().mayRaiseException(exception_type)
+        ) or self.subnode_right.mayRaiseException(exception_type)
 
     def mayRaiseExceptionBool(self, exception_type):
         return False
@@ -335,7 +353,9 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
         left, right = self.getOperands()
 
         if trace_collection.mustAlias(left, right):
-            result = makeConstantReplacementNode(constant=self.match_value, node=self)
+            result = makeConstantReplacementNode(
+                constant=self.match_value, node=self, user_provided=False
+            )
 
             if left.mayHaveSideEffects() or right.mayHaveSideEffects():
                 result = wrapExpressionWithSideEffects(
@@ -354,7 +374,7 @@ Determined values to alias and therefore result of %s comparison."""
 
         if trace_collection.mustNotAlias(left, right):
             result = makeConstantReplacementNode(
-                constant=not self.match_value, node=self
+                constant=not self.match_value, node=self, user_provided=False
             )
 
             if left.mayHaveSideEffects() or right.mayHaveSideEffects():
@@ -425,10 +445,12 @@ class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
             self, left=left, right=right, source_ref=source_ref
         )
 
-    def getDetails(self):
+    @staticmethod
+    def getDetails():
         return {}
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bool
 
     def getSimulator(self):
@@ -436,6 +458,30 @@ class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
         assert False
 
         return PythonOperators.all_comparison_functions[self.comparator]
+
+    def mayRaiseException(self, exception_type):
+        # TODO: Match errors that exception comparisons might raise more accurately.
+        return (
+            self.subnode_left.mayRaiseException(exception_type)
+            or self.subnode_right.mayRaiseException(exception_type)
+            or self.mayRaiseExceptionComparison()
+        )
+
+    def mayRaiseExceptionComparison(self):
+        if python_version < 0x300:
+            return False
+
+        # TODO: Add shape for exceptions.
+        type_shape = self.subnode_right.getTypeShape()
+
+        if type_shape is tshape_exception_class:
+            return False
+
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionBool(exception_type):
+        return False
 
 
 class ExpressionComparisonExceptionMatch(ExpressionComparisonExceptionMatchBase):
@@ -458,31 +504,36 @@ class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
 
         assert self.comparator in ("In", "NotIn")
 
-    def getDetails(self):
+    @staticmethod
+    def getDetails():
         return {}
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_bool
 
     def mayRaiseException(self, exception_type):
-        left = self.getLeft()
+        left = self.subnode_left
 
         if left.mayRaiseException(exception_type):
             return True
 
-        right = self.getRight()
+        right = self.subnode_right
 
         if right.mayRaiseException(exception_type):
             return True
 
         return right.mayRaiseExceptionIn(exception_type, left)
 
-    def mayRaiseExceptionBool(self, exception_type):
+    @staticmethod
+    def mayRaiseExceptionBool(exception_type):
         return False
 
     def computeExpression(self, trace_collection):
-        return self.getRight().computeExpressionComparisonIn(
-            in_node=self, value_node=self.getLeft(), trace_collection=trace_collection
+        return self.subnode_right.computeExpressionComparisonIn(
+            in_node=self,
+            value_node=self.subnode_left,
+            trace_collection=trace_collection,
         )
 
 

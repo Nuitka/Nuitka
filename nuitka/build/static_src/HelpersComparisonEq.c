@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -23,18 +23,18 @@
 #endif
 
 #include "HelpersComparisonEqUtils.c"
-/* C helpers for type specialized "==" (EQ) comparions */
+/* C helpers for type specialized "==" (EQ) comparisons */
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static PyObject *COMPARE_EQ_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -49,16 +49,16 @@ static PyObject *COMPARE_EQ_OBJECT_INT_INT(PyObject *operand1, PyObject *operand
     return result;
 }
 #endif
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static bool COMPARE_EQ_CBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -73,16 +73,16 @@ static bool COMPARE_EQ_CBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     return result;
 }
 #endif
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 static nuitka_bool COMPARE_EQ_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -100,7 +100,7 @@ static nuitka_bool COMPARE_EQ_NBOOL_INT_INT(PyObject *operand1, PyObject *operan
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
         return COMPARE_EQ_OBJECT_INT_INT(operand1, operand2);
     }
@@ -116,7 +116,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return NULL;
     }
@@ -129,7 +129,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !PyInstance_Check(operand1)) {
 
@@ -388,7 +388,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: %s() == %s()", type1->tp_name, type2->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of '%s' and '%s'", type1->tp_name,
@@ -402,7 +402,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 bool RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
         return COMPARE_EQ_CBOOL_INT_INT(operand1, operand2);
     }
@@ -418,7 +418,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return false;
     }
@@ -431,7 +431,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !PyInstance_Check(operand1)) {
 
@@ -447,9 +447,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -514,9 +516,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -534,9 +538,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -553,9 +559,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -665,9 +673,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -686,9 +696,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -707,9 +719,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
         }
     }
@@ -732,7 +746,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: %s() == %s()", type1->tp_name, type2->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of '%s' and '%s'", type1->tp_name,
@@ -746,7 +760,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyInt_CheckExact(operand1) && PyInt_CheckExact(operand2)) {
         return COMPARE_EQ_NBOOL_INT_INT(operand1, operand2);
     }
@@ -762,7 +776,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return NUITKA_BOOL_EXCEPTION;
     }
@@ -775,7 +789,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !PyInstance_Check(operand1)) {
 
@@ -791,9 +805,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -858,9 +874,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -878,9 +896,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -897,9 +917,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -1009,9 +1031,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -1030,9 +1054,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -1051,9 +1077,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
         }
     }
@@ -1076,7 +1104,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: %s() == %s()", type1->tp_name, type2->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of '%s' and '%s'", type1->tp_name,
@@ -1087,7 +1115,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
 #endif
 }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 PyObject *RICH_COMPARE_EQ_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
 
@@ -1095,7 +1123,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2)
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 bool RICH_COMPARE_EQ_CBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
 
@@ -1103,7 +1131,7 @@ bool RICH_COMPARE_EQ_CBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
 
@@ -1111,7 +1139,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
 
@@ -1121,7 +1149,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return NULL;
     }
@@ -1134,7 +1162,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyInt_Type;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -1393,7 +1421,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: %s() == int()", type1->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of '%s' and 'int'", type1->tp_name);
@@ -1404,7 +1432,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 bool RICH_COMPARE_EQ_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
 
@@ -1414,7 +1442,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return false;
     }
@@ -1427,7 +1455,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyInt_Type;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -1443,9 +1471,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -1510,9 +1540,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -1530,9 +1562,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -1549,9 +1583,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -1661,9 +1697,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -1682,9 +1720,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -1703,9 +1743,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
         }
     }
@@ -1728,7 +1770,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: %s() == int()", type1->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of '%s' and 'int'", type1->tp_name);
@@ -1739,7 +1781,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
 
@@ -1749,7 +1791,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return NUITKA_BOOL_EXCEPTION;
     }
@@ -1762,7 +1804,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyInt_Type;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -1778,9 +1820,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -1845,9 +1889,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -1865,9 +1911,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -1884,9 +1932,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -1996,9 +2046,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -2017,9 +2069,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -2038,9 +2092,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
         }
     }
@@ -2063,7 +2119,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: %s() == int()", type1->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of '%s' and 'int'", type1->tp_name);
@@ -2074,7 +2130,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 PyObject *RICH_COMPARE_EQ_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
 
@@ -2084,7 +2140,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return NULL;
     }
@@ -2097,7 +2153,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
     PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -2356,7 +2412,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: int() == %s()", type2->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of 'int' and '%s'", type2->tp_name);
@@ -2367,7 +2423,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 bool RICH_COMPARE_EQ_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
 
@@ -2377,7 +2433,7 @@ bool RICH_COMPARE_EQ_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return false;
     }
@@ -2390,7 +2446,7 @@ bool RICH_COMPARE_EQ_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -2406,9 +2462,11 @@ bool RICH_COMPARE_EQ_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -2473,9 +2531,11 @@ bool RICH_COMPARE_EQ_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -2493,9 +2553,11 @@ bool RICH_COMPARE_EQ_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -2512,9 +2574,11 @@ bool RICH_COMPARE_EQ_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -2624,9 +2688,11 @@ bool RICH_COMPARE_EQ_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -2645,9 +2711,11 @@ bool RICH_COMPARE_EQ_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -2666,9 +2734,11 @@ bool RICH_COMPARE_EQ_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
         }
     }
@@ -2691,7 +2761,7 @@ bool RICH_COMPARE_EQ_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: int() == %s()", type2->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of 'int' and '%s'", type2->tp_name);
@@ -2702,7 +2772,7 @@ bool RICH_COMPARE_EQ_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
 
@@ -2712,7 +2782,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return NUITKA_BOOL_EXCEPTION;
     }
@@ -2725,7 +2795,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
     PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -2741,9 +2811,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -2808,9 +2880,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -2828,9 +2902,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -2847,9 +2923,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -2959,9 +3037,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -2980,9 +3060,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -3001,9 +3083,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
         }
     }
@@ -3026,7 +3110,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: int() == %s()", type2->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of 'int' and '%s'", type2->tp_name);
@@ -3040,12 +3124,12 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
 static PyObject *COMPARE_EQ_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -3068,12 +3152,12 @@ PyObject *RICH_COMPARE_EQ_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *opera
 static bool COMPARE_EQ_CBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -3096,12 +3180,12 @@ bool RICH_COMPARE_EQ_CBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
 static nuitka_bool COMPARE_EQ_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -3130,7 +3214,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return NULL;
     }
@@ -3143,7 +3227,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyFloat_Type;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -3402,7 +3486,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: %s() == float()", type1->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of '%s' and 'float'", type1->tp_name);
@@ -3421,7 +3505,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return false;
     }
@@ -3434,7 +3518,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyFloat_Type;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -3450,9 +3534,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -3517,9 +3603,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -3537,9 +3625,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -3556,9 +3646,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -3668,9 +3760,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -3689,9 +3783,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -3710,9 +3806,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
         }
     }
@@ -3735,7 +3833,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: %s() == float()", type1->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of '%s' and 'float'", type1->tp_name);
@@ -3754,7 +3852,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return NUITKA_BOOL_EXCEPTION;
     }
@@ -3767,7 +3865,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyFloat_Type;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -3783,9 +3881,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -3850,9 +3950,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -3870,9 +3972,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -3889,9 +3993,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -4001,9 +4107,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -4022,9 +4130,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -4043,9 +4153,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
         }
     }
@@ -4068,7 +4180,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: %s() == float()", type1->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of '%s' and 'float'", type1->tp_name);
@@ -4087,7 +4199,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return NULL;
     }
@@ -4100,7 +4212,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
     PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -4359,7 +4471,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: float() == %s()", type2->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of 'float' and '%s'", type2->tp_name);
@@ -4378,7 +4490,7 @@ bool RICH_COMPARE_EQ_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return false;
     }
@@ -4391,7 +4503,7 @@ bool RICH_COMPARE_EQ_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
     PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -4407,9 +4519,11 @@ bool RICH_COMPARE_EQ_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -4474,9 +4588,11 @@ bool RICH_COMPARE_EQ_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -4494,9 +4610,11 @@ bool RICH_COMPARE_EQ_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -4513,9 +4631,11 @@ bool RICH_COMPARE_EQ_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -4625,9 +4745,11 @@ bool RICH_COMPARE_EQ_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -4646,9 +4768,11 @@ bool RICH_COMPARE_EQ_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -4667,9 +4791,11 @@ bool RICH_COMPARE_EQ_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
         }
     }
@@ -4692,7 +4818,7 @@ bool RICH_COMPARE_EQ_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: float() == %s()", type2->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of 'float' and '%s'", type2->tp_name);
@@ -4711,7 +4837,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return NUITKA_BOOL_EXCEPTION;
     }
@@ -4724,7 +4850,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
     PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -4740,9 +4866,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -4807,9 +4935,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -4827,9 +4957,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -4846,9 +4978,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -4958,9 +5092,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -4979,9 +5115,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -5000,9 +5138,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
         }
     }
@@ -5025,7 +5165,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: float() == %s()", type2->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of 'float' and '%s'", type2->tp_name);
@@ -5038,12 +5178,12 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
 static PyObject *COMPARE_EQ_OBJECT_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -5100,12 +5240,12 @@ PyObject *RICH_COMPARE_EQ_OBJECT_TUPLE_TUPLE(PyObject *operand1, PyObject *opera
 static bool COMPARE_EQ_CBOOL_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -5162,12 +5302,12 @@ bool RICH_COMPARE_EQ_CBOOL_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {
 static nuitka_bool COMPARE_EQ_NBOOL_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand1));
 #endif
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     assert(!NEW_STYLE_NUMBER(operand2));
 #endif
 
@@ -5230,7 +5370,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return NULL;
     }
@@ -5243,7 +5383,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyTuple_Type;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -5502,7 +5642,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: %s() == tuple()", type1->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of '%s' and 'tuple'", type1->tp_name);
@@ -5521,7 +5661,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return false;
     }
@@ -5534,7 +5674,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyTuple_Type;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -5550,9 +5690,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -5617,9 +5759,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -5637,9 +5781,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -5656,9 +5802,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -5768,9 +5916,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -5789,9 +5939,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -5810,9 +5962,11 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
         }
     }
@@ -5835,7 +5989,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: %s() == tuple()", type1->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of '%s' and 'tuple'", type1->tp_name);
@@ -5854,7 +6008,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return NUITKA_BOOL_EXCEPTION;
     }
@@ -5867,7 +6021,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyTuple_Type;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -5883,9 +6037,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -5950,9 +6106,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -5970,9 +6128,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -5989,9 +6149,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -6101,9 +6263,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -6122,9 +6286,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -6143,9 +6309,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
         }
     }
@@ -6168,7 +6336,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: %s() == tuple()", type1->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of '%s' and 'tuple'", type1->tp_name);
@@ -6187,7 +6355,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return NULL;
     }
@@ -6200,7 +6368,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
     PyTypeObject *type1 = &PyTuple_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -6459,7 +6627,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: tuple() == %s()", type2->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of 'tuple' and '%s'", type2->tp_name);
@@ -6478,7 +6646,7 @@ bool RICH_COMPARE_EQ_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return false;
     }
@@ -6491,7 +6659,7 @@ bool RICH_COMPARE_EQ_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
     PyTypeObject *type1 = &PyTuple_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -6507,9 +6675,11 @@ bool RICH_COMPARE_EQ_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -6574,9 +6744,11 @@ bool RICH_COMPARE_EQ_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -6594,9 +6766,11 @@ bool RICH_COMPARE_EQ_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -6613,9 +6787,11 @@ bool RICH_COMPARE_EQ_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -6725,9 +6901,11 @@ bool RICH_COMPARE_EQ_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -6746,9 +6924,11 @@ bool RICH_COMPARE_EQ_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                 return false;
             }
 
-            bool r = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-            return r;
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -6767,9 +6947,11 @@ bool RICH_COMPARE_EQ_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return false;
                 }
 
-                bool r = CHECK_IF_TRUE(result);
-                Py_DECREF(result);
-                return r;
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
         }
     }
@@ -6792,7 +6974,7 @@ bool RICH_COMPARE_EQ_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: tuple() == %s()", type2->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of 'tuple' and '%s'", type2->tp_name);
@@ -6811,7 +6993,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
 
 // TODO: Get hint from recursion control if that's needed and have variants
 // with and without.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return NUITKA_BOOL_EXCEPTION;
     }
@@ -6824,7 +7006,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
     PyTypeObject *type1 = &PyTuple_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately.
     if (type1 == type2 && !0) {
 
@@ -6840,9 +7022,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -6907,9 +7091,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -6927,9 +7113,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -6946,9 +7134,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -7058,9 +7248,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
 
             Py_DECREF(result);
@@ -7079,9 +7271,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
                 return NUITKA_BOOL_EXCEPTION;
             }
 
-            nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-            Py_DECREF(result);
-            return r;
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
         }
 
         Py_DECREF(result);
@@ -7100,9 +7294,11 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
                     return NUITKA_BOOL_EXCEPTION;
                 }
 
-                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-                Py_DECREF(result);
-                return r;
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
             }
         }
     }
@@ -7125,7 +7321,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
         return result;
     }
     default:
-#if PYTHON_VERSION < 360
+#if PYTHON_VERSION < 0x360
         PyErr_Format(PyExc_TypeError, "unorderable types: tuple() == %s()", type2->tp_name);
 #else
         PyErr_Format(PyExc_TypeError, "'==' not supported between instances of 'tuple' and '%s'", type2->tp_name);

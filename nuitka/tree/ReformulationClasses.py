@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -34,7 +34,10 @@ from nuitka.nodes.ClassNodes import ExpressionClassBody
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import ExpressionConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerMakingNodes import (
+    makeExpressionMakeTuple,
+    makeExpressionMakeTupleOrConstant,
+)
 from nuitka.nodes.DictionaryNodes import (
     ExpressionDictOperationGet,
     ExpressionDictOperationIn,
@@ -64,7 +67,6 @@ from .TreeHelpers import (
     buildNodeList,
     extractDocFromBody,
     getKind,
-    makeSequenceCreationOrConstant,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     mangleName,
@@ -86,6 +88,7 @@ def buildClassNode2(provider, node, source_ref):
         co_name=node.name,
         co_kind="Class",
         co_varnames=(),
+        co_freevars=(),
         co_argcount=0,
         co_posonlyargcount=0,
         co_kwonlyargcount=0,
@@ -107,7 +110,7 @@ def buildClassNode2(provider, node, source_ref):
         # The frame guard has nothing to tell its line number to.
         body.source_ref = source_ref.atInternal()
 
-    locals_scope = function_body.getFunctionLocalsScope()
+    locals_scope = function_body.getLocalsScope()
 
     # The class body is basically a function that implicitly, at the end
     # returns its locals and cannot have other return statements contained, and
@@ -161,7 +164,7 @@ def buildClassNode2(provider, node, source_ref):
     # The class body is basically a function that implicitly, at the end
     # returns its locals and cannot have other return statements contained.
 
-    function_body.setBody(body)
+    function_body.setChild("body", body)
 
     temp_scope = provider.allocateTempScope("class_creation")
 
@@ -258,20 +261,21 @@ def buildClassNode2(provider, node, source_ref):
             ),
         )
 
-    select_metaclass.setBody(
+    select_metaclass.setChild(
+        "body",
         makeStatementsSequence(
             statements=statements, allow_none=False, source_ref=source_ref
-        )
+        ),
     )
 
     statements = [
         StatementAssignmentVariable(
             variable=tmp_bases,
-            source=makeSequenceCreationOrConstant(
-                sequence_kind="tuple",
+            source=makeExpressionMakeTupleOrConstant(
                 elements=buildNodeList(
                     provider=provider, nodes=node.bases, source_ref=source_ref
                 ),
+                user_provided=True,
                 source_ref=source_ref,
             ),
             source_ref=source_ref,
@@ -315,7 +319,7 @@ def buildClassNode2(provider, node, source_ref):
                 called=ExpressionTempVariableRef(
                     variable=tmp_metaclass, source_ref=source_ref
                 ),
-                args=ExpressionMakeTuple(
+                args=makeExpressionMakeTuple(
                     elements=(
                         makeConstantRefNode(
                             constant=node.name,
@@ -344,7 +348,7 @@ def buildClassNode2(provider, node, source_ref):
                 variable=tmp_class,
                 source=makeExpressionCall(
                     called=decorator,
-                    args=ExpressionMakeTuple(
+                    args=makeExpressionMakeTuple(
                         elements=(
                             ExpressionTempVariableRef(
                                 variable=tmp_class, source_ref=source_ref
@@ -391,7 +395,7 @@ def buildClassNode(provider, node, source_ref):
 
     # Python2 and Python3 are similar, but fundamentally different, so handle
     # them in dedicated code.
-    if python_version < 300:
+    if python_version < 0x300:
         return buildClassNode2(provider, node, source_ref)
     else:
         return buildClassNode3(provider, node, source_ref)

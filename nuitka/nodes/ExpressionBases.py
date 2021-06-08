@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -46,117 +46,108 @@ class ExpressionBase(NodeBase):
     # TODO: Maybe we can do this only for debug mode.
     __slots__ = ("code_generated",)
 
-    def getTypeShape(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def getTypeShape():
         return tshape_unknown
 
     def getValueShape(self):
         return self
 
-    def isCompileTimeConstant(self):
-        """ Has a value that we can use at compile time.
+    @staticmethod
+    def isCompileTimeConstant():
+        """Has a value that we can use at compile time.
 
-            Yes or no. If it has such a value, simulations can be applied at
-            compile time and e.g. operations or conditions, or even calls may
-            be executed against it.
+        Yes or no. If it has such a value, simulations can be applied at
+        compile time and e.g. operations or conditions, or even calls may
+        be executed against it.
         """
-        # Virtual method, pylint: disable=no-self-use
         return False
 
-    def getTruthValue(self):
-        """ Return known truth value. The "None" value indicates unknown. """
+    @staticmethod
+    def getTruthValue():
+        """Return known truth value. The "None" value indicates unknown."""
 
-        if self.isCompileTimeConstant():
-            return bool(self.getCompileTimeConstant())
-        else:
-            return None
+        return None
 
-    def isKnownToBeIterable(self, count):
-        """ Can be iterated at all (count is None) or exactly count times.
+    @staticmethod
+    def isKnownToBeIterable(count):
+        """Can be iterated at all (count is None) or exactly count times.
 
-            Yes or no. If it can be iterated a known number of times, it may
-            be asked to unpack itself.
+        Yes or no. If it can be iterated a known number of times, it may
+        be asked to unpack itself.
         """
 
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
         return False
 
-    def isKnownToBeIterableAtMin(self, count):
-        # Virtual method, pylint: disable=no-self-use,unused-argument
-        return False
-
-    def isKnownToBeIterableAtMax(self, count):
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def isKnownToBeIterableAtMin(count):
+        # Virtual method, pylint: disable=unused-argument
         return False
 
     def getIterationLength(self):
-        """ Value that "len" or "PyObject_Size" would give, if known.
+        """Value that "len" or "PyObject_Size" would give, if known.
 
-            Otherwise it is "None" to indicate unknown.
+        Otherwise it is "None" to indicate unknown.
         """
 
         # Virtual method, pylint: disable=no-self-use
         return None
 
     def getIterationMinLength(self):
-        """ Value that "len" or "PyObject_Size" would give at minimum, if known.
+        """Value that "len" or "PyObject_Size" would give at minimum, if known.
 
-            Otherwise it is "None" to indicate unknown.
+        Otherwise it is "None" to indicate unknown.
         """
 
         return self.getIterationLength()
 
-    def getIterationMaxLength(self):
-        """ Value that "len" or "PyObject_Size" would give at maximum, if known.
-
-            Otherwise it is "None" to indicate unknown.
-        """
-
-        return self.getIterationLength()
-
-    def getStringValue(self):
-        """ Node as string value, if possible."""
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def getStringValue():
+        """Node as string value, if possible."""
         return None
 
     def getStrValue(self):
-        """ Value that "str" or "PyObject_Str" would give, if known.
+        """Value that "str" or "PyObject_Str" would give, if known.
 
-            Otherwise it is "None" to indicate unknown. Users must not
-            forget to take side effects into account, when replacing a
-            node with its string value.
+        Otherwise it is "None" to indicate unknown. Users must not
+        forget to take side effects into account, when replacing a
+        node with its string value.
         """
         string_value = self.getStringValue()
 
         if string_value is not None:
-            return makeConstantReplacementNode(node=self, constant=string_value)
+            # Those that are user provided, need to overload this.
+            return makeConstantReplacementNode(
+                node=self, constant=string_value, user_provided=False
+            )
 
         return None
 
     def getTypeValue(self):
-        """ Type of the node.
-
-        """
+        """Type of the node."""
 
         from .TypeNodes import ExpressionBuiltinType1
 
         return ExpressionBuiltinType1(
-            value=self.makeClone(), source_ref=self.getSourceReference()
+            value=self.makeClone(), source_ref=self.source_ref
         )
 
     def getIterationHandle(self):
         # Virtual method, pylint: disable=no-self-use
         return None
 
-    def isKnownToBeHashable(self):
-        """ Is the value hashable, i.e. suitable for dictionary/set keying."""
+    @staticmethod
+    def isKnownToBeHashable():
+        """Is the value hashable, i.e. suitable for dictionary/set key usage."""
 
-        # Virtual method, pylint: disable=no-self-use
         # Unknown by default.
         return None
 
-    def extractUnhashableNode(self):
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def extractUnhashableNode():
+        """Return the value that is not hashable, if isKnowtoBeHashable() returns False."""
+
         # Not available by default.
         return None
 
@@ -170,7 +161,7 @@ class ExpressionBase(NodeBase):
 
     @abstractmethod
     def computeExpressionRaw(self, trace_collection):
-        """ Abstract execution of the node.
+        """Abstract execution of the node.
 
         Returns:
             tuple(node, tags, description)
@@ -187,7 +178,7 @@ class ExpressionBase(NodeBase):
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # By default, an attribute lookup may change everything about the lookup
         # source.
-        trace_collection.removeKnowledge(self)
+        # trace_collection.onValueEscapeAttributeLookup(self, attribute_name)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -202,7 +193,7 @@ class ExpressionBase(NodeBase):
     ):
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=unused-argument
-        trace_collection.removeKnowledge(lookup_node)
+        # trace_collection.onValueEscapeAttributeLookup(self, attribute_name)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -226,8 +217,8 @@ class ExpressionBase(NodeBase):
 
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=unused-argument
-        trace_collection.removeKnowledge(self)
-        trace_collection.removeKnowledge(value_node)
+        # trace_collection.removeKnowledge(self)
+        # trace_collection.removeKnowledge(value_node)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -241,7 +232,7 @@ class ExpressionBase(NodeBase):
 
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=unused-argument
-        trace_collection.removeKnowledge(self)
+        # trace_collection.removeKnowledge(self)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -287,10 +278,14 @@ class ExpressionBase(NodeBase):
         return del_node, None, None
 
     def computeExpressionSlice(self, lookup_node, lower, upper, trace_collection):
+        # pylint: disable=unused-argument
+
         # By default, a slicing may change everything about the lookup source.
-        trace_collection.removeKnowledge(self)
-        trace_collection.removeKnowledge(lower)
-        trace_collection.removeKnowledge(upper)
+        # trace_collection.removeKnowledge(self)
+        # trace_collection.onValueEscapeSliceOperation(self, lower, upper)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
 
         # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -300,11 +295,15 @@ class ExpressionBase(NodeBase):
     def computeExpressionSetSlice(
         self, set_node, lower, upper, value_node, trace_collection
     ):
+        # pylint: disable=unused-argument
+
         # By default, an subscript may change everything about the lookup
         # source.
         trace_collection.removeKnowledge(self)
-        trace_collection.removeKnowledge(lower)
-        trace_collection.removeKnowledge(upper)
+
+        # trace_collection.onValueEscapeSliceArguments(self, lower, upper)
+
+        # trace_collection.onValueEscapeSliceSetSource(self, lower, upper)
         trace_collection.removeKnowledge(value_node)
 
         # Any code could be run, note that.
@@ -316,11 +315,13 @@ class ExpressionBase(NodeBase):
         return set_node, None, None
 
     def computeExpressionDelSlice(self, set_node, lower, upper, trace_collection):
+        # pylint: disable=unused-argument
+
         # By default, an subscript may change everything about the lookup
         # source.
         trace_collection.removeKnowledge(self)
-        trace_collection.removeKnowledge(lower)
-        trace_collection.removeKnowledge(upper)
+
+        # trace_collection.onValueEscapeSliceArguments(self, lower, upper)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -416,7 +417,7 @@ class ExpressionBase(NodeBase):
         if shape.hasShapeSlotInt() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="int() argument must be a string or a number, not '%s'"
-                if python_version < 300
+                if python_version < 0x300
                 else "int() argument must be a string, a bytes-like object or a number, not '%s'",
                 operation="int",
                 original_node=int_node,
@@ -460,7 +461,7 @@ class ExpressionBase(NodeBase):
         if shape.hasShapeSlotFloat() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "float() argument must be a string or a number"
-                if Options.is_fullcompat and python_version < 300
+                if Options.is_fullcompat and python_version < 0x300
                 else "float() argument must be a string or a number, not '%s'",
                 operation="long",
                 original_node=float_node,
@@ -508,7 +509,7 @@ class ExpressionBase(NodeBase):
         if shape.hasShapeSlotComplex() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "complex() argument must be a string or a number"
-                if Options.is_fullcompat and python_version < 300
+                if Options.is_fullcompat and python_version < 0x300
                 else "complex() argument must be a string or a number, not '%s'",
                 operation="complex",
                 original_node=complex_node,
@@ -547,6 +548,9 @@ class ExpressionBase(NodeBase):
         return iter_node, None, None
 
     def computeExpressionNext1(self, next_node, trace_collection):
+        # TODO: This is only true for a few value types, use type shape to tell if
+        # it might escape or raise.
+
         self.onContentEscapes(trace_collection)
 
         # Any code could be run, note that.
@@ -555,7 +559,7 @@ class ExpressionBase(NodeBase):
         # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        return next_node, None, None
+        return False, (next_node, None, None)
 
     def computeExpressionAsyncIter(self, iter_node, trace_collection):
         self.onContentEscapes(trace_collection)
@@ -572,7 +576,7 @@ class ExpressionBase(NodeBase):
         # Virtual method, pylint: disable=no-self-use
 
         # The value of that node escapes and could change its contents.
-        trace_collection.removeKnowledge(not_node)
+        # trace_collection.onValueEscapeNot(self)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(not_node)
@@ -581,6 +585,28 @@ class ExpressionBase(NodeBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return not_node, None, None
+
+    def computeExpressionOperationRepr(self, repr_node, trace_collection):
+        type_shape = self.getTypeShape()
+
+        escape_desc = type_shape.getOperationUnaryReprEscape()
+
+        # Annotate if exceptions might be raised.
+        exception_raise_exit = escape_desc.getExceptionExit()
+        if exception_raise_exit is not None:
+            trace_collection.onExceptionRaiseExit(exception_raise_exit)
+
+        if escape_desc.isValueEscaping():
+            # The value of that node escapes and could change its contents during repr
+            # only, which might be more limited.
+            # trace_collection.onValueEscapeRepr(self)
+            trace_collection.removeKnowledge(self)
+
+        if escape_desc.isControlFlowEscape():
+            # Any code could be run, note that.
+            trace_collection.onControlFlowEscape(self)
+
+        return (repr_node, None, None), escape_desc
 
     def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
         # Virtual method, pylint: disable=unused-argument
@@ -621,95 +647,108 @@ class ExpressionBase(NodeBase):
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-    def onContentEscapes(self, trace_collection):
+    @staticmethod
+    def onContentEscapes(trace_collection):
         pass
 
-    def mayRaiseExceptionBool(self, exception_type):
-        """ Unless we are told otherwise, everything may raise being checked. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def mayRaiseExceptionBool(exception_type):
+        """Unless we are told otherwise, everything may raise being checked."""
+        # Virtual method, pylint: disable=unused-argument
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionAbs(exception_type):
+        """Unless we are told otherwise, everything may raise in 'abs'."""
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAbs(self, exception_type):
-        """ Unless we are told otherwise, everything may raise in 'abs'. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def mayRaiseExceptionInt(exception_type):
+        """Unless we are told otherwise, everything may raise in __int__."""
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionInt(self, exception_type):
-        """ Unless we are told otherwise, everything may raise in __int__. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def mayRaiseExceptionLong(exception_type):
+        """Unless we are told otherwise, everything may raise in __long__."""
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionLong(self, exception_type):
-        """ Unless we are told otherwise, everything may raise in __long__. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def mayRaiseExceptionFloat(exception_type):
+        """Unless we are told otherwise, everything may raise in __float__."""
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionFloat(self, exception_type):
-        """ Unless we are told otherwise, everything may raise in __float__. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def mayRaiseExceptionBytes(exception_type):
+        """Unless we are told otherwise, everything may raise in __bytes__."""
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionBytes(self, exception_type):
-        """ Unless we are told otherwise, everything may raise in __bytes__. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def mayRaiseExceptionIn(exception_type, checked_value):
+        """Unless we are told otherwise, everything may raise being iterated."""
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionIn(self, exception_type, checked_value):
-        """ Unless we are told otherwise, everything may raise being iterated. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def mayRaiseExceptionAttributeLookup(exception_type, attribute_name):
+        """Unless we are told otherwise, everything may raise for attribute access."""
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
-        """ Unless we are told otherwise, everything may raise for attribute access. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def mayRaiseExceptionAttributeLookupSpecial(exception_type, attribute_name):
+        """Unless we are told otherwise, everything may raise for attribute access."""
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAttributeLookupSpecial(self, exception_type, attribute_name):
-        """ Unless we are told otherwise, everything may raise for attribute access. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def mayRaiseExceptionAttributeLookupObject(exception_type, attribute):
+        """Unless we are told otherwise, everything may raise for attribute access."""
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAttributeLookupObject(self, exception_type, attribute):
-        """ Unless we are told otherwise, everything may raise for attribute access. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def mayRaiseExceptionAttributeCheck(exception_type, attribute_name):
+        """Unless we are told otherwise, everything may raise for attribute check."""
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAttributeCheck(self, exception_type, attribute_name):
-        """ Unless we are told otherwise, everything may raise for attribute check. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def mayRaiseExceptionAttributeCheckObject(exception_type, attribute):
+        """Unless we are told otherwise, everything may raise for attribute check."""
+        # Virtual method, pylint: disable=unused-argument
 
         return True
 
-    def mayRaiseExceptionAttributeCheckObject(self, exception_type, attribute):
-        """ Unless we are told otherwise, everything may raise for attribute check. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def mayRaiseExceptionImportName(exception_type, import_name):
+        """Unless we are told otherwise, everything may raise for name import."""
+        # Virtual method, pylint: disable=unused-argument
+        return True
+
+    @staticmethod
+    def mayHaveSideEffectsBool():
+        """Unless we are told otherwise, everything may have a side effect for bool check."""
 
         return True
 
-    def mayRaiseExceptionImportName(self, exception_type, import_name):
-        """ Unless we are told otherwise, everything may raise for name import. """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
-        return True
-
-    def mayHaveSideEffectsBool(self):
-        """ Unless we are told otherwise, everything may have a side effect for bool check. """
-        # Virtual method, pylint: disable=no-self-use
-
-        return True
-
-    def mayHaveSideEffectsAbs(self):
-        """ Unless we are told otherwise, everything may have a side effect for abs check. """
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def mayHaveSideEffectsAbs():
+        """Unless we are told otherwise, everything may have a side effect for abs check."""
 
         # TODO: Bonus points for check type shapes that will be good
         # for abs, i.e. number shapes like Int, Long, Float, Complex.
@@ -717,63 +756,62 @@ class ExpressionBase(NodeBase):
         return True
 
     def hasShapeSlotLen(self):
-        """ The type shape tells us, if "len" is available.
-
-        """
+        """The type shape tells us, if "len" is available."""
         return self.getTypeShape().hasShapeSlotLen()
 
     def hasShapeSlotIter(self):
-        """ The type shape tells us, if "iter" is available.
-
-        """
+        """The type shape tells us, if "iter" is available."""
         return self.getTypeShape().hasShapeSlotIter()
 
     def hasShapeSlotNext(self):
-        """ The type shape tells us, if "next" is available.
-
-        """
+        """The type shape tells us, if "next" is available."""
         return self.getTypeShape().hasShapeSlotNext()
 
     # TODO: Maybe this is a shape slot thing.
-    def isIndexable(self):
-        """ Unless we are told otherwise, it's not indexable. """
-        # Virtual method, pylint: disable=no-self-use
+    @staticmethod
+    def isIndexable():
+        """Unless we are told otherwise, it's not indexable."""
 
         return False
 
-    # TODO: The ought to be a type shape check for that too.
-    def getIntegerValue(self):
-        """ Node as integer value, if possible."""
-        # Virtual method, pylint: disable=no-self-use
+    # TODO: There ought to be a type shape check for that too.
+    @staticmethod
+    def getIntegerValue():
+        """Node as integer value, if possible."""
+
         return None
 
-    def getIntValue(self):
-        """ Value that "int" or "PyNumber_Int" (sp) would give, if known.
+    # TODO: There ought to be a type shape check for that too.
+    @staticmethod
+    def getIndexValue():
+        """Node as index value, if possible.
 
-            Otherwise it is "None" to indicate unknown. Users must not
-            forget to take side effects into account, when replacing a
-            node with its string value.
+        This should only work for int, bool, and long values, but e.g. not floats.
         """
-        # Virtual method, pylint: disable=no-self-use
+
+        return None
+
+    @staticmethod
+    def getIntValue():
+        """Value that "int" or "PyNumber_Int" (sp) would give, if known.
+
+        Otherwise it is "None" to indicate unknown. Users must not
+        forget to take side effects into account, when replacing a
+        node with its string value.
+        """
         return None
 
     def hasShapeDictionaryExact(self):
-        """ Does a node have exactly a dictionary shape.
-
-        """
+        """Does a node have exactly a dictionary shape."""
 
         return self.getTypeShape() is tshape_dict
 
     def hasShapeStrExact(self):
-        """ Does an expression have exactly a string shape.
-
-        """
+        """Does an expression have exactly a string shape."""
         return self.getTypeShape() is tshape_str
 
     def hasShapeUnicodeExact(self):
-        """ Does an expression have exactly a unicode shape.
-
-        """
+        """Does an expression have exactly a unicode shape."""
         return self.getTypeShape() is tshape_unicode
 
 
@@ -787,66 +825,68 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
 
         self.computed_attribute = None
 
-    def isCompileTimeConstant(self):
-        """ Has a value that we can use at compile time.
+    @staticmethod
+    def isCompileTimeConstant():
+        """Has a value that we can use at compile time.
 
-            Yes or no. If it has such a value, simulations can be applied at
-            compile time and e.g. operations or conditions, or even calls may
-            be executed against it.
+        Yes or no. If it has such a value, simulations can be applied at
+        compile time and e.g. operations or conditions, or even calls may
+        be executed against it.
         """
         return True
 
+    def getTruthValue(self):
+        return bool(self.getCompileTimeConstant())
+
     @abstractmethod
     def getCompileTimeConstant(self):
-        """ Return compile time constant.
+        """Return compile time constant.
 
-            Notes: Only available after passing "isCompileTimeConstant()".
+        Notes: Only available after passing "isCompileTimeConstant()".
 
         """
 
-    def isUserProvidedConstant(self):
-        """ Return compile time constant.
+    @staticmethod
+    def isMutable():
+        """Return if compile time constant is mutable.
 
-            Notes: Only useful after passing "isCompileTimeConstant()".
+        Notes: Only useful after passing "isCompileTimeConstant()".
         """
-        # Virtual method, pylint: disable=no-self-use
         return False
 
-    def isMutable(self):
-        # Virtual method, pylint: disable=no-self-use
-        return False
-
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         # Virtual method overload
         return False
 
-    def mayHaveSideEffectsBool(self):
+    @staticmethod
+    def extractSideEffects():
+        # Constants have no side effects
+        return ()
+
+    @staticmethod
+    def mayHaveSideEffectsBool():
         # Virtual method overload
         return False
 
-    def mayRaiseException(self, exception_type):
-        # Virtual method overload
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def mayRaiseExceptionBool(self, exception_type):
-        # Virtual method overload
+    @staticmethod
+    def mayRaiseExceptionBool(exception_type):
         return False
 
     def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
-        # Virtual method overload
-
         # We remember it from our computation.
         return not self.computed_attribute
 
     def mayRaiseExceptionAttributeLookupSpecial(self, exception_type, attribute_name):
-        # Virtual method overload
-
         # We remember it from our computation.
         return not self.computed_attribute
 
-    def mayRaiseExceptionAttributeCheck(self, exception_type, attribute_name):
-        # Virtual method overload
-
+    @staticmethod
+    def mayRaiseExceptionAttributeCheck(exception_type, attribute_name):
         # Checking attributes of compile time constants never raises.
         return False
 
@@ -856,6 +896,17 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
             computation=lambda: not self.getCompileTimeConstant(),
             description="""\
 Compile time constant negation truth value pre-computed.""",
+        )
+
+    def computeExpressionOperationRepr(self, repr_node, trace_collection):
+        return (
+            trace_collection.getCompileTimeComputationResult(
+                node=repr_node,
+                computation=lambda: repr(self.getCompileTimeConstant()),
+                description="""\
+Compile time constant repr value pre-computed.""",
+            ),
+            None,
         )
 
     def computeExpressionLen(self, len_node, trace_collection):
@@ -971,6 +1022,7 @@ Compile time constant bytes value pre-computed.""",
                             lower.getCompileTimeConstant() : upper.getCompileTimeConstant()
                         ],
                         description="Slicing of constant with constant indexes.",
+                        user_provided=False,
                     )
             else:
                 if lower.isCompileTimeConstant():
@@ -980,6 +1032,7 @@ Compile time constant bytes value pre-computed.""",
                             lower.getCompileTimeConstant() :
                         ],
                         description="Slicing of constant with constant lower index only.",
+                        user_provided=False,
                     )
         else:
             if upper is not None:
@@ -990,12 +1043,14 @@ Compile time constant bytes value pre-computed.""",
                             : upper.getCompileTimeConstant()
                         ],
                         description="Slicing of constant with constant upper index only.",
+                        user_provided=False,
                     )
             else:
                 return getComputationResult(
                     node=lookup_node,
                     computation=lambda: self.getCompileTimeConstant()[:],
                     description="Slicing of constant with no indexes.",
+                    user_provided=False,
                 )
 
         # Any exception might be raised.
@@ -1014,6 +1069,7 @@ Compile time constant bytes value pre-computed.""",
                 description="""\
 Predicted '%s' on compiled time constant values."""
                 % in_node.comparator,
+                user_provided=False,
             )
 
         # Look-up of __contains__ on compile time constants does mostly nothing.
@@ -1027,13 +1083,13 @@ Predicted '%s' on compiled time constant values."""
         assert type(constant) is not bool
 
         self.parent.replaceChild(
-            self, makeConstantReplacementNode(bool(constant), self)
+            self, makeConstantReplacementNode(bool(constant), self, user_provided=False)
         )
 
         trace_collection.signalChange(
             tags="new_constant",
             source_ref=self.source_ref,
-            message="Predicted compile time constant true value.",
+            message="Predicted compile time constant truth value.",
         )
 
 
@@ -1044,11 +1100,11 @@ class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
         ChildrenHavingMixin.__init__(self, values=values)
 
     def computeExpressionRaw(self, trace_collection):
-        """ Compute an expression.
+        """Compute an expression.
 
-            Default behavior is to just visit the child expressions first, and
-            then the node "computeExpression". For a few cases this needs to
-            be overloaded, e.g. conditional expressions.
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
         """
         # First apply the sub-expressions, as they are evaluated before
         # the actual operation.
@@ -1111,11 +1167,11 @@ class ExpressionChildHavingBase(ExpressionBase):
 
     # TODO: De-duplicate this with multiple child variant.
     def computeExpressionRaw(self, trace_collection):
-        """ Compute an expression.
+        """Compute an expression.
 
-            Default behavior is to just visit the child expressions first, and
-            then the node "computeExpression". For a few cases this needs to
-            be overloaded, e.g. conditional expressions.
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
         """
         # First apply the sub-expressions, as they are evaluated before.
         sub_expressions = self.getVisitableNodes()
@@ -1143,11 +1199,11 @@ class ExpressionChildHavingBase(ExpressionBase):
         return self.computeExpression(trace_collection=trace_collection)
 
     def setChild(self, name, value):
-        """ Set a child value.
+        """Set a child value.
 
-            Do not overload, provider self.checkers instead.
+        Do not overload, provide self.checkers instead.
         """
-        # Only accept legal child names
+        # Only accept legal child name
         assert name == self.named_child, name
 
         # Lists as inputs are OK, but turn them into tuples.
@@ -1165,33 +1221,34 @@ class ExpressionChildHavingBase(ExpressionBase):
 
         attr_name = "subnode_" + name
 
+        # TODO: This is not being done for any variant of this, this only checks if it's a real change,
+        # but that should only be done in debug mode maybe.
+
         # Determine old value, and inform it about losing its parent.
         old_value = getattr(self, attr_name)
-
         assert old_value is not value, value
 
         setattr(self, attr_name, value)
+
+    def clearChild(self, name):
+        # Only accept legal child name
+        assert name == self.named_child, name
+
+        if self.checker is not None:
+            self.checker(None)  # False alarm, pylint: disable=not-callable
+
+        attr_name = "subnode_" + name
+
+        # Determine old value, and inform it about losing its parent.
+        old_value = getattr(self, attr_name)
+        assert old_value is not None
+
+        setattr(self, attr_name, None)
 
     def getChild(self, name):
         # Only accept legal child names
         attr_name = "subnode_" + name
         return getattr(self, attr_name)
-
-    @staticmethod
-    def childGetter(name):
-        attr_name = "subnode_" + name
-
-        def getter(self):
-            return getattr(self, attr_name)
-
-        return getter
-
-    @staticmethod
-    def childSetter(name):
-        def setter(self, value):
-            self.setChild(name, value)
-
-        return setter
 
     def getVisitableNodes(self):
         # TODO: Consider if a generator would be faster.
@@ -1208,9 +1265,9 @@ class ExpressionChildHavingBase(ExpressionBase):
             raise AssertionError(self, "has illegal child", value, value.__class__)
 
     def getVisitableNodesNamed(self):
-        """ Named children dictionary.
+        """Named children dictionary.
 
-            For use in debugging and XML output.
+        For use in debugging and XML output.
         """
         attr_name = "subnode_" + self.named_child
         value = getattr(self, attr_name)
@@ -1278,16 +1335,13 @@ class ExpressionChildHavingBase(ExpressionBase):
 
 
 class ExpressionSpecBasedComputationMixin(object):
+    # Mixins are not allow to specify slots.
+    __slots__ = ()
+
     builtin_spec = None
 
     def computeBuiltinSpec(self, trace_collection, given_values):
         assert self.builtin_spec is not None, self
-
-        for value in given_values:
-            if value is not None and not value.isCompileTimeConstant():
-                trace_collection.onExceptionRaiseExit(BaseException)
-
-                return self, None, None
 
         if not self.builtin_spec.isCompileTimeComputable(given_values):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -1302,17 +1356,36 @@ class ExpressionSpecBasedComputationMixin(object):
         )
 
 
+class ExpressionSpecBasedComputationNoRaiseMixin(object):
+    # Mixins are not allow to specify slots.
+    __slots__ = ()
+
+    builtin_spec = None
+
+    def computeBuiltinSpec(self, trace_collection, given_values):
+        assert self.builtin_spec is not None, self
+
+        if not self.builtin_spec.isCompileTimeComputable(given_values):
+            return self, None, None
+
+        return trace_collection.getCompileTimeComputationResult(
+            node=self,
+            computation=lambda: self.builtin_spec.simulateCall(given_values),
+            description="Built-in call to '%s' pre-computed."
+            % (self.builtin_spec.getName()),
+        )
+
+
 class ExpressionBuiltinSingleArgBase(
     ExpressionSpecBasedComputationMixin, ExpressionChildHavingBase
 ):
     named_child = "value"
-    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
+        value = self.subnode_value
 
         if value is None:
             return self.computeBuiltinSpec(

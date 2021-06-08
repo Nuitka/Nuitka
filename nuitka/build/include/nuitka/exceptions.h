@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -158,14 +158,10 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK(PyTracebackObject *
     return traceback_new;
 }
 
-#if PYTHON_VERSION < 300
-extern PyObject *const_str_plain_exc_type, *const_str_plain_exc_value, *const_str_plain_exc_traceback;
-#endif
-
 // Need some wrapper functions for accessing exception type, value, and traceback
 // due to changes in Python 3.7
 
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
 #define EXC_TYPE(x) (x->exc_type)
 #define EXC_VALUE(x) (x->exc_value)
 #define EXC_TRACEBACK(x) (x->exc_traceback)
@@ -184,6 +180,19 @@ extern PyObject *const_str_plain_exc_type, *const_str_plain_exc_value, *const_st
 #define EXC_TRACEBACK_F(x) (x->m_exc_state.exc_traceback)
 
 #endif
+
+// Helper that gets the current thread exception, for use in exception handlers
+NUITKA_MAY_BE_UNUSED inline static void GET_CURRENT_EXCEPTION(PyObject **exception_type, PyObject **exception_value,
+                                                              PyTracebackObject **exception_tb) {
+    PyThreadState *thread_state = PyThreadState_GET();
+
+    *exception_type = EXC_TYPE(thread_state);
+    Py_XINCREF(*exception_type);
+    *exception_value = EXC_VALUE(thread_state);
+    Py_XINCREF(*exception_value);
+    *exception_tb = (PyTracebackObject *)EXC_TRACEBACK(thread_state);
+    Py_XINCREF(*exception_tb);
+};
 
 // Helper that sets the current thread exception, releasing the current one, for
 // use in this file only.
@@ -216,7 +225,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyObject *exceptio
     Py_XDECREF(old_value);
     Py_XDECREF(old_tb);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     // Set sys attributes in the fastest possible way.
     PyObject *sys_dict = thread_state->interp->sysdict;
     CHECK_OBJECT(sys_dict);
@@ -313,7 +322,15 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_STR(PyObject
     SET_CURRENT_EXCEPTION_TYPE0_VALUE1(exception_type, exception_value);
 }
 
-#if PYTHON_VERSION < 300
+// Helper that sets the current thread exception with format of one or two arg, and has no reference passed.
+extern void SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyObject *exception_type, char const *format, char const *value);
+extern void SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyObject *exception_type, char const *format, char const *value1,
+                                                char const *value2);
+
+extern void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(char const *format, PyObject *mistyped);
+extern void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE(char const *format, PyObject *mistyped);
+
+#if PYTHON_VERSION < 0x300
 
 // Preserve the current exception as the frame to restore.
 NUITKA_MAY_BE_UNUSED static inline void PRESERVE_FRAME_EXCEPTION(struct Nuitka_FrameObject *frame_object) {
@@ -402,10 +419,11 @@ NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyObject **exception
     PRINT_STRING("NORMALIZE_EXCEPTION: Enter\n");
     PRINT_EXCEPTION(*exception_type, *exception_value, *exception_tb);
 #endif
-
     CHECK_OBJECT_X(*exception_type);
     CHECK_OBJECT_X(*exception_value);
-    CHECK_OBJECT_X(*exception_tb);
+    if (exception_tb) {
+        CHECK_OBJECT_X(*exception_tb);
+    }
 
     // TODO: Often we already know this to be true.
     if (*exception_type != Py_None && *exception_type != NULL) {
@@ -415,7 +433,7 @@ NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyObject **exception
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("NORMALIZE_EXCEPTION: Leave\n");
-    PRINT_EXCEPTION(*exception_type, *exception_value, *exception_tb);
+    PRINT_EXCEPTION(*exception_type, *exception_value, exception_tb ? *exception_tb : NULL);
 #endif
 }
 
@@ -507,11 +525,11 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL(PyObject *exception_
     CHECK_OBJECT(exception_value);
     CHECK_OBJECT(exception_checked);
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     /* Note: Exact matching tuples seems to needed, despite using GET_ITEM later
        on, this probably cannot be overloaded that deep. */
     if (PyTuple_Check(exception_checked)) {
-        Py_ssize_t length = PyTuple_Size(exception_checked);
+        Py_ssize_t length = PyTuple_GET_SIZE(exception_checked);
 
         for (Py_ssize_t i = 0; i < length; i += 1) {
             PyObject *element = PyTuple_GET_ITEM(exception_checked, i);
@@ -532,7 +550,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL(PyObject *exception_
     return PyErr_GivenExceptionMatches(exception_value, exception_checked);
 }
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
 // Attach the exception context if necessary.
 NUITKA_MAY_BE_UNUSED static inline void ADD_EXCEPTION_CONTEXT(PyObject **exception_type, PyObject **exception_value) {
     PyThreadState *tstate = PyThreadState_GET();
@@ -559,12 +577,24 @@ NUITKA_MAY_BE_UNUSED static inline void ADD_EXCEPTION_CONTEXT(PyObject **excepti
 
 */
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(void) {
-    PyObject *error = GET_ERROR_OCCURRED();
+    PyThreadState *tstate = PyThreadState_GET();
 
-    if (error == NULL) {
+    if (tstate->curexc_type == NULL) {
         return true;
-    } else if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_StopIteration)) {
-        CLEAR_ERROR_OCCURRED();
+    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate->curexc_type, PyExc_StopIteration)) {
+        // Clear the exception first, we know it doesn't have side effects.
+        Py_DECREF(tstate->curexc_type);
+        tstate->curexc_type = NULL;
+
+        PyObject *old_value = tstate->curexc_value;
+        PyObject *old_tb = tstate->curexc_traceback;
+
+        tstate->curexc_value = NULL;
+        tstate->curexc_traceback = NULL;
+
+        Py_XDECREF(old_value);
+        Py_XDECREF(old_tb);
+
         return true;
     } else {
         return false;
@@ -578,38 +608,46 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(void) {
 
 */
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(void) {
-    PyObject *error = GET_ERROR_OCCURRED();
+    PyThreadState *tstate = PyThreadState_GET();
 
-    if (error == NULL) {
+    if (tstate->curexc_type == NULL) {
         return true;
-    } else if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_KeyError)) {
-        CLEAR_ERROR_OCCURRED();
+    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate->curexc_type, PyExc_KeyError)) {
+        // Clear the exception first, we know it doesn't have side effects.
+        Py_DECREF(tstate->curexc_type);
+        tstate->curexc_type = NULL;
+
+        PyObject *old_value = tstate->curexc_value;
+        PyObject *old_tb = tstate->curexc_traceback;
+
+        tstate->curexc_value = NULL;
+        tstate->curexc_traceback = NULL;
+
+        Py_XDECREF(old_value);
+        Py_XDECREF(old_tb);
+
         return true;
     } else {
         return false;
     }
 }
 
-NUITKA_MAY_BE_UNUSED static inline void FORMAT_TYPE_ERROR1(PyObject **exception_type, PyObject **exception_value,
-                                                           char const *format, char const *arg) {
-    *exception_type = PyExc_TypeError;
-    Py_INCREF(*exception_type);
+// Format a NameError exception for a variable name.
+extern void FORMAT_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name);
 
-    *exception_value = Nuitka_String_FromFormat(format, arg);
-    CHECK_OBJECT(*exception_value);
-}
+#if PYTHON_VERSION < 0x340
+// Same as FORMAT_NAME_ERROR with different wording, sometimes used for older Python version.
+extern void FORMAT_GLOBAL_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name);
+#endif
 
-NUITKA_MAY_BE_UNUSED static inline void FORMAT_TYPE_ERROR2(PyObject **exception_type, PyObject **exception_value,
-                                                           char const *format, char const *arg1, char const *arg2) {
-    *exception_type = PyExc_TypeError;
-    Py_INCREF(*exception_type);
+// Format a UnboundLocalError exception for a variable name.
+extern void FORMAT_UNBOUND_LOCAL_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name);
 
-    *exception_value = Nuitka_String_FromFormat(format, arg1, arg2);
-    CHECK_OBJECT(*exception_value);
-}
+extern void FORMAT_UNBOUND_CLOSURE_ERROR(PyObject **exception_type, PyObject **exception_value,
+                                         PyObject *variable_name);
 
 // Similar to PyException_SetTraceback, only done for Python3.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 #define ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(exception_value, exception_tb) ;
 #else
 NUITKA_MAY_BE_UNUSED static inline void ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(PyObject *exception_value,

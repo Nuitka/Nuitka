@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,11 +25,14 @@ used like this.
 
 
 class MarkUnoptimizedFunctionIndicatorMixin(object):
-    """ Mixin for indication that a function contains an exec or star import.
+    """Mixin for indication that a function contains an exec or star import.
 
-        These do not access global variables directly, but check a locals dictionary
-        first, because they do.
+    These do not access global variables directly, but check a locals dictionary
+    first, because they do.
     """
+
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
 
     def __init__(self, flags):
         self.unoptimized_locals = flags is not None and "has_exec" in flags
@@ -43,19 +46,25 @@ class MarkUnoptimizedFunctionIndicatorMixin(object):
 
 
 class MarkNeedsAnnotationsMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def __init__(self):
         self.needs_annotations_dict = False
 
     def markAsNeedsAnnotationsDictionary(self):
-        """ For use during building only. Indicate "__annotations__" need. """
+        """For use during building only. Indicate "__annotations__" need."""
         self.needs_annotations_dict = True
 
     def needsAnnotationsDictionary(self):
-        """ For use during building only. Indicate "__annotations__" need. """
+        """For use during building only. Indicate "__annotations__" need."""
         return self.needs_annotations_dict
 
 
 class EntryPointMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def __init__(self):
         self.trace_collection = None
 

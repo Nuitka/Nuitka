@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,6 +25,7 @@ from nuitka.Tracing import general
 
 from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateExpressionCode,
     generateStatementSequenceCode,
     withObjectCodeTemporaryAssignment,
@@ -36,7 +37,7 @@ from .Indentation import indented
 from .LabelCodes import getGotoCode, getLabelCode
 from .LineNumberCodes import emitErrorLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
-from .PythonAPICodes import getReferenceExportCode
+from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
 from .templates.CodeTemplatesFunction import (
     function_direct_body_template,
     template_function_body,
@@ -104,19 +105,19 @@ def _getFunctionMakerIdentifier(function_identifier):
 
 
 def getFunctionQualnameObj(owner, context):
-    """ Get code to pass to function alike object creation for qualname.
+    """Get code to pass to function alike object creation for qualname.
 
-        Qualname for functions existed for Python3, generators only after
-        3.5 and coroutines and asyncgen for as long as they existed.
+    Qualname for functions existed for Python3, generators only after
+    3.5 and coroutines and asyncgen for as long as they existed.
 
-        If identical to the name, we do not pass it as a value, but
-        NULL instead.
+    If identical to the name, we do not pass it as a value, but
+    NULL instead.
     """
 
     if owner.isExpressionFunctionBody():
-        min_version = 300
+        min_version = 0x300
     else:
-        min_version = 350
+        min_version = 0x350
 
     if python_version < min_version:
         return "NULL"
@@ -140,7 +141,7 @@ def getFunctionMakerCode(
     context,
 ):
     # We really need this many parameters here and functions have many details,
-    # that we express as variables
+    # that we express as variables, pylint: disable=too-many-locals
     function_creation_args = getFunctionCreationArgs(
         defaults_name=defaults_name,
         kw_defaults_name=kw_defaults_name,
@@ -153,12 +154,31 @@ def getFunctionMakerCode(
     else:
         function_doc = context.getConstantCode(constant=function_doc)
 
-    if function_body.getBody() is None:
+    (
+        is_constant_returning,
+        constant_return_value,
+    ) = function_body.getConstantReturnValue()
+
+    if is_constant_returning:
         function_impl_identifier = "NULL"
+
+        if constant_return_value is None:
+            # Default value, spare the code for common case.
+            constant_return_code = ""
+        elif constant_return_value is True:
+            constant_return_code = "Nuitka_Function_EnableConstReturnTrue(result);"
+        elif constant_return_value is False:
+            constant_return_code = "Nuitka_Function_EnableConstReturnFalse(result);"
+        else:
+            constant_return_code = (
+                "Nuitka_Function_EnableConstReturnGeneric(result, %s);"
+                % context.getConstantCode(constant_return_value)
+            )
     else:
         function_impl_identifier = _getFunctionEntryPointIdentifier(
             function_identifier=function_identifier
         )
+        constant_return_code = ""
 
     function_maker_identifier = _getFunctionMakerIdentifier(
         function_identifier=function_identifier
@@ -186,6 +206,7 @@ def getFunctionMakerCode(
         "closure_count": len(closure_variables),
         "closure_name": "closure" if closure_variables else "NULL",
         "module_identifier": module_identifier,
+        "constant_return_code": indented(constant_return_code),
     }
 
     # TODO: Make it optional.
@@ -198,10 +219,10 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
     # This is about creating functions, which is detail ridden stuff,
     # pylint: disable=too-many-locals
 
-    function_body = expression.getFunctionRef().getFunctionBody()
-    defaults = expression.getDefaults()
-    kw_defaults = expression.getKwDefaults()
-    annotations = expression.getAnnotations()
+    function_body = expression.subnode_function_ref.getFunctionBody()
+    defaults = expression.subnode_defaults
+    kw_defaults = expression.subnode_kw_defaults
+    annotations = expression.subnode_annotations
     defaults_first = not expression.kw_defaults_before_defaults
 
     assert function_body.needsCreation(), function_body
@@ -210,10 +231,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
         if kw_defaults:
             kw_defaults_name = context.allocateTempName("kw_defaults")
 
-            assert (
-                not kw_defaults.isExpressionConstantRef()
-                or kw_defaults.getConstant() != {}
-            ), kw_defaults.getConstant()
+            assert not kw_defaults.isExpressionConstantDictEmptyRef(), kw_defaults
 
             generateExpressionCode(
                 to_name=kw_defaults_name,
@@ -298,7 +316,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
 
 
 def getClosureCopyCode(closure_variables, context):
-    """ Get code to copy closure variables storage.
+    """Get code to copy closure variables storage.
 
     This gets used by generator/coroutine/asyncgen with varying "closure_type".
     """
@@ -352,7 +370,7 @@ def getFunctionCreationCode(
         args.append(annotations_name)
 
     closure_name, closure_copy = getClosureCopyCode(
-        closure_variables=closure_variables, context=context,
+        closure_variables=closure_variables, context=context
     )
 
     if closure_name:
@@ -549,8 +567,9 @@ def setupFunctionLocalVariables(
 def finalizeFunctionLocalVariables(context):
     function_cleanup = []
 
-    # TODO: Many times this will not be necessary.
-    for locals_declaration in context.getLocalsDictNames():
+    # TODO: Many times it will not be necessary to release locals dict, because
+    # they already were, but our tracing doesn't yet allow us to know.
+    for locals_declaration in sorted(context.getLocalsDictNames(), key=str):
         function_cleanup.append(
             "Py_XDECREF(%(locals_dict)s);\n" % {"locals_dict": locals_declaration}
         )
@@ -574,7 +593,6 @@ def getFunctionCode(
     parameters,
     closure_variables,
     user_variables,
-    outline_variables,
     temp_variables,
     function_doc,
     file_scope,
@@ -587,7 +605,6 @@ def getFunctionCode(
             parameters=parameters,
             closure_variables=closure_variables,
             user_variables=user_variables,
-            outline_variables=outline_variables,
             temp_variables=temp_variables,
             function_doc=function_doc,
             file_scope=file_scope,
@@ -604,7 +621,6 @@ def _getFunctionCode(
     parameters,
     closure_variables,
     user_variables,
-    outline_variables,
     temp_variables,
     function_doc,
     file_scope,
@@ -618,14 +634,14 @@ def _getFunctionCode(
         context=context,
         parameters=parameters,
         closure_variables=closure_variables,
-        user_variables=user_variables + outline_variables,
+        user_variables=user_variables,
         temp_variables=temp_variables,
     )
 
     function_codes = SourceCodeCollector()
 
     generateStatementSequenceCode(
-        statement_sequence=context.getOwner().getBody(),
+        statement_sequence=context.getOwner().subnode_body,
         allow_none=True,
         emit=function_codes,
         context=context,
@@ -717,16 +733,16 @@ def getExportScopeCode(cross_module):
 
 
 def generateFunctionCallCode(to_name, expression, emit, context):
-    assert expression.getFunction().isExpressionFunctionCreation()
+    assert expression.subnode_function.isExpressionFunctionCreation()
 
-    function_body = expression.getFunction().getFunctionRef().getFunctionBody()
+    function_body = expression.subnode_function.subnode_function_ref.getFunctionBody()
     function_identifier = function_body.getCodeName()
 
-    argument_values = expression.getArgumentValues()
+    argument_values = expression.subnode_values
 
     arg_names = []
-    for count, arg_value in enumerate(argument_values):
-        arg_name = context.allocateTempName("dircall_arg%d" % (count + 1))
+    for count, arg_value in enumerate(argument_values, 1):
+        arg_name = context.allocateTempName("dircall_arg%d" % count)
 
         generateExpressionCode(
             to_name=arg_name, expression=arg_value, emit=emit, context=context
@@ -745,10 +761,9 @@ def generateFunctionCallCode(to_name, expression, emit, context):
             function_identifier=function_identifier,
             arg_names=arg_names,
             closure_variables=expression.getClosureVariableVersions(),
-            needs_check=expression.getFunction()
-            .getFunctionRef()
-            .getFunctionBody()
-            .mayRaiseException(BaseException),
+            needs_check=expression.subnode_function.subnode_function_ref.getFunctionBody().mayRaiseException(
+                BaseException
+            ),
             emit=emit,
             context=context,
         )
@@ -757,11 +772,10 @@ def generateFunctionCallCode(to_name, expression, emit, context):
 def generateFunctionOutlineCode(to_name, expression, emit, context):
     assert (
         expression.isExpressionOutlineBody()
-        or expression.isExpressionOutlineFunction()
-        or expression.isExpressionClassBody()
+        or expression.isExpressionOutlineFunctionBase()
     )
 
-    if expression.isExpressionOutlineFunctionBodyBase():
+    if expression.isExpressionOutlineFunctionBase():
         context = PythonFunctionOutlineContext(parent=context, outline=expression)
 
     # Need to set return target, to assign to_name from.
@@ -772,8 +786,9 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
 
     # TODO: Put the return value name as that to_name.c_type too.
 
-    if expression.isExpressionOutlineFunctionBodyBase() and expression.getBody().mayRaiseException(
-        BaseException
+    if (
+        expression.isExpressionOutlineFunctionBase()
+        and expression.subnode_body.mayRaiseException(BaseException)
     ):
         exception_target = context.allocateLabel("outline_exception")
         old_exception_target = context.setExceptionEscape(exception_target)
@@ -786,7 +801,7 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
         old_return_value_name = context.setReturnValueName(return_value_name)
 
         generateStatementSequenceCode(
-            statement_sequence=expression.getBody(),
+            statement_sequence=expression.subnode_body,
             emit=emit,
             context=context,
             allow_none=False,
@@ -814,3 +829,16 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     context.setReturnTarget(old_return_target)
     context.setReturnReleaseMode(old_return_release_mode)
     context.setReturnValueName(old_return_value_name)
+
+
+def generateFunctionErrorStrCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="_PyObject_FunctionStr",
+        arg_desc=(("func_arg", expression.subnode_value),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )

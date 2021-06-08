@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -28,9 +28,8 @@
 #include "nuitka/prelude.h"
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 
-extern PyObject *const_str_plain___cmp__;
 static cmpfunc default_tp_compare;
 
 void _initSlotCompare() {
@@ -64,8 +63,6 @@ void _initSlotCompare() {
 
     Py_DECREF(r);
 }
-
-#define RICHCOMPARE(t) (PyType_HasFeature((t), Py_TPFLAGS_HAVE_RICHCOMPARE) ? (t)->tp_richcompare : NULL)
 
 static inline int adjust_tp_compare(int c) {
     if (ERROR_OCCURRED()) {
@@ -148,15 +145,11 @@ static int try_3way_compare(PyObject *a, PyObject *b) {
     return 2;
 }
 
-#else
-
-#define RICHCOMPARE(t) ((t)->tp_richcompare)
-
 #endif
 
 static inline bool IS_SANE_TYPE(PyTypeObject *type) {
     return
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         type == &PyString_Type || type == &PyInt_Type ||
 #endif
         type == &PyLong_Type || type == &PyList_Type || type == &PyTuple_Type;

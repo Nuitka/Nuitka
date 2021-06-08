@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,8 +19,8 @@
 
 """
 
-
-from nuitka.codegen.ErrorCodes import getCheckObjectCode, getErrorExitBoolCode
+from nuitka.__past__ import iterItems
+from nuitka.codegen.ErrorCodes import getErrorExitBoolCode, getReleaseCode
 from nuitka.codegen.templates.CodeTemplatesVariables import (
     template_del_local_intolerant,
     template_del_local_known,
@@ -28,8 +28,8 @@ from nuitka.codegen.templates.CodeTemplatesVariables import (
     template_del_shared_intolerant,
     template_del_shared_known,
     template_del_shared_tolerant,
-    template_release_clear,
-    template_release_unclear,
+    template_release_object_clear,
+    template_release_object_unclear,
     template_write_local_clear_ref0,
     template_write_local_clear_ref1,
     template_write_local_empty_ref0,
@@ -43,6 +43,7 @@ from nuitka.codegen.templates.CodeTemplatesVariables import (
     template_write_shared_unclear_ref0,
     template_write_shared_unclear_ref1,
 )
+from nuitka.Constants import isMutable
 
 from .CTypeBases import CTypeBase
 
@@ -91,28 +92,22 @@ class CPythonPyObjectPtrBase(CTypeBase):
 
     @classmethod
     def getTruthCheckCode(cls, value_name):
-        return "CHECK_IF_TRUE(%s)" % value_name
+        return "CHECK_IF_TRUE(%s) == 1" % value_name
 
     @classmethod
-    def emitTruthCheckCode(cls, to_name, value_name, needs_check, emit, context):
+    def emitTruthCheckCode(cls, to_name, value_name, emit):
+        assert to_name.c_type == "int", to_name
+
         emit("%s = CHECK_IF_TRUE(%s);" % (to_name, value_name))
 
-        if needs_check:
-            getErrorExitBoolCode(
-                condition="%s == -1" % to_name,
-                needs_check=needs_check,
-                emit=emit,
-                context=context,
-            )
-
     @classmethod
-    def getReleaseCode(cls, variable_code_name, needs_check, emit):
+    def getReleaseCode(cls, value_name, needs_check, emit):
         if needs_check:
-            template = template_release_unclear
+            template = template_release_object_unclear
         else:
-            template = template_release_clear
+            template = template_release_object_clear
 
-        emit(template % {"identifier": variable_code_name})
+        emit(template % {"identifier": value_name})
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
@@ -137,9 +132,103 @@ class CPythonPyObjectPtrBase(CTypeBase):
         )
 
         emit(
-            "%s = %s == 1 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;"
+            "%s = %s == 0 ? NUITKA_BOOL_FALSE : NUITKA_BOOL_TRUE;"
             % (to_name, truth_name)
         )
+
+    @classmethod
+    def emitAssignmentCodeFromConstant(cls, to_name, constant, emit, context):
+        # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
+
+        if type(constant) is dict:
+            if constant:
+                for key, value in iterItems(constant):
+                    # key cannot be mutable.
+                    assert not isMutable(key)
+                    if isMutable(value):
+                        needs_deep = True
+                        break
+                else:
+                    needs_deep = False
+
+                if needs_deep:
+                    code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
+                else:
+                    code = "PyDict_Copy(%s)" % context.getConstantCode(constant)
+            else:
+                code = "PyDict_New()"
+
+            ref_count = 1
+        elif type(constant) is set:
+            if constant:
+                code = "PySet_New(%s)" % context.getConstantCode(constant)
+            else:
+                code = "PySet_New(NULL)"
+
+            ref_count = 1
+        elif type(constant) is list:
+            if constant:
+                for value in constant:
+                    if isMutable(value):
+                        needs_deep = True
+                        break
+                else:
+                    needs_deep = False
+
+                if needs_deep:
+                    code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
+                else:
+                    code = "LIST_COPY(%s)" % context.getConstantCode(constant)
+            else:
+                code = "PyList_New(0)"
+
+            ref_count = 1
+        elif type(constant) is tuple:
+            for value in constant:
+                if isMutable(value):
+                    needs_deep = True
+                    break
+            else:
+                needs_deep = False
+
+            if needs_deep:
+                code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
+
+                ref_count = 1
+            else:
+                code = context.getConstantCode(constant)
+
+                ref_count = 0
+        elif type(constant) is bytearray:
+            code = "BYTEARRAY_COPY(%s)" % context.getConstantCode(constant)
+            ref_count = 1
+        else:
+            code = context.getConstantCode(constant=constant)
+
+            ref_count = 0
+
+        if to_name.c_type == "PyObject *":
+            value_name = to_name
+        else:
+            value_name = context.allocateTempName("constant_value")
+
+        emit("%s = %s;" % (value_name, code))
+
+        if to_name is not value_name:
+            cls.emitAssignConversionCode(
+                to_name=to_name,
+                value_name=value_name,
+                needs_check=False,
+                emit=emit,
+                context=context,
+            )
+
+            # Above is supposed to transfer ownership.
+            if ref_count:
+                getReleaseCode(value_name, emit, context)
+        else:
+            if ref_count:
+                context.addCleanupTempName(value_name)
 
 
 class CTypePyObjectPtr(CPythonPyObjectPtrBase):
@@ -155,16 +244,20 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
             return init_from
 
     @classmethod
+    def getInitTestConditionCode(cls, value_name, inverted):
+        return "%s %s NULL" % (value_name, "==" if inverted else "!=")
+
+    @classmethod
+    def emitReinitCode(cls, value_name, emit):
+        emit("%s = NULL;" % value_name)
+
+    @classmethod
     def getVariableArgDeclarationCode(cls, variable_code_name):
         return "PyObject *%s" % variable_code_name
 
     @classmethod
     def getVariableArgReferencePassingCode(cls, variable_code_name):
         return "&%s" % variable_code_name
-
-    @classmethod
-    def getLocalVariableInitTestCode(cls, value_name, inverted):
-        return "%s %s NULL" % (value_name, "==" if inverted else "!=")
 
     @classmethod
     def getCellObjectAssignmentCode(cls, target_cell_code, variable_code_name, emit):
@@ -197,9 +290,8 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
         return value_name
 
     @classmethod
-    def emitValueAssertionCode(cls, value_name, emit, context):
-        # Not using the context, pylint: disable=unused-argument
-        getCheckObjectCode(check_name=value_name, emit=emit)
+    def emitValueAssertionCode(cls, value_name, emit):
+        emit("CHECK_OBJECT(%s);" % value_name)
 
     @classmethod
     def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
@@ -223,9 +315,28 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
     def getExceptionCheckCondition(cls, value_name):
         return "%s == NULL" % value_name
 
+    @classmethod
+    def getReleaseCode(cls, value_name, needs_check, emit):
+        if needs_check:
+            template = template_release_object_unclear
+        else:
+            template = template_release_object_clear
+
+        emit(template % {"identifier": value_name})
+
+    @classmethod
+    def getTakeReferenceCode(cls, value_name, emit):
+        """Take reference code for given object."""
+
+        emit("Py_INCREF(%s);" % value_name)
+
 
 class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
     c_type = "PyObject **"
+
+    @classmethod
+    def getInitTestConditionCode(cls, value_name, inverted):
+        return "*%s %s NULL" % (value_name, "==" if inverted else "!=")
 
     @classmethod
     def getVariableArgDeclarationCode(cls, variable_code_name):
@@ -242,10 +353,6 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
 
         # Use the object pointed to.
         return VariableDeclaration("PyObject *", "*%s" % value_name, None, None)
-
-    @classmethod
-    def getLocalVariableInitTestCode(cls, value_name, inverted):
-        return "*%s %s NULL" % (value_name, "==" if inverted else "!=")
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
@@ -266,6 +373,10 @@ class CTypeCellObject(CTypeBase):
             return "Nuitka_Cell_New1(%s)" % init_from
         else:
             return "Nuitka_Cell_Empty()"
+
+    @classmethod
+    def getInitTestConditionCode(cls, value_name, inverted):
+        return "%s->ob_ref %s NULL" % (value_name, "==" if inverted else "!=")
 
     @classmethod
     def getCellObjectAssignmentCode(cls, target_cell_code, variable_code_name, emit):
@@ -316,10 +427,6 @@ class CTypeCellObject(CTypeBase):
         return variable_code_name
 
     @classmethod
-    def getLocalVariableInitTestCode(cls, value_name, inverted):
-        return "%s->ob_ref %s NULL" % (value_name, "==" if inverted else "!=")
-
-    @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
         emit(
             "%(to_name)s->ob_ref = (%(condition)s) ? Py_True : Py_False;"
@@ -341,10 +448,22 @@ class CTypeCellObject(CTypeBase):
             )
 
     @classmethod
-    def getReleaseCode(cls, variable_code_name, needs_check, emit):
+    def getReleaseCode(cls, value_name, needs_check, emit):
         if needs_check:
-            template = template_release_unclear
+            template = template_release_object_unclear
         else:
-            template = template_release_clear
+            template = template_release_object_clear
 
-        emit(template % {"identifier": variable_code_name})
+        emit(template % {"identifier": value_name})
+
+    @classmethod
+    def emitReinitCode(cls, value_name, emit):
+        emit("%s = NULL;" % value_name)
+
+    @classmethod
+    def emitValueAssertionCode(cls, value_name, emit):
+        emit("CHECK_OBJECT(%s->ob_ref);" % value_name)
+
+    @classmethod
+    def emitReleaseAssertionCode(cls, value_name, emit):
+        emit("CHECK_OBJECT(%s);" % value_name)

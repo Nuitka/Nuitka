@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -50,16 +50,17 @@ struct Nuitka_FunctionObject {
     Py_ssize_t m_args_star_list_index;
     Py_ssize_t m_args_star_dict_index;
 
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
     Py_ssize_t m_args_pos_only_count;
 #endif
 
     // Same as code_object->co_varnames
     PyObject **m_varnames;
 
+    // C implementation of the function
     function_impl_code m_c_code;
 
-#if PYTHON_VERSION >= 380
+#if PYTHON_VERSION >= 0x380
     vectorcallfunc m_vectorcall;
 #endif
 
@@ -70,7 +71,7 @@ struct Nuitka_FunctionObject {
     PyObject *m_defaults;
     Py_ssize_t m_defaults_given;
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     // List of keyword only defaults, for use in __kwdefaults__ and parameter
     // parsing.
     PyObject *m_kwdefaults;
@@ -79,9 +80,12 @@ struct Nuitka_FunctionObject {
     PyObject *m_annotations;
 #endif
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     PyObject *m_qualname;
 #endif
+
+    // Constant return value to use.
+    PyObject *m_constant_return_value;
 
     // A kind of uuid for the function object, used in comparisons.
     long m_counter;
@@ -94,7 +98,7 @@ struct Nuitka_FunctionObject {
 extern PyTypeObject Nuitka_Function_Type;
 
 // Make a function with context.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 extern struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyObject *name,
                                                          PyCodeObject *code_object, PyObject *defaults,
                                                          PyObject *module, PyObject *doc,
@@ -106,6 +110,12 @@ extern struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_co
                                                          PyObject *doc, struct Nuitka_CellObject **closure,
                                                          Py_ssize_t closure_given);
 #endif
+
+extern void Nuitka_Function_EnableConstReturnTrue(struct Nuitka_FunctionObject *function);
+
+extern void Nuitka_Function_EnableConstReturnFalse(struct Nuitka_FunctionObject *function);
+
+extern void Nuitka_Function_EnableConstReturnGeneric(struct Nuitka_FunctionObject *function, PyObject *value);
 
 static inline bool Nuitka_Function_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Function_Type; }
 

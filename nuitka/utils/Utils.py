@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -43,16 +43,12 @@ def getOS():
 
 
 def isWin32Windows():
-    """ The Win32 variants of Python does have win32 only, not posix.
-
-    """
+    """The Win32 variants of Python does have win32 only, not posix."""
     return os.name == "nt"
 
 
 def isPosixWindows():
-    """ The MSYS2 variant of Python does have posix only, not Win32.
-
-    """
+    """The MSYS2 variant of Python does have posix only, not Win32."""
     return os.name == "posix" and getOS() == "Windows"
 
 
@@ -82,35 +78,6 @@ def getArchitecture():
         return os.uname()[4]
 
 
-def getSharedLibrarySuffix(preferred):
-    if python_version < 300:
-        import imp
-
-        result = None
-
-        for suffix, _mode, module_type in imp.get_suffixes():
-            if module_type != imp.C_EXTENSION:
-                continue
-
-            if result is None or len(suffix) < len(result):
-                result = suffix
-
-        return result
-    else:
-        import importlib.machinery  # pylint: disable=I0021,import-error,no-name-in-module
-
-        if preferred:
-            return importlib.machinery.EXTENSION_SUFFIXES[0]
-        else:
-            result = None
-
-            for suffix in importlib.machinery.EXTENSION_SUFFIXES:
-                if result is None or len(suffix) < len(result):
-                    result = suffix
-
-            return result
-
-
 def getCoreCount():
     cpu_count = 0
 
@@ -131,12 +98,12 @@ def getCoreCount():
 
 
 def encodeNonAscii(var_name):
-    """ Encode variable name that is potentially not ASCII to ASCII only.
+    """Encode variable name that is potentially not ASCII to ASCII only.
 
-        For Python3, unicode identifiers can be used, but these are not
-        possible in C, so we need to replace them.
+    For Python3, unicode identifiers can be used, but these are not
+    possible in C, so we need to replace them.
     """
-    if python_version < 300:
+    if python_version < 0x300:
         return var_name
     else:
         # Using a escaping here, because that makes it safe in terms of not
@@ -149,17 +116,15 @@ def encodeNonAscii(var_name):
         return var_name.replace("&#", "$$").replace(";", "")
 
 
-def isExecutableCommand(command):
-    path = os.environ["PATH"]
+def hasOnefileSupportedOS():
+    return getOS() in ("Linux", "Windows", "Darwin", "FreeBSD")
 
-    suffixes = (".exe",) if getOS() == "Windows" else ("",)
 
-    for part in path.split(os.pathsep):
-        if not part:
-            continue
+def getUserName():
+    """Return the user name.
 
-        for suffix in suffixes:
-            if os.path.isfile(os.path.join(part, command + suffix)):
-                return True
+    Notes: Currently doesn't work on Windows.
+    """
+    import pwd
 
-    return False
+    return pwd.getpwuid(os.getuid())[0]

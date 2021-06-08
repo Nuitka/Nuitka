@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -46,7 +46,7 @@ typedef struct {
     long long_value;
 } nuitka_long;
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 typedef enum {
     NUITKA_ILONG_UNASSIGNED = 0,
     NUITKA_ILONG_OBJECT_VALID = 1,
@@ -72,5 +72,12 @@ NUITKA_MAY_BE_UNUSED static void ENFORCE_ILONG_OBJECT_VALUE(nuitka_ilong *value)
 }
 
 #endif
+
+#define NUITKA_STATIC_SMALLINT_VALUE_MIN -5
+#define NUITKA_STATIC_SMALLINT_VALUE_MAX 257
+
+#define NUITKA_TO_SMALL_VALUE_OFFSET(value) (value - NUITKA_STATIC_SMALLINT_VALUE_MIN)
+
+extern PyObject *Nuitka_Long_SmallValues[NUITKA_STATIC_SMALLINT_VALUE_MAX - NUITKA_STATIC_SMALLINT_VALUE_MIN + 1];
 
 #endif

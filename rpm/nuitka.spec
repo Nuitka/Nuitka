@@ -1,6 +1,8 @@
 %if 0%{?rhel} < 8
 # detect python site-packages path, use get_python_lib(0) as nuitka using
+%if 0%{?fedora} < 31
 %global python_sitearch %(%{__python} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
+%endif
 %global python3_sitearch %(%{__python3} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
 %endif
 
@@ -11,7 +13,7 @@ Version:        VERSION
 Release:        5%{?dist}
 Summary:        Python compiler with full language support and CPython compatibility
 Group:          Development/Languages/Python
-License:        Apache License 2.0
+License:        Apache-2.0
 URL:            https://nuitka.net/
 Source0:        https://nuitka.net/releases/Nuitka-%{version}.tar.gz
 Source1:        nuitka-rpmlintrc
@@ -42,6 +44,8 @@ BuildRequires:  python3-setuptools
 BuildRequires:  gcc-c++
 BuildRequires:  strace
 BuildRequires:  chrpath
+BuildRequires:  ccache
+BuildRequires:  gdb
 %if 0%{?fedora} < 28 && 0%{?rhel} < 8
 Requires:       python-devel
 %endif
@@ -54,6 +58,7 @@ Requires:       python36-devel
 Requires:       gcc-c++
 Requires:       strace
 Requires:       chrpath
+Requires:       ccache
 BuildArchitectures: noarch
 
 %description
@@ -77,10 +82,21 @@ python3=`which python3 2>/dev/null || true`
 
 if [ "$python2_version" != "2.6" ]
 then
-    # Remove files not needed only for Python 2.6, only cause errors during
-    # compilation.
+    # Remove files needed only for Python 2.6, they only cause errors during
+    # compilation with Python3.
     rm -rf nuitka/build/inline_copy/lib/scons-2.3.2
+else
+    # Remove files mot needed for Python 2.6, they only cause errors during
+    # compilation with Python 2.6.
+    rm -rf nuitka/build/inline_copy/lib/scons-3*
+    rm -rf nuitka/build/inline_copy/tqdm
 fi
+
+# These are all Windows only or used only there.
+rm -rf nuitka/build/inline_copy/clcache
+rm -rf nuitka/build/inline_copy/atomicwrites
+rm -rf nuitka/build/inline_copy/colorama
+rm -rf nuitka/build/inline_copy/zstd
 
 if [ "$python2" != "" ]
 then
@@ -100,8 +116,18 @@ python2=`which python2 || true`
 
 if [ "$python2" != "" ]
 then
+    echo "Basic compilation test of empty module:"
+    $python2 -m nuitka.__main__ --module --show-scons --run tests/basics/Empty.py
+    echo "Basic compilation test of empty program:"
+    $python2 -m nuitka.__main__ --show-scons --run tests/basics/Empty.py
+
     $python2 ./tests/run-tests --skip-reflection-test
 else
+    echo "Basic compilation test of empty module:"
+    python3 -m nuitka --module --show-scons --run tests/basics/Empty.py
+    echo "Basic compilation test of empty program:"
+    python3 -m nuitka --show-scons --run tests/basics/Empty.py
+
     python3 ./tests/run-tests --skip-reflection-test
 fi
 

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -47,7 +47,7 @@ def visitModule(module, visitor):
 
 class VisitorNoopMixin(object):
     def onEnterNode(self, node):
-        """ Overloaded for operation before the node children were done. """
+        """Overloaded for operation before the node children were done."""
 
     def onLeaveNode(self, node):
-        """ Overloaded for operation after the node children were done. """
+        """Overloaded for operation after the node children were done."""

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,9 +25,7 @@ from .Utils import getOS
 
 
 def getOwnProcessMemoryUsage():
-    """ Memory usage of own process in bytes.
-
-    """
+    """Memory usage of own process in bytes."""
 
     if getOS() == "Windows":
         # adapted from http://code.activestate.com/recipes/578513

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,24 +18,34 @@
 """ Utils for file and directory operations.
 
 This provides enhanced and more error resilient forms of standard
-stuff. It will also frequently add sorting.
+stuff. It will also frequently add sorting for determism.
 
 """
 
+from __future__ import print_function
+
+import errno
+import glob
 import os
 import shutil
+import stat
 import tempfile
 import time
 from contextlib import contextmanager
 
-from nuitka.Tracing import my_print
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    basestring,
+)
+from nuitka.PythonVersions import python_version
+from nuitka.Tracing import my_print, options_logger
 
+from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
-from .Utils import getOS
+from .Utils import getOS, isWin32Windows
 
 # Locking seems to be only required for Windows mostly, but we can keep
 # it for all.
-file_lock = None
+file_lock = RLock()
 
 # Use this in case of dead locks or even to see file operations being done.
 _lock_tracing = False
@@ -43,11 +53,14 @@ _lock_tracing = False
 
 @contextmanager
 def withFileLock(reason="unknown"):
-    # This is a singleton, pylint: disable=global-statement
-    global file_lock
+    """Acquire file handling lock.
 
-    if file_lock is None:
-        file_lock = RLock()
+    Args:
+        reason: What is being done.
+
+    Notes: This is most relevant for Windows, but prevents concurrent access
+    from threads generally, which could lead to observing half ready things.
+    """
 
     if _lock_tracing:
         my_print(getThreadIdent(), "Want file lock for %s" % reason)
@@ -57,12 +70,11 @@ def withFileLock(reason="unknown"):
     yield
     if _lock_tracing:
         my_print(getThreadIdent(), "Released file lock for %s" % reason)
-    if file_lock is not None:
-        file_lock.release()
+    file_lock.release()
 
 
 def areSamePaths(path1, path2):
-    """ Decide if two paths the same.
+    """Decide if two paths the same.
 
     Args:
         path1: First path
@@ -86,8 +98,19 @@ def areSamePaths(path1, path2):
     return path1 == path2
 
 
+def haveSameFileContents(path1, path2):
+    # Local import, to avoid this for normal use cases.
+    import filecmp
+
+    return filecmp.cmp(path1, path2)
+
+
+def getFileSize(path):
+    return os.path.getsize(path)
+
+
 def relpath(path, start="."):
-    """ Make it a relative path, if possible.
+    """Make it a relative path, if possible.
 
     Args:
         path: path to work on
@@ -116,7 +139,7 @@ def relpath(path, start="."):
 
 
 def makePath(path):
-    """ Create a directory if it doesn't exist.
+    """Create a directory if it doesn't exist.
 
     Args:
         path: path to create as a directory
@@ -132,8 +155,46 @@ def makePath(path):
             os.makedirs(path)
 
 
+def _getRealPathWindows(path):
+    # Slow, because we are using an external process, we it's only for standalone and Python2,
+    # which is slow already.
+    import subprocess
+
+    result = subprocess.check_output(
+        """powershell -NoProfile "Get-Item '%s' | Select-Object -ExpandProperty Target" """
+        % path
+    )
+
+    if str is not bytes:
+        result = result.decode("utf8")
+
+    return os.path.join(os.path.dirname(path), result.rstrip("\r\n"))
+
+
+def getDirectoryRealPath(path):
+    """Get os.path.realpath with Python2 and Windows symlink workaround applied.
+
+    Args:
+        path: path to get realpath of
+
+    Returns:
+        path with symlinks resolved
+
+    Notes:
+        Workaround for Windows symlink is applied.
+
+    """
+    path = os.path.realpath(path)
+
+    # Attempt to resolve Windows symlinks on Python2
+    if os.name == "nt" and not os.path.isdir(path):
+        path = _getRealPathWindows(path)
+
+    return path
+
+
 def listDir(path):
-    """ Give a sorted listing of a path.
+    """Give a sorted listing of a path.
 
     Args:
         path: directory to create a listing from
@@ -151,23 +212,29 @@ def listDir(path):
         symlinks to directories on Windows, that a naive "os.listdir"
         won't do by default.
     """
+    real_path = getDirectoryRealPath(path)
 
     return sorted(
-        [
-            (os.path.join(path, filename), filename)
-            for filename in os.listdir(os.path.realpath(path))
-        ]
+        [(os.path.join(path, filename), filename) for filename in os.listdir(real_path)]
     )
 
 
-def getFileList(path, ignore_dirs=(), ignore_suffixes=()):
-    """ Get all files below a given path.
+def getFileList(
+    path,
+    ignore_dirs=(),
+    ignore_filenames=(),
+    ignore_suffixes=(),
+    only_suffixes=(),
+    normalize=True,
+):
+    """Get all files below a given path.
 
     Args:
         path: directory to create a recurseive listing from
         ignore_dirs: Don't descend into these directory, ignore them
+        ignore_filenames: Ignore files named exactly like this
         ignore_suffixes: Don't return files with these suffixes
-
+        only_suffixes: If not empty, limit returned files to these suffixes
 
     Returns:
         Sorted list of all filenames below that directory,
@@ -177,27 +244,51 @@ def getFileList(path, ignore_dirs=(), ignore_suffixes=()):
         This function descends into directories, but does
         not follow symlinks.
     """
+    # We work with a lot of details here, pylint: disable=too-many-locals
+
     result = []
+
+    # Normalize ignoredirs for better matching.
+    ignore_dirs = [os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs]
+    ignore_filenames = [
+        os.path.normcase(ignore_filename) for ignore_filename in ignore_filenames
+    ]
 
     for root, dirnames, filenames in os.walk(path):
         dirnames.sort()
         filenames.sort()
 
-        for dirname in ignore_dirs:
-            if dirname in dirnames:
-                dirnames.remove(dirname)
+        # Normalize dirnames for better matching.
+        dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
+        for ignore_dir in ignore_dirs:
+            if ignore_dir in dirnames_normalized:
+                dirnames.remove(ignore_dir)
+
+        # Normalize filenames for better matching.
+        filenames_normalized = [os.path.normcase(filename) for filename in filenames]
+        for ignore_filename in ignore_filenames:
+            if ignore_filename in filenames_normalized:
+                filenames.remove(ignore_filename)
 
         for filename in filenames:
-            if filename.endswith(ignore_suffixes):
+            if os.path.normcase(filename).endswith(ignore_suffixes):
                 continue
 
-            result.append(os.path.normpath(os.path.join(root, filename)))
+            if only_suffixes and not os.path.normcase(filename).endswith(only_suffixes):
+                continue
+
+            fullname = os.path.join(root, filename)
+
+            if normalize:
+                fullname = os.path.normpath(fullname)
+
+            result.append(fullname)
 
     return result
 
 
-def getSubDirectories(path):
-    """ Get all directories below a given path.
+def getSubDirectories(path, ignore_dirs=()):
+    """Get all directories below a given path.
 
     Args:
         path: directory to create a recurseive listing from
@@ -213,7 +304,15 @@ def getSubDirectories(path):
 
     result = []
 
+    ignore_dirs = [os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs]
+
     for root, dirnames, _filenames in os.walk(path):
+        # Normalize dirnames for better matching.
+        dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
+        for ignore_dir in ignore_dirs:
+            if ignore_dir in dirnames_normalized:
+                dirnames.remove(ignore_dir)
+
         dirnames.sort()
 
         for dirname in dirnames:
@@ -224,7 +323,7 @@ def getSubDirectories(path):
 
 
 def deleteFile(path, must_exist):
-    """ Delete a file, potentially making sure it exists.
+    """Delete a file, potentially making sure it exists.
 
     Args:
         path: file to delete
@@ -245,25 +344,27 @@ def deleteFile(path, must_exist):
 
 
 def splitPath(path):
-    """ Split path, skipping empty elements. """
+    """Split path, skipping empty elements."""
     return tuple(element for element in os.path.split(path) if element)
 
 
 def hasFilenameExtension(path, extensions):
+    """Has a filename one of the given extensions."""
+
     extension = os.path.splitext(os.path.normcase(path))[1]
 
     return extension in extensions
 
 
 def removeDirectory(path, ignore_errors):
-    """ Remove a directory recursively.
+    """Remove a directory recursively.
 
-        On Windows, it happens that operations fail, and succeed when reried,
-        so added a retry and small delay, then another retry. Should make it
-        much more stable during tests.
+    On Windows, it happens that operations fail, and succeed when reried,
+    so added a retry and small delay, then another retry. Should make it
+    much more stable during tests.
 
-        All kinds of programs that scan files might cause this, but they do
-        it hopefully only briefly.
+    All kinds of programs that scan files might cause this, but they do
+    it hopefully only briefly.
     """
 
     def onError(func, path, exc_info):
@@ -301,15 +402,54 @@ def getFileContentByLine(filename, mode="r", encoding=None):
 
 
 def getFileContents(filename, mode="r", encoding=None):
-    with withFileLock("reading file %s" % filename):
-        if encoding is not None:
-            import codecs
+    """Get the contents of a file.
 
-            with codecs.open(filename, mode, encoding=encoding) as f:
-                return f.read()
+    Args:
+        filename: str with the file to be read
+        mode: "r" for str, "rb" for bytes result
+        encoding: optional encoding to used when reading the file, e.g. "utf8"
+
+    Returns:
+        str or bytes - depending on mode.
+
+    """
+
+    with withFileLock("reading file %s" % filename):
+        with openTextFile(filename, mode, encoding=encoding) as f:
+            return f.read()
+
+
+def openTextFile(filename, mode, encoding=None):
+    if encoding is not None:
+        import codecs
+
+        return codecs.open(filename, mode, encoding=encoding)
+    else:
+        return open(filename, mode)
+
+
+def putTextFileContents(filename, contents, encoding=None):
+    """Write a text file from given contents.
+
+    Args:
+        filename: str with the file to be created
+        contents: str or iterable of strings with what should be written into the file
+        encoding: optional encoding to used when writing the file
+
+    Returns:
+        None
+    """
+
+    def _writeContents(output_file):
+        if isinstance(contents, basestring):
+            print(contents, file=output_file)
         else:
-            with open(filename, mode) as f:
-                return f.read()
+            for line in contents:
+                print(line, file=output_file)
+
+    with withFileLock("writing file %s" % filename):
+        with openTextFile(filename, "w", encoding=encoding) as output_file:
+            _writeContents(output_file)
 
 
 @contextmanager
@@ -324,6 +464,26 @@ def withMadeWritableFileMode(filename):
     with withPreserveFileMode(filename):
         os.chmod(filename, int("644", 8))
         yield
+
+
+def removeFileExecutablePermission(filename):
+    old_stat = os.stat(filename)
+
+    mode = old_stat.st_mode
+    mode &= ~(stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+    if mode != old_stat.st_mode:
+        os.chmod(filename, mode)
+
+
+def addFileExecutablePermission(filename):
+    old_stat = os.stat(filename)
+
+    mode = old_stat.st_mode
+    mode |= stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+
+    if mode != old_stat.st_mode:
+        os.chmod(filename, mode)
 
 
 def renameFile(source_filename, dest_filename):
@@ -341,7 +501,7 @@ def renameFile(source_filename, dest_filename):
 
 
 def copyTree(source_path, dest_path):
-    """ Copy whole directory tree, preserving attributes.
+    """Copy whole directory tree, preserving attributes.
 
     Args:
         source_path: where to copy from
@@ -355,18 +515,47 @@ def copyTree(source_path, dest_path):
     # False alarm on travis, pylint: disable=I0021,import-error,no-name-in-module
     from distutils.dir_util import copy_tree
 
-    copy_tree(source_path, dest_path)
+    return copy_tree(source_path, dest_path)
+
+
+def copyFileWithPermissions(source_path, dest_path):
+    """Improved version of shutil.copy2.
+
+    File systems might not allow to transfer extended attributes, which we then ignore
+    and only copy permissions.
+    """
+
+    try:
+        shutil.copy2(source_path, dest_path)
+    except PermissionError as e:
+        if e.errno != errno.EACCES:
+            raise
+
+        source_mode = os.stat(source_path).st_mode
+        shutil.copy(source_path, dest_path)
+        os.chmod(dest_path, source_mode)
+
+
+def getWindowsDrive(path):
+    """Windows drive for a given path."""
+
+    drive, _ = os.path.splitdrive(os.path.abspath(path))
+    return os.path.normcase(drive)
 
 
 def isPathBelow(path, filename):
     path = os.path.abspath(path)
     filename = os.path.abspath(filename)
 
-    return os.path.relpath(filename, path)[:3].split(os.path.sep) != ".."
+    if isWin32Windows():
+        if getWindowsDrive(path) != getWindowsDrive(filename):
+            return False
+
+    return os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
 
 
 def getWindowsShortPathName(filename):
-    """ Gets the short path name of a given long path.
+    """Gets the short path name of a given long path.
 
     Args:
         filename - long Windows filename
@@ -388,7 +577,9 @@ def getWindowsShortPathName(filename):
     output_buf_size = 0
     while True:
         output_buf = ctypes.create_unicode_buffer(output_buf_size)
-        needed = GetShortPathNameW(filename, output_buf, output_buf_size)
+        needed = GetShortPathNameW(
+            os.path.abspath(filename), output_buf, output_buf_size
+        )
 
         if needed == 0:
             # Windows only code, pylint: disable=I0021,undefined-variable
@@ -398,20 +589,25 @@ def getWindowsShortPathName(filename):
             )
 
         if output_buf_size >= needed:
-            return output_buf.value
+            # Short paths should be ASCII. Don't return unicode without a need,
+            # as e.g. Scons hates that in environment variables.
+            if str is bytes:
+                return output_buf.value.encode("utf8")
+            else:
+                return output_buf.value
         else:
             output_buf_size = needed
 
 
 def getExternalUsePath(filename, only_dirname=False):
-    """ Gets the externally usable absolute path for a given relative path.
+    """Gets the externally usable absolute path for a given relative path.
 
     Args:
         filename - filename, potentially relative
     Returns:
         Path that is a absolute and (on Windows) short filename pointing at the same file.
     Notes:
-        Except on Windows, this is merely os.path.abspath, there is coverts
+        This is only os.path.abspath except on Windows, where is coverts
         to a short path too.
     """
 
@@ -426,3 +622,88 @@ def getExternalUsePath(filename, only_dirname=False):
             filename = getWindowsShortPathName(filename)
 
     return filename
+
+
+def getLinkTarget(filename):
+    """Return the path a link is pointing too, if any.
+
+    Args:
+        filename - check this path, need not be a filename
+
+    Returns:
+        (bool, link_target) - first value indicates if it is a link, second the link target
+
+    Notes:
+        This follows symlinks to the very end.
+    """
+    is_link = False
+    while os.path.exists(filename) and os.path.islink(filename):
+        link_target = os.readlink(filename)
+
+        filename = os.path.join(os.path.dirname(filename), link_target)
+        is_link = True
+
+    return is_link, filename
+
+
+def replaceFileAtomic(source_path, dest_path):
+    """
+    Move ``src`` to ``dst``. If ``dst`` exists, it will be silently
+    overwritten.
+
+    Both paths must reside on the same filesystem for the operation to be
+    atomic.
+    """
+
+    if python_version >= 0x300:
+        os.replace(source_path, dest_path)
+    else:
+        importFromInlineCopy("atomicwrites", must_exist=True).replace_atomic(
+            source_path, dest_path
+        )
+
+
+def resolveShellPatternToFilenames(pattern):
+    """Resolve shell pattern to filenames.
+
+    Args:
+        pattern - str
+
+    Returns:
+        list - filenames that matched.
+    """
+
+    if "**" in pattern:
+        if python_version >= 0x350:
+            result = glob.glob(pattern, recursive=True)
+            result.sort()
+            return result
+        else:
+            glob2 = importFromInlineCopy("glob2", must_exist=True)
+
+            if glob2 is None:
+                options_logger.sysexit(
+                    "Using pattern with ** is not supported before Python 3.5 unless glob2 is installed."
+                )
+
+            result = glob2.glob(pattern)
+            result.sort()
+            return result
+    else:
+        result = glob.glob(pattern)
+        result.sort()
+        return result
+
+
+@contextmanager
+def withDirectoryChange(path, allow_none=False):
+    """Change current directory temporarily in a context."""
+
+    if path is not None or not allow_none:
+        old_cwd = os.getcwd()
+        os.chdir(path)
+
+    yield
+
+    if path is not None or not allow_none:
+        os.chdir(old_cwd)

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -34,6 +34,10 @@ def calledRepeatedly():
     s += additiv
 
 # construct_begin
+    s += additiv
+    s += additiv
+    s += additiv
+    s += additiv
     s += additiv
 # construct_end
 

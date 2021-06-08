@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -41,15 +41,29 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN(PyObject *name) {
     return result;
 }
 
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN_STR(char const *name) {
+    CHECK_OBJECT(dict_builtin);
+
+    PyObject *result = PyDict_GetItemString((PyObject *)dict_builtin, name);
+
+    // This is assumed to not fail, abort if it does.
+    if (unlikely(result == NULL)) {
+        PyErr_PrintEx(0);
+        Py_Exit(1);
+    }
+
+    CHECK_OBJECT(result);
+
+    return result;
+}
+
 extern void _initBuiltinModule();
 
 #define NUITKA_DECLARE_BUILTIN(name) extern PyObject *_python_original_builtin_value_##name;
-#define NUITKA_DEFINE_BUILTIN(name)                                                                                    \
-    extern PyObject *const_str_plain_##name;                                                                           \
-    PyObject *_python_original_builtin_value_##name = NULL;
+#define NUITKA_DEFINE_BUILTIN(name) PyObject *_python_original_builtin_value_##name = NULL;
 #define NUITKA_ASSIGN_BUILTIN(name)                                                                                    \
     if (_python_original_builtin_value_##name == NULL)                                                                 \
-        _python_original_builtin_value_##name = LOOKUP_BUILTIN(const_str_plain_##name);
+        _python_original_builtin_value_##name = LOOKUP_BUILTIN_STR(#name);
 #define NUITKA_UPDATE_BUILTIN(name, value) _python_original_builtin_value_##name = value;
 #define NUITKA_ACCESS_BUILTIN(name) (_python_original_builtin_value_##name)
 
@@ -61,7 +75,7 @@ NUITKA_DECLARE_BUILTIN(range);
 NUITKA_DECLARE_BUILTIN(repr);
 NUITKA_DECLARE_BUILTIN(int);
 NUITKA_DECLARE_BUILTIN(iter);
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 NUITKA_DECLARE_BUILTIN(long);
 #endif
 

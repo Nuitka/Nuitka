@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,13 +28,12 @@ module.
 
 import os
 
+from nuitka.Options import shallUseStaticLibPython
 from nuitka.utils.Utils import getOS
 
 
 def getStandardLibraryPaths():
-    """ Get the standard library paths.
-
-    """
+    """Get the standard library paths."""
 
     # Using the function object to cache its result, avoiding global variable
     # usage.
@@ -94,7 +93,7 @@ def getStandardLibraryPaths():
             if os.path.isdir(candidate):
                 stdlib_paths.add(candidate)
 
-        if getOS() == "Windows":
+        if getOS() == "Windows" and not shallUseStaticLibPython():
             import _ctypes
 
             stdlib_paths.add(os.path.dirname(_ctypes.__file__))
@@ -108,9 +107,7 @@ def getStandardLibraryPaths():
 
 
 def isStandardLibraryPath(path):
-    """ Check if a path is in the standard library.
-
-    """
+    """Check if a path is in the standard library."""
 
     path = os.path.normcase(os.path.normpath(path))
 

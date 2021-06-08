@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -22,7 +22,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name) {
     CHECK_OBJECT(klass);
     CHECK_OBJECT(attr_name);
@@ -33,10 +33,14 @@ PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name) {
     PyObject *result = GET_STRING_DICT_VALUE((PyDictObject *)klass->cl_dict, (PyStringObject *)attr_name);
 
     if (result == NULL) {
+        assert(PyTuple_Check(klass->cl_bases));
+
+        // TODO: Why is PyTuple_GET_SIZE performing worse, should not be possible. It seems
+        // tail end recursion and gcc 8.3 might be to blame, clang doesn't show it.
         Py_ssize_t base_count = PyTuple_Size(klass->cl_bases);
 
         for (Py_ssize_t i = 0; i < base_count; i++) {
-            result = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)PyTuple_GetItem(klass->cl_bases, i), attr_name);
+            result = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)PyTuple_GET_ITEM(klass->cl_bases, i), attr_name);
 
             if (result != NULL) {
                 break;
@@ -48,7 +52,7 @@ PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name) {
 }
 #endif
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject **args);
 
 static PyObject *LOOKUP_INSTANCE(PyObject *source, PyObject *attr_name) {
@@ -132,7 +136,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
         if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
 #endif
                 func = Py_TYPE(descr)->tp_descr_get;
@@ -143,7 +147,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
 
                     return result;
                 }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             }
 #endif
         }
@@ -158,8 +162,9 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
                 size_t size;
 
                 tsize = ((PyVarObject *)source)->ob_size;
-                if (tsize < 0)
+                if (tsize < 0) {
                     tsize = -tsize;
+                }
                 size = _PyObject_VAR_SIZE(type, tsize);
 
                 dictoffset += (long)size;
@@ -172,20 +177,19 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
         if (dict != NULL) {
             CHECK_OBJECT(dict);
 
+            // TODO: If this is an exact dict, we don't have to hold a reference, is it?
             Py_INCREF(dict);
 
-            PyObject *result = PyDict_GetItem(dict, attr_name);
+            PyObject *result = DICT_GET_ITEM1(dict, attr_name);
+
+            Py_DECREF(dict);
 
             if (result != NULL) {
-                Py_INCREF(result);
                 Py_XDECREF(descr);
-                Py_DECREF(dict);
 
                 CHECK_OBJECT(result);
                 return result;
             }
-
-            Py_DECREF(dict);
         }
 
         if (func != NULL) {
@@ -201,7 +205,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
             return descr;
         }
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name,
                      PyString_AS_STRING(attr_name));
 #else
@@ -209,7 +213,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
 #endif
         return NULL;
     }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     else if (type->tp_getattro == PyInstance_Type.tp_getattro) {
         PyObject *result = LOOKUP_INSTANCE(source, attr_name);
         return result;
@@ -253,7 +257,7 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
         if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
 #endif
                 func = Py_TYPE(descr)->tp_descr_get;
@@ -264,7 +268,7 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
 
                     return result;
                 }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             }
 #endif
         }
@@ -295,10 +299,9 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
 
             Py_INCREF(dict);
 
-            PyObject *result = PyDict_GetItem(dict, const_str_plain___dict__);
+            PyObject *result = DICT_GET_ITEM1(dict, const_str_plain___dict__);
 
             if (result != NULL) {
-                Py_INCREF(result);
                 Py_XDECREF(descr);
                 Py_DECREF(dict);
 
@@ -325,7 +328,7 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '__dict__'", type->tp_name);
         return NULL;
     }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     else if (type->tp_getattro == PyInstance_Type.tp_getattro) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
         PyObject *result = source_instance->in_dict;
@@ -371,7 +374,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
         if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
 #endif
                 func = Py_TYPE(descr)->tp_descr_get;
@@ -382,7 +385,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
 
                     return result;
                 }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
             }
 #endif
         }
@@ -397,8 +400,9 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
                 size_t size;
 
                 tsize = ((PyVarObject *)source)->ob_size;
-                if (tsize < 0)
+                if (tsize < 0) {
                     tsize = -tsize;
+                }
                 size = _PyObject_VAR_SIZE(type, tsize);
 
                 dictoffset += (long)size;
@@ -413,10 +417,9 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
 
             Py_INCREF(dict);
 
-            PyObject *result = PyDict_GetItem(dict, const_str_plain___class__);
+            PyObject *result = DICT_GET_ITEM1(dict, const_str_plain___class__);
 
             if (result != NULL) {
-                Py_INCREF(result);
                 Py_XDECREF(descr);
                 Py_DECREF(dict);
 
@@ -443,7 +446,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
         PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '__class__'", type->tp_name);
         return NULL;
     }
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     else if (type->tp_getattro == PyInstance_Type.tp_getattro) {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
         PyObject *result = (PyObject *)source_instance->in_class;
@@ -475,7 +478,7 @@ int BUILTIN_HASATTR_BOOL(PyObject *source, PyObject *attr_name) {
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyUnicode_Check(attr_name)) {
         attr_name = _PyUnicode_AsDefaultEncodedString(attr_name, NULL);
 
@@ -513,7 +516,162 @@ int BUILTIN_HASATTR_BOOL(PyObject *source, PyObject *attr_name) {
     return 1;
 }
 
-#if PYTHON_VERSION < 300
+bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
+    CHECK_OBJECT(source);
+    CHECK_OBJECT(attr_name);
+
+    PyTypeObject *type = Py_TYPE(source);
+
+    if (type->tp_getattro == PyObject_GenericGetAttr) {
+        // Unfortunately this is required, although of cause rarely necessary.
+        if (unlikely(type->tp_dict == NULL)) {
+            if (unlikely(PyType_Ready(type) < 0)) {
+                DROP_ERROR_OCCURRED();
+
+                return false;
+            }
+        }
+
+        PyObject *descr = _PyType_Lookup(type, attr_name);
+        descrgetfunc func = NULL;
+
+        if (descr != NULL) {
+            Py_INCREF(descr);
+
+#if PYTHON_VERSION < 0x300
+            if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
+#endif
+                func = Py_TYPE(descr)->tp_descr_get;
+
+                if (func != NULL && PyDescr_IsData(descr)) {
+                    PyObject *result = func(descr, source, (PyObject *)type);
+                    Py_DECREF(descr);
+
+                    if (result) {
+                        CHECK_OBJECT(result);
+
+                        Py_DECREF(result);
+                        return true;
+                    }
+
+                    DROP_ERROR_OCCURRED();
+                }
+#if PYTHON_VERSION < 0x300
+            }
+#endif
+        }
+
+        Py_ssize_t dictoffset = type->tp_dictoffset;
+        PyObject *dict = NULL;
+
+        if (dictoffset != 0) {
+            // Negative dictionary offsets have special meaning.
+            if (dictoffset < 0) {
+                Py_ssize_t tsize;
+                size_t size;
+
+                tsize = ((PyVarObject *)source)->ob_size;
+                if (tsize < 0) {
+                    tsize = -tsize;
+                }
+                size = _PyObject_VAR_SIZE(type, tsize);
+
+                dictoffset += (long)size;
+            }
+
+            PyObject **dictptr = (PyObject **)((char *)source + dictoffset);
+            dict = *dictptr;
+        }
+
+        if (dict != NULL) {
+            CHECK_OBJECT(dict);
+
+            // TODO: If this is an exact dict, we don't have to hold a reference, is it?
+            Py_INCREF(dict);
+
+            PyObject *result = DICT_GET_ITEM1(dict, attr_name);
+
+            Py_DECREF(dict);
+
+            if (result != NULL) {
+                Py_XDECREF(descr);
+
+                CHECK_OBJECT(result);
+
+                Py_DECREF(result);
+                return true;
+            }
+        }
+
+        if (func != NULL) {
+            PyObject *result = func(descr, source, (PyObject *)type);
+            Py_DECREF(descr);
+
+            if (result != NULL) {
+                CHECK_OBJECT(result);
+
+                Py_DECREF(result);
+                return true;
+            }
+
+            DROP_ERROR_OCCURRED();
+        }
+
+        if (descr != NULL) {
+            CHECK_OBJECT(descr);
+
+            Py_DECREF(descr);
+            return true;
+        }
+
+        return false;
+    }
+#if PYTHON_VERSION < 0x300
+    else if (type->tp_getattro == PyInstance_Type.tp_getattro) {
+        PyObject *result = LOOKUP_INSTANCE(source, attr_name);
+
+        if (result == NULL) {
+            DROP_ERROR_OCCURRED();
+
+            return false;
+        }
+
+        CHECK_OBJECT(result);
+
+        Py_DECREF(result);
+        return true;
+    }
+#endif
+    else if (type->tp_getattro != NULL) {
+        PyObject *result = (*type->tp_getattro)(source, attr_name);
+
+        if (result == NULL) {
+            DROP_ERROR_OCCURRED();
+
+            return false;
+        }
+
+        CHECK_OBJECT(result);
+        Py_DECREF(result);
+        return true;
+    } else if (type->tp_getattr != NULL) {
+        PyObject *result = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
+
+        if (result == NULL) {
+            DROP_ERROR_OCCURRED();
+
+            return false;
+        }
+
+        CHECK_OBJECT(result);
+        Py_DECREF(result);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+#if PYTHON_VERSION < 0x300
 extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject **args);
 
 static bool SET_INSTANCE(PyObject *target, PyObject *attr_name, PyObject *value) {
@@ -560,7 +718,7 @@ bool SET_ATTRIBUTE(PyObject *target, PyObject *attr_name, PyObject *value) {
     CHECK_OBJECT(attr_name);
     CHECK_OBJECT(value);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyInstance_Check(target)) {
         return SET_INSTANCE(target, attr_name, value);
     } else
@@ -600,7 +758,7 @@ bool SET_ATTRIBUTE_DICT_SLOT(PyObject *target, PyObject *value) {
     CHECK_OBJECT(target);
     CHECK_OBJECT(value);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (likely(PyInstance_Check(target))) {
         PyInstanceObject *target_instance = (PyInstanceObject *)target;
 
@@ -652,7 +810,7 @@ bool SET_ATTRIBUTE_CLASS_SLOT(PyObject *target, PyObject *value) {
     CHECK_OBJECT(target);
     CHECK_OBJECT(value);
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (likely(PyInstance_Check(target))) {
         PyInstanceObject *target_instance = (PyInstanceObject *)target;
 
@@ -698,7 +856,7 @@ bool SET_ATTRIBUTE_CLASS_SLOT(PyObject *target, PyObject *value) {
 }
 
 PyObject *LOOKUP_SPECIAL(PyObject *source, PyObject *attr_name) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
     if (PyInstance_Check(source)) {
         return LOOKUP_INSTANCE(source, attr_name);
     }
@@ -730,3 +888,51 @@ PyObject *LOOKUP_SPECIAL(PyObject *source, PyObject *attr_name) {
     SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, attr_name);
     return NULL;
 }
+
+PyObject *LOOKUP_MODULE_VALUE(PyDictObject *module_dict, PyObject *var_name) {
+    PyObject *result = GET_STRING_DICT_VALUE(module_dict, (Nuitka_StringObject *)var_name);
+
+    if (unlikely(result == NULL)) {
+        result = GET_STRING_DICT_VALUE(dict_builtin, (Nuitka_StringObject *)var_name);
+    }
+
+    return result;
+}
+
+PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK(PyObject *variable_name) {
+    PyObject *result = GET_STRING_DICT_VALUE(dict_builtin, (Nuitka_StringObject *)variable_name);
+
+    if (unlikely(result == NULL)) {
+        PyObject *exception_type;
+        PyObject *exception_value;
+
+        // TODO: Do this in one go, once FORMAT_NAME_ERROR becomes unused in code generation.
+        FORMAT_NAME_ERROR(&exception_type, &exception_value, variable_name);
+
+#if PYTHON_VERSION >= 0x300
+        // TODO: FORMAT_NAME_ERROR for Python3 should already produce this normalized and chained.
+        NORMALIZE_EXCEPTION(&exception_type, &exception_value, NULL);
+        CHAIN_EXCEPTION(exception_value);
+#endif
+
+        RESTORE_ERROR_OCCURRED(exception_type, exception_value, NULL);
+    }
+
+    return result;
+}
+
+#if PYTHON_VERSION < 0x340
+PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK_IN_FUNCTION(PyObject *variable_name) {
+    PyObject *result = GET_STRING_DICT_VALUE(dict_builtin, (Nuitka_StringObject *)variable_name);
+
+    if (unlikely(result == NULL)) {
+        PyObject *exception_type;
+        PyObject *exception_value;
+
+        FORMAT_GLOBAL_NAME_ERROR(&exception_type, &exception_value, variable_name);
+        RESTORE_ERROR_OCCURRED(exception_type, exception_value, NULL);
+    }
+
+    return result;
+}
+#endif

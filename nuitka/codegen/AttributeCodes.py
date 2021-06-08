@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -49,7 +49,7 @@ def generateAssignmentAttributeCode(statement, emit, context):
 
     old_source_ref = context.setCurrentSourceCodeReference(
         value.getSourceReference()
-        if Options.isFullCompat()
+        if Options.is_fullcompat
         else statement.getSourceReference()
     )
 
@@ -85,7 +85,7 @@ def generateDelAttributeCode(statement, emit, context):
 
     old_source_ref = context.setCurrentSourceCodeReference(
         statement.subnode_expression.getSourceReference()
-        if Options.isFullCompat()
+        if Options.is_fullcompat
         else statement.getSourceReference()
     )
 
@@ -151,7 +151,7 @@ def getAttributeAssignmentCode(target_name, attribute_name, value_name, emit, co
 
 
 def getAttributeAssignmentDictSlotCode(target_name, value_name, emit, context):
-    """ Code for special case target.__dict__ = value """
+    """Code for special case target.__dict__ = value"""
 
     res_name = context.getBoolResName()
 
@@ -166,7 +166,7 @@ def getAttributeAssignmentDictSlotCode(target_name, value_name, emit, context):
 
 
 def getAttributeAssignmentClassSlotCode(target_name, value_name, emit, context):
-    """ Get code for special case target.__class__ = value """
+    """Get code for special case target.__class__ = value"""
 
     res_name = context.getBoolResName()
 
@@ -255,10 +255,10 @@ def generateAttributeCheckCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    res_name = context.getIntResName()
+    res_name = context.getBoolResName()
 
     emit(
-        "%s = PyObject_HasAttr(%s, %s);"
+        "%s = HAS_ATTR_BOOL(%s, %s);"
         % (
             res_name,
             source_name,
@@ -269,7 +269,7 @@ def generateAttributeCheckCode(to_name, expression, emit, context):
     getReleaseCode(release_name=source_name, emit=emit, context=context)
 
     to_name.getCType().emitAssignmentCodeFromBoolCondition(
-        to_name=to_name, condition="%s != 0" % res_name, emit=emit
+        to_name=to_name, condition=res_name, emit=emit
     )
 
 
@@ -279,8 +279,8 @@ def generateBuiltinGetattrCode(to_name, expression, emit, context):
         capi="BUILTIN_GETATTR",
         arg_desc=(
             ("getattr_target", expression.subnode_expression),
-            ("getattr_attr", expression.getAttribute()),
-            ("getattr_default", expression.getDefault()),
+            ("getattr_attr", expression.subnode_name),
+            ("getattr_default", expression.subnode_default),
         ),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -297,8 +297,8 @@ def generateBuiltinSetattrCode(to_name, expression, emit, context):
         capi="BUILTIN_SETATTR",
         arg_desc=(
             ("setattr_target", expression.subnode_expression),
-            ("setattr_attr", expression.getAttribute()),
-            ("setattr_value", expression.getValue()),
+            ("setattr_attr", expression.subnode_attribute),
+            ("setattr_value", expression.subnode_value),
         ),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -94,7 +94,8 @@ def buildLambdaNode(provider, node, source_ref):
         code_body.qualname_provider = provider
 
     if function_kind == "Generator":
-        function_body.setBody(
+        function_body.setChild(
+            "body",
             makeStatementsSequenceFromStatement(
                 statement=StatementReturn(
                     expression=ExpressionMakeGeneratorObject(
@@ -105,7 +106,7 @@ def buildLambdaNode(provider, node, source_ref):
                     ),
                     source_ref=source_ref,
                 )
-            )
+            ),
         )
 
     defaults = buildNodeList(provider, node.args.defaults, source_ref)
@@ -116,7 +117,7 @@ def buildLambdaNode(provider, node, source_ref):
     body = buildNode(provider=code_body, node=node.body, source_ref=source_ref)
 
     if function_kind == "Generator":
-        if python_version < 270:
+        if python_version < 0x270:
             tmp_return_value = code_body.allocateTempVariable(
                 temp_scope=None, name="yield_return"
             )
@@ -172,7 +173,7 @@ def buildLambdaNode(provider, node, source_ref):
 
     body = makeStatementsSequenceFromStatement(statement=body)
 
-    code_body.setBody(body)
+    code_body.setChild("body", body)
 
     annotations = buildParameterAnnotations(provider, node, source_ref)
 

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -40,7 +40,7 @@ def generateBuiltinAbsCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_ABS",
-        arg_desc=(("abs_arg", expression.getOperand()),),
+        arg_desc=(("abs_arg", expression.subnode_operand),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -61,7 +61,7 @@ def generateBuiltinRefCode(to_name, expression, emit, context):
             % (value_name, context.getConstantCode(constant=builtin_name))
         )
 
-        getAssertionCode(check="%s != NULL" % to_name, emit=emit)
+        getAssertionCode(check="%s != NULL" % value_name, emit=emit)
 
         # Gives no reference
 
@@ -83,7 +83,7 @@ def generateBuiltinType1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_TYPE1",
-        arg_desc=(("type_arg", expression.getValue()),),
+        arg_desc=(("type_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -124,18 +124,18 @@ def generateBuiltinType3Code(to_name, expression, emit, context):
 
 def generateBuiltinOpenCode(to_name, expression, emit, context):
     arg_desc = (
-        ("open_filename", expression.getFilename()),
-        ("open_mode", expression.getMode()),
-        ("open_buffering", expression.getBuffering()),
+        ("open_filename", expression.subnode_filename),
+        ("open_mode", expression.subnode_mode),
+        ("open_buffering", expression.subnode_buffering),
     )
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         arg_desc += (
-            ("open_encoding", expression.getEncoding()),
-            ("open_errors", expression.getErrors()),
-            ("open_newline", expression.getNewline()),
-            ("open_closefd", expression.getCloseFd()),
-            ("open_opener", expression.getOpener()),
+            ("open_encoding", expression.subnode_encoding),
+            ("open_errors", expression.subnode_errors),
+            ("open_newline", expression.subnode_newline),
+            ("open_closefd", expression.subnode_closefd),
+            ("open_opener", expression.subnode_opener),
         )
 
     generateCAPIObjectCode(
@@ -155,7 +155,7 @@ def generateBuiltinSum1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_SUM1",
-        arg_desc=(("sum_sequence", expression.getSequence()),),
+        arg_desc=(("sum_sequence", expression.subnode_sequence),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -169,8 +169,8 @@ def generateBuiltinSum2Code(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_SUM2",
         arg_desc=(
-            ("sum_sequence", expression.getSequence()),
-            ("sum_start", expression.getStart()),
+            ("sum_sequence", expression.subnode_sequence),
+            ("sum_start", expression.subnode_start),
         ),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -184,7 +184,7 @@ def generateBuiltinRange1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_RANGE",
-        arg_desc=(("range_arg", expression.getLow()),),
+        arg_desc=(("range_arg", expression.subnode_low),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -198,8 +198,8 @@ def generateBuiltinRange2Code(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_RANGE2",
         arg_desc=(
-            ("range2_low", expression.getLow()),
-            ("range2_high", expression.getHigh()),
+            ("range2_low", expression.subnode_low),
+            ("range2_high", expression.subnode_high),
         ),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -214,9 +214,9 @@ def generateBuiltinRange3Code(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_RANGE3",
         arg_desc=(
-            ("range3_low", expression.getLow()),
-            ("range3_high", expression.getHigh()),
-            ("range3_step", expression.getStep()),
+            ("range3_low", expression.subnode_low),
+            ("range3_high", expression.subnode_high),
+            ("range3_step", expression.subnode_step),
         ),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -230,7 +230,7 @@ def generateBuiltinXrange1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_XRANGE1",
-        arg_desc=(("xrange_low", expression.getLow()),),
+        arg_desc=(("xrange_low", expression.subnode_low),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -245,8 +245,8 @@ def generateBuiltinXrange2Code(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_XRANGE2",
         arg_desc=(
-            ("xrange_low", expression.getLow()),
-            ("xrange_high", expression.getHigh()),
+            ("xrange_low", expression.subnode_low),
+            ("xrange_high", expression.subnode_high),
         ),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -262,9 +262,9 @@ def generateBuiltinXrange3Code(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_XRANGE3",
         arg_desc=(
-            ("xrange_low", expression.getLow()),
-            ("xrange_high", expression.getHigh()),
-            ("xrange_step", expression.getStep()),
+            ("xrange_low", expression.subnode_low),
+            ("xrange_high", expression.subnode_high),
+            ("xrange_step", expression.subnode_step),
         ),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -279,7 +279,7 @@ def generateBuiltinFloatCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="TO_FLOAT",
-        arg_desc=(("float_arg", expression.getValue()),),
+        arg_desc=(("float_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -292,7 +292,7 @@ def generateBuiltinComplex1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_COMPLEX1",
-        arg_desc=(("real_arg", expression.getValue()),),
+        arg_desc=(("real_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -307,8 +307,8 @@ def generateBuiltinComplex2Code(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_COMPLEX2",
         arg_desc=(
-            ("real_arg", expression.getReal()),
-            ("imag_arg", expression.getImag()),
+            ("real_arg", expression.subnode_real),
+            ("imag_arg", expression.subnode_imag),
         ),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -345,7 +345,7 @@ def generateBuiltinBinCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_BIN",
-        arg_desc=(("bin_arg", expression.getValue()),),
+        arg_desc=(("bin_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -358,7 +358,7 @@ def generateBuiltinOctCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_OCT",
-        arg_desc=(("oct_arg", expression.getValue()),),
+        arg_desc=(("oct_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -371,7 +371,7 @@ def generateBuiltinHexCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_HEX",
-        arg_desc=(("hex_arg", expression.getValue()),),
+        arg_desc=(("hex_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -384,7 +384,7 @@ def generateBuiltinBytearray1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_BYTEARRAY1",
-        arg_desc=(("bytearray_arg", expression.getValue()),),
+        arg_desc=(("bytearray_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -398,9 +398,9 @@ def generateBuiltinBytearray3Code(to_name, expression, emit, context):
         to_name=to_name,
         capi="BUILTIN_BYTEARRAY3",
         arg_desc=(
-            ("bytearray_string", expression.getStringArg()),
-            ("bytearray_encoding", expression.getEncoding()),
-            ("bytearray_errors", expression.getErrors()),
+            ("bytearray_string", expression.subnode_string),
+            ("bytearray_encoding", expression.subnode_encoding),
+            ("bytearray_errors", expression.subnode_errors),
         ),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -415,7 +415,7 @@ def generateBuiltinStaticmethodCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_STATICMETHOD",
-        arg_desc=(("staticmethod_arg", expression.getValue()),),
+        arg_desc=(("staticmethod_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -428,7 +428,7 @@ def generateBuiltinClassmethodCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_CLASSMETHOD",
-        arg_desc=(("classmethod_arg", expression.getValue()),),
+        arg_desc=(("classmethod_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),

@@ -1,4 +1,4 @@
-#     Copyright 2020, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2021, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,8 +24,8 @@ from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
-def get_torch_core_binaries(module):
-    """ Return required files from the torch folders.
+def getTorchCoreFiles(module):
+    """Return required files from the torch folders.
 
     Notes:
         So far only tested for Windows. Requirements for other platforms
@@ -66,28 +66,34 @@ def get_torch_core_binaries(module):
 
 
 class TorchPlugin(NuitkaPluginBase):
-    """ This class represents the main logic of the plugin.
+    """This class represents the main logic of the plugin.
 
     This is a plugin to ensure torch scripts compile and work well in
     standalone mode.
 
     This plugin copies any files required by torch installations.
 
-    Args:
-        NuitkaPluginBase: plugin template class we are inheriting.
     """
 
     plugin_name = "torch"
     plugin_desc = "Required by the torch / torchvision packages"
 
     def __init__(self):
-        """ Maintain switch to ensure once-only copy of torch/lib files.
-        """
+        """Maintain switch to ensure once-only copy of torch/lib files."""
         self.files_copied = False
         return None
 
+    @classmethod
+    def isRelevant(cls):
+        """This method is called one time only to check, whether the plugin might make sense at all.
+
+        Returns:
+            True if this is a standalone compilation.
+        """
+        return Options.isStandaloneMode()
+
     def considerExtraDlls(self, dist_dir, module):
-        """ Copy extra files from torch/lib.
+        """Copy extra files from torch/lib.
 
         Args:
             dist_dir: the name of the script's dist folder
@@ -100,11 +106,12 @@ class TorchPlugin(NuitkaPluginBase):
 
         if module.getFullName() == "torch":
             self.files_copied = True  # fall through next time
-            binaries = get_torch_core_binaries(module)
+            binaries = getTorchCoreFiles(module)
             bin_total = len(binaries)
             if bin_total == 0:
                 return ()
             self.info("Copying files from 'torch' installation:")
+
             for f in binaries:
                 bin_file = f[0]  # full binary file name
                 idx = bin_file.find("torch")  # this will always work (idx > 0)
@@ -124,7 +131,7 @@ class TorchPlugin(NuitkaPluginBase):
 
 
 class TorchPluginDetector(NuitkaPluginBase):
-    """ Only used if plugin is NOT activated.
+    """Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
@@ -134,7 +141,7 @@ class TorchPluginDetector(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        """ This method is called one time only to check, whether the plugin might make sense at all.
+        """This method is called one time only to check, whether the plugin might make sense at all.
 
         Returns:
             True if this is a standalone compilation.
@@ -142,7 +149,7 @@ class TorchPluginDetector(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):
-        """ This method checks whether a torch module is imported.
+        """This method checks whether a torch module is imported.
 
         Notes:
             For this we check whether its full name contains the string "torch".

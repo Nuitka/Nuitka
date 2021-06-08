@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -48,7 +48,7 @@ def generateSetLocalsDictCode(statement, emit, context):
 
     generateExpressionCode(
         to_name=new_locals_name,
-        expression=statement.getNewLocals(),
+        expression=statement.subnode_new_locals,
         emit=emit,
         context=context,
     )
@@ -274,7 +274,7 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
     if is_dict:
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
             to_name=to_name,
-            condition="PyDict_GetItem(%(locals_dict)s, %(var_name)s)"
+            condition="DICT_HAS_ITEM(%(locals_dict)s, %(var_name)s) == 1"
             % {
                 "locals_dict": locals_declaration,
                 "var_name": context.getConstantCode(constant=variable_name),

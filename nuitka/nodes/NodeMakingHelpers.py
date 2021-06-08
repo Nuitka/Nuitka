@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,36 +26,40 @@ the local imports instead, as these local imports look ugly everywhere else,
 making it more difficult to use.
 """
 
-from logging import warning
-
 from nuitka import Options
+from nuitka.__past__ import GenericAlias
 from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import unusual_logger
 
 
-def makeConstantReplacementNode(constant, node):
+def makeConstantReplacementNode(constant, node, user_provided):
     from .ConstantRefNodes import makeConstantRefNode
 
-    return makeConstantRefNode(constant=constant, source_ref=node.source_ref)
+    return makeConstantRefNode(
+        constant=constant, source_ref=node.source_ref, user_provided=user_provided
+    )
 
 
 def makeRaiseExceptionReplacementExpression(
     expression, exception_type, exception_value
 ):
-    from .ExceptionNodes import ExpressionRaiseException
     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+    from .ExceptionNodes import ExpressionRaiseException
 
     source_ref = expression.source_ref
 
     assert type(exception_type) is str
 
     if Options.shallWarnImplicitRaises():
-        warning(
-            '%s: Will always raise exception: "%s(%s)"',
-            source_ref.getAsString(),
-            exception_type,
-            exception_value,
+        unusual_logger.warning(
+            '%s: Will always raise exception: "%s(%s)"'
+            % (
+                source_ref.getAsString(),
+                exception_type,
+                exception_value,
+            )
         )
 
     result = ExpressionRaiseException(
@@ -63,7 +67,7 @@ def makeRaiseExceptionReplacementExpression(
             exception_name=exception_type, source_ref=source_ref
         ),
         exception_value=makeConstantReplacementNode(
-            constant=exception_value, node=expression
+            constant=exception_value, node=expression, user_provided=False
         ),
         source_ref=source_ref,
     )
@@ -72,19 +76,21 @@ def makeRaiseExceptionReplacementExpression(
 
 
 def makeRaiseExceptionReplacementStatement(statement, exception_type, exception_value):
-    from .ExceptionNodes import StatementRaiseExceptionImplicit
     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+    from .ExceptionNodes import StatementRaiseExceptionImplicit
 
     source_ref = statement.getSourceReference()
 
     assert type(exception_type) is str
 
     if Options.shallWarnImplicitRaises():
-        warning(
-            '%s: Will always raise exception: "%s(%s)"',
-            source_ref.getAsString(),
-            exception_type,
-            exception_value,
+        unusual_logger.warning(
+            '%s: Will always raise exception: "%s(%s)"'
+            % (
+                source_ref.getAsString(),
+                exception_type,
+                exception_value,
+            )
         )
 
     result = StatementRaiseExceptionImplicit(
@@ -92,7 +98,7 @@ def makeRaiseExceptionReplacementStatement(statement, exception_type, exception_
             exception_name=exception_type, source_ref=source_ref
         ),
         exception_value=makeConstantReplacementNode(
-            constant=exception_value, node=statement
+            constant=exception_value, node=statement, user_provided=False
         ),
         exception_cause=None,
         exception_trace=None,
@@ -122,15 +128,15 @@ def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
 def makeRaiseExceptionExpressionFromTemplate(
     exception_type, template, template_args, source_ref
 ):
-    from .ExceptionNodes import ExpressionRaiseException
     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
-    from .OperatorNodes import makeBinaryOperationNode
     from .ConstantRefNodes import makeConstantRefNode
-    from .ContainerMakingNodes import ExpressionMakeTuple
+    from .ContainerMakingNodes import makeExpressionMakeTupleOrConstant
+    from .ExceptionNodes import ExpressionRaiseException
+    from .OperatorNodes import makeBinaryOperationNode
 
     if type(template_args) is tuple:
-        template_args = ExpressionMakeTuple(
-            elements=template_args, source_ref=source_ref
+        template_args = makeExpressionMakeTupleOrConstant(
+            elements=template_args, user_provided=False, source_ref=source_ref
         )
 
     return ExpressionRaiseException(
@@ -193,26 +199,39 @@ def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
     )
 
 
-def makeCompileTimeConstantReplacementNode(value, node):
+def makeCompileTimeConstantReplacementNode(value, node, user_provided):
     # This needs to match code in isCompileTimeConstantValue
     if isConstant(value):
-        return makeConstantReplacementNode(constant=value, node=node)
+        return makeConstantReplacementNode(
+            constant=value, node=node, user_provided=user_provided
+        )
     elif type(value) is type:
         if value.__name__ in builtin_names:
             from .BuiltinRefNodes import makeExpressionBuiltinRef
 
+            # Need not provide locals_scope, not used for these kinds of built-in refs that
+            # refer to types.
             return makeExpressionBuiltinRef(
-                builtin_name=value.__name__, source_ref=node.getSourceReference()
+                builtin_name=value.__name__,
+                locals_scope=None,
+                source_ref=node.getSourceReference(),
             )
         else:
             return node
+    elif isinstance(value, GenericAlias):
+        from .BuiltinTypeNodes import ExpressionConstantGenericAlias
+
+        return ExpressionConstantGenericAlias(
+            generic_alias=value,
+            source_ref=node.getSourceReference(),
+        )
     else:
         return node
 
 
-def getComputationResult(node, computation, description):
-    """ With a computation function, execute it and return constant result or
-        exception node.
+def getComputationResult(node, computation, description, user_provided):
+    """With a computation function, execute it and return constant result or
+    exception node.
 
     """
 
@@ -227,7 +246,9 @@ def getComputationResult(node, computation, description):
         change_tags = "new_raise"
         change_desc = description + " Predicted to raise an exception."
     else:
-        new_node = makeCompileTimeConstantReplacementNode(value=result, node=node)
+        new_node = makeCompileTimeConstantReplacementNode(
+            value=result, node=node, user_provided=user_provided
+        )
 
         if Options.is_debug:
             assert new_node is not node, (node, result)
@@ -251,7 +272,7 @@ def makeStatementExpressionOnlyReplacementNode(expression, node):
 
 
 def mergeStatements(statements, allow_none=False):
-    """ Helper function that merges nested statement sequences. """
+    """Helper function that merges nested statement sequences."""
     merged_statements = []
 
     for statement in statements:
@@ -262,7 +283,7 @@ def mergeStatements(statements, allow_none=False):
         elif statement.isStatement() or statement.isStatementsFrame():
             merged_statements.append(statement)
         elif statement.isStatementsSequence():
-            merged_statements.extend(mergeStatements(statement.getStatements()))
+            merged_statements.extend(mergeStatements(statement.subnode_statements))
         else:
             assert False, statement
 
@@ -280,7 +301,7 @@ def makeStatementsSequenceReplacementNode(statements, node):
 def convertNoneConstantToNone(node):
     if node is None:
         return None
-    elif node.isExpressionConstantRef() and node.getConstant() is None:
+    elif node.isExpressionConstantNoneRef():
         return None
     else:
         return node
@@ -375,11 +396,8 @@ def makeVariableRefNode(variable, source_ref):
         return ExpressionVariableRef(variable=variable, source_ref=source_ref)
 
 
-def makeExpressionBuiltinLocals(provider, source_ref):
-    while provider.isExpressionOutlineFunction():
-        provider = provider.getParentVariableProvider()
-
-    if provider.isCompiledPythonModule():
+def makeExpressionBuiltinLocals(locals_scope, source_ref):
+    if locals_scope.isModuleScope():
         from .GlobalsLocalsNodes import ExpressionBuiltinGlobals
 
         return ExpressionBuiltinGlobals(source_ref=source_ref)
@@ -390,21 +408,17 @@ def makeExpressionBuiltinLocals(provider, source_ref):
             ExpressionBuiltinLocalsUpdated,
         )
 
-        if provider.isExpressionClassBody():
+        if locals_scope.isClassScope():
             return ExpressionBuiltinLocalsRef(
-                locals_scope=provider.getFunctionLocalsScope(), source_ref=source_ref
+                locals_scope=locals_scope, source_ref=source_ref
             )
-        elif python_version >= 300 or provider.isUnoptimized():
-            assert provider.getFunctionLocalsScope(), provider
+        elif python_version >= 0x300 or locals_scope.isUnoptimizedFunctionScope():
+            assert locals_scope.isFunctionScope(), locals_scope
 
             return ExpressionBuiltinLocalsUpdated(
-                locals_scope=provider.getFunctionLocalsScope(), source_ref=source_ref
+                locals_scope=locals_scope, source_ref=source_ref
             )
         else:
-            # TODO: Make this not true, there ought to be always a locals
-            # scope.
-            assert not provider.getFunctionLocalsScope(), provider
-
             return ExpressionBuiltinLocalsCopy(
-                locals_scope=provider.getFunctionLocalsScope(), source_ref=source_ref
+                locals_scope=locals_scope, source_ref=source_ref
             )

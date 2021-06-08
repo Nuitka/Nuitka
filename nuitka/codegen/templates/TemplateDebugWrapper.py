@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,17 +21,18 @@ This wraps strings with a class derived from "str" that does more checks.
 """
 
 
+from nuitka import Options
 from nuitka.__past__ import iterItems
-from nuitka.Options import isDebug
+from nuitka.Tracing import optimization_logger
 
 
 def enableDebug(globals_dict):
     templates = dict(globals_dict)
 
     class TemplateWrapper(object):
-        """ Wrapper around templates.
+        """Wrapper around templates.
 
-            To better trace and control template usage.
+        To better trace and control template usage.
 
         """
 
@@ -42,15 +43,18 @@ def enableDebug(globals_dict):
         def __str__(self):
             return self.value
 
+        def __add__(self, other):
+            return self.__class__(
+                self.name + "+" + other.name, self.value + other.value
+            )
+
         def __mod__(self, other):
             assert type(other) is dict, self.name
 
             for key in other.keys():
                 if "%%(%s)" % key not in self.value:
-                    from logging import warning
-
-                    warning(
-                        "Extra value '%s' provided to template '%s'.", key, self.name
+                    optimization_logger.warning(
+                        "Extra value %r provided to template %r." % (key, self.name)
                     )
 
             try:
@@ -72,5 +76,5 @@ def enableDebug(globals_dict):
 
 
 def checkDebug(globals_dict):
-    if isDebug():
+    if Options.is_debug:
         enableDebug(globals_dict)

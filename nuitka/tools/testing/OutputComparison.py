@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -93,7 +93,7 @@ def normalizeTimeDiff(outputStr):
     return outputStr
 
 
-def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
+def makeDiffable(output, ignore_warnings, syntax_errors):
     # Of course many cases to deal with,
     # pylint: disable=too-many-branches,too-many-statements
 
@@ -133,10 +133,11 @@ def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
         if ignore_warnings and logging_warning_re.match(line):
             continue
 
-        if ignore_infos and logging_info_re.match(line):
+        # Infos are always ignored.
+        if logging_info_re.match(line):
             continue
 
-        if line.startswith("Nuitka:WARNING:Cannot recurse to import"):
+        if line.startswith("Nuitka-Recursion:WARNING: Cannot follow import to module"):
             continue
 
         line = instance_re.sub(r"at 0xxxxxxxxx\1", line)
@@ -219,14 +220,14 @@ exceeded while calling a Python object' in \
 
 
 def compareOutput(
-    kind, out_cpython, out_nuitka, ignore_warnings, ignore_infos, syntax_errors
+    kind, out_cpython, out_nuitka, ignore_warnings, syntax_errors, trace_result=True
 ):
     fromdate = ""
     todate = ""
 
     diff = difflib.unified_diff(
-        makeDiffable(out_cpython, ignore_warnings, ignore_infos, syntax_errors),
-        makeDiffable(out_nuitka, ignore_warnings, ignore_infos, syntax_errors),
+        makeDiffable(out_cpython, ignore_warnings, syntax_errors),
+        makeDiffable(out_nuitka, ignore_warnings, syntax_errors),
         "{program} ({detail})".format(program=os.environ["PYTHON"], detail=kind),
         "{program} ({detail})".format(program="nuitka", detail=kind),
         fromdate,
@@ -237,8 +238,9 @@ def compareOutput(
     result = list(diff)
 
     if result:
-        for line in result:
-            my_print(line, end="\n" if not line.startswith("---") else "")
+        if trace_result:
+            for line in result:
+                my_print(line, end="\n" if not line.startswith("---") else "")
 
         return 1
     else:

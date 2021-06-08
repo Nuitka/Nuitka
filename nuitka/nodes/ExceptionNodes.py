@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,6 +29,9 @@ from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
 
 class StatementRaiseExceptionMixin(object):
+    # Mixins are required to also specify slots
+    __slots__ = ()
+
     @staticmethod
     def isStatementAborting():
         return True
@@ -49,10 +52,8 @@ class StatementRaiseException(
         "exception_trace",
         "exception_cause",
     )
-    getExceptionType = StatementChildrenHavingBase.childGetter("exception_type")
-    getExceptionValue = StatementChildrenHavingBase.childGetter("exception_value")
-    getExceptionTrace = StatementChildrenHavingBase.childGetter("exception_trace")
-    getExceptionCause = StatementChildrenHavingBase.childGetter("exception_cause")
+
+    __slots__ = ("reraise_finally",)
 
     def __init__(
         self,
@@ -85,7 +86,7 @@ class StatementRaiseException(
 
     def computeStatement(self, trace_collection):
         exception_type = trace_collection.onExpression(
-            expression=self.getExceptionType(), allow_none=True
+            expression=self.subnode_exception_type, allow_none=True
         )
 
         # TODO: Limit by type.
@@ -94,7 +95,9 @@ class StatementRaiseException(
         if exception_type is not None and exception_type.willRaiseException(
             BaseException
         ):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import (
+                makeStatementExpressionOnlyReplacementNode,
+            )
 
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=exception_type, node=self
@@ -108,7 +111,7 @@ Explicit raise already raises implicitly building exception type.""",
             )
 
         exception_value = trace_collection.onExpression(
-            expression=self.getExceptionValue(), allow_none=True
+            expression=self.subnode_exception_value, allow_none=True
         )
 
         if exception_value is not None and exception_value.willRaiseException(
@@ -126,7 +129,7 @@ Explicit raise already raises implicitly building exception value.""",
             )
 
         exception_trace = trace_collection.onExpression(
-            expression=self.getExceptionTrace(), allow_none=True
+            expression=self.subnode_exception_trace, allow_none=True
         )
 
         if exception_trace is not None and exception_trace.willRaiseException(
@@ -144,7 +147,7 @@ Explicit raise already raises implicitly building exception traceback.""",
             )
 
         exception_cause = trace_collection.onExpression(
-            expression=self.getExceptionCause(), allow_none=True
+            expression=self.subnode_exception_cause, allow_none=True
         )
 
         if exception_cause is not None and exception_cause.willRaiseException(
@@ -163,17 +166,20 @@ Explicit raise already raises implicitly building exception cause.""",
 
         return self, None, None
 
-    def needsFrame(self):
+    @staticmethod
+    def needsFrame():
         return True
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "exception raise statement"
 
 
 class StatementRaiseExceptionImplicit(StatementRaiseException):
     kind = "STATEMENT_RAISE_EXCEPTION_IMPLICIT"
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "implicit exception raise statement"
 
 
@@ -190,15 +196,17 @@ class StatementReraiseException(StatementRaiseExceptionMixin, StatementBase):
 
     # TODO: Not actually true, leads to wrong frame attached if there is
     # no pending exception.
-    def needsFrame(self):
+    @staticmethod
+    def needsFrame():
         return False
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "exception re-raise statement"
 
 
 class ExpressionRaiseException(ExpressionChildrenHavingBase):
-    """ This node type is only produced via optimization.
+    """This node type is only produced via optimization.
 
     CPython only knows exception raising as a statement, but often the raising
     of exceptions can be predicted to occur as part of an expression, which it
@@ -208,8 +216,6 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_RAISE_EXCEPTION"
 
     named_children = ("exception_type", "exception_value")
-    getExceptionType = ExpressionChildrenHavingBase.childGetter("exception_type")
-    getExceptionValue = ExpressionChildrenHavingBase.childGetter("exception_value")
 
     def __init__(self, exception_type, exception_value, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -243,11 +249,11 @@ Propagated implicit raise expression to raise statement.""",
 
     def asStatement(self):
         return StatementRaiseExceptionImplicit(
-            exception_type=self.getExceptionType(),
-            exception_value=self.getExceptionValue(),
+            exception_type=self.subnode_exception_type,
+            exception_value=self.subnode_exception_value,
             exception_trace=None,
             exception_cause=None,
-            source_ref=self.getSourceReference(),
+            source_ref=self.source_ref,
         )
 
 
@@ -255,7 +261,6 @@ class ExpressionBuiltinMakeException(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION"
 
     named_child = "args"
-    getArgs = ExpressionChildHavingBase.childGetter("args")
 
     __slots__ = ("exception_name",)
 
@@ -276,101 +281,94 @@ class ExpressionBuiltinMakeException(ExpressionChildHavingBase):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        for arg in self.getArgs():
+        for arg in self.subnode_args:
             if arg.mayRaiseException(exception_type):
                 return True
 
         return False
 
 
-if str is bytes:
-    ExpressionBuiltinMakeExceptionImportError = ExpressionBuiltinMakeException
-else:
+class ExpressionBuiltinMakeExceptionImportError(ExpressionChildrenHavingBase):
+    """Python3 ImportError dedicated node with extra arguments."""
 
-    class ExpressionBuiltinMakeExceptionImportError(ExpressionChildrenHavingBase):
-        kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR"
+    kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR"
 
-        named_children = ("args", "name", "path")
-        getArgs = ExpressionChildrenHavingBase.childGetter("args")
-        getImportErrorName = ExpressionChildrenHavingBase.childGetter("name")
-        getImportErrorPath = ExpressionChildrenHavingBase.childGetter("path")
+    named_children = ("args", "name", "path")
 
-        __slots__ = ("exception_name",)
+    __slots__ = ("exception_name",)
 
-        def __init__(self, exception_name, args, name, path, source_ref):
-            ExpressionChildrenHavingBase.__init__(
-                self,
-                values={"args": tuple(args), "name": name, "path": path},
-                source_ref=source_ref,
-            )
+    def __init__(self, exception_name, args, name, path, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"args": tuple(args), "name": name, "path": path},
+            source_ref=source_ref,
+        )
 
-            self.exception_name = exception_name
+        self.exception_name = exception_name
 
-        def getDetails(self):
-            return {"exception_name": self.exception_name}
+    def getDetails(self):
+        return {"exception_name": self.exception_name}
 
-        def getExceptionName(self):
-            return self.exception_name
+    def getExceptionName(self):
+        return self.exception_name
 
-        def computeExpression(self, trace_collection):
-            return self, None, None
+    def computeExpression(self, trace_collection):
+        return self, None, None
 
-        def mayRaiseException(self, exception_type):
-            for arg in self.getArgs():
-                if arg.mayRaiseException(exception_type):
-                    return True
+    def mayRaiseException(self, exception_type):
+        for arg in self.subnode_args:
+            if arg.mayRaiseException(exception_type):
+                return True
 
-            return False
+        return False
 
 
-class ExpressionCaughtExceptionTypeRef(ExpressionBase):
+class ExpressionCaughtMixin(object):
+    """Common things for all caught exception references."""
+
+    __slots__ = ()
+
+    def finalize(self):
+        del self.parent
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        # Accessing the caught stuff has no side effect, pylint: disable=unused-argument
+        return False
+
+    @staticmethod
+    def mayHaveSideEffects():
+        # Referencing the caught stuff has no side effect
+        return False
+
+
+class ExpressionCaughtExceptionTypeRef(ExpressionCaughtMixin, ExpressionBase):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_TYPE_REF"
 
     def __init__(self, source_ref):
         ExpressionBase.__init__(self, source_ref=source_ref)
 
-    def finalize(self):
-        del self.parent
-
     def computeExpressionRaw(self, trace_collection):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
-    def mayHaveSideEffects(self):
-        # Referencing the expression type has no side effect
-        return False
 
-
-class ExpressionCaughtExceptionValueRef(ExpressionBase):
+class ExpressionCaughtExceptionValueRef(ExpressionCaughtMixin, ExpressionBase):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_VALUE_REF"
 
     def __init__(self, source_ref):
         ExpressionBase.__init__(self, source_ref=source_ref)
 
-    def finalize(self):
-        del self.parent
-
     def computeExpressionRaw(self, trace_collection):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
-    def mayHaveSideEffects(self):
-        # Referencing the expression type has no side effect
-        return False
 
-
-class ExpressionCaughtExceptionTracebackRef(ExpressionBase):
+class ExpressionCaughtExceptionTracebackRef(ExpressionCaughtMixin, ExpressionBase):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_TRACEBACK_REF"
 
     def __init__(self, source_ref):
         ExpressionBase.__init__(self, source_ref=source_ref)
 
-    def finalize(self):
-        del self.parent
-
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
-
-    def mayHaveSideEffects(self):
-        # Referencing the expression type has no side effect
-        return False

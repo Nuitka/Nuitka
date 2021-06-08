@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,14 +28,15 @@ from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import (
-    ExpressionMakeList,
-    ExpressionMakeTuple,
+    makeExpressionMakeList,
+    makeExpressionMakeTuple,
 )
 from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModuleNameHard,
     ExpressionImportName,
+    makeExpressionAbsoluteImportNode,
 )
 from nuitka.nodes.ModuleAttributeNodes import (
     ExpressionModuleAttributeFileRef,
@@ -47,10 +48,7 @@ from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 
-from .TreeHelpers import (
-    makeAbsoluteImportNode,
-    makeStatementsSequenceFromStatement,
-)
+from .TreeHelpers import makeStatementsSequenceFromStatement
 from .VariableClosure import completeVariableClosures
 
 
@@ -63,7 +61,7 @@ def _makeCall(module_name, import_name, attribute_name, source_ref, *args):
             attribute_name=attribute_name,
             source_ref=source_ref,
         ),
-        args=ExpressionMakeTuple(elements=args, source_ref=source_ref),
+        args=makeExpressionMakeTuple(elements=args, source_ref=source_ref),
         source_ref=source_ref,
     )
 
@@ -85,7 +83,7 @@ def createPathAssignment(package, source_ref):
                     attribute_name="dirname",
                     source_ref=source_ref,
                 ),
-                args=ExpressionMakeTuple(
+                args=makeExpressionMakeTuple(
                     elements=(
                         ExpressionModuleAttributeFileRef(
                             variable=package.getVariableForReference("__file__"),
@@ -129,7 +127,7 @@ def createPathAssignment(package, source_ref):
 
                 elements.append(path_part)
 
-        path_value = ExpressionMakeList(elements=elements, source_ref=source_ref)
+        path_value = makeExpressionMakeList(elements=elements, source_ref=source_ref)
 
     return StatementAssignmentVariableName(
         provider=package,
@@ -145,14 +143,14 @@ def createPython3NamespacePath(package, module_relpath, source_ref):
         variable_name="__path__",
         source=ExpressionCallNoKeywords(
             called=ExpressionImportName(
-                module=makeAbsoluteImportNode(
+                module=makeExpressionAbsoluteImportNode(
                     module_name="_frozen_importlib"
-                    if python_version < 350
+                    if python_version < 0x350
                     else "_frozen_importlib_external",
                     source_ref=source_ref,
                 ),
                 import_name="_NamespacePath",
-                level=None,
+                level=0,
                 source_ref=source_ref,
             ),
             args=makeConstantRefNode(
@@ -179,14 +177,14 @@ def createNamespacePackage(module_name, is_top, module_relpath):
         source_ref=source_ref,
     )
 
-    if python_version >= 300:
+    if python_version >= 0x300:
         statement = createPython3NamespacePath(
             package=package, module_relpath=module_relpath, source_ref=source_ref
         )
     else:
         statement = createPathAssignment(package, source_ref)
 
-    package.setBody(makeStatementsSequenceFromStatement(statement=statement))
+    package.setChild("body", makeStatementsSequenceFromStatement(statement=statement))
 
     completeVariableClosures(package)
 
@@ -196,11 +194,11 @@ def createNamespacePackage(module_name, is_top, module_relpath):
 def createImporterCacheAssignment(package, source_ref):
     return StatementDictOperationSet(
         dict_arg=ExpressionImportModuleNameHard(
-            module_name="sys", import_name="path_importer_cache", source_ref=source_ref,
+            module_name="sys", import_name="path_importer_cache", source_ref=source_ref
         ),
         key=ExpressionSubscriptLookup(
             expression=ExpressionVariableNameRef(
-                provider=package, variable_name="__path__", source_ref=source_ref,
+                provider=package, variable_name="__path__", source_ref=source_ref
             ),
             subscript=makeConstantRefNode(constant=0, source_ref=source_ref),
             source_ref=source_ref,

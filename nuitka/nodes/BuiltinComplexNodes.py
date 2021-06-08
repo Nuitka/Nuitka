@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,18 +32,18 @@ class ExpressionBuiltinComplex1(ExpressionChildHavingBase):
     kind = "EXPRESSION_BUILTIN_COMPLEX1"
 
     named_child = "value"
-    getValue = ExpressionChildHavingBase.childGetter("value")
 
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         # Note: The complex built-in will convert overloads from __complex__
         # slot and create a new one instead.
         return tshape_complex
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
+        value = self.subnode_value
 
         return value.computeExpressionComplex(
             complex_node=self, trace_collection=trace_collection
@@ -56,8 +56,6 @@ class ExpressionBuiltinComplex2(
     kind = "EXPRESSION_BUILTIN_COMPLEX2"
 
     named_children = ("real", "imag")
-    getReal = ExpressionChildrenHavingBase.childGetter("real")
-    getImag = ExpressionChildrenHavingBase.childGetter("imag")
 
     builtin_spec = BuiltinParameterSpecs.builtin_complex_spec
 
@@ -73,5 +71,6 @@ class ExpressionBuiltinComplex2(
             trace_collection=trace_collection, given_values=given_values
         )
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_complex

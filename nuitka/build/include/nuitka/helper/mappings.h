@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -22,10 +22,9 @@ NUITKA_MAY_BE_UNUSED static int MAPPING_HAS_ITEM(PyObject *mapping, PyObject *ke
     PyObject *result = PyObject_GetItem(mapping, key);
 
     if (result == NULL) {
-        PyObject *error = GET_ERROR_OCCURRED();
+        bool had_key_error = CHECK_AND_CLEAR_KEY_ERROR_OCCURRED();
 
-        if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_KeyError)) {
-            CLEAR_ERROR_OCCURRED();
+        if (had_key_error) {
             return 0;
         } else {
             return -1;

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -15,4 +15,21 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Dummy file to make this directory a package. """
+""" Commercial plugins package.
+
+This may load code from the commercial Nuitka repository
+"""
+
+# Auto extend to a Nuitka commercial installation, by adding it to the package
+# path. That aims at making extending Nuitka with these plugins easier.
+import os
+
+if "NUITKA_COMMERCIAL" in os.environ:
+    path = os.environ["NUITKA_COMMERCIAL"]
+
+    candidate = os.path.join(path, __name__.replace(".", os.path.sep))
+
+    if os.path.isdir(candidate) and os.path.isfile(
+        os.path.join(candidate, "__init__.py")
+    ):
+        __path__.append(candidate)

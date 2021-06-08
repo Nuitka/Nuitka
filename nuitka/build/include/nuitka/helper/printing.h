@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -42,7 +42,7 @@ extern void PRINT_REFCOUNT(PyObject *object);
 // Print the full traceback stack.
 // TODO: Could be ported, the "printf" stuff would need to be split. On Python3
 // the normal C print output gets lost.
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 extern void PRINT_TRACEBACK(PyTracebackObject *traceback);
 #endif
 

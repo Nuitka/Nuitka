@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -24,18 +24,18 @@ def empty():
 
 module_var = None
 
-def calledRepeatedly():
-    # We measure making that call or not. Lets get the module
-    # variable look-up out of the game, by making it a local
-    # variable
-    called = empty
+def calledRepeatedly(called):
+    # Force a frame for now
+    module_var
 
 # construct_begin
     called()
 # construct_end
 
+    return called
+
 import itertools
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
+    calledRepeatedly(empty)
 
 print("OK.")

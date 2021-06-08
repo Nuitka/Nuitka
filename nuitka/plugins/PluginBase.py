@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,13 +27,18 @@ it being used.
 """
 
 import os
+import pkgutil
+import shutil
 import sys
+from collections import namedtuple
 
 from nuitka import Options, OutputDirectories
-from nuitka.ModuleRegistry import addUsedModule
+from nuitka.__past__ import getMetaClassBase
+from nuitka.containers.oset import OrderedSet
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.Tracing import plugins_logger
-from nuitka.utils.FileOperations import relpath
+from nuitka.utils.Execution import check_output
+from nuitka.utils.FileOperations import makePath, putTextFileContents
 from nuitka.utils.ModuleNames import ModuleName
 
 pre_modules = {}
@@ -41,9 +46,11 @@ post_modules = {}
 
 warned_unused_plugins = set()
 
+registered_pkgutil_getdata_callbacks = OrderedSet()
 
-class NuitkaPluginBase(object):
-    """ Nuitka base class for all plug-ins.
+
+class NuitkaPluginBase(getMetaClassBase("Plugin")):
+    """Nuitka base class for all plug-ins.
 
     Derive your plugin from "NuitkaPluginBase" please.
     For instructions, see https://github.com/Nuitka/Nuitka/blob/orsiris/UserPlugin-Creation.rst
@@ -81,7 +88,7 @@ class NuitkaPluginBase(object):
 
     @staticmethod
     def isAlwaysEnabled():
-        """ Request to be always enabled.
+        """Request to be always enabled.
 
         Notes:
             Setting this to true is only applicable to standard plugins. In
@@ -97,7 +104,7 @@ class NuitkaPluginBase(object):
 
     @classmethod
     def isRelevant(cls):
-        """ Consider if the plugin is relevant.
+        """Consider if the plugin is relevant.
 
         Notes:
             A plugin may only be a needed on a certain OS, or with some options,
@@ -117,10 +124,10 @@ class NuitkaPluginBase(object):
 
     @classmethod
     def getPluginDefaultOptionValues(cls):
-        """ This method is used to get a values to use as defaults.
+        """This method is used to get a values to use as defaults.
 
-            Since the defaults are in the command line options, we call
-            that and extract them.
+        Since the defaults are in the command line options, we call
+        that and extract them.
         """
 
         from optparse import OptionGroup, OptionParser
@@ -135,65 +142,8 @@ class NuitkaPluginBase(object):
 
         return result
 
-    def considerImplicitImports(self, module, signal_change):
-        """ Provide additional modules to import implicitly when encountering the module.
-
-        Notes:
-            Better do not overload this method.
-            The standard plugin 'ImplicitImports.py' already contains MANY of these.
-            If you do have a new candidate, consider a PR to get it included there.
-
-        Args:
-            module: the module object
-            signal_change: bool
-        Returns:
-            None
-        """
-        from nuitka.importing.Importing import getModuleNameAndKindFromFilename
-
-        for item in self.getImplicitImports(module):
-            # TODO: Temporary, until all plugins are caught up, turn into an error later.
-            if type(item) in (tuple, list):
-                full_name, _required = item
-            else:
-                full_name = item
-
-            full_name = ModuleName(full_name)
-
-            module_filename = self.locateModule(importing=module, module_name=full_name)
-
-            if module_filename is None:
-                if Options.isShowInclusion():
-                    self.info(
-                        "Implicit module '%s' suggested by '%s' not found."
-                        % (full_name, module.getFullName())
-                    )
-
-                continue
-
-            _module_name2, module_kind = getModuleNameAndKindFromFilename(
-                module_filename
-            )
-
-            # TODO: This should get back to plug-ins, they should be allowed to
-            # preempt or override the decision.
-            decision, reason = self.decideRecursion(
-                module_filename=module_filename,
-                module_name=full_name,
-                module_kind=module_kind,
-            )
-
-            if decision:
-                self.recurseTo(
-                    module_package=full_name.getPackageName(),
-                    module_filename=module_filename,
-                    module_kind=module_kind,
-                    reason=reason,
-                    signal_change=signal_change,
-                )
-
     def isRequiredImplicitImport(self, module, full_name):
-        """ Indicate whether an implicitly imported module should be accepted.
+        """Indicate whether an implicitly imported module should be accepted.
 
         Notes:
             You may negate importing a module specified as "implicit import",
@@ -209,7 +159,7 @@ class NuitkaPluginBase(object):
         return True
 
     def getImplicitImports(self, module):
-        """ Return the implicit imports for a given module (iterator).
+        """Return the implicit imports for a given module (iterator).
 
         Args:
             module: the module object
@@ -223,17 +173,17 @@ class NuitkaPluginBase(object):
     module_aliases = {}
 
     def considerFailedImportReferrals(self, module_name):
-        """ Provide a dictionary of fallback imports for modules that failed to import.
+        """Provide a dictionary of fallback imports for modules that failed to import.
 
         Args:
             module_name: name of module
         Returns:
             dict
         """
-        return self.module_aliases.get(module_name, None)
+        return self.module_aliases.get(module_name)
 
     def onModuleSourceCode(self, module_name, source_code):
-        """ Inspect or modify source code.
+        """Inspect or modify source code.
 
         Args:
             module_name: (str) name of module
@@ -250,7 +200,7 @@ class NuitkaPluginBase(object):
         return source_code
 
     def checkModuleSourceCode(self, module_name, source_code):
-        """ Inspect source code.
+        """Inspect source code.
 
         Args:
             module_name: (str) name of module
@@ -260,7 +210,7 @@ class NuitkaPluginBase(object):
         """
 
     def onFrozenModuleSourceCode(self, module_name, is_package, source_code):
-        """ Inspect or modify frozen module source code.
+        """Inspect or modify frozen module source code.
 
         Args:
             module_name: (str) full name of module
@@ -273,7 +223,7 @@ class NuitkaPluginBase(object):
         return source_code
 
     def onFrozenModuleBytecode(self, module_name, is_package, bytecode):
-        """ Inspect or modify frozen module byte code.
+        """Inspect or modify frozen module byte code.
 
         Args:
             module_name: (str) name of module
@@ -286,8 +236,8 @@ class NuitkaPluginBase(object):
         return bytecode
 
     @staticmethod
-    def _createTriggerLoadedModule(module, trigger_name, code):
-        """ Create a "trigger" for a module to be imported.
+    def _createTriggerLoadedModule(module, trigger_name, code, flags):
+        """Create a "trigger" for a module to be imported.
 
         Notes:
             The trigger will incorpaorate the code to be prepended / appended.
@@ -301,8 +251,9 @@ class NuitkaPluginBase(object):
         Returns
             trigger_module
         """
-        from nuitka.tree.Building import createModuleTree
         from nuitka.nodes.ModuleNodes import CompiledPythonModule
+        from nuitka.tree.Building import createModuleTree
+
         from .Plugins import Plugins
 
         module_name = ModuleName(module.getFullName() + trigger_name)
@@ -328,19 +279,19 @@ class NuitkaPluginBase(object):
         if mode == "bytecode":
             trigger_module.setSourceCode(code)
 
-        if Options.isDebug():
+        # In debug mode, put the files in the build folder, so they can be looked up easily.
+        if Options.is_debug and "HIDE_SOURCE" not in flags:
             source_path = os.path.join(
                 OutputDirectories.getSourceDirectoryPath(), module_name + ".py"
             )
 
-            with open(source_path, "w") as output:
-                output.write(code)
+            putTextFileContents(filename=source_path, contents=code)
 
         return trigger_module
 
     @staticmethod
     def createPreModuleLoadCode(module):
-        """ Create code to prepend to a module.
+        """Create code to execute before importing a module.
 
         Notes:
             Called by @onModuleDiscovered.
@@ -348,28 +299,33 @@ class NuitkaPluginBase(object):
         Args:
             module: the module object
         Returns:
+            None (does not apply, default)
             tuple (code, documentary string)
+            tuple (code, documentary string, flags)
         """
         # Virtual method, pylint: disable=unused-argument
-        return None, None
+        return None
 
     @staticmethod
     def createPostModuleLoadCode(module):
-        """ Create code to append to a module.
+        """Create code to execute after loading to a module.
 
         Notes:
             Called by @onModuleDiscovered.
 
         Args:
             module: the module object
+
         Returns:
+            None (does not apply, default)
             tuple (code, documentary string)
+            tuple (code, documentary string, flags)
         """
         # Virtual method, pylint: disable=unused-argument
-        return None, None
+        return None
 
     def onModuleDiscovered(self, module):
-        """ Called with a module to be loaded.
+        """Called with a module to be loaded.
 
         Notes:
             We may specify code to be prepended and/or appended to this module.
@@ -382,40 +338,63 @@ class NuitkaPluginBase(object):
         Returns:
             None
         """
+
         full_name = module.getFullName()
 
-        pre_code, reason = self.createPreModuleLoadCode(module)
+        preload_desc = self.createPreModuleLoadCode(module)
 
-        if pre_code:
-            # TODO: We could find a way to handle this.
-            if full_name in pre_modules:
-                sys.exit("Error, conflicting plug-ins for %s" % full_name)
+        if preload_desc:
+            if len(preload_desc) == 2:
+                pre_code, reason = preload_desc
+                flags = ()
+            else:
+                pre_code, reason, flags = preload_desc
 
-            self.info("Injecting pre-module load code for module '%s':" % full_name)
-            for line in reason.split("\n"):
-                self.info("    " + line)
+            if pre_code:
+                # Note: We could find a way to handle this if needed.
+                if full_name in pre_modules:
+                    plugins_logger.sysexit(
+                        "Error, conflicting pre module code from plug-ins for %s"
+                        % full_name
+                    )
 
-            pre_modules[full_name] = self._createTriggerLoadedModule(
-                module=module, trigger_name="-preLoad", code=pre_code
-            )
+                self.info("Injecting pre-module load code for module '%s':" % full_name)
+                for line in reason.split("\n"):
+                    self.info("    " + line)
 
-        post_code, reason = self.createPostModuleLoadCode(module)
+                pre_modules[full_name] = self._createTriggerLoadedModule(
+                    module=module, trigger_name="-preLoad", code=pre_code, flags=flags
+                )
 
-        if post_code:
-            # TODO: We could find a way to handle this.
-            if full_name is post_modules:
-                sys.exit("Error, conflicting plug-ins for %s" % full_name)
+        post_desc = self.createPostModuleLoadCode(module)
 
-            self.info("Injecting post-module load code for module '%s':" % full_name)
-            for line in reason.split("\n"):
-                self.info("    " + line)
+        if post_desc:
+            if len(post_desc) == 2:
+                post_code, reason = post_desc
+                flags = ()
+            else:
+                post_code, reason, flags = post_desc
 
-            post_modules[full_name] = self._createTriggerLoadedModule(
-                module=module, trigger_name="-postLoad", code=post_code
-            )
+            if post_code:
+                # Note: We could find a way to handle this if needed.
+                if full_name is post_modules:
+                    plugins_logger.sysexit(
+                        "Error, conflicting post module code from plug-ins for %s"
+                        % full_name
+                    )
+
+                self.info(
+                    "Injecting post-module load code for module '%s':" % full_name
+                )
+                for line in reason.split("\n"):
+                    self.info("    " + line)
+
+                post_modules[full_name] = self._createTriggerLoadedModule(
+                    module=module, trigger_name="-postLoad", code=post_code, flags=flags
+                )
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
-        """ Help decide whether to include a module.
+        """Help decide whether to include a module.
 
         Args:
             module_filename: filename
@@ -427,14 +406,24 @@ class NuitkaPluginBase(object):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
-    @staticmethod
-    def locateModule(importing, module_name):
-        """ Provide a filename / -path for a to-be-imported module.
+    def onModuleInitialSet(self):
+        """Provide extra modules to the initial root module set.
 
         Args:
-            importing: module object
+            None
+        Returns:
+            Iterable of modules, may yield.
+        """
+        # Virtual method, pylint: disable=no-self-use
+        return ()
+
+    @staticmethod
+    def locateModule(importing, module_name):
+        """Provide a filename / -path for a to-be-imported module.
+
+        Args:
+            importing: module object that asked for it (tracing only)
             module_name: (str or ModuleName) full name of module
-            warn: (bool) True if required module
         Returns:
             filename for module
         """
@@ -450,48 +439,33 @@ class NuitkaPluginBase(object):
 
         return module_filename
 
-    @staticmethod
-    def decideRecursion(module_filename, module_name, module_kind):
-        """ Decide whether Nuitka should recurse down to a given module.
+    def locateModules(self, importing, module_name):
+        """Provide a filename / -path for a to-be-imported module.
 
         Args:
-            module_filename: filename
-            module_name: full module name
-            module_kind: one of "py" or "shlib" (shared library)
+            importing: module object that asked for it (tracing only)
+            module_name: (str or ModuleName) full name of module
+            warn: (bool) True if required module
         Returns:
-            (decision, reason) where decision is either a bool or None, and reason is a string message.
+            list of ModuleName
         """
-        from nuitka.importing import Recursion
+        module_path = self.locateModule(importing, module_name)
 
-        decision, reason = Recursion.decideRecursion(
-            module_filename=module_filename,
-            module_name=module_name,
-            module_kind=module_kind,
-        )
+        result = []
 
-        return decision, reason
+        def _scanModules(path, prefix):
+            for module_info in pkgutil.walk_packages((path,), prefix=prefix + "."):
+                result.append(ModuleName(module_info[1]))
 
-    @staticmethod
-    def recurseTo(module_package, module_filename, module_kind, reason, signal_change):
-        from nuitka.importing import Recursion
+                if module_info[2]:
+                    _scanModules(module_info[1], module_name + module_info[1])
 
-        imported_module, added_flag = Recursion.recurseTo(
-            module_package=module_package,
-            module_filename=module_filename,
-            module_relpath=relpath(module_filename),
-            module_kind=module_kind,
-            reason=reason,
-        )
+        _scanModules(module_path, module_name)
 
-        addUsedModule(imported_module)
-
-        if added_flag:
-            signal_change(
-                "new_code", imported_module.getSourceReference(), "Recursed to module."
-            )
+        return result
 
     def considerExtraDlls(self, dist_dir, module):
-        """ Provide a tuple of names of binaries to be included.
+        """Provide a tuple of names of binaries to be included.
 
         Args:
             dist_dir: the distribution folder
@@ -499,11 +473,43 @@ class NuitkaPluginBase(object):
         Returns:
             tuple
         """
+        # TODO: This should no longer be here, as this API is obsolete, pylint: disable=unused-argument
+
+        for included_entry_point in self.getExtraDlls(module):
+            # Copy to the dist directory, which normally should not be our task, but is for now.
+            makePath(os.path.dirname(included_entry_point.dest_path))
+
+            shutil.copyfile(
+                included_entry_point.source_path, included_entry_point.dest_path
+            )
+
+            yield included_entry_point
+
+    def getExtraDlls(self, module):
+        """Provide IncludedEntryPoint named tuples describing extra needs of the module.
+
+        Args:
+            module: the module object needing the binaries
+        Returns:
+            yields IncludedEntryPoint objects
+
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return ()
+
+    def getModuleSpecificDllPaths(self, module_name):
+        """Provide a list of directories, where DLLs should be searched for this package (or module).
+
+        Args:
+            module_name: name of a package or module, for which the DLL path addition applies.
+        Returns:
+            iterable of paths
+        """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
     def removeDllDependencies(self, dll_filename, dll_filenames):
-        """ Yield any DLLs / shared libraries not to be included in distribution.
+        """Yield any DLLs / shared libraries not to be included in distribution.
 
         Args:
             dll_filename: DLL name
@@ -515,7 +521,7 @@ class NuitkaPluginBase(object):
         return ()
 
     def considerDataFiles(self, module):
-        """ Yield data file names (source|func, target) for inclusion (iterator).
+        """Yield data file names (source|func, target) for inclusion (iterator).
 
         Args:
             module: module object that may need extra data files
@@ -528,7 +534,7 @@ class NuitkaPluginBase(object):
         return ()
 
     def onStandaloneDistributionFinished(self, dist_dir):
-        """ Called after successfully finishing a standalone compile.
+        """Called after successfully creating a standalone distribution.
 
         Note:
             It is up to the plugin to take subsequent action. Examples are:
@@ -545,8 +551,43 @@ class NuitkaPluginBase(object):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def onOnefileFinished(self, filename):
+        """Called after successfully creating a onefile executable.
+
+        Note:
+            It is up to the plugin to take subsequent action. Examples are:
+            insert additional information (license, copyright, company or
+            application description), create installation material, further
+            folder clean-up, start downstream applications etc.
+
+        Args:
+            filename: the created onefile executable
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def onFinalResult(self, filename):
+        """Called after successfully finishing a compilation.
+
+        Note:
+            Plugins normally don't need this, and what filename is will be
+            heavily dependent on compilation modes. Actions can be take here,
+            e.g. commercial plugins output generated keys near that executable
+            path.
+        Args:
+            filename: the created binary (module, accelerated exe, dist exe, onefile exe)
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def suppressUnknownImportWarning(self, importing, module_name, source_ref):
-        """ Suppress import warnings for unknown modules.
+        """Suppress import warnings for unknown modules.
 
         Args:
             importing: the module object
@@ -559,7 +600,7 @@ class NuitkaPluginBase(object):
         return False
 
     def decideCompilation(self, module_name, source_ref):
-        """ Decide whether to compile a module (or just use its bytecode).
+        """Decide whether to compile a module (or just use its bytecode).
 
         Notes:
             The first plugin not returning None makes the decision. Thereafter,
@@ -577,7 +618,7 @@ class NuitkaPluginBase(object):
         return None
 
     def getPreprocessorSymbols(self):
-        """ Decide which C defines to be used in compilation.
+        """Decide which C defines to be used in compilation.
 
         Notes:
             The plugins can each contribute, but are hopefully using
@@ -592,7 +633,7 @@ class NuitkaPluginBase(object):
         return None
 
     def getExtraCodeFiles(self):
-        """ Add extra code files to the compilation.
+        """Add extra code files to the compilation.
 
         Notes:
             This is generally a bad idea to use unless you absolutely
@@ -607,7 +648,7 @@ class NuitkaPluginBase(object):
         return None
 
     def getExtraLinkLibraries(self):
-        """ Decide which link library should be added.
+        """Decide which link library should be added.
 
         Notes:
             Names provided multiple times, e.g. by multiple plugins are
@@ -622,7 +663,7 @@ class NuitkaPluginBase(object):
         return None
 
     def warnUnusedPlugin(self, message):
-        """ An inactive plugin may issue a warning if it believes this may be wrong.
+        """An inactive plugin may issue a warning if it believes this may be wrong.
 
         Returns:
             None
@@ -634,6 +675,89 @@ class NuitkaPluginBase(object):
                 "Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message)
             )
 
+    def onDataComposerResult(self, blob_filename):
+        """Internal use only.
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def encodeDataComposerName(self, data_name):
+        """Internal use only.
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    _runtime_information_cache = {}
+
+    def queryRuntimeInformationMultiple(self, info_name, setup_codes, values):
+        if info_name in self._runtime_information_cache:
+            return self._runtime_information_cache[info_name]
+
+        keys = []
+        query_codes = []
+
+        for key, value_expression in values:
+            keys.append(key)
+
+            query_codes.append("print(repr(%s))" % value_expression)
+            query_codes.append('print("-" * 27)')
+
+        if type(setup_codes) is str:
+            setup_codes = [setup_codes]
+
+        cmd = r"""\
+from __future__ import print_function
+from __future__ import absolute_import
+
+%(setup_codes)s
+%(query_codes)s
+""" % {
+            "setup_codes": "\n".join(setup_codes),
+            "query_codes": "\n".join(query_codes),
+        }
+
+        feedback = check_output([sys.executable, "-c", cmd])
+
+        if str is not bytes:  # We want to work with strings, that's hopefully OK.
+            feedback = feedback.decode("utf8")
+
+        # Ignore Windows newlines difference.
+        feedback = [line.strip() for line in feedback.splitlines()]
+
+        if feedback.count("-" * 27) != len(keys):
+            self.sysexit(
+                "Error, mismatch in output retrieving %r information." % info_name
+            )
+
+        feedback = [line for line in feedback if line != "-" * 27]
+
+        NamedTupleResult = namedtuple(info_name, keys)
+
+        # We are being lazy here, the code is trusted, pylint: disable=eval-used
+        self._runtime_information_cache[info_name] = NamedTupleResult(
+            *(eval(value) for value in feedback)
+        )
+
+        return self._runtime_information_cache[info_name]
+
+    def queryRuntimeInformationSingle(self, setup_codes, value):
+        return self.queryRuntimeInformationMultiple(
+            info_name="temp_info_for_" + self.plugin_name.replace("-", "_"),
+            setup_codes=setup_codes,
+            values=(("key", value),),
+        ).key
+
+    @staticmethod
+    def registerPkgutilGetDataCallback(callback):
+        """Allow a plugin to register for that node type."""
+        registered_pkgutil_getdata_callbacks.add(callback)
+
     @classmethod
     def warning(cls, message):
         plugins_logger.warning(cls.plugin_name + ": " + message)
@@ -641,6 +765,10 @@ class NuitkaPluginBase(object):
     @classmethod
     def info(cls, message):
         plugins_logger.info(cls.plugin_name + ": " + message)
+
+    @classmethod
+    def sysexit(cls, message):
+        plugins_logger.sysexit(cls.plugin_name + ": " + message)
 
 
 def isTriggerModule(module):

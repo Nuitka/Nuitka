@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -23,15 +23,19 @@ def compiled_func(a,b,c,d,e,f):
     return a, b, c, d, e, f
 
 def calledRepeatedly():
-    # This is supposed to make a call to a non-compiled function, which is
+
+    compiled_f = compiled_func
+    # This is supposed to make a call to a compiled function, which is
     # being optimized separately.
 # construct_begin
-    compiled_func("some", "random", "values", "to", "check", "call")
-    compiled_func("some", "other", "values", "to", "check", "call")
-    compiled_func("some", "new", "values", "to", "check", "call")
+    compiled_f("some", "random", "values", "to", "check", "call")
+    compiled_f("some", "other", "values", "to", "check", "call")
+    compiled_f("some", "new", "values", "to", "check", "call")
 # construct_alternative
     pass
 # construct_end
+
+    return compiled_f
 
 import itertools
 for x in itertools.repeat(None, 50000):

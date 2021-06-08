@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,27 +23,27 @@ own anything by themselves. It's just a way of having try/finally for the
 expressions, or multiple returns, without running in a too different context.
 """
 
+from .ConstantRefNodes import makeConstantRefNode
 from .ExceptionNodes import ExpressionRaiseException
 from .ExpressionBases import ExpressionChildHavingBase
 from .FunctionNodes import ExpressionFunctionBodyBase
+from .LocalsScopes import getLocalsDictHandle
 
 
 class ExpressionOutlineBody(ExpressionChildHavingBase):
-    """ Outlined expression code.
+    """Outlined expression code.
 
-        This is for a call to a piece of code to be executed in a specific
-        context. It contains an exclusively owned function body, that has
-        no other references, and can be considered part of the calling
-        context.
+    This is for a call to a piece of code to be executed in a specific
+    context. It contains an exclusively owned function body, that has
+    no other references, and can be considered part of the calling
+    context.
 
-        It must return a value, to use as expression value.
+    It must return a value, to use as expression value.
     """
 
     kind = "EXPRESSION_OUTLINE_BODY"
 
     named_child = "body"
-    getBody = ExpressionChildHavingBase.childGetter("body")
-    setBody = ExpressionChildHavingBase.childSetter("body")
 
     __slots__ = ("provider", "name", "temp_scope")
 
@@ -110,12 +110,12 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
         )
 
         with abort_context:
-            body = self.getBody()
+            body = self.subnode_body
 
             result = body.computeStatementsSequence(trace_collection=trace_collection)
 
             if result is not body:
-                self.setBody(result)
+                self.setChild("body", result)
                 body = result
 
             return_collections = trace_collection.getFunctionReturnCollections()
@@ -123,19 +123,29 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
         if return_collections:
             trace_collection.mergeMultipleBranches(return_collections)
 
-        first_statement = body.getStatements()[0]
+        first_statement = body.subnode_statements[0]
+
+        if first_statement.isStatementReturnConstant():
+            return (
+                makeConstantRefNode(
+                    constant=first_statement.getConstant(),
+                    source_ref=first_statement.source_ref,
+                ),
+                "new_expression",
+                "Outline '%s' is now simple return, use directly." % self.name,
+            )
 
         if first_statement.isStatementReturn():
             return (
-                first_statement.getExpression(),
+                first_statement.subnode_expression,
                 "new_expression",
                 "Outline '%s' is now simple return, use directly." % self.name,
             )
 
         if first_statement.isStatementRaiseException():
             result = ExpressionRaiseException(
-                exception_type=first_statement.getExceptionType(),
-                exception_value=first_statement.getExceptionValue(),
+                exception_type=first_statement.subnode_exception_type,
+                exception_value=first_statement.subnode_exception_value,
                 source_ref=first_statement.getSourceReference(),
             )
 
@@ -150,16 +160,16 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        return self.getBody().mayRaiseException(exception_type)
+        return self.subnode_body.mayRaiseException(exception_type)
 
     def willRaiseException(self, exception_type):
-        return self.getBody().willRaiseException(exception_type)
+        return self.subnode_body.willRaiseException(exception_type)
 
     def getEntryPoint(self):
-        """ Entry point for code.
+        """Entry point for code.
 
-            Normally ourselves. Only outlines will refer to their parent which
-            technically owns them.
+        Normally ourselves. Only outlines will refer to their parent which
+        technically owns them.
 
         """
 
@@ -169,36 +179,39 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
         return self.provider.getCodeName()
 
 
-class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
-    """ Outlined function code.
+class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
+    """Outlined function code.
 
-        This is for a call to a function to be called in-line to be executed
-        in a specific context. It contains an exclusively owned function body,
-        that has no other references, and can be considered part of the calling
-        context.
+    This is for a call to a function to be called in-line to be executed
+    in a specific context. It contains an exclusively owned function body,
+    that has no other references, and can be considered part of the calling
+    context.
 
-        As normal function it must return a value, to use as expression value,
-        but we know we only exist once.
+    As normal function it must return a value, to use as expression value,
+    but we know we only exist once.
 
-        Once this has no frame, it can be changed to a mere outline expression.
+    Once this has no frame, it can be changed to a mere outline expression.
     """
 
-    def __init__(self, provider, name, source_ref, code_prefix="outline", body=None):
-        assert name != ""
+    __slots__ = ("temp_scope", "locals_scope")
 
+    def __init__(self, provider, name, body, code_prefix, source_ref):
         ExpressionFunctionBodyBase.__init__(
             self,
             provider=provider,
             name=name,
+            body=body,
             code_prefix=code_prefix,
             flags=None,
-            body=body,
             source_ref=source_ref,
         )
 
         self.temp_scope = None
 
-    def isExpressionOutlineFunctionBodyBase(self):
+        self.locals_scope = None
+
+    @staticmethod
+    def isExpressionOutlineFunctionBase():
         return True
 
     def getDetails(self):
@@ -220,12 +233,12 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
         )
 
         with abort_context:
-            body = self.getBody()
+            body = self.subnode_body
 
             result = body.computeStatementsSequence(trace_collection=trace_collection)
 
             if result is not body:
-                self.setBody(result)
+                self.setChild("body", result)
                 body = result
 
             return_collections = trace_collection.getFunctionReturnCollections()
@@ -233,19 +246,29 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
         if return_collections:
             trace_collection.mergeMultipleBranches(return_collections)
 
-        first_statement = body.getStatements()[0]
+        first_statement = body.subnode_statements[0]
+
+        if first_statement.isStatementReturnConstant():
+            return (
+                makeConstantRefNode(
+                    constant=first_statement.getConstant(),
+                    source_ref=first_statement.source_ref,
+                ),
+                "new_expression",
+                "Outline function '%s' is now simple return, use directly." % self.name,
+            )
 
         if first_statement.isStatementReturn():
             return (
-                first_statement.getExpression(),
+                first_statement.subnode_expression,
                 "new_expression",
                 "Outline function '%s' is now simple return, use directly." % self.name,
             )
 
         if first_statement.isStatementRaiseException():
             result = ExpressionRaiseException(
-                exception_type=first_statement.getExceptionType(),
-                exception_value=first_statement.getExceptionValue(),
+                exception_type=first_statement.subnode_exception_type,
+                exception_value=first_statement.subnode_exception_value,
                 source_ref=first_statement.getSourceReference(),
             )
 
@@ -260,10 +283,10 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        return self.getBody().mayRaiseException(exception_type)
+        return self.subnode_body.mayRaiseException(exception_type)
 
     def willRaiseException(self, exception_type):
-        return self.getBody().willRaiseException(exception_type)
+        return self.subnode_body.willRaiseException(exception_type)
 
     def getTraceCollection(self):
         return self.provider.getTraceCollection()
@@ -290,27 +313,21 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
         return self.provider.allocateTempScope(name=self.name + "$" + name)
 
     def getEntryPoint(self):
-        """ Entry point for code.
+        """Entry point for code.
 
-            Normally ourselves. Only outlines will refer to their parent which
-            technically owns them.
+        Normally ourselves. Only outlines will refer to their parent which
+        technically owns them.
 
         """
 
         return self.provider.getEntryPoint()
 
-    def getCodeName(self):
-        return self.provider.getCodeName()
-
     def getClosureVariable(self, variable_name):
         # Simply try and get from our parent.
         return self.provider.getVariableForReference(variable_name=variable_name)
 
-
-# TODO: No other uses of the base class, maybe ExpressionOutlineBody should be
-# moved to be so, or that level should be removed.
-class ExpressionOutlineFunction(ExpressionOutlineFunctionBodyBase):
-    kind = "EXPRESSION_OUTLINE_FUNCTION"
+    def getLocalsScope(self):
+        return self.locals_scope
 
     def isEarlyClosure(self):
         return self.provider.isEarlyClosure()
@@ -318,5 +335,22 @@ class ExpressionOutlineFunction(ExpressionOutlineFunctionBodyBase):
     def isUnoptimized(self):
         return self.provider.isUnoptimized()
 
-    def getFunctionLocalsScope(self):
-        return self.provider.getFunctionLocalsScope()
+
+class ExpressionOutlineFunction(ExpressionOutlineFunctionBase):
+    kind = "EXPRESSION_OUTLINE_FUNCTION"
+
+    __slots__ = ("locals_scope",)
+
+    def __init__(self, provider, name, source_ref, body=None):
+        ExpressionOutlineFunctionBase.__init__(
+            self,
+            provider=provider,
+            name=name,
+            code_prefix="outline",
+            body=body,
+            source_ref=source_ref,
+        )
+
+        self.locals_scope = getLocalsDictHandle(
+            "locals_%s" % self.getCodeName(), "python_function", self
+        )

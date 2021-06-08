@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,7 @@ from nuitka.nodes.AssignNodes import (
 )
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.OperatorNodes import ExpressionOperationNot
+from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
@@ -168,7 +168,8 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
                 StatementReleaseVariable(variable=tmp_variable, source_ref=source_ref)
             )
 
-    outline_body.setBody(
+    outline_body.setChild(
+        "body",
         makeStatementsSequenceFromStatement(
             statement=makeTryFinallyStatement(
                 provider=outline_body,
@@ -176,7 +177,7 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
                 final=final,
                 source_ref=source_ref,
             )
-        )
+        ),
     )
 
     return outline_body

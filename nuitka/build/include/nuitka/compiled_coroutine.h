@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -23,7 +23,7 @@
 // Another cornerstone of the integration into CPython. Try to behave as well as
 // normal coroutine objects do or even better.
 
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 0x350
 
 // The Nuitka_CoroutineObject is the storage associated with a compiled
 // coroutine object instance of which there can be many for each code.
@@ -61,7 +61,7 @@ struct Nuitka_CoroutineObject {
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
 
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 0x370
     _PyErr_StackItem m_exc_state;
 
     // The cr_origin attribute.
@@ -128,7 +128,7 @@ static inline void SAVE_COROUTINE_EXCEPTION(struct Nuitka_CoroutineObject *corou
     CHECK_OBJECT_X(saved_exception_value);
     CHECK_OBJECT_X(saved_exception_traceback);
 
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
     EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
     EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
@@ -142,7 +142,7 @@ static inline void SAVE_COROUTINE_EXCEPTION(struct Nuitka_CoroutineObject *corou
     CHECK_OBJECT_X(EXC_VALUE(thread_state));
     CHECK_OBJECT_X(EXC_TRACEBACK(thread_state));
 
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     thread_state->frame->f_exc_type = saved_exception_type;
     thread_state->frame->f_exc_value = saved_exception_value;
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
@@ -166,7 +166,7 @@ static inline void RESTORE_COROUTINE_EXCEPTION(struct Nuitka_CoroutineObject *co
     CHECK_OBJECT_X(saved_exception_value);
     CHECK_OBJECT_X(saved_exception_traceback);
 
-#if PYTHON_VERSION < 370
+#if PYTHON_VERSION < 0x370
     EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
     EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
     EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;

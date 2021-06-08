@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -48,7 +48,7 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
     def checkModuleSourceCode(self, module_name, source_code):
         annotations = {}
 
-        for count, line in enumerate(source_code.split("\n")):
+        for count, line in enumerate(source_code.split("\n"), 1):
             match = re.search(r"#.*pylint:\s*disable=\s*([\w,-]+)", line)
 
             if match:
@@ -58,7 +58,7 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
                     # TODO: Parse block wide annotations too.
                     pass
                 else:
-                    annotations[count + 1] = set(
+                    annotations[count] = set(
                         intern(match.strip()) for match in match.group(1).split(",")
                     )
 

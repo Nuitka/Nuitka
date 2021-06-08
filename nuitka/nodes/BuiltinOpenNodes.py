@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,9 +28,8 @@ from .shapes.BuiltinTypeShapes import tshape_file
 
 
 class ExpressionBuiltinOpenMixin(object):
-    getFilename = ExpressionChildrenHavingBase.childGetter("filename")
-    getMode = ExpressionChildrenHavingBase.childGetter("mode")
-    getBuffering = ExpressionChildrenHavingBase.childGetter("buffering")
+    # Mixins are required to slots
+    __slots__ = ()
 
     @staticmethod
     def getTypeShape():
@@ -44,7 +43,7 @@ class ExpressionBuiltinOpenMixin(object):
         return self, None, None
 
 
-if python_version < 300:
+if python_version < 0x300:
 
     class ExpressionBuiltinOpen(
         ExpressionBuiltinOpenMixin, ExpressionChildrenHavingBase
@@ -78,11 +77,6 @@ else:
             "closefd",
             "opener",
         )
-        getEncoding = ExpressionChildrenHavingBase.childGetter("encoding")
-        getErrors = ExpressionChildrenHavingBase.childGetter("errors")
-        getNewline = ExpressionChildrenHavingBase.childGetter("newline")
-        getCloseFd = ExpressionChildrenHavingBase.childGetter("closefd")
-        getOpener = ExpressionChildrenHavingBase.childGetter("opener")
 
         def __init__(
             self,

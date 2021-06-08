@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -24,6 +24,9 @@ checking the reference count is how they are used.
 These are for Python2 only constructs, which will give SyntaxError on
 other versions.
 """
+
+# While we use that for comparison code, no need to compile that.
+# nuitka-project: --nofollow-import-to=nuitka
 
 import os
 import sys

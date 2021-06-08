@@ -4,6 +4,7 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/nuitka/build/include",
+                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
                 "C:\\Python27\\Include"
             ],
             "defines": [
@@ -11,7 +12,7 @@
                 "UNICODE",
                 "_UNICODE",
                 "__IDE_ONLY__",
-                "PYTHON_VERSION=270"
+                "PYTHON_VERSION=0x270"
             ],
             "windowsSdkVersion": "10.0.17134.0",
             "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/bin/Hostx64/x64/cl.exe",
@@ -23,6 +24,7 @@
             "name": "Win32-Py38",
             "includePath": [
                 "${workspaceFolder}/nuitka/build/include",
+                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
                 "C:\\Python38\\Include"
             ],
             "defines": [
@@ -30,7 +32,7 @@
                 "UNICODE",
                 "_UNICODE",
                 "__IDE_ONLY__",
-                "PYTHON_VERSION=380"
+                "PYTHON_VERSION=0x380"
             ],
             "windowsSdkVersion": "10.0.17134.0",
             "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/bin/Hostx64/x64/cl.exe",
@@ -49,7 +51,7 @@
                 "UNICODE",
                 "_UNICODE",
                 "__IDE_ONLY__",
-                "PYTHON_VERSION=370"
+                "PYTHON_VERSION=0x370"
             ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
@@ -67,7 +69,7 @@
                 "UNICODE",
                 "_UNICODE",
                 "__IDE_ONLY__",
-                "PYTHON_VERSION=270"
+                "PYTHON_VERSION=0x270"
             ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",

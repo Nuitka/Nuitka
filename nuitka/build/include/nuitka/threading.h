@@ -1,4 +1,4 @@
-//     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -18,13 +18,53 @@
 #ifndef __NUITKA_THREADING_H__
 #define __NUITKA_THREADING_H__
 
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
 // We share this with CPython bytecode main loop.
 PyAPI_DATA(volatile int) _Py_Ticker;
 #else
 extern volatile int _Py_Ticker;
 #define _Py_CheckInterval 20
 #endif
+
+#ifdef NUITKA_USE_PYCORE_THREADSTATE
+
+NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    struct _ceval_runtime_state *ceval = &tstate->interp->runtime->ceval;
+    struct _ceval_state *ceval2 = &tstate->interp->ceval;
+
+    /* Pending signals */
+    if (ceval->signals_pending._value || ceval2->pending.calls_to_do._value) {
+        int res = Py_MakePendingCalls();
+
+        if (unlikely(res < 0 && ERROR_OCCURRED())) {
+            return false;
+        }
+    }
+
+    /* GIL drop request */
+    if (ceval2->gil_drop_request._value) {
+        /* Give another thread a chance */
+        PyEval_SaveThread();
+        PyEval_AcquireThread(tstate);
+    }
+
+    if (unlikely(tstate->async_exc != NULL)) {
+        PyObject *async_exc = tstate->async_exc;
+        tstate->async_exc = NULL;
+
+        Py_INCREF(async_exc);
+
+        RESTORE_ERROR_OCCURRED(async_exc, NULL, NULL);
+
+        return false;
+    }
+
+    return true;
+}
+
+#else
 
 NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
     // Decrease ticker
@@ -62,5 +102,7 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
 
     return true;
 }
+
+#endif
 
 #endif

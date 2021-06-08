@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -61,7 +61,7 @@ Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case."""
 
 def main():
     # Complex stuff, even more should become common code though.
-    _python_version = setup(needs_io_encoding=True)
+    setup(needs_io_encoding=True)
 
     search_mode = createSearchMode()
 
@@ -78,7 +78,7 @@ def main():
 
         filename = os.path.relpath(filename)
 
-        extra_flags = ["expect_success", "ignore_infos"]
+        extra_flags = ["expect_success"]
 
         # We annotate some tests, use that to lower warnings.
         extra_flags.append("plugin_enable:pylint-warnings")
@@ -119,9 +119,6 @@ def main():
                     search_mode=search_mode,
                     needs_2to3=False,
                 )
-
-            if search_mode.abortIfExecuted():
-                break
 
     search_mode.finish()
 

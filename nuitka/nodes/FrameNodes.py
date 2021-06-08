@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -34,7 +34,7 @@ from .StatementNodes import StatementsSequence
 
 
 def checkFrameStatements(value):
-    """ Check that frames statements list value proper.
+    """Check that frames statements list value proper.
 
     Must not be None, must not contain None, and of course only statements
     sequences, or statements, may be empty.
@@ -103,7 +103,7 @@ class StatementsFrameBase(StatementsSequence):
         return self.guard_mode
 
     def needsExceptionFramePreservation(self):
-        if python_version < 300:
+        if python_version < 0x300:
             return self.guard_mode != "generator"
         else:
             return True
@@ -112,14 +112,31 @@ class StatementsFrameBase(StatementsSequence):
         return self.code_object.getVarNames()
 
     def updateLocalNames(self):
-        """ For use during variable closure phase. Finalize attributes.
-
-        """
+        """For use during variable closure phase. Finalize attributes."""
         provider = self.getParentVariableProvider()
 
         if not provider.isCompiledPythonModule():
+            if (
+                provider.isExpressionGeneratorObjectBody()
+                or provider.isExpressionCoroutineObjectBody()
+                or provider.isExpressionAsyncgenObjectBody()
+            ):
+                closure_provider = provider.getParentVariableProvider()
+            else:
+                closure_provider = provider
+
+            if closure_provider.isExpressionFunctionBody():
+                closure_variables = closure_provider.getClosureVariables()
+            else:
+                closure_variables = ()
+
             self.code_object.updateLocalNames(
-                [variable.getName() for variable in provider.getLocalVariables()]
+                [variable.getName() for variable in provider.getLocalVariables()],
+                [
+                    variable.getName()
+                    for variable in closure_variables
+                    if variable.getOwner() is not closure_provider
+                ],
             )
 
         entry_point = provider.getEntryPoint()
@@ -133,28 +150,11 @@ class StatementsFrameBase(StatementsSequence):
         self.code_object.setFlagIsOptimizedValue(is_optimized)
 
         new_locals = not provider.isCompiledPythonModule() and (
-            python_version < 340
+            python_version < 0x340
             or (not provider.isExpressionClassBody() and not provider.isUnoptimized())
         )
 
         self.code_object.setFlagNewLocalsValue(new_locals)
-
-        if (
-            provider.isExpressionGeneratorObjectBody()
-            or provider.isExpressionCoroutineObjectBody()
-            or provider.isExpressionAsyncgenObjectBody()
-        ):
-            closure_provider = provider.getParentVariableProvider()
-        else:
-            closure_provider = provider
-
-        has_closure = (
-            closure_provider.isExpressionFunctionBody()
-            and closure_provider.getClosureVariables() != ()
-            and not closure_provider.isExpressionClassBody()
-        )
-
-        self.code_object.setFlagHasClosureValue(has_closure)
 
     def markAsFrameExceptionPreserving(self):
         self.needs_frame_exception_preserve = True
@@ -170,7 +170,7 @@ class StatementsFrameBase(StatementsSequence):
         # the frame scope, takes it toll to complexity, pylint: disable=too-many-branches
         new_statements = []
 
-        statements = self.getStatements()
+        statements = self.subnode_statements
 
         for count, statement in enumerate(statements):
             # May be frames embedded.
@@ -186,7 +186,7 @@ class StatementsFrameBase(StatementsSequence):
                     new_statement.isStatementsSequence()
                     and not new_statement.isStatementsFrame()
                 ):
-                    new_statements.extend(new_statement.getStatements())
+                    new_statements.extend(new_statement.subnode_statements)
                 else:
                     new_statements.append(new_statement)
 
@@ -205,7 +205,7 @@ class StatementsFrameBase(StatementsSequence):
         if not new_statements:
             trace_collection.signalChange(
                 "new_statements",
-                self.getSourceReference(),
+                self.source_ref,
                 "Removed empty frame object of '%s'."
                 % self.code_object.getCodeObjectName(),
             )
@@ -216,7 +216,7 @@ class StatementsFrameBase(StatementsSequence):
         # so do this in two steps. Next time we can reduce the frame scope just
         # as well.
         if statements != tuple(new_statements):
-            self.setStatements(new_statements)
+            self.setChild("statements", new_statements)
             return self
 
         # Determine statements inside the frame, that need not be in a frame,
@@ -232,10 +232,12 @@ class StatementsFrameBase(StatementsSequence):
             del new_statements[-1]
 
         if outside_pre or outside_post:
-            from .NodeMakingHelpers import makeStatementsSequenceReplacementNode
+            from .NodeMakingHelpers import (
+                makeStatementsSequenceReplacementNode,
+            )
 
             if new_statements:
-                self.setStatements(new_statements)
+                self.setChild("statements", new_statements)
 
                 return makeStatementsSequenceReplacementNode(
                     statements=outside_pre + [self] + outside_post, node=self
@@ -243,7 +245,7 @@ class StatementsFrameBase(StatementsSequence):
             else:
                 trace_collection.signalChange(
                     "new_statements",
-                    self.getSourceReference(),
+                    self.source_ref,
                     "Removed useless frame object of '%s'."
                     % self.code_object.getCodeObjectName(),
                 )
@@ -253,7 +255,7 @@ class StatementsFrameBase(StatementsSequence):
                 )
         else:
             if statements != new_statements:
-                self.setStatements(new_statements)
+                self.setChild("statements", new_statements)
 
             return self
 

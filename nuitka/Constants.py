@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,6 +27,7 @@ from nuitka.Builtins import builtin_type_names
 from nuitka.PythonVersions import python_version
 
 from .__past__ import (  # pylint: disable=I0021,redefined-builtin
+    GenericAlias,
     iterItems,
     long,
     unicode,
@@ -125,7 +126,7 @@ constant_builtin_types = (
     NoneType,
 )
 
-if python_version >= 300:
+if python_version >= 0x300:
     constant_builtin_types += (bytes,)
 else:
     constant_builtin_types += (
@@ -195,15 +196,17 @@ def isConstant(constant):
         # then probably should go into other node types, e.g. str.join is
         # a candidate.
         return True
+    elif constant_type is GenericAlias:
+        return True
     else:
         return False
 
 
 def isMutable(constant):
-    """ Is a constant mutable
+    """Is a constant mutable
 
-        That means a user of a reference to it, can modify it. Strings are
-        a prime example of immutable, dictionaries are mutable.
+    That means a user of a reference to it, can modify it. Strings are
+    a prime example of immutable, dictionaries are mutable.
     """
     # Many cases and all return, that is how we do it here,
     # pylint: disable=too-many-return-statements
@@ -243,16 +246,18 @@ def isMutable(constant):
         return False
     elif constant is NotImplemented:
         return False
+    elif constant_type is GenericAlias:
+        return isMutable(constant.__origin__) or isMutable(constant.__args__)
     else:
         assert False, repr(constant)
 
 
 def isHashable(constant):
-    """ Is a constant hashable
+    """Is a constant hashable
 
-        That means a user of a reference to it, can use it for dicts and set
-        keys. This is distinct from mutable, there is one types that is not
-        mutable, and still not hashable: slices.
+    That means a user of a reference to it, can use it for dicts and set
+    keys. This is distinct from mutable, there is one types that is not
+    mutable, and still not hashable: slices.
     """
     # Many cases and all return, that is how we do it here,
     # pylint: disable=too-many-return-statements
@@ -331,35 +336,6 @@ def getUnhashableConstant(constant):
         assert False, constant_type
 
 
-def isIterableConstant(constant):
-    return type(constant) in (
-        str,
-        unicode,
-        list,
-        tuple,
-        set,
-        frozenset,
-        dict,
-        xrange,
-        bytes,
-        bytearray,
-    )
-
-
-def getConstantIterationLength(constant):
-    assert isIterableConstant(constant)
-
-    return len(constant)
-
-
-def isNumberConstant(constant):
-    return type(constant) in (int, long, float, bool)
-
-
-def isIndexConstant(constant):
-    return type(constant) in (int, long, bool)
-
-
 def createConstantDict(keys, values):
     # Create it proper size immediately.
     constant_value = dict.fromkeys(keys, None)
@@ -370,32 +346,8 @@ def createConstantDict(keys, values):
     return constant_value
 
 
-def getConstantWeight(constant):
-    constant_type = type(constant)
-
-    if constant_type is dict:
-        result = 0
-
-        for key, value in iterItems(constant):
-            result += getConstantWeight(key)
-            result += getConstantWeight(value)
-
-        return result
-    elif constant_type in (tuple, list, set, frozenset):
-        result = 0
-
-        for element_value in constant:
-            result += getConstantWeight(element_value)
-
-        return result
-    else:
-        return 1
-
-
 def isCompileTimeConstantValue(value):
-    """ Determine if a value will be usable at compile time.
-
-    """
+    """Determine if a value will be usable at compile time."""
     # This needs to match code in makeCompileTimeConstantReplacementNode
     if isConstant(value):
         return True

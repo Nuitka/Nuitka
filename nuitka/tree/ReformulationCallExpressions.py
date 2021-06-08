@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,7 +25,14 @@ source code comments with developer manual sections.
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerMakingNodes import (
+    makeExpressionMakeTuple,
+    makeExpressionMakeTupleOrConstant,
+)
+from nuitka.nodes.DictionaryNodes import (
+    makeExpressionMakeDictOrConstant,
+    makeExpressionPairs,
+)
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
@@ -57,8 +64,6 @@ from .TreeHelpers import (
     buildNode,
     buildNodeList,
     getKind,
-    makeDictCreationOrConstant,
-    makeSequenceCreationOrConstant,
     makeStatementsSequenceFromStatements,
 )
 
@@ -66,7 +71,7 @@ from .TreeHelpers import (
 def buildCallNode(provider, node, source_ref):
     called = buildNode(provider, node.func, source_ref)
 
-    if python_version >= 350:
+    if python_version >= 0x350:
         list_star_arg = None
         dict_star_arg = None
 
@@ -77,13 +82,13 @@ def buildCallNode(provider, node, source_ref):
     # new unpacking code.
     for node_arg in node.args[:-1]:
         if getKind(node_arg) == "Starred":
-            assert python_version >= 350
+            assert python_version >= 0x350
             list_star_arg = buildListUnpacking(provider, node.args, source_ref)
             positional_args = []
             break
     else:
         if node.args and getKind(node.args[-1]) == "Starred":
-            assert python_version >= 350
+            assert python_version >= 0x350
 
             list_star_arg = buildNode(provider, node.args[-1].value, source_ref)
             positional_args = buildNodeList(provider, node.args[:-1], source_ref)
@@ -97,7 +102,7 @@ def buildCallNode(provider, node, source_ref):
 
     for keyword in node.keywords[:-1]:
         if keyword.arg is None:
-            assert python_version >= 350
+            assert python_version >= 0x350
 
             outline_body = ExpressionOutlineBody(
                 provider=provider, name="dict_unpacking_call", source_ref=source_ref
@@ -109,7 +114,7 @@ def buildCallNode(provider, node, source_ref):
 
             helper_args = [
                 ExpressionTempVariableRef(variable=tmp_called, source_ref=source_ref),
-                ExpressionMakeTuple(
+                makeExpressionMakeTuple(
                     elements=buildDictionaryUnpackingArgs(
                         provider=provider,
                         keys=(keyword.arg for keyword in node.keywords),
@@ -135,7 +140,8 @@ def buildCallNode(provider, node, source_ref):
                 source_ref=source_ref,
             )
 
-            outline_body.setBody(
+            outline_body.setChild(
+                "body",
                 makeStatementsSequenceFromStatements(
                     StatementAssignmentVariable(
                         variable=tmp_called, source=called, source_ref=source_ref
@@ -154,7 +160,7 @@ def buildCallNode(provider, node, source_ref):
                         ),
                         source_ref=source_ref,
                     ),
-                )
+                ),
             )
 
             return outline_body
@@ -164,7 +170,7 @@ def buildCallNode(provider, node, source_ref):
     # new unpacking code.
 
     if node.keywords and node.keywords[-1].arg is None:
-        assert python_version >= 350
+        assert python_version >= 0x350
 
         dict_star_arg = buildNode(provider, node.keywords[-1].value, source_ref)
         keywords = node.keywords[:-1]
@@ -179,7 +185,7 @@ def buildCallNode(provider, node, source_ref):
         )
         values.append(buildNode(provider, keyword.value, source_ref))
 
-    if python_version < 350:
+    if python_version < 0x350:
         list_star_arg = buildNode(provider, node.starargs, source_ref, True)
         dict_star_arg = buildNode(provider, node.kwargs, source_ref, True)
 
@@ -202,17 +208,21 @@ def _makeCallNode(
     if list_star_arg is None and dict_star_arg is None:
         result = makeExpressionCall(
             called=called,
-            args=makeSequenceCreationOrConstant(
-                sequence_kind="tuple", elements=positional_args, source_ref=source_ref
+            args=makeExpressionMakeTupleOrConstant(
+                elements=positional_args,
+                user_provided=True,
+                source_ref=source_ref,
             ),
-            kw=makeDictCreationOrConstant(
-                keys=keys, values=values, source_ref=source_ref
+            kw=makeExpressionMakeDictOrConstant(
+                makeExpressionPairs(keys=keys, values=values),
+                user_provided=True,
+                source_ref=source_ref,
             ),
             source_ref=source_ref,
         )
 
         # Bug compatible line numbers before Python 3.8
-        if python_version < 380:
+        if python_version < 0x380:
             if values:
                 result.setCompatibleSourceReference(
                     source_ref=values[-1].getCompatibleSourceReference()
@@ -255,26 +265,28 @@ def _makeCallNode(
 
         if positional_args:
             helper_args.append(
-                makeSequenceCreationOrConstant(
-                    sequence_kind="tuple",
+                makeExpressionMakeTupleOrConstant(
                     elements=positional_args,
+                    user_provided=True,
                     source_ref=source_ref,
                 )
             )
 
         # Order of evaluation changed in Python3.5.
-        if python_version >= 350 and list_star_arg is not None:
+        if python_version >= 0x350 and list_star_arg is not None:
             helper_args.append(list_star_arg)
 
         if keys:
             helper_args.append(
-                makeDictCreationOrConstant(
-                    keys=keys, values=values, source_ref=source_ref
+                makeExpressionMakeDictOrConstant(
+                    pairs=makeExpressionPairs(keys=keys, values=values),
+                    user_provided=True,
+                    source_ref=source_ref,
                 )
             )
 
         # Order of evaluation changed in Python3.5.
-        if python_version < 350 and list_star_arg is not None:
+        if python_version < 0x350 and list_star_arg is not None:
             helper_args.append(list_star_arg)
 
         if dict_star_arg is not None:
@@ -295,7 +307,7 @@ def _makeCallNode(
         )
 
         # Bug compatible line numbers before Python 3.8
-        if python_version < 380:
+        if python_version < 0x380:
             result.setCompatibleSourceReference(
                 source_ref=helper_args[-1].getCompatibleSourceReference()
             )

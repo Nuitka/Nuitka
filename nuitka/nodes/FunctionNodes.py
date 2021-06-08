@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,20 +29,27 @@ Coroutines and generators live in their dedicated module and share base
 classes.
 """
 
+import inspect
+
 from nuitka import Options, Variables
+from nuitka.Constants import isMutable
+from nuitka.optimizations.TraceCollections import (
+    TraceCollectionPureFunction,
+    withChangeIndicationsTo,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import (
     ParameterSpec,
     TooManyArguments,
     matchCall,
 )
+from nuitka.Tracing import optimization_logger
 from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 
 from .Checkers import checkStatementsSequenceOrNone
 from .CodeObjectSpecs import CodeObjectSpec
 from .ExpressionBases import (
-    CompileTimeConstantExpressionBase,
     ExpressionBase,
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
@@ -52,17 +59,19 @@ from .IndicatorMixins import (
     EntryPointMixin,
     MarkUnoptimizedFunctionIndicatorMixin,
 )
-from .LocalsScopes import getLocalsDictHandle, setLocalsDictType
+from .LocalsScopes import getLocalsDictHandle
 from .NodeBases import (
     ClosureGiverNodeMixin,
     ClosureTakerMixin,
     SideEffectsFromChildrenMixin,
 )
 from .NodeMakingHelpers import (
-    makeConstantReplacementNode,
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
 )
+from .shapes.BuiltinTypeShapes import tshape_function
+
+_is_verbose = Options.isVerbose()
 
 
 class MaybeLocalVariableUsage(Exception):
@@ -72,10 +81,27 @@ class MaybeLocalVariableUsage(Exception):
 class ExpressionFunctionBodyBase(
     ClosureTakerMixin, ClosureGiverNodeMixin, ExpressionChildHavingBase
 ):
+    # TODO: The code_prefix should be a class attribute instead.
+    __slots__ = (
+        "provider",
+        "taken",
+        "name",
+        "code_prefix",
+        "code_name",
+        "uids",
+        "temp_variables",
+        "temp_scopes",
+        "preserver_id",
+        "flags",
+    )
+
+    if python_version >= 0x340:
+        __slots__ += ("qualname_provider",)
+
+    if python_version >= 0x300:
+        __slots__ += ("non_local_declarations",)
 
     named_child = "body"
-    getBody = ExpressionChildHavingBase.childGetter("body")
-    setBody = ExpressionChildHavingBase.childSetter("body")
 
     checker = checkStatementsSequenceOrNone
 
@@ -103,11 +129,11 @@ class ExpressionFunctionBodyBase(
 
         # Python3.4: Might be overridden by global statement on the class name.
         # TODO: Make this class only code.
-        if python_version >= 340:
+        if python_version >= 0x340:
             self.qualname_provider = provider
 
         # Non-local declarations.
-        if python_version >= 300:
+        if python_version >= 0x300:
             self.non_local_declarations = None
 
     @staticmethod
@@ -115,10 +141,10 @@ class ExpressionFunctionBodyBase(
         return True
 
     def getEntryPoint(self):
-        """ Entry point for code.
+        """Entry point for code.
 
-            Normally ourselves. Only outlines will refer to their parent which
-            technically owns them.
+        Normally ourselves. Only outlines will refer to their parent which
+        technically owns them.
 
         """
 
@@ -144,7 +170,7 @@ class ExpressionFunctionBodyBase(
 
     @staticmethod
     def isEarlyClosure():
-        """ Early closure taking means immediate binding of references.
+        """Early closure taking means immediate binding of references.
 
         Normally it's good to lookup name references immediately, but not for
         functions. In case of a function body it is not allowed to do that,
@@ -155,57 +181,66 @@ class ExpressionFunctionBodyBase(
 
         return False
 
-    def hasVariableName(self, variable_name):
-        return variable_name in self.providing or variable_name in self.temp_variables
+    def getLocalsScope(self):
+        return self.locals_scope
 
-    def getVariables(self):
-        return self.providing.values()
+    # TODO: Dubious function doing to distinct things, should be moved to users.
+    def hasVariableName(self, variable_name):
+        return (
+            self.locals_scope.hasProvidedVariable(variable_name)
+            or variable_name in self.temp_variables
+        )
+
+    def getProvidedVariables(self):
+        if self.locals_scope is not None:
+            return self.locals_scope.getProvidedVariables()
+        else:
+            return ()
 
     def getLocalVariables(self):
         return [
             variable
-            for variable in self.providing.values()
+            for variable in self.getProvidedVariables()
             if variable.isLocalVariable()
         ]
 
     def getLocalVariableNames(self):
         return [
             variable.getName()
-            for variable in self.providing.values()
+            for variable in self.getProvidedVariables()
             if variable.isLocalVariable()
         ]
 
     def getUserLocalVariables(self):
-        return tuple(
+        return [
             variable
-            for variable in self.providing.values()
+            for variable in self.getProvidedVariables()
             if variable.isLocalVariable() and not variable.isParameterVariable()
             if variable.getOwner() is self
-        )
+        ]
 
     def getOutlineLocalVariables(self):
+        result = []
+
         outlines = self.getTraceCollection().getOutlineFunctions()
 
         if outlines is None:
-            return ()
-
-        result = []
+            return result
 
         for outline in outlines:
             result.extend(outline.getUserLocalVariables())
 
-        return tuple(result)
+        return result
 
     def removeClosureVariable(self, variable):
         # Do not remove parameter variables of ours.
         assert not variable.isParameterVariable() or variable.getOwner() is not self
 
-        variable_name = variable.getName()
-
-        if variable_name in self.providing:
-            del self.providing[variable.getName()]
+        self.locals_scope.unregisterClosureVariable(variable)
 
         self.taken.remove(variable)
+
+        self.code_object.removeFreeVarname(variable.getName())
 
     def demoteClosureVariable(self, variable):
         assert variable.isLocalVariable()
@@ -222,7 +257,8 @@ class ExpressionFunctionBodyBase(
                 new_variable.addTrace(variable_trace)
         new_variable.updateUsageState()
 
-        self.providing[variable.getName()] = new_variable
+        self.locals_scope.unregisterClosureVariable(variable)
+        self.locals_scope.registerProvidedVariable(new_variable)
 
         updateVariableUsage(
             provider=self, old_variable=variable, new_variable=new_variable
@@ -230,13 +266,6 @@ class ExpressionFunctionBodyBase(
 
     def hasClosureVariable(self, variable):
         return variable in self.taken
-
-    def removeUserVariable(self, variable):
-        assert variable in self.providing.values(), (self, self.providing, variable)
-
-        del self.providing[variable.getName()]
-
-        assert not variable.isParameterVariable() or variable.getOwner() is not self
 
     def getVariableForAssignment(self, variable_name):
         # print("ASS func", self, variable_name)
@@ -259,7 +288,7 @@ class ExpressionFunctionBodyBase(
             # Remember that we need that closure variable for something, so
             # we don't create it again all the time.
             if not result.isModuleVariable():
-                self.registerProvidedVariable(result)
+                self.locals_scope.registerClosureVariable(result)
 
             entry_point = self.getEntryPoint()
 
@@ -267,7 +296,7 @@ class ExpressionFunctionBodyBase(
             # that instead of merely a variable, to be assigned, we need to replace with locals
             # dict access.
             if (
-                python_version < 300
+                python_version < 0x300
                 and not entry_point.isExpressionClassBody()
                 and not entry_point.isPythonMainModule()
                 and result.isModuleVariable()
@@ -293,14 +322,18 @@ class ExpressionFunctionBodyBase(
     def createProvidedVariable(self, variable_name):
         # print("createProvidedVariable", self, variable_name)
 
-        return Variables.LocalVariable(owner=self, variable_name=variable_name)
+        assert self.locals_scope, self
+
+        return self.locals_scope.getLocalVariable(
+            variable_name=variable_name, owner=self
+        )
 
     def addNonlocalsDeclaration(self, names, user_provided, source_ref):
-        """ Add a nonlocal declared name.
+        """Add a nonlocal declared name.
 
-            This happens during tree building, and is a Python3 only
-            feature. We remember the names for later use through the
-            function @consumeNonlocalDeclarations
+        This happens during tree building, and is a Python3 only
+        feature. We remember the names for later use through the
+        function @consumeNonlocalDeclarations
         """
         if self.non_local_declarations is None:
             self.non_local_declarations = []
@@ -308,11 +341,11 @@ class ExpressionFunctionBodyBase(
         self.non_local_declarations.append((names, user_provided, source_ref))
 
     def consumeNonlocalDeclarations(self):
-        """ Return the nonlocal declared names for this function.
+        """Return the nonlocal declared names for this function.
 
-            There may not be any, which is why we assigned it to
-            None originally and now check and return empty tuple
-            in that case.
+        There may not be any, which is why we assigned it to
+        None originally and now check and return empty tuple
+        in that case.
         """
 
         result = self.non_local_declarations or ()
@@ -323,7 +356,7 @@ class ExpressionFunctionBodyBase(
         return self.name
 
     def getFunctionQualname(self):
-        """ Function __qualname__ new in CPython3.3
+        """Function __qualname__ new in CPython3.3
 
         Should contain some kind of full name descriptions for the closure to
         recognize and will be used for outputs.
@@ -331,7 +364,7 @@ class ExpressionFunctionBodyBase(
 
         function_name = self.getFunctionName()
 
-        if python_version < 340:
+        if python_version < 0x340:
             provider = self.getParentVariableProvider()
         else:
             provider = self.qualname_provider
@@ -350,15 +383,70 @@ class ExpressionFunctionBodyBase(
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        body = self.getBody()
+        body = self.subnode_body
 
         if body is None:
             return False
         else:
-            return self.getBody().mayRaiseException(exception_type)
+            return self.subnode_body.mayRaiseException(exception_type)
+
+    def getFunctionInlineCost(self, values):
+        """Cost of inlining this function with given arguments
+
+        Returns: None or integer values, None means don't do it.
+        """
+
+        # For overload, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def optimizeUnusedClosureVariables(self):
+        """Gets called once module is complete, to consider giving up on closure variables."""
+
+        changed = False
+
+        for closure_variable in self.getClosureVariables():
+
+            # Need to take closure of those either way
+            if (
+                closure_variable.isParameterVariable()
+                and self.isExpressionGeneratorObjectBody()
+            ):
+                continue
+
+            empty = self.trace_collection.hasEmptyTraces(closure_variable)
+
+            if empty:
+                changed = True
+
+                self.trace_collection.signalChange(
+                    "var_usage",
+                    self.source_ref,
+                    message="Remove unused closure variable '%s'."
+                    % closure_variable.getName(),
+                )
+
+                self.removeClosureVariable(closure_variable)
+
+        return changed
+
+    def optimizeVariableReleases(self):
+        for parameter_variable in self.getParameterVariablesWithManualRelease():
+            read_only = self.trace_collection.hasReadOnlyTraces(parameter_variable)
+
+            if read_only:
+                self.trace_collection.signalChange(
+                    "var_usage",
+                    self.source_ref,
+                    message="Schedule removal releases of unassigned parameter variable '%s'."
+                    % parameter_variable.getName(),
+                )
+
+                self.removeVariableReleases(parameter_variable)
 
 
 class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBase):
+    __slots__ = ("trace_collection", "code_object", "locals_scope", "auto_release")
+
     def __init__(
         self, provider, name, code_object, code_prefix, flags, auto_release, source_ref
     ):
@@ -378,17 +466,14 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
         provider.getParentModule().addFunction(self)
 
-        if python_version >= 300:
-            self.locals_dict_name = "locals_%s" % (self.getCodeName(),)
-
-            setLocalsDictType(self.locals_dict_name, "python3_function")
-        elif flags is not None and "has_exec" in flags:
-            self.locals_dict_name = "locals_%s" % (self.getCodeName(),)
-
-            setLocalsDictType(self.locals_dict_name, "python2_function_exec")
+        if flags is not None and "has_exec" in flags:
+            locals_kind = "python2_function_exec"
         else:
-            # TODO: There should be a locals scope for non-dict/mapping too.
-            self.locals_dict_name = None
+            locals_kind = "python_function"
+
+        self.locals_scope = getLocalsDictHandle(
+            "locals_%s" % self.getCodeName(), locals_kind, self
+        )
 
         # Automatic parameter variable releases.
         self.auto_release = auto_release or None
@@ -400,17 +485,13 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
         return result
 
-    def getFunctionLocalsScope(self):
-        if self.locals_dict_name is None:
-            return None
-        else:
-            return getLocalsDictHandle(self.locals_dict_name)
-
     def getCodeObject(self):
         return self.code_object
 
     def computeFunctionRaw(self, trace_collection):
-        from nuitka.optimizations.TraceCollections import TraceCollectionFunction
+        from nuitka.optimizations.TraceCollections import (
+            TraceCollectionFunction,
+        )
 
         trace_collection = TraceCollectionFunction(
             parent=trace_collection, function_body=self
@@ -422,12 +503,12 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         trace_collection.updateVariablesFromCollection(old_collection, self.source_ref)
 
     def computeFunction(self, trace_collection):
-        statements_sequence = self.getBody()
+        statements_sequence = self.subnode_body
 
         # TODO: Lift this restriction to only functions here and it code generation.
         if statements_sequence is not None and self.isExpressionFunctionBody():
-            if statements_sequence.getStatements()[0].isStatementReturnNone():
-                self.setBody(None)
+            if statements_sequence.subnode_statements[0].isStatementReturnNone():
+                self.clearChild("body")
                 statements_sequence.finalize()
                 statements_sequence = None
 
@@ -437,10 +518,10 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
             )
 
             if result is not statements_sequence:
-                self.setBody(result)
+                self.setChild("body", result)
 
     def removeVariableReleases(self, variable):
-        assert variable in self.providing.values(), (self, self.providing, variable)
+        assert variable in self.locals_scope.providing.values(), (self, variable)
 
         if self.auto_release is None:
             self.auto_release = set()
@@ -448,37 +529,43 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         self.auto_release.add(variable)
 
     def getParameterVariablesWithManualRelease(self):
-        """ Return the list of parameter variables that have release statements.
+        """Return the list of parameter variables that have release statements.
 
-            These are for consideration if these can be dropped, and if so, they
-            are releases automatically by function code.
+        These are for consideration if these can be dropped, and if so, they
+        are releases automatically by function code.
         """
         return tuple(
             variable
-            for variable in self.providing.values()
+            for variable in self.locals_scope.getProvidedVariables()
             if not self.auto_release or variable not in self.auto_release
             if variable.isParameterVariable()
             if variable.getOwner() is self
         )
 
     def isAutoReleaseVariable(self, variable):
-        """ Is this variable to be automatically released.
-
-        """
+        """Is this variable to be automatically released."""
         return self.auto_release is not None and variable in self.auto_release
 
     def getFunctionVariablesWithAutoReleases(self):
-        """ Return the list of function variables that should be released at exit.
-
-        """
+        """Return the list of function variables that should be released at exit."""
         if self.auto_release is None:
             return ()
 
         return tuple(
             variable
-            for variable in self.providing.values()
+            for variable in self.locals_scope.getProvidedVariables()
             if variable in self.auto_release
         )
+
+    @staticmethod
+    def getConstantReturnValue():
+        """Special function that checks if code generation allows to use common C code.
+
+        Notes:
+            This is only done for standard functions.
+
+        """
+        return False, False
 
 
 class ExpressionFunctionBody(
@@ -486,13 +573,25 @@ class ExpressionFunctionBody(
 ):
     kind = "EXPRESSION_FUNCTION_BODY"
 
+    # TODO: These should be more special than the general type in order to not cover exec ones.
+    __slots__ = (
+        "unoptimized_locals",
+        "unqualified_exec",
+        "doc",
+        "return_exception",
+        "needs_creation",
+        "needs_direct",
+        "cross_module_use",
+        "parameters",
+    )
+
+    if python_version >= 0x340:
+        __slots__ += ("qualname_setup",)
+
     checkers = {
         # TODO: Is "None" really an allowed value.
         "body": checkStatementsSequenceOrNone
     }
-
-    if python_version >= 340:
-        qualname_setup = None
 
     def __init__(
         self,
@@ -532,11 +631,14 @@ class ExpressionFunctionBody(
         # Indicator if the function is used outside of where it's defined.
         self.cross_module_use = False
 
+        if python_version >= 0x340:
+            self.qualname_setup = None
+
         self.parameters = parameters
         self.parameters.setOwner(self)
 
         for variable in self.parameters.getAllVariables():
-            self.registerProvidedVariable(variable)
+            self.locals_scope.registerProvidedVariable(variable)
 
     def getDetails(self):
         return {
@@ -600,6 +702,10 @@ class ExpressionFunctionBody(
             **other_args
         )
 
+    @staticmethod
+    def isExpressionFunctionBody():
+        return True
+
     def getParent(self):
         assert False
 
@@ -634,17 +740,20 @@ class ExpressionFunctionBody(
 
         assert False, self
 
-    def isCompileTimeConstant(self):
-        # TODO: It's actually pretty much compile time accessible maybe.
+    @staticmethod
+    def isCompileTimeConstant():
+        # TODO: It's actually pretty much compile time accessible maybe, but that
+        # would require extra effort.
         return False
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         # The function definition has no side effects, calculating the defaults
         # would be, but that is done outside of this.
         return False
 
     def mayRaiseException(self, exception_type):
-        body = self.getBody()
+        body = self.subnode_body
 
         return body is not None and body.mayRaiseException(exception_type)
 
@@ -654,13 +763,114 @@ class ExpressionFunctionBody(
     def needsExceptionReturnValue(self):
         return self.return_exception
 
+    def getConstantReturnValue(self):
+        """Special function that checks if code generation allows to use common C code."""
+        body = self.subnode_body
 
-def convertNoneConstantOrEmptyDictToNone(node):
+        if body is None:
+            return True, None
+
+        first_statement = body.subnode_statements[0]
+
+        if first_statement.isStatementReturnConstant():
+            constant_value = first_statement.getConstant()
+
+            # TODO: For mutable constants, we could also have something, but it would require an indicator
+            # flag to make a deep copy.
+            if not isMutable(constant_value):
+                return True, constant_value
+            else:
+                return False, False
+        else:
+            return False, False
+
+
+class ExpressionFunctionPureBody(ExpressionFunctionBody):
+    kind = "EXPRESSION_FUNCTION_PURE_BODY"
+
+    __slots__ = (
+        # These need only one optimization ever.
+        "optimization_done",
+    )
+
+    def __init__(
+        self,
+        provider,
+        name,
+        code_object,
+        doc,
+        parameters,
+        flags,
+        auto_release,
+        source_ref,
+    ):
+        ExpressionFunctionBody.__init__(
+            self,
+            provider=provider,
+            name=name,
+            code_object=code_object,
+            doc=doc,
+            parameters=parameters,
+            flags=flags,
+            auto_release=auto_release,
+            source_ref=source_ref,
+        )
+
+        self.optimization_done = False
+
+    def computeFunctionRaw(self, trace_collection):
+        if self.optimization_done:
+            for function_body in self.trace_collection.getUsedFunctions():
+                trace_collection.onUsedFunction(function_body)
+
+        def mySignal(tag, source_ref, change_desc):
+            if _is_verbose:
+                optimization_logger.info(
+                    "{source_ref} : {tags} : {message}".format(
+                        source_ref=source_ref.getAsString(),
+                        tags=tags,
+                        message=change_desc()
+                        if inspect.isfunction(change_desc)
+                        else change_desc,
+                    )
+                )
+
+            tags.add(tag)
+
+        tags = set()
+
+        while 1:
+            trace_collection = TraceCollectionPureFunction(function_body=self)
+            old_collection = self.setTraceCollection(trace_collection)
+
+            with withChangeIndicationsTo(mySignal):
+                self.computeFunction(trace_collection)
+
+            trace_collection.updateVariablesFromCollection(
+                old_collection, self.source_ref
+            )
+
+            if tags:
+                tags.clear()
+            else:
+                break
+
+        self.optimization_done = True
+
+
+class ExpressionFunctionPureInlineConstBody(ExpressionFunctionBody):
+    kind = "EXPRESSION_FUNCTION_PURE_INLINE_CONST_BODY"
+
+    def getFunctionInlineCost(self, values):
+        return 0
+
+
+def _convertNoneConstantOrEmptyDictToNone(node):
     if node is None:
         return None
-    elif node.isExpressionConstantRef() and node.getConstant() is None:
+    elif node.isExpressionConstantNoneRef():
         return None
-    elif node.isExpressionConstantRef() and node.getConstant() == {}:
+    elif node.isExpressionConstantDictEmptyRef():
         return None
     else:
         return node
@@ -672,26 +882,23 @@ def convertNoneConstantOrEmptyDictToNone(node):
 class ExpressionFunctionCreation(
     SideEffectsFromChildrenMixin, ExpressionChildrenHavingBase
 ):
-
     kind = "EXPRESSION_FUNCTION_CREATION"
+
+    __slots__ = ("variable_closure_traces",)
 
     # Note: The order of evaluation for these is a bit unexpected, but
     # true. Keyword defaults go first, then normal defaults, and annotations of
     # all kinds go last.
 
     # A bug of CPython3.x not fixed before version 3.4, see bugs.python.org/issue16967
-    kw_defaults_before_defaults = python_version < 340
+    kw_defaults_before_defaults = python_version < 0x340
 
     if kw_defaults_before_defaults:
         named_children = ("kw_defaults", "defaults", "annotations", "function_ref")
     else:
         named_children = ("defaults", "kw_defaults", "annotations", "function_ref")
-    getFunctionRef = ExpressionChildrenHavingBase.childGetter("function_ref")
-    getDefaults = ExpressionChildrenHavingBase.childGetter("defaults")
-    getKwDefaults = ExpressionChildrenHavingBase.childGetter("kw_defaults")
-    getAnnotations = ExpressionChildrenHavingBase.childGetter("annotations")
 
-    checkers = {"kw_defaults": convertNoneConstantOrEmptyDictToNone}
+    checkers = {"kw_defaults": _convertNoneConstantOrEmptyDictToNone}
 
     def __init__(self, function_ref, defaults, kw_defaults, annotations, source_ref):
         assert kw_defaults is None or kw_defaults.isExpression()
@@ -712,33 +919,44 @@ class ExpressionFunctionCreation(
         self.variable_closure_traces = None
 
     def getName(self):
-        return self.getFunctionRef().getName()
+        return self.subnode_function_ref.getName()
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_function
 
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []
 
-        for closure_variable in (
-            self.getFunctionRef().getFunctionBody().getClosureVariables()
-        ):
+        for (
+            closure_variable
+        ) in self.subnode_function_ref.getFunctionBody().getClosureVariables():
             trace = trace_collection.getVariableCurrentTrace(closure_variable)
-            trace.addClosureUsage()
+            trace.addNameUsage()
 
             self.variable_closure_traces.append((closure_variable, trace))
+
+        kw_defaults = self.subnode_kw_defaults
+        if kw_defaults is not None:
+            kw_defaults.onContentEscapes(trace_collection)
+
+        for default in self.subnode_defaults:
+            default.onContentEscapes(trace_collection)
 
         # TODO: Function body may know something too.
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        for default in self.getDefaults():
+        for default in self.subnode_defaults:
             if default.mayRaiseException(exception_type):
                 return True
 
-        kw_defaults = self.getKwDefaults()
+        kw_defaults = self.subnode_kw_defaults
 
         if kw_defaults is not None and kw_defaults.mayRaiseException(exception_type):
             return True
 
-        annotations = self.getAnnotations()
+        annotations = self.subnode_annotations
 
         if annotations is not None and annotations.mayRaiseException(exception_type):
             return True
@@ -752,24 +970,20 @@ class ExpressionFunctionCreation(
         # TODO: Until we have something to re-order the keyword arguments, we
         # need to skip this. For the immediate need, we avoid this complexity,
         # as a re-ordering will be needed.
-        if call_kw is not None and (
-            not call_kw.isExpressionConstantRef() or call_kw.getConstant() != {}
-        ):
-            return call_node, None, None
-
-        if call_kw is not None:
+        if call_kw is not None and not call_kw.isExpressionConstantDictEmptyRef():
             return call_node, None, None
 
         if call_args is None:
             args_tuple = ()
         else:
             assert (
-                call_args.isExpressionConstantRef() or call_args.isExpressionMakeTuple()
+                call_args.isExpressionConstantTupleRef()
+                or call_args.isExpressionMakeTuple()
             )
 
             args_tuple = call_args.getIterationValues()
 
-        function_body = self.getFunctionRef().getFunctionBody()
+        function_body = self.subnode_function_ref.getFunctionBody()
 
         # TODO: Actually the above disables it entirely, as it is at least
         # the empty dictionary node in any case. We will need some enhanced
@@ -836,41 +1050,6 @@ error"""
                 % self.getName(),
             )
 
-    def getCallCost(self, values):
-        # TODO: Ought to use values. If they are all constant, how about we
-        # assume no cost, pylint: disable=unused-argument
-
-        function_body = self.getFunctionRef().getFunctionBody()
-
-        if function_body.isExpressionClassBody():
-            if function_body.getBody().getStatements()[0].isStatementReturn():
-                return 0
-
-            return None
-
-        if True or not Options.isExperimental("function_inlining"):
-            return None
-
-        if function_body.isExpressionGeneratorObjectBody():
-            # TODO: That's not even allowed, is it?
-            assert False
-
-            return None
-
-        # TODO: Lying for the demo, this is too limiting, but needs frames to
-        # be allowed twice in a context.
-        if function_body.mayRaiseException(BaseException):
-            return 60
-
-        return 20
-
-    def createOutlineFromCall(self, provider, values):
-        from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
-
-        return convertFunctionCallToOutline(
-            provider=provider, function_ref=self.getFunctionRef(), values=values
-        )
-
     def getClosureVariableVersions(self):
         return self.variable_closure_traces
 
@@ -915,46 +1094,34 @@ class ExpressionFunctionRef(ExpressionBase):
         return self.function_body
 
     def computeExpressionRaw(self, trace_collection):
-        function_body = self.getFunctionBody()
+        trace_collection.onUsedFunction(self.getFunctionBody())
 
-        owning_module = function_body.getParentModule()
-
-        # Make sure the owning module is added to the used set. This is most
-        # important for helper functions, or modules, which otherwise have
-        # become unused.
-        from nuitka.ModuleRegistry import addUsedModule
-
-        addUsedModule(owning_module)
-
-        needs_visit = owning_module.addUsedFunction(function_body)
-
-        if needs_visit:
-            function_body.computeFunctionRaw(trace_collection)
-
-        # TODO: Function collection may now know something.
+        # TODO: Function after collection may now know something.
         return self, None, None
 
-    def mayHaveSideEffects(self):
-        # Using a function has no side effects.
+    @staticmethod
+    def mayHaveSideEffects():
+        # Using a function has no side effects, the use might, but this is not it.
         return False
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
 
 class ExpressionFunctionCall(ExpressionChildrenHavingBase):
-    """ Shared function call.
+    """Shared function call.
 
-        This is for calling created function bodies with multiple users. Not
-        clear if such a thing should exist. But what this will do is to have
-        respect for the fact that there are multiple such calls.
+    This is for calling created function bodies with multiple users. Not
+    clear if such a thing should exist. But what this will do is to have
+    respect for the fact that there are multiple such calls.
     """
 
     kind = "EXPRESSION_FUNCTION_CALL"
 
+    __slots__ = ("variable_closure_traces",)
+
     named_children = ("function", "values")
-    getFunction = ExpressionChildrenHavingBase.childGetter("function")
-    getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")
 
     def __init__(self, function, values, source_ref):
         assert function.isExpressionFunctionCreation()
@@ -968,50 +1135,54 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
         self.variable_closure_traces = None
 
     def computeExpression(self, trace_collection):
-        function = self.getFunction()
-
-        values = self.getArgumentValues()
-
-        # TODO: This needs some design.
-        cost = function.getCallCost(values)
-
-        function_body = function.getFunctionRef().getFunctionBody()
+        function = self.subnode_function
+        function_body = function.subnode_function_ref.getFunctionBody()
 
         if function_body.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
+        values = self.subnode_values
+
+        # Ask for function for its cost.
+        cost = function_body.getFunctionInlineCost(values)
+
         if cost is not None and cost < 50:
-            result = function.createOutlineFromCall(
-                provider=self.getParentVariableProvider(), values=values
+            from nuitka.optimizations.FunctionInlining import (
+                convertFunctionCallToOutline,
+            )
+
+            result = convertFunctionCallToOutline(
+                provider=self.getParentVariableProvider(),
+                function_body=function_body,
+                values=values,
+                call_source_ref=self.source_ref,
             )
 
             return (
                 result,
                 "new_statements",
-                "Function call to '%s' in-lined." % function_body.getCodeName(),
+                lambda: "Function call to '%s' in-lined." % function_body.getCodeName(),
             )
 
         self.variable_closure_traces = []
 
         for closure_variable in function_body.getClosureVariables():
             trace = trace_collection.getVariableCurrentTrace(closure_variable)
-            trace.addClosureUsage()
+            trace.addNameUsage()
 
             self.variable_closure_traces.append((closure_variable, trace))
 
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        function = self.getFunction()
+        function = self.subnode_function
 
-        if (
-            function.getFunctionRef()
-            .getFunctionBody()
-            .mayRaiseException(exception_type)
+        if function.subnode_function_ref.getFunctionBody().mayRaiseException(
+            exception_type
         ):
             return True
 
-        values = self.getArgumentValues()
+        values = self.subnode_values
 
         for value in values:
             if value.mayRaiseException(exception_type):
@@ -1021,34 +1192,3 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
 
     def getClosureVariableVersions(self):
         return self.variable_closure_traces
-
-
-# Needed for Python3.3 and higher
-class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
-    kind = "EXPRESSION_FUNCTION_QUALNAME_REF"
-
-    __slots__ = ("function_body",)
-
-    def __init__(self, function_body, source_ref):
-        CompileTimeConstantExpressionBase.__init__(self, source_ref=source_ref)
-
-        self.function_body = function_body
-
-    def finalize(self):
-        del self.parent
-        del self.function_body
-
-    def computeExpressionRaw(self, trace_collection):
-        result = makeConstantReplacementNode(
-            node=self, constant=self.function_body.getFunctionQualname()
-        )
-
-        return (
-            result,
-            "new_constant",
-            "Executed '__qualname__' resolution to '%s'."
-            % self.function_body.getFunctionQualname(),
-        )
-
-    def getCompileTimeConstant(self):
-        return self.function_body.getFunctionQualname()

@@ -1,4 +1,4 @@
-#     Copyright 2020, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2021, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,7 +32,7 @@ def _isTkInterModule(module):
 
 
 class TkinterPlugin(NuitkaPluginBase):
-    """ This class represents the main logic of the plugin.
+    """This class represents the main logic of the plugin.
 
     This is a plug-in to make programs work well in standalone mode which are using tkinter.
     These programs require the presence of certain libraries written in the TCL language.
@@ -66,9 +66,18 @@ class TkinterPlugin(NuitkaPluginBase):
         self.files_copied = False  # ensure one-time action
         return None
 
+    @classmethod
+    def isRelevant(cls):
+        """This method is called one time only to check, whether the plugin might make sense at all.
+
+        Returns:
+            True if this is a standalone, else False.
+        """
+        return Options.isStandaloneMode()
+
     @staticmethod
     def createPreModuleLoadCode(module):
-        """ This method is called with a module that will be imported.
+        """This method is called with a module that will be imported.
 
         Notes:
             If the word "tkinter" occurs in its full name, we know that the correct
@@ -80,16 +89,16 @@ class TkinterPlugin(NuitkaPluginBase):
             Code to insert and None (tuple)
         """
         # only insert code for tkinter related modules
-        if not _isTkInterModule(module):
-            return None, None
-
-        # The following code will be executed before importing the module.
-        # If required we set the respective environment values.
-        code = """import os
-if not os.environ.get("TCL_LIBRARY", None):
+        if _isTkInterModule(module):
+            # The following code will be executed before importing the module.
+            # If required we set the respective environment values.
+            code = r"""
+import os
+if not os.environ.get("TCL_LIBRARY"):
     os.environ["TCL_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tcl")
     os.environ["TK_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tk")"""
-        return code, "Need to make sure we set environment variables for TCL."
+
+            return code, "Need to make sure we set environment variables for TCL."
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -114,7 +123,7 @@ The Tcl library dir. See comments for Tk library dir.""",
         )
 
     def considerExtraDlls(self, dist_dir, module):
-        """ Copy TCL libraries to the dist folder.
+        """Copy TCL libraries to the dist folder.
 
         Notes:
             We will copy the TCL/TK directories to the program's root directory.
@@ -166,7 +175,7 @@ The Tcl library dir. See comments for Tk library dir.""",
                     break
 
         if tcl is None or not os.path.exists(tcl):
-            sys.exit("Could not find Tcl. Aborting standalone generation.")
+            self.sysexit("Could not find Tcl. Aborting standalone generation.")
 
         tk = self.tk_library_dir
         if tk is None:
@@ -175,7 +184,7 @@ The Tcl library dir. See comments for Tk library dir.""",
                     break
 
         if tk is None or not os.path.exists(tcl):
-            sys.exit("Could not find Tk. Aborting standalone generation.")
+            self.sysexit("Could not find Tk. Aborting standalone generation.")
 
         # survived the above, now do the copying to following locations
         target_tk = os.path.join(dist_dir, "tk")
@@ -195,7 +204,7 @@ The Tcl library dir. See comments for Tk library dir.""",
 
 
 class TkinterPluginDetector(NuitkaPluginBase):
-    """ Used only if plugin is not activated.
+    """Used only if plugin is not activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
@@ -205,7 +214,7 @@ class TkinterPluginDetector(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        """ This method is called one time only to check, whether the plugin might make sense at all.
+        """This method is called one time only to check, whether the plugin might make sense at all.
 
         Returns:
             True if this is a standalone compilation on Windows, else False.
@@ -213,7 +222,7 @@ class TkinterPluginDetector(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def checkModuleSourceCode(self, module_name, source_code):
-        """ This method checks the source code
+        """This method checks the source code
 
         Notes:
             We only use it to check whether this is the main module, and whether

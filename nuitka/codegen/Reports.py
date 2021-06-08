@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,30 +21,49 @@ Initially this is about missing optimization only, but it should expand into
 real stuff.
 """
 
-from logging import error, info
-
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
+from nuitka.Tracing import codegen_logger, optimization_logger
 
 _missing_helpers = OrderedDict()
 
 _missing_operations = OrderedSet()
 
-# _error_for_missing = True
+_missing_trust = OrderedDict()
+
 _error_for_missing = False
+# _error_for_missing = True
 
 
 def doMissingOptimizationReport():
-    level = error if _error_for_missing else info
-
     for helper, source_refs in _missing_helpers.items():
-        level("Missing C helper code variant, used fallback: %s", helper)
-        for source_ref in source_refs:
+        message = "Missing C helper code variant, used fallback: %s at %s" % (
+            ",".join(source_ref.getAsString() for source_ref in source_refs),
+            helper,
+        )
 
-            level("Occurred at %s." % source_ref.getAsString())
+        if _error_for_missing:
+            codegen_logger.warning(message)
+        else:
+            codegen_logger.info(message)
 
     for desc in _missing_operations:
-        level("Missing optimization, used fallback: %s", desc)
+        message = "Missing optimization, used fallback: %s" % (desc,)
+        if _error_for_missing:
+            optimization_logger.warning(message)
+        else:
+            optimization_logger.info(message)
+
+    for desc, source_refs in _missing_trust.items():
+        message = desc[0] % desc[1:]
+        message += " at %s" % ",".join(
+            source_ref.getAsString() for source_ref in source_refs
+        )
+
+        if _error_for_missing:
+            optimization_logger.warning(message)
+        else:
+            optimization_logger.info(message)
 
 
 def onMissingHelper(helper_name, source_ref):
@@ -59,3 +78,12 @@ def onMissingOperation(operation, left, right):
     # Avoid the circular dependency on tshape_uninit from StandardShapes.
     if right.__class__.__name__ != "ShapeTypeUninit":
         _missing_operations.add((operation, left, right))
+
+
+def onMissingTrust(operation, source_ref, *args):
+    key = (operation,) + args
+
+    if key not in _missing_trust:
+        _missing_trust[key] = OrderedSet()
+
+    _missing_trust[key].add(source_ref)

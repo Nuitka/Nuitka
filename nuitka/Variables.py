@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,7 +27,12 @@ from abc import abstractmethod
 
 from nuitka.__past__ import getMetaClassBase, iterItems
 from nuitka.nodes.shapes.StandardShapes import tshape_unknown
-from nuitka.utils import InstanceCounters, Utils
+from nuitka.utils import Utils
+from nuitka.utils.InstanceCounters import (
+    counted_del,
+    counted_init,
+    isCountingInstances,
+)
 
 complete = False
 
@@ -47,7 +52,7 @@ class Variable(getMetaClassBase("Variable")):
         "writers",
     )
 
-    @InstanceCounters.counted_init
+    @counted_init
     def __init__(self, owner, variable_name):
         assert type(variable_name) is str, variable_name
         assert type(owner) not in (tuple, list), owner
@@ -65,7 +70,8 @@ class Variable(getMetaClassBase("Variable")):
         self.users = None
         self.writers = None
 
-    __del__ = InstanceCounters.counted_del()
+    if isCountingInstances():
+        __del__ = counted_del()
 
     def finalize(self):
         del self.users
@@ -121,6 +127,10 @@ class Variable(getMetaClassBase("Variable")):
         return False
 
     @staticmethod
+    def isIncompleteModuleVariable():
+        return False
+
+    @staticmethod
     def isTempVariable():
         return False
 
@@ -152,9 +162,6 @@ class Variable(getMetaClassBase("Variable")):
         if not self.shared_users:
             return False
 
-        if not complete:
-            return None
-
         if not self.users:
             return False
 
@@ -178,9 +185,6 @@ class Variable(getMetaClassBase("Variable")):
         self.traces.add(variable_trace)
 
     def removeTrace(self, variable_trace):
-        # Make it unusable, and break GC cycles while at it.
-        variable_trace.previous = None
-
         self.traces.remove(variable_trace)
 
     def updateUsageState(self):
@@ -199,16 +203,8 @@ class Variable(getMetaClassBase("Variable")):
         self.writers = writers
         self.users = users
 
-    def hasWritesOutsideOf(self, user):
-        if not complete:
-            return None
-        elif self.writers is not None and user in self.writers:
-            return len(self.writers) > 1
-        else:
-            return bool(self.writers)
-
     def hasAccessesOutsideOf(self, provider):
-        if not complete:
+        if not self.owner.locals_scope.complete:
             return None
         elif self.users is None:
             return False
@@ -216,12 +212,6 @@ class Variable(getMetaClassBase("Variable")):
             return len(self.users) > 1
         else:
             return bool(self.users)
-
-    def hasDefiniteWrites(self):
-        if not complete:
-            return None
-        else:
-            return bool(self.writers)
 
     def getMatchingAssignTrace(self, assign_node):
         for trace in self.traces:
@@ -236,23 +226,6 @@ class Variable(getMetaClassBase("Variable")):
                 return trace
 
         return None
-
-    def hasSuccessorTraces(self, trace):
-        def consider(candidate):
-            if candidate.isMergeTrace():
-                for p in candidate.previous:
-                    if consider(p):
-                        return True
-            elif candidate.hasPreviousTrace(trace):
-                return True
-
-            return False
-
-        for candidate in self.traces:
-            if consider(candidate):
-                return True
-
-        return False
 
     def getTypeShapes(self):
         result = set()
@@ -307,7 +280,7 @@ class ParameterVariable(LocalVariable):
 
 
 class ModuleVariable(Variable):
-    __slots__ = ("module",)
+    __slots__ = ()
 
     def __init__(self, module, variable_name):
         assert type(variable_name) is str, repr(variable_name)
@@ -315,12 +288,10 @@ class ModuleVariable(Variable):
 
         Variable.__init__(self, owner=module, variable_name=variable_name)
 
-        self.module = module
-
     def __repr__(self):
         return "<ModuleVariable '%s' of '%s'>" % (
             self.variable_name,
-            self.getModule().getFullName(),
+            self.owner.getFullName(),
         )
 
     def getDescription(self):
@@ -330,8 +301,17 @@ class ModuleVariable(Variable):
     def isModuleVariable():
         return True
 
+    def isIncompleteModuleVariable(self):
+        return not self.owner.locals_scope.complete
+
+    def hasDefiniteWrites(self):
+        if not self.owner.locals_scope.complete:
+            return None
+        else:
+            return bool(self.writers)
+
     def getModule(self):
-        return self.module
+        return self.owner
 
     @staticmethod
     def getVariableType():

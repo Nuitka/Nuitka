@@ -1,4 +1,4 @@
-{#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
 {#                                                                              #}
 {#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
 {#     integrates with CPython, but also works on its own.                      #}
@@ -15,213 +15,123 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
+{% from 'HelperSlotsCommon.c.j2' import goto_exit %}
+{% from 'HelperSlotsInt.c.j2' import int_slot %}
+{% from 'HelperSlotsBinary.c.j2' import binary_operation, call_binary_slot with context %}
+{% macro binary_fallback_operation(props, target, left, right, type1, type2) %}
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    {% set props = {"exits": {}} %}
+    {{ binary_operation(props, operator, nb_slot, left, right, "type1", "type2", "operand1", "operand2", "exit_binary_result_object", "exit_binary_result_cbool_ok", "exit_binary_result_nbool", "exit_binary_exception") }}
+
+{% if "exit_binary_result_object" in props["exits"] %}
+exit_binary_result_object:
+    {{ target.getReturnFromObjectExpressionCode("obj_result") }}
+{% endif %}
+
+{% if "exit_binary_result_cbool_ok" in props["exits"] %}
+exit_binary_result_cbool_ok:
+    return cbool_result;
+{% endif %}
+
+{% if "exit_binary_exception" in props["exits"] %}
+{% if "all" not in props["exits"]["exit_binary_exception"] %}
+#if PYTHON_VERSION < 0x300
+{% endif %}
+exit_binary_exception:
+    return {{target.getExceptionResultIndicatorValue()}};
+{% if "all" not in props["exits"]["exit_binary_exception"] %}
+#endif
+{% endif %}
+{% endif %}
+{% endmacro %}
+{% if not left.hasTypeSpecializationCode(right, nb_slot, sq_slot) and left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
+static HEDLEY_NEVER_INLINE {{target.getTypeDecl()}} __BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+{% set props = {"exits": {}} %}
+    PyTypeObject *type1 = {{ left.getTypeValueExpression("operand1") }};
+    PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
+
+    {{ binary_fallback_operation(props, target, left, right, "type1", "type2") }}
+}
+{% endif %}
 static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
-    {{left.getCheckValueCode("operand1")}}
-    {{right.getCheckValueCode("operand2")}}
+    {{ left.getCheckValueCode("operand1") }}
+    {{ right.getCheckValueCode("operand2") }}
 
 {% if left.type_name == "object" and right.type_name == "object" %}
     {# CPython2 treats integer values with fast path. #}
-#if PYTHON_VERSION < 300
-    if ({{left.getIntCheckExpression("operand1")}} && {{right.getIntCheckExpression("operand2")}}) {
-        {% import 'HelperSlotsInt.c.j2' as int_slots %}
+#if PYTHON_VERSION < 0x300
+    if ({{ left.getIntCheckExpression("operand1") }} && {{ right.getIntCheckExpression("operand2") }}) {
+        {{target.getTypeDecl()}} result;
+
+        {% set props = {"exits": {}} %}
+        {{ int_slot(props, operator, nb_slot, target, int_desc, int_desc, "result", "operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
+
+        exit_result_ok:
+        return result;
+
+{% if "exit_result_exception" in props["exits"] %}
+        exit_result_exception:
+        return {{target.getExceptionResultIndicatorValue()}};
+{% endif %}
+    }
+#endif
+{% endif %}
+
+{% if left.hasTypeSpecializationCode(right, nb_slot, sq_slot) %}
+    {% set props = {"exits": {}} %}
+    {{ target.getTypeDecl() }} result;
+
+    {{ call_binary_slot(props, operator, nb_slot, None, left, right, "result", "operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
+
+    exit_result_ok:
+    return result;
+
+{% if "exit_result_exception" in props["exits"] %}
+    exit_result_exception:
+    return {{target.getExceptionResultIndicatorValue()}};
+{% endif %}
+{% elif left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
+{% set props = {"exits": {}} %}
+
+    PyTypeObject *type1 = {{ left.getTypeValueExpression("operand1") }};
+    PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
+
+    if ({{ left.getTypeIdenticalCheckExpression(right, "type1", "type2") }}) {
+        assert(type1 == type2);
 
         {{target.getTypeDecl()}} result;
 
-        {{ int_slots.int_slot(operator, nb_slot, target, int_desc, int_desc, "result", "operand1", "operand2", "exit_result", "exit_result_ok", "exit_result_exception") }}
+        {# There is special code for same types. #}
+        // return _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}(operand1, operand2);
 
-        exit_result:
-
-        if (unlikely(result == {{target.getExceptionResultIndicatorValue()}})) {
-            return {{target.getExceptionResultIndicatorValue()}};
-        }
+        {{ call_binary_slot(props, operator, nb_slot, nb_slot, left.getSameTypeType(right), right.getSameTypeType(left), "result", "operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
 
         exit_result_ok:
-
         return result;
 
-{# Not all operations have defined a definite exception exit, so this can be unused #}
+{% if "exit_result_exception" in props["exits"] %}
         exit_result_exception:
         return {{target.getExceptionResultIndicatorValue()}};
-    }
-#endif
 {% endif %}
+    }
 
-{% if left.getTypeSpecializationCode(target, right, nb_slot, sq_slot1, "operand1", "operand2") %}
-    {{left.getTypeSpecializationCode(target, right, nb_slot, sq_slot1, "operand1", "operand2")}}
+    return __BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}(operand1, operand2);
 {% else %}
-    PyTypeObject *type1 = {{left.getTypeValueExpression("operand1")}};
-    {{left.getSlotType(nb_slot)}} slot1 = {{left.getSlotValueExpression("type1", nb_slot)}};
+{% set props = {"exits": {}} %}
 
-    PyTypeObject *type2 = {{right.getTypeValueExpression("operand2")}};
-    {{left.getSlotType(nb_slot)}} slot2 = NULL;
+    PyTypeObject *type1 = {{ left.getTypeValueExpression("operand1") }};
+    PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
 
-    if (!({{left.getTypeIdenticalCheckExpression(right, "type1", "type2")}})) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = {{right.getSlotValueExpression("type2", nb_slot)}};
-
-        if ({{left.getSlotComparisonEqualExpression(right, "slot1", "slot2")}}) {
-            slot2 = NULL;
-        }
-    } else {
-        assert(type1 == type2);
-
-        {# There may be a special code for same types. #}
-        {{left.getSameTypeOperationSpecializationCode(
-            target=target,
-            other=right,
-            nb_slot=nb_slot,
-            sq_slot=sq_slot1,
-            operand1="operand1",
-            operand2="operand2")
-        }}
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 != NULL) {
-            if ({{left.getRealSubTypeCheckCode(right, "type2", "type1")}}) {
-                PyObject *x = {{left.getSlotCallExpression(nb_slot, "slot2", "operand1", "operand2")}};
-
-                if (x != Py_NotImplemented) {
-                    {{ target.getReturnFromObjectExpressionCode("x") }}
-                }
-
-                Py_DECREF(x);
-                slot2 = NULL;
-            }
-        }
-
-        PyObject *x = {{left.getSlotCallExpression(nb_slot, "slot1", "operand1", "operand2")}};
-
-        if (x != Py_NotImplemented) {
-            {{ target.getReturnFromObjectExpressionCode("x") }}
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = {{left.getSlotCallExpression(nb_slot, "slot2", "operand1", "operand2")}};
-
-        if (x != Py_NotImplemented) {
-            {{ target.getReturnFromObjectExpressionCode("x") }}
-        }
-
-        Py_DECREF(x);
-    }
-
-
-#if PYTHON_VERSION < 300 && ({{left.canTypeCoerceObjects(right)}} || {{right.canTypeCoerceObjects(left)}})
-    if (!{{left.getNewStyleNumberTypeCheckExpression("type1")}} || !{{right.getNewStyleNumberTypeCheckExpression("type2")}}) {
-        coercion c = {{left.getSlotValueExpression("type1", "nb_coerce")}};
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            {# TODO: Could hard code nb_coerce slot presence. #}
-            int err = c(&coerced1, &coerced2);
-
-            if (unlikely(err < 0)) {
-                return {{target.getExceptionResultIndicatorValue()}};
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    {{left.getSlotType(nb_slot)}} slot = mv->{{nb_slot}};
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = {{left.getSlotCallExpression(nb_slot, "slot", "coerced1", "coerced2")}};
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        {{ target.getReturnFromObjectExpressionCode("x") }}
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-
-        c = {{right.getSlotValueExpression("type2", "nb_coerce")}};
-
-        if (c != NULL) {
-            PyObject *coerced1 = operand1;
-            PyObject *coerced2 = operand2;
-
-            {# TODO: Could hard code nb_coerce slot presence. #}
-            int err = c(&coerced2, &coerced1);
-
-            if (unlikely(err < 0)) {
-                return {{target.getExceptionResultIndicatorValue()}};
-            }
-
-            if (err == 0) {
-                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                if (likely(mv == NULL)) {
-                    {{left.getSlotType(nb_slot)}} slot = mv->{{nb_slot}};
-
-                    if (likely(slot != NULL)) {
-                        PyObject *x = {{left.getSlotCallExpression(nb_slot, "slot", "coerced1", "coerced2")}};
-
-                        Py_DECREF(coerced1);
-                        Py_DECREF(coerced2);
-
-                        {{ target.getReturnFromObjectExpressionCode("x") }}
-                    }
-                }
-
-                // nb_coerce took a reference.
-                Py_DECREF(coerced1);
-                Py_DECREF(coerced2);
-            }
-        }
-    }
-#endif
-
-{# There might be a sq_slot specialization that saves the day. #}
-{% if operator in "+*" %}
-{% if left.getSqConcatSlotSpecializationCode(target, right, "sq_concat" if operator == "+" else "sq_repeat", "operand1", "operand2") %}
-    {{left.getSqConcatSlotSpecializationCode(target, right, "sq_concat" if operator == "+" else "sq_repeat", "operand1", "operand2")}}
-{% else %}
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    {{"binaryfunc" if operator == "+" else "ssizeargfunc"}} sq_slot = {{left.getSlotValueExpression("type1", "sq_concat" if operator == "+" else "sq_repeat")}};
-
-    if (sq_slot != NULL) {
-{% if operator == "+" %}
-        PyObject *result = sq_slot(operand1, operand2);
-{% else %}
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand1, operand2);
-{% endif %}
-
-        {{ target.getReturnFromObjectExpressionCode("result") }}
-    }
-{% if operator == "*" %}
-{% if right.getSqConcatSlotSpecializationCode(target, left, "sq_repeat", "operand2", "operand1") %}
-    {{right.getSqConcatSlotSpecializationCode(target, left, "sq_repeat", "operand2", "operand1")}}
-{% else %}
-    // Special case for "+" and "*", also works as sequence concat/repeat.
-    sq_slot = {{right.getSlotValueExpression("type2", "sq_repeat")}};
-
-    if (sq_slot != NULL) {
-        PyObject *result = SEQUENCE_REPEAT(sq_slot, operand2, operand1);
-
-        {{ target.getReturnFromObjectExpressionCode("result") }}
-    }
-{% endif %}
-{% endif %}
-{% endif %}
-{% endif %}
-
-
-{{ target.getReturnUnsupportedTypeErrorCode(operator, left, right, "type1", "type2") }}
+    {{ binary_fallback_operation(props, target, left, right, "type1", "type2") }}
 {% endif %}
 }
 

@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,20 +25,24 @@ from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .IndicatorMixins import MarkNeedsAnnotationsMixin
-from .LocalsScopes import getLocalsDictHandle, setLocalsDictType
-from .OutlineNodes import ExpressionOutlineFunction
+from .LocalsScopes import getLocalsDictHandle
+from .OutlineNodes import ExpressionOutlineFunctionBase
 
 
-class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunction):
-
+class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBase):
     kind = "EXPRESSION_CLASS_BODY"
 
+    __slots__ = ("needs_annotations_dict", "doc")
+
+    if python_version >= 0x340:
+        __slots__ += ("qualname_setup",)
+
     def __init__(self, provider, name, doc, source_ref):
-        ExpressionOutlineFunction.__init__(
+        ExpressionOutlineFunctionBase.__init__(
             self,
             provider=provider,
             name=name,
-            # TODO: Not used, right?
+            body=None,
             code_prefix="class",
             source_ref=source_ref,
         )
@@ -47,16 +51,20 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunction):
 
         self.doc = doc
 
-        self.locals_dict_name = "locals_%s_%d" % (
-            self.getCodeName(),
-            source_ref.getLineNumber(),
+        # Force creation with proper type.
+        if python_version >= 0x300:
+            locals_kind = "python3_class"
+        else:
+            locals_kind = "python2_class"
+
+        self.locals_scope = getLocalsDictHandle(
+            "locals_%s_%d" % (self.getCodeName(), source_ref.getLineNumber()),
+            locals_kind,
+            self,
         )
 
-        # Force creation with proper type.
-        if python_version >= 300:
-            setLocalsDictType(self.locals_dict_name, "python3_class")
-        else:
-            setLocalsDictType(self.locals_dict_name, "python2_class")
+        if python_version >= 0x340:
+            self.qualname_setup = None
 
     def getDetails(self):
         return {
@@ -96,10 +104,10 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunction):
         # they provide "__class__" but nothing else.
 
         if variable_name == "__class__":
-            if python_version < 300:
+            if python_version < 0x300:
                 return self.provider.getVariableForClosure("__class__")
             else:
-                return ExpressionOutlineFunction.getVariableForClosure(
+                return ExpressionOutlineFunctionBase.getVariableForClosure(
                     self, variable_name="__class__"
                 )
         else:
@@ -116,22 +124,17 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunction):
         return False
 
     def mayRaiseException(self, exception_type):
-        return self.getBody().mayRaiseException(exception_type)
+        return self.subnode_body.mayRaiseException(exception_type)
 
     def isUnoptimized(self):
         # Classes all are that.
         return True
-
-    def getFunctionLocalsScope(self):
-        return getLocalsDictHandle(self.locals_dict_name)
 
 
 class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SELECT_METACLASS"
 
     named_children = ("metaclass", "bases")
-    getMetaclass = ExpressionChildrenHavingBase.childGetter("metaclass")
-    getBases = ExpressionChildrenHavingBase.childGetter("bases")
 
     def __init__(self, metaclass, bases, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -147,9 +150,6 @@ class ExpressionBuiltinType3(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_TYPE3"
 
     named_children = ("type_name", "bases", "dict")
-    getTypeName = ExpressionChildrenHavingBase.childGetter("type_name")
-    getBases = ExpressionChildrenHavingBase.childGetter("bases")
-    getDict = ExpressionChildrenHavingBase.childGetter("dict")
 
     def __init__(self, type_name, bases, type_dict, source_ref):
         ExpressionChildrenHavingBase.__init__(

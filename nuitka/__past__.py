@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,30 +28,35 @@ be a "in (str, unicode)" rather than making useless version checks.
 import sys
 from abc import ABCMeta
 
-# pylint: disable=I0021,invalid-name,redefined-builtin,self-assigning-variable
+# pylint: disable=invalid-name,self-assigning-variable
 
 if str is bytes:
-    import __builtin__ as builtins  # pylint: disable=I0021,import-error
+    import __builtin__ as builtins  # Python2 code, pylint: disable=import-error
 else:
-    import builtins  # pylint: disable=I0021,import-error
+    import builtins
 
 # Work around for CPython 3.x renaming "long" to "int".
 if str is bytes:
-    long = long  # pylint: disable=I0021,undefined-variable
+    long = long  # Python2 code, pylint: disable=undefined-variable
 else:
     long = int
 
 # Work around for CPython 3.x renaming "unicode" to "str".
 if str is bytes:
-    unicode = unicode  # pylint: disable=I0021,undefined-variable
+    unicode = unicode  # Python2 code, pylint: disable=undefined-variable
 else:
     unicode = str
 
 
-def iterItems(d):
-    try:
+if str is bytes:
+
+    def iterItems(d):
         return d.iteritems()
-    except AttributeError:
+
+
+else:
+
+    def iterItems(d):
         return d.items()
 
 
@@ -61,8 +66,8 @@ if str is not bytes:
     basestring = str
 else:
     raw_input = raw_input
-    xrange = xrange  # pylint: disable=I0021,undefined-variable
-    basestring = basestring  # pylint: disable=I0021,undefined-variable
+    xrange = xrange
+    basestring = basestring
 
 
 if str is bytes:
@@ -70,14 +75,19 @@ if str is bytes:
         urlretrieve,
     )
 else:
-    from urllib.request import (  # pylint: disable=I0021,import-error,no-name-in-module
-        urlretrieve,
-    )
+    from urllib.request import urlretrieve
 
 if str is bytes:
-    from cStringIO import StringIO  # pylint: disable=I0021,import-error
+    from cStringIO import (  # Python2 code, pylint: disable=import-error
+        StringIO,
+    )
 else:
-    from io import StringIO  # pylint: disable=I0021,import-error
+    from io import StringIO
+
+if str is bytes:
+    BytesIO = StringIO
+else:
+    from io import BytesIO
 
 try:
     from functools import total_ordering
@@ -94,24 +104,40 @@ except ImportError:
 
 
 if str is bytes:
-    from collections import (  # pylint: disable=I0021,import-error,no-name-in-module
+    from collections import (  # pylint: disable=no-name-in-module
         Iterable,
         MutableSet,
     )
 else:
-    from collections.abc import (  # pylint: disable=I0021,import-error,no-name-in-module
-        Iterable,  # pylint: disable=I0021,import-error
-        MutableSet,  # pylint: disable=I0021,import-error
-    )
+    from collections.abc import Iterable, MutableSet
 
 if str is bytes:
-    intern = intern  # pylint: disable=I0021,undefined-variable
+    intern = intern  # Python2 code, pylint: disable=undefined-variable
 else:
     intern = sys.intern
 
+if str is bytes:
+    to_byte = chr
+    from_byte = ord
+else:
+
+    def to_byte(value):
+        assert type(value) is int and 0 <= value < 256
+        return bytes((value,))
+
+    def from_byte(value):
+        assert type(value) is bytes and len(value) == 1, value
+        return value[0]
+
+
+try:
+    from typing import GenericAlias
+except ImportError:
+    GenericAlias = None
+
 
 def getMetaClassBase(meta_class_prefix):
-    """ For Python2/3 compatible source, we create a base class that has the metaclass
+    """For Python2/3 compatible source, we create a base class that has the metaclass
     used and doesn't require making a choice.
     """
 
@@ -123,14 +149,26 @@ def getMetaClassBase(meta_class_prefix):
     return MetaClassBase
 
 
+if str is bytes:
+    try:
+        import subprocess32 as subprocess
+    except ImportError:
+        import subprocess
+else:
+    import subprocess
+
+
 # For PyLint to be happy.
 assert long
 assert unicode
 assert urlretrieve
 assert StringIO
+assert BytesIO
 assert type(xrange) is type, xrange
 assert total_ordering
 assert intern
 assert builtins
 assert Iterable
 assert MutableSet
+assert subprocess
+assert GenericAlias or intern

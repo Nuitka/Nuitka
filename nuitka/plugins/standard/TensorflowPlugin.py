@@ -1,4 +1,4 @@
-#     Copyright 2020, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2021, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,41 +17,44 @@
 #
 """ Details see below in class definition.
 """
-import sys
-
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
 class TensorflowPlugin(NuitkaPluginBase):
-    """ This class represents the main logic of the plugin.
+    """This class represents the main logic of the plugin.
 
     This is a plugin to ensure tensorflow scripts compile and work well in
     standalone mode.
 
     This plugin copies any files required by tensorflow installations.
 
-    Args:
-        NuitkaPluginBase: plugin template class we are inheriting.
     """
 
     plugin_name = "tensorflow"
     plugin_desc = "Required by the tensorflow package"
 
     def __init__(self):
-        """ Maintain switch to ensure once-only copy of tensorflow files.
-        """
+        """Maintain switch to ensure once-only copy of tensorflow files."""
         self.files_copied = False
         return None
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    @classmethod
+    def isRelevant(cls):
+        """This method is called one time only to check, whether the plugin might make sense at all.
 
+        Returns:
+            True if this is a standalone compilation.
+        """
+        return Options.isStandaloneMode()
+
+    def onModuleEncounter(self, module_filename, module_name, module_kind):
         for candidate in ("tensor", "google"):
             if module_name.hasNamespace(candidate):
                 return True, "Accept everything from %s" % candidate
 
     def onModuleSourceCode(self, module_name, source_code):
-        """ Neutralize some path magic in tensorflow.
+        """Neutralize some path magic in tensorflow.
 
         Notes:
             Make sure tensorflow understands, we are not running as a PIP
@@ -71,21 +74,20 @@ class TensorflowPlugin(NuitkaPluginBase):
         if found_insert is True:
             self.info("Patched 'running-from-pip' path magic.")
         else:
-            # TODO: Add method for exit to logger too.
-            sys.exit("'%s' plugin did not find path magic." % self.plugin_name)
+            self.sysexit("Did not find path magic code." % self.plugin_name)
 
         return "\n".join(source_lines)
 
     def decideCompilation(self, module_name, source_ref):
-        """ Include major packages as bytecode.
+        """Include major packages as bytecode.
 
         Notes:
             Tensorflow is a very large package and mainly used to interactively
             create the actual application. Therefore, compilation makes no
             sense for it and the packages it references.
         """
-        elements = module_name.split(".")
-        if elements[0] in (
+
+        if module_name.getTopLevelPackageName() in (
             "tensor",
             "boto",
             "google",
@@ -100,7 +102,7 @@ class TensorflowPlugin(NuitkaPluginBase):
 
 
 class TensorflowPluginDetector(NuitkaPluginBase):
-    """ Only used if plugin is NOT activated.
+    """Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
@@ -110,7 +112,7 @@ class TensorflowPluginDetector(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        """ This method is called one time only to check, whether the plugin might make sense at all.
+        """This method is called one time only to check, whether the plugin might make sense at all.
 
         Returns:
             True if this is a standalone compilation.
@@ -118,7 +120,7 @@ class TensorflowPluginDetector(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):
-        """ This method checks whether a tensorflow module is imported.
+        """This method checks whether a tensorflow module is imported.
 
         Notes:
             For this we check whether its full name contains the string "tensorflow".
@@ -127,6 +129,5 @@ class TensorflowPluginDetector(NuitkaPluginBase):
         Returns:
             None
         """
-        full_name = module.getFullName().split(".")
-        if "tensorflow" in full_name:
+        if module.getFullName().hasNamespace("tensorflow"):
             self.warnUnusedPlugin("tensorflow support.")

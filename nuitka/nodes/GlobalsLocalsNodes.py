@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,7 +25,7 @@ The "dir()" call without arguments is reformulated to locals or globals calls.
 """
 
 from .ConstantRefNodes import makeConstantRefNode
-from .DictionaryNodes import ExpressionKeyValuePair, ExpressionMakeDict
+from .DictionaryNodes import ExpressionKeyValuePair, makeExpressionMakeDict
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .VariableRefNodes import ExpressionTempVariableRef, ExpressionVariableRef
 
@@ -42,10 +42,12 @@ class ExpressionBuiltinGlobals(ExpressionBase):
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         return False
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
 
@@ -73,6 +75,9 @@ class ExpressionBuiltinLocalsBase(ExpressionBase):
     def getVariableTraces(self):
         return self.variable_traces
 
+    def getLocalsScope(self):
+        return self.locals_scope
+
 
 class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
     kind = "EXPRESSION_BUILTIN_LOCALS_UPDATED"
@@ -84,14 +89,9 @@ class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
 
         assert locals_scope is not None
 
-    def getLocalsScope(self):
-        return self.locals_scope
-
     def computeExpressionRaw(self, trace_collection):
         # Just inform the collection that all escaped.
-        self.variable_traces = trace_collection.onLocalsUsage(
-            self.getParentVariableProvider()
-        )
+        self.variable_traces = trace_collection.onLocalsUsage(self.locals_scope)
 
         trace_collection.onLocalsDictEscaped(self.locals_scope)
 
@@ -111,7 +111,7 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
 
     def computeExpressionRaw(self, trace_collection):
         if self.locals_scope.isMarkedForPropagation():
-            result = ExpressionMakeDict(
+            result = makeExpressionMakeDict(
                 pairs=(
                     ExpressionKeyValuePair(
                         key=makeConstantRefNode(
@@ -137,7 +137,7 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
 
         # Just inform the collection that all escaped unless it is abortative.
         if not self.getParent().isStatementReturn():
-            trace_collection.onLocalsUsage(self.getParentVariableProvider())
+            trace_collection.onLocalsUsage(locals_scope=self.locals_scope)
 
         return self, None, None
 
@@ -149,7 +149,7 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
         # Just inform the collection that all escaped.
 
         self.variable_traces = trace_collection.onLocalsUsage(
-            self.getParentVariableProvider()
+            locals_scope=self.locals_scope
         )
 
         for variable, variable_trace in self.variable_traces:
@@ -182,14 +182,21 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
 
         # Locals is sorted of course.
         def _sorted(pairs):
+            # TODO: Should use a locals scope for this.
             names = self.getParentVariableProvider().getLocalVariableNames()
 
-            return sorted(
-                pairs,
-                key=lambda pair: names.index(pair.getKey().getCompileTimeConstant()),
+            return tuple(
+                sorted(
+                    pairs,
+                    key=lambda pair: names.index(
+                        pair.subnode_key.getCompileTimeConstant()
+                    ),
+                )
             )
 
-        result = ExpressionMakeDict(pairs=_sorted(pairs), source_ref=self.source_ref)
+        result = makeExpressionMakeDict(
+            pairs=_sorted(pairs), source_ref=self.source_ref
+        )
 
         return result, "new_expression", "Statically predicted locals dictionary."
 

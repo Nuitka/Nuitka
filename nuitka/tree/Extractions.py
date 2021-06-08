@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,29 +22,31 @@ know the variables written by a piece of code ahead of abstractly executing a
 loop.
 """
 
+from nuitka.containers.oset import OrderedSet
+
 from .Operations import VisitorNoopMixin, visitTree
 
 
-class VariableWriteExtractor(VisitorNoopMixin):
-    """ Extract variables written to.
-
-    """
+class VariableUsageExtractor(VisitorNoopMixin):
+    """Extract variables used."""
 
     def __init__(self):
-        self.written_to = set()
+        self.written_to = OrderedSet()
 
     def onEnterNode(self, node):
-        if node.isStatementAssignmentVariable() or node.isStatementDelVariable():
+        if (
+            node.isStatementAssignmentVariable()
+            or node.isStatementDelVariable()
+            or node.isExpressionVariableRef()
+        ):
             self.written_to.add(node.getVariable())
 
     def getResult(self):
-        # TODO: This can cause ordering issues should execution be based on this
-        # container order.
         return self.written_to
 
 
-def getVariablesWritten(node):
-    visitor = VariableWriteExtractor()
+def getVariablesWrittenOrRead(node):
+    visitor = VariableUsageExtractor()
     visitTree(node, visitor)
 
     return visitor.getResult()

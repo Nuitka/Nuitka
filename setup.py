@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,9 +18,9 @@
 """ Setup file for Nuitka.
 
 This applies a few tricks. First, the Nuitka version is read from
-the source code. Second, the packages are scanned from the filesystem
-with a black list. And third, the byte code compilation is avoided
-for inline copies of scons with mismatching Python major versions.
+the source code. Second, the packages are scanned from the filesystem,
+and third, the byte code compilation is avoided for inline copies of
+scons with mismatching Python major versions.
 
 """
 import os
@@ -119,19 +119,24 @@ if "bdist_msi" in sys.argv:
 else:
     project_name = "Nuitka"
 
-# Lets hack the byte_compile function so it doesn't byte compile Scons built-in
-# copy with Python3.
-if sys.version_info >= (3,):
-    from distutils import util
+import distutils.util
 
-    real_byte_compile = util.byte_compile
+orig_byte_compile = distutils.util.byte_compile
 
-    def byte_compile(py_files, *args, **kw):
-        py_files = [py_file for py_file in py_files if "inline_copy" not in py_file]
 
-        real_byte_compile(py_files, *args, **kw)
+def byte_compile(py_files, *args, **kw):
+    # Lets hack the byte_compile function so it doesn't byte compile old Scons built-in
+    # copy with Python3 or Windows as it's not used there.
+    if sys.version_info >= (3,) or (os.name == "nt" and "sdist" not in sys.argv):
+        py_files = [py_file for py_file in py_files if "scons-2.3.2" not in py_file]
 
-    util.byte_compile = byte_compile
+    # Disable bytecode compilation output, too annoying.
+    kw["verbose"] = 0
+
+    orig_byte_compile(py_files, *args, **kw)
+
+
+distutils.util.byte_compile = byte_compile
 
 
 # We monkey patch easy install script generation to not load pkg_resources,
@@ -227,12 +232,30 @@ else:
     easy_install.get_script_args = get_script_args
 
 
-binary_suffix = "" if sys.version_info[0] == 2 else sys.version_info[0]
+if sys.version_info[0] == 2:
+    binary_suffix = ""
+else:
+    binary_suffix = "%d" % sys.version_info[0]
+
+with open("README.rst", "rb") as input_file:
+    long_description = input_file.read().decode("utf8")
+
+    # Need to remove the ..contents etc from the rest, or else PyPI will not render
+    # it.
+    long_description = long_description.replace(".. contents::\n", "")
+    long_description = long_description.replace(
+        ".. image:: doc/images/Nuitka-Logo-Symbol.png\n", ""
+    )
+    long_description = long_description.replace(
+        ".. raw:: pdf\n\n   PageBreak oneColumn\n   SetPageCounter 1", ""
+    )
 
 setup(
     name=project_name,
     license="Apache License, Version 2.0",
     version=version,
+    long_description=long_description,
+    long_description_content_type="text/x-rst",
     classifiers=[
         # Nuitka is mature even
         "Development Status :: 5 - Production/Stable",
@@ -256,6 +279,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         # We depend on CPython.
         "Programming Language :: Python :: Implementation :: CPython",
         # We generate C intermediate code and implement part of the
@@ -275,7 +299,8 @@ setup(
         # Include extra files
         "": ["*.txt", "*.rst", "*.c", "*.h", "*.ui"],
         "nuitka.build": [
-            "SingleExe.scons",
+            "Backend.scons",
+            "Onefile.scons",
             "static_src/*.c",
             "static_src/*/*.c",
             "static_src/*/*.h",

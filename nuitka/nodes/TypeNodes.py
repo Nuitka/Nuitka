@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -33,17 +33,19 @@ from .BuiltinRefNodes import (
 )
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
+    ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
 )
+from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
-from .shapes.BuiltinTypeShapes import tshape_type
+from .shapes.BuiltinTypeShapes import tshape_bool, tshape_type
 
 
 class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_TYPE1"
 
     def computeExpression(self, trace_collection):
-        value = self.getValue()
+        value = self.subnode_value
 
         type_shape = value.getTypeShape()
 
@@ -74,11 +76,13 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
 
             if type_name in builtin_names:
                 new_node = makeExpressionBuiltinRef(
-                    builtin_name=type_name, source_ref=self.getSourceReference()
+                    builtin_name=type_name,
+                    locals_scope=None,
+                    source_ref=self.source_ref,
                 )
             else:
                 new_node = ExpressionBuiltinAnonymousRef(
-                    builtin_name=type_name, source_ref=self.getSourceReference()
+                    builtin_name=type_name, source_ref=self.source_ref
                 )
 
             return (
@@ -90,14 +94,17 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
 
         return self, None, None
 
-    def getTypeShape(self):
+    @staticmethod
+    def getTypeShape():
         return tshape_type
 
     def computeExpressionDrop(self, statement, trace_collection):
-        from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+        from .NodeMakingHelpers import (
+            makeStatementExpressionOnlyReplacementNode,
+        )
 
         result = makeStatementExpressionOnlyReplacementNode(
-            expression=self.getValue(), node=statement
+            expression=self.subnode_value, node=statement
         )
 
         return (
@@ -108,23 +115,44 @@ Removed type taking for unused result.""",
         )
 
     def mayRaiseException(self, exception_type):
-        return self.getValue().mayRaiseException(exception_type)
+        return self.subnode_value.mayRaiseException(exception_type)
 
     def mayHaveSideEffects(self):
-        return self.getValue().mayHaveSideEffects()
+        return self.subnode_value.mayHaveSideEffects()
 
 
-class ExpressionBuiltinSuper(ExpressionChildrenHavingBase):
-    kind = "EXPRESSION_BUILTIN_SUPER"
+class ExpressionBuiltinSuper2(ExpressionChildrenHavingBase):
+    """Two arguments form of super."""
 
-    named_children = ("type", "object")
-    getType = ExpressionChildrenHavingBase.childGetter("type")
-    getObject = ExpressionChildrenHavingBase.childGetter("object")
+    kind = "EXPRESSION_BUILTIN_SUPER2"
 
-    def __init__(self, super_type, super_object, source_ref):
+    named_children = ("type_arg", "object_arg")
+
+    def __init__(self, type_arg, object_arg, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values={"type": super_type, "object": super_object},
+            values={"type_arg": type_arg, "object_arg": object_arg},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: Quite some cases should be possible to predict.
+        return self, None, None
+
+
+class ExpressionBuiltinSuper0(ExpressionChildrenHavingBase):
+    """Python3 form of super, arguments determined from cells and function arguments."""
+
+    kind = "EXPRESSION_BUILTIN_SUPER0"
+
+    named_children = ("type_arg", "object_arg")
+
+    def __init__(self, type_arg, object_arg, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"type_arg": type_arg, "object_arg": object_arg},
             source_ref=source_ref,
         )
 
@@ -139,8 +167,6 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_ISINSTANCE"
 
     named_children = ("instance", "classes")
-    getInstance = ExpressionChildrenHavingBase.childGetter("instance")
-    getCls = ExpressionChildrenHavingBase.childGetter("classes")
 
     def __init__(self, instance, classes, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -152,7 +178,7 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
     def computeExpression(self, trace_collection):
         # TODO: Quite some cases should be possible to predict.
 
-        instance = self.getInstance()
+        instance = self.subnode_instance
 
         # TODO: Should be possible to query run time type instead, but we don't
         # have that method yet. Later this will be essential.
@@ -161,9 +187,9 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
 
             return self, None, None
 
-        cls = self.getCls()
+        classes = self.subnode_classes
 
-        if not cls.isCompileTimeConstant():
+        if not classes.isCompileTimeConstant():
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return self, None, None
@@ -172,7 +198,70 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
         return trace_collection.getCompileTimeComputationResult(
             node=self,
             computation=lambda: isinstance(
-                instance.getCompileTimeConstant(), cls.getCompileTimeConstant()
+                instance.getCompileTimeConstant(), classes.getCompileTimeConstant()
             ),
             description="Built-in call to 'isinstance' computed.",
         )
+
+
+class ExpressionBuiltinIssubclass(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_BUILTIN_ISSUBCLASS"
+
+    named_children = ("cls", "classes")
+
+    def __init__(self, cls, classes, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"cls": cls, "classes": classes},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        # TODO: Quite some cases should be possible to predict.
+
+        cls = self.subnode_cls
+
+        # TODO: Should be possible to query run time type instead, but we don't
+        # have that method yet. Later this will be essential.
+        if not cls.isCompileTimeConstant():
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        classes = self.subnode_classes
+
+        if not classes.isCompileTimeConstant():
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        # So if both are compile time constant, we are able to compute it.
+        return trace_collection.getCompileTimeComputationResult(
+            node=self,
+            computation=lambda: issubclass(
+                cls.getCompileTimeConstant(), classes.getCompileTimeConstant()
+            ),
+            description="Built-in call to 'issubclass' computed.",
+        )
+
+
+class ExpressionTypeCheck(SideEffectsFromChildrenMixin, ExpressionChildHavingBase):
+    kind = "EXPRESSION_TYPE_CHECK"
+
+    named_child = "cls"
+
+    def __init__(self, cls, source_ref):
+        ExpressionChildHavingBase.__init__(
+            self,
+            value=cls,
+            source_ref=source_ref,
+        )
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_bool
+
+    def computeExpression(self, trace_collection):
+        # TODO: Quite some cases should be possible to predict, but I am not aware of
+        # 100% true Python equivalent at this time.
+        return self, None, None

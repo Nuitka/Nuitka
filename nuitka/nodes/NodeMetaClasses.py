@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,10 +25,7 @@ of checks, and add methods automatically.
 from abc import ABCMeta
 
 from nuitka.__past__ import intern  # pylint: disable=I0021,redefined-builtin
-
-
-class NuitkaNodeDesignError(Exception):
-    pass
+from nuitka.Errors import NuitkaNodeDesignError
 
 
 def _checkBases(name, bases):
@@ -48,6 +45,9 @@ def _checkBases(name, bases):
 
         last_mixin = is_mixin
 
+        if base is not object and "__slots__" not in base.__dict__:
+            raise NuitkaNodeDesignError(name, "All bases must have __slots__.", base)
+
 
 class NodeCheckMetaClass(ABCMeta):
     kinds = {}
@@ -65,11 +65,17 @@ class NodeCheckMetaClass(ABCMeta):
         if "named_child" in dictionary:
             dictionary["__slots__"] += (intern("subnode_" + dictionary["named_child"]),)
 
-        if "named_children" in dictionary and not name.endswith("Base"):
+        if "named_children" in dictionary:
             if len(dictionary["named_children"]) <= 1:
                 raise NuitkaNodeDesignError(
                     name, "Use ExpressionChildHaving for one child node classes"
                 )
+
+            assert type(dictionary["named_children"]) is tuple
+            dictionary["__slots__"] += tuple(
+                intern("subnode_" + named_child)
+                for named_child in dictionary["named_children"]
+            )
 
         # Not a method:
         if "checker" in dictionary:
@@ -87,7 +93,7 @@ class NodeCheckMetaClass(ABCMeta):
             kind = dictionary["kind"]
 
             assert type(kind) is str, name
-            assert kind not in NodeCheckMetaClass.kinds, name
+            assert kind not in NodeCheckMetaClass.kinds, (name, kind)
 
             NodeCheckMetaClass.kinds[kind] = cls
             NodeCheckMetaClass.kinds[name] = cls

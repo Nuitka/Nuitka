@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,10 +29,7 @@ from nuitka import PythonOperators
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
 
-from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
-)
+from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
@@ -45,17 +42,25 @@ from .shapes.StandardShapes import (
 )
 
 
-class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
-    """ Base class for all binary operation expression.
+class ExpressionPropertiesFromTypeShapeMixin(object):
+    """Given a self.type_shape, this can derive default properties from there."""
 
-    """
+    # Mixins are required to slots
+    __slots__ = ()
+
+    def isKnownToBeHashable(self):
+        return self.type_shape.hasShapeSlotHash()
+
+
+class ExpressionOperationBinaryBase(
+    ExpressionPropertiesFromTypeShapeMixin, ExpressionChildrenHavingBase
+):
+    """Base class for all binary operation expression."""
+
+    __slots__ = ("type_shape", "escape_desc", "inplace_suspect", "shape")
 
     named_children = ("left", "right")
     nice_children = tuple(child_name + " operand" for child_name in named_children)
-    getLeft = ExpressionChildrenHavingBase.childGetter("left")
-    getRight = ExpressionChildrenHavingBase.childGetter("right")
-
-    shape = vshape_unknown
 
     def __init__(self, left, right, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -65,8 +70,9 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
         self.type_shape = None
         self.escape_desc = None
 
-    def getDetails(self):
-        return {}
+        self.inplace_suspect = False
+
+        self.shape = vshape_unknown
 
     @staticmethod
     def isExpressionOperationBinary():
@@ -74,8 +80,6 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
 
     def getOperator(self):
         return self.operator
-
-    inplace_suspect = False
 
     def markAsInplaceSuspect(self):
         self.inplace_suspect = True
@@ -90,12 +94,10 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
         return (self.subnode_left, self.subnode_right)
 
     def mayRaiseExceptionOperation(self):
-        return (
-            self.escape_desc is None or self.escape_desc.getExceptionExit() is not None
-        )
+        return self.escape_desc.getExceptionExit() is not None
 
     def mayRaiseException(self, exception_type):
-        # TODO: Match more precisely
+        # TODO: Match getExceptionExit() more precisely against exception type given
         return (
             self.escape_desc is None
             or self.escape_desc.getExceptionExit() is not None
@@ -130,6 +132,18 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
             self.simulator(left, right)
         except TypeError as e:
             return e
+        except Exception as e:
+            raise NuitkaAssumptionError(
+                "Unexpected exception type doing operation simulation",
+                self.operator,
+                self.simulator,
+                left_shape,
+                right_shape,
+                repr(left),
+                repr(right),
+                e,
+                "!=",
+            )
         else:
             raise NuitkaAssumptionError(
                 "Unexpected no-exception doing operation simulation",
@@ -188,7 +202,8 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
                     new_node=makeRaiseExceptionReplacementExpressionFromInstance(
                         expression=self,
                         exception=self.createUnsupportedException(
-                            left_shape, right_shape
+                            left_shape,
+                            right_shape,
                         ),
                     ),
                     old_node=self,
@@ -199,7 +214,7 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
                     result,
                     "new_raise",
                     "Replaced operator '%s' with %s %s arguments that cannot work."
-                    % (self.operator, left_shape, right_shape,),
+                    % (self.operator, left_shape, right_shape),
                 )
 
         if self.escape_desc.isValueEscaping():
@@ -220,6 +235,9 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
 
 
 class ExpressionOperationAddMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def getValueShape(self):
         return self.shape
 
@@ -249,6 +267,11 @@ class ExpressionOperationBinaryAdd(
 ):
     kind = "EXPRESSION_OPERATION_BINARY_ADD"
 
+    def __init__(self, left, right, source_ref):
+        ExpressionOperationBinaryBase.__init__(
+            self, left=left, right=right, source_ref=source_ref
+        )
+
     operator = "Add"
     simulator = PythonOperators.binary_operator_functions[operator]
 
@@ -269,6 +292,9 @@ class ExpressionOperationBinarySub(ExpressionOperationBinaryBase):
 
 
 class ExpressionOperationMultMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def getValueShape(self):
         return self.shape
 
@@ -340,23 +366,28 @@ class ExpressionOperationBinaryMult(
     operator = "Mult"
     simulator = PythonOperators.binary_operator_functions[operator]
 
+    def __init__(self, left, right, source_ref):
+        ExpressionOperationBinaryBase.__init__(
+            self, left=left, right=right, source_ref=source_ref
+        )
+
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
         return left_shape.getOperationBinaryMultShape(right_shape)
 
     def getIterationLength(self):
-        left_length = self.getLeft().getIterationLength()
+        left_length = self.subnode_left.getIterationLength()
 
         if left_length is not None:
-            right_value = self.getRight().getIntegerValue()
+            right_value = self.subnode_right.getIntegerValue()
 
             if right_value is not None:
                 return left_length * right_value
 
-        right_length = self.getRight().getIterationLength()
+        right_length = self.subnode_right.getIterationLength()
 
         if right_length is not None:
-            left_value = self.getLeft().getIntegerValue()
+            left_value = self.subnode_left.getIntegerValue()
 
             if left_value is not None:
                 return right_length * left_value
@@ -364,26 +395,26 @@ class ExpressionOperationBinaryMult(
         return ExpressionOperationBinaryBase.getIterationLength(self)
 
     def extractSideEffects(self):
-        left_length = self.getLeft().getIterationLength()
+        left_length = self.subnode_left.getIterationLength()
 
         if left_length is not None:
-            right_value = self.getRight().getIntegerValue()
+            right_value = self.subnode_right.getIntegerValue()
 
             if right_value is not None:
                 return (
-                    self.getLeft().extractSideEffects()
-                    + self.getRight().extractSideEffects()
+                    self.subnode_left.extractSideEffects()
+                    + self.subnode_right.extractSideEffects()
                 )
 
-        right_length = self.getRight().getIterationLength()
+        right_length = self.subnode_right.getIterationLength()
 
         if right_length is not None:
-            left_value = self.getLeft().getIntegerValue()
+            left_value = self.subnode_left.getIntegerValue()
 
             if left_value is not None:
                 return (
-                    self.getLeft().extractSideEffects()
-                    + self.getRight().extractSideEffects()
+                    self.subnode_left.extractSideEffects()
+                    + self.subnode_right.extractSideEffects()
                 )
 
         return ExpressionOperationBinaryBase.extractSideEffects(self)
@@ -400,7 +431,7 @@ class ExpressionOperationBinaryFloorDiv(ExpressionOperationBinaryBase):
         return left_shape.getOperationBinaryFloorDivShape(right_shape)
 
 
-if python_version < 300:
+if python_version < 0x300:
 
     class ExpressionOperationBinaryOldDiv(ExpressionOperationBinaryBase):
         kind = "EXPRESSION_OPERATION_BINARY_OLD_DIV"
@@ -517,11 +548,9 @@ class ExpressionOperationBinaryBitXor(ExpressionOperationBinaryBase):
         return left_shape.getOperationBinaryBitXorShape(right_shape)
 
 
-if python_version >= 350:
+if python_version >= 0x350:
 
-    class ExpressionOperationBinaryMatMult(
-        ExpressionOperationMultMixin, ExpressionOperationBinaryBase
-    ):
+    class ExpressionOperationBinaryMatMult(ExpressionOperationBinaryBase):
         kind = "EXPRESSION_OPERATION_BINARY_MAT_MULT"
 
         operator = "MatMult"
@@ -548,10 +577,10 @@ _operator2binary_operation_nodeclass = {
     "BitXor": ExpressionOperationBinaryBitXor,
 }
 
-if python_version < 300:
+if python_version < 0x300:
     _operator2binary_operation_nodeclass["OldDiv"] = ExpressionOperationBinaryOldDiv
 
-if python_version >= 350:
+if python_version >= 0x350:
     _operator2binary_operation_nodeclass["MatMult"] = ExpressionOperationBinaryMatMult
 
 
@@ -561,169 +590,16 @@ def makeBinaryOperationNode(operator, left, right, source_ref):
     return node_class(left=left, right=right, source_ref=source_ref)
 
 
-class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
-    named_child = "operand"
-    getOperand = ExpressionChildHavingBase.childGetter("operand")
-
-    __slots__ = ("operator", "simulator")
-
-    def __init__(self, operator, operand, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=operand, source_ref=source_ref)
-
-        self.operator = operator
-
-        self.simulator = PythonOperators.unary_operator_functions[operator]
-
-    def getDetails(self):
-        return {"operator": self.operator}
-
-    def getOperator(self):
-        return self.operator
-
-    def computeExpression(self, trace_collection):
-        operator = self.getOperator()
-        operand = self.subnode_operand
-
-        if operand.isCompileTimeConstant():
-            operand_value = operand.getCompileTimeConstant()
-
-            return trace_collection.getCompileTimeComputationResult(
-                node=self,
-                computation=lambda: self.simulator(operand_value),
-                description="Operator '%s' with constant argument." % operator,
-            )
-        else:
-            # TODO: May go down to MemoryError for compile time constant overflow
-            # ones.
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-            # The value of that node escapes and could change its contents.
-            trace_collection.removeKnowledge(operand)
-
-            # Any code could be run, note that.
-            trace_collection.onControlFlowEscape(self)
-
-            return self, None, None
-
-    def getOperands(self):
-        return (self.getOperand(),)
-
-    @staticmethod
-    def isExpressionOperationUnary():
-        return True
-
-
-class ExpressionOperationUnary(ExpressionOperationUnaryBase):
-    kind = "EXPRESSION_OPERATION_UNARY"
-
-    def __init__(self, operator, operand, source_ref):
-        assert operand.isExpression(), operand
-
-        ExpressionOperationUnaryBase.__init__(
-            self, operator=operator, operand=operand, source_ref=source_ref
-        )
-
-
-class ExpressionOperationNot(ExpressionOperationUnaryBase):
-    kind = "EXPRESSION_OPERATION_NOT"
-
-    def __init__(self, operand, source_ref):
-        ExpressionOperationUnaryBase.__init__(
-            self, operator="Not", operand=operand, source_ref=source_ref
-        )
-
-    def getTypeShape(self):
-        return tshape_bool
-
-    def getDetails(self):
-        return {}
-
-    def computeExpression(self, trace_collection):
-        return self.getOperand().computeExpressionOperationNot(
-            not_node=self, trace_collection=trace_collection
-        )
-
-    def mayRaiseException(self, exception_type):
-        return self.getOperand().mayRaiseException(
-            exception_type
-        ) or self.getOperand().mayRaiseExceptionBool(exception_type)
-
-    def mayRaiseExceptionBool(self, exception_type):
-        return self.getOperand().mayRaiseExceptionBool(exception_type)
-
-    def getTruthValue(self):
-        result = self.getOperand().getTruthValue()
-
-        # Need to invert the truth value of operand of course here.
-        return None if result is None else not result
-
-    def mayHaveSideEffects(self):
-        operand = self.getOperand()
-
-        if operand.mayHaveSideEffects():
-            return True
-
-        return operand.mayHaveSideEffectsBool()
-
-    def mayHaveSideEffectsBool(self):
-        return self.getOperand().mayHaveSideEffectsBool()
-
-    def extractSideEffects(self):
-        operand = self.getOperand()
-
-        # TODO: Find the common ground of these, and make it an expression
-        # method.
-        if operand.isExpressionMakeSequence():
-            return operand.extractSideEffects()
-
-        if operand.isExpressionMakeDict():
-            return operand.extractSideEffects()
-
-        return (self,)
-
-
-class ExpressionOperationAbs(ExpressionOperationUnaryBase):
-    kind = "EXPRESSION_OPERATION_ABS"
-
-    def __init__(self, operand, source_ref):
-        ExpressionOperationUnaryBase.__init__(
-            self, operator="Abs", operand=operand, source_ref=source_ref
-        )
-
-    def computeExpression(self, trace_collection):
-        return self.getOperand().computeExpressionAbs(
-            abs_node=self, trace_collection=trace_collection
-        )
-
-    def mayRaiseException(self, exception_type):
-        operand = self.getOperand()
-
-        if operand.mayRaiseException(exception_type):
-            return True
-
-        return operand.mayRaiseExceptionAbs(exception_type)
-
-    def mayHaveSideEffects(self):
-        operand = self.getOperand()
-
-        if operand.mayHaveSideEffects():
-            return True
-
-        return operand.mayHaveSideEffectsAbs()
-
-
 class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
     # Base classes can be abstract, pylint: disable=abstract-method
-    """ Base class for all inplace operations.
-
-    """
-
-    inplace_suspect = True
+    """Base class for all inplace operations."""
 
     def __init__(self, left, right, source_ref):
         ExpressionOperationBinaryBase.__init__(
             self, left=left, right=right, source_ref=source_ref
         )
+
+        self.inplace_suspect = True
 
     @staticmethod
     def isExpressionOperationInplace():
@@ -758,7 +634,8 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
                     new_node=makeRaiseExceptionReplacementExpressionFromInstance(
                         expression=self,
                         exception=self.createUnsupportedException(
-                            left_shape, right_shape
+                            left_shape,
+                            right_shape,
                         ),
                     ),
                     old_node=self,
@@ -769,7 +646,7 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
                     result,
                     "new_raise",
                     "Replaced inplace-operator '%s' with %s %s arguments that cannot work."
-                    % (self.operator, left_shape, right_shape,),
+                    % (self.operator, left_shape, right_shape),
                 )
 
         if self.escape_desc.isValueEscaping():
@@ -786,10 +663,10 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
                 self.operator[1:], left, right, self.source_ref
             )
 
-            return (
+            return trace_collection.computedExpressionResult(
                 result,
-                "new_raise",
-                "Lowered inplace-operator '%s' to binary operation.." % (self.operator),
+                "new_expression",
+                "Lowered inplace-operator '%s' to binary operation." % self.operator,
             )
 
         return self, None, None
@@ -802,6 +679,11 @@ class ExpressionOperationInplaceAdd(
 
     operator = "IAdd"
     simulator = PythonOperators.binary_operator_functions[operator]
+
+    def __init__(self, left, right, source_ref):
+        ExpressionOperationBinaryInplaceBase.__init__(
+            self, left=left, right=right, source_ref=source_ref
+        )
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -841,7 +723,7 @@ class ExpressionOperationInplaceFloorDiv(ExpressionOperationBinaryInplaceBase):
         return left_shape.getOperationBinaryFloorDivShape(right_shape)
 
 
-if python_version < 300:
+if python_version < 0x300:
 
     class ExpressionOperationInplaceOldDiv(ExpressionOperationBinaryInplaceBase):
         kind = "EXPRESSION_OPERATION_INPLACE_OLD_DIV"
@@ -915,9 +797,18 @@ class ExpressionOperationInplaceBitOr(ExpressionOperationBinaryInplaceBase):
     operator = "IBitOr"
     simulator = PythonOperators.binary_operator_functions[operator]
 
-    @staticmethod
-    def _getOperationShape(left_shape, right_shape):
-        return left_shape.getOperationBinaryBitOrShape(right_shape)
+    # No inplace bitor special handling before 3.9
+    if python_version < 0x390:
+
+        @staticmethod
+        def _getOperationShape(left_shape, right_shape):
+            return left_shape.getOperationBinaryBitOrShape(right_shape)
+
+    else:
+
+        @staticmethod
+        def _getOperationShape(left_shape, right_shape):
+            return left_shape.getOperationInplaceBitOrShape(right_shape)
 
 
 class ExpressionOperationInplaceBitAnd(ExpressionOperationBinaryInplaceBase):
@@ -942,7 +833,7 @@ class ExpressionOperationInplaceBitXor(ExpressionOperationBinaryInplaceBase):
         return left_shape.getOperationBinaryBitXorShape(right_shape)
 
 
-if python_version >= 350:
+if python_version >= 0x350:
 
     class ExpressionOperationInplaceMatMult(ExpressionOperationBinaryInplaceBase):
         kind = "EXPRESSION_OPERATION_INPLACE_MAT_MULT"
@@ -970,10 +861,10 @@ _operator2binary_inplace_nodeclass = {
     "IBitXor": ExpressionOperationInplaceBitXor,
 }
 
-if python_version < 300:
+if python_version < 0x300:
     _operator2binary_inplace_nodeclass["IOldDiv"] = ExpressionOperationInplaceOldDiv
 
-if python_version >= 350:
+if python_version >= 0x350:
     _operator2binary_inplace_nodeclass["IMatMult"] = ExpressionOperationInplaceMatMult
 
 

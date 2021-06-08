@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,9 +19,12 @@
 
 """
 
-template_constants_reading = """
+template_constants_reading = r"""
 #include "nuitka/prelude.h"
 #include "structseq.h"
+
+// Global constants storage
+PyObject *global_constants[%(global_constants_count)d];
 
 // Sentinel PyObject to be used for all our call iterator endings. It will
 // become a PyCObject pointing to NULL. It's address is unique, and that's
@@ -30,31 +33,25 @@ PyObject *_sentinel_value = NULL;
 
 PyObject *Nuitka_dunder_compiled_value = NULL;
 
-// We need to make sure this is local to the package, or else it will
-// be taken from any external linkage.
-#if defined(_NUITKA_MODULE) && !defined(_NUITKA_CONSTANTS_FROM_RESOURCE) && !defined(__cplusplus)
-const unsigned char constant_bin[0];
-#endif
 
-%(constant_declarations)s
+#ifdef _NUITKA_STANDALONE
+extern PyObject *getStandaloneSysExecutablePath(PyObject *basename);
+#endif
 
 static void _createGlobalConstants(void) {
-    NUITKA_MAY_BE_UNUSED PyObject *exception_type, *exception_value;
-    NUITKA_MAY_BE_UNUSED PyTracebackObject *exception_tb;
-
-#ifdef _MSC_VER
-    // Prevent unused warnings in case of simple programs, the attribute
-    // NUITKA_MAY_BE_UNUSED doesn't work for MSVC.
-    (void *)exception_type; (void *)exception_value; (void *)exception_tb;
-#endif
-
-%(constant_inits)s
+    // The empty name means global.
+    loadConstantsBlob(&global_constants[0], "");
 
 #if _NUITKA_EXE
-    /* Set the "sys.executable" path to the original CPython executable. */
+    /* Set the "sys.executable" path to the original CPython executable or point to inside the
+       distribution for standalone. */
     PySys_SetObject(
         (char *)"executable",
+#ifndef _NUITKA_STANDALONE
         %(sys_executable)s
+#else
+        getStandaloneSysExecutablePath(%(sys_executable)s)
+#endif
     );
 
 #ifndef _NUITKA_STANDALONE
@@ -71,7 +68,7 @@ static void _createGlobalConstants(void) {
     );
 
 
-#if PYTHON_VERSION >= 300
+#if PYTHON_VERSION >= 0x300
     /* Set the "sys.base_prefix" path to the original one. */
     PySys_SetObject(
         (char *)"base_prefix",
@@ -129,13 +126,14 @@ static void _createGlobalConstants(void) {
 // for sanity.
 #ifndef __NUITKA_NO_ASSERT__
 void checkGlobalConstants(void) {
-%(constant_checks)s
+// TODO: Ask constant code to check values.
+
 }
 #endif
 
 void createGlobalConstants(void) {
     if (_sentinel_value == NULL) {
-#if PYTHON_VERSION < 300
+#if PYTHON_VERSION < 0x300
         _sentinel_value = PyCObject_FromVoidPtr(NULL, NULL);
 #else
         // The NULL value is not allowed for a capsule, so use something else.

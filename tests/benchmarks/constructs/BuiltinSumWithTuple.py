@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -22,13 +22,14 @@ empty = ()
 
 value = tuple(range(10))
 
-def calledRepeatedly():
-    # We measure making a generator iterator step or not.
-    x = value
+def calledRepeatedly(iterable, empty):
+    # Force frame
+    value
 
-    # This should abort.
+    # We measure making a tuple iterator step or not.
+
 # construct_begin
-    y = sum(x)
+    y = sum(iterable)
 # construct_alternative
     y = sum(empty)
 # construct_end
@@ -37,6 +38,6 @@ def calledRepeatedly():
 
 import itertools
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
+    calledRepeatedly(value, empty)
 
 print("OK.")

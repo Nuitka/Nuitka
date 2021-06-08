@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -53,7 +53,7 @@ from nuitka.tools.testing.Common import (
 
 
 def main():
-    _python_version = setup()
+    setup()
 
     search_mode = createSearchMode()
 
@@ -104,9 +104,6 @@ Error, no package in dir '%s' found, incomplete test case."""
                     search_mode=search_mode,
                     needs_2to3=False,
                 )
-
-            if search_mode.abortIfExecuted():
-                break
 
     search_mode.finish()
 

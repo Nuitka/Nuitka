@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,7 +22,6 @@ fallback can be optimized to no fallback variants.
 
 """
 
-from nuitka import Variables
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 from nuitka.PythonVersions import python_version
 from nuitka.tree.TreeHelpers import makeStatementsSequence
@@ -36,6 +35,7 @@ from .ConditionalNodes import ExpressionConditional
 from .ConstantRefNodes import ExpressionConstantDictEmptyRef
 from .ExpressionBases import ExpressionBase, ExpressionChildHavingBase
 from .NodeBases import StatementBase, StatementChildHavingBase
+from .shapes.BuiltinTypeShapes import tshape_dict
 from .VariableRefNodes import ExpressionTempVariableRef
 
 
@@ -133,14 +133,13 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
         trace_collection.onControlFlowEscape(self)
 
         if (
-            not Variables.complete
-            and self.variable.getName()
+            self.variable.getName()
             in ("dir", "eval", "exec", "execfile", "locals", "vars")
             and self.subnode_fallback.isExpressionVariableRef()
-            and self.subnode_fallback.getVariable().isModuleVariable()
+            and self.subnode_fallback.getVariable().isIncompleteModuleVariable()
         ):
             # Just inform the collection that all escaped.
-            trace_collection.onLocalsUsage(self.getParentVariableProvider())
+            trace_collection.onLocalsUsage(self.getLocalsDictScope())
 
         if (
             self.subnode_fallback.isExpressionBuiltinRef()
@@ -150,17 +149,18 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
 
             # Create a cloned node with the locals variable.
             call_node_clone = call_node.makeClone()
-            call_node_clone.setCalled(
+            call_node_clone.setChild(
+                "called",
                 ExpressionLocalsVariableRef(
                     locals_scope=self.locals_scope,
                     variable_name=variable_name,
                     source_ref=self.source_ref,
-                )
+                ),
             )
 
             # Make the original one for the fallback
             call_node = call_node.makeCloneShallow()
-            call_node.setCalled(self.subnode_fallback)
+            call_node.setChild("called", self.subnode_fallback)
 
             result = ExpressionConditional(
                 condition=ExpressionLocalsVariableCheck(
@@ -182,9 +182,10 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
         return call_node, None, None
 
     def mayRaiseException(self, exception_type):
-        return python_version >= 300 or self.subnode_fallback.mayRaiseException(
-            exception_type
-        )
+        if python_version < 0x300 or self.locals_scope.getTypeShape() is tshape_dict:
+            return False
+
+        return self.subnode_fallback.mayRaiseException(exception_type)
 
 
 # TODO: Why is this unused.
@@ -327,7 +328,7 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
     __slots__ = ("variable", "variable_version", "variable_trace", "locals_scope")
 
     # TODO: Specialize for Python3 maybe to save attribute for Python2.
-    may_raise_set = python_version >= 300
+    may_raise_set = python_version >= 0x300
 
     def __init__(self, locals_scope, variable_name, value, source_ref):
         assert type(variable_name) is str
@@ -360,6 +361,9 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
 
     def getLocalsDictScope(self):
         return self.locals_scope
+
+    def getTypeShape(self):
+        return self.locals_scope.getMappingValueShape(self.variable)
 
     def computeStatement(self, trace_collection):
         if self.locals_scope.isMarkedForPropagation():
@@ -409,7 +413,8 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
             exception_type
         )
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "locals dictionary value set statement"
 
 
@@ -425,7 +430,7 @@ class StatementLocalsDictOperationDel(StatementBase):
     )
 
     # TODO: Specialize for Python3 maybe to save attribute for Python2.
-    may_raise_del = python_version >= 300
+    may_raise_del = python_version >= 0x300
 
     def __init__(self, locals_scope, variable_name, tolerant, source_ref):
         assert type(variable_name) is str
@@ -462,6 +467,7 @@ class StatementLocalsDictOperationDel(StatementBase):
         return self.locals_scope
 
     def computeStatement(self, trace_collection):
+        # Conversion from dictionary to normal nodes is done here.
         if self.locals_scope.isMarkedForPropagation():
             variable_name = self.getVariableName()
 
@@ -487,11 +493,12 @@ class StatementLocalsDictOperationDel(StatementBase):
 
         self.previous_trace = trace_collection.getVariableCurrentTrace(self.variable)
 
-        # The "del" is a potential use of a value. TODO: This could be made more
-        # beautiful indication, as it's not any kind of usage.
-        self.previous_trace.addPotentialUsage()
+        # Deleting is usage of the value, and may call code on it. This is to inhibit
+        # just removing it.
+        self.previous_trace.addUsage()
 
         # We may not exception exit now during the __del__ unless there is no value.
+        # TODO: In which case, there is doing to be a NameError or UnboundLocalError.
         if not self.previous_trace.mustHaveValue():
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -510,7 +517,8 @@ class StatementLocalsDictOperationDel(StatementBase):
     def mayRaiseException(self, exception_type):
         return self.may_raise_del and not self.tolerant
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "locals dictionary value del statement"
 
 
@@ -518,7 +526,6 @@ class StatementSetLocals(StatementChildHavingBase):
     kind = "STATEMENT_SET_LOCALS"
 
     named_child = "new_locals"
-    getNewLocals = StatementChildHavingBase.childGetter("new_locals")
 
     __slots__ = ("locals_scope",)
 
@@ -542,13 +549,15 @@ class StatementSetLocals(StatementChildHavingBase):
         return self.locals_scope
 
     def mayRaiseException(self, exception_type):
-        return self.getNewLocals().mayRaiseException(exception_type)
+        return self.subnode_new_locals.mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        new_locals = trace_collection.onExpression(self.getNewLocals())
+        new_locals = trace_collection.onExpression(self.subnode_new_locals)
 
         if new_locals.willRaiseException(BaseException):
-            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import (
+                makeStatementExpressionOnlyReplacementNode,
+            )
 
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=new_locals, node=self
@@ -573,7 +582,8 @@ Forward propagating locals.""",
 
         return self, None, None
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "locals mapping init statement"
 
 
@@ -584,14 +594,18 @@ class StatementSetLocalsDictionary(StatementSetLocals):
         StatementSetLocals.__init__(
             self,
             locals_scope=locals_scope,
-            new_locals=ExpressionConstantDictEmptyRef(source_ref=source_ref),
+            new_locals=ExpressionConstantDictEmptyRef(
+                source_ref=source_ref, user_provided=True
+            ),
             source_ref=source_ref,
         )
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "locals dictionary init statement"
 
 
@@ -636,8 +650,10 @@ class StatementReleaseLocals(StatementBase):
     def getLocalsScope(self):
         return self.locals_scope
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def getStatementNiceName(self):
+    @staticmethod
+    def getStatementNiceName():
         return "locals dictionary release statement"

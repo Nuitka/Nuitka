@@ -1,4 +1,4 @@
-#     Copyright 2020, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -19,27 +19,26 @@
 #
 module_value1 = 1000
 
-def calledRepeatedly():
+def calledRepeatedly(tuple_value1):
     # Force frame and eliminate forward propagation (currently).
     module_value1
 
 # construct_begin
     l = (
-        module_value1,
-        module_value1,
-        module_value1,
-        module_value1,
-        module_value1
+        tuple_value1,
+        tuple_value1,
+        tuple_value1,
+        tuple_value1,
+        tuple_value1
     )
 # construct_alternative
     l = 1
 # construct_end
-# construct_end
 
-    return l
+    return l, tuple_value1
 
 import itertools
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
+    calledRepeatedly(module_value1)
 
 print("OK.")
