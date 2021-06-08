@@ -49,3 +49,5 @@ pyyaml == 5.4.1; python_version >= '2.7'
 
 # Packaging
 wheel
+
+pip < 21.0 ; python_version == '2.7'
