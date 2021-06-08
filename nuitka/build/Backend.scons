@@ -823,6 +823,12 @@ def getWindowsPythonDLLPath():
 
 if win_target:
     if nuitka_python:
+        env.Append(
+            LINKFLAGS=[
+                "/LTCG",
+                "/USEPROFILE:PGD=" + os.path.join(python_prefix, "python.pgd"),
+            ]
+        )
         with open(os.path.join(python_prefix, "link.json")) as f:
             linkData = json.load(f)
             env.Append(LIBS=linkData["libraries"])
