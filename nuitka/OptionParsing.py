@@ -268,7 +268,7 @@ follow_group.add_option(
     dest="recurse_none",
     default=False,
     help="""\
-When --recurse-none is used, do not descend into any imported modules at all,
+When --nofollow-imports is used, do not descend into any imported modules at all,
 overrides all other recursion options. Defaults to off.""",
 )
 
