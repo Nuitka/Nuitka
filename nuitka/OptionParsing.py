@@ -1059,7 +1059,7 @@ def _considerPluginOptions(logger):
             if "=" in plugin_name:
                 logger.sysexit(
                     "Error, plugin options format changed. Use '--user-plugin=%s --help' to know new options."
-                    % plugin_name
+                    % plugin_name.split("=", 1)[0]
                 )
 
             addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
