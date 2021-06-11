@@ -80,14 +80,22 @@ a lot of code dependencies. Defaults to off.""",
 )
 
 parser.add_option(
+    "--no-standalone",
+    action="store_false",
+    dest="is_standalone",
+    default=False,
+    help=SUPPRESS_HELP,
+)
+
+
+parser.add_option(
     "--onefile",
     action="store_true",
     dest="is_onefile",
     default=False,
     help="""\
-In case of standalone mode, enable single file mode. This means not a folder,
-but a compressed executable is created and used. Experimental at this time,
-and not supported on all OSes. Defaults to off.""",
+On top of standalone mode, enable onefile mode. This means not a folder,
+but a compressed executable is created and used. Defaults to off.""",
 )
 
 parser.add_option(
