@@ -145,12 +145,12 @@ jobs:
       - name: Verbose scons output in compilation
         shell: bash
         run: |
-          python -m nuitka --module --show-scons --run --assume-yes-for-downloads --mingw64 tests/basics/Empty.py
-          python -m nuitka --show-scons --run --mingw64 tests/basics/Empty.py
+          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
+          python -m nuitka --show-scons --run tests/basics/Empty.py
 
       - name: Run Nuitka test suite
         shell: bash
         run: |
           python -m nuitka --version
           env | sort
-          python ./tests/run-tests --no-other-python --no-debug --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads --mingw64
+          python ./tests/run-tests --no-other-python --no-debug --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
