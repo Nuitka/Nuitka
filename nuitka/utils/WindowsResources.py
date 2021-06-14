@@ -57,7 +57,7 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
         with_data - Return value includes data or only the name, lang pairs
 
     Returns:
-        List of resourcs in the DLL, see with_data which controls scope.
+        List of resources in the DLL, see with_data which controls scope.
 
     """
     # Quite complex stuff, pylint: disable=too-many-locals

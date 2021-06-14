@@ -1197,7 +1197,7 @@ fixes and new features.
    are in the standard library, typically ``.pth`` files will use e.g.
    ``os`` but that's not needed to be preserved.
 
--  Use ``incbin`` for including binary data through inline assemly of
+-  Use ``incbin`` for including binary data through inline assembly of
    the C compiler. This covers many more platforms than our previous
    linker option hacks, and the fallback to generated C code. In fact
    everything but Windows uses this now.
