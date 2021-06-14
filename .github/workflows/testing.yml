@@ -98,7 +98,6 @@ jobs:
 
       - name: Install Nuitka dependencies
         run: |
-          brew install ccache
           pip install -r requirements-devel.txt
 
       - name: Install Nuitka
@@ -107,8 +106,8 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --module --show-scons --run tests/basics/Empty.py
-          python -m nuitka --show-scons --run tests/basics/Empty.py
+          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
+          python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
 
       - name: Run Nuitka test suite
         run: |
