@@ -1147,7 +1147,7 @@ def _getProjectOptions(logger, filename_arg, module_mode):
                 if not arg.endswith(":"):
                     sysexit(
                         count,
-                        "Error, 'nuitka-project-if' needs to start a block with a colon.",
+                        "Error, 'nuitka-project-if' needs to start a block with a colon at line end.",
                     )
 
                 arg = arg[:-1]
