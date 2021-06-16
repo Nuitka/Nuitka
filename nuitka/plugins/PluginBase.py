@@ -32,13 +32,11 @@ import shutil
 import sys
 from collections import namedtuple
 
-from nuitka import Options, OutputDirectories
 from nuitka.__past__ import getMetaClassBase
 from nuitka.containers.oset import OrderedSet
-from nuitka.SourceCodeReferences import fromFilename
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import check_output
-from nuitka.utils.FileOperations import makePath, putTextFileContents
+from nuitka.utils.FileOperations import makePath
 from nuitka.utils.ModuleNames import ModuleName
 
 pre_modules = {}
@@ -236,60 +234,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         return bytecode
 
     @staticmethod
-    def _createTriggerLoadedModule(module, trigger_name, code, flags):
-        """Create a "trigger" for a module to be imported.
-
-        Notes:
-            The trigger will incorpaorate the code to be prepended / appended.
-            Called by @onModuleDiscovered.
-
-        Args:
-            module: the module object (serves as dict key)
-            trigger_name: string ("-preload"/"-postload")
-            code: the code string
-
-        Returns
-            trigger_module
-        """
-        from nuitka.nodes.ModuleNodes import CompiledPythonModule
-        from nuitka.tree.Building import createModuleTree
-
-        from .Plugins import Plugins
-
-        module_name = ModuleName(module.getFullName() + trigger_name)
-        source_ref = fromFilename(module.getCompileTimeFilename() + trigger_name)
-
-        mode = Plugins.decideCompilation(module_name, source_ref)
-
-        trigger_module = CompiledPythonModule(
-            module_name=module_name,
-            is_top=False,
-            mode=mode,
-            future_spec=None,
-            source_ref=source_ref,
-        )
-
-        createModuleTree(
-            module=trigger_module,
-            source_ref=module.getSourceReference(),
-            source_code=code,
-            is_main=False,
-        )
-
-        if mode == "bytecode":
-            trigger_module.setSourceCode(code)
-
-        # In debug mode, put the files in the build folder, so they can be looked up easily.
-        if Options.is_debug and "HIDE_SOURCE" not in flags:
-            source_path = os.path.join(
-                OutputDirectories.getSourceDirectoryPath(), module_name + ".py"
-            )
-
-            putTextFileContents(filename=source_path, contents=code)
-
-        return trigger_module
-
-    @staticmethod
     def createPreModuleLoadCode(module):
         """Create code to execute before importing a module.
 
@@ -338,96 +282,8 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         Returns:
             None
         """
-
-        # TODO: This should be split up, and have more reuse, pylint: disable=too-many-branches
-
-        full_name = module.getFullName()
-
-        preload_descs = self.createPreModuleLoadCode(module)
-
-        if preload_descs:
-            if type(preload_descs[0]) not in (tuple, list):
-                preload_descs = [preload_descs]
-
-            total_code = []
-            total_flags = OrderedSet()
-
-            for preload_desc in preload_descs:
-                if len(preload_desc) == 2:
-                    pre_code, reason = preload_desc
-                    flags = ()
-                else:
-                    pre_code, reason, flags = preload_desc
-                    if type(flags) is str:
-                        flags = (flags,)
-
-                if pre_code:
-                    # Note: We could find a way to handle this if needed.
-                    if full_name in pre_modules:
-                        plugins_logger.sysexit(
-                            "Error, conflicting pre module code from plug-ins for %s"
-                            % full_name
-                        )
-
-                    self.info(
-                        "Injecting pre-module load code for module '%s':" % full_name
-                    )
-                    for line in reason.split("\n"):
-                        self.info("    " + line)
-
-                    total_code.append(pre_code)
-                    total_flags.update(flags)
-
-            if total_code:
-                pre_modules[full_name] = self._createTriggerLoadedModule(
-                    module=module,
-                    trigger_name="-preLoad",
-                    code="\n\n".join(total_code),
-                    flags=total_flags,
-                )
-
-        post_descs = self.createPostModuleLoadCode(module)
-
-        if post_descs:
-            if type(post_descs[0]) not in (tuple, list):
-                post_descs = [post_descs]
-
-            total_code = []
-            total_flags = OrderedSet()
-
-            for post_desc in post_descs:
-                if len(post_desc) == 2:
-                    post_code, reason = post_desc
-                    flags = ()
-                else:
-                    post_code, reason, flags = post_desc
-                    if type(flags) is str:
-                        flags = (flags,)
-
-                if post_code:
-                    # Note: We could find a way to handle this if needed.
-                    if full_name is post_modules:
-                        plugins_logger.sysexit(
-                            "Error, conflicting post module code from plug-ins for %s"
-                            % full_name
-                        )
-
-                    self.info(
-                        "Injecting post-module load code for module '%s':" % full_name
-                    )
-                    for line in reason.split("\n"):
-                        self.info("    " + line)
-
-                    total_code.append(post_code)
-                    total_flags.update(flags)
-
-            if total_code:
-                post_modules[full_name] = self._createTriggerLoadedModule(
-                    module=module,
-                    trigger_name="-postLoad",
-                    code="\n\n".join(total_code),
-                    flags=total_flags,
-                )
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         """Help decide whether to include a module.
