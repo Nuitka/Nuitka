@@ -273,7 +273,7 @@ the compilation time by a lot. Defaults to off.""",
 follow_group.add_option(
     "--nofollow-imports",
     action="store_true",
-    dest="recurse_none",
+    dest="follow_none",
     default=False,
     help="""\
 When --nofollow-imports is used, do not descend into any imported modules at all,
@@ -283,7 +283,7 @@ overrides all other recursion options. Defaults to off.""",
 follow_group.add_option(
     "--follow-imports",
     action="store_true",
-    dest="recurse_all",
+    dest="follow_all",
     default=False,
     help="""\
 When --follow-imports is used, attempt to descend into all imported modules.
@@ -293,7 +293,7 @@ Defaults to off.""",
 follow_group.add_option(
     "--follow-import-to",
     action="append",
-    dest="recurse_modules",
+    dest="follow_modules",
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\
@@ -304,7 +304,7 @@ multiple times. Default empty.""",
 follow_group.add_option(
     "--nofollow-import-to",
     action="append",
-    dest="recurse_not_modules",
+    dest="follow_not_modules",
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\

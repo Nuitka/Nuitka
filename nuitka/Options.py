@@ -238,7 +238,7 @@ standalone where there is a sane default used inside the dist folder."""
     if isOnefileMode() and not hasOnefileSupportedOS():
         Tracing.options_logger.sysexit("Error, unsupported OS for onefile %r" % getOS())
 
-    if options.recurse_none and options.recurse_all:
+    if options.follow_none and options.follow_all:
         Tracing.options_logger.sysexit(
             "Conflicting options '--follow-imports' and '--nofollow-imports' given."
         )
@@ -415,14 +415,14 @@ def commentArgs():
             "Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported."
         )
 
-    if options.recurse_all and standalone_mode:
+    if options.follow_all and standalone_mode:
         if standalone_mode:
             Tracing.options_logger.info(
                 "Following all imports is the default for %s mode and need not be specified."
                 % standalone_mode
             )
 
-    if options.recurse_none and standalone_mode:
+    if options.follow_none and standalone_mode:
         if standalone_mode:
             Tracing.options_logger.warning(
                 "Following no imports is unlikely to work for %s mode and should not be specified."
@@ -508,12 +508,12 @@ def shallFollowStandardLibrary():
 
 def shallFollowNoImports():
     """*bool* = "--nofollow-imports" """
-    return options.recurse_none
+    return options.follow_none
 
 
 def shallFollowAllImports():
     """*bool* = "--follow-imports" """
-    return options.is_standalone or options.recurse_all
+    return options.is_standalone or options.follow_all
 
 
 def _splitShellPattern(value):
@@ -522,7 +522,7 @@ def _splitShellPattern(value):
 
 def getShallFollowInNoCase():
     """*list*, items of "--nofollow-import-to=" """
-    return sum([_splitShellPattern(x) for x in options.recurse_not_modules], [])
+    return sum([_splitShellPattern(x) for x in options.follow_not_modules], [])
 
 
 def getShallFollowModules():
@@ -530,7 +530,7 @@ def getShallFollowModules():
     return sum(
         [
             _splitShellPattern(x)
-            for x in options.recurse_modules
+            for x in options.follow_modules
             + options.include_modules
             + options.include_packages
         ],
