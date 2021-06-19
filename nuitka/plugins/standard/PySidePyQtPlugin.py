@@ -25,10 +25,11 @@ import os
 import shutil
 from abc import abstractmethod
 
-from nuitka import Options
 from nuitka.containers.oset import OrderedSet
 from nuitka.freezer.IncludedDataFiles import makeIncludedDataFile
+from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.plugins.Plugins import getActiveQtPlugin
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import (
     copyTree,
@@ -40,6 +41,13 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import locateDLL
 from nuitka.utils.Utils import isWin32Windows
+
+# Use to detect the Qt plugin that is active and check for conflicts.
+_qt_binding_names = ("PySide", "PySide2", "PySide6", "PyQt4", "PyQt5", "PyQt6")
+
+
+def getQtPluginNames():
+    return tuple(qt_binding_name.lower() for qt_binding_name in _qt_binding_names)
 
 
 class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
@@ -55,6 +63,20 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
         # Allow to specify none.
         if self.qt_plugins == set(["none"]):
             self.qt_plugins = set()
+
+        # Prevent the list of binding names from being incomplete, it's used for conflicts.
+        assert self.binding_name in _qt_binding_names, self.binding_name
+
+        # Also lets have consistency in naming.
+        assert self.plugin_name in getQtPluginNames()
+
+        active_qt_plugin_name = getActiveQtPlugin()
+
+        if active_qt_plugin_name is not None:
+            self.sysexit(
+                "Error, confliciting plugin '%s', you can only have one enabled."
+                % active_qt_plugin_name
+            )
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -440,7 +462,7 @@ import %(binding_name)s.QtCore
         """
 
         # Only in standalone mode, this will be needed.
-        if not Options.isStandaloneMode():
+        if not isStandaloneMode():
             return
 
         full_name = module.getFullName()
@@ -491,7 +513,7 @@ system Qt plug-ins, which may be from another Qt version.""",
         """
 
         # This isonly relevant on standalone mode for Windows
-        if not isWin32Windows() or not Options.isStandaloneMode():
+        if not isWin32Windows() or not isStandaloneMode():
             return None
 
         full_name = module.getFullName()
@@ -699,6 +721,28 @@ if not path.startswith(__nuitka_binary_dir):
                         if os.path.basename(sub_dll_filename).startswith(badword):
                             yield sub_dll_filename
 
+    def onModuleEncounter(self, module_filename, module_name, module_kind):
+        if module_name in _qt_binding_names and module_name != self.binding_name:
+            self.warning(
+                """\
+Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encountered. Use \
+'--nofollow-import-to=%(unwanted)s' or uninstall it."""
+                % {"unwanted": module_name, "binding_name": self.binding_name}
+            )
+
+        top_package_name = module_name.getTopLevelPackageName()
+
+        if isStandaloneMode():
+            if (
+                top_package_name in _qt_binding_names
+                and top_package_name != self.binding_name
+            ):
+                return (
+                    False,
+                    "Not included due to potentially conflicting Qt versions with selected Qt binding '%s'."
+                    % self.binding_name,
+                )
+
 
 class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
     """This is for plugins of PyQt5.
@@ -717,7 +761,7 @@ class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        return Options.isStandaloneMode()
+        return isStandaloneMode()
 
     def _getQmlTargetDir(self, target_plugin_dir):
         return os.path.join(target_plugin_dir, "..", "Qt", "qml")
@@ -728,7 +772,7 @@ class NuitkaPluginDetectorPyQt5QtPluginsPlugin(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        return Options.isStandaloneMode()
+        return isStandaloneMode()
 
     def onModuleDiscovered(self, module):
         full_name = module.getFullName()
@@ -773,8 +817,15 @@ This PySide2 version only partially supported through workarounds, full support:
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         # Enforce recursion in to multiprocessing for accelerated mode, which
         # would normally avoid this.
-        if module_name == self.binding_name:
-            return True, "Need monkey patch PySide2 for abstract methods."
+        if module_name == self.binding_name and self._getNuitkaPatchLevel() < 1:
+            return True, "Need to monkey patch PySide2 for abstract methods."
+
+        return NuitkaPluginQtBindingsPluginBase.onModuleEncounter(
+            self,
+            module_filename=module_filename,
+            module_name=module_name,
+            module_kind=module_kind,
+        )
 
     def createPostModuleLoadCode(self, module):
         """Create code to load after a module was successfully imported.

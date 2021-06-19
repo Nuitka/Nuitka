@@ -51,6 +51,7 @@ from nuitka.utils.ModuleNames import ModuleName
 
 from .PluginBase import NuitkaPluginBase, post_modules, pre_modules
 
+# Maps plugin name to plugin instances.
 active_plugins = OrderedDict()
 plugin_name2plugin_classes = {}
 plugin_options = {}
@@ -88,6 +89,17 @@ def getActivePlugins():
     """
 
     return active_plugins.values()
+
+
+def getActiveQtPlugin():
+    from .standard.PySidePyQtPlugin import getQtPluginNames
+
+    for plugin_name in getQtPluginNames():
+        if hasActivePlugin(plugin_name):
+            if hasActivePlugin(plugin_name):
+                return plugin_name
+
+    return None
 
 
 def hasActivePlugin(plugin_name):
@@ -202,12 +214,6 @@ def loadStandardPluginClasses():
 
 
 class Plugins(object):
-    @staticmethod
-    def isPluginActive(plugin_name):
-        """Is a plugin activated."""
-
-        return plugin_name in active_plugins
-
     implicit_imports_cache = {}
 
     @staticmethod
