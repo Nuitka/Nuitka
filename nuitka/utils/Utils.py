@@ -125,6 +125,6 @@ def getUserName():
 
     Notes: Currently doesn't work on Windows.
     """
-    import pwd
+    import pwd  # pylint: disable=I0021,import-error
 
     return pwd.getpwuid(os.getuid())[0]
