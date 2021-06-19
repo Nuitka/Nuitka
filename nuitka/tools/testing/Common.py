@@ -1838,6 +1838,10 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         ):
             continue
 
+        # System C++ standard library is also OK.
+        if loaded_basename.startswith("libstdc++."):
+            continue
+
         # Curses library is OK from system too.
         if loaded_basename.startswith("libtinfo.so."):
             continue
