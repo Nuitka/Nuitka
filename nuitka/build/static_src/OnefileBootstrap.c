@@ -90,6 +90,9 @@
 
 #include "HelpersSafeStrings.c"
 
+// For tracing outputs if enabled at compile time.
+#include "nuitka/tracing.h"
+
 #if defined(_WIN32)
 static void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size) {
     while (*target != 0) {
@@ -577,7 +580,7 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdL
 #else
 int main(int argc, char **argv) {
 #endif
-    NUITKA_PRINT_TRACE("main(): Entered.");
+    NUITKA_PRINT_TIMING("ONEFILE: Entered main().");
 
 #if defined(_WIN32)
     static wchar_t exe_filename[4096] = {0};
@@ -618,6 +621,8 @@ int main(int argc, char **argv) {
 #else
     signal(SIGINT, ourConsoleCtrlHandler);
 #endif
+
+    NUITKA_PRINT_TIMING("ONEFILE: Unpacking payload.");
 
     createDirectory(payload_path);
     payload_created = true;
@@ -753,6 +758,8 @@ int main(int argc, char **argv) {
         setEnvironVar("NUITKA_ONEFILE_PARENT", buffer);
     }
 
+    NUITKA_PRINT_TIMING("ONEFILE: Preparing forking of slave process.");
+
 #if defined(_WIN32)
 
     STARTUPINFOW si;
@@ -768,6 +775,9 @@ int main(int argc, char **argv) {
                               FALSE,                    // inherit handles
                               CREATE_NEW_PROCESS_GROUP, // creation flags
                               NULL, NULL, &si, &pi);
+
+    NUITKA_PRINT_TIMING("ONEFILE: Started slave process.");
+
     assert(bool_res);
 
     CloseHandle(pi.hThread);
@@ -818,5 +828,8 @@ int main(int argc, char **argv) {
     }
 
 #endif
+
+    NUITKA_PRINT_TIMING("ONEFILE: Exiting.");
+
     return exit_code;
 }
