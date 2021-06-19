@@ -297,7 +297,7 @@ setup(
     packages=findNuitkaPackages(),
     package_data={
         # Include extra files
-        "": ["*.txt", "*.rst", "*.c", "*.h", "*.ui"],
+        "": ["*.txt", "*.rst", "*.c", "*.h", "*.yml"],
         "nuitka.build": [
             "Backend.scons",
             "Onefile.scons",

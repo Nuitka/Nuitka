@@ -32,6 +32,9 @@ def parseYaml(data):
         yaml = importFromInlineCopy("yaml", must_exist=False)
         return yaml.load(data)
     else:
-        import yaml
+        try:
+            import yaml
+        except ImportError:
+            yaml = importFromInlineCopy("yaml", must_exist=False)
 
         return yaml.safe_load(data)
