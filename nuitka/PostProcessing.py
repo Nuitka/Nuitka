@@ -120,7 +120,7 @@ def _addWindowsIconFromIcons(onefile):
         icon_path = os.path.normcase(icon_path)
 
         if not icon_path.endswith(".ico"):
-            postprocessing_logger.info("Not in icon format, converting.")
+            postprocessing_logger.info("Not in Windows icon format, converting to it.")
 
             if icon_index is not None:
                 postprocessing_logger.sysexit(
@@ -132,7 +132,7 @@ def _addWindowsIconFromIcons(onefile):
                 import imageio
             except ImportError:
                 postprocessing_logger.sysexit(
-                    "Need to install imageio to use non-ico icon file in '%s'."
+                    "Need to install 'imageio' to automatically convert non-ico icon file in '%s'."
                     % icon_spec
                 )
 
