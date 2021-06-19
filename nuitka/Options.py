@@ -869,14 +869,21 @@ def getIconPaths():
 
     # Check if Linux icon requirement is met.
     if getOS() == "Linux" and not result and isOnefileMode():
-        default_icon = "/usr/share/pixmaps/python.xpm"
-        if os.path.exists(default_icon):
-            result.append(default_icon)
+        default_icons = (
+            "/usr/share/pixmaps/python%s.%s.xpm" % python_version_str,
+            "/usr/share/pixmaps/python%s.xpm" % sys.version_info[0],
+            "/usr/share/pixmaps/python.xpm",
+        )
+
+        for icon in default_icons:
+            if os.path.exists(icon):
+                result.append(icon)
+                break
         else:
             Tracing.options_logger.sysexit(
                 """\
-Error, the default icon %r does not exist, making --linux-onefile-icon required."""
-                % default_icon
+Error, the non of the default icons '%s' exist, making --linux-onefile-icon required."""
+                % ", ".join(default_icons)
             )
 
     return result
