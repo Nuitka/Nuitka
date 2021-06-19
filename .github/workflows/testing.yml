@@ -70,7 +70,7 @@ jobs:
         if: matrix.python_version == '3.7'
 
   mac:
-    runs-on: macOS-latest
+    runs-on: macos-latest
     strategy:
       matrix:
         python_version:
