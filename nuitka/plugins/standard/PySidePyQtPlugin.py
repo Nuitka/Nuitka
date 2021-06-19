@@ -897,10 +897,10 @@ class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
     def __init__(self, qt_plugins):
         NuitkaPluginQtBindingsPluginBase.__init__(self, qt_plugins)
 
-        if self._getBindingVersion() < (6, 1, 1):
+        if self._getBindingVersion() < (6, 1, 2):
             self.warning(
                 """\
-Only PySide 6.1.1 or higher (or dev branch compiled), otherwise callbacks won't work."""
+Only PySide 6.1.2 or higher (or dev branch compiled), otherwise callbacks won't work."""
             )
 
     def _getQmlTargetDir(self, target_plugin_dir):
