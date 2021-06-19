@@ -31,7 +31,7 @@ import inspect
 import os
 import pkgutil
 import shutil
-from optparse import OptionGroup
+from optparse import OptionConflictError, OptionGroup
 
 import nuitka.plugins.commercial
 import nuitka.plugins.standard
@@ -973,7 +973,20 @@ def lateActivatePlugin(plugin_name, option_values):
 def _addPluginCommandLineOptions(parser, plugin_class):
     if plugin_class.plugin_name not in plugin_options:
         option_group = OptionGroup(parser, "Plugin %s" % plugin_class.plugin_name)
-        plugin_class.addPluginCommandLineOptions(option_group)
+        try:
+            plugin_class.addPluginCommandLineOptions(option_group)
+        except OptionConflictError as e:
+            for other_plugin_name, other_plugin_option_list in plugin_options.items():
+                for other_plugin_option in other_plugin_option_list:
+                    # no public interface for that, pylint: disable=protected-access
+                    if (
+                        e.option_id in other_plugin_option._long_opts
+                        or other_plugin_option._short_opts
+                    ):
+                        plugins_logger.sysexit(
+                            "Plugin '%s' failed to add options due to conflict with '%s' from plugin '%s."
+                            % (plugin_class.plugin_name, e.option_id, other_plugin_name)
+                        )
 
         if option_group.option_list:
             parser.add_option_group(option_group)
