@@ -33,6 +33,7 @@ from .SconsUtils import (
     decideArchMismatch,
     getExecutablePath,
     getLinkerArch,
+    getMsvcVersion,
     getMsvcVersionString,
     isGccName,
     raiseNoCompilerFoundErrorExit,
@@ -74,6 +75,18 @@ def enableC11Settings(env, clangcl_mode, msvc_mode, clang_mode, gcc_mode, gcc_ve
             env.Append(CCFLAGS=["/std:c11"])
 
     return c11_mode
+
+
+def enableLtoSettings(env, lto_mode, msvc_mode):
+    if msvc_mode and not lto_mode and getMsvcVersion(env) >= 14:
+        lto_mode = True
+
+    # Tell compiler to use link time optimization for MSVC
+    if msvc_mode and lto_mode:
+        env.Append(CCFLAGS=["/GL"])
+        env.Append(LINKFLAGS=["/LTCG"])
+
+    return lto_mode
 
 
 def getDownloadedGccPath(target_arch, assume_yes_for_downloads):

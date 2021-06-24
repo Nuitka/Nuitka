@@ -93,6 +93,8 @@ static void _createGlobalConstants(void) {
         {(char *)"minor", (char *)"Minor release number"},
         {(char *)"micro", (char *)"Micro release number"},
         {(char *)"releaselevel", (char *)"'alpha', 'beta', 'candidate', or 'release'"},
+        {(char *)"standalone", (char *)"boolean indicating standalone mode usage"},
+        {(char *)"onefile", (char *)"boolean indicating standalone mode usage"},
         {0}
     };
 
@@ -100,7 +102,7 @@ static void _createGlobalConstants(void) {
         (char *)"__nuitka_version__",                                    /* name */
         (char *)"__compiled__\\n\\nVersion information as a named tuple.", /* doc */
         Nuitka_VersionInfoFields,                                        /* fields */
-        4
+        6
     };
 
     PyStructSequence_InitType(&Nuitka_VersionInfoType, &Nuitka_VersionInfoDesc);
@@ -114,11 +116,23 @@ static void _createGlobalConstants(void) {
 
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, Nuitka_String_FromString("%(nuitka_version_level)s"));
 
+#ifdef _NUITKA_STANDALONE
+    PyObject *is_standalone_mode = Py_True;
+#else
+    PyObject *is_standalone_mode = Py_False;
+#endif
+#ifdef _NUITKA_ONEFILE
+    PyObject *is_onefile_mode = Py_True;
+#else
+    PyObject *is_onefile_mode = Py_False;
+#endif
+
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 4, is_standalone_mode);
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 5, is_onefile_mode);
+
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;
     Nuitka_VersionInfoType.tp_new = NULL;
-
-
 }
 
 // In debug mode we can check that the constants were not tampered with in any

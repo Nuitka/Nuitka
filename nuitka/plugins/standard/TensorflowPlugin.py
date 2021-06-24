@@ -97,8 +97,6 @@ class TensorflowPlugin(NuitkaPluginBase):
             "matplotlib",
         ):
             return "bytecode"
-        else:
-            return "compiled"
 
 
 class TensorflowPluginDetector(NuitkaPluginBase):

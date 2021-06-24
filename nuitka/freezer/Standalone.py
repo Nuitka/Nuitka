@@ -585,6 +585,53 @@ _detected_python_rpath = None
 
 ldd_result_cache = {}
 
+_linux_dll_ignore_list = (
+    # Do not include kernel / glibc specific libraries. This list has been
+    # assembled by looking what are the most common .so files provided by
+    # glibc packages from ArchLinux, Debian Stretch and CentOS.
+    #
+    # Online sources:
+    #  - https://centos.pkgs.org/7/puias-computational-x86_64/glibc-aarch64-linux-gnu-2.24-2.sdl7.2.noarch.rpm.html
+    #  - https://centos.pkgs.org/7/centos-x86_64/glibc-2.17-222.el7.x86_64.rpm.html
+    #  - https://archlinux.pkgs.org/rolling/archlinux-core-x86_64/glibc-2.28-5-x86_64.pkg.tar.xz.html
+    #  - https://packages.debian.org/stretch/amd64/libc6/filelist
+    #
+    # Note: This list may still be incomplete. Some additional libraries
+    # might be provided by glibc - it may vary between the package versions
+    # and between Linux distros. It might or might not be a problem in the
+    # future, but it should be enough for now.
+    "ld-linux-x86-64.so",
+    "libc.so.",
+    "libpthread.so.",
+    "libm.so.",
+    "libdl.so.",
+    "libBrokenLocale.so.",
+    "libSegFault.so",
+    "libanl.so.",
+    "libcidn.so.",
+    "libcrypt.so.",
+    "libmemusage.so",
+    "libmvec.so.",
+    "libnsl.so.",
+    "libnss_compat.so.",
+    "libnss_db.so.",
+    "libnss_dns.so.",
+    "libnss_files.so.",
+    "libnss_hesiod.so.",
+    "libnss_nis.so.",
+    "libnss_nisplus.so.",
+    "libpcprofile.so",
+    "libresolv.so.",
+    "librt.so.",
+    "libthread_db-1.0.so",
+    "libthread_db.so.",
+    "libutil.so.",
+    # The C++ standard library can also be ABI specific, and can cause system
+    # libraries like MESA to not load any drivers, so we exclude it too, and
+    # it can be assumed to be installed everywhere anyway.
+    "libstdc++.so.",
+)
+
 
 def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     # This is complex, as it also includes the caching mechanism
@@ -665,50 +712,8 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
             if filename in ("not found", "ldd"):
                 continue
 
-            # Do not include kernel / glibc specific libraries. This list has been
-            # assembled by looking what are the most common .so files provided by
-            # glibc packages from ArchLinux, Debian Stretch and CentOS.
-            #
-            # Online sources:
-            #  - https://centos.pkgs.org/7/puias-computational-x86_64/glibc-aarch64-linux-gnu-2.24-2.sdl7.2.noarch.rpm.html
-            #  - https://centos.pkgs.org/7/centos-x86_64/glibc-2.17-222.el7.x86_64.rpm.html
-            #  - https://archlinux.pkgs.org/rolling/archlinux-core-x86_64/glibc-2.28-5-x86_64.pkg.tar.xz.html
-            #  - https://packages.debian.org/stretch/amd64/libc6/filelist
-            #
-            # Note: This list may still be incomplete. Some additional libraries
-            # might be provided by glibc - it may vary between the package versions
-            # and between Linux distros. It might or might not be a problem in the
-            # future, but it should be enough for now.
-            if os.path.basename(filename).startswith(
-                (
-                    "ld-linux-x86-64.so",
-                    "libc.so.",
-                    "libpthread.so.",
-                    "libm.so.",
-                    "libdl.so.",
-                    "libBrokenLocale.so.",
-                    "libSegFault.so",
-                    "libanl.so.",
-                    "libcidn.so.",
-                    "libcrypt.so.",
-                    "libmemusage.so",
-                    "libmvec.so.",
-                    "libnsl.so.",
-                    "libnss_compat.so.",
-                    "libnss_db.so.",
-                    "libnss_dns.so.",
-                    "libnss_files.so.",
-                    "libnss_hesiod.so.",
-                    "libnss_nis.so.",
-                    "libnss_nisplus.so.",
-                    "libpcprofile.so",
-                    "libresolv.so.",
-                    "librt.so.",
-                    "libthread_db-1.0.so",
-                    "libthread_db.so.",
-                    "libutil.so.",
-                )
-            ):
+            # Do not include kernel DLLs on the ignore list.
+            if os.path.basename(filename).startswith(_linux_dll_ignore_list):
                 continue
 
             result.add(filename)
@@ -1317,7 +1322,7 @@ def _handleDataFile(dist_dir, tracer, included_datafile):
     if isinstance(included_datafile, IncludedDataFile):
         if included_datafile.kind == "empty_dirs":
             tracer.info(
-                "Included empty directories %s due to %s."
+                "Included empty directories '%s' due to %s."
                 % (
                     ",".join(included_datafile.dest_path),
                     included_datafile.reason,
@@ -1330,7 +1335,7 @@ def _handleDataFile(dist_dir, tracer, included_datafile):
             dest_path = os.path.join(dist_dir, included_datafile.dest_path)
 
             tracer.info(
-                "Included data file %r due to %s."
+                "Included data file '%s' due to %s."
                 % (
                     included_datafile.dest_path,
                     included_datafile.reason,
@@ -1389,19 +1394,24 @@ def copyDataFiles(dist_dir):
 
     # Many details to deal with, pylint: disable=too-many-branches,too-many-locals
 
-    for pattern, dest, arg in Options.getShallIncludeDataFiles():
+    for pattern, src, dest, arg in Options.getShallIncludeDataFiles():
         filenames = resolveShellPatternToFilenames(pattern)
 
         if not filenames:
-            inclusion_logger.warning("No match data file to be included: %r" % pattern)
+            inclusion_logger.warning(
+                "No matching data file to be included for '%s'." % pattern
+            )
 
         for filename in filenames:
-            file_reason = "specified data file %r on command line" % arg
+            file_reason = "specified data file '%s' on command line" % arg
 
-            rel_path = dest
+            if src is None:
+                rel_path = dest
 
-            if rel_path.endswith(("/", os.path.sep)):
-                rel_path = os.path.join(rel_path, os.path.basename(filename))
+                if rel_path.endswith(("/", os.path.sep)):
+                    rel_path = os.path.join(rel_path, os.path.basename(filename))
+            else:
+                rel_path = os.path.join(dest, relpath(filename, src))
 
             _handleDataFile(
                 dist_dir,

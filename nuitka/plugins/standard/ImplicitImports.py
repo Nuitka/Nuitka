@@ -718,6 +718,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "skimage.filters.rank":
             yield "skimage.filters.rank.bilateral_cy"
             yield "skimage.filters.rank.core_cy"
+            yield "skimage.filters.rank.core_cy_3d"
             yield "skimage.filters.rank.generic_cy"
             yield "skimage.filters.rank.percentile_cy"
 

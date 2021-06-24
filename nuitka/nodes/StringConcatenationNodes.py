@@ -78,6 +78,7 @@ class ExpressionStringConcatenation(ExpressionChildHavingBase):
                         for value in values[streak[0] : streak[1]]
                     ),
                     source_ref=values[streak[0]].source_ref,
+                    user_provided=True,
                 )
 
                 values[streak[0] : streak[1]] = (new_element,)

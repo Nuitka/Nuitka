@@ -28,6 +28,7 @@ module.
 
 import os
 
+from nuitka.Options import shallUseStaticLibPython
 from nuitka.utils.Utils import getOS
 
 
@@ -92,7 +93,7 @@ def getStandardLibraryPaths():
             if os.path.isdir(candidate):
                 stdlib_paths.add(candidate)
 
-        if getOS() == "Windows":
+        if getOS() == "Windows" and not shallUseStaticLibPython():
             import _ctypes
 
             stdlib_paths.add(os.path.dirname(_ctypes.__file__))

@@ -29,7 +29,7 @@ import os
 from nuitka import Options
 from nuitka.utils.FileOperations import makePath
 from nuitka.utils.Importing import getSharedLibrarySuffix
-from nuitka.utils.Utils import getOS
+from nuitka.utils.Utils import getOS, isWin32Windows
 
 _main_module = None
 
@@ -88,12 +88,31 @@ def getResultFullpath(onefile):
     if Options.shallMakeModule():
         result += getSharedLibrarySuffix(preferred=True)
     else:
-        if onefile and Options.getOutputFilename() is not None:
-            result = Options.getOutputFilename()
+        output_filename = Options.getOutputFilename()
+
+        if Options.isOnefileMode() and output_filename is not None:
+            if onefile:
+                result = output_filename
+            else:
+                result = os.path.join(
+                    getStandaloneDirectoryPath(),
+                    os.path.basename(output_filename),
+                )
+        elif output_filename is not None:
+            result = output_filename
         elif getOS() == "Windows":
             result += ".exe"
         elif not Options.isStandaloneMode() or onefile:
             result += ".bin"
+
+    return result
+
+
+def getResultRunFilename(onefile):
+    result = getResultFullpath(onefile=onefile)
+
+    if isWin32Windows() and Options.shallTreatUninstalledPython():
+        result = getResultBasepath(onefile=onefile) + ".cmd"
 
     return result
 

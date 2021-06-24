@@ -41,6 +41,7 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 
 # isort:start
 
+import json
 import platform
 import subprocess
 
@@ -65,6 +66,7 @@ from .SconsCompilerSettings import (
     decideConstantsBlobResourceMode,
     enableC11Settings,
     enableExperimentalSettings,
+    enableLtoSettings,
     enableWindowsStackSize,
 )
 from .SconsHacks import (
@@ -141,6 +143,8 @@ python_version = tuple(int(d) for d in python_version_str.split("."))
 abiflags = getArgumentDefaulted("abiflags", "")
 python_abi_version = python_version_str + abiflags
 
+nuitka_python = getArgumentBool("nuitka_python", False)
+
 # Python debug mode: reference count checking, assertions in CPython core.
 python_debug = getArgumentBool("python_debug", False)
 
@@ -172,8 +176,6 @@ noelf_mode = getArgumentBool("noelf_mode", False)
 
 macosx_target = sys.platform == "darwin"
 
-openbsd_target = sys.platform.startswith("openbsd")
-
 # Windows subsystem mode: Disable console for windows builds.
 win_disable_console = getArgumentBool("win_disable_console", False)
 
@@ -192,12 +194,6 @@ mingw_mode = getArgumentBool("mingw_mode", False)
 
 # Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getArgumentBool("clang_mode", False)
-if (
-    macosx_target
-    or openbsd_target
-    or ("freebsd" in sys.platform and target_arch != "powerpc")
-):
-    clang_mode = True
 
 # Clang on Windows is always clang-cl for now.
 clangcl_mode = False
@@ -406,7 +402,7 @@ Error, compiler %s is apparently a C++ compiler, specify a C compiler instead.
             % the_cc_name
         )
 
-    # Consider switching too ikd gcc to its g++ compiler as a workaround that makes us work without C11.
+    # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
     the_compiler, the_gcc_name = switchFromGccToGpp(
         gcc_version=gcc_version,
         the_compiler=the_compiler,
@@ -492,6 +488,9 @@ if "clang" in the_cc_name:
 
     if debug_mode:
         env.Append(CCFLAGS=["-Wunused-but-set-variable"])
+
+# Enable LTO for compiler.
+lto_mode = enableLtoSettings(env=env, lto_mode=lto_mode, msvc_mode=msvc_mode)
 
 if lto_mode and mingw_mode:
     scons_logger.warning(
@@ -732,11 +731,14 @@ if win_target:
 
     if msvc_mode:
         # This is used for "GetCommandLineW" used in Windows code for Python3.
-        if python_version >= (3,):
+        if python_version >= (3,) or onefile_temp_mode:
             env.Append(LIBS=["Shell32"])
 
 if python_debug:
     env.Append(CPPDEFINES=["Py_DEBUG"])
+
+if static_libpython:
+    env.Append(CPPDEFINES=["Py_NO_ENABLE_SHARED"])
 
 
 def detectHostMultiarch():
@@ -824,11 +826,26 @@ def getWindowsPythonDLLPath():
 
 
 if win_target:
-    # Some non standard Pythons on Windows have this.
-    if gcc_mode and static_libpython:
+    if nuitka_python:
+        env.Append(
+            LINKFLAGS=[
+                "/LTCG",
+                "/USEPROFILE:PGD=" + os.path.join(python_prefix, "python.pgd"),
+            ]
+        )
+        with open(os.path.join(python_prefix, "link.json")) as f:
+            linkData = json.load(f)
+            env.Append(LIBS=linkData["libraries"])
+            env.Append(LIBPATH=linkData["library_dirs"])
+            for define, value in linkData["macros"]:
+                if value:
+                    env.Append(CPPDEFINES=[define + "=" + value])
+                else:
+                    env.Append(CPPDEFINES=[define])
+    elif gcc_mode and static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
     else:
-
+        # Some non standard Pythons on Windows have this.
         def addWinLib():
             # Make sure to locate the Python link library from multiple potential
             # locations (installed vs. self-built).
@@ -992,10 +1009,6 @@ else:
     if msvc_mode:
         env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
 
-# Tell compiler to use link time optimization for MSVC
-if msvc_mode and lto_mode:
-    env.Append(CCFLAGS=["/GL"])
-    env.Append(LINKFLAGS=["/LTCG"])
 
 if module_mode:
     env.Append(CPPDEFINES=["_NUITKA_MODULE"])
@@ -1233,6 +1246,6 @@ writeSconsReport(
     clangcl_mode=clangcl_mode,
 )
 
-setSconsProgressBarTotal(len(source_files))
+setSconsProgressBarTotal("Backend", len(source_files))
 
 env.Default(target)

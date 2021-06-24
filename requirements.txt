@@ -29,4 +29,10 @@ tqdm == 4.60.0
 orderedset == 2.0.3
 
 # More capable subprocess.
-subprocess32==3.5.4 ; python_version == '2.7'
+subprocess32 == 3.5.4 ; python_version == '2.7'
+
+# Onefile compression
+zstandard; python_version >= '3.5'
+
+# Plugins need that
+pyyaml == 5.4.1; python_version >= '2.7'

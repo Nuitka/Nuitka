@@ -58,6 +58,7 @@ from nuitka.utils.FileOperations import (
     makePath,
     removeDirectory,
 )
+from nuitka.utils.Utils import getOS
 
 from .SearchModes import (
     SearchModeAll,
@@ -397,7 +398,7 @@ def compareWithCPython(
         if os.path.exists(compare_with_cpython):
             command = [sys.executable, compare_with_cpython, path, "silent"]
         else:
-            sys.exit("Error, cannot find Nuitka comparison runner.")
+            test_logger.sysexit("Error, cannot locate Nuitka comparison runner.")
 
     if extra_flags is not None:
         command += extra_flags
@@ -425,8 +426,7 @@ def compareWithCPython(
         os.unlink(path)
 
     if result == 2:
-        sys.stderr.write("Interrupted, with CTRL-C\n")
-        sys.exit(2)
+        test_logger.sysexit("Interrupted, with CTRL-C\n", exit_code=2)
 
 
 def checkCompilesNotWithCPython(dirname, filename, search_mode):
@@ -491,7 +491,7 @@ def displayRuntimeTraces(logger, path):
 
     if os.name == "posix":
         # Run with traces to help debugging, specifically in CI environment.
-        if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
+        if getOS() in ("Darwin", "FreeBSD"):
             test_logger.info("dtruss:")
             os.system("sudo dtruss %s" % path)
         else:
@@ -512,23 +512,23 @@ def getRuntimeTraceOfLoadedFiles(logger, path):
     result = []
 
     if os.name == "posix":
-        if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
+        if getOS() in ("Darwin", "FreeBSD"):
             if not isExecutableCommand("dtruss"):
-                sys.exit(
+                test_logger.sysexit(
                     """\
 Error, needs 'dtruss' on your system to scan used libraries."""
                 )
 
             if not isExecutableCommand("sudo"):
-                sys.exit(
+                test_logger.sysexit(
                     """\
 Error, needs 'sudo' on your system to scan used libraries."""
                 )
 
-            args = ("sudo", "dtruss", "-t", "open", path)
+            args = ("sudo", "dtruss", "-t", "open", os.path.abspath(path))
         else:
             if not isExecutableCommand("strace"):
-                sys.exit(
+                test_logger.sysexit(
                     """\
 Error, needs 'strace' on your system to scan used libraries."""
                 )
@@ -1836,6 +1836,10 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
                 "libutil.so.",
             )
         ):
+            continue
+
+        # System C++ standard library is also OK.
+        if loaded_basename.startswith("libstdc++."):
             continue
 
         # Curses library is OK from system too.

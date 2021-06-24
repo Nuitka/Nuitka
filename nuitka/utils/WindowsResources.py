@@ -57,7 +57,7 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
         with_data - Return value includes data or only the name, lang pairs
 
     Returns:
-        List of resourcs in the DLL, see with_data which controls scope.
+        List of resources in the DLL, see with_data which controls scope.
 
     """
     # Quite complex stuff, pylint: disable=too-many-locals
@@ -155,6 +155,7 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
 
 
 def _openFileWindowsResources(filename):
+    fullpath = os.path.abspath(filename)
     if type(filename) is str and str is bytes:
         BeginUpdateResource = ctypes.windll.kernel32.BeginUpdateResourceA
         BeginUpdateResource.argtypes = [ctypes.wintypes.LPCSTR, ctypes.wintypes.BOOL]
@@ -164,7 +165,7 @@ def _openFileWindowsResources(filename):
 
     BeginUpdateResource.restype = ctypes.wintypes.HANDLE
 
-    update_handle = BeginUpdateResource(filename, False)
+    update_handle = BeginUpdateResource(fullpath, False)
 
     if not update_handle:
         raise ctypes.WinError()

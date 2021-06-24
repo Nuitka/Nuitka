@@ -50,12 +50,13 @@
 #include "methodobject.h"
 #include "pydebug.h"
 
-#if PYTHON_VERSION >= 0x390
+#if PYTHON_VERSION >= 0x380
 #define NUITKA_USE_PYCORE_THREADSTATE
 #else
 #endif
 
 #ifdef NUITKA_USE_PYCORE_THREADSTATE
+#undef Py_BUILD_CORE
 #define Py_BUILD_CORE
 #undef _PyGC_FINALIZED
 #include "internal/pycore_pystate.h"

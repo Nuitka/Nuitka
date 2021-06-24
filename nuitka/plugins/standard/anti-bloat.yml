@@ -1,0 +1,17 @@
+psutil:
+  description:
+    "resolve platform specific imports at compile time"
+  context:
+    - "import psutil"
+  replacements:
+    "from ._common import AIX" : "'AIX = %r' % psutil.AIX"
+    "from ._common import BSD" : "'BSD = %r' % psutil.BSD"
+    "from ._common import FREEBSD" : "'FREEBSD = %r' % + psutil.FREEBSD"
+    "from ._common import LINUX" : "'LINUX = %r' % + psutil.LINUX"
+    "from ._common import MACOS" : "'MACOS = %r' % + psutil.MACOS"
+    "from ._common import NETBSD" : "'NETBSD = %r' % + psutil.NETBSD"
+    "from ._common import OPENBSD" : "'OPENBSD = %r' % + psutil.OPENBSD"
+    "from ._common import OSX" : "'OSX = %r' % psutil.OSX"
+    "from ._common import POSIX" : "'POSIX = %r' % psutil.POSIX"
+    "from ._common import SUNOS" : "'SUNOS = %r' % psutil.SUNOS"
+    "from ._common import WINDOWS" : "'WINDOWS = %r' % psutil.WINDOWS"

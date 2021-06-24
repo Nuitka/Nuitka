@@ -31,11 +31,11 @@ import inspect
 import os
 import pkgutil
 import shutil
-from optparse import OptionGroup
+from optparse import OptionConflictError, OptionGroup
 
 import nuitka.plugins.commercial
 import nuitka.plugins.standard
-from nuitka import Options
+from nuitka import Options, OutputDirectories
 from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.odict import OrderedDict
@@ -43,13 +43,15 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.Errors import NuitkaPluginError
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPointOld
 from nuitka.ModuleRegistry import addUsedModule
+from nuitka.SourceCodeReferences import fromFilename
 from nuitka.Tracing import plugins_logger, printLine
-from nuitka.utils.FileOperations import makePath, relpath
+from nuitka.utils.FileOperations import makePath, putTextFileContents, relpath
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName
 
 from .PluginBase import NuitkaPluginBase, post_modules, pre_modules
 
+# Maps plugin name to plugin instances.
 active_plugins = OrderedDict()
 plugin_name2plugin_classes = {}
 plugin_options = {}
@@ -89,6 +91,17 @@ def getActivePlugins():
     return active_plugins.values()
 
 
+def getActiveQtPlugin():
+    from .standard.PySidePyQtPlugin import getQtPluginNames
+
+    for plugin_name in getQtPluginNames():
+        if hasActivePlugin(plugin_name):
+            if hasActivePlugin(plugin_name):
+                return plugin_name
+
+    return None
+
+
 def hasActivePlugin(plugin_name):
     """Decide if a plugin is active.
 
@@ -113,6 +126,9 @@ def hasActivePlugin(plugin_name):
 def getPluginClass(plugin_name):
     # First, load plugin classes, to know what we are talking about.
     loadPlugins()
+
+    # Backward compatibility.
+    plugin_name = Options.getPluginNameConsideringRenames(plugin_name)
 
     if plugin_name not in plugin_name2plugin_classes:
         plugins_logger.sysexit("Error, unknown plug-in '%s' referenced." % plugin_name)
@@ -188,7 +204,7 @@ def loadStandardPluginClasses():
 
     Notes:
         Scan through the 'standard' and 'commercial' sub-folder of the folder
-        where this script resides. Import each valid Python module (but not
+        where this module resides. Import each valid Python module (but not
         packages) and process it as a plugin.
     Returns:
         None
@@ -198,12 +214,6 @@ def loadStandardPluginClasses():
 
 
 class Plugins(object):
-    @staticmethod
-    def isPluginActive(plugin_name):
-        """Is a plugin activated."""
-
-        return plugin_name in active_plugins
-
     implicit_imports_cache = {}
 
     @staticmethod
@@ -441,10 +451,140 @@ class Plugins(object):
                 if value:
                     yield plugin, value
 
-    @staticmethod
-    def onModuleDiscovered(module):
+    @classmethod
+    def _createTriggerLoadedModule(cls, module, trigger_name, code, flags):
+        """Create a "trigger" for a module to be imported.
+
+        Notes:
+            The trigger will incorporate the code to be prepended / appended.
+            Called by @onModuleDiscovered.
+
+        Args:
+            module: the module object (serves as dict key)
+            trigger_name: string ("-preload"/"-postload")
+            code: the code string
+
+        Returns
+            trigger_module
+        """
+        from nuitka.nodes.ModuleNodes import CompiledPythonModule
+        from nuitka.tree.Building import createModuleTree
+
+        module_name = ModuleName(module.getFullName() + trigger_name)
+        source_ref = fromFilename(module.getCompileTimeFilename() + trigger_name)
+
+        mode = cls.decideCompilation(module_name, source_ref)
+
+        trigger_module = CompiledPythonModule(
+            module_name=module_name,
+            is_top=False,
+            mode=mode,
+            future_spec=None,
+            source_ref=source_ref,
+        )
+
+        createModuleTree(
+            module=trigger_module,
+            source_ref=module.getSourceReference(),
+            source_code=code,
+            is_main=False,
+        )
+
+        if mode == "bytecode":
+            trigger_module.setSourceCode(code)
+
+        # In debug mode, put the files in the build folder, so they can be looked up easily.
+        if Options.is_debug and "HIDE_SOURCE" not in flags:
+            source_path = os.path.join(
+                OutputDirectories.getSourceDirectoryPath(), module_name + ".py"
+            )
+
+            putTextFileContents(filename=source_path, contents=code)
+
+        return trigger_module
+
+    @classmethod
+    def onModuleDiscovered(cls, module):
+        full_name = module.getFullName()
+
+        def _untangleLoadDesc(descs):
+            if descs:
+                if type(descs[0]) not in (tuple, list):
+                    descs = [descs]
+
+                for desc in descs:
+                    if len(desc) == 2:
+                        code, reason = desc
+                        flags = ()
+                    else:
+                        code, reason, flags = desc
+                        if type(flags) is str:
+                            flags = (flags,)
+
+                    yield plugin, code, reason, flags
+
+        preload_descs = []
+        postload_descs = []
+
         for plugin in getActivePlugins():
             plugin.onModuleDiscovered(module)
+
+            preload_descs.extend(
+                _untangleLoadDesc(descs=plugin.createPreModuleLoadCode(module))
+            )
+            postload_descs.extend(
+                _untangleLoadDesc(descs=plugin.createPostModuleLoadCode(module))
+            )
+
+        if preload_descs:
+            total_code = []
+            total_flags = OrderedSet()
+
+            for plugin, pre_code, reason, flags in preload_descs:
+                if pre_code:
+                    plugin.info(
+                        "Injecting pre-module load code for module '%s':" % full_name
+                    )
+                    for line in reason.split("\n"):
+                        plugin.info("    " + line)
+
+                    total_code.append(pre_code)
+                    total_flags.update(flags)
+
+            if total_code:
+                assert full_name not in pre_modules
+
+                pre_modules[full_name] = cls._createTriggerLoadedModule(
+                    module=module,
+                    trigger_name="-preLoad",
+                    code="\n\n".join(total_code),
+                    flags=total_flags,
+                )
+
+        if postload_descs:
+            total_code = []
+            total_flags = OrderedSet()
+
+            for plugin, post_code, reason, flags in postload_descs:
+                if post_code:
+                    plugin.info(
+                        "Injecting post-module load code for module '%s':" % full_name
+                    )
+                    for line in reason.split("\n"):
+                        plugin.info("    " + line)
+
+                    total_code.append(post_code)
+                    total_flags.update(flags)
+
+            if total_code:
+                assert full_name not in post_modules
+
+                post_modules[full_name] = cls._createTriggerLoadedModule(
+                    module=module,
+                    trigger_name="-postLoad",
+                    code="\n\n".join(total_code),
+                    flags=total_flags,
+                )
 
     @staticmethod
     def onModuleSourceCode(module_name, source_code):
@@ -839,7 +979,20 @@ def lateActivatePlugin(plugin_name, option_values):
 def _addPluginCommandLineOptions(parser, plugin_class):
     if plugin_class.plugin_name not in plugin_options:
         option_group = OptionGroup(parser, "Plugin %s" % plugin_class.plugin_name)
-        plugin_class.addPluginCommandLineOptions(option_group)
+        try:
+            plugin_class.addPluginCommandLineOptions(option_group)
+        except OptionConflictError as e:
+            for other_plugin_name, other_plugin_option_list in plugin_options.items():
+                for other_plugin_option in other_plugin_option_list:
+                    # no public interface for that, pylint: disable=protected-access
+                    if (
+                        e.option_id in other_plugin_option._long_opts
+                        or other_plugin_option._short_opts
+                    ):
+                        plugins_logger.sysexit(
+                            "Plugin '%s' failed to add options due to conflict with '%s' from plugin '%s."
+                            % (plugin_class.plugin_name, e.option_id, other_plugin_name)
+                        )
 
         if option_group.option_list:
             parser.add_option_group(option_group)
