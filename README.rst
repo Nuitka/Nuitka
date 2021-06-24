@@ -54,7 +54,7 @@ Requirements
    -  The ``gcc`` compiler of at least version 5.1, or the ``g++``
       compiler of at least version 4.4 as an alternative.
 
-   -  The ``clang`` compiler on macOS X or FreeBSD.
+   -  The ``clang`` compiler on macOS X and FreeBSD.
 
    -  The MinGW64 C11 compiler on Windows, must be based on gcc 8 or
       higher. It will be automatically downloaded if not found, which is
@@ -70,7 +70,7 @@ Requirements
 
 -  Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9
 
-   .. admonition:: For Python 3.3, and 3.4 and *only* those versions, we need other Python versions as a *compile time* dependency.
+   .. admonition:: For Python 3.3/3.4 and *only* those, we need other Python version as a *compile time* dependency.
 
       Nuitka itself is fully compatible with all listed versions, but
       Scons as an internally used tool is not.
@@ -459,7 +459,7 @@ With data files, you are largely on your own. Nuitka keeps track of ones
 that are needed by popular packages, but it might be incomplete. Raise
 issues if you encounter something in these.
 
-When that is working, you can use the onefile if you so desire.
+When that is working, you can use the onefile mode if you so desire.
 
 .. code:: bash
 
@@ -476,11 +476,7 @@ it in the temporary directory. You need to do one this this.
 .. code:: bash
 
    # Create a binary that unpacks into a temporary folder
-   python -m nuitka --onefile --windows-onefile-tempdir program.py
-
-   # Create a binary that unpacks to your company Appdata folder on the system
-   # and is not deleted, there are more options.
-   python -m nuitka --onefile --windows-company-name=Change_This --windows-product-version=1.2.3.4 program.py
+   python -m nuitka --onefile program.py
 
 .. note::
 
@@ -490,8 +486,8 @@ it in the temporary directory. You need to do one this this.
 
 Again, on Windows, for the temporary file directory, by default the user
 one is used, however this is overridable with a path specification given
-in ``--windows-onefile-tempdir=%TEMP%\\onefile_%PID%_%TIME%`` which is
-the default and asserts that the temporary directories created cannot
+in ``--windows-onefile-tempdir-spec=%TEMP%\\onefile_%PID%_%TIME%`` which
+is the default and asserts that the temporary directories created cannot
 collide.
 
 Currently these expanded tokens are available:
@@ -570,16 +566,25 @@ Nuitka will have to learn effective caching to deal with this in the
 future. Right now, you will have to deal with huge compilation times for
 these.
 
-Onefile on Windows: Finding files
-=================================
+For now, a major weapon in fighting dependency creap should be applied,
+namely the ``anti-bloat`` plugin, which offers interesting abilities,
+that can be put to use and block unneeded imports, giving an error for
+where they occur. Use it e.g. like this ``--enable-plugin=anti-bloat
+--noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow``
+and check its help output. It can take for each module of your choice,
+e.g. forcing also that PyQt5 is considered uninstalled for standalone
+mode.
+
+Onefile: Finding files
+======================
 
 There is a difference between ``sys.argv[0]`` and ``__file__`` of the
-main module on Windows, that is caused by using a bootstrap to a
-temporary or permanent location. The first one will be the original
-executable path, where as the second one will be the temporary or
-permanent path the bootstrap executable unpacks to. Data files will be
-in the later location, your original environment files will be in the
-former location.
+main module for onefile more, that is caused by using a bootstrap to a
+temporary location. The first one will be the original executable path,
+where as the second one will be the temporary or permanent path the
+bootstrap executable unpacks to. Data files will be in the later
+location, your original environment files will be in the former
+location.
 
 Given 2 files, one which you expect to be near your executable, and one
 which you expect to be inside the onefile binary, access them like this.
@@ -611,13 +616,11 @@ variables, this is an example:
 
 .. code:: python
 
-   # Compilation mode, support OS specific. Note that macOS is going to gain onefile mode "soon".
-   # nuitka-project-if: {OS} in ("Windows", "Linux"):
+   # Compilation mode, support OS specific.
+   # nuitka-project-if: {OS} in ("Windows", "Linux", "Darwin", "FreeBSD"):
    #    nuitka-project: --onefile
-   # nuitka-project-if: {OS} not in ("Windows", "Linux"):
+   # nuitka-project-if: {OS} not in ("Windows", "Linux", "Darwin", "FreeBSD"):
    #    nuitka-project: --standalone
-   # nuitka-project-if: {OS} == "Windows":
-   #    nuitka-project: --windows-onefile-tempdir
 
    # The PySide2 plugin covers qt-plugins
    # nuitka-project: --enable-plugin=pyside2
@@ -630,11 +633,12 @@ other keywords than the used ones demonstrated above.
 +------------------+--------------------------------------+--------------------------------+
 | Variable         | What this Expands to                 | Example                        |
 +==================+======================================+================================+
-| {OS}             | Name of the OS used                  | Linux, Windows, Darwin         |
+| {OS}             | Name of the OS used                  | Linux, Windows, Darwin,        |
+|                  |                                      | FreeBSD, OpenBSD               |
 +------------------+--------------------------------------+--------------------------------+
 | {Version}        | Version of Nuitka                    | (0, 6, 14)                     |
 +------------------+--------------------------------------+--------------------------------+
-| {Arch}           | Architecture used                    | x86_64                         |
+| {Arch}           | Architecture used                    | x86_64, arm64, etc.            |
 +------------------+--------------------------------------+--------------------------------+
 | {MAIN_DIRECTORY} | Directory of the compiled file       | some_dir/maybe_relative        |
 +------------------+--------------------------------------+--------------------------------+
@@ -670,6 +674,16 @@ in CI systems.
 
 For the MSVC compilers and ClangCL setups, using the ``clcache`` is
 automatic and included in Nuitka.
+
+Control where Caches live
+=========================
+
+The storage for cache results of all kinds, downloads, cached
+compilation results from C and Nuitka, is done in a platform dependent
+directory as determined by the ``appdirs`` package. However, you can
+override it with setting the environment variable ``NUITKA_CACHE_DIR``
+to a base directory. This is for use in environments where the home
+directory is not persisted, but other paths are.
 
 Runners
 =======
@@ -1329,8 +1343,7 @@ Contributors to Nuitka
 ======================
 
 Thanks go to these individuals for their much-valued contributions to
-Nuitka. Contributors have the license to use Nuitka for their own code
-even if Closed Source.
+Nuitka.
 
 The order is sorted by time.
 
@@ -1459,7 +1472,7 @@ Projects used by Nuitka
 This document is written in REST. That is an ASCII format which is
 readable as ASCII, but used to generate PDF or HTML documents.
 
-You will find the current source under:
-https://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=README.rst
+You will find the current version at:
+https://nuitka.net/doc/user-manual.html
 
 And the current PDF under: https://nuitka.net/doc/README.pdf

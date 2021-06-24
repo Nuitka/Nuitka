@@ -31,8 +31,19 @@ extern volatile int _Py_Ticker;
 NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
-    struct _ceval_runtime_state *ceval = &tstate->interp->runtime->ceval;
+#if PYTHON_VERSION >= 0x390
+    _PyRuntimeState *const runtime = tstate->interp->runtime;
+#else
+    _PyRuntimeState *const runtime = &_PyRuntime;
+#endif
+
+    // This was split in 2 parts in 3.9 or higher.
+    struct _ceval_runtime_state *ceval = &runtime->ceval;
+#if PYTHON_VERSION >= 0x390
     struct _ceval_state *ceval2 = &tstate->interp->ceval;
+#else
+    struct _ceval_runtime_state *ceval2 = ceval;
+#endif
 
     /* Pending signals */
     if (ceval->signals_pending._value || ceval2->pending.calls_to_do._value) {

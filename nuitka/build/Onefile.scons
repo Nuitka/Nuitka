@@ -60,6 +60,7 @@ from .SconsCompilerSettings import (
     checkWindowsCompilerFound,
     enableC11Settings,
     enableExperimentalSettings,
+    enableLtoSettings,
 )
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
 from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
@@ -182,6 +183,10 @@ link_libraries = getArgumentList("link_libraries", "")
 compiler_version_mode = getArgumentBool("compiler_version", False)
 
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
+
+# Onefile compression is optional.
+onefile_compression = getArgumentBool("onefile_compression", False)
+
 
 if getArgumentBool("progress_bar", True):
     enableSconsProgressBar()
@@ -360,7 +365,6 @@ if gcc_mode:
     # to negative values.
     env.Append(CCFLAGS=["-fwrapv"])
 
-
 # Support for clang.
 if "clang" in the_cc_name:
     env.Append(CCFLAGS=["-w"])
@@ -372,8 +376,11 @@ if "clang" in the_cc_name:
     if debug_mode:
         env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
+# Enable LTO for compiler.
+lto_mode = enableLtoSettings(env=env, lto_mode=lto_mode, msvc_mode=msvc_mode)
+
 # Support details for real g++, not clang++.
-if gcc_mode and "clang" not in the_cc_name:
+if gcc_mode and not clang_mode:
     # Enforce the minimum version, selecting a potentially existing g++-4.5
     # binary if it's not high enough. This is esp. useful under Debian which
     # allows all compiler to exist next to each other and where g++ might not be
@@ -536,15 +543,16 @@ if trace_mode:
 
 # For MinGW and cross compilation, we need to tell the subsystem
 # to target as well as to automatically import everything used.
-if gcc_mode:
-    if not clang_mode:
-        env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
+if win_target:
+    if gcc_mode:
+        if not clang_mode:
+            env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
+
+        if win_disable_console:
+            env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
 
     if win_disable_console:
-        env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
-
-if win_disable_console:
-    env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
+        env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
 # For shell API usage to lookup app folders we need this.
 if msvc_mode:
@@ -571,15 +579,6 @@ env.Append(
         os.path.join(nuitka_src, "inline_copy", "zstd"),
     ],
 )
-
-# The inline copy of zstd has a header file to discover.
-env.Append(
-    CPPPATH=[
-        source_dir,
-        nuitka_include,
-    ]
-)
-
 
 if debug_mode or unstripped_mode:
     # Use debug format, so we get good tracebacks from it.
@@ -670,7 +669,7 @@ def discoverSourceFiles():
     # Main onefile bootstrap program
     result.append(
         provideStaticSourceFile(
-            sub_path="WindowsOnefile.c",
+            sub_path="OnefileBootstrap.c",
             nuitka_src=nuitka_src,
             source_dir=source_dir,
             c11_mode=c11_mode,
@@ -773,6 +772,9 @@ if "ONEFILE_TEMP_SPEC" in os.environ:
 else:
     onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 0
 
+if onefile_compression:
+    onefile_definitions["_NUITKA_ONEFILE_COMPRESSION"] = 1
+
 createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
 
 writeSconsReport(
@@ -784,6 +786,6 @@ writeSconsReport(
     clangcl_mode=clangcl_mode,
 )
 
-setSconsProgressBarTotal(len(source_files))
+setSconsProgressBarTotal("Onefile", len(source_files))
 
 env.Default(target)

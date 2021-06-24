@@ -26,7 +26,7 @@ from collections import namedtuple
 from nuitka import Options
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.plugins.Plugins import hasActivePlugin
+from nuitka.plugins.Plugins import getActiveQtPlugin, hasActivePlugin
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.utils import Execution
 from nuitka.utils.FileOperations import (
@@ -400,14 +400,16 @@ print(repr("MATPLOTLIBDATA" in getsource(get_data_path)))
                 ):
                     return True, "Needed for tkinter matplotplib backend"
 
-            if hasActivePlugin("qt-plugins"):
+            if getActiveQtPlugin() is not None:
+                # Note, their code tries everything behind that name, the qt5 is
+                # misleading therefore, PySide will work there too.
                 if module_name in (
                     "matplotlib.backends.backend_qt5",
                     "matplotlib.backends.backend_qt5.py",
                     "matplotlib.backends.backend_qt5cairo.py",
                     "matplotlib.backend.backend_qt5.py",
                 ):
-                    return True, "Needed for Qt5 matplotplib backend"
+                    return True, "Needed for Qt matplotplib backend"
 
             if module_name == "matplotlib.backends.backend_agg":
                 return True, "Needed as standard matplotplib backend"

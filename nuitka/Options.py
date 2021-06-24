@@ -26,6 +26,8 @@ from nuitka.OptionParsing import parseOptions
 from nuitka.PythonVersions import (
     getSupportedPythonVersions,
     getSystemStaticLibPythonPath,
+    isNuitkaPython,
+    isStaticallyLinkedPython,
     isUninstalledPython,
     python_version_str,
 )
@@ -33,7 +35,12 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     resolveShellPatternToFilenames,
 )
-from nuitka.utils.Utils import getOS, hasOnefileSupportedOS, isWin32Windows
+from nuitka.utils.Utils import (
+    getArchitecture,
+    getOS,
+    hasOnefileSupportedOS,
+    isWin32Windows,
+)
 
 options = None
 positional_args = None
@@ -98,9 +105,9 @@ def parseArgs(will_reexec):
     if options.is_onefile:
         options.is_standalone = True
 
-    # Provide a tempdir spec implies onefile tempdir.
-    if options.windows_onefile_tempdir_spec:
-        options.is_windows_onefile_tempdir = True
+    # Provide a tempdir spec implies onefile tempdir, even on Linux.
+    if options.onefile_tempdir_spec:
+        options.is_onefile_tempdir = True
 
     # Standalone mode implies an executable, not importing "site" module, which is
     # only for this machine, recursing to all modules, and even including the
@@ -231,16 +238,7 @@ standalone where there is a sane default used inside the dist folder."""
     if isOnefileMode() and not hasOnefileSupportedOS():
         Tracing.options_logger.sysexit("Error, unsupported OS for onefile %r" % getOS())
 
-    if isOnefileMode() and os.name == "nt":
-        if not getWindowsCompanyName() and not isWindowsOnefileTempDirMode():
-            Tracing.options_logger.sysexit(
-                """Error, onefile on Windows needs more options.
-
-It requires either company name and product version to be given or
-the selection of onefile temp directory mode. Check --help output."""
-            )
-
-    if options.recurse_none and options.recurse_all:
+    if options.follow_none and options.follow_all:
         Tracing.options_logger.sysexit(
             "Conflicting options '--follow-imports' and '--nofollow-imports' given."
         )
@@ -285,19 +283,34 @@ the selection of onefile temp directory mode. Check --help output."""
     for data_file in options.data_files:
         if "=" not in data_file:
             Tracing.options_logger.sysexit(
-                "Error, malformed data file description, must specify relative target path with =."
+                "Error, malformed data file description, must specify relative target path separated with '='."
             )
 
-        src, dst = data_file.split("=", 1)
+        if data_file.count("=") == 1:
+            src, dst = data_file.split("=", 1)
+
+            filenames = resolveShellPatternToFilenames(src)
+
+            if len(filenames) > 1 and not dst.endswith(("/", os.path.sep)):
+                Tracing.options_logger.sysexit(
+                    "Error, pattern '%s' matches more than one file, but target has no trailing slash, not a directory."
+                    % src
+                )
+        else:
+            src, dst, pattern = data_file.split("=", 2)
+
+            filenames = resolveShellPatternToFilenames(os.path.join(src, pattern))
+
+        if not filenames:
+            Tracing.options_logger.sysexit(
+                "Error, '%s' does not match any files." % src
+            )
 
         if os.path.isabs(dst):
             Tracing.options_logger.sysexit(
-                "Error, must specify relative target path for data file, not %r."
+                "Error, must specify relative target path for data file, not absolute path '%s'."
                 % data_file
             )
-
-        if not resolveShellPatternToFilenames(src):
-            Tracing.options_logger.sysexit("Error, %r does not match any files." % src)
 
     for data_dir in options.data_dirs:
         if "=" not in data_dir:
@@ -343,7 +356,7 @@ the selection of onefile temp directory mode. Check --help output."""
 
 def commentArgs():
     """Comment on options, where we know something is not having the intended effect."""
-    # A ton of cases to consider, pylint: disable=too-many-boolean-expressions,too-many-branches
+    # A ton of cases to consider, pylint: disable=too-many-branches
 
     # Inform the user about potential issues with the running version. e.g. unsupported
     # version.
@@ -383,21 +396,12 @@ def commentArgs():
             or getWindowsProductName()
             or getWindowsProductVersion()
             or getWindowsFileVersion()
-            or isWindowsOnefileTempDirMode()
-            or getWindowsOnefileTempDirSpec(use_default=False)
             or getForcedStderrPath()  # not yet for other platforms
             or getForcedStdoutPath()
         ):
             Tracing.options_logger.warning(
                 "Using Windows specific options has no effect on other platforms."
             )
-
-    if not isOnefileMode() and (
-        isWindowsOnefileTempDirMode() or getWindowsOnefileTempDirSpec(use_default=False)
-    ):
-        Tracing.options_logger.warning(
-            "Using onefile specific option for Windows without --onefile enabled."
-        )
 
     if isOnefileMode():
         standalone_mode = "onefile"
@@ -411,14 +415,14 @@ def commentArgs():
             "Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported."
         )
 
-    if options.recurse_all and standalone_mode:
+    if options.follow_all and standalone_mode:
         if standalone_mode:
             Tracing.options_logger.info(
                 "Following all imports is the default for %s mode and need not be specified."
                 % standalone_mode
             )
 
-    if options.recurse_none and standalone_mode:
+    if options.follow_none and standalone_mode:
         if standalone_mode:
             Tracing.options_logger.warning(
                 "Following no imports is unlikely to work for %s mode and should not be specified."
@@ -504,12 +508,12 @@ def shallFollowStandardLibrary():
 
 def shallFollowNoImports():
     """*bool* = "--nofollow-imports" """
-    return options.recurse_none
+    return options.follow_none
 
 
 def shallFollowAllImports():
     """*bool* = "--follow-imports" """
-    return options.is_standalone or options.recurse_all
+    return options.is_standalone or options.follow_all
 
 
 def _splitShellPattern(value):
@@ -518,7 +522,7 @@ def _splitShellPattern(value):
 
 def getShallFollowInNoCase():
     """*list*, items of "--nofollow-import-to=" """
-    return sum([_splitShellPattern(x) for x in options.recurse_not_modules], [])
+    return sum([_splitShellPattern(x) for x in options.follow_not_modules], [])
 
 
 def getShallFollowModules():
@@ -526,7 +530,7 @@ def getShallFollowModules():
     return sum(
         [
             _splitShellPattern(x)
-            for x in options.recurse_modules
+            for x in options.follow_modules
             + options.include_modules
             + options.include_packages
         ],
@@ -562,10 +566,16 @@ def getShallIncludePackageData():
 def getShallIncludeDataFiles():
     """*list*, items of "--include-data-file=" """
     for data_file in options.data_files:
-        src, dest = data_file.split("=", 1)
+        if data_file.count("=") == 1:
+            src, dest = data_file.split("=", 1)
 
-        for pattern in _splitShellPattern(src):
-            yield pattern, dest, data_file
+            for pattern in _splitShellPattern(src):
+                yield pattern, None, dest, data_file
+        else:
+            src, dest, pattern = data_file.split("=", 2)
+
+            for pattern in _splitShellPattern(pattern):
+                yield os.path.join(src, pattern), src, dest, data_file
 
 
 def getShallIncludeDataDirs():
@@ -662,6 +672,9 @@ def shallUseStaticLibPython():
     """
 
     if options.static_libpython == "auto":
+        if isNuitkaPython():
+            return True
+
         if isWin32Windows() and os.path.exists(
             os.path.join(sys.prefix, "etc/config.site")
         ):
@@ -703,6 +716,10 @@ def shallTreatUninstalledPython():
     if shallMakeModule() or isStandaloneMode():
         return False
 
+    # Of course only if there is a DLL.
+    if isStaticallyLinkedPython():
+        return False
+
     return isUninstalledPython()
 
 
@@ -722,8 +739,13 @@ def isLto():
 
 
 def isClang():
-    """*bool* = "--clang" """
-    return options.clang
+    """*bool* = "--clang" or enforced by platform, e.g. macOS or FreeBSD some targets."""
+
+    return (
+        options.clang
+        or getOS() in ("Darwin", "OpenBSD")
+        or (getOS() == "FreeBSD" and getArchitecture() != "powerpc")
+    )
 
 
 def isMingw64():
@@ -825,16 +847,19 @@ def isOnefileMode():
     return options.is_onefile
 
 
-def isWindowsOnefileTempDirMode():
-    """*bool* = "--windows-onefile-tempdir" """
-    return options.is_windows_onefile_tempdir
+def isOnefileTempDirMode():
+    """*bool* = "--onefile-tempdir" """
+    return options.is_onefile_tempdir or getOS() != "Linux"
 
 
-def getWindowsOnefileTempDirSpec(use_default):
+def getOnefileTempDirSpec(use_default):
     if use_default:
-        return options.windows_onefile_tempdir_spec or r"%TEMP%\onefile_%PID%_%TIME%"
+        return (
+            options.onefile_tempdir_spec
+            or "%TEMP%" + os.path.sep + "onefile_%PID%_%TIME%"
+        )
     else:
-        return options.windows_onefile_tempdir_spec
+        return options.onefile_tempdir_spec
 
 
 def getIconPaths():
@@ -844,14 +869,21 @@ def getIconPaths():
 
     # Check if Linux icon requirement is met.
     if getOS() == "Linux" and not result and isOnefileMode():
-        default_icon = "/usr/share/pixmaps/python.xpm"
-        if os.path.exists(default_icon):
-            result.append(default_icon)
+        default_icons = (
+            "/usr/share/pixmaps/python%s.%s.xpm" % python_version_str,
+            "/usr/share/pixmaps/python%s.xpm" % sys.version_info[0],
+            "/usr/share/pixmaps/python.xpm",
+        )
+
+        for icon in default_icons:
+            if os.path.exists(icon):
+                result.append(icon)
+                break
         else:
             Tracing.options_logger.sysexit(
                 """\
-Error, the default icon %r does not exist, making --linux-onefile-icon required."""
-                % default_icon
+Error, the non of the default icons '%s' exist, making --linux-onefile-icon required."""
+                % ", ".join(default_icons)
             )
 
     return result
@@ -998,19 +1030,32 @@ def shallNotStoreDependsExeCachedResults():
     return getattr(options, "no_dependency_cache", False)
 
 
+def getPluginNameConsideringRenames(plugin_name):
+    """Name of the plugin with renames considered."""
+
+    if plugin_name == "qt-plugins":
+        return "pyqt5"
+    elif plugin_name == "etherium":
+        return "ethereum"
+    else:
+        return plugin_name
+
+
 def getPluginsEnabled():
     """*tuple*, user enabled (standard) plugins (not including user plugins)
 
     Note:
-        Do not use this outside of main binary, as other plugins, e.g.
-        hinted compilation will activate plugins themselves and this
-        will not be visible here.
+        Do not use this outside of main binary, as plugins are allowed
+        to activate plugins themselves and that will not be visible here.
     """
     result = OrderedSet()
 
     if options:
         for plugin_enabled in options.plugins_enabled:
-            result.update(plugin_enabled.split(","))
+            result.update(
+                getPluginNameConsideringRenames(plugin_name)
+                for plugin_name in plugin_enabled.split(",")
+            )
 
     return tuple(result)
 
@@ -1023,10 +1068,16 @@ def getPluginsDisabled():
         hinted compilation will activate plugins themselves and this
         will not be visible here.
     """
-    if not options:
-        return ()
+    result = OrderedSet()
 
-    return tuple(set(options.plugins_disabled))
+    if options:
+        for plugin_disabled in options.plugins_disabled:
+            result.update(
+                getPluginNameConsideringRenames(plugin_name)
+                for plugin_name in plugin_disabled.split(",")
+            )
+
+    return tuple(result)
 
 
 def getUserPlugins():

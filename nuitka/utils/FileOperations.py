@@ -37,7 +37,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     basestring,
 )
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import my_print
+from nuitka.Tracing import my_print, options_logger
 
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
@@ -136,6 +136,15 @@ def relpath(path, start="."):
         if getOS() == "Windows":
             return os.path.abspath(path)
         raise
+
+
+def isRelativePath(path):
+    if os.path.isabs(path):
+        return False
+    if path.startswith((".." + os.path.sep, "../")):
+        return False
+
+    return True
 
 
 def makePath(path):
@@ -577,7 +586,9 @@ def getWindowsShortPathName(filename):
     output_buf_size = 0
     while True:
         output_buf = ctypes.create_unicode_buffer(output_buf_size)
-        needed = GetShortPathNameW(filename, output_buf, output_buf_size)
+        needed = GetShortPathNameW(
+            os.path.abspath(filename), output_buf, output_buf_size
+        )
 
         if needed == 0:
             # Windows only code, pylint: disable=I0021,undefined-variable
@@ -671,7 +682,22 @@ def resolveShellPatternToFilenames(pattern):
         list - filenames that matched.
     """
 
-    result = glob.glob(pattern)
+    if "**" in pattern:
+        if python_version >= 0x350:
+            result = glob.glob(pattern, recursive=True)
+        else:
+            glob2 = importFromInlineCopy("glob2", must_exist=True)
+
+            if glob2 is None:
+                options_logger.sysexit(
+                    "Using pattern with ** is not supported before Python 3.5 unless glob2 is installed."
+                )
+
+            result = glob2.glob(pattern)
+    else:
+        result = glob.glob(pattern)
+
+    result = [os.path.normpath(filename) for filename in result]
     result.sort()
     return result
 

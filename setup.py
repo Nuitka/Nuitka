@@ -297,13 +297,16 @@ setup(
     packages=findNuitkaPackages(),
     package_data={
         # Include extra files
-        "": ["*.txt", "*.rst", "*.c", "*.h", "*.ui"],
+        "": ["*.txt", "*.rst", "*.c", "*.h", "*.yml"],
         "nuitka.build": [
             "Backend.scons",
-            "WindowsOnefile.scons",
+            "Onefile.scons",
             "static_src/*.c",
             "static_src/*/*.c",
             "static_src/*/*.h",
+            "inline_copy/zstd/*.h",
+            "inline_copy/zstd/*/*.h",
+            "inline_copy/zstd/*/*.c",
             "static_src/*/*.asm",
             "static_src/*/*.S",
             "include/*.h",

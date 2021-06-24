@@ -351,7 +351,7 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdL
 #else
 int main(int argc, char **argv) {
 #endif
-    NUITKA_PRINT_TRACE("main(): Entered.");
+    NUITKA_PRINT_TIMING("main(): Entered.");
 
     orig_argv = argv;
     orig_argc = argc;
@@ -371,12 +371,12 @@ int main(int argc, char **argv) {
 #endif
 
 #ifdef _NUITKA_STANDALONE
-    NUITKA_PRINT_TRACE("main(): Prepare standalone environment.");
+    NUITKA_PRINT_TIMING("main(): Prepare standalone environment.");
     prepareStandaloneEnvironment();
 #else
 
 #if PYTHON_VERSION >= 0x350 && defined(DLL_EXTRA_PATH)
-    NUITKA_PRINT_TRACE("main(): Prepare DLL extra path.");
+    NUITKA_PRINT_TIMING("main(): Prepare DLL extra path.");
     SetDllDirectory(DLL_EXTRA_PATH);
 #endif
 
@@ -407,6 +407,10 @@ int main(int argc, char **argv) {
 #endif
 #if PYTHON_VERSION >= 0x370
     Py_UTF8Mode = SYSFLAG_UTF8;
+#endif
+
+#ifdef NUITKA_PYTHON_STATIC
+    Py_InitStaticModules();
 #endif
 
     /* This suppresses warnings from getpath.c */
@@ -451,7 +455,7 @@ int main(int argc, char **argv) {
     setenv("PYTHONHASHSEED", "0", 1);
 #endif
     /* Initialize the embedded CPython interpreter. */
-    NUITKA_PRINT_TRACE("main(): Calling Py_Initialize to initialize interpreter.");
+    NUITKA_PRINT_TIMING("main(): Calling Py_Initialize to initialize interpreter.");
     Py_Initialize();
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
@@ -502,14 +506,17 @@ int main(int argc, char **argv) {
     /* Initialize the Python constant values used. This also sets
      * "sys.executable" while at it.
      */
-    NUITKA_PRINT_TRACE("main(): Calling createGlobalConstants().");
+    NUITKA_PRINT_TIMING("main(): Calling createGlobalConstants().");
     createGlobalConstants();
+    NUITKA_PRINT_TIMING("main(): Returned createGlobalConstants().");
 
     /* Complex call helpers need "__main__" constants, even if we only
      * go into "__parents__main__" module as a start point.
      */
 #if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED || _NUITKA_PLUGIN_TRACEBACK_ENCRYPTION_ENABLED
+    NUITKA_PRINT_TIMING("main(): Calling createMainModuleConstants().");
     createMainModuleConstants();
+    NUITKA_PRINT_TIMING("main(): Returned createMainModuleConstants().");
 #endif
 
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinOriginalValues().");
@@ -597,7 +604,7 @@ int main(int argc, char **argv) {
         wchar_t filename_buffer[1024];
         wchar_t const *pattern = L"" NUITKA_FORCED_STDOUT_PATH;
 
-        bool res = expandWindowsPath(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
+        bool res = expandTemplatePathW(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
 
         if (res == false) {
             puts("Error, couldn't expand pattern:");
@@ -622,7 +629,7 @@ int main(int argc, char **argv) {
         wchar_t filename_buffer[1024];
         wchar_t const *pattern = L"" NUITKA_FORCED_STDERR_PATH;
 
-        bool res = expandWindowsPath(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
+        bool res = expandTemplatePathW(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
 
         if (res == false) {
             puts("Error, couldn't expand pattern:");
@@ -720,9 +727,10 @@ int main(int argc, char **argv) {
         SvcLaunchService();
 #else
     /* Execute the "__main__" module. */
-    NUITKA_PRINT_TRACE("main(): Calling __main__.");
-
+    NUITKA_PRINT_TIMING("main(): Calling __main__.");
     IMPORT_EMBEDDED_MODULE("__main__");
+    NUITKA_PRINT_TIMING("main(): Exited from __main__.");
+
 #endif
 #ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
     }
@@ -775,6 +783,7 @@ int main(int argc, char **argv) {
     PRINT_REFCOUNTS();
 #endif
 
+    NUITKA_PRINT_TIMING("main(): Calling Py_Exit.");
     Py_Exit(exit_code);
 
     // The "Py_Exit()" calls is not supposed to return.

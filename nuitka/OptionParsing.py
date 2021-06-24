@@ -80,14 +80,22 @@ a lot of code dependencies. Defaults to off.""",
 )
 
 parser.add_option(
+    "--no-standalone",
+    action="store_false",
+    dest="is_standalone",
+    default=False,
+    help=SUPPRESS_HELP,
+)
+
+
+parser.add_option(
     "--onefile",
     action="store_true",
     dest="is_onefile",
     default=False,
     help="""\
-In case of standalone mode, enable single file mode. This means not a folder,
-but a compressed executable is created and used. Experimental at this time,
-and not supported on all OSes. Defaults to off.""",
+On top of standalone mode, enable onefile mode. This means not a folder,
+but a compressed executable is created and used. Defaults to off.""",
 )
 
 parser.add_option(
@@ -265,17 +273,17 @@ the compilation time by a lot. Defaults to off.""",
 follow_group.add_option(
     "--nofollow-imports",
     action="store_true",
-    dest="recurse_none",
+    dest="follow_none",
     default=False,
     help="""\
-When --recurse-none is used, do not descend into any imported modules at all,
+When --nofollow-imports is used, do not descend into any imported modules at all,
 overrides all other recursion options. Defaults to off.""",
 )
 
 follow_group.add_option(
     "--follow-imports",
     action="store_true",
-    dest="recurse_all",
+    dest="follow_all",
     default=False,
     help="""\
 When --follow-imports is used, attempt to descend into all imported modules.
@@ -285,7 +293,7 @@ Defaults to off.""",
 follow_group.add_option(
     "--follow-import-to",
     action="append",
-    dest="recurse_modules",
+    dest="follow_modules",
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\
@@ -296,7 +304,7 @@ multiple times. Default empty.""",
 follow_group.add_option(
     "--nofollow-import-to",
     action="append",
-    dest="recurse_not_modules",
+    dest="follow_not_modules",
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\
@@ -330,11 +338,13 @@ data_group.add_option(
     metavar="DATA_FILES",
     default=[],
     help="""\
-Include data files by filenames in the distribution. Could use patterns for
-use in glob, if specifying a directory with trailing slash. An example would
-be --include-data-file=/etc/somefile.txt=etc/somefile.txt for plain file copy,
-and you can copy multiple like --include-data-file=/etc/*.txt=etc/ with a
-trailing slash required to use the pattern. Default empty.""",
+Include data files by filenames in the distribution. There are many
+allowed forms. With '--include-data-file=/path/to/file/*.txt=folder_name/some.txt' it
+will copy a single file and complain if it's multiple. With
+'--include-data-file=/path/to/files/*.txt=folder_name/' it will put
+all matching files into that folder. For recursive copy there is a
+form with 3 values that '--include-data-file=/path/to/scan=folder_name=**/*.txt'
+that will preserve directory structure. Default empty.""",
 )
 
 data_group.add_option(
@@ -345,8 +355,8 @@ data_group.add_option(
     default=[],
     help="""\
 Include data files from complete directory in the distribution. This is
-recursive. Check --include-data-file with patterns if you want non-recursive
-inclusion. An example would be --include-data-dir=/path/somedir=data/somedir
+recursive. Check '--include-data-file' with patterns if you want non-recursive
+inclusion. An example would be '--include-data-dir=/path/somedir=data/somedir'
 for plain copy, of the whole directory. All files are copied, if you want to
 exclude files you need to remove them beforehand. Default empty.""",
 )
@@ -916,19 +926,19 @@ added, e.g. to specify product name, or company name. Defaults to nonsense.""",
 
 windows_group.add_option(
     "--windows-onefile-tempdir",
+    "--onefile-tempdir",
     action="store_true",
-    dest="is_windows_onefile_tempdir",
-    metavar="WINDOWS_ONEFILE_TEMPDIR",
+    dest="is_onefile_tempdir",
+    metavar="ONEFILE_TEMPDIR",
     default=False,
-    help="""\
-Use temporary folder rather than company AppData. Defaults to off.""",
+    help=SUPPRESS_HELP,
 )
 
 windows_group.add_option(
     "--windows-onefile-tempdir-spec",
     action="store",
-    dest="windows_onefile_tempdir_spec",
-    metavar="WINDOWS_ONEFILE_TEMPDIR_SPEC",
+    dest="onefile_tempdir_spec",
+    metavar="ONEFILE_TEMPDIR_SPEC",
     default=None,
     help="""\
 Use this as a temporary folder. Defaults to '%TEMP%\\onefile_%PID%_%TIME%', i.e. system temporary directory.""",
@@ -1057,7 +1067,7 @@ def _considerPluginOptions(logger):
             if "=" in plugin_name:
                 logger.sysexit(
                     "Error, plugin options format changed. Use '--user-plugin=%s --help' to know new options."
-                    % plugin_name
+                    % plugin_name.split("=", 1)[0]
                 )
 
             addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
@@ -1137,7 +1147,7 @@ def _getProjectOptions(logger, filename_arg, module_mode):
                 if not arg.endswith(":"):
                     sysexit(
                         count,
-                        "Error, 'nuitka-project-if' needs to start a block with a colon.",
+                        "Error, 'nuitka-project-if' needs to start a block with a colon at line end.",
                     )
 
                 arg = arg[:-1]

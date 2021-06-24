@@ -117,4 +117,14 @@ def encodeNonAscii(var_name):
 
 
 def hasOnefileSupportedOS():
-    return getOS() in ("Linux", "Windows")
+    return getOS() in ("Linux", "Windows", "Darwin", "FreeBSD")
+
+
+def getUserName():
+    """Return the user name.
+
+    Notes: Currently doesn't work on Windows.
+    """
+    import pwd  # pylint: disable=I0021,import-error
+
+    return pwd.getpwuid(os.getuid())[0]

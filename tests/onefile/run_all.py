@@ -102,6 +102,14 @@ def main():
         ]
 
         if filename == "KeyboardInteruptTest.py":
+            if getOS() == "Darwin":
+                reportSkip(
+                    "Exit code from KeybaordInterrupt on macOS is not yet good.",
+                    ".",
+                    filename,
+                )
+                continue
+
             if python_version < (3,):
                 reportSkip(
                     "Python2 reports KeyboardInterrupt, but too late",

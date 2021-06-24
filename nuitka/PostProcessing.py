@@ -21,7 +21,6 @@
 
 import ctypes
 import os
-import shutil
 import sys
 
 from nuitka import Options, OutputDirectories
@@ -34,8 +33,10 @@ from nuitka.PythonVersions import (
 )
 from nuitka.Tracing import postprocessing_logger
 from nuitka.utils.FileOperations import (
+    getExternalUsePath,
     getFileContents,
     makePath,
+    putTextFileContents,
     removeFileExecutablePermission,
 )
 from nuitka.utils.SharedLibraries import callInstallNameTool
@@ -119,7 +120,7 @@ def _addWindowsIconFromIcons(onefile):
         icon_path = os.path.normcase(icon_path)
 
         if not icon_path.endswith(".ico"):
-            postprocessing_logger.info("Not in icon format, converting.")
+            postprocessing_logger.info("Not in Windows icon format, converting to it.")
 
             if icon_index is not None:
                 postprocessing_logger.sysexit(
@@ -131,7 +132,7 @@ def _addWindowsIconFromIcons(onefile):
                 import imageio
             except ImportError:
                 postprocessing_logger.sysexit(
-                    "Need to install imageio to use non-ico icon file in '%s'."
+                    "Need to install 'imageio' to automatically convert non-ico icon file in '%s'."
                     % icon_spec
                 )
 
@@ -371,4 +372,18 @@ def executePostProcessing():
             os.unlink(candidate)
 
     if isWin32Windows() and Options.shallTreatUninstalledPython():
-        shutil.copy(getTargetPythonDLLPath(), os.path.dirname(result_filename) or ".")
+        dll_directory = getExternalUsePath(os.path.dirname(getTargetPythonDLLPath()))
+
+        cmd_filename = OutputDirectories.getResultRunFilename(onefile=False)
+
+        cmd_contents = """
+@echo off
+rem This script was created by Nuitka to execute '%(exe_filename)s' with Python DLL being found.
+set PATH=%(dll_directory)s;%%PATH%%
+"%%~dp0.\\%(exe_filename)s"
+""" % {
+            "dll_directory": dll_directory,
+            "exe_filename": os.path.basename(result_filename),
+        }
+
+        putTextFileContents(cmd_filename, cmd_contents)

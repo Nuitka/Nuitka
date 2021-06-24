@@ -70,7 +70,7 @@ def updateDebianChangelog(old_version, new_version, distribution):
                 marker = "#" * (len(title) + 2)
 
                 changelog_file.write(marker + "\n " + title + "\n" + marker + "\n\n")
-                changelog_file.write("This release is not done yet.\n\n\n")
+                changelog_file.write("This release is not done yet.\n\n")
                 changelog_file.write(changelog)
 
     else:

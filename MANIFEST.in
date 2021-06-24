@@ -19,6 +19,8 @@ include misc/*.sh
 include misc/*.bat
 include tests/run-tests
 
+include nuitka/plugins/standard/*.yml
+
 # Logo with source
 include doc/Logo/Nuitka-Logo-Symbol.svg
 include doc/Logo/Nuitka-Logo-Vertical.svg

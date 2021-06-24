@@ -8,7 +8,6 @@ on:
     branches:
       - master
       - develop
-      - jorj
       - factory
       - release/**
       - hotfix/**
@@ -38,11 +37,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install chrpath gdb ccache libfuse2
-          pip install -r requirements-devel.txt
+          python -m pip install -r requirements-devel.txt
 
       - name: Install Nuitka
         run:
-          pip install .
+          python -m pip install .
 
       - name: Verbose scons output in compilation
         run: |
@@ -57,21 +56,21 @@ jobs:
 
       - name: PyLint on Nuitka source code
         run: |
-          ./bin/check-nuitka-with-pylint
+          python ./bin/check-nuitka-with-pylint
         if: matrix.python_version == '3.7'
 
       - name: RestLint on Nuitka source code
         run: |
-          ./bin/check-nuitka-with-restlint
+          python ./bin/check-nuitka-with-restlint
         if: matrix.python_version == '3.7'
 
       - name: Codespell on Nuitka source code
         run: |
-          ./bin/check-nuitka-with-codespell
+          python ./bin/check-nuitka-with-codespell
         if: matrix.python_version == '3.7'
 
   mac:
-    runs-on: macOS-latest
+    runs-on: macos-latest
     strategy:
       matrix:
         python_version:
@@ -98,7 +97,6 @@ jobs:
 
       - name: Install Nuitka dependencies
         run: |
-          brew install ccache
           pip install -r requirements-devel.txt
 
       - name: Install Nuitka
@@ -107,8 +105,8 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --module --show-scons --run tests/basics/Empty.py
-          python -m nuitka --show-scons --run tests/basics/Empty.py
+          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
+          python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
 
       - name: Run Nuitka test suite
         run: |
@@ -129,6 +127,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - uses: ilammy/msvc-dev-cmd@v1
+
       - name: Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v2
         with:
@@ -143,14 +143,12 @@ jobs:
           pip install .
 
       - name: Verbose scons output in compilation
-        shell: bash
         run: |
-          python -m nuitka --module --show-scons --run --assume-yes-for-downloads --mingw64 tests/basics/Empty.py
-          python -m nuitka --show-scons --run --mingw64 tests/basics/Empty.py
+          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests\basics\Empty.py
+          python -m nuitka --show-scons --run tests\basics\Empty.py
 
       - name: Run Nuitka test suite
-        shell: bash
         run: |
+          Get-ChildItem env:
           python -m nuitka --version
-          env | sort
-          python ./tests/run-tests --no-other-python --no-debug --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads --mingw64
+          python .\tests\run-tests --no-other-python --no-debug --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads

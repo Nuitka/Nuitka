@@ -51,6 +51,7 @@ from nuitka.PythonVersions import (
     getSupportedPythonVersions,
     getSystemPrefixPath,
     getSystemStaticLibPythonPath,
+    isNuitkaPython,
     python_version,
     python_version_str,
 )
@@ -158,7 +159,8 @@ def _createNodeTree(filename):
 
         if kind != "absolute":
             inclusion_logger.sysexit(
-                "Error, failed to locate module %r you asked to include." % module_name
+                "Error, failed to locate module '%s' you asked to include."
+                % module_name
             )
 
         Recursion.checkPluginSinglePath(
@@ -295,7 +297,7 @@ def makeSourceDirectory():
                 else:
                     ModuleRegistry.removeUncompiledModule(uncompiled_module)
 
-    # Lets check if the recurse-to modules are actually present, and warn the
+    # Lets check if the asked modules are actually present, and warn the
     # user if one of those was not found.
     for any_case_module in Options.getShallFollowModules():
         if "*" in any_case_module or "{" in any_case_module:
@@ -408,6 +410,7 @@ def runSconsBackend(quiet):
     options = {
         "result_name": OutputDirectories.getResultBasepath(onefile=False),
         "source_dir": OutputDirectories.getSourceDirectoryPath(),
+        "nuitka_python": asBoolStr(isNuitkaPython()),
         "debug_mode": asBoolStr(Options.is_debug),
         "python_debug": asBoolStr(Options.isPythonDebug()),
         "unstripped_mode": asBoolStr(Options.isUnstripped()),
@@ -439,8 +442,8 @@ def runSconsBackend(quiet):
     if Options.isOnefileMode():
         options["onefile_mode"] = asBoolStr(True)
 
-    if Options.isWindowsOnefileTempDirMode():
-        options["onefile_temp_mode"] = asBoolStr(True)
+        if Options.isOnefileTempDirMode():
+            options["onefile_temp_mode"] = asBoolStr(True)
 
     if Options.getForcedStdoutPath():
         options["forced_stdout_path"] = Options.getForcedStdoutPath()
@@ -813,7 +816,11 @@ __name__ = ...
 
         # Execute the module immediately if option was given.
         if Options.shallExecuteImmediately():
-            general.info("Launching %r." % final_filename)
+            run_filename = OutputDirectories.getResultRunFilename(
+                onefile=Options.isOnefileMode()
+            )
+
+            general.info("Launching %r." % run_filename)
 
             if Options.shallMakeModule():
                 executeModule(
@@ -822,6 +829,6 @@ __name__ = ...
                 )
             else:
                 executeMain(
-                    binary_filename=final_filename,
+                    binary_filename=run_filename,
                     clean_path=Options.shallClearPythonPathEnvironment(),
                 )

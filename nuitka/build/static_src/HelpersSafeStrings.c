@@ -111,12 +111,9 @@ void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) 
 }
 
 #if defined(_WIN32)
-
-#if _NUITKA_ONEFILE_TEMP == 1
 #include <shellapi.h>
-#endif
 
-bool expandWindowsPath(wchar_t *target, wchar_t const *source, size_t buffer_size) {
+bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_size) {
     target[0] = 0;
 
     wchar_t var_name[1024];
@@ -196,4 +193,86 @@ bool expandWindowsPath(wchar_t *target, wchar_t const *source, size_t buffer_siz
 
     return true;
 }
+
+#else
+
+#include <strings.h>
+#include <sys/time.h>
+
+bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
+    target[0] = 0;
+
+    char var_name[1024];
+    char *w = NULL;
+
+    while (*source != 0) {
+        if (*source == '%') {
+            if (w == NULL) {
+                w = var_name;
+                *w = 0;
+
+                source++;
+
+                continue;
+            } else {
+                *w = 0;
+
+                if (strcasecmp(var_name, "TEMP") == 0) {
+                    char const *tmp_dir = getenv("TMPDIR");
+                    if (tmp_dir == NULL) {
+                        tmp_dir = "/tmp";
+                    }
+
+                    appendStringSafe(target, tmp_dir, buffer_size);
+                } else if (strcasecmp(var_name, "PROGRAM") == 0) {
+                    // Not implemented outside of Windows yet.
+                    return false;
+                } else if (strcasecmp(var_name, "PID") == 0) {
+                    char pid_buffer[128];
+                    snprintf(pid_buffer, sizeof(pid_buffer), "%d", getpid());
+
+                    appendStringSafe(target, pid_buffer, buffer_size);
+                } else if (strcasecmp(var_name, "TIME") == 0) {
+                    char time_buffer[1024];
+
+                    struct timeval current_time;
+                    gettimeofday(&current_time, NULL);
+
+                    snprintf(time_buffer, sizeof(time_buffer), "%ld_%ld", current_time.tv_sec, current_time.tv_usec);
+
+                } else {
+                    return false;
+                }
+
+                // Skip over appended stuff.
+                while (*target) {
+                    target++;
+                    buffer_size -= 1;
+                }
+
+                w = NULL;
+                source++;
+
+                continue;
+            }
+        }
+
+        if (w != NULL) {
+            *w++ = *source++;
+            continue;
+        }
+
+        if (buffer_size < 1) {
+            return false;
+        }
+
+        *target++ = *source++;
+        buffer_size -= 1;
+    }
+
+    *target = 0;
+
+    return true;
+}
+
 #endif
