@@ -312,7 +312,7 @@ def _pickCompressor():
             with cctx.stream_writer(output_file, closefd=False) as compressed_file:
                 yield compressed_file
 
-        onefile_logger.info("Using zstandard compression for payload.")
+        onefile_logger.info("Using compression for onefile payload.")
 
         return b"Y", useCompressedFile
 
