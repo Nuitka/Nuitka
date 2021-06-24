@@ -1,6 +1,12 @@
 ###############################
- Nuitka Release 0.6.16 (Draft)
+ Nuitka Release 0.6.17 (Draft)
 ###############################
+
+This release is not done yet.
+
+#######################
+ Nuitka Release 0.6.16
+#######################
 
 ***********
  Bug Fixes
