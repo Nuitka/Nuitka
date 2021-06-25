@@ -519,6 +519,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
             ".json",
             ".spec",
             "-rpmlintrc",
+            "Containerfile",
         )
     ) or os.path.basename(filename) in (
         "changelog",
