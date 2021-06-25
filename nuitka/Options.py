@@ -870,7 +870,7 @@ def getIconPaths():
     # Check if Linux icon requirement is met.
     if getOS() == "Linux" and not result and isOnefileMode():
         default_icons = (
-            "/usr/share/pixmaps/python%s.%s.xpm" % python_version_str,
+            "/usr/share/pixmaps/python%s.xpm" % python_version_str,
             "/usr/share/pixmaps/python%s.xpm" % sys.version_info[0],
             "/usr/share/pixmaps/python.xpm",
         )
