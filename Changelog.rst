@@ -7,6 +7,8 @@ This release is not done yet.
 #######################
  Nuitka Release 0.6.16
 #######################
+This release is mostly polishing and new features. Optimization looked
+only at threading performance, and LTO improvements on Windows.
 
 ***********
  Bug Fixes
@@ -137,7 +139,14 @@ This release is not done yet.
 
 -  Use MSVC in Github actions.
 
-This release is not done yet.
+*********
+ Summary
+*********
+
+This release had a massive focus on expanding existing features, esp.
+for onefile, and plugins API, such that we can now configure
+``anti-bloat`` with yaml, have really nice datafile handling options,
+and have onefile on all OSes practically.
 
 #######################
  Nuitka Release 0.6.15
