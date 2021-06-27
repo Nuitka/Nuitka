@@ -129,13 +129,13 @@ not exist, a list of all available will be given.""",
             return template % {"binding_name": self.binding_name}
 
         setup_codes = applyBindingName(
-            r"""\
+            r"""
 import os
 import %(binding_name)s.QtCore
 """
         )
 
-        return self.queryRuntimeInformationMultiple(
+        info = self.queryRuntimeInformationMultiple(
             info_name=applyBindingName("%(binding_name)s_info"),
             setup_codes=setup_codes,
             values=(
@@ -181,6 +181,11 @@ import %(binding_name)s.QtCore
                 ),
             ),
         )
+
+        if info is None:
+            self.sysexit("Error, it seems '%s' is not installed." % self.binding_name)
+
+        return info
 
     def _getBindingVersion(self):
         """Get the version of the binding in tuple digit form, e.g. (6,0,3)"""

@@ -35,7 +35,7 @@ from collections import namedtuple
 from nuitka.__past__ import getMetaClassBase
 from nuitka.containers.oset import OrderedSet
 from nuitka.Tracing import plugins_logger
-from nuitka.utils.Execution import check_output
+from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.FileOperations import makePath
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -601,20 +601,29 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             query_codes.append('print("-" * 27)')
 
         if type(setup_codes) is str:
-            setup_codes = [setup_codes]
+            setup_codes = setup_codes.split("\n")
 
         cmd = r"""\
 from __future__ import print_function
 from __future__ import absolute_import
 
-%(setup_codes)s
+try:
+    %(setup_codes)s
+except ImportError:
+    import sys
+    sys.exit(38)
 %(query_codes)s
 """ % {
-            "setup_codes": "\n".join(setup_codes),
+            "setup_codes": "\n   ".join(setup_codes),
             "query_codes": "\n".join(query_codes),
         }
 
-        feedback = check_output([sys.executable, "-c", cmd])
+        try:
+            feedback = check_output([sys.executable, "-c", cmd])
+        except NuitkaCalledProcessError as e:
+            if e.returncode == 38:
+                return None
+            raise
 
         if str is not bytes:  # We want to work with strings, that's hopefully OK.
             feedback = feedback.decode("utf8")
