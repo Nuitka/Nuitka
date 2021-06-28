@@ -125,6 +125,33 @@ def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
     )
 
 
+def makeRaiseExceptionStatementFromInstance(exception, source_ref):
+    assert isinstance(exception, Exception)
+
+    args = exception.args
+    if type(args) is tuple and len(args) == 1:
+        value = args[0]
+    else:
+        assert type(args) is tuple
+        value = args
+
+    from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+    from .ConstantRefNodes import makeConstantRefNode
+    from .ExceptionNodes import StatementRaiseExceptionImplicit
+
+    return StatementRaiseExceptionImplicit(
+        exception_type=ExpressionBuiltinExceptionRef(
+            exception_name=exception.__class__.__name__, source_ref=source_ref
+        ),
+        exception_value=makeConstantRefNode(
+            constant=value, source_ref=source_ref, user_provided=False
+        ),
+        exception_cause=None,
+        exception_trace=None,
+        source_ref=source_ref,
+    )
+
+
 def makeRaiseExceptionExpressionFromTemplate(
     exception_type, template, template_args, source_ref
 ):
