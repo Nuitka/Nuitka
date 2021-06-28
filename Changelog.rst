@@ -7,6 +7,7 @@ This release is not done yet.
 #######################
  Nuitka Release 0.6.16
 #######################
+
 This release is mostly polishing and new features. Optimization looked
 only at threading performance, and LTO improvements on Windows.
 
