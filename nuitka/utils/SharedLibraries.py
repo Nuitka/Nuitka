@@ -232,7 +232,7 @@ def _getSharedLibraryRPATHElf(filename):
             result = line[line.find(b"[") + 1 : line.rfind(b"]")]
 
             if str is not bytes:
-                result = result.decode("utf-8")
+                result = result.decode("utf8")
 
             return result
 
@@ -262,7 +262,7 @@ def _getSharedLibraryRPATHDarwin(filename):
                 result = line[5 : line.rfind(b"(") - 1]
 
                 if str is not bytes:
-                    result = result.decode("utf-8")
+                    result = result.decode("utf8")
 
                 return result
 

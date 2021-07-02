@@ -244,4 +244,4 @@ def _digest(value):
         if type(value) is bytes:
             return hashlib.md5(value).hexdigest()
         else:
-            return hashlib.md5(value.encode("utf-8")).hexdigest()
+            return hashlib.md5(value.encode("utf8")).hexdigest()

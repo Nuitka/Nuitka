@@ -63,6 +63,11 @@ def cleanupWindowsNewlines(filename):
     updated_code = source_code.replace(b"\r\n", b"\n")
     updated_code = updated_code.replace(b"\n\r", b"\n")
 
+    # Smuggle consistency replacement in here.
+    if "Autoformat.py" not in filename:
+        updated_code = updated_code.replace(b'.decode("utf-8")', b'.decode("utf8")')
+        updated_code = updated_code.replace(b'.encode("utf-8")', b'.encode("utf8")')
+
     if updated_code != source_code:
         with open(filename, "wb") as out_file:
             out_file.write(updated_code)

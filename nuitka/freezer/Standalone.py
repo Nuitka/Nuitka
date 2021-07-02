@@ -298,7 +298,7 @@ print("\\n".join(sorted(
             origin = parts[1].split()[0]
 
             if python_version >= 0x300:
-                module_name = module_name.decode("utf-8")
+                module_name = module_name.decode("utf8")
 
             module_name = ModuleName(module_name)
 
@@ -307,7 +307,7 @@ print("\\n".join(sorted(
                 # chance to do anything, we need to preserve it.
                 filename = parts[1][len(b"precompiled from ") :]
                 if python_version >= 0x300:
-                    filename = filename.decode("utf-8")
+                    filename = filename.decode("utf8")
 
                 # Do not leave standard library when freezing.
                 if not isStandardLibraryPath(filename):
@@ -317,7 +317,7 @@ print("\\n".join(sorted(
             elif origin == b"sourcefile":
                 filename = parts[1][len(b"sourcefile ") :]
                 if python_version >= 0x300:
-                    filename = filename.decode("utf-8")
+                    filename = filename.decode("utf8")
 
                 # Do not leave standard library when freezing.
                 if not isStandardLibraryPath(filename):
@@ -341,7 +341,7 @@ print("\\n".join(sorted(
                 # or self compiled Python installations.
                 filename = parts[1][len(b"dynamically loaded from ") :]
                 if python_version >= 0x300:
-                    filename = filename.decode("utf-8")
+                    filename = filename.decode("utf8")
 
                 # Do not leave standard library when freezing.
                 if not isStandardLibraryPath(filename):
@@ -706,7 +706,7 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
                 continue
 
             if python_version >= 0x300:
-                filename = filename.decode("utf-8")
+                filename = filename.decode("utf8")
 
             # Sometimes might use stuff not found or supplied by ldd itself.
             if filename in ("not found", "ldd"):
@@ -749,7 +749,7 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename, keep_unresolved):
 
     for line in stdout.split(b"\n")[1:]:
         if str is not bytes:
-            line = line.decode("utf-8")
+            line = line.decode("utf8")
 
         if not line:
             continue
@@ -814,7 +814,7 @@ def _detectBinaryRPathsMacOS(original_dir, binary_filename):
         if o.endswith(b"cmd LC_RPATH"):
             line = lines[i + 2]
             if str is not bytes:
-                line = line.decode("utf-8")
+                line = line.decode("utf8")
 
             line = line.split("path ", 1)[1]
             line = line.split(" (offset", 1)[0]

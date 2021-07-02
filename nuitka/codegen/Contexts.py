@@ -344,7 +344,7 @@ class CodeObjectsMixin(object):
     else:
 
         def _calcHash(self, key):
-            hash_value = hashlib.md5("-".join(str(s) for s in key).encode("utf-8"))
+            hash_value = hashlib.md5("-".join(str(s) for s in key).encode("utf8"))
 
             return hash_value.hexdigest()
 

@@ -146,10 +146,10 @@ print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else 
     _python_vendor = version_output.split(b"\n")[3].strip()
 
     if str is not bytes:
-        _python_version_str = _python_version_str.decode("utf-8")
-        _python_arch = _python_arch.decode("utf-8")
-        _python_executable = _python_executable.decode("utf-8")
-        _python_vendor = _python_vendor.decode("utf-8")
+        _python_version_str = _python_version_str.decode("utf8")
+        _python_arch = _python_arch.decode("utf8")
+        _python_executable = _python_executable.decode("utf8")
+        _python_vendor = _python_vendor.decode("utf8")
 
     assert type(_python_version_str) is str, repr(_python_version_str)
     assert type(_python_arch) is str, repr(_python_arch)

@@ -91,7 +91,7 @@ def toString(tree):
     result = toBytes(tree)
 
     if str is not bytes:
-        result = result.decode("utf-8")
+        result = result.decode("utf8")
 
     return result
 
