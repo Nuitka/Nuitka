@@ -1,16 +1,16 @@
 
 __all__ = ['Serializer', 'SerializerError']
 
-from .error import YAMLError
-from .events import *
-from .nodes import *
+from error import YAMLError
+from events import *
+from nodes import *
 
 class SerializerError(YAMLError):
     pass
 
-class Serializer:
+class Serializer(object):
 
-    ANCHOR_TEMPLATE = 'id%03d'
+    ANCHOR_TEMPLATE = u'id%03d'
 
     def __init__(self, encoding=None,
             explicit_start=None, explicit_end=None, version=None, tags=None):
