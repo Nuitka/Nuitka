@@ -1,19 +1,19 @@
 
 __all__ = ['BaseResolver', 'Resolver']
 
-from .error import *
-from .nodes import *
+from error import *
+from nodes import *
 
 import re
 
 class ResolverError(YAMLError):
     pass
 
-class BaseResolver:
+class BaseResolver(object):
 
-    DEFAULT_SCALAR_TAG = 'tag:yaml.org,2002:str'
-    DEFAULT_SEQUENCE_TAG = 'tag:yaml.org,2002:seq'
-    DEFAULT_MAPPING_TAG = 'tag:yaml.org,2002:map'
+    DEFAULT_SCALAR_TAG = u'tag:yaml.org,2002:str'
+    DEFAULT_SEQUENCE_TAG = u'tag:yaml.org,2002:seq'
+    DEFAULT_MAPPING_TAG = u'tag:yaml.org,2002:map'
 
     yaml_implicit_resolvers = {}
     yaml_path_resolvers = {}
@@ -22,7 +22,6 @@ class BaseResolver:
         self.resolver_exact_paths = []
         self.resolver_prefix_paths = []
 
-    @classmethod
     def add_implicit_resolver(cls, tag, regexp, first):
         if not 'yaml_implicit_resolvers' in cls.__dict__:
             implicit_resolvers = {}
@@ -33,8 +32,8 @@ class BaseResolver:
             first = [None]
         for ch in first:
             cls.yaml_implicit_resolvers.setdefault(ch, []).append((tag, regexp))
+    add_implicit_resolver = classmethod(add_implicit_resolver)
 
-    @classmethod
     def add_path_resolver(cls, tag, path, kind=None):
         # Note: `add_path_resolver` is experimental.  The API could be changed.
         # `new_path` is a pattern that is matched against the path from the
@@ -70,10 +69,10 @@ class BaseResolver:
             elif node_check is dict:
                 node_check = MappingNode
             elif node_check not in [ScalarNode, SequenceNode, MappingNode]  \
-                    and not isinstance(node_check, str) \
+                    and not isinstance(node_check, basestring)  \
                     and node_check is not None:
                 raise ResolverError("Invalid node checker: %s" % node_check)
-            if not isinstance(index_check, (str, int))  \
+            if not isinstance(index_check, (basestring, int))   \
                     and index_check is not None:
                 raise ResolverError("Invalid index checker: %s" % index_check)
             new_path.append((node_check, index_check))
@@ -87,6 +86,7 @@ class BaseResolver:
                 and kind is not None:
             raise ResolverError("Invalid node kind: %s" % kind)
         cls.yaml_path_resolvers[tuple(new_path), kind] = tag
+    add_path_resolver = classmethod(add_path_resolver)
 
     def descend_resolver(self, current_node, current_index):
         if not self.yaml_path_resolvers:
@@ -120,7 +120,7 @@ class BaseResolver:
     def check_resolver_prefix(self, depth, path, kind,
             current_node, current_index):
         node_check, index_check = path[depth-1]
-        if isinstance(node_check, str):
+        if isinstance(node_check, basestring):
             if current_node.tag != node_check:
                 return
         elif node_check is not None:
@@ -131,7 +131,7 @@ class BaseResolver:
         if (index_check is False or index_check is None)    \
                 and current_index is None:
             return
-        if isinstance(index_check, str):
+        if isinstance(index_check, basestring):
             if not (isinstance(current_index, ScalarNode)
                     and index_check == current_index.value):
                 return
@@ -142,12 +142,12 @@ class BaseResolver:
 
     def resolve(self, kind, value, implicit):
         if kind is ScalarNode and implicit[0]:
-            if value == '':
-                resolvers = self.yaml_implicit_resolvers.get('', [])
+            if value == u'':
+                resolvers = self.yaml_implicit_resolvers.get(u'', [])
             else:
                 resolvers = self.yaml_implicit_resolvers.get(value[0], [])
-            wildcard_resolvers = self.yaml_implicit_resolvers.get(None, [])
-            for tag, regexp in resolvers + wildcard_resolvers:
+            resolvers += self.yaml_implicit_resolvers.get(None, [])
+            for tag, regexp in resolvers:
                 if regexp.match(value):
                     return tag
             implicit = implicit[1]
@@ -168,60 +168,60 @@ class Resolver(BaseResolver):
     pass
 
 Resolver.add_implicit_resolver(
-        'tag:yaml.org,2002:bool',
-        re.compile(r'''^(?:yes|Yes|YES|no|No|NO
+        u'tag:yaml.org,2002:bool',
+        re.compile(ur'''^(?:yes|Yes|YES|no|No|NO
                     |true|True|TRUE|false|False|FALSE
                     |on|On|ON|off|Off|OFF)$''', re.X),
-        list('yYnNtTfFoO'))
+        list(u'yYnNtTfFoO'))
 
 Resolver.add_implicit_resolver(
-        'tag:yaml.org,2002:float',
-        re.compile(r'''^(?:[-+]?(?:[0-9][0-9_]*)\.[0-9_]*(?:[eE][-+][0-9]+)?
+        u'tag:yaml.org,2002:float',
+        re.compile(ur'''^(?:[-+]?(?:[0-9][0-9_]*)\.[0-9_]*(?:[eE][-+][0-9]+)?
                     |\.[0-9_]+(?:[eE][-+][0-9]+)?
                     |[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+\.[0-9_]*
                     |[-+]?\.(?:inf|Inf|INF)
                     |\.(?:nan|NaN|NAN))$''', re.X),
-        list('-+0123456789.'))
+        list(u'-+0123456789.'))
 
 Resolver.add_implicit_resolver(
-        'tag:yaml.org,2002:int',
-        re.compile(r'''^(?:[-+]?0b[0-1_]+
+        u'tag:yaml.org,2002:int',
+        re.compile(ur'''^(?:[-+]?0b[0-1_]+
                     |[-+]?0[0-7_]+
                     |[-+]?(?:0|[1-9][0-9_]*)
                     |[-+]?0x[0-9a-fA-F_]+
                     |[-+]?[1-9][0-9_]*(?::[0-5]?[0-9])+)$''', re.X),
-        list('-+0123456789'))
+        list(u'-+0123456789'))
 
 Resolver.add_implicit_resolver(
-        'tag:yaml.org,2002:merge',
-        re.compile(r'^(?:<<)$'),
-        ['<'])
+        u'tag:yaml.org,2002:merge',
+        re.compile(ur'^(?:<<)$'),
+        [u'<'])
 
 Resolver.add_implicit_resolver(
-        'tag:yaml.org,2002:null',
-        re.compile(r'''^(?: ~
+        u'tag:yaml.org,2002:null',
+        re.compile(ur'''^(?: ~
                     |null|Null|NULL
                     | )$''', re.X),
-        ['~', 'n', 'N', ''])
+        [u'~', u'n', u'N', u''])
 
 Resolver.add_implicit_resolver(
-        'tag:yaml.org,2002:timestamp',
-        re.compile(r'''^(?:[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]
+        u'tag:yaml.org,2002:timestamp',
+        re.compile(ur'''^(?:[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]
                     |[0-9][0-9][0-9][0-9] -[0-9][0-9]? -[0-9][0-9]?
                      (?:[Tt]|[ \t]+)[0-9][0-9]?
                      :[0-9][0-9] :[0-9][0-9] (?:\.[0-9]*)?
                      (?:[ \t]*(?:Z|[-+][0-9][0-9]?(?::[0-9][0-9])?))?)$''', re.X),
-        list('0123456789'))
+        list(u'0123456789'))
 
 Resolver.add_implicit_resolver(
-        'tag:yaml.org,2002:value',
-        re.compile(r'^(?:=)$'),
-        ['='])
+        u'tag:yaml.org,2002:value',
+        re.compile(ur'^(?:=)$'),
+        [u'='])
 
 # The following resolver is only for documentation purposes. It cannot work
 # because plain scalars cannot start with '!', '&', or '*'.
 Resolver.add_implicit_resolver(
-        'tag:yaml.org,2002:yaml',
-        re.compile(r'^(?:!|&|\*)$'),
-        list('!&*'))
+        u'tag:yaml.org,2002:yaml',
+        re.compile(ur'^(?:!|&|\*)$'),
+        list(u'!&*'))
 

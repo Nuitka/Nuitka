@@ -189,13 +189,27 @@ def importFromFolder(logger, module_name, path, must_exist, message):
 def importFromInlineCopy(module_name, must_exist):
     """Import a module from the inline copy stage."""
 
+    folder_name = os.path.normpath(
+        os.path.join(
+            os.path.dirname(__file__), "..", "build", "inline_copy", module_name
+        )
+    )
+
+    # Use specific versions if needed.
+    if python_version < 0x300:
+        candidate = folder_name + "_27"
+
+        if os.path.exists(candidate):
+            folder_name = candidate
+    elif python_version < 0x360:
+        candidate = folder_name + "_35"
+
+        if os.path.exists(candidate):
+            folder_name = candidate
+
     return importFromFolder(
         module_name=module_name,
-        path=os.path.normpath(
-            os.path.join(
-                os.path.dirname(__file__), "..", "build", "inline_copy", module_name
-            )
-        ),
+        path=folder_name,
         must_exist=must_exist,
         message=None,
         logger=general,

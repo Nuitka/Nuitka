@@ -25,9 +25,16 @@ import os
 
 from nuitka import ModuleRegistry, Options
 from nuitka.importing import ImportCache, Importing, StandardLibrary
+from nuitka.nodes.NodeMakingHelpers import (
+    makeRaiseExceptionStatementFromInstance,
+)
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import recursion_logger
+from nuitka.tree.TreeHelpers import (
+    makeModuleFrame,
+    makeStatementsSequenceFromStatement,
+)
 from nuitka.utils.FileOperations import listDir, relpath
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -64,11 +71,23 @@ def _recurseTo(module_package, module_filename, module_relpath, module_kind, rea
 
                 recursion_logger.warning(
                     """\
-Cannot follow import to module %r (%r) because of %r"""
-                    % (module_relpath, module_filename, e.__class__.__name__)
+Cannot follow import to module '%s' because of %r."""
+                    % (module.getFullName(), e.__class__.__name__)
                 )
 
-            return None, False
+            module_body = makeModuleFrame(
+                module=module,
+                statements=(
+                    makeRaiseExceptionStatementFromInstance(
+                        source_ref=source_ref, exception=e
+                    ),
+                ),
+                source_ref=source_ref,
+            )
+
+            module_body = makeStatementsSequenceFromStatement(statement=module_body)
+            module.setChild("body", module_body)
+
         except Building.CodeTooComplexCode:
             if module_filename not in Importing.warned_about:
                 Importing.warned_about.add(module_filename)
