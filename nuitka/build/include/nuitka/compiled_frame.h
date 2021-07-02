@@ -108,15 +108,37 @@ inline static void assertFrameObject(struct Nuitka_FrameObject *frame_object) {
 // this is a no-op. Using a define to spare the compile from inlining an empty
 // function.
 #if PYTHON_VERSION >= 0x340
-static inline void Nuitka_Frame_MarkAsExecuting(struct Nuitka_FrameObject *frame) { frame->m_frame.f_executing = 1; }
+static inline void Nuitka_Frame_MarkAsExecuting(struct Nuitka_FrameObject *frame) {
+#if PYTHON_VERSION >= 0x3a0
+    frame->m_frame.f_state = FRAME_EXECUTING;
+#else
+    frame->m_frame.f_executing = 1;
+#endif
+}
 #else
 #define Nuitka_Frame_MarkAsExecuting(frame) ;
 #endif
 
 #if PYTHON_VERSION >= 0x340
-static inline void Nuitka_Frame_MarkAsNotExecuting(struct Nuitka_FrameObject *frame) { frame->m_frame.f_executing = 0; }
+static inline void Nuitka_Frame_MarkAsNotExecuting(struct Nuitka_FrameObject *frame) {
+#if PYTHON_VERSION >= 0x3a0
+    frame->m_frame.f_state = FRAME_SUSPENDED;
+#else
+    frame->m_frame.f_executing = 0;
+#endif
+}
 #else
 #define Nuitka_Frame_MarkAsNotExecuting(frame) ;
+#endif
+
+#if PYTHON_VERSION >= 0x340
+static inline bool Nuitka_Frame_IsExecuting(struct Nuitka_FrameObject *frame) {
+#if PYTHON_VERSION >= 0x3a0
+    return frame->m_frame.f_state == FRAME_EXECUTING;
+#else
+    return frame->m_frame.f_executing == 1;
+#endif
+}
 #endif
 
 // Put frame at the top of the frame stack and mark as executing.

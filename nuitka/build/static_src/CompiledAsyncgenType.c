@@ -1272,12 +1272,13 @@ NUITKA_MAY_BE_UNUSED static void _PRINT_ASYNCGENASEND_STATUS(char const *descrip
  * yet we have to unwrap ourselves too. These could break in future updates,
  * and ideally we would have checks to cover those.
  */
-typedef struct {
+
+struct _PyAsyncGenWrappedValue {
     /* Python object folklore: */
     PyObject_HEAD;
 
     PyObject *agw_val;
-} _PyAsyncGenWrappedValue;
+};
 
 #define _PyAsyncGenWrappedValue_CheckExact(o) (Py_TYPE(o) == &_PyAsyncGenWrappedValue_Type)
 
@@ -1301,7 +1302,7 @@ static PyObject *Nuitka_Asyncgen_unwrap_value(struct Nuitka_AsyncgenObject *asyn
 
     if (_PyAsyncGenWrappedValue_CheckExact(result)) {
         /* async yield */
-        _PyGen_SetStopIterationValue(((_PyAsyncGenWrappedValue *)result)->agw_val);
+        _PyGen_SetStopIterationValue(((struct _PyAsyncGenWrappedValue *)result)->agw_val);
 
         Py_DECREF(result);
 

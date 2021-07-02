@@ -48,7 +48,17 @@
 #include "frameobject.h"
 #include "marshal.h"
 #include "methodobject.h"
+
+#if PYTHON_VERSION < 0x3a0
 #include "pydebug.h"
+#endif
+
+// We are not following the 3.10 change to an inline function. At least
+// not immediately.
+#if PYTHON_VERSION >= 0x3a0
+#undef Py_REFCNT
+#define Py_REFCNT(ob) (_PyObject_CAST(ob)->ob_refcnt)
+#endif
 
 #if defined(_WIN32)
 // Windows is too difficult for API redefines.
@@ -361,6 +371,10 @@ extern PyObject **global_constants;
 #define const_str_plain_range global_constants[29]
 // 'open'
 #define const_str_plain_open global_constants[30]
+// 'close'
+#define const_str_plain_close global_constants[30]
+// 'throw'
+#define const_str_plain_throw global_constants[30]
 // 'sum'
 #define const_str_plain_sum global_constants[31]
 // 'format'

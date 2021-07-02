@@ -438,7 +438,7 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
 #if PYTHON_VERSION >= 0x340
 
 static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
-    if (frame->m_frame.f_executing) {
+    if (Nuitka_Frame_IsExecuting(frame)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cannot clear an executing frame");
 
         return NULL;
@@ -620,7 +620,7 @@ static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *modul
 
 #if PYTHON_VERSION >= 0x340
     frame->f_gen = NULL;
-    frame->f_executing = 0;
+    Nuitka_Frame_MarkAsNotExecuting(result);
 #endif
 
     Nuitka_GC_Track(result);
