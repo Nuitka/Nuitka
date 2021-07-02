@@ -50,16 +50,35 @@
 #include "methodobject.h"
 #include "pydebug.h"
 
-#if PYTHON_VERSION >= 0x380
-#define NUITKA_USE_PYCORE_THREADSTATE
+#if defined(_WIN32)
+// Windows is too difficult for API redefines.
+#define MIN_PYCORE_PYTHON_VERSION 0x380
 #else
+#define MIN_PYCORE_PYTHON_VERSION 0x370
+#endif
+
+#if PYTHON_VERSION >= MIN_PYCORE_PYTHON_VERSION
+#define NUITKA_USE_PYCORE_THREADSTATE
 #endif
 
 #ifdef NUITKA_USE_PYCORE_THREADSTATE
 #undef Py_BUILD_CORE
 #define Py_BUILD_CORE
 #undef _PyGC_FINALIZED
+
+#if PYTHON_VERSION < 0x380
+#undef Py_ATOMIC_H
+#include "pyatomic.h"
+#undef Py_INTERNAL_PYSTATE_H
+#include "internal/pystate.h"
+#undef Py_STATE_H
+#include "pystate.h"
+
+extern _PyRuntimeState _PyRuntime;
+#else
 #include "internal/pycore_pystate.h"
+#endif
+
 #if PYTHON_VERSION >= 0x390
 #include <internal/pycore_interp.h>
 #include <internal/pycore_runtime.h>
