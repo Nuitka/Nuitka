@@ -134,7 +134,7 @@ class Reader(object):
                 self.encoding = 'utf-8'
         self.update(1)
 
-    NON_PRINTABLE = re.compile('[^\x09\x0A\x0D\x20-\x7E\x85\xA0-\uD7FF\uE000-\uFFFD\U00010000-\U0010ffff]')
+    NON_PRINTABLE = re.compile('[^\x09\x0A\x0D\x20-\x7E\x85\xA0-\uD7FF\uE000-\uFFFD]')
     def check_printable(self, data):
         match = self.NON_PRINTABLE.search(data)
         if match:
@@ -183,3 +183,10 @@ class Reader(object):
         self.stream_pointer += len(data)
         if not data:
             self.eof = True
+
+#try:
+#    import psyco
+#    psyco.bind(Reader)
+#except ImportError:
+#    pass
+

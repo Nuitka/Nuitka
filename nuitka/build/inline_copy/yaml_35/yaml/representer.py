@@ -5,7 +5,7 @@ __all__ = ['BaseRepresenter', 'SafeRepresenter', 'Representer',
 from .error import *
 from .nodes import *
 
-import datetime, copyreg, types, base64, collections
+import datetime, sys, copyreg, types, base64, collections
 
 class RepresenterError(YAMLError):
     pass
@@ -15,9 +15,8 @@ class BaseRepresenter:
     yaml_representers = {}
     yaml_multi_representers = {}
 
-    def __init__(self, default_style=None, default_flow_style=False, sort_keys=True):
+    def __init__(self, default_style=None, default_flow_style=None):
         self.default_style = default_style
-        self.sort_keys = sort_keys
         self.default_flow_style = default_flow_style
         self.represented_objects = {}
         self.object_keeper = []
@@ -108,11 +107,10 @@ class BaseRepresenter:
         best_style = True
         if hasattr(mapping, 'items'):
             mapping = list(mapping.items())
-            if self.sort_keys:
-                try:
-                    mapping = sorted(mapping)
-                except TypeError:
-                    pass
+            try:
+                mapping = sorted(mapping)
+            except TypeError:
+                pass
         for item_key, item_value in mapping:
             node_key = self.represent_data(item_key)
             node_value = self.represent_data(item_value)
@@ -228,7 +226,7 @@ class SafeRepresenter(BaseRepresenter):
         return self.represent_mapping(tag, state, flow_style=flow_style)
 
     def represent_undefined(self, data):
-        raise RepresenterError("cannot represent an object", data)
+        raise RepresenterError("cannot represent an object: %s" % data)
 
 SafeRepresenter.add_representer(type(None),
         SafeRepresenter.represent_none)
@@ -318,7 +316,7 @@ class Representer(SafeRepresenter):
         elif hasattr(data, '__reduce__'):
             reduce = data.__reduce__()
         else:
-            raise RepresenterError("cannot represent an object", data)
+            raise RepresenterError("cannot represent object: %r" % data)
         reduce = (list(reduce)+[None]*5)[:5]
         function, args, state, listitems, dictitems = reduce
         args = list(args)

@@ -41,7 +41,7 @@ class Emitter:
         # The stream should have the methods `write` and possibly `flush`.
         self.stream = stream
 
-        # Encoding can be overridden by STREAM-START.
+        # Encoding can be overriden by STREAM-START.
         self.encoding = None
 
         # Emitter is a state machine with a stack of states to handle nested
@@ -604,7 +604,7 @@ class Emitter:
                 start = end = end+1
                 data = ch.encode('utf-8')
                 for ch in data:
-                    chunks.append('%%%02X' % ch)
+                    chunks.append('%%%02X' % ord(ch))
         if start < end:
             chunks.append(suffix[start:end])
         suffix_text = ''.join(chunks)
@@ -652,7 +652,7 @@ class Emitter:
             flow_indicators = True
 
         # First character or preceded by a whitespace.
-        preceded_by_whitespace = True
+        preceeded_by_whitespace = True
 
         # Last character or followed by a whitespace.
         followed_by_whitespace = (len(scalar) == 1 or
@@ -671,7 +671,7 @@ class Emitter:
             # Check for indicators.
             if index == 0:
                 # Leading indicators are special characters.
-                if ch in '#,[]{}&*!|>\'\"%@`':
+                if ch in '#,[]{}&*!|>\'\"%@`': 
                     flow_indicators = True
                     block_indicators = True
                 if ch in '?:':
@@ -689,7 +689,7 @@ class Emitter:
                     flow_indicators = True
                     if followed_by_whitespace:
                         block_indicators = True
-                if ch == '#' and preceded_by_whitespace:
+                if ch == '#' and preceeded_by_whitespace:
                     flow_indicators = True
                     block_indicators = True
 
@@ -698,8 +698,7 @@ class Emitter:
                 line_breaks = True
             if not (ch == '\n' or '\x20' <= ch <= '\x7E'):
                 if (ch == '\x85' or '\xA0' <= ch <= '\uD7FF'
-                        or '\uE000' <= ch <= '\uFFFD'
-                        or '\U00010000' <= ch < '\U0010ffff') and ch != '\uFEFF':
+                        or '\uE000' <= ch <= '\uFFFD') and ch != '\uFEFF':
                     unicode_characters = True
                     if not self.allow_unicode:
                         special_characters = True
@@ -731,7 +730,7 @@ class Emitter:
 
             # Prepare for the next character.
             index += 1
-            preceded_by_whitespace = (ch in '\0 \t\r\n\x85\u2028\u2029')
+            preceeded_by_whitespace = (ch in '\0 \t\r\n\x85\u2028\u2029')
             followed_by_whitespace = (index+1 >= len(scalar) or
                     scalar[index+1] in '\0 \t\r\n\x85\u2028\u2029')
 
@@ -1135,3 +1134,4 @@ class Emitter:
                 spaces = (ch == ' ')
                 breaks = (ch in '\n\x85\u2028\u2029')
             end += 1
+

@@ -735,7 +735,7 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
 
 
 def _detectBinaryPathDLLsMacOS(original_dir, binary_filename, keep_unresolved):
-    result = set()
+    result = OrderedSet()
 
     process = subprocess.Popen(
         args=["otool", "-L", binary_filename],
@@ -745,22 +745,20 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename, keep_unresolved):
     )
 
     stdout, _stderr = process.communicate()
-    system_paths = (b"/usr/lib/", b"/System/Library/Frameworks/")
+    system_paths = ("/usr/lib/", "/System/Library/Frameworks/")
 
     for line in stdout.split(b"\n")[1:]:
+        if str is not bytes:
+            line = line.decode("utf-8")
+
         if not line:
             continue
 
-        filename = line.split(b" (")[0].strip()
-        stop = False
+        filename = line.split(" (", 1)[0].strip()
         for w in system_paths:
             if filename.startswith(w):
-                stop = True
                 break
-        if not stop:
-            if python_version >= 0x300:
-                filename = filename.decode("utf-8")
-
+        else:
             # print("adding", filename)
             result.add(filename)
 
@@ -815,11 +813,11 @@ def _detectBinaryRPathsMacOS(original_dir, binary_filename):
     for i, o in enumerate(lines):
         if o.endswith(b"cmd LC_RPATH"):
             line = lines[i + 2]
-            if python_version >= 0x300:
+            if str is not bytes:
                 line = line.decode("utf-8")
 
-            line = line.split("path ")[1]
-            line = line.split(" (offset")[0]
+            line = line.split("path ", 1)[1]
+            line = line.split(" (offset", 1)[0]
             if line.startswith("@loader_path"):
                 line = os.path.join(original_dir, line[13:])
             elif line.startswith("@executable_path"):
