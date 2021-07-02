@@ -43,6 +43,7 @@ sys.path.insert(
 
 # isort:start
 
+from nuitka.freezer.RuntimeTracing import getRuntimeTraceOfLoadedFiles
 from nuitka.tools.testing.Common import (
     checkLoadedFileAccesses,
     checkRequirements,
@@ -52,7 +53,6 @@ from nuitka.tools.testing.Common import (
     displayFileContents,
     displayFolderContents,
     displayRuntimeTraces,
-    getRuntimeTraceOfLoadedFiles,
     reportSkip,
     setup,
     test_logger,
@@ -272,7 +272,7 @@ def main():
             "Determining run time loaded files took %.2f", logger=test_logger
         ):
             loaded_filenames = getRuntimeTraceOfLoadedFiles(
-                logger=test_logger, path=binary_filename
+                logger=test_logger, command=[binary_filename]
             )
 
         illegal_accesses = checkLoadedFileAccesses(

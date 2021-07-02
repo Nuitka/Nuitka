@@ -23,9 +23,9 @@ binaries (needed for exec) and run them capturing outputs.
 
 
 import os
-import subprocess
 from contextlib import contextmanager
 
+from nuitka.__past__ import subprocess
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
@@ -214,6 +214,15 @@ def check_call(*popenargs, **kwargs):
         general.sysexit(
             "Error, failed to execute '%s'. Is it installed?" % popenargs[0]
         )
+
+
+def call(*popenargs, **kwargs):
+    """Call a process and return result code.
+
+    Note: We use same name as in Python stdlib, violating our rules to
+    make it more recognizable what this does.
+    """
+    subprocess.call(*popenargs, **kwargs)
 
 
 @contextmanager

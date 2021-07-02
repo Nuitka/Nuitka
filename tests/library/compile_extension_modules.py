@@ -132,7 +132,7 @@ def action(stage_dir, root, path):
 
             loaded_filenames = getRuntimeTraceOfLoadedFiles(
                 logger=test_logger,
-                path=os.path.join(filename[:-3] + ".dist", "importer.exe"),
+                command=[os.path.join(filename[:-3] + ".dist", "importer.exe")],
             )
 
             outside_accesses = checkRuntimeLoadedFilesForOutsideAccesses(

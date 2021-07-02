@@ -24,7 +24,6 @@ import atexit
 import gc
 import hashlib
 import os
-import re
 import shutil
 import signal
 import sys
@@ -35,7 +34,6 @@ from contextlib import contextmanager
 from optparse import OptionGroup, OptionParser
 
 from nuitka.__past__ import subprocess
-from nuitka.freezer.DependsExe import getDependsExePath
 from nuitka.PythonVersions import (
     getPartiallySupportedPythonVersions,
     getSupportedPythonVersions,
@@ -43,12 +41,7 @@ from nuitka.PythonVersions import (
 from nuitka.Tracing import OurLogger, my_print
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.Execution import (
-    check_output,
-    getNullInput,
-    isExecutableCommand,
-    withEnvironmentVarOverriden,
-)
+from nuitka.utils.Execution import check_output, getNullInput
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getExternalUsePath,
@@ -497,210 +490,6 @@ def displayRuntimeTraces(logger, path):
         else:
             test_logger.info("strace:")
             os.system("strace -s4096 -e file %s" % path)
-
-
-def getRuntimeTraceOfLoadedFiles(logger, path):
-    """Returns the files loaded when executing a binary."""
-
-    # This will make a crazy amount of work,
-    # pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
-
-    if not os.path.exists(path):
-        # TODO: Have a logger package passed.
-        logger.sysexit("Error, cannot find %r (%r)." % (path, os.path.abspath(path)))
-
-    result = []
-
-    if os.name == "posix":
-        if getOS() in ("Darwin", "FreeBSD"):
-            if not isExecutableCommand("dtruss"):
-                test_logger.sysexit(
-                    """\
-Error, needs 'dtruss' on your system to scan used libraries."""
-                )
-
-            if not isExecutableCommand("sudo"):
-                test_logger.sysexit(
-                    """\
-Error, needs 'sudo' on your system to scan used libraries."""
-                )
-
-            args = ("sudo", "dtruss", "-t", "open", os.path.abspath(path))
-        else:
-            if not isExecutableCommand("strace"):
-                test_logger.sysexit(
-                    """\
-Error, needs 'strace' on your system to scan used libraries."""
-                )
-
-            args = (
-                "strace",
-                "-e",
-                "file",
-                "-s4096",  # Some paths are truncated in output otherwise
-                os.path.abspath(path),
-            )
-
-        # Ensure executable is not polluted with third party stuff,
-        # tests may fail otherwise due to unexpected libs being loaded
-        with withEnvironmentVarOverriden("LD_PRELOAD", None):
-            tracing_command = args[0] if args[0] != "sudo" else args[1]
-
-            process = subprocess.Popen(
-                args=args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-
-            _stdout_strace, stderr_strace = process.communicate()
-            exit_strace = process.returncode
-
-            if exit_strace != 0:
-                if str is not bytes:
-                    stderr_strace = stderr_strace.decode("utf8")
-
-                logger.warning(stderr_strace)
-                logger.sysexit("Failed to run %r." % tracing_command)
-
-            with open(path + ".strace", "wb") as f:
-                f.write(stderr_strace)
-
-            for line in stderr_strace.split(b"\n"):
-                if process.returncode != 0:
-                    logger.my_print(line)
-
-                if not line:
-                    continue
-
-                # Don't consider files not found. The "site" module checks lots
-                # of things.
-                if b"ENOENT" in line:
-                    continue
-
-                if line.startswith(b"stat(") and b"S_IFDIR" in line:
-                    continue
-
-                # Allow stats on the python binary, and stuff pointing to the
-                # standard library, just not uses of it. It will search there
-                # for stuff.
-                if (
-                    line.startswith(b"lstat(")
-                    or line.startswith(b"stat(")
-                    or line.startswith(b"readlink(")
-                ):
-                    filename = line[line.find(b"(") + 2 : line.find(b", ") - 1]
-
-                    # At least Python3.7 considers the default Python3 path.
-                    if filename == b"/usr/bin/python3":
-                        continue
-
-                    if filename in (
-                        b"/usr/bin/python3." + version
-                        for version in (b"5", b"6", b"7", b"8", b"9")
-                    ):
-                        continue
-
-                    binary_path = _python_executable
-                    if str is not bytes:
-                        binary_path = binary_path.encode("utf-8")
-
-                    found = False
-                    while binary_path:
-                        if filename == binary_path:
-                            found = True
-                            break
-
-                        if binary_path == os.path.dirname(binary_path):
-                            break
-
-                        binary_path = os.path.dirname(binary_path)
-
-                        if filename == os.path.join(
-                            binary_path,
-                            b"python"
-                            + (
-                                "%d%d" % (_python_version[0], _python_version[1])
-                            ).encode("utf8"),
-                        ):
-                            found = True
-                            continue
-
-                    if found:
-                        continue
-
-                result.extend(
-                    os.path.abspath(match)
-                    for match in re.findall(b'"(.*?)(?:\\\\0)?"', line)
-                )
-
-            if sys.version.startswith("3"):
-                result = [s.decode("utf-8") for s in result]
-    elif os.name == "nt":
-        command = (
-            getDependsExePath(),
-            "-c",  # Console mode
-            "-ot%s" % path + ".depends",
-            "-f1",
-            "-pb",
-            "-pa1",  # Turn on all profiling options.
-            "-ps1",  # Simulate ShellExecute with app dirs in PATH.
-            "-pp1",  # Do not long DllMain calls.
-            "-po1",  # Log DllMain call for all other messages.
-            "-ph1",  # Hook the process.
-            "-pl1",  # Log LoadLibrary calls.
-            "-pt1",  # Thread information.
-            "-pe1",  # First chance exceptions.
-            "-pg1",  # Log GetProcAddress calls.
-            "-pf1",  # Use full paths.
-            "-pc1",  # Profile child processes.
-            path,
-        )
-
-        # TODO: Move the handling of this into nuitka.tools.Execution module methods.
-        try:
-            subprocess.call(command, timeout=5 * 60)
-        except Exception as e:  # Catch all the things, pylint: disable=broad-except
-            if e.__class__.__name__ == "TimeoutExpired":
-                test_logger.warning(
-                    "Timeout encountered when running dependency walker."
-                )
-                return []
-            else:
-                raise
-
-        inside = False
-        for line in getFileContentByLine(path + ".depends"):
-            if "| Module Dependency Tree |" in line:
-                inside = True
-                continue
-
-            if not inside:
-                continue
-
-            if "| Module List |" in line:
-                break
-
-            if "]" not in line:
-                continue
-
-            # Skip missing DLLs, apparently not needed anyway.
-            if "?" in line[: line.find("]")]:
-                continue
-
-            dll_filename = line[line.find("]") + 2 :].rstrip()
-            dll_filename = os.path.normcase(dll_filename)
-
-            assert os.path.isfile(dll_filename), repr(dll_filename)
-
-            # The executable itself is of course exempted.
-            if dll_filename == os.path.normcase(os.path.abspath(path)):
-                continue
-
-            result.append(dll_filename)
-
-        os.unlink(path + ".depends")
-
-    result = list(sorted(set(result)))
-
-    return result
 
 
 def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
@@ -1911,7 +1700,38 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         if loaded_filename.startswith("/var/cache/"):
             continue
 
-        _python_version = tuple(int(d) for d in _python_version_str.split("."))
+        # At least Python3.7 considers the default Python3 path and checks it.
+        if loaded_filename == "/usr/bin/python3":
+            continue
+
+        # Accessing the versioned Python3.x binary is also happening.
+        if loaded_filename in (
+            "/usr/bin/python3." + version for version in ("5", "6", "7", "8", "9", "10")
+        ):
+            continue
+
+        binary_path = _python_executable
+
+        found = False
+        while binary_path:
+            if loaded_filename == binary_path:
+                found = True
+                break
+
+            if binary_path == os.path.dirname(binary_path):
+                break
+
+            binary_path = os.path.dirname(binary_path)
+
+            if loaded_filename == os.path.join(
+                binary_path,
+                "python" + ("%d%d" % (_python_version[0], _python_version[1])),
+            ):
+                found = True
+                break
+
+        if found:
+            continue
 
         lib_prefix_dir = "/usr/lib/python%d.%s" % (
             _python_version[0],
