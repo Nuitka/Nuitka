@@ -39,7 +39,9 @@ from nuitka.utils.Yaml import parseYaml
 
 class NuitkaPluginAntiBloat(NuitkaPluginBase):
     plugin_name = "anti-bloat"
-    plugin_desc = "Patch stupid imports out of common library modules source code."
+    plugin_desc = (
+        "Patch stupid imports out of widely used library modules source codes."
+    )
 
     def __init__(
         self, noinclude_setuptools_mode, noinclude_pytest_mode, custom_choices
@@ -116,9 +118,8 @@ which can and should be a top level package and then one choice, "error",
 
         description = config.get("description", "description not given")
 
-        self.info(
-            "Handling module '%s' for: %s." % (module_name.asString(), description)
-        )
+        # To allow detection if it did anything.
+        change_count = 0
 
         context = {}
         context_code = config.get("context", "")
@@ -126,12 +127,37 @@ which can and should be a top level package and then one choice, "error",
             context_code = "\n".join(context_code)
 
         # We trust the yaml files, pylint: disable=eval-used,exec-used
-        exec(context_code, context)
+        context_ready = False
 
         for replace_src, replace_code in config.get("replacements", {}).items():
-            replace_dst = eval(replace_code, context)
+            # Avoid the eval, if the replace doesn't hit.
+            if replace_src not in source_code:
+                continue
 
+            if replace_code:
+                if not context_ready:
+                    exec(context_code, context)
+                    context_ready = True
+                try:
+                    replace_dst = eval(replace_code, context)
+                except Exception as e:  # pylint: disable=broad-except
+                    self.sysexit(
+                        "Error, cannot evaluate code '%s' in '%s' due to: %s"
+                        % (replace_code, context_code, e)
+                    )
+            else:
+                replace_dst = ""
+
+            old = source_code
             source_code = source_code.replace(replace_src, replace_dst)
+
+            if old != source_code:
+                change_count += 1
+
+        self.info(
+            "Handling module '%s' with %d change(s) for: %s."
+            % (module_name.asString(), change_count, description)
+        )
 
         return source_code
 
