@@ -111,6 +111,8 @@ which can and should be a top level package and then one choice, "error",
         )
 
     def onModuleSourceCode(self, module_name, source_code):
+        # Complex dealing with many cases, pylint: disable=too-many-branches,too-many-locals
+
         config = self.config.get(module_name)
 
         if not config:
@@ -127,7 +129,7 @@ which can and should be a top level package and then one choice, "error",
             context_code = "\n".join(context_code)
 
         # We trust the yaml files, pylint: disable=eval-used,exec-used
-        context_ready = False
+        context_ready = not bool(context_code)
 
         for replace_src, replace_code in config.get("replacements", {}).items():
             # Avoid the eval, if the replace doesn't hit.
@@ -154,10 +156,31 @@ which can and should be a top level package and then one choice, "error",
             if old != source_code:
                 change_count += 1
 
-        self.info(
-            "Handling module '%s' with %d change(s) for: %s."
-            % (module_name.asString(), change_count, description)
-        )
+        append_code = config.get("append_result", "")
+        if type(append_code) in (tuple, list):
+            append_code = "\n".join(append_code)
+
+        if append_code:
+            if not context_ready:
+                exec(context_code, context)
+                context_ready = True
+
+            try:
+                append_result = eval(append_code, context)
+            except Exception as e:  # pylint: disable=broad-except
+                self.sysexit(
+                    "Error, cannot evaluate code '%s' in '%s' due to: %s"
+                    % (append_code, context_code, e)
+                )
+
+            source_code += "\n" + append_result
+            change_count += 1
+
+        if change_count > 0:
+            self.info(
+                "Handling module '%s' with %d change(s) for: %s."
+                % (module_name.asString(), change_count, description)
+            )
 
         return source_code
 
