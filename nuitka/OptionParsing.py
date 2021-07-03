@@ -1123,6 +1123,7 @@ def _getProjectOptions(logger, filename_arg, module_mode):
         if match:
             level, command, arg = match.groups()
             level = len(level)
+            arg = arg.rstrip()
 
             # Check for empty conditional blocks.
             if expect_block and level <= cond_level:
