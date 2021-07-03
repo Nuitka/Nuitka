@@ -156,8 +156,6 @@ def main():
             extra_flags.append("ignore_warnings")
 
         if filename == "NumpyUsing.py":
-            extra_flags.append("plugin_enable:numpy")
-
             # TODO: Disabled for now.
             reportSkip("numpy.test not fully working yet", ".", filename)
             continue

@@ -21,4 +21,14 @@ import numpy
 
 # nuitka-skip-unless-imports: numpy
 
-numpy.test()
+# nuitka-project: --standalone
+# nuitka-project: --enable-plugin=numpy
+
+# Make sure, the usual bad ones are not included with anti-bloat.
+
+# nuitka-project: --enable-plugin=anti-bloat
+# nuitka-project: --noinclude-setuptools-mode=error
+# nuitka-project: --noinclude-pytest-mode=error
+# nuitka-project: --noinclude-custom-mode=numpy._pytesttester:error
+# nuitka-project: --noinclude-custom-mode=numpy.testing:error
+# nuitka-project: --noinclude-custom-mode=numpy.distutils:error
