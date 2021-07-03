@@ -547,7 +547,7 @@ for imp in imports:
     except (ImportError, SyntaxError):
         failed.add(imp)
     except Exception:
-        sys.stderr("PROBLEM with '%%s'\\n" %% imp)
+        sys.stderr.write("PROBLEM with '%%s'\\n" %% imp)
         raise
 
     for fail in failed:
