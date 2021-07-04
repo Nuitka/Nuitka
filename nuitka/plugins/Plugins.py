@@ -811,6 +811,17 @@ class Plugins(object):
 
         return name
 
+    @classmethod
+    def onFunctionAssignmentParsed(cls, function_body, assign_node):
+        module_name = function_body.getParentModule().getFullName()
+
+        for plugin in getActivePlugins():
+            plugin.onFunctionAssignmentParsed(
+                module_name=module_name,
+                function_body=function_body,
+                assign_node=assign_node,
+            )
+
 
 def listPlugins():
     """Print available standard plugins."""

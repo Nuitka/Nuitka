@@ -28,6 +28,7 @@ that to be done and causing massive degradations.
 
 """
 
+import ast
 import pkgutil
 
 from nuitka.containers.odict import OrderedDict
@@ -183,6 +184,56 @@ which can and should be a top level package and then one choice, "error",
             )
 
         return source_code
+
+    def onFunctionAssignmentParsed(self, module_name, function_body, assign_node):
+        config = self.config.get(module_name)
+
+        if not config:
+            return
+
+        context = {}
+        context_code = config.get("context", "")
+        if type(context_code) in (tuple, list):
+            context_code = "\n".join(context_code)
+
+        # We trust the yaml files, pylint: disable=eval-used,exec-used
+        context_ready = not bool(context_code)
+
+        for function_name, replace_code in config.get("change_function", {}).items():
+            if assign_node.getVariableName() != function_name:
+                continue
+
+            if not context_ready:
+                exec(context_code, context)
+                context_ready = True
+
+            try:
+                replacement = eval(replace_code, context)
+            except Exception as e:  # pylint: disable=broad-except
+                self.sysexit(
+                    "Error, cannot evaluate code '%s' in '%s' due to: %s"
+                    % (replace_code, context_code, e)
+                )
+
+            # Single node is required, extrace the generated module body with
+            # single expression only statement value.
+            (new_node,) = ast.parse(replacement).body
+            new_node = new_node.value
+
+            # Cyclic dependencies.
+            from nuitka.tree.Building import buildNode
+
+            replace_node = buildNode(
+                provider=function_body.getParentVariableProvider(),
+                node=new_node,
+                source_ref=assign_node.source_ref,
+            )
+
+            assign_node.setChild("source", replace_node)
+
+            self.info(
+                "Updated '%s' function '%s'." % (module_name.asString(), function_name)
+            )
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         for handled_module_name, mode in self.handled_modules.items():

@@ -61,6 +61,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef,
 )
 from nuitka.Options import hasPythonFlagNoAnnotations
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -286,6 +287,8 @@ def buildFunctionNode(provider, node, source_ref):
     if python_version >= 0x340:
         function_body.qualname_setup = result.getVariableName()
 
+    Plugins.onFunctionAssignmentParsed(function_body=function_body, assign_node=result)
+
     return result
 
 
@@ -420,6 +423,8 @@ def buildAsyncFunctionNode(provider, node, source_ref):
     # Share the non-local declarations. TODO: This may also apply to generators
     # and async generators.
     creator_function_body.non_local_declarations = function_body.non_local_declarations
+
+    Plugins.onFunctionAssignmentParsed(function_body=function_body, assign_node=result)
 
     return result
 
