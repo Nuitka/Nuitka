@@ -143,8 +143,7 @@ Error, needs 'strace' on your system to scan used libraries."""
             "-pg1",  # Log GetProcAddress calls.
             "-pf1",  # Use full paths.
             "-pc1",  # Profile child processes.
-            path,
-        )
+        ) + tuple(command)
 
         # TODO: Move the handling of this into nuitka.tools.Execution module methods.
         try:
