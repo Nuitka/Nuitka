@@ -877,6 +877,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "sklearn.utils.sparsetools":
             yield "sklearn.utils.sparsetools._graph_validation"
             yield "sklearn.utils.sparsetools._graph_tools"
+
+        elif full_name == "sklearn.utils._hough_transform":
+            yield "skimage.draw"
         # end of scikit-learn imports -----------------------------------------
 
         elif full_name == "PIL._imagingtk":
