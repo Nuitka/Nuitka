@@ -546,6 +546,12 @@ for imp in imports:
         __import__(imp)
     except (ImportError, SyntaxError):
         failed.add(imp)
+    except ValueError as e:
+        if "cannot contain null bytes" in e.args[0]:
+            failed.add(imp)
+        else:
+            sys.stderr.write("PROBLEM with '%%s'\\n" %% imp)
+            raise
     except Exception:
         sys.stderr.write("PROBLEM with '%%s'\\n" %% imp)
         raise
