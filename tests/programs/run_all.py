@@ -133,9 +133,9 @@ def main():
         # with filename included, but for pkgutil iteration, make sure we do not
         # see original Python dirs.
         if filename != "pkgutil_itermodules":
-            extra_flags.append("original_file")
+            extra_flags.append("--file-reference-choice=original")
         else:
-            extra_flags.append("runtime_file")
+            extra_flags.append("--file-reference-choice=runtime")
 
         # Cannot include the files with syntax errors, these would then become
         # ImportError, but that's not the test. In all other cases, use two

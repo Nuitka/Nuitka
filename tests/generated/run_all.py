@@ -135,7 +135,7 @@ def main():
             "recurse_all",
             # Use the original __file__ value, at least one case warns about things
             # with filename included.
-            "original_file",
+            "--file-reference-choice=original",
             # Cache the CPython results for re-use, they will normally not change.
             "cpython_cache",
             # We annotate some tests, use that to lower warnings.

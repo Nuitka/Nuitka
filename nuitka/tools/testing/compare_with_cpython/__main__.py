@@ -225,8 +225,10 @@ def main():
     recurse_all = hasArg("recurse_all")
     timing = hasArg("timing")
     coverage_mode = hasArg("coverage")
-    original_file = hasArg("original_file")
-    runtime_file = hasArg("runtime_file")
+    original_file = hasArg("original_file") or hasArg(
+        "--file-reference-choice=original"
+    )
+    runtime_file = hasArg("runtime_file") or hasArg("--file-reference-choice=runtime")
     no_warnings = not hasArg("warnings")
     full_compat = not hasArg("improved")
     cpython_cached = hasArg("cpython_cache")
