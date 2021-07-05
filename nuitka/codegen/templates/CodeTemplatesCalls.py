@@ -348,9 +348,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
         if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 0x300
-            if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
-#endif
+            if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
                 if (func != NULL && PyDescr_IsData(descr)) {
@@ -364,9 +362,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
                     Py_DECREF(called_object);
                     return result;
                 }
-#if PYTHON_VERSION < 0x300
             }
-#endif
         }
 
         Py_ssize_t dictoffset = type->tp_dictoffset;

@@ -1048,7 +1048,6 @@ static PyObject *_path_unfreezer_load_module(PyObject *self, PyObject *args, PyO
         PyObject *extension_module_filename = DICT_GET_ITEM0(installed_extension_modules, module_name);
 
         if (extension_module_filename != NULL) {
-
             return callIntoInstalledShlibModule(module_name, extension_module_filename);
         }
     }

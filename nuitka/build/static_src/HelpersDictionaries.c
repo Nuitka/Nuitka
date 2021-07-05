@@ -204,8 +204,19 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key) {
 
 // This variant is uncertain about the hashing.
 #if PYTHON_VERSION < 0x300
-    if (!PyString_CheckExact(key) || (hash = ((PyStringObject *)key)->ob_shash) == -1) {
+    if (PyString_CheckExact(key)) {
+        hash = ((PyStringObject *)key)->ob_shash;
+
+        if (unlikely(hash == -1)) {
+            hash = HASH_VALUE_WITHOUT_ERROR(key);
+        }
+
+        if (unlikely(hash == -1)) {
+            return NULL;
+        }
+    } else {
         hash = HASH_VALUE_WITH_ERROR(key);
+
         if (unlikely(hash == -1)) {
             return NULL;
         }
@@ -302,8 +313,19 @@ int DICT_HAS_ITEM(PyObject *dict, PyObject *key) {
 
 // This variant is uncertain about the hashing.
 #if PYTHON_VERSION < 0x300
-    if (!PyString_CheckExact(key) || (hash = ((PyStringObject *)key)->ob_shash) == -1) {
+    if (PyString_CheckExact(key)) {
+        hash = ((PyStringObject *)key)->ob_shash;
+
+        if (unlikely(hash == -1)) {
+            hash = HASH_VALUE_WITHOUT_ERROR(key);
+        }
+
+        if (unlikely(hash == -1)) {
+            return -1;
+        }
+    } else {
         hash = HASH_VALUE_WITH_ERROR(key);
+
         if (unlikely(hash == -1)) {
             return -1;
         }
