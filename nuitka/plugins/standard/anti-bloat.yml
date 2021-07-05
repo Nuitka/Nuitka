@@ -393,3 +393,10 @@ matplotlib:
   change_function:
     "_init_tests": "'None'"
     "test": "'None'"
+
+pywt:
+  description:
+    "remove numpy testing framework"
+  replacements:
+    "from numpy.testing import Tester" : ""
+    "test = Tester().test" : ""
