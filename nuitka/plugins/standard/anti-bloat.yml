@@ -379,6 +379,14 @@ scipy.weave:
     "test = PytestTester(__name__)" : ""
     "del PytestTester" : ""
 
+skimage:
+  description:
+    "remove pytest testing framework"
+  replacements:
+    "imp.find_module('pytest')" : "'None'"
+  change_function:
+    "_test": "'(lambda: None)'"
+
 sklearn.random_projection:
   description:
     "remove numpy testing framework"
