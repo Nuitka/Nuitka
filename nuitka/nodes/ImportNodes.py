@@ -402,20 +402,14 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
             if decision:
                 module_relpath = relpath(module_filename)
 
-                imported_module, added_flag = recurseTo(
+                imported_module = recurseTo(
+                    signal_change=trace_collection.signalChange,
                     module_package=module_package,
                     module_filename=module_filename,
                     module_relpath=module_relpath,
                     module_kind=module_kind,
                     reason=reason,
                 )
-
-                if added_flag:
-                    trace_collection.signalChange(
-                        "new_code",
-                        imported_module.getSourceReference(),
-                        "Recursed to module.",
-                    )
 
                 return imported_module
             elif decision is False and module_kind == "py":

@@ -91,10 +91,9 @@ def _createNodeTree(filename):
     # Many cases to deal with, pylint: disable=too-many-branches
 
     # First, build the raw node tree from the source code.
-    main_module = Building.buildModuleTree(
+    main_module = Building.buildMainModuleTree(
         filename=filename,
         package=None,
-        is_top=True,
         is_main=not Options.shallMakeModule(),
     )
 

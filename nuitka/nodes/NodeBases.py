@@ -46,6 +46,9 @@ from .NodeMetaClasses import NodeCheckMetaClass, NodeMetaClassBase
 class NodeBase(NodeMetaClassBase):
     __slots__ = "parent", "source_ref"
 
+    # This can trigger if this is included to early.
+    assert Options.is_fullcompat is not None
+
     # Avoid the attribute unless it's really necessary.
     if Options.is_fullcompat:
         __slots__ += ("effective_source_ref",)

@@ -25,8 +25,10 @@ The issue applies to accelerated and standalone mode alike.
 """
 
 from nuitka import Options
+from nuitka.ModuleRegistry import getRootTopModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
+from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -106,31 +108,13 @@ Monkey patching "multiprocessing" for compiled methods.""",
             )
 
     def onModuleInitialSet(self):
-        from nuitka.importing.ImportCache import addImportedModule
-        from nuitka.ModuleRegistry import getRootTopModule
-        from nuitka.plugins.Plugins import Plugins
-        from nuitka.tree.Building import (
-            CompiledPythonModule,
-            createModuleTree,
-            readSourceCodeFromFilename,
-        )
+        from nuitka.tree.Building import buildModule
 
         # First, build the module node and then read again from the
         # source code.
         root_module = getRootTopModule()
 
         module_name = ModuleName("__parents_main__")
-        source_ref = root_module.getSourceReference()
-
-        mode = Plugins.decideCompilation(module_name, source_ref)
-
-        multiprocessing_main_module = CompiledPythonModule(
-            module_name=module_name,
-            is_top=False,
-            mode=mode,
-            future_spec=None,
-            source_ref=root_module.getSourceReference(),
-        )
 
         source_code = readSourceCodeFromFilename(module_name, root_module.getFilename())
 
@@ -147,14 +131,19 @@ __import__("multiprocessing.spawn").spawn.freeze_support()"""
 __import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
 __import__("multiprocessing.forking").forking.freeze_support()"""
 
-        createModuleTree(
-            module=multiprocessing_main_module,
-            source_ref=root_module.getSourceReference(),
+        multiprocessing_main_module, _added = buildModule(
+            module_filename=root_module.getCompileTimeFilename(),
+            module_package=module_name.getPackageName(),
             source_code=source_code,
+            is_top=False,
             is_main=False,
+            is_shlib=False,
+            is_fake=module_name,
+            hide_syntax_error=False,
         )
 
-        addImportedModule(imported_module=multiprocessing_main_module)
+        if multiprocessing_main_module.getCompilationMode() == "bytecode":
+            multiprocessing_main_module.setSourceCode(source_code)
 
         yield multiprocessing_main_module
 

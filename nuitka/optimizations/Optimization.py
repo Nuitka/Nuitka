@@ -39,7 +39,6 @@ from nuitka.Tracing import (
     memory_logger,
     optimization_logger,
     progress_logger,
-    recursion_logger,
 )
 from nuitka.utils.MemoryUsage import (
     MemoryWatch,
@@ -53,20 +52,6 @@ from .TraceCollections import withChangeIndicationsTo
 
 _progress = Options.isShowProgress()
 _is_verbose = Options.isVerbose()
-
-
-def _attemptRecursion(module):
-    new_modules = module.attemptRecursion()
-
-    if Options.isShowInclusion():
-        for new_module in new_modules:
-            recursion_logger.info(
-                "{source_ref} : {tags} : {message}".format(
-                    source_ref=new_module.getSourceReference().getAsString(),
-                    tags="new_code",
-                    message="Recursed to module package.",
-                )
-            )
 
 
 tag_set = None
@@ -202,7 +187,7 @@ def optimizeUncompiledPythonModule(module):
 
 def optimizeShlibModule(module):
     # Pick up parent package if any.
-    _attemptRecursion(module)
+    module.attemptRecursion()
 
     Plugins.considerImplicitImports(module=module, signal_change=signalChange)
 

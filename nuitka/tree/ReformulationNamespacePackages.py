@@ -46,7 +46,6 @@ from nuitka.nodes.ModuleNodes import CompiledPythonPackage
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
 from nuitka.PythonVersions import python_version
-from nuitka.SourceCodeReferences import SourceCodeReference
 
 from .TreeHelpers import makeStatementsSequenceFromStatement
 from .VariableClosure import completeVariableClosures
@@ -137,7 +136,7 @@ def createPathAssignment(package, source_ref):
     )
 
 
-def createPython3NamespacePath(package, module_relpath, source_ref):
+def createPython3NamespacePath(package, dirname, source_ref):
     return StatementAssignmentVariableName(
         provider=package,
         variable_name="__path__",
@@ -154,7 +153,7 @@ def createPython3NamespacePath(package, module_relpath, source_ref):
                 source_ref=source_ref,
             ),
             args=makeConstantRefNode(
-                constant=(package.getFullName().asString(), [module_relpath], None),
+                constant=(package.getFullName().asString(), [dirname], None),
                 source_ref=source_ref,
             ),
             source_ref=source_ref,
@@ -163,12 +162,7 @@ def createPython3NamespacePath(package, module_relpath, source_ref):
     )
 
 
-def createNamespacePackage(module_name, is_top, module_relpath):
-    source_ref = SourceCodeReference.fromFilenameAndLine(
-        filename=module_relpath, line=1
-    )
-    source_ref = source_ref.atInternal()
-
+def createNamespacePackage(module_name, is_top, source_ref):
     package = CompiledPythonPackage(
         module_name=module_name,
         is_top=is_top,
@@ -179,7 +173,7 @@ def createNamespacePackage(module_name, is_top, module_relpath):
 
     if python_version >= 0x300:
         statement = createPython3NamespacePath(
-            package=package, module_relpath=module_relpath, source_ref=source_ref
+            package=package, dirname=source_ref.getFilename(), source_ref=source_ref
         )
     else:
         statement = createPathAssignment(package, source_ref)
@@ -188,7 +182,7 @@ def createNamespacePackage(module_name, is_top, module_relpath):
 
     completeVariableClosures(package)
 
-    return source_ref, package
+    return package
 
 
 def createImporterCacheAssignment(package, source_ref):

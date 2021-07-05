@@ -86,7 +86,6 @@ class PythonModuleBase(NodeBase):
 
         # Return the list of newly added modules.
 
-        result = []
         package = getModuleByName(package_name)
 
         if package_name is not None and package is None:
@@ -120,26 +119,21 @@ class PythonModuleBase(NodeBase):
             )
 
             if decision is not None:
-                package, is_added = recurseTo(
+                package = recurseTo(
+                    signal_change=self.trace_collection.signalChange
+                    if hasattr(self, "trace_collection")
+                    else None,
                     module_package=package_package,
                     module_filename=package_filename,
                     module_relpath=relpath(package_filename),
                     module_kind="py",
-                    reason="Containing package of recursed module '%s'."
-                    % self.getFullName(),
+                    reason="Containing package of '%s'." % self.getFullName(),
                 )
-
-                if is_added:
-                    result.append(package)
 
         if package:
             from nuitka.ModuleRegistry import addUsedModule
 
             addUsedModule(package)
-
-            result.extend(package.attemptRecursion())
-
-        return result
 
     def getCodeName(self):
         # Abstract method, pylint: disable=no-self-use
@@ -534,14 +528,7 @@ class CompiledPythonModule(
             if result is not module_body:
                 self.setChild("body", result)
 
-        new_modules = self.attemptRecursion()
-
-        for new_module in new_modules:
-            self.trace_collection.signalChange(
-                source_ref=new_module.getSourceReference(),
-                tags="new_code",
-                message="Recursed to module package.",
-            )
+        self.attemptRecursion()
 
         # Finalize locals scopes previously determined for removal in last pass.
         self.trace_collection.updateVariablesFromCollection(

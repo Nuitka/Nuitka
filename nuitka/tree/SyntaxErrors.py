@@ -121,7 +121,7 @@ def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):
         else:
             source_line = None
 
-        raise SyntaxError(
+        exc = SyntaxError(
             reason,
             (
                 source_ref.getFilename(),
@@ -131,4 +131,8 @@ def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):
             ),
         )
 
-    raise SyntaxError(reason, (None, None, None, None))
+    exc = SyntaxError(reason, (None, None, None, None))
+
+    exc.generated_by_nuitka = True
+
+    raise exc

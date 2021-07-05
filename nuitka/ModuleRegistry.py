@@ -55,7 +55,7 @@ def getRootModules():
 def getRootTopModule():
     top_module = next(iter(root_modules))
 
-    assert top_module.isTopModule()
+    assert top_module.isTopModule(), top_module
 
     return top_module
 

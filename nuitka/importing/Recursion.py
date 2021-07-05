@@ -20,111 +20,39 @@
 """
 
 import glob
-import marshal
 import os
 
 from nuitka import ModuleRegistry, Options
 from nuitka.importing import ImportCache, Importing, StandardLibrary
-from nuitka.nodes.NodeMakingHelpers import (
-    makeRaiseExceptionStatementFromInstance,
-)
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import recursion_logger
-from nuitka.tree.TreeHelpers import (
-    makeModuleFrame,
-    makeStatementsSequenceFromStatement,
-)
 from nuitka.utils.FileOperations import listDir, relpath
 from nuitka.utils.ModuleNames import ModuleName
 
 
-def _recurseTo(module_package, module_filename, module_relpath, module_kind, reason):
-    from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
+def _recurseTo(module_package, module_filename, module_kind):
     from nuitka.tree import Building
 
-    module, source_ref, source_code = Building.decideModuleTree(
-        filename=module_filename,
-        package=module_package,
+    module, is_added = Building.buildModule(
+        module_filename=module_filename,
+        module_package=module_package,
+        source_code=None,
         is_top=False,
         is_main=False,
         is_shlib=module_kind == "shlib",
+        is_fake=False,
+        hide_syntax_error=True,
     )
-
-    if Options.isShowInclusion():
-        recursion_logger.info(
-            "Recurse to import '%s' from '%s'. (%s)"
-            % (module.getFullName(), module_relpath, reason)
-        )
-
-    if source_code is not None:
-        try:
-            Building.createModuleTree(
-                module=module,
-                source_ref=source_ref,
-                source_code=source_code,
-                is_main=False,
-            )
-        except (SyntaxError, IndentationError) as e:
-            if module_filename not in Importing.warned_about:
-                Importing.warned_about.add(module_filename)
-
-                recursion_logger.warning(
-                    """\
-Cannot follow import to module '%s' because of %r."""
-                    % (module.getFullName(), e.__class__.__name__)
-                )
-
-            module_body = makeModuleFrame(
-                module=module,
-                statements=(
-                    makeRaiseExceptionStatementFromInstance(
-                        source_ref=source_ref, exception=e
-                    ),
-                ),
-                source_ref=source_ref,
-            )
-
-            module_body = makeStatementsSequenceFromStatement(statement=module_body)
-            module.setChild("body", module_body)
-
-        except Building.CodeTooComplexCode:
-            if module_filename not in Importing.warned_about:
-                Importing.warned_about.add(module_filename)
-
-                recursion_logger.warning(
-                    """\
-Cannot recurse to import module %r (%r) because code is too complex."""
-                    % (
-                        module_relpath,
-                        module_filename,
-                    )
-                )
-
-                if Options.isStandaloneMode():
-                    module = makeUncompiledPythonModule(
-                        module_name=module.getFullName(),
-                        filename=module_filename,
-                        bytecode=marshal.dumps(
-                            compile(
-                                source_code, module_filename, "exec", dont_inherit=True
-                            )
-                        ),
-                        is_package=module.isCompiledPythonPackage(),
-                        user_provided=True,
-                        technical=False,
-                    )
-
-                    ModuleRegistry.addUncompiledModule(module)
-
-            return None, False
 
     ImportCache.addImportedModule(module)
 
-    return module, True
+    return module, is_added
 
 
-def recurseTo(module_package, module_filename, module_relpath, module_kind, reason):
+def recurseTo(
+    signal_change, module_package, module_filename, module_relpath, module_kind, reason
+):
     if ImportCache.isImportedModuleByPath(module_relpath):
         try:
             module = ImportCache.getImportedModuleByPath(module_relpath, module_package)
@@ -134,15 +62,16 @@ def recurseTo(module_package, module_filename, module_relpath, module_kind, reas
         module = None
 
     if module is None:
-        return _recurseTo(
+        module, added_flag = _recurseTo(
             module_package=module_package,
             module_filename=module_filename,
-            module_relpath=module_relpath,
             module_kind=module_kind,
-            reason=reason,
         )
-    else:
-        return module, False
+
+        if added_flag and signal_change is not None:
+            signal_change("new_code", module.getSourceReference(), reason)
+
+    return module
 
 
 def decideRecursion(module_filename, module_name, module_kind, extra_recursion=False):
@@ -260,7 +189,8 @@ def checkPluginSinglePath(plugin_filename, module_package):
         if decision:
             module_relpath = relpath(plugin_filename)
 
-            module, is_added = recurseTo(
+            module = recurseTo(
+                signal_change=None,
                 module_filename=plugin_filename,
                 module_relpath=module_relpath,
                 module_package=module_package,
@@ -269,30 +199,9 @@ def checkPluginSinglePath(plugin_filename, module_package):
             )
 
             if module:
-                if not is_added:
-                    recursion_logger.warning(
-                        "Recursed to %s '%s' at '%s' twice."
-                        % (
-                            "package" if module.isCompiledPythonPackage() else "module",
-                            module.getName(),
-                            plugin_filename,
-                        )
-                    )
-
-                    if not isSameModulePath(module.getFilename(), plugin_filename):
-                        recursion_logger.warning(
-                            "Duplicate '%s' of '%s' ignored ."
-                            % (
-                                plugin_filename,
-                                module.getFilename(),
-                            )
-                        )
-
-                        return
-
                 if Options.isShowInclusion():
                     recursion_logger.info(
-                        "Recursed to '%s' %s"
+                        "Included '%s' as '%s'."
                         % (
                             module.getFullName(),
                             module,
