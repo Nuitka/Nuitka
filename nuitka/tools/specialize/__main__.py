@@ -21,6 +21,12 @@
 
 from __future__ import print_function
 
+import nuitka.Options
+
+nuitka.Options.is_fullcompat = False
+
+# isort:start
+
 import contextlib
 import math
 import os

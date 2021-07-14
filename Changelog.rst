@@ -4439,7 +4439,7 @@ accompanied with optimization changes towards value tracing.
       class C:
           for_call = functools.partial
 
-          def m():
+          def m(self):
               self.for_call()  # This leaked a reference to the descriptor.
 
 -  Python3.5: The bases classes should be treated as an unpacking too.
