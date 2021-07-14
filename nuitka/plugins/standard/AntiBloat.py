@@ -68,7 +68,7 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
 
             module_name, mode = custom_choice.rsplit(":", 1)
 
-            if mode not in ("error", "warning", "nofollow", "allow"):
+            if mode not in ("error", "warning", "nofollow", "allow", "bytecode"):
                 self.sysexit(
                     "Error, illegal mode given '%s' in '--noinclude-custom-mode=%s'"
                     % (mode, custom_choice)
@@ -257,3 +257,11 @@ which can and should be a top level package and then one choice, "error",
 
         # Do not provide an opinion about it.
         return None
+
+    def decideCompilation(self, module_name, source_ref):
+        for handled_module_name, mode in self.handled_modules.items():
+            if mode != "bytecode":
+                continue
+
+            if module_name.hasNamespace(handled_module_name):
+                return "bytecode"
