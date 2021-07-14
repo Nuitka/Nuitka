@@ -503,7 +503,7 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyGenObject *gen, int close_on
     PyObject *yf = Nuitka_PyGen_yf(gen);
 
     if (yf != NULL) {
-        if (close_on_genexit && PyErr_GivenExceptionMatches(exception_type, PyExc_GeneratorExit)) {
+        if (close_on_genexit && EXCEPTION_MATCH_BOOL_SINGLE(exception_type, PyExc_GeneratorExit)) {
             gen->gi_running = 1;
             int err = Nuitka_PyGen_gen_close_iter(yf);
             gen->gi_running = 0;

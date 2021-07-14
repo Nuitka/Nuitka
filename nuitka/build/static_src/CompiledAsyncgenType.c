@@ -526,8 +526,7 @@ static PyObject *_Nuitka_Asyncgen_throw2(struct Nuitka_AsyncgenObject *asyncgen,
     if (asyncgen->m_yieldfrom != NULL) {
         // TODO: This check is not done for coroutines, correct?
         if (close_on_genexit) {
-            // TODO: This probably should be changed to EXCEPTION_MATCH_BOOL_SINGLE for performance.
-            if (PyErr_GivenExceptionMatches(exception_type, PyExc_GeneratorExit)) {
+            if (EXCEPTION_MATCH_BOOL_SINGLE(exception_type, PyExc_GeneratorExit)) {
                 // Asynchronous generators need to close the yield_from.
                 asyncgen->m_running = 1;
                 bool res = Nuitka_gen_close_iter(asyncgen->m_yieldfrom);

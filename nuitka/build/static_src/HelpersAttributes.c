@@ -500,15 +500,19 @@ int BUILTIN_HASATTR_BOOL(PyObject *source, PyObject *attr_name) {
     }
 #endif
 
+    // TODO: This should use what LOOKUP_ATTRIBUTE does and know that the result value is going to
+    // be unused, having an easier time generally, e.g. not having to create the error in the first
+    // place.
     PyObject *value = PyObject_GetAttr(source, attr_name);
 
     if (value == NULL) {
-        if (PyErr_ExceptionMatches(PyExc_AttributeError)) {
-            CLEAR_ERROR_OCCURRED();
-            return 0;
-        }
+        bool had_attribute_error = CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED();
 
-        return -1;
+        if (had_attribute_error) {
+            return 0;
+        } else {
+            return -1;
+        }
     }
 
     Py_DECREF(value);

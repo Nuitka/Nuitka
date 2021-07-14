@@ -965,8 +965,7 @@ static PyObject *_Nuitka_Generator_throw2(struct Nuitka_GeneratorObject *generat
 
 #if PYTHON_VERSION >= 0x300
     if (generator->m_yieldfrom != NULL) {
-        // TODO: This probably should be changed to EXCEPTION_MATCH_BOOL_SINGLE for performance.
-        if (PyErr_GivenExceptionMatches(exception_type, PyExc_GeneratorExit)) {
+        if (EXCEPTION_MATCH_BOOL_SINGLE(exception_type, PyExc_GeneratorExit)) {
             // Generators need to close the yield_from.
             generator->m_running = 1;
             bool res = Nuitka_gen_close_iter(generator->m_yieldfrom);

@@ -632,6 +632,31 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(void) {
     }
 }
 
+NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(void) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    if (tstate->curexc_type == NULL) {
+        return true;
+    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate->curexc_type, PyExc_AttributeError)) {
+        // Clear the exception first, we know it doesn't have side effects.
+        Py_DECREF(tstate->curexc_type);
+        tstate->curexc_type = NULL;
+
+        PyObject *old_value = tstate->curexc_value;
+        PyObject *old_tb = tstate->curexc_traceback;
+
+        tstate->curexc_value = NULL;
+        tstate->curexc_traceback = NULL;
+
+        Py_XDECREF(old_value);
+        Py_XDECREF(old_tb);
+
+        return true;
+    } else {
+        return false;
+    }
+}
+
 // Format a NameError exception for a variable name.
 extern void FORMAT_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name);
 

@@ -375,6 +375,8 @@ extern PyObject **global_constants;
 #define const_str_plain_close global_constants[30]
 // 'throw'
 #define const_str_plain_throw global_constants[30]
+// 'throw'
+#define const_str_plain_send global_constants[30]
 // 'sum'
 #define const_str_plain_sum global_constants[31]
 // 'format'
