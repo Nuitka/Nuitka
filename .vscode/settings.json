@@ -24,7 +24,16 @@
         "*.h": "c",
         "*.c": "c",
         "typeinfo": "c",
-        "cstring": "c"
+        "cstring": "c",
+        "optional": "c",
+        "istream": "c",
+        "ostream": "c",
+        "system_error": "c",
+        "array": "c",
+        "functional": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c"
     },
     "python.linting.pylintArgs": ["--disable=I0011,I0012,no-init,bad-whitespace,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none",
         "--method-rgx=[a-z_][a-zA-Z0-9_]{2,40}$",
