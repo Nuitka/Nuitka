@@ -408,3 +408,16 @@ pywt:
   replacements:
     "from numpy.testing import Tester" : ""
     "test = Tester().test" : ""
+
+pandas:
+  description:
+    "remove pandas testing framework"
+  replacements:
+    "import pandas.testing" : ""
+    "from pandas.util._tester import test" : ""
+
+jinja2.defaults:
+  description:
+    "remove jinja2 testing framework"
+  replacements:
+    "from .tests import TESTS as DEFAULT_TESTS" : ""
