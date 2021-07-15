@@ -361,13 +361,27 @@ def getSystemStaticLibPythonPath():
             if os.path.exists(candidate):
                 return candidate
     else:
-        python_lib_path = os.path.join(sys_prefix, "lib")
-
         candidate = os.path.join(
-            python_lib_path, "libpython" + python_abi_version + ".a"
+            sys_prefix, "lib", "libpython" + python_abi_version + ".a"
         )
 
         if os.path.exists(candidate):
             return candidate
+
+        try:
+            import sysconfig
+
+            candidate = os.path.join(
+                sysconfig.get_config_var("LIBPL"),
+                "libpython" + python_abi_version + ".a",
+            )
+
+            if os.path.exists(candidate):
+                return candidate
+
+        except ImportError:
+            # Cannot detect this properly for Python 2.6, but we don't care much
+            # about that anyway.
+            pass
 
     return None

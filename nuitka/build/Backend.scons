@@ -91,6 +91,7 @@ from .SconsUtils import (
     getMsvcVersionString,
     initScons,
     isGccName,
+    locateStaticLinkLibrary,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
     setArguments,
@@ -873,6 +874,21 @@ elif not module_mode:
 
     if not module_mode and static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
+
+        # The gcc won't succeed in searching for those, help it.
+        for library_name in (
+            "z",
+            "m",
+            "util",
+            "pthread",
+        ):
+            static_library_filename = locateStaticLinkLibrary(library_name)
+
+            if static_library_filename is not None:
+                env.Append(LIBS=[env.File(static_library_filename)])
+
+        env.Append(LINKFLAGS=["-static"])
+
     else:
         # Debian and Ubuntu distinguish the system libraries like this.
         if (
