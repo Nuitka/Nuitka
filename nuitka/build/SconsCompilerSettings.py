@@ -200,25 +200,34 @@ def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_dow
     return env
 
 
-def decideConstantsBlobResourceMode():
+def decideConstantsBlobResourceMode(gcc_mode, clang_mode, gcc_version, lto_mode):
     if "NUITKA_RESOURCE_MODE" in os.environ:
         resource_mode = os.environ["NUITKA_RESOURCE_MODE"]
+        reason = "user provided"
     elif os.name == "nt":
         resource_mode = "win_resource"
+        reason = "default for Windows"
+    elif lto_mode and gcc_mode and not clang_mode and gcc_version < (8,):
+        resource_mode = "linker"
+        reason = "default for old gcc <8 with lto bugs"
     else:
         # All is done already, this is for most platforms.
         resource_mode = "incbin"
+        reason = "default"
 
-    return resource_mode
+    return resource_mode, reason
 
 
 def addConstantBlobFile(
-    env, resource_mode, source_dir, c11_mode, mingw_mode, target_arch
+    env, resource_desc, source_dir, c11_mode, mingw_mode, target_arch
 ):
+    resource_mode, reason = resource_desc
 
     constants_bin_filename = getConstantBlobFilename(source_dir)
 
-    scons_details_logger.info("Using resource mode: %r." % resource_mode)
+    scons_details_logger.info(
+        "Using resource mode: '%s' (%s)." % (resource_mode, reason)
+    )
 
     if resource_mode == "win_resource":
         # On Windows constants can be accessed as a resource by Nuitka runtime afterwards.
