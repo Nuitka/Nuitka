@@ -261,7 +261,7 @@ unsigned char const *getConstantsBlobData() {
                 "-Wl,%s"
                 % getLinkerArch(target_arch=target_arch, mingw_mode=mingw_mode),
                 "-Wl,-defsym",
-                "-Wl,%sconstant_bin=_binary_%s___constants_bin_start"
+                "-Wl,%sconstant_bin_data=_binary_%s___constants_bin_start"
                 % (
                     "_" if mingw_mode else "",
                     "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in source_dir),

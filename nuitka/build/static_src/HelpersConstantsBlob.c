@@ -35,10 +35,14 @@
 #if defined(_NUITKA_CONSTANTS_FROM_LINKER)
 // Symbol as provided by the linker, different for C++ and C11 mode.
 #ifdef __cplusplus
-extern "C" const unsigned char constant_bin[];
+extern "C" const unsigned char constant_bin_data[];
 #else
-extern const unsigned char constant_bin[0];
+extern const unsigned char constant_bin_data[0];
 #endif
+
+// Symbol to be assigned locally.
+unsigned char const *constant_bin = &constant_bin_data[0];
+
 #else
 // Symbol to be assigned locally.
 unsigned char const *constant_bin = NULL;
