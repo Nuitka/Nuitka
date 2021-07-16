@@ -224,6 +224,15 @@ scipy.spatial:
     "from scipy._lib._testutils import PytestTester" : ""
     "test = PytestTester(__name__)" : ""
     "del PytestTester" : ""
+scipy.spatial.transform:
+  description:
+    "remove numpy testing framework"
+  replacements:
+    "from numpy.testing import Tester" : ""
+    "test = Tester().test" : ""
+    "from scipy._lib._testutils import PytestTester" : ""
+    "test = PytestTester(__name__)" : ""
+    "del PytestTester" : ""
 scipy.optimize:
   description:
     "remove numpy testing framework"
