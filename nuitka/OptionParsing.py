@@ -1041,6 +1041,18 @@ plugin_group.add_option(
     help="The file name of user plugin. Can be given multiple times. Default empty.",
 )
 
+plugin_group.add_option(
+    "--persist-source-changes",
+    action="store_true",
+    dest="persist_source_changes",
+    default=False,
+    help="""\
+Write source changes to original Python files. Use with care. May need
+permissions, best for use in a virtualenv to debug if plugin code
+changes work with standard Python or to benefit from bloat removal
+even with pure Python. Default False.""",
+)
+
 
 def _considerPluginOptions(logger):
     # Recursive dependency on plugins during parsing of command line.

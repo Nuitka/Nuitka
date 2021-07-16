@@ -1125,3 +1125,8 @@ def getForcedStdoutPath():
 def getForcedStderrPath():
     """*str* force program stderr output into that filename"""
     return options.force_stderr_spec
+
+
+def shallPersistModifications():
+    """*bool* write plugin source changes to disk"""
+    return options is not None and options.persist_source_changes
