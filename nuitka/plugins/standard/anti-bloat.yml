@@ -109,6 +109,7 @@ scipy:
   replacements:
     "from numpy.testing import Tester" : ""
     "test = Tester().test" : ""
+    "bench = Tester().bench" : ""
     "from scipy._lib._testutils import PytestTester" : ""
     "test = PytestTester(__name__)" : ""
     "del PytestTester" : ""
@@ -258,6 +259,7 @@ scipy.sparse.linalg:
   replacements:
     "from numpy.testing import Tester" : ""
     "test = Tester().test" : ""
+    "bench = Tester().bench" : ""
     "from scipy._lib._testutils import PytestTester" : ""
     "test = PytestTester(__name__)" : ""
     "del PytestTester" : ""
@@ -301,6 +303,7 @@ scipy.sparse.linalg.isolve:
   replacements:
     "from numpy.testing import Tester" : ""
     "test = Tester().test" : ""
+    "bench = Tester().bench" : ""
     "from scipy._lib._testutils import PytestTester" : ""
     "test = PytestTester(__name__)" : ""
     "del PytestTester" : ""
@@ -322,6 +325,12 @@ scipy.misc:
     "from scipy._lib._testutils import PytestTester" : ""
     "test = PytestTester(__name__)" : ""
     "del PytestTester" : ""
+scipy.lib.numpy_compat:
+  description:
+    "remove numpy testing framework"
+  replacements:
+    "from numpy.testing import suppress_warnings" : "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
+    "NumpyVersion(np.__version__) > '1.7.0.dev'" : "'0'"
 scipy._lib._numpy_compat:
   description:
     "remove numpy testing framework"
