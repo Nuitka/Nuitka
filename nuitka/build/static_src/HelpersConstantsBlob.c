@@ -40,9 +40,12 @@ extern "C" const unsigned char constant_bin_data[];
 extern const unsigned char constant_bin_data[0];
 #endif
 
-// Symbol to be assigned locally.
 unsigned char const *constant_bin = &constant_bin_data[0];
 
+#elif defined(_NUITKA_CONSTANTS_FROM_CODE)
+extern const unsigned char constant_bin_data[];
+
+unsigned char const *constant_bin = &constant_bin_data[0];
 #else
 // Symbol to be assigned locally.
 unsigned char const *constant_bin = NULL;

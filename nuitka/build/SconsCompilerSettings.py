@@ -249,7 +249,7 @@ unsigned char const *getConstantsBlobData() {
             )
 
     elif resource_mode == "linker":
-        # On Windows constants are accesses as a resource by Nuitka afterwards.
+        # Indicate "linker" resource mode.
         env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_LINKER"])
 
         env.Append(
@@ -269,6 +269,9 @@ unsigned char const *getConstantsBlobData() {
             ]
         )
     elif resource_mode == "code":
+        # Indicate "code" resource mode.
+        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_CODE"])
+
         constants_generated_filename = os.path.join(source_dir, "__constants_data.c")
 
         def writeConstantsDataSource():
@@ -276,7 +279,7 @@ unsigned char const *getConstantsBlobData() {
                 if not c11_mode:
                     output.write('extern "C" ')
 
-                output.write("const unsigned char constant_bin[] =\n{\n")
+                output.write("const unsigned char constant_bin_data[] =\n{\n")
 
                 with open(constants_bin_filename, "rb") as f:
                     content = f.read()
