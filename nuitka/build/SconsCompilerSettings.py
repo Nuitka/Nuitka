@@ -200,16 +200,16 @@ def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_dow
     return env
 
 
-def decideConstantsBlobResourceMode(gcc_mode, clang_mode, gcc_version, lto_mode):
+def decideConstantsBlobResourceMode(gcc_mode, clang_mode, lto_mode):
     if "NUITKA_RESOURCE_MODE" in os.environ:
         resource_mode = os.environ["NUITKA_RESOURCE_MODE"]
         reason = "user provided"
     elif os.name == "nt":
         resource_mode = "win_resource"
         reason = "default for Windows"
-    elif lto_mode and gcc_mode and not clang_mode and gcc_version < (8,):
+    elif lto_mode and gcc_mode and not clang_mode:
         resource_mode = "linker"
-        reason = "default for old gcc <8 with lto bugs"
+        reason = "default for lto gcc with --lto bugs for incbin"
     else:
         # All is done already, this is for most platforms.
         resource_mode = "incbin"

@@ -1010,7 +1010,6 @@ addConstantBlobFile(
     resource_desc=decideConstantsBlobResourceMode(
         gcc_mode=gcc_mode,
         clang_mode=clang_mode,
-        gcc_version=gcc_version,
         lto_mode=lto_mode,
     ),
     source_dir=source_dir,
