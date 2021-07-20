@@ -74,7 +74,15 @@ static PyObject *_BUILTIN_RANGE_INT3(long low, long high, long step) {
 
 static PyObject *_BUILTIN_RANGE_INT2(long low, long high) { return _BUILTIN_RANGE_INT3(low, high, 1); }
 
-static PyObject *_BUILTIN_RANGE_INT(long boundary) { return _BUILTIN_RANGE_INT2(0, boundary); }
+static PyObject *_BUILTIN_RANGE_INT(long boundary) {
+    PyObject *result = PyList_New(boundary > 0 ? boundary : 0);
+
+    for (int i = 0; i < boundary; i++) {
+        PyList_SET_ITEM(result, i, PyInt_FromLong(i));
+    }
+
+    return result;
+}
 
 static PyObject *TO_RANGE_ARG(PyObject *value, char const *name) {
     if (likely(PyInt_Check(value) || PyLong_Check(value))) {
