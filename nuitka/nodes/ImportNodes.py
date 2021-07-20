@@ -435,10 +435,10 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                     inclusion_logger.warning(
                         """\
 Not following import to '%(full_path)s' (%(filename)s), please specify \
---nofollow-imports (do not warn), \
---follow-imports (recurse to all), \
---nofollow-import-to=%(full_path)s (ignore it), \
---follow-import-to=%(full_path)s (recurse to it) to change."""
+--nofollow-imports (do not follow any imports), \
+--follow-imports (follow all generally), \
+--nofollow-import-to=%(full_path)s (do not follow it), \
+--follow-import-to=%(full_path)s (follow import it) to change."""
                         % {"full_path": module_fullpath, "filename": module_filename}
                     )
 
