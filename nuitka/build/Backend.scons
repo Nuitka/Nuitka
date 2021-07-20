@@ -576,9 +576,9 @@ if gcc_mode and lto_mode:
         env.Append(LINKFLAGS=["-flto=%d" % job_count])
 
     if debug_mode:
-        env.Append(LINKFLAGS=["-O2"])
+        env.Append(LINKFLAGS=["-Og"])
     else:
-        env.Append(LINKFLAGS=["-O3"])
+        env.Append(LINKFLAGS=["-O2" if lto_mode else "-O3"])
 
     if not clang_mode:
         env.Append(LINKFLAGS=["-fpartial-inlining", "-freorder-functions"])
@@ -933,6 +933,7 @@ env.Append(CPPPATH=[source_dir, nuitka_include, os.path.join(nuitka_src, "static
 if debug_mode or unstripped_mode:
     # Use debug format, so we get good tracebacks from it.
     if gcc_mode:
+        env.Append(LINKFLAGS=["-g"])
         env.Append(CCFLAGS=["-g"])
         env.Append(ASFLAGS=["-g"])
 
@@ -956,11 +957,15 @@ else:
 # When debugging, optimize less than when optimizing, when not remove
 # assertions.
 if debug_mode:
-    if gcc_mode or msvc_mode:
+    if clang_mode or (gcc_mode and gcc_version >= (4, 8)):
+        env.Append(CCFLAGS=["-Og"])
+    elif gcc_mode:
+        env.Append(CCFLAGS=["-O1"])
+    elif msvc_mode:
         env.Append(CCFLAGS=["-O2"])
 else:
     if gcc_mode:
-        env.Append(CCFLAGS=["-O3"])
+        env.Append(CCFLAGS=["-O2" if lto_mode else "-O3"])
 
         # Check inlining of calls, except in debug mode, where it will all be
         # wrong due to additional code.
