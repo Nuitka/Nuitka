@@ -137,12 +137,20 @@ def needsDuplicateArgumentColOffset():
     else:
         return True
 
+
 def isDebianPackagePython():
-    """ Is this Python from a debian package.
+    """Is this Python from a debian package."""
 
-    """
+    if python_version < 0x300:
+        return hasattr(sys, "_multiarch")
+    else:
+        try:
+            from distutils.dir_util import _multiarch
+        except ImportError:
+            return False
+        else:
+            return True
 
-    return hasattr(sys, "_multiarch")
 
 def isUninstalledPython():
     # Debian package.

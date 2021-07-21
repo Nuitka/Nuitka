@@ -25,8 +25,10 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import parseOptions
 from nuitka.PythonVersions import (
     getSupportedPythonVersions,
+    isDebianPackagePython,
     isNuitkaPython,
     isUninstalledPython,
+    python_version,
     python_version_str,
 )
 from nuitka.utils.FileOperations import (
@@ -345,7 +347,7 @@ standalone where there is a sane default used inside the dist folder."""
 
     if options.static_libpython == "yes" and getSystemStaticLibPythonPath() is None:
         Tracing.options_logger.sysexit(
-            "Error, static libpython is not found or supported for this Python installation."
+            "Error, static libpython is not found or not supported for this Python installation."
         )
 
     is_debug = _isDebug()
@@ -671,7 +673,12 @@ def shallUseStaticLibPython():
     """
 
     if options.static_libpython == "auto":
+        # Nuitka-Python is good to to static linking.
         if isNuitkaPython():
+            return True
+
+        # Debian packages with Python2 are usable, Python3 will follow eventually maybe.
+        if python_version < 0x300 and isDebianPackagePython() and not isPythonDebug():
             return True
 
         if isWin32Windows() and os.path.exists(
@@ -692,7 +699,7 @@ def shallUseStaticLibPython():
 
         if getSystemStaticLibPythonPath() is not None:
             Tracing.options_logger.info(
-                "Detected static libpython as existing, consider using '--static-libpython=yes'."
+                "Detected static libpython to exist, consider '--static-libpython=yes' for better performance."
             )
 
     return options.static_libpython == "yes"

@@ -113,18 +113,21 @@ def getSystemStaticLibPythonPath():
         # For Python2 this works. TODO: Figure out Debian and Python3.
         if python_version < 0x300 and isDebianBasedLinux() and isDebianPackagePython():
             candidate = locateStaticLinkLibrary("python" + python_abi_version)
+        else:
+            candidate = None
 
-        if os.path.exists(candidate):
+        if candidate is not None and os.path.exists(candidate):
             return candidate
 
-        # Not correct on Debian, maybe others will work, pylint: disable=using-constant-test
-        if False:
+        # This is not necessarily only for Python3 on Debian, but maybe others as well,
+        # but that's what's been tested.
+        if python_version >= 0x300 and isDebianBasedLinux() and isDebianPackagePython():
             try:
                 import sysconfig
 
                 candidate = os.path.join(
                     sysconfig.get_config_var("LIBPL"),
-                    "libpython" + python_abi_version + ".a",
+                    "libpython" + python_abi_version + "-pic.a",
                 )
 
                 if os.path.exists(candidate):

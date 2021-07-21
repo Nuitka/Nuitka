@@ -432,7 +432,7 @@ def runSconsBackend(quiet):
     if not Options.shallMakeModule():
         options["result_exe"] = OutputDirectories.getResultFullpath(onefile=False)
 
-    if Options.shallUseStaticLibPython() and getSystemStaticLibPythonPath() is not None:
+    if Options.shallUseStaticLibPython():
         options["static_libpython"] = getSystemStaticLibPythonPath()
 
     if Options.isStandaloneMode():

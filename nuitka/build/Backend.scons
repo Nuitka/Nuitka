@@ -876,8 +876,11 @@ elif not module_mode:
 
         # The linker won't succeed in searching for those for system Python of Debian
         # compiled Pythons. Help that. For self-compiled,
-        if python_prefix == "/usr" and python_version < (3,) and isDebianBasedLinux():
+        if python_prefix == "/usr" and isDebianBasedLinux():
             env.Append(LIBS=["z", "m", "util", "pthread"])
+
+            if python_version >= (3,):
+                env.Append(LIBS=["expat"])
 
             env.Append(LINKFLAGS=["-Xlinker", "-export-dynamic", "-rdynamic"])
     else:
