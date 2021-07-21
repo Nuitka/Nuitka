@@ -108,7 +108,7 @@ def _myDetectVersion(env, clvar):
     ret = pipe.wait()
     if ret != 0:
         scons_details_logger.info(
-            "Error, error exit from %r (%d) gave %r."
+            "Error, error exit from '%s' (%d) gave %r."
             % (command, ret, pipe.stderr.read())
         )
         return None

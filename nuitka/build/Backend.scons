@@ -75,7 +75,7 @@ from .SconsHacks import (
     myDetectVersion,
 )
 from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
-from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
+from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
     addClangClPathFromMSVC,
     addToPATH,
@@ -1222,12 +1222,13 @@ env.Append(CPPDEFINES=cpp_defines)
 env.Append(LIBS=link_libraries)
 
 # Work around windows bugs and use watchdogs to track progress of compilation.
-if win_target:
-    env["SPAWN"] = getWindowsSpawnFunction(
-        module_mode=module_mode, lto_mode=lto_mode, source_files=source_files
-    )
-else:
-    env["SPAWN"] = getWrappedSpawnFunction(env["SPAWN"])
+enableSpawnMonitoring(
+    env=env,
+    win_target=win_target,
+    module_mode=module_mode,
+    lto_mode=lto_mode,
+    source_files=source_files,
+)
 
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit as the
 # scons traceback is not going to be very interesting to us.
