@@ -59,7 +59,7 @@ __version__ = "1.1"
 
 [Ident1, Ident2, Ident3, Ident4, Ident5] = range(1, 6)
 
-class Record:
+class Record(object):
 
     def __init__(self, PtrComp = None, Discr = 0, EnumComp = 0,
                        IntComp = 0, StringComp = 0):
@@ -78,9 +78,14 @@ FALSE = 0
 
 def main(loops = LOOPS):
     benchtime, stones = pystones(loops)
-    print "Pystone(%s) time for %d passes = %g" % \
-          (__version__, loops, benchtime)
-    print "This machine benchmarks at %g pystones/second" % stones
+
+    import os
+    if int(os.environ.get("BENCH", "0")):
+        print("%g" % stones)
+    else:
+        print "Pystone(%s) time for %d passes = %g" % \
+            (__version__, loops, benchtime)
+        print "This machine benchmarks at %g pystones/second" % stones
 
 
 def pystones(loops = LOOPS):

@@ -85,9 +85,14 @@ FALSE = 0
 
 def main(loops=LOOPS):
     benchtime, stones = pystones(loops)
-    print("Pystone(%s) time for %d passes = %g" % \
-          (__version__, loops, benchtime))
-    print("This machine benchmarks at %g pystones/second" % stones)
+
+    import os
+    if int(os.environ.get("BENCH", "0")):
+        print("%g" % stones)
+    else:
+        print("Pystone(%s) time for %d passes = %g" % \
+            (__version__, loops, benchtime))
+        print("This machine benchmarks at %g pystones/second" % stones)
 
 
 def pystones(loops=LOOPS):
