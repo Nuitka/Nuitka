@@ -25,7 +25,6 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import parseOptions
 from nuitka.PythonVersions import (
     getSupportedPythonVersions,
-    getSystemStaticLibPythonPath,
     isNuitkaPython,
     isUninstalledPython,
     python_version_str,
@@ -34,6 +33,7 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     resolveShellPatternToFilenames,
 )
+from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
     getOS,
@@ -345,7 +345,7 @@ standalone where there is a sane default used inside the dist folder."""
 
     if options.static_libpython == "yes" and getSystemStaticLibPythonPath() is None:
         Tracing.options_logger.sysexit(
-            "Error, static libpython is not found for this Python installation."
+            "Error, static libpython is not found or supported for this Python installation."
         )
 
     is_debug = _isDebug()

@@ -50,7 +50,6 @@ from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
     getSystemPrefixPath,
-    getSystemStaticLibPythonPath,
     isNuitkaPython,
     python_version,
     python_version_str,
@@ -67,6 +66,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from . import ModuleRegistry, Options, OutputDirectories, TreeXML

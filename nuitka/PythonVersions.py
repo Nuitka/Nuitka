@@ -137,8 +137,18 @@ def needsDuplicateArgumentColOffset():
     else:
         return True
 
+def isDebianPackagePython():
+    """ Is this Python from a debian package.
+
+    """
+
+    return hasattr(sys, "_multiarch")
 
 def isUninstalledPython():
+    # Debian package.
+    if isDebianPackagePython():
+        return False
+
     if isStaticallyLinkedPython():
         return True
 
@@ -310,61 +320,3 @@ def getSystemPrefixPath():
         _the_sys_prefix = sys_prefix
 
     return _the_sys_prefix
-
-
-def getSystemStaticLibPythonPath():
-    sys_prefix = getSystemPrefixPath()
-    python_abi_version = python_version_str + getPythonABI()
-
-    if isNuitkaPython():
-        # Nuitka Python has this.
-        return os.path.join(
-            sys_prefix,
-            "libs",
-            "python" + python_abi_version.replace(".", "") + ".lib",
-        )
-
-    if os.name == "nt":
-        candidates = [
-            # Anaconda has this.
-            os.path.join(
-                sys_prefix,
-                "libs",
-                "libpython" + python_abi_version.replace(".", "") + ".dll.a",
-            ),
-            # MSYS2 mingw64 Python has this.
-            os.path.join(
-                sys_prefix,
-                "lib",
-                "libpython" + python_abi_version + ".dll.a",
-            ),
-        ]
-
-        for candidate in candidates:
-            if os.path.exists(candidate):
-                return candidate
-    else:
-        candidate = os.path.join(
-            sys_prefix, "lib", "libpython" + python_abi_version + ".a"
-        )
-
-        if os.path.exists(candidate):
-            return candidate
-
-        try:
-            import sysconfig
-
-            candidate = os.path.join(
-                sysconfig.get_config_var("LIBPL"),
-                "libpython" + python_abi_version + ".a",
-            )
-
-            if os.path.exists(candidate):
-                return candidate
-
-        except ImportError:
-            # Cannot detect this properly for Python 2.6, but we don't care much
-            # about that anyway.
-            pass
-
-    return None

@@ -42,7 +42,6 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 # isort:start
 
 import json
-import platform
 import subprocess
 
 import SCons  # pylint: disable=I0021,import-error
@@ -58,6 +57,7 @@ from nuitka.Tracing import (
     scons_logger,
     setQuiet,
 )
+from nuitka.utils.Utils import isDebianBasedLinux
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
@@ -91,7 +91,6 @@ from .SconsUtils import (
     getMsvcVersionString,
     initScons,
     isGccName,
-    locateStaticLinkLibrary,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
     setArguments,
@@ -875,30 +874,19 @@ elif not module_mode:
     if not module_mode and static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
 
-        # The gcc won't succeed in searching for those, help it.
-        for library_name in (
-            "z",
-            "m",
-            "util",
-            "pthread",
-        ):
-            static_library_filename = locateStaticLinkLibrary(library_name)
+        # The linker won't succeed in searching for those for system Python of Debian
+        # compiled Pythons. Help that. For self-compiled,
+        if python_prefix == "/usr" and python_version < (3,) and isDebianBasedLinux():
+            env.Append(LIBS=["z", "m", "util", "pthread"])
 
-            if static_library_filename is not None:
-                env.Append(LIBS=[env.File(static_library_filename)])
-
-        env.Append(LINKFLAGS=["-static"])
-
+            env.Append(LINKFLAGS=["-Xlinker", "-export-dynamic", "-rdynamic"])
     else:
         # Debian and Ubuntu distinguish the system libraries like this.
         if (
             python_debug
             and python_prefix == "/usr"
             and python_version < (3,)
-            and platform.dist()[  # pylint: disable=I0021,deprecated-method,no-member
-                0
-            ].lower()
-            in ("debian", "ubuntu")
+            and isDebianBasedLinux()
         ):
             env.Append(LIBS=["python" + python_abi_version + "_d"])
         else:

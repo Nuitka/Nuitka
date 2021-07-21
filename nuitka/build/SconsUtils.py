@@ -31,10 +31,8 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     basestring,
     unicode,
 )
-from nuitka.containers.oset import OrderedSet
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Execution import getNullInput
-from nuitka.utils.FileOperations import getFileContentByLine, getFileList
 
 
 def initScons():
@@ -553,30 +551,3 @@ Note: The clang-cl will only work if Visual Studio already works for you.
         )
     else:
         scons_logger.sysexit("Error, cannot locate suitable C compiler.")
-
-
-_ldconf_paths = None
-
-
-def locateStaticLinkLibrary(dll_name):
-    # singleton, pylint: disable=global-statement
-    #
-    global _ldconf_paths
-    if _ldconf_paths is None:
-        _ldconf_paths = OrderedSet()
-
-        for conf_filemame in getFileList("/etc/ld.so.conf.d", only_suffixes=".conf"):
-            for conf_line in getFileContentByLine(conf_filemame):
-                conf_line = conf_line.split("#", 1)[0]
-                conf_line = conf_line.strip()
-
-                if os.path.exists(conf_line):
-                    _ldconf_paths.add(conf_line)
-
-    for ld_config_path in _ldconf_paths:
-        candidate = os.path.join(ld_config_path, "lib%s.a" % dll_name)
-
-        if os.path.exists(candidate):
-            return candidate
-
-    return None
