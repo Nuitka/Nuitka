@@ -650,7 +650,7 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
 
             return NULL;
         } else {
-#if PYTHON_VERSION < 0x300
+#if _NUITKA_MAINTAIN_SYS_EXC_VARS
             PyObject *old_type = thread_state->exc_type;
             PyObject *old_value = thread_state->exc_value;
             PyTracebackObject *old_tb = (PyTracebackObject *)thread_state->exc_traceback;

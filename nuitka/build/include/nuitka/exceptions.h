@@ -194,6 +194,10 @@ NUITKA_MAY_BE_UNUSED inline static void GET_CURRENT_EXCEPTION(PyObject **excepti
     Py_XINCREF(*exception_tb);
 };
 
+#if PYTHON_VERSION < 0x300 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_SYS_EXC_VARS)
+#define _NUITKA_MAINTAIN_SYS_EXC_VARS 1
+#endif
+
 // Helper that sets the current thread exception, releasing the current one, for
 // use in this file only.
 NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyObject *exception_type, PyObject *exception_value,
@@ -225,7 +229,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyObject *exceptio
     Py_XDECREF(old_value);
     Py_XDECREF(old_tb);
 
-#if PYTHON_VERSION < 0x300
+#if _NUITKA_MAINTAIN_SYS_EXC_VARS
     // Set sys attributes in the fastest possible way.
     PyObject *sys_dict = thread_state->interp->sysdict;
     CHECK_OBJECT(sys_dict);
