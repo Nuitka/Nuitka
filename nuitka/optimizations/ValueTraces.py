@@ -143,6 +143,14 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
+    def isEscapeTrace():
+        return False
+
+    @staticmethod
+    def isEscapeOrUnknownTrace():
+        return False
+
+    @staticmethod
     def isMergeTrace():
         return False
 
@@ -286,6 +294,10 @@ class ValueTraceUnknown(ValueTraceBase):
         return True
 
     @staticmethod
+    def isEscapeOrUnknownTrace():
+        return True
+
+    @staticmethod
     def mustHaveValue():
         return False
 
@@ -312,6 +324,27 @@ class ValueTraceEscaped(ValueTraceUnknown):
         self.merge_usage_count += 1
         if self.merge_usage_count <= 2:
             self.previous.addMergeUsage()
+
+    def mustHaveValue(self):
+        return self.previous.mustHaveValue()
+
+    def mustNotHaveValue(self):
+        return self.previous.mustNotHaveValue()
+
+    def getReplacementNode(self, usage):
+        return self.previous.getReplacementNode(usage)
+
+    @staticmethod
+    def isUnknownTrace():
+        return False
+
+    @staticmethod
+    def isEscapeTrace():
+        return True
+
+    @staticmethod
+    def isEscapeOrUnknownTrace():
+        return True
 
 
 class ValueTraceAssign(ValueTraceBase):

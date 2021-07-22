@@ -373,13 +373,27 @@ class TraceCollectionBase(object):
     def markActiveVariableAsEscaped(self, variable):
         current = self.getVariableCurrentTrace(variable=variable)
 
-        if not current.isUnknownTrace():
+        if not current.isEscapeOrUnknownTrace():
             version = variable.allocateTargetNumber()
 
             self.addVariableTrace(
                 variable,
                 version,
                 ValueTraceEscaped(owner=self.owner, previous=current),
+            )
+
+            self.markCurrentVariableTrace(variable, version)
+
+    def markActiveVariableAsUnknown(self, variable):
+        current = self.getVariableCurrentTrace(variable=variable)
+
+        if not current.isUnknownTrace():
+            version = variable.allocateTargetNumber()
+
+            self.addVariableTrace(
+                variable,
+                version,
+                ValueTraceUnknown(owner=self.owner, previous=current),
             )
 
             self.markCurrentVariableTrace(variable, version)
@@ -406,12 +420,19 @@ class TraceCollectionBase(object):
 
         return result
 
-    def markActiveVariablesAsUnknown(self):
+    def markActiveVariablesAsEscaped(self):
         for variable in self.getActiveVariables():
             if variable.isTempVariable():
                 continue
 
             self.markActiveVariableAsEscaped(variable)
+
+    def markActiveVariablesAsUnknown(self):
+        for variable in self.getActiveVariables():
+            if variable.isTempVariable():
+                continue
+
+            self.markActiveVariableAsUnknown(variable)
 
     @staticmethod
     def signalChange(tags, source_ref, message):
@@ -455,18 +476,26 @@ class TraceCollectionBase(object):
         # to be considered escaped, pylint: disable=unused-argument
 
         for variable in self.getActiveVariables():
+            # TODO: Move this to the variable, and prepare and cache it better for
+            # compile time savings.
             if variable.isModuleVariable():
-                # print variable
-
-                self.markActiveVariableAsEscaped(variable)
+                self.markActiveVariableAsUnknown(variable)
 
             elif variable.isLocalVariable():
-                if variable.hasAccessesOutsideOf(self.owner) is not False:
+                if (
+                    str is not bytes
+                    and variable.hasWritersOutsideOf(self.owner) is not False
+                ):
+                    self.markActiveVariableAsUnknown(variable)
+                elif variable.hasAccessesOutsideOf(self.owner) is not False:
                     self.markActiveVariableAsEscaped(variable)
 
     def removeKnowledge(self, node):
         if node.isExpressionVariableRef():
-            self.markActiveVariableAsEscaped(node.variable)
+            if node.variable.isModuleVariable():
+                self.markActiveVariableAsUnknown(node.variable)
+            else:
+                self.markActiveVariableAsEscaped(node.variable)
 
     def onValueEscapeStr(self, node):
         # TODO: We can ignore these for now.
@@ -493,6 +522,8 @@ class TraceCollectionBase(object):
         # Add a new trace, allocating a new version for the variable, and
         # remember the delete of the current
         old_trace = self.getVariableCurrentTrace(variable)
+
+        # TODO: Annotate value content as escaped.
 
         variable_trace = ValueTraceDeleted(
             owner=self.owner, del_node=del_node, previous=old_trace
@@ -523,7 +554,10 @@ class TraceCollectionBase(object):
         return result
 
     def onVariableContentEscapes(self, variable):
-        self.markActiveVariableAsEscaped(variable)
+        if variable.isModuleVariable():
+            self.markActiveVariableAsUnknown(variable)
+        else:
+            self.markActiveVariableAsEscaped(variable)
 
     def onExpression(self, expression, allow_none=False):
         if expression is None and allow_none:
@@ -608,6 +642,30 @@ class TraceCollectionBase(object):
 
         # Need to compute the replacement still.
         new_expression = expression.computeExpression(self)
+
+        if new_expression[0] is not expression:
+            # Signal intermediate result as well.
+            self.signalChange(change_tags, expression.getSourceReference(), change_desc)
+
+            return new_expression
+        else:
+            return expression, change_tags, change_desc
+
+    def computedExpressionResultRaw(self, expression, change_tags, change_desc):
+        """Make sure the replacement expression is computed.
+
+        Use this when a replacement expression needs to be seen by the trace
+        collection and be computed, without causing any duplication, but where
+        otherwise there would be loss of annotated effects.
+
+        This may e.g. be true for nodes that need an initial run to know their
+        exception result and type shape.
+
+        This is for raw, i.e. subnodes are not yet computed automatically.
+        """
+
+        # Need to compute the replacement still.
+        new_expression = expression.computeExpressionRaw(self)
 
         if new_expression[0] is not expression:
             # Signal intermediate result as well.
@@ -955,7 +1013,7 @@ class TraceCollectionModule(CollectionStartpointMixin, TraceCollectionBase):
 def areEmptyTraces(variable_traces):
     """Do these traces contain any writes or accesses."""
     # Many cases immediately return, that is how we do it here,
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     for variable_trace in variable_traces:
         if variable_trace.isAssignTrace():
@@ -973,6 +1031,11 @@ def areEmptyTraces(variable_traces):
                 # them as well.
                 return False
         elif variable_trace.isUnknownTrace():
+            if variable_trace.getUsageCount():
+                # Checking definite is enough, the merges, we shall see
+                # them as well.
+                return False
+        elif variable_trace.isEscapeTrace():
             if variable_trace.getUsageCount():
                 # Checking definite is enough, the merges, we shall see
                 # them as well.
@@ -1008,6 +1071,8 @@ def areReadOnlyTraces(variable_traces):
             pass
         elif variable_trace.isUnknownTrace():
             return False
+        elif variable_trace.isEscapeTrace():
+            pass
         elif variable_trace.isMergeTrace():
             pass
         elif variable_trace.isLoopTrace():

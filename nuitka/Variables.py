@@ -213,6 +213,16 @@ class Variable(getMetaClassBase("Variable")):
         else:
             return bool(self.users)
 
+    def hasWritersOutsideOf(self, provider):
+        if not self.owner.locals_scope.complete:
+            return None
+        elif self.writers is None:
+            return False
+        elif provider in self.writers:
+            return len(self.writers) > 1
+        else:
+            return bool(self.writers)
+
     def getMatchingAssignTrace(self, assign_node):
         for trace in self.traces:
             if trace.isAssignTrace() and trace.getAssignNode() is assign_node:
@@ -234,6 +244,8 @@ class Variable(getMetaClassBase("Variable")):
             if trace.isAssignTrace():
                 result.add(trace.getAssignNode().getTypeShape())
             elif trace.isUnknownTrace():
+                result.add(tshape_unknown)
+            elif trace.isEscapeTrace():
                 result.add(tshape_unknown)
             elif trace.isInitTrace():
                 result.add(tshape_unknown)
