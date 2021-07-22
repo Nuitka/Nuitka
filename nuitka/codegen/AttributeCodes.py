@@ -37,7 +37,7 @@ def generateAssignmentAttributeCode(statement, emit, context):
     attribute_name = statement.getAttributeName()
     value = statement.subnode_source
 
-    value_name = context.allocateTempName("assattr_name")
+    value_name = context.allocateTempName("assattr_value")
     generateExpressionCode(
         to_name=value_name, expression=value, emit=emit, context=context
     )

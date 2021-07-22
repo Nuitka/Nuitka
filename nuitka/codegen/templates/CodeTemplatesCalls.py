@@ -107,7 +107,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
                 }
 
                 result = function->m_c_code(function, python_pars);
-            } else if ( function->m_args_simple && %(args_count)d + 1 + function->m_defaults_given == function->m_args_positional_count ) {
+            } else if (function->m_args_simple && %(args_count)d + 1 + function->m_defaults_given == function->m_args_positional_count) {
 #ifdef _MSC_VER
                 PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
 #else
@@ -160,7 +160,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
             }
 #endif
 
-            PyObject *result = (*method)( self, NULL );
+            PyObject *result = (*method)(self, NULL);
 
 #ifdef _NUITKA_FULL_COMPAT
             Py_LeaveRecursiveCall();
@@ -205,7 +205,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
             }
 #endif
 
-            PyObject *result = (*method)( self, args[0]);
+            PyObject *result = (*method)(self, args[0]);
 
 #ifdef _NUITKA_FULL_COMPAT
             Py_LeaveRecursiveCall();
@@ -378,7 +378,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d(PyObject *source, PyObject *attr_n
                 if (tsize < 0) {
                     tsize = -tsize;
                 }
-                size = _PyObject_VAR_SIZE( type, tsize );
+                size = _PyObject_VAR_SIZE(type, tsize);
 
                 dictoffset += (long)size;
             }
