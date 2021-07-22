@@ -44,6 +44,7 @@
 #if defined(_WIN32)
 #include <Shlobj.h>
 #include <windows.h>
+#include <imagehlp.h>
 
 #ifndef CSIDL_LOCAL_APPDATA
 #define CSIDL_LOCAL_APPDATA 28
@@ -476,6 +477,37 @@ static void cleanupChildProcess() {
 }
 
 #if defined(_WIN32)
+static PSTR convertUnicodePathToAnsi(PCWSTR pszPath) {
+    // first get short path as otherwise, conversion might not be reliable
+    DWORD l = GetShortPathNameW(pszPath, NULL, 0);
+    PWSTR shortPath = (PWSTR)malloc(sizeof(TCHAR) * l);
+    assert(shortPath);
+
+    l = GetShortPathNameW(pszPath, shortPath, l);
+    if (l = 0) {
+        goto err_shortPath;
+    }
+
+    size_t i;
+    if (wcstombs_s(&i, NULL, 0, shortPath, _TRUNCATE) != 0) {
+        goto err_shortPath;
+    }
+    char *ansiPath = (char *)malloc(i);
+    assert(ansiPath);
+    if (wcstombs_s(&i, ansiPath, i, shortPath, _TRUNCATE) != 0) {
+        goto err_ansiPath;
+    }
+    return ansiPath;
+
+err_ansiPath:
+    free(ansiPath);
+err_shortPath:
+    free(shortPath);
+    return NULL;
+}
+#endif
+
+#if defined(_WIN32)
 BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
     switch (fdwCtrlType) {
         // Handle the CTRL-C signal.
@@ -638,7 +670,34 @@ int main(int argc, char **argv) {
 #endif
 
 #if defined(_WIN32)
-    res = SetFilePointer(exe_file, -8, NULL, FILE_END);
+    /* if an application is signed, the signature is at the end of the file
+       where we normally expect the start position of out container.
+       the overcome this limitation, use the windows function MapAndLoad()
+       to parse the PE header. The header contains information whether
+       a signature is present and at which address the first signature
+       start. so we can use that address to find the start position value */
+    DWORD cert_table_addr = 0;
+
+    PSTR exe_filename_a = convertUnicodePathToAnsi(exe_filename);
+    if (exe_filename_a) {
+        LOADED_IMAGE loaded_image;
+        if (MapAndLoad(exe_filename_a, "\\dont-search-path", &loaded_image, false, true)) {
+            if (loaded_image.FileHeader) {
+                if (loaded_image.FileHeader->OptionalHeader.NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_SECURITY) {
+                    cert_table_addr = loaded_image.FileHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY].VirtualAddress;
+                    // printf("Certificate Table at: %d\n", cert_table_addr);
+                }
+            }
+            UnMapAndLoad(&loaded_image);
+        }
+        free(exe_filename_a);
+    }
+
+    if (cert_table_addr == 0) {
+        res = SetFilePointer(exe_file, -8, NULL, FILE_END);
+    } else {
+        res = SetFilePointer(exe_file, cert_table_addr - 8, NULL, FILE_BEGIN);
+    }
     assert(res != INVALID_SET_FILE_POINTER);
 #else
     int res = fseek(exe_file, -8, SEEK_END);
