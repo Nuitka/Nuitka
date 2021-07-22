@@ -143,6 +143,7 @@ def main():
             os.environ["PYTHON"],
             nuitka,
             "--quiet",
+            "--no-progress",
             "--python-flag=-S",
             os.path.basename(test_case),
         ]
