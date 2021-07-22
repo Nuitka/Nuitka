@@ -310,8 +310,17 @@ static PyObject *Nuitka_Method_tp_call(struct Nuitka_MethodObject *method, PyObj
 
         return Py_TYPE(method->m_function)->tp_call((PyObject *)method->m_function, args, kw);
     } else {
-        return Nuitka_CallMethodFunctionPosArgsKwArgs(method->m_function, method->m_object, &PyTuple_GET_ITEM(args, 0),
-                                                      arg_count, kw);
+        if (kw == NULL) {
+            if (arg_count == 0) {
+                return Nuitka_CallMethodFunctionNoArgs(method->m_function, method->m_object);
+            } else {
+                return Nuitka_CallMethodFunctionPosArgs(method->m_function, method->m_object,
+                                                        &PyTuple_GET_ITEM(args, 0), arg_count);
+            }
+        } else {
+            return Nuitka_CallMethodFunctionPosArgsKwArgs(method->m_function, method->m_object,
+                                                          &PyTuple_GET_ITEM(args, 0), arg_count, kw);
+        }
     }
 }
 
