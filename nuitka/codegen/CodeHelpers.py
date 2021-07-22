@@ -24,10 +24,11 @@ typical support functions to building parts.
 
 from contextlib import contextmanager
 
+from nuitka import Options
 from nuitka.nodes.NodeMetaClasses import NuitkaNodeDesignError
-from nuitka.Options import isExperimental, shallTraceExecution
+from nuitka.Options import shallTraceExecution
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import my_print, printError
+from nuitka.Tracing import printError
 
 from .Emission import withSubCollector
 from .LabelCodes import getGotoCode, getLabelCode, getStatementTrace
@@ -449,10 +450,7 @@ def pickCodeHelper(
             helper_right=right_shape,
         )
 
-    if isExperimental("nuitka_ilong"):
-        my_print(ideal_helper)
-
-    if source_ref is not None and (not nonhelpers or ideal_helper not in nonhelpers):
+    if Options.is_report_missing and (not nonhelpers or ideal_helper not in nonhelpers):
         onMissingHelper(ideal_helper, source_ref)
 
     fallback_helper = "%s_%s_%s_%s%s" % (prefix, "OBJECT", "OBJECT", "OBJECT", suffix)

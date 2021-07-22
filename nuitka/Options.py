@@ -50,12 +50,13 @@ is_nuitka_run = None
 is_debug = None
 is_nondebug = None
 is_fullcompat = None
+is_report_missing = None
 
 
 def parseArgs(will_reexec):
     # singleton with many cases checking the options right away.
     # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements
-    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat
+    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat, is_report_missing
 
     if os.name == "nt":
         # Windows store Python's don't allow looking at the python, catch that.
@@ -353,6 +354,9 @@ standalone where there is a sane default used inside the dist folder."""
     is_debug = _isDebug()
     is_nondebug = not is_debug
     is_fullcompat = _isFullCompat()
+
+    # TODO: Have dedicated option for it.
+    is_report_missing = is_debug
 
 
 def commentArgs():

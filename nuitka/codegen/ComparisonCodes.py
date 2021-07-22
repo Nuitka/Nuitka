@@ -180,8 +180,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
             right_shape=expression.subnode_right.getTypeShape(),
             helpers=specialized_cmp_helpers_set,
             nonhelpers=(),
-            # TODO: Only temporary, we need to be more complete with these.
-            source_ref=None,  # expression.source_ref,
+            source_ref=expression.source_ref,
         )
 
         # Lets patch this up here, instead of having one set per comparison operation.
