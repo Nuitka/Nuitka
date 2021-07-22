@@ -1091,6 +1091,2144 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
 }
 
 #if PYTHON_VERSION < 0x300
+static PyObject *COMPARE_GT_OBJECT_STR_STR(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyString_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyString_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyStringObject *a = (PyStringObject *)operand1;
+    PyStringObject *b = (PyStringObject *)operand2;
+
+    // Same object has fast path for all operations.
+    if (operand1 == operand2) {
+        bool r = false;
+
+        // Convert to target type.
+        PyObject *result = BOOL_FROM(r);
+        Py_INCREF(result);
+        return result;
+    }
+
+    Py_ssize_t len_a = Py_SIZE(operand1);
+    Py_ssize_t len_b = Py_SIZE(operand2);
+
+    Py_ssize_t min_len = (len_a < len_b) ? len_a : len_b;
+    int c;
+
+    if (min_len > 0) {
+        c = Py_CHARMASK(*a->ob_sval) - Py_CHARMASK(*b->ob_sval);
+
+        if (c == 0) {
+            c = memcmp(a->ob_sval, b->ob_sval, min_len);
+        }
+    } else {
+        c = 0;
+    }
+
+    if (c == 0) {
+        c = (len_a < len_b) ? -1 : (len_a > len_b) ? 1 : 0;
+    }
+
+    c = c > 0;
+
+    // Convert to target type.
+    PyObject *result = BOOL_FROM(c != 0);
+    Py_INCREF(result);
+    return result;
+}
+/* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
+PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
+
+    if (Py_TYPE(operand1) == &PyString_Type) {
+        return COMPARE_GT_OBJECT_STR_STR(operand1, operand2);
+    }
+
+// TODO: Get hint from recursion control if that's needed and have variants
+// with and without.
+#if PYTHON_VERSION < 0x300
+    if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
+        return NULL;
+    }
+#else
+    if (unlikely(Py_EnterRecursiveCall((char *)" in comparison"))) {
+        return NULL;
+    }
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyString_Type;
+
+#if PYTHON_VERSION < 0x300
+    // If the types are equal, we may get away immediately.
+    if (type1 == type2 && !0) {
+
+        richcmpfunc frich = PyString_Type.tp_richcompare;
+
+        if (frich != NULL) {
+            PyObject *result = (*frich)(operand1, operand2, Py_GT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                return result;
+            }
+
+            Py_DECREF(result);
+        }
+
+        // No rich comparison worked, but maybe compare works.
+        cmpfunc fcmp = NULL;
+
+        if (fcmp != NULL) {
+            int c = (*fcmp)(operand1, operand2);
+            c = adjust_tp_compare(c);
+
+            Py_LeaveRecursiveCall();
+
+            if (c == -2) {
+                return NULL;
+            }
+
+            switch (Py_GT) {
+            case Py_LT:
+                c = c < 0;
+                break;
+            case Py_LE:
+                c = c <= 0;
+                break;
+            case Py_EQ:
+                c = c == 0;
+                break;
+            case Py_NE:
+                c = c != 0;
+                break;
+            case Py_GT:
+                c = c > 0;
+                break;
+            case Py_GE:
+                c = c >= 0;
+                break;
+            default:
+                NUITKA_CANNOT_GET_HERE("wrong op_code");
+            }
+
+            bool r = c != 0;
+            PyObject *result = BOOL_FROM(r);
+            Py_INCREF(result);
+            return result;
+        }
+    }
+
+    // Fast path was not successful or not taken
+    richcmpfunc f;
+
+    if (type1 != type2 && 0) {
+        f = PyString_Type.tp_richcompare;
+
+        if (f != NULL) {
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                return result;
+            }
+
+            Py_DECREF(result);
+        }
+    }
+
+    f = RICHCOMPARE(type1);
+    if (f != NULL) {
+        PyObject *result = (*f)(operand1, operand2, Py_GT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            return result;
+        }
+
+        Py_DECREF(result);
+    }
+
+    f = PyString_Type.tp_richcompare;
+    if (f != NULL) {
+        PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            return result;
+        }
+
+        Py_DECREF(result);
+    }
+
+    int c;
+
+    if (PyInstance_Check(operand1)) {
+        c = (*type1->tp_compare)(operand1, operand2);
+    } else if (0) {
+        c = (*type2->tp_compare)(operand1, operand2);
+    } else {
+        c = try_3way_compare(operand1, operand2);
+    }
+
+    if (c >= 2) {
+        if (type1 == type2) {
+            Py_uintptr_t aa = (Py_uintptr_t)operand1;
+            Py_uintptr_t bb = (Py_uintptr_t)operand2;
+
+            c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+        } else if (operand1 == Py_None) {
+            // None is smaller than everything else
+            c = -1;
+        } else if (operand2 == Py_None) {
+            // None is smaller than everything else
+            c = 1;
+        } else if (PyNumber_Check(operand1)) {
+            // different type: compare type names but numbers are smaller than
+            // others.
+            if (PyNumber_Check(operand2)) {
+                // Both numbers, need to make a decision based on types.
+                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t bb = (Py_uintptr_t)type2;
+
+                c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+            } else {
+                c = -1;
+            }
+        } else if (PyNumber_Check(operand2)) {
+            c = 1;
+        } else {
+            // TODO: Could be hard coded if one is known.
+            int s = strcmp(type1->tp_name, type2->tp_name);
+
+            if (s < 0) {
+                c = -1;
+            } else if (s > 0) {
+                c = 1;
+            } else {
+                // Same type name need to make a decision based on type address.
+                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t bb = (Py_uintptr_t)type2;
+
+                c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+            }
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    if (unlikely(c <= -2)) {
+        return NULL;
+    }
+
+    switch (Py_GT) {
+    case Py_LT:
+        c = c < 0;
+        break;
+    case Py_LE:
+        c = c <= 0;
+        break;
+    case Py_EQ:
+        c = c == 0;
+        break;
+    case Py_NE:
+        c = c != 0;
+        break;
+    case Py_GT:
+        c = c > 0;
+        break;
+    case Py_GE:
+        c = c >= 0;
+        break;
+    }
+
+    bool r = c != 0;
+    PyObject *result = BOOL_FROM(r);
+    Py_INCREF(result);
+    return result;
+#else
+    bool checked_reverse_op = false;
+    richcmpfunc f;
+
+    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+        f = PyString_Type.tp_richcompare;
+
+        if (f != NULL) {
+            checked_reverse_op = true;
+
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                return result;
+            }
+
+            Py_DECREF(result);
+        }
+    }
+
+    f = RICHCOMPARE(type1);
+
+    if (f != NULL) {
+        PyObject *result = (*f)(operand1, operand2, Py_GT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            return result;
+        }
+
+        Py_DECREF(result);
+    }
+
+    if (checked_reverse_op == false) {
+        f = PyString_Type.tp_richcompare;
+
+        if (f != NULL) {
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                return result;
+            }
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    // If it is not implemented, do pointer identity checks as "==" and "!=" and
+    // otherwise give an error
+    switch (Py_GT) {
+    case Py_EQ: {
+        bool r = operand1 == operand2;
+        PyObject *result = BOOL_FROM(r);
+        Py_INCREF(result);
+        return result;
+    }
+    case Py_NE: {
+        bool r = operand1 != operand2;
+        PyObject *result = BOOL_FROM(r);
+        Py_INCREF(result);
+        return result;
+    }
+    default:
+#if PYTHON_VERSION < 0x360
+        PyErr_Format(PyExc_TypeError, "unorderable types: %s() > str()", type1->tp_name);
+#else
+        PyErr_Format(PyExc_TypeError, "'>' not supported between instances of '%s' and 'str'", type1->tp_name);
+#endif
+        return NULL;
+    }
+#endif
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+static bool COMPARE_GT_CBOOL_STR_STR(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyString_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyString_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyStringObject *a = (PyStringObject *)operand1;
+    PyStringObject *b = (PyStringObject *)operand2;
+
+    // Same object has fast path for all operations.
+    if (operand1 == operand2) {
+        bool r = false;
+
+        // Convert to target type.
+        bool result = r;
+
+        return result;
+    }
+
+    Py_ssize_t len_a = Py_SIZE(operand1);
+    Py_ssize_t len_b = Py_SIZE(operand2);
+
+    Py_ssize_t min_len = (len_a < len_b) ? len_a : len_b;
+    int c;
+
+    if (min_len > 0) {
+        c = Py_CHARMASK(*a->ob_sval) - Py_CHARMASK(*b->ob_sval);
+
+        if (c == 0) {
+            c = memcmp(a->ob_sval, b->ob_sval, min_len);
+        }
+    } else {
+        c = 0;
+    }
+
+    if (c == 0) {
+        c = (len_a < len_b) ? -1 : (len_a > len_b) ? 1 : 0;
+    }
+
+    c = c > 0;
+
+    // Convert to target type.
+    bool result = c != 0;
+
+    return result;
+}
+/* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
+bool RICH_COMPARE_GT_CBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
+
+    if (Py_TYPE(operand1) == &PyString_Type) {
+        return COMPARE_GT_CBOOL_STR_STR(operand1, operand2);
+    }
+
+// TODO: Get hint from recursion control if that's needed and have variants
+// with and without.
+#if PYTHON_VERSION < 0x300
+    if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
+        return false;
+    }
+#else
+    if (unlikely(Py_EnterRecursiveCall((char *)" in comparison"))) {
+        return false;
+    }
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyString_Type;
+
+#if PYTHON_VERSION < 0x300
+    // If the types are equal, we may get away immediately.
+    if (type1 == type2 && !0) {
+
+        richcmpfunc frich = PyString_Type.tp_richcompare;
+
+        if (frich != NULL) {
+            PyObject *result = (*frich)(operand1, operand2, Py_GT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return false;
+                }
+
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+
+            Py_DECREF(result);
+        }
+
+        // No rich comparison worked, but maybe compare works.
+        cmpfunc fcmp = NULL;
+
+        if (fcmp != NULL) {
+            int c = (*fcmp)(operand1, operand2);
+            c = adjust_tp_compare(c);
+
+            Py_LeaveRecursiveCall();
+
+            if (c == -2) {
+                return false;
+            }
+
+            switch (Py_GT) {
+            case Py_LT:
+                c = c < 0;
+                break;
+            case Py_LE:
+                c = c <= 0;
+                break;
+            case Py_EQ:
+                c = c == 0;
+                break;
+            case Py_NE:
+                c = c != 0;
+                break;
+            case Py_GT:
+                c = c > 0;
+                break;
+            case Py_GE:
+                c = c >= 0;
+                break;
+            default:
+                NUITKA_CANNOT_GET_HERE("wrong op_code");
+            }
+
+            bool r = c != 0;
+            bool result = r;
+
+            return result;
+        }
+    }
+
+    // Fast path was not successful or not taken
+    richcmpfunc f;
+
+    if (type1 != type2 && 0) {
+        f = PyString_Type.tp_richcompare;
+
+        if (f != NULL) {
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return false;
+                }
+
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+
+            Py_DECREF(result);
+        }
+    }
+
+    f = RICHCOMPARE(type1);
+    if (f != NULL) {
+        PyObject *result = (*f)(operand1, operand2, Py_GT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            if (unlikely(result == NULL)) {
+                return false;
+            }
+
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
+        }
+
+        Py_DECREF(result);
+    }
+
+    f = PyString_Type.tp_richcompare;
+    if (f != NULL) {
+        PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            if (unlikely(result == NULL)) {
+                return false;
+            }
+
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
+        }
+
+        Py_DECREF(result);
+    }
+
+    int c;
+
+    if (PyInstance_Check(operand1)) {
+        c = (*type1->tp_compare)(operand1, operand2);
+    } else if (0) {
+        c = (*type2->tp_compare)(operand1, operand2);
+    } else {
+        c = try_3way_compare(operand1, operand2);
+    }
+
+    if (c >= 2) {
+        if (type1 == type2) {
+            Py_uintptr_t aa = (Py_uintptr_t)operand1;
+            Py_uintptr_t bb = (Py_uintptr_t)operand2;
+
+            c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+        } else if (operand1 == Py_None) {
+            // None is smaller than everything else
+            c = -1;
+        } else if (operand2 == Py_None) {
+            // None is smaller than everything else
+            c = 1;
+        } else if (PyNumber_Check(operand1)) {
+            // different type: compare type names but numbers are smaller than
+            // others.
+            if (PyNumber_Check(operand2)) {
+                // Both numbers, need to make a decision based on types.
+                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t bb = (Py_uintptr_t)type2;
+
+                c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+            } else {
+                c = -1;
+            }
+        } else if (PyNumber_Check(operand2)) {
+            c = 1;
+        } else {
+            // TODO: Could be hard coded if one is known.
+            int s = strcmp(type1->tp_name, type2->tp_name);
+
+            if (s < 0) {
+                c = -1;
+            } else if (s > 0) {
+                c = 1;
+            } else {
+                // Same type name need to make a decision based on type address.
+                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t bb = (Py_uintptr_t)type2;
+
+                c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+            }
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    if (unlikely(c <= -2)) {
+        return false;
+    }
+
+    switch (Py_GT) {
+    case Py_LT:
+        c = c < 0;
+        break;
+    case Py_LE:
+        c = c <= 0;
+        break;
+    case Py_EQ:
+        c = c == 0;
+        break;
+    case Py_NE:
+        c = c != 0;
+        break;
+    case Py_GT:
+        c = c > 0;
+        break;
+    case Py_GE:
+        c = c >= 0;
+        break;
+    }
+
+    bool r = c != 0;
+    bool result = r;
+
+    return result;
+#else
+    bool checked_reverse_op = false;
+    richcmpfunc f;
+
+    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+        f = PyString_Type.tp_richcompare;
+
+        if (f != NULL) {
+            checked_reverse_op = true;
+
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return false;
+                }
+
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+
+            Py_DECREF(result);
+        }
+    }
+
+    f = RICHCOMPARE(type1);
+
+    if (f != NULL) {
+        PyObject *result = (*f)(operand1, operand2, Py_GT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            if (unlikely(result == NULL)) {
+                return false;
+            }
+
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
+        }
+
+        Py_DECREF(result);
+    }
+
+    if (checked_reverse_op == false) {
+        f = PyString_Type.tp_richcompare;
+
+        if (f != NULL) {
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return false;
+                }
+
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    // If it is not implemented, do pointer identity checks as "==" and "!=" and
+    // otherwise give an error
+    switch (Py_GT) {
+    case Py_EQ: {
+        bool r = operand1 == operand2;
+        bool result = r;
+
+        return result;
+    }
+    case Py_NE: {
+        bool r = operand1 != operand2;
+        bool result = r;
+
+        return result;
+    }
+    default:
+#if PYTHON_VERSION < 0x360
+        PyErr_Format(PyExc_TypeError, "unorderable types: %s() > str()", type1->tp_name);
+#else
+        PyErr_Format(PyExc_TypeError, "'>' not supported between instances of '%s' and 'str'", type1->tp_name);
+#endif
+        return false;
+    }
+#endif
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+static nuitka_bool COMPARE_GT_NBOOL_STR_STR(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyString_CheckExact(operand1));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand1));
+#endif
+    CHECK_OBJECT(operand2);
+    assert(PyString_CheckExact(operand2));
+#if PYTHON_VERSION < 0x300
+    assert(NEW_STYLE_NUMBER(operand2));
+#endif
+
+    PyStringObject *a = (PyStringObject *)operand1;
+    PyStringObject *b = (PyStringObject *)operand2;
+
+    // Same object has fast path for all operations.
+    if (operand1 == operand2) {
+        bool r = false;
+
+        // Convert to target type.
+        nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+
+        return result;
+    }
+
+    Py_ssize_t len_a = Py_SIZE(operand1);
+    Py_ssize_t len_b = Py_SIZE(operand2);
+
+    Py_ssize_t min_len = (len_a < len_b) ? len_a : len_b;
+    int c;
+
+    if (min_len > 0) {
+        c = Py_CHARMASK(*a->ob_sval) - Py_CHARMASK(*b->ob_sval);
+
+        if (c == 0) {
+            c = memcmp(a->ob_sval, b->ob_sval, min_len);
+        }
+    } else {
+        c = 0;
+    }
+
+    if (c == 0) {
+        c = (len_a < len_b) ? -1 : (len_a > len_b) ? 1 : 0;
+    }
+
+    c = c > 0;
+
+    // Convert to target type.
+    nuitka_bool result = c != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+
+    return result;
+}
+/* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
+nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
+
+    if (Py_TYPE(operand1) == &PyString_Type) {
+        return COMPARE_GT_NBOOL_STR_STR(operand1, operand2);
+    }
+
+// TODO: Get hint from recursion control if that's needed and have variants
+// with and without.
+#if PYTHON_VERSION < 0x300
+    if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+#else
+    if (unlikely(Py_EnterRecursiveCall((char *)" in comparison"))) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+#endif
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = &PyString_Type;
+
+#if PYTHON_VERSION < 0x300
+    // If the types are equal, we may get away immediately.
+    if (type1 == type2 && !0) {
+
+        richcmpfunc frich = PyString_Type.tp_richcompare;
+
+        if (frich != NULL) {
+            PyObject *result = (*frich)(operand1, operand2, Py_GT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return NUITKA_BOOL_EXCEPTION;
+                }
+
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+
+            Py_DECREF(result);
+        }
+
+        // No rich comparison worked, but maybe compare works.
+        cmpfunc fcmp = NULL;
+
+        if (fcmp != NULL) {
+            int c = (*fcmp)(operand1, operand2);
+            c = adjust_tp_compare(c);
+
+            Py_LeaveRecursiveCall();
+
+            if (c == -2) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            switch (Py_GT) {
+            case Py_LT:
+                c = c < 0;
+                break;
+            case Py_LE:
+                c = c <= 0;
+                break;
+            case Py_EQ:
+                c = c == 0;
+                break;
+            case Py_NE:
+                c = c != 0;
+                break;
+            case Py_GT:
+                c = c > 0;
+                break;
+            case Py_GE:
+                c = c >= 0;
+                break;
+            default:
+                NUITKA_CANNOT_GET_HERE("wrong op_code");
+            }
+
+            bool r = c != 0;
+            nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+
+            return result;
+        }
+    }
+
+    // Fast path was not successful or not taken
+    richcmpfunc f;
+
+    if (type1 != type2 && 0) {
+        f = PyString_Type.tp_richcompare;
+
+        if (f != NULL) {
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return NUITKA_BOOL_EXCEPTION;
+                }
+
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+
+            Py_DECREF(result);
+        }
+    }
+
+    f = RICHCOMPARE(type1);
+    if (f != NULL) {
+        PyObject *result = (*f)(operand1, operand2, Py_GT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            if (unlikely(result == NULL)) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
+        }
+
+        Py_DECREF(result);
+    }
+
+    f = PyString_Type.tp_richcompare;
+    if (f != NULL) {
+        PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            if (unlikely(result == NULL)) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
+        }
+
+        Py_DECREF(result);
+    }
+
+    int c;
+
+    if (PyInstance_Check(operand1)) {
+        c = (*type1->tp_compare)(operand1, operand2);
+    } else if (0) {
+        c = (*type2->tp_compare)(operand1, operand2);
+    } else {
+        c = try_3way_compare(operand1, operand2);
+    }
+
+    if (c >= 2) {
+        if (type1 == type2) {
+            Py_uintptr_t aa = (Py_uintptr_t)operand1;
+            Py_uintptr_t bb = (Py_uintptr_t)operand2;
+
+            c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+        } else if (operand1 == Py_None) {
+            // None is smaller than everything else
+            c = -1;
+        } else if (operand2 == Py_None) {
+            // None is smaller than everything else
+            c = 1;
+        } else if (PyNumber_Check(operand1)) {
+            // different type: compare type names but numbers are smaller than
+            // others.
+            if (PyNumber_Check(operand2)) {
+                // Both numbers, need to make a decision based on types.
+                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t bb = (Py_uintptr_t)type2;
+
+                c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+            } else {
+                c = -1;
+            }
+        } else if (PyNumber_Check(operand2)) {
+            c = 1;
+        } else {
+            // TODO: Could be hard coded if one is known.
+            int s = strcmp(type1->tp_name, type2->tp_name);
+
+            if (s < 0) {
+                c = -1;
+            } else if (s > 0) {
+                c = 1;
+            } else {
+                // Same type name need to make a decision based on type address.
+                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t bb = (Py_uintptr_t)type2;
+
+                c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+            }
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    if (unlikely(c <= -2)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    switch (Py_GT) {
+    case Py_LT:
+        c = c < 0;
+        break;
+    case Py_LE:
+        c = c <= 0;
+        break;
+    case Py_EQ:
+        c = c == 0;
+        break;
+    case Py_NE:
+        c = c != 0;
+        break;
+    case Py_GT:
+        c = c > 0;
+        break;
+    case Py_GE:
+        c = c >= 0;
+        break;
+    }
+
+    bool r = c != 0;
+    nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+
+    return result;
+#else
+    bool checked_reverse_op = false;
+    richcmpfunc f;
+
+    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+        f = PyString_Type.tp_richcompare;
+
+        if (f != NULL) {
+            checked_reverse_op = true;
+
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return NUITKA_BOOL_EXCEPTION;
+                }
+
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+
+            Py_DECREF(result);
+        }
+    }
+
+    f = RICHCOMPARE(type1);
+
+    if (f != NULL) {
+        PyObject *result = (*f)(operand1, operand2, Py_GT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            if (unlikely(result == NULL)) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
+        }
+
+        Py_DECREF(result);
+    }
+
+    if (checked_reverse_op == false) {
+        f = PyString_Type.tp_richcompare;
+
+        if (f != NULL) {
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return NUITKA_BOOL_EXCEPTION;
+                }
+
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    // If it is not implemented, do pointer identity checks as "==" and "!=" and
+    // otherwise give an error
+    switch (Py_GT) {
+    case Py_EQ: {
+        bool r = operand1 == operand2;
+        nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+
+        return result;
+    }
+    case Py_NE: {
+        bool r = operand1 != operand2;
+        nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+
+        return result;
+    }
+    default:
+#if PYTHON_VERSION < 0x360
+        PyErr_Format(PyExc_TypeError, "unorderable types: %s() > str()", type1->tp_name);
+#else
+        PyErr_Format(PyExc_TypeError, "'>' not supported between instances of '%s' and 'str'", type1->tp_name);
+#endif
+        return NUITKA_BOOL_EXCEPTION;
+    }
+#endif
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
+PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
+
+    if (&PyString_Type == Py_TYPE(operand2)) {
+        return COMPARE_GT_OBJECT_STR_STR(operand1, operand2);
+    }
+
+// TODO: Get hint from recursion control if that's needed and have variants
+// with and without.
+#if PYTHON_VERSION < 0x300
+    if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
+        return NULL;
+    }
+#else
+    if (unlikely(Py_EnterRecursiveCall((char *)" in comparison"))) {
+        return NULL;
+    }
+#endif
+
+    PyTypeObject *type1 = &PyString_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+#if PYTHON_VERSION < 0x300
+    // If the types are equal, we may get away immediately.
+    if (type1 == type2 && !0) {
+
+        richcmpfunc frich = PyString_Type.tp_richcompare;
+
+        if (frich != NULL) {
+            PyObject *result = (*frich)(operand1, operand2, Py_GT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                return result;
+            }
+
+            Py_DECREF(result);
+        }
+
+        // No rich comparison worked, but maybe compare works.
+        cmpfunc fcmp = NULL;
+
+        if (fcmp != NULL) {
+            int c = (*fcmp)(operand1, operand2);
+            c = adjust_tp_compare(c);
+
+            Py_LeaveRecursiveCall();
+
+            if (c == -2) {
+                return NULL;
+            }
+
+            switch (Py_GT) {
+            case Py_LT:
+                c = c < 0;
+                break;
+            case Py_LE:
+                c = c <= 0;
+                break;
+            case Py_EQ:
+                c = c == 0;
+                break;
+            case Py_NE:
+                c = c != 0;
+                break;
+            case Py_GT:
+                c = c > 0;
+                break;
+            case Py_GE:
+                c = c >= 0;
+                break;
+            default:
+                NUITKA_CANNOT_GET_HERE("wrong op_code");
+            }
+
+            bool r = c != 0;
+            PyObject *result = BOOL_FROM(r);
+            Py_INCREF(result);
+            return result;
+        }
+    }
+
+    // Fast path was not successful or not taken
+    richcmpfunc f;
+
+    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+        f = RICHCOMPARE(type2);
+
+        if (f != NULL) {
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                return result;
+            }
+
+            Py_DECREF(result);
+        }
+    }
+
+    f = PyString_Type.tp_richcompare;
+    if (f != NULL) {
+        PyObject *result = (*f)(operand1, operand2, Py_GT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            return result;
+        }
+
+        Py_DECREF(result);
+    }
+
+    f = RICHCOMPARE(type2);
+    if (f != NULL) {
+        PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            return result;
+        }
+
+        Py_DECREF(result);
+    }
+
+    int c;
+
+    if (0) {
+        c = (*type1->tp_compare)(operand1, operand2);
+    } else if (PyInstance_Check(operand2)) {
+        c = (*type2->tp_compare)(operand1, operand2);
+    } else {
+        c = try_3way_compare(operand1, operand2);
+    }
+
+    if (c >= 2) {
+        if (type1 == type2) {
+            Py_uintptr_t aa = (Py_uintptr_t)operand1;
+            Py_uintptr_t bb = (Py_uintptr_t)operand2;
+
+            c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+        } else if (operand1 == Py_None) {
+            // None is smaller than everything else
+            c = -1;
+        } else if (operand2 == Py_None) {
+            // None is smaller than everything else
+            c = 1;
+        } else if (PyNumber_Check(operand1)) {
+            // different type: compare type names but numbers are smaller than
+            // others.
+            if (PyNumber_Check(operand2)) {
+                // Both numbers, need to make a decision based on types.
+                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t bb = (Py_uintptr_t)type2;
+
+                c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+            } else {
+                c = -1;
+            }
+        } else if (PyNumber_Check(operand2)) {
+            c = 1;
+        } else {
+            // TODO: Could be hard coded if one is known.
+            int s = strcmp(type1->tp_name, type2->tp_name);
+
+            if (s < 0) {
+                c = -1;
+            } else if (s > 0) {
+                c = 1;
+            } else {
+                // Same type name need to make a decision based on type address.
+                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t bb = (Py_uintptr_t)type2;
+
+                c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+            }
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    if (unlikely(c <= -2)) {
+        return NULL;
+    }
+
+    switch (Py_GT) {
+    case Py_LT:
+        c = c < 0;
+        break;
+    case Py_LE:
+        c = c <= 0;
+        break;
+    case Py_EQ:
+        c = c == 0;
+        break;
+    case Py_NE:
+        c = c != 0;
+        break;
+    case Py_GT:
+        c = c > 0;
+        break;
+    case Py_GE:
+        c = c >= 0;
+        break;
+    }
+
+    bool r = c != 0;
+    PyObject *result = BOOL_FROM(r);
+    Py_INCREF(result);
+    return result;
+#else
+    bool checked_reverse_op = false;
+    richcmpfunc f;
+
+    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+        f = RICHCOMPARE(type2);
+
+        if (f != NULL) {
+            checked_reverse_op = true;
+
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                return result;
+            }
+
+            Py_DECREF(result);
+        }
+    }
+
+    f = PyString_Type.tp_richcompare;
+
+    if (f != NULL) {
+        PyObject *result = (*f)(operand1, operand2, Py_GT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            return result;
+        }
+
+        Py_DECREF(result);
+    }
+
+    if (checked_reverse_op == false) {
+        f = RICHCOMPARE(type2);
+
+        if (f != NULL) {
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                return result;
+            }
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    // If it is not implemented, do pointer identity checks as "==" and "!=" and
+    // otherwise give an error
+    switch (Py_GT) {
+    case Py_EQ: {
+        bool r = operand1 == operand2;
+        PyObject *result = BOOL_FROM(r);
+        Py_INCREF(result);
+        return result;
+    }
+    case Py_NE: {
+        bool r = operand1 != operand2;
+        PyObject *result = BOOL_FROM(r);
+        Py_INCREF(result);
+        return result;
+    }
+    default:
+#if PYTHON_VERSION < 0x360
+        PyErr_Format(PyExc_TypeError, "unorderable types: str() > %s()", type2->tp_name);
+#else
+        PyErr_Format(PyExc_TypeError, "'>' not supported between instances of 'str' and '%s'", type2->tp_name);
+#endif
+        return NULL;
+    }
+#endif
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
+bool RICH_COMPARE_GT_CBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
+
+    if (&PyString_Type == Py_TYPE(operand2)) {
+        return COMPARE_GT_CBOOL_STR_STR(operand1, operand2);
+    }
+
+// TODO: Get hint from recursion control if that's needed and have variants
+// with and without.
+#if PYTHON_VERSION < 0x300
+    if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
+        return false;
+    }
+#else
+    if (unlikely(Py_EnterRecursiveCall((char *)" in comparison"))) {
+        return false;
+    }
+#endif
+
+    PyTypeObject *type1 = &PyString_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+#if PYTHON_VERSION < 0x300
+    // If the types are equal, we may get away immediately.
+    if (type1 == type2 && !0) {
+
+        richcmpfunc frich = PyString_Type.tp_richcompare;
+
+        if (frich != NULL) {
+            PyObject *result = (*frich)(operand1, operand2, Py_GT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return false;
+                }
+
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+
+            Py_DECREF(result);
+        }
+
+        // No rich comparison worked, but maybe compare works.
+        cmpfunc fcmp = NULL;
+
+        if (fcmp != NULL) {
+            int c = (*fcmp)(operand1, operand2);
+            c = adjust_tp_compare(c);
+
+            Py_LeaveRecursiveCall();
+
+            if (c == -2) {
+                return false;
+            }
+
+            switch (Py_GT) {
+            case Py_LT:
+                c = c < 0;
+                break;
+            case Py_LE:
+                c = c <= 0;
+                break;
+            case Py_EQ:
+                c = c == 0;
+                break;
+            case Py_NE:
+                c = c != 0;
+                break;
+            case Py_GT:
+                c = c > 0;
+                break;
+            case Py_GE:
+                c = c >= 0;
+                break;
+            default:
+                NUITKA_CANNOT_GET_HERE("wrong op_code");
+            }
+
+            bool r = c != 0;
+            bool result = r;
+
+            return result;
+        }
+    }
+
+    // Fast path was not successful or not taken
+    richcmpfunc f;
+
+    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+        f = RICHCOMPARE(type2);
+
+        if (f != NULL) {
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return false;
+                }
+
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+
+            Py_DECREF(result);
+        }
+    }
+
+    f = PyString_Type.tp_richcompare;
+    if (f != NULL) {
+        PyObject *result = (*f)(operand1, operand2, Py_GT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            if (unlikely(result == NULL)) {
+                return false;
+            }
+
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
+        }
+
+        Py_DECREF(result);
+    }
+
+    f = RICHCOMPARE(type2);
+    if (f != NULL) {
+        PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            if (unlikely(result == NULL)) {
+                return false;
+            }
+
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
+        }
+
+        Py_DECREF(result);
+    }
+
+    int c;
+
+    if (0) {
+        c = (*type1->tp_compare)(operand1, operand2);
+    } else if (PyInstance_Check(operand2)) {
+        c = (*type2->tp_compare)(operand1, operand2);
+    } else {
+        c = try_3way_compare(operand1, operand2);
+    }
+
+    if (c >= 2) {
+        if (type1 == type2) {
+            Py_uintptr_t aa = (Py_uintptr_t)operand1;
+            Py_uintptr_t bb = (Py_uintptr_t)operand2;
+
+            c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+        } else if (operand1 == Py_None) {
+            // None is smaller than everything else
+            c = -1;
+        } else if (operand2 == Py_None) {
+            // None is smaller than everything else
+            c = 1;
+        } else if (PyNumber_Check(operand1)) {
+            // different type: compare type names but numbers are smaller than
+            // others.
+            if (PyNumber_Check(operand2)) {
+                // Both numbers, need to make a decision based on types.
+                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t bb = (Py_uintptr_t)type2;
+
+                c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+            } else {
+                c = -1;
+            }
+        } else if (PyNumber_Check(operand2)) {
+            c = 1;
+        } else {
+            // TODO: Could be hard coded if one is known.
+            int s = strcmp(type1->tp_name, type2->tp_name);
+
+            if (s < 0) {
+                c = -1;
+            } else if (s > 0) {
+                c = 1;
+            } else {
+                // Same type name need to make a decision based on type address.
+                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t bb = (Py_uintptr_t)type2;
+
+                c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+            }
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    if (unlikely(c <= -2)) {
+        return false;
+    }
+
+    switch (Py_GT) {
+    case Py_LT:
+        c = c < 0;
+        break;
+    case Py_LE:
+        c = c <= 0;
+        break;
+    case Py_EQ:
+        c = c == 0;
+        break;
+    case Py_NE:
+        c = c != 0;
+        break;
+    case Py_GT:
+        c = c > 0;
+        break;
+    case Py_GE:
+        c = c >= 0;
+        break;
+    }
+
+    bool r = c != 0;
+    bool result = r;
+
+    return result;
+#else
+    bool checked_reverse_op = false;
+    richcmpfunc f;
+
+    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+        f = RICHCOMPARE(type2);
+
+        if (f != NULL) {
+            checked_reverse_op = true;
+
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return false;
+                }
+
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+
+            Py_DECREF(result);
+        }
+    }
+
+    f = PyString_Type.tp_richcompare;
+
+    if (f != NULL) {
+        PyObject *result = (*f)(operand1, operand2, Py_GT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            if (unlikely(result == NULL)) {
+                return false;
+            }
+
+            {
+                bool r = CHECK_IF_TRUE(result) == 1;
+                Py_DECREF(result);
+                return r;
+            }
+        }
+
+        Py_DECREF(result);
+    }
+
+    if (checked_reverse_op == false) {
+        f = RICHCOMPARE(type2);
+
+        if (f != NULL) {
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return false;
+                }
+
+                {
+                    bool r = CHECK_IF_TRUE(result) == 1;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    // If it is not implemented, do pointer identity checks as "==" and "!=" and
+    // otherwise give an error
+    switch (Py_GT) {
+    case Py_EQ: {
+        bool r = operand1 == operand2;
+        bool result = r;
+
+        return result;
+    }
+    case Py_NE: {
+        bool r = operand1 != operand2;
+        bool result = r;
+
+        return result;
+    }
+    default:
+#if PYTHON_VERSION < 0x360
+        PyErr_Format(PyExc_TypeError, "unorderable types: str() > %s()", type2->tp_name);
+#else
+        PyErr_Format(PyExc_TypeError, "'>' not supported between instances of 'str' and '%s'", type2->tp_name);
+#endif
+        return false;
+    }
+#endif
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
+nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
+
+    if (&PyString_Type == Py_TYPE(operand2)) {
+        return COMPARE_GT_NBOOL_STR_STR(operand1, operand2);
+    }
+
+// TODO: Get hint from recursion control if that's needed and have variants
+// with and without.
+#if PYTHON_VERSION < 0x300
+    if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+#else
+    if (unlikely(Py_EnterRecursiveCall((char *)" in comparison"))) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+#endif
+
+    PyTypeObject *type1 = &PyString_Type;
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+#if PYTHON_VERSION < 0x300
+    // If the types are equal, we may get away immediately.
+    if (type1 == type2 && !0) {
+
+        richcmpfunc frich = PyString_Type.tp_richcompare;
+
+        if (frich != NULL) {
+            PyObject *result = (*frich)(operand1, operand2, Py_GT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return NUITKA_BOOL_EXCEPTION;
+                }
+
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+
+            Py_DECREF(result);
+        }
+
+        // No rich comparison worked, but maybe compare works.
+        cmpfunc fcmp = NULL;
+
+        if (fcmp != NULL) {
+            int c = (*fcmp)(operand1, operand2);
+            c = adjust_tp_compare(c);
+
+            Py_LeaveRecursiveCall();
+
+            if (c == -2) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            switch (Py_GT) {
+            case Py_LT:
+                c = c < 0;
+                break;
+            case Py_LE:
+                c = c <= 0;
+                break;
+            case Py_EQ:
+                c = c == 0;
+                break;
+            case Py_NE:
+                c = c != 0;
+                break;
+            case Py_GT:
+                c = c > 0;
+                break;
+            case Py_GE:
+                c = c >= 0;
+                break;
+            default:
+                NUITKA_CANNOT_GET_HERE("wrong op_code");
+            }
+
+            bool r = c != 0;
+            nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+
+            return result;
+        }
+    }
+
+    // Fast path was not successful or not taken
+    richcmpfunc f;
+
+    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+        f = RICHCOMPARE(type2);
+
+        if (f != NULL) {
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return NUITKA_BOOL_EXCEPTION;
+                }
+
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+
+            Py_DECREF(result);
+        }
+    }
+
+    f = PyString_Type.tp_richcompare;
+    if (f != NULL) {
+        PyObject *result = (*f)(operand1, operand2, Py_GT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            if (unlikely(result == NULL)) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
+        }
+
+        Py_DECREF(result);
+    }
+
+    f = RICHCOMPARE(type2);
+    if (f != NULL) {
+        PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            if (unlikely(result == NULL)) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
+        }
+
+        Py_DECREF(result);
+    }
+
+    int c;
+
+    if (0) {
+        c = (*type1->tp_compare)(operand1, operand2);
+    } else if (PyInstance_Check(operand2)) {
+        c = (*type2->tp_compare)(operand1, operand2);
+    } else {
+        c = try_3way_compare(operand1, operand2);
+    }
+
+    if (c >= 2) {
+        if (type1 == type2) {
+            Py_uintptr_t aa = (Py_uintptr_t)operand1;
+            Py_uintptr_t bb = (Py_uintptr_t)operand2;
+
+            c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+        } else if (operand1 == Py_None) {
+            // None is smaller than everything else
+            c = -1;
+        } else if (operand2 == Py_None) {
+            // None is smaller than everything else
+            c = 1;
+        } else if (PyNumber_Check(operand1)) {
+            // different type: compare type names but numbers are smaller than
+            // others.
+            if (PyNumber_Check(operand2)) {
+                // Both numbers, need to make a decision based on types.
+                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t bb = (Py_uintptr_t)type2;
+
+                c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+            } else {
+                c = -1;
+            }
+        } else if (PyNumber_Check(operand2)) {
+            c = 1;
+        } else {
+            // TODO: Could be hard coded if one is known.
+            int s = strcmp(type1->tp_name, type2->tp_name);
+
+            if (s < 0) {
+                c = -1;
+            } else if (s > 0) {
+                c = 1;
+            } else {
+                // Same type name need to make a decision based on type address.
+                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t bb = (Py_uintptr_t)type2;
+
+                c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+            }
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    if (unlikely(c <= -2)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    switch (Py_GT) {
+    case Py_LT:
+        c = c < 0;
+        break;
+    case Py_LE:
+        c = c <= 0;
+        break;
+    case Py_EQ:
+        c = c == 0;
+        break;
+    case Py_NE:
+        c = c != 0;
+        break;
+    case Py_GT:
+        c = c > 0;
+        break;
+    case Py_GE:
+        c = c >= 0;
+        break;
+    }
+
+    bool r = c != 0;
+    nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+
+    return result;
+#else
+    bool checked_reverse_op = false;
+    richcmpfunc f;
+
+    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+        f = RICHCOMPARE(type2);
+
+        if (f != NULL) {
+            checked_reverse_op = true;
+
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return NUITKA_BOOL_EXCEPTION;
+                }
+
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+
+            Py_DECREF(result);
+        }
+    }
+
+    f = PyString_Type.tp_richcompare;
+
+    if (f != NULL) {
+        PyObject *result = (*f)(operand1, operand2, Py_GT);
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            if (unlikely(result == NULL)) {
+                return NUITKA_BOOL_EXCEPTION;
+            }
+
+            {
+                nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                Py_DECREF(result);
+                return r;
+            }
+        }
+
+        Py_DECREF(result);
+    }
+
+    if (checked_reverse_op == false) {
+        f = RICHCOMPARE(type2);
+
+        if (f != NULL) {
+            PyObject *result = (*f)(operand2, operand1, Py_LT);
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                if (unlikely(result == NULL)) {
+                    return NUITKA_BOOL_EXCEPTION;
+                }
+
+                {
+                    nuitka_bool r = CHECK_IF_TRUE(result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+                    Py_DECREF(result);
+                    return r;
+                }
+            }
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    // If it is not implemented, do pointer identity checks as "==" and "!=" and
+    // otherwise give an error
+    switch (Py_GT) {
+    case Py_EQ: {
+        bool r = operand1 == operand2;
+        nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+
+        return result;
+    }
+    case Py_NE: {
+        bool r = operand1 != operand2;
+        nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+
+        return result;
+    }
+    default:
+#if PYTHON_VERSION < 0x360
+        PyErr_Format(PyExc_TypeError, "unorderable types: str() > %s()", type2->tp_name);
+#else
+        PyErr_Format(PyExc_TypeError, "'>' not supported between instances of 'str' and '%s'", type2->tp_name);
+#endif
+        return NUITKA_BOOL_EXCEPTION;
+    }
+#endif
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 PyObject *RICH_COMPARE_GT_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
 

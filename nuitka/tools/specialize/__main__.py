@@ -913,8 +913,12 @@ class StrDesc(ConcreteTypeBase):
             return slot == "nb_remainder"
         elif slot.startswith("sq_"):
             return "ass" not in slot and "inplace" not in slot
+        elif slot == "tp_richcompare":
+            return True
+        elif slot == "tp_compare":
+            return False
         else:
-            assert False, slot
+            assert False, (self, slot)
 
 
 str_desc = StrDesc()
@@ -1460,6 +1464,8 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
     #     template = env.get_template("HelperOperationComparisonSet.c.j2")
     # elif left == bytes_desc:
     #     template = env.get_template("HelperOperationComparisonBytes.c.j2")
+    elif left == str_desc:
+        template = env.get_template("HelperOperationComparisonStr.c.j2")
     else:
         return
 
@@ -1993,6 +1999,7 @@ def writeline(output, *args):
 
 def main():
     # Cover many things once first, then cover all for quicker turnaround during development.
+    makeHelpersComparisonOperation("==", "EQ")
     makeHelpersBinaryOperation("+", "ADD")
     makeHelpersInplaceOperation("+", "ADD")
 
@@ -2027,7 +2034,6 @@ def main():
     makeHelpersInplaceOperation("**", "POW")
     makeHelpersInplaceOperation("@", "MATMULT")
 
-    makeHelpersComparisonOperation("==", "EQ")
     makeHelpersComparisonOperation("!=", "NE")
     makeHelpersComparisonOperation("<=", "LE")
     makeHelpersComparisonOperation(">=", "GE")
