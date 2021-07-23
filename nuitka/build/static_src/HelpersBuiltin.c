@@ -598,11 +598,7 @@ PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, 
     PyTypeObject *type = Py_TYPE(result);
 
     if (likely(PyType_IsSubtype(type, &PyType_Type))) {
-        if (
-#if PYTHON_VERSION < 0x300
-            PyType_HasFeature(type, Py_TPFLAGS_HAVE_CLASS) &&
-#endif
-            type->tp_init != NULL) {
+        if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
             int res = type->tp_init(result, pos_args, NULL);
 
             if (unlikely(res < 0)) {

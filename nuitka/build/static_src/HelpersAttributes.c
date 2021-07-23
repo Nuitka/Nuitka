@@ -136,9 +136,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
         if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 0x300
-            if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
-#endif
+            if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
                 if (func != NULL && PyDescr_IsData(descr)) {
@@ -147,9 +145,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
 
                     return result;
                 }
-#if PYTHON_VERSION < 0x300
             }
-#endif
         }
 
         Py_ssize_t dictoffset = type->tp_dictoffset;
@@ -257,9 +253,7 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
         if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 0x300
-            if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
-#endif
+            if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
                 if (func != NULL && PyDescr_IsData(descr)) {
@@ -268,9 +262,7 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
 
                     return result;
                 }
-#if PYTHON_VERSION < 0x300
             }
-#endif
         }
 
         Py_ssize_t dictoffset = type->tp_dictoffset;
@@ -374,9 +366,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
         if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 0x300
-            if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
-#endif
+            if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
                 if (func != NULL && PyDescr_IsData(descr)) {
@@ -385,9 +375,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
 
                     return result;
                 }
-#if PYTHON_VERSION < 0x300
             }
-#endif
         }
 
         Py_ssize_t dictoffset = type->tp_dictoffset;
@@ -542,9 +530,7 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
         if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 0x300
-            if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
-#endif
+            if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
                 if (func != NULL && PyDescr_IsData(descr)) {
@@ -560,9 +546,7 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
 
                     DROP_ERROR_OCCURRED();
                 }
-#if PYTHON_VERSION < 0x300
             }
-#endif
         }
 
         Py_ssize_t dictoffset = type->tp_dictoffset;

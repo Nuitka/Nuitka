@@ -1114,7 +1114,7 @@ static PyObject *nuitka_class_getattr(PyClassObject *klass, PyObject *attr_name)
 
     PyTypeObject *type = Py_TYPE(value);
 
-    descrgetfunc tp_descr_get = PyType_HasFeature(type, Py_TPFLAGS_HAVE_CLASS) ? type->tp_descr_get : NULL;
+    descrgetfunc tp_descr_get = NuitkaType_HasFeatureClass(type) ? type->tp_descr_get : NULL;
 
     if (tp_descr_get == NULL) {
         Py_INCREF(value);

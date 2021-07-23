@@ -301,6 +301,13 @@ extern PyThreadState *_PyThreadState_Current;
 #define Py_MAX(x, y) (((x) > (y)) ? (x) : (y))
 #endif
 
+// For older Python, we don't have a feature "CLASS" anymore, that's implied now.
+#if PYTHON_VERSION < 0x300
+#define NuitkaType_HasFeatureClass(descr) (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS))
+#else
+#define NuitkaType_HasFeatureClass(descr) (1)
+#endif
+
 // Generated.
 // TODO: Move generated ones to separate file.
 #ifdef __IDE_ONLY__
