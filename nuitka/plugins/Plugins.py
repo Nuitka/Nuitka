@@ -54,6 +54,7 @@ from .PluginBase import NuitkaPluginBase, post_modules, pre_modules
 active_plugins = OrderedDict()
 plugin_name2plugin_classes = {}
 plugin_options = {}
+plugin_datatag2pluginclasses = {}
 plugin_values = {}
 user_plugins = OrderedSet()
 
@@ -950,6 +951,9 @@ def activatePlugins():
         plugin_name2plugin_classes.items()
     ):
         if plugin_name in Options.getPluginsEnabled():
+            if plugin_class.isAlwaysEnabled():
+                plugin_class.warning("Plugin is defined as always enabled.")
+
             if plugin_class.isRelevant():
                 _addActivePlugin(plugin_class, args=True)
             else:
@@ -981,9 +985,11 @@ def lateActivatePlugin(plugin_name, option_values):
     _addActivePlugin(getPluginClass(plugin_name), args=True, force=True)
 
 
-def _addPluginCommandLineOptions(parser, plugin_class):
-    if plugin_class.plugin_name not in plugin_options:
-        option_group = OptionGroup(parser, "Plugin %s" % plugin_class.plugin_name)
+def _addPluginCommandLineOptions(parser, plugin_class, data_files_tags):
+    plugin_name = plugin_class.plugin_name
+
+    if plugin_name not in plugin_options:
+        option_group = OptionGroup(parser, "Plugin %s" % plugin_name)
         try:
             plugin_class.addPluginCommandLineOptions(option_group)
         except OptionConflictError as e:
@@ -996,17 +1002,31 @@ def _addPluginCommandLineOptions(parser, plugin_class):
                     ):
                         plugins_logger.sysexit(
                             "Plugin '%s' failed to add options due to conflict with '%s' from plugin '%s."
-                            % (plugin_class.plugin_name, e.option_id, other_plugin_name)
+                            % (plugin_name, e.option_id, other_plugin_name)
                         )
 
         if option_group.option_list:
             parser.add_option_group(option_group)
-            plugin_options[plugin_class.plugin_name] = option_group.option_list
+            plugin_options[plugin_name] = option_group.option_list
         else:
-            plugin_options[plugin_class.plugin_name] = ()
+            plugin_options[plugin_name] = ()
+
+        plugin_data_files_tags = plugin_class.getTagDataFileTagOptions()
+
+        if plugin_data_files_tags:
+            for tag_name, tag_desc in plugin_data_files_tags:
+                if tag_name in (tag for tag, _desc in data_files_tags):
+                    plugins_logger.sysexit(
+                        "Plugin '%s' provides data files tag handling '%s' already provided."
+                        % (plugin_name, tag_name)
+                    )
+
+                data_files_tags.append((tag_name, tag_desc))
+
+                plugin_datatag2pluginclasses[tag_name] = plugin_class
 
 
-def addPluginCommandLineOptions(parser, plugin_names):
+def addPluginCommandLineOptions(parser, plugin_names, data_files_tags):
     """Add option group for the plugin to the parser.
 
     Notes:
@@ -1020,12 +1040,16 @@ def addPluginCommandLineOptions(parser, plugin_names):
     """
     for plugin_name in plugin_names:
         plugin_class = getPluginClass(plugin_name)
-        _addPluginCommandLineOptions(parser, plugin_class)
+        _addPluginCommandLineOptions(
+            parser=parser, plugin_class=plugin_class, data_files_tags=data_files_tags
+        )
 
 
-def addUserPluginCommandLineOptions(parser, filename):
+def addUserPluginCommandLineOptions(parser, filename, data_files_tags):
     plugin_class = loadUserPlugin(filename)
-    _addPluginCommandLineOptions(parser, plugin_class)
+    _addPluginCommandLineOptions(
+        parser=parser, plugin_class=plugin_class, data_files_tags=data_files_tags
+    )
 
     user_plugins.add(plugin_class)
 
