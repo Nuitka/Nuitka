@@ -101,8 +101,6 @@ def main():
             "cpython_cache",
             # To understand what is slow.
             "timing",
-            # TODO: This plugin probably ought to be on by default.
-            "plugin_enable:pkg-resources",
         ]
 
         # skip each test if their respective requirements are not met

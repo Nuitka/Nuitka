@@ -118,6 +118,11 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         pass
 
     @classmethod
+    def getTagDataFileTagOptions(cls):
+        # Return tag_name, description tuples
+        return ()
+
+    @classmethod
     def getPluginDefaultOptionValues(cls):
         """This method is used to get a values to use as defaults.
 
