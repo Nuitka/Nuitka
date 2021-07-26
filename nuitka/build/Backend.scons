@@ -825,6 +825,12 @@ def getWindowsPythonDLLPath():
     return os.environ["NUITKA_PYTHON_DLL_PATH"]
 
 
+if nuitka_python:
+    env.Append(CPPDEFINES=["_NUITKA_PYTHON"])
+
+if static_libpython:
+    env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
+
 if win_target:
     if nuitka_python:
         env.Append(

@@ -701,42 +701,144 @@ static bool SET_INSTANCE(PyObject *target, PyObject *attr_name, PyObject *value)
 }
 #endif
 
+#if PYTHON_VERSION < 0x300 || _NUITKA_USE_UNEXPOSED_API
+
+// Classes in Pyhon3 might share keys.
+#define CACHED_KEYS(type) (((PyHeapTypeObject *)type)->ht_cached_keys)
+
+static bool SET_ATTRIBUTE_GENERIC(PyTypeObject *type, PyObject *target, PyObject *attr_name, PyObject *value) {
+    // Unfortunately this is required, although of cause rarely necessary.
+    if (unlikely(type->tp_dict == NULL)) {
+        if (unlikely(PyType_Ready(type) < 0)) {
+            return NULL;
+        }
+    }
+
+    PyObject *descr = _PyType_Lookup(type, attr_name);
+
+    if (descr != NULL) {
+        Py_INCREF(descr);
+
+        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
+            descrsetfunc func = Py_TYPE(descr)->tp_descr_set;
+
+            if (func != NULL && PyDescr_IsData(descr)) {
+                int res = func(descr, target, value);
+                Py_DECREF(descr);
+
+                return res == 0;
+            }
+        }
+    }
+
+    Py_ssize_t dictoffset = type->tp_dictoffset;
+    PyObject *dict = NULL;
+
+    if (dictoffset != 0) {
+        // Negative dictionary offsets have special meaning.
+        if (dictoffset < 0) {
+            Py_ssize_t tsize;
+            size_t size;
+
+            tsize = ((PyVarObject *)target)->ob_size;
+            if (tsize < 0) {
+                tsize = -tsize;
+            }
+            size = _PyObject_VAR_SIZE(type, tsize);
+
+            dictoffset += (long)size;
+        }
+
+        PyObject **dictptr = (PyObject **)((char *)target + dictoffset);
+
+#if PYTHON_VERSION >= 0x300
+        if ((type->tp_flags & Py_TPFLAGS_HEAPTYPE) && (CACHED_KEYS(type) != NULL)) {
+            int res = _PyObjectDict_SetItem(type, dictptr, attr_name, value);
+
+            // TODO: Not possible for set, is it?
+            if (res < 0 && PyErr_ExceptionMatches(PyExc_KeyError)) {
+                PyErr_SetObject(PyExc_AttributeError, attr_name);
+                return false;
+            }
+
+            return res >= 0;
+        } else
+#endif
+        {
+            dict = *dictptr;
+
+            if (dict == NULL) {
+                dict = PyDict_New();
+                *dictptr = dict;
+            }
+        }
+    }
+
+    if (dict != NULL) {
+        CHECK_OBJECT(dict);
+
+        // TODO: If this is an exact dict, we don't have to hold a reference, is it?
+        Py_INCREF(dict);
+
+        int res = PyDict_SetItem(dict, attr_name, value);
+
+        Py_DECREF(dict);
+        Py_XDECREF(descr);
+
+        return res == 0;
+    }
+
+#if PYTHON_VERSION < 0x300
+    PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name,
+                 PyString_AS_STRING(attr_name));
+#else
+    PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#endif
+    return NULL;
+}
+
+#endif
+
 bool SET_ATTRIBUTE(PyObject *target, PyObject *attr_name, PyObject *value) {
     CHECK_OBJECT(target);
     CHECK_OBJECT(attr_name);
     CHECK_OBJECT(value);
 
+    PyTypeObject *type = Py_TYPE(target);
+
+#if PYTHON_VERSION < 0x300 || _NUITKA_USE_UNEXPOSED_API
+    if (type->tp_setattro == PyObject_GenericSetAttr) {
+        return SET_ATTRIBUTE_GENERIC(type, target, attr_name, value);
+    } else
+#endif
 #if PYTHON_VERSION < 0x300
-    if (PyInstance_Check(target)) {
+        if (type->tp_setattro == PyInstance_Type.tp_setattro) {
         return SET_INSTANCE(target, attr_name, value);
     } else
 #endif
-    {
-        PyTypeObject *type = Py_TYPE(target);
-
         if (type->tp_setattro != NULL) {
-            int status = (*type->tp_setattro)(target, attr_name, value);
 
-            if (unlikely(status == -1)) {
-                return false;
-            }
-        } else if (type->tp_setattr != NULL) {
-            int status = (*type->tp_setattr)(target, (char *)Nuitka_String_AsString_Unchecked(attr_name), value);
+        int status = (*type->tp_setattro)(target, attr_name, value);
 
-            if (unlikely(status == -1)) {
-                return false;
-            }
-        } else if (type->tp_getattr == NULL && type->tp_getattro == NULL) {
-            PyErr_Format(PyExc_TypeError, "'%s' object has no attributes (assign to %s)", type->tp_name,
-                         Nuitka_String_AsString_Unchecked(attr_name));
-
-            return false;
-        } else {
-            PyErr_Format(PyExc_TypeError, "'%s' object has only read-only attributes (assign to %s)", type->tp_name,
-                         Nuitka_String_AsString_Unchecked(attr_name));
-
+        if (unlikely(status == -1)) {
             return false;
         }
+    } else if (type->tp_setattr != NULL) {
+        int status = (*type->tp_setattr)(target, (char *)Nuitka_String_AsString_Unchecked(attr_name), value);
+
+        if (unlikely(status == -1)) {
+            return false;
+        }
+    } else if (type->tp_getattr == NULL && type->tp_getattro == NULL) {
+        PyErr_Format(PyExc_TypeError, "'%s' object has no attributes (assign to %s)", type->tp_name,
+                     Nuitka_String_AsString_Unchecked(attr_name));
+
+        return false;
+    } else {
+        PyErr_Format(PyExc_TypeError, "'%s' object has only read-only attributes (assign to %s)", type->tp_name,
+                     Nuitka_String_AsString_Unchecked(attr_name));
+
+        return false;
     }
 
     return true;

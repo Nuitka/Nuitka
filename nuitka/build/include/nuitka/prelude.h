@@ -37,11 +37,9 @@
 /* This is needed or else we can't create modules name "proc" or "func". For
  * Python3, the name collision can't happen, so we can limit it to Python2.
  */
-#if PYTHON_VERSION < 0x300
 #define initproc python_initproc
 #define initfunc python_initfunc
-#define initstate system_initstate
-#endif
+#define initstate python_initstate
 
 /* Include the relevant Python C-API header files. */
 #include "Python.h"
@@ -51,6 +49,12 @@
 
 #if PYTHON_VERSION < 0x3a0
 #include "pydebug.h"
+#endif
+
+#if defined(_NUITKA_STATIC_LIBPYTHON)
+#define _NUITKA_USE_UNEXPOSED_API 1
+#else
+#define _NUITKA_USE_UNEXPOSED_API 0
 #endif
 
 // We are not following the 3.10 change to an inline function. At least
@@ -364,6 +368,8 @@ extern PyObject **global_constants;
 #define const_str_plain___all__ global_constants[23]
 // '__cmp__'
 #define const_str_plain___cmp__ global_constants[24]
+// '__init__'
+#define const_str_plain___init__ global_constants[24]
 // '__iter__'
 #define const_str_plain___iter__ global_constants[25]
 // '__compiled__'
