@@ -286,9 +286,15 @@ unsigned char const *getConstantsBlobData() {
         def writeConstantsDataSource():
             with open(constants_generated_filename, "w") as output:
                 if not c11_mode:
-                    output.write('extern "C" ')
+                    output.write('extern "C" {')
 
-                output.write("const unsigned char constant_bin_data[] =\n{\n")
+                output.write("""
+// Constant data for the program.
+#if !defined(_NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS)
+const
+#endif
+unsigned char constant_bin_data[] =\n{\n
+""")
 
                 with open(constants_bin_filename, "rb") as f:
                     content = f.read()
@@ -305,6 +311,9 @@ unsigned char const *getConstantsBlobData() {
                     output.write(" 0x%02x," % stream_byte)
 
                 output.write("\n};\n")
+
+                if not c11_mode:
+                    output.write('}')
 
         writeConstantsDataSource()
     else:
