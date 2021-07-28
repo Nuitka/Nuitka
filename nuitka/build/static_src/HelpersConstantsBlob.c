@@ -32,18 +32,24 @@
 
 #include <stdint.h>
 
+#if _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
+#define CONST_CONSTANT
+#else
+#define CONST_CONSTANT const
+#endif
+
 #if defined(_NUITKA_CONSTANTS_FROM_LINKER)
 // Symbol as provided by the linker, different for C++ and C11 mode.
 #ifdef __cplusplus
-extern "C" const unsigned char constant_bin_data[];
+extern "C" CONST_CONSTANT unsigned char constant_bin_data[];
 #else
-extern const unsigned char constant_bin_data[0];
+extern CONST_CONSTANT unsigned char constant_bin_data[0];
 #endif
 
 unsigned char const *constant_bin = &constant_bin_data[0];
 
 #elif defined(_NUITKA_CONSTANTS_FROM_CODE)
-extern const unsigned char constant_bin_data[];
+extern CONST_CONSTANT unsigned char constant_bin_data[];
 
 unsigned char const *constant_bin = &constant_bin_data[0];
 #else
