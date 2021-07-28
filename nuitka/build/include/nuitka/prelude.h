@@ -68,7 +68,7 @@
 // Windows is too difficult for API redefines.
 #define MIN_PYCORE_PYTHON_VERSION 0x380
 #else
-#define MIN_PYCORE_PYTHON_VERSION 0x370
+#define MIN_PYCORE_PYTHON_VERSION 0x371
 #endif
 
 #if PYTHON_VERSION >= MIN_PYCORE_PYTHON_VERSION
