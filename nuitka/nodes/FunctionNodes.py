@@ -204,13 +204,6 @@ class ExpressionFunctionBodyBase(
             if variable.isLocalVariable()
         ]
 
-    def getLocalVariableNames(self):
-        return [
-            variable.getName()
-            for variable in self.getProvidedVariables()
-            if variable.isLocalVariable()
-        ]
-
     def getUserLocalVariables(self):
         return [
             variable

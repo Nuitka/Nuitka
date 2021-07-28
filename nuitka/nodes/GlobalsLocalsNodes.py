@@ -182,8 +182,10 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
 
         # Locals is sorted of course.
         def _sorted(pairs):
-            # TODO: Should use a locals scope for this.
-            names = self.getParentVariableProvider().getLocalVariableNames()
+            names = [
+                variable.getName()
+                for variable in self.locals_scope.getProvidedVariables()
+            ]
 
             return tuple(
                 sorted(
