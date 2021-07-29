@@ -35,7 +35,17 @@ PyObject *DICT_GET_ITEM0(PyObject *dict, PyObject *key) {
 
 // This variant is uncertain about the hashing.
 #if PYTHON_VERSION < 0x300
-    if (!PyString_CheckExact(key) || (hash = ((PyStringObject *)key)->ob_shash) == -1) {
+    if (PyString_CheckExact(key)) {
+        hash = ((PyStringObject *)key)->ob_shash;
+
+        if (unlikely(hash == -1)) {
+            hash = HASH_VALUE_WITHOUT_ERROR(key);
+        }
+
+        if (unlikely(hash == -1)) {
+            return NULL;
+        }
+    } else {
         hash = HASH_VALUE_WITHOUT_ERROR(key);
 
         if (unlikely(hash == -1)) {
@@ -108,7 +118,17 @@ PyObject *DICT_GET_ITEM1(PyObject *dict, PyObject *key) {
 
 // This variant is uncertain about the hashing.
 #if PYTHON_VERSION < 0x300
-    if (!PyString_CheckExact(key) || (hash = ((PyStringObject *)key)->ob_shash) == -1) {
+    if (PyString_CheckExact(key)) {
+        hash = ((PyStringObject *)key)->ob_shash;
+
+        if (unlikely(hash == -1)) {
+            hash = HASH_VALUE_WITHOUT_ERROR(key);
+        }
+
+        if (unlikely(hash == -1)) {
+            return NULL;
+        }
+    } else {
         hash = HASH_VALUE_WITHOUT_ERROR(key);
 
         if (unlikely(hash == -1)) {
