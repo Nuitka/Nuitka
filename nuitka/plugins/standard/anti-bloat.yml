@@ -15,80 +15,6 @@ psutil:
     "from ._common import POSIX" : "'POSIX = %r' % psutil.POSIX"
     "from ._common import SUNOS" : "'SUNOS = %r' % psutil.SUNOS"
     "from ._common import WINDOWS" : "'WINDOWS = %r' % psutil.WINDOWS"
-numpy:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy._pytesttester import PytestTester" : ""
-    "from numpy.testing._private.pytesttester import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-    "from .testing import Tester" : ""
-    "import numpy.testing as testing" : ""
-numpy.core:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy._pytesttester import PytestTester" : ""
-    "from numpy.testing._private.pytesttester import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-numpy.matrixlib:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy._pytesttester import PytestTester" : ""
-    "from numpy.testing._private.pytesttester import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-numpy.ma:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy._pytesttester import PytestTester" : ""
-    "from numpy.testing._private.pytesttester import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-numpy.random:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy._pytesttester import PytestTester" : ""
-    "from numpy.testing._private.pytesttester import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-numpy.polynomial:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy._pytesttester import PytestTester" : ""
-    "from numpy.testing._private.pytesttester import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-numpy.fft:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy._pytesttester import PytestTester" : ""
-    "from numpy.testing._private.pytesttester import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-numpy.linalg:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy._pytesttester import PytestTester" : ""
-    "from numpy.testing._private.pytesttester import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-numpy.lib:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy._pytesttester import PytestTester" : ""
-    "from numpy.testing._private.pytesttester import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
 numpy.ctypeslib:
   description:
     "remove numpy.distutils references"
@@ -103,228 +29,12 @@ cffi.ffiplatform:
     "disable distutils hacks"
   replacements:
     "import setuptools" : "'pass'"
-scipy:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy._lib:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.lib:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.linalg:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.sparse:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.stats:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
 scipy.stats.morestats:
   description:
     "remove numpy testing framework"
   replacements:
     "from numpy.testing.decorators import setastest" : ""
     "@setastest(False)" : ""
-scipy.integrate:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.io:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.io.matlab:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.io.arff:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.interpolate:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.spatial:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.spatial.transform:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.optimize:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.sparse.csgraph:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.sparse.linalg:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.sparse.linalg.eigen:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.sparse.linalg.eigen.lobpcg:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.sparse.linalg.eigen.lobpcg.lobpcg:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import assert_allclose" : ""
-scipy.sparse.linalg.dsolve:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.sparse.linalg.isolve:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.special:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.misc:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
 scipy.lib.numpy_compat:
   description:
     "remove numpy testing framework"
@@ -337,65 +47,6 @@ scipy._lib._numpy_compat:
   replacements:
     "from numpy.testing import suppress_warnings" : "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
     "NumpyVersion(np.__version__) > '1.7.0.dev'" : "'0'"
-scipy.cluster:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.signal:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.spatial:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.fftpack:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.ndimage:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
-scipy.weave:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-    "bench = Tester().bench" : ""
-    "from scipy._lib._testutils import PytestTester" : ""
-    "test = PytestTester(__name__)" : ""
-    "del PytestTester" : ""
 
 skimage:
   description:
@@ -420,13 +71,6 @@ matplotlib:
     "_init_tests": "'None'"
     "test": "'None'"
 
-pywt:
-  description:
-    "remove numpy testing framework"
-  replacements:
-    "from numpy.testing import Tester" : ""
-    "test = Tester().test" : ""
-
 pandas:
   description:
     "remove pandas testing framework"
@@ -439,3 +83,38 @@ jinja2.defaults:
     "remove jinja2 testing framework"
   replacements:
     "from .tests import TESTS as DEFAULT_TESTS" : ""
+
+numpy.testing:
+  description:
+    "remove numpy testing framework"
+  module_code: |
+    class Tester:
+      test = None
+      bench = None
+
+    def assert_allclose(*args, **kwargs):
+      return True
+
+numpy._pytesttester:
+  description:
+    "remove numpy testing framework"
+  module_code: |
+    class PytestTester:
+      def __init__(self, name):
+        pass
+
+numpy.testing._private.pytesttester:
+  description:
+    "remove numpy testing framework"
+  module_code: |
+    class PytestTester:
+      def __init__(self, name):
+        pass
+
+scipy._lib._testutils:
+  description:
+    "remove numpy testing framework"
+  module_code: |
+    class PytestTester:
+      def __init__(self, name):
+        pass

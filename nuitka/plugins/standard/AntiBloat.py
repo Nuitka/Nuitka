@@ -183,6 +183,18 @@ which can and should be a top level package and then one choice, "error",
                 % (module_name.asString(), change_count, description)
             )
 
+        module_code = config.get("module_code", None)
+
+        if module_code is not None:
+            assert not change_count
+
+            self.info(
+                "Handling module '%s' with full replacement : %s."
+                % (module_name.asString(), description)
+            )
+
+            source_code = module_code
+
         return source_code
 
     def onFunctionAssignmentParsed(self, module_name, function_body, assign_node):
