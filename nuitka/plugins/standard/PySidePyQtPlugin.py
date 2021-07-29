@@ -561,7 +561,8 @@ if not path.startswith(__nuitka_binary_dir):
         if full_name == self.binding_name:
             if not self.getQtPluginDirs():
                 self.sysexit(
-                    "Error, failed to detect %r plugin directories." % self.binding_name
+                    "Error, failed to detect '%s' plugin directories."
+                    % self.binding_name
                 )
 
             target_plugin_dir = os.path.join(dist_dir, full_name.asPath(), "qt-plugins")
@@ -842,7 +843,7 @@ This PySide2 version only partially supported through workarounds, full support:
 
         result = NuitkaPluginQtBindingsPluginBase.createPostModuleLoadCode(self, module)
         if result:
-            return result
+            yield result
 
         if (
             self._getNuitkaPatchLevel() < 1
@@ -923,7 +924,7 @@ import PySide2.QtCore
 PySide2.QtCore.QAbstractItemModel.__init_subclass__ = my_init_subclass
 PySide2.QtCore.QObject.__init_subclass__ = my_init_subclass
 """
-            return (
+            yield (
                 code,
                 """\
 Monkey patching classes derived from PySide2 base classes to pass PySide2 checks.""",

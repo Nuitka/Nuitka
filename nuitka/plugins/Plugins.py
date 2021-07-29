@@ -503,6 +503,9 @@ class Plugins(object):
         full_name = module.getFullName()
 
         def _untangleLoadDesc(descs):
+            if descs and inspect.isgenerator(descs):
+                descs = tuple(descs)
+
             if descs:
                 if type(descs[0]) not in (tuple, list):
                     descs = [descs]
