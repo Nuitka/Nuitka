@@ -77,6 +77,20 @@ class NuitkaPluginResources(NuitkaPluginBase):
 
                 source_code = source_code.replace(match[0], value)
 
+            for match in re.findall(
+                r"""\b(pkg_resources\.require\(\s*['"](.*?)['"]\s*\))""",
+                source_code,
+            ):
+                # Explicitly call the require function at Nuitka compile, and
+                # if it fails remove it so that it doesn't fail at execution
+                try:
+                    self.pkg_resources.require(match[1])
+                except self.pkg_resources.ResolutionError:
+                    raise self.pkg_resources.ResolutionError(
+                        "Unmet requirement during compilation: "+match[1])
+                else:
+                    source_code = source_code.replace(match[0], "")
+
         if self.metadata:
             for match in re.findall(
                 r"""\b((?:importlib_)?metadata\.version\(\s*['"](.*?)['"]\s*\))""",
