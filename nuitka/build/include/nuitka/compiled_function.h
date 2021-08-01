@@ -123,6 +123,8 @@ static inline PyObject *Nuitka_Function_GetName(PyObject *object) {
     return ((struct Nuitka_FunctionObject *)object)->m_name;
 }
 
+extern bool parseArgumentsEmpty(struct Nuitka_FunctionObject const *function, PyObject **python_pars);
+
 extern bool parseArgumentsPos(struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args,
                               Py_ssize_t args_size);
 extern bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function, PyObject **python_pars,

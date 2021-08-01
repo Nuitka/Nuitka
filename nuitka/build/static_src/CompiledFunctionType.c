@@ -1767,6 +1767,11 @@ error_exit:
     return false;
 }
 
+// We leave it to partial inlining to specialize this.
+bool parseArgumentsEmpty(struct Nuitka_FunctionObject const *function, PyObject **python_pars) {
+    return parseArgumentsPos(function, python_pars, NULL, 0);
+}
+
 bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *object,
                              PyObject **args, Py_ssize_t args_size) {
     bool result;

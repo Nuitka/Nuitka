@@ -540,9 +540,7 @@ int main(int argc, char **argv) {
     _initCompiledMethodType();
     _initCompiledFrameType();
 
-#if PYTHON_VERSION < 0x300
     _initSlotCompare();
-#endif
 #if PYTHON_VERSION >= 0x270
     _initSlotIternext();
 #endif

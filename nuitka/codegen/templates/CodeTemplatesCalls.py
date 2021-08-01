@@ -305,6 +305,12 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d(PyObject *called, PyObject **arg
         );
     }
 
+#if 0
+    PRINT_STRING("FALLBACK");
+    PRINT_ITEM(called);
+    PRINT_NEW_LINE();
+#endif
+
     PyObject *pos_args = MAKE_TUPLE(args, %(args_count)d);
 
     PyObject *result = CALL_FUNCTION(called, pos_args, NULL);

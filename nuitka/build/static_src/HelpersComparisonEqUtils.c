@@ -28,9 +28,11 @@
 #include "nuitka/prelude.h"
 #endif
 
-#if PYTHON_VERSION < 0x300
+python_initproc default_tp_init_wrapper;
 
+#if PYTHON_VERSION < 0x300
 static cmpfunc default_tp_compare;
+#endif
 
 void _initSlotCompare() {
     // Create a class with "__cmp__" attribute, to get a hand at the default
@@ -40,29 +42,36 @@ void _initSlotCompare() {
 
     // Use "int" as the base class.
     PyObject *pos_args = PyTuple_New(1);
-    PyTuple_SET_ITEM(pos_args, 0, (PyObject *)&PyInt_Type);
-    Py_INCREF(&PyInt_Type);
+    PyTuple_SET_ITEM(pos_args, 0, (PyObject *)&PyLong_Type);
+    Py_INCREF(&PyLong_Type);
 
     // Use "__cmp__" with true value, won't matter.
     PyObject *kw_args = PyDict_New();
+#if PYTHON_VERSION < 0x0300
     PyDict_SetItem(kw_args, const_str_plain___cmp__, Py_True);
+#endif
+    PyDict_SetItem(kw_args, const_str_plain___init__, (PyObject *)Py_TYPE(Py_None));
 
     // Create the type.
-    PyObject *c =
-        PyObject_CallFunctionObjArgs((PyObject *)&PyType_Type, const_str_plain___cmp__, pos_args, kw_args, NULL);
+    PyTypeObject *c = (PyTypeObject *)PyObject_CallFunctionObjArgs((PyObject *)&PyType_Type, const_str_plain___cmp__,
+                                                                   pos_args, kw_args, NULL);
     Py_DECREF(pos_args);
     Py_DECREF(kw_args);
 
-    PyObject *r = PyObject_CallFunctionObjArgs(c, NULL);
+    CHECK_OBJECT(c);
+
+#if PYTHON_VERSION < 0x0300
+    assert(c->tp_compare);
+    default_tp_compare = c->tp_compare;
+#endif
+
+    assert(c->tp_init);
+    default_tp_init_wrapper = c->tp_init;
+
     Py_DECREF(c);
-
-    CHECK_OBJECT(r);
-    assert(Py_TYPE(r)->tp_compare);
-
-    default_tp_compare = Py_TYPE(r)->tp_compare;
-
-    Py_DECREF(r);
 }
+
+#if PYTHON_VERSION < 0x300
 
 static inline int adjust_tp_compare(int c) {
     if (ERROR_OCCURRED()) {

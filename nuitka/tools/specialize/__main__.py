@@ -42,6 +42,7 @@ from nuitka.__past__ import getMetaClassBase
 from nuitka.nodes.ImportNodes import hard_modules
 from nuitka.tools.quality.autoformat.Autoformat import autoformat
 from nuitka.Tracing import my_print
+from nuitka.utils.Jinja2 import getTemplate
 
 
 class TypeDescBase(getMetaClassBase("Type")):
@@ -1809,11 +1810,9 @@ def makeHelpersComparisonOperation(operand, op_code):
                 emit_h(*args)
                 emit_c(*args)
 
-            emitGenerationWarning(emit_h, template.name)
-            emitGenerationWarning(emit_c, template.name)
+            emitGenerationWarning(emit, template.name)
 
-            emitIDE(emit_c)
-            emitIDE(emit_h)
+            emitIDE(emit)
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -1856,11 +1855,9 @@ def makeHelpersBinaryOperation(operand, op_code):
                 emit_h(*args)
                 emit_c(*args)
 
-            emitGenerationWarning(emit_h, template.name)
-            emitGenerationWarning(emit_c, template.name)
+            emitGenerationWarning(emit, template.name)
 
-            emitIDE(emit_c)
-            emitIDE(emit_h)
+            emitIDE(emit)
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -1905,11 +1902,9 @@ def makeHelpersInplaceOperation(operand, op_code):
                 emit_h(*args)
                 emit_c(*args)
 
-            emitGenerationWarning(emit_h, template.name)
-            emitGenerationWarning(emit_c, template.name)
+            emitGenerationWarning(emit, template.name)
 
-            emitIDE(emit_c)
-            emitIDE(emit_h)
+            emitIDE(emit)
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -1947,11 +1942,9 @@ def makeHelpersImportHard():
                 emit_h(*args)
                 emit_c(*args)
 
-            emitGenerationWarning(emit_h, template.name)
-            emitGenerationWarning(emit_c, template.name)
+            emitGenerationWarning(emit, template.name)
 
-            emitIDE(emit_c)
-            emitIDE(emit_h)
+            emitIDE(emit)
 
             for module_name in sorted(hard_modules):
                 makeHelperImportModuleHard(
@@ -1988,6 +1981,38 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
         emit("#endif")
 
 
+def makeHelperCalls():
+    from nuitka.codegen.CallCodes import getQuickCallCode, max_quick_call
+
+    filename_c = "nuitka/build/static_src/HelpersCalling2.c"
+    filename_h = "nuitka/build/include/nuitka/helper/calling2.h"
+
+    with withFileOpenedAndAutoformatted(filename_c) as output_c:
+        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+
+            def emit_h(*args):
+                writeline(output_h, *args)
+
+            def emit_c(*args):
+                writeline(output_c, *args)
+
+            def emit(*args):
+                emit_h(*args)
+                emit_c(*args)
+
+            template = getTemplate("nuitka.codegen", "CodeTemplateCallsPositional.j2")
+
+            emitGenerationWarning(emit, template.name)
+
+            emitIDE(emit_c)
+
+            for args_count in range(max_quick_call + 1):
+                code = getQuickCallCode(args_count=args_count)
+
+                emit_c(code)
+                emit_h("extern " + code.splitlines()[0].replace(" {", ";"))
+
+
 def writeline(output, *args):
     if not args:
         output.write("\n")
@@ -2004,6 +2029,8 @@ def main():
     makeHelpersInplaceOperation("+", "ADD")
 
     makeHelpersImportHard()
+
+    makeHelperCalls()
 
     makeHelpersBinaryOperation("-", "SUB")
     makeHelpersBinaryOperation("*", "MULT")
