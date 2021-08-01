@@ -130,7 +130,7 @@ for onefile creation to work on Linux."""
         output_file.write(
             """\
 #!/bin/bash
-exec -a $ARGV0 $APPDIR/%s $@"""
+exec -a $ARGV0 $APPDIR/%s \"$@\""""
             % os.path.basename(binary_filename)
         )
 
