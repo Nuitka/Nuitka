@@ -1926,6 +1926,7 @@ void _initBuiltinModule() {
 }
 
 #include "HelpersCalling.c"
+#include "HelpersCalling2.c"
 
 PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
     CHECK_OBJECT(relative);

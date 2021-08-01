@@ -67,6 +67,7 @@ def getConstantDefaultPopulation():
         "__exit__",
         "__builtins__",
         "__all__",
+        "__init__",
         "__cmp__",
         "__iter__",
         # Nuitka specific

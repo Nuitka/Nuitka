@@ -81,4 +81,11 @@ extern PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attribute);
 extern PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg);
 extern PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyObject *arg);
 
+#include "nuitka/helper/calling2.h"
+
+// TODO: Until methods are pre-generated too.
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_ARGS1(PyObject *called, PyObject **args) {
+    return CALL_FUNCTION_WITH_SINGLE_ARG(called, args[0]);
+}
+
 #endif

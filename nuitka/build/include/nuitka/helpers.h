@@ -71,6 +71,18 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject **args);
 #define CHECK_OBJECT(value) (assert((value) != NULL), assert(Py_REFCNT(value) > 0))
 #define CHECK_OBJECT_X(value) (assert((value) == NULL || Py_REFCNT(value) > 0))
 
+// Helper to check an array of objects with CHECK_OBJECT
+#ifndef __NUITKA_NO_ASSERT__
+#define CHECK_OBJECTS(values, count)                                                                                   \
+    {                                                                                                                  \
+        for (int i = 0; i < count; i++) {                                                                              \
+            CHECK_OBJECT(values[i]);                                                                                   \
+        }                                                                                                              \
+    }
+#else
+#define CHECK_OBJECTS(values, count)
+#endif
+
 extern void CHECK_OBJECT_DEEP(PyObject *value);
 
 #include "nuitka/exceptions.h"
@@ -378,10 +390,11 @@ extern void patchTypeComparison(void);
 // to be slightly faster for exception control flows.
 extern void patchTracebackDealloc(void);
 
-#if PYTHON_VERSION < 0x300
-// Initialize value for "tp_compare" default.
+// Initialize value for "tp_compare" and "tp_init" defaults.
 extern void _initSlotCompare(void);
-#endif
+
+// Default __init__ slot wrapper.
+extern python_initproc default_tp_init_wrapper;
 
 #if PYTHON_VERSION >= 0x300
 // Select the metaclass from specified one and given bases.
