@@ -488,7 +488,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
         None
     """
 
-    # This does a lot of distinctions, pylint: disable=too-many-branches,too-many-statements
+    # This does a lot of distinctions, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if effective_filename is None:
         effective_filename = filename
@@ -505,6 +505,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
     is_python = isPythonFile(filename, effective_filename)
 
     is_c = effective_filename.endswith((".c", ".h"))
+    is_cpp = effective_filename.endswith((".cpp", ".h"))
 
     is_txt = effective_filename.endswith(
         (
@@ -538,7 +539,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
-    if not (is_python or is_c or is_txt or is_rst):
+    if not (is_python or is_c or is_cpp or is_txt or is_rst):
         my_print("Ignored file type.")
         return
 
@@ -566,7 +567,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
                 subprocess.call(black_call + ["-q", "--fast", tmp_filename])
                 cleanupWindowsNewlines(tmp_filename)
 
-        elif is_c:
+        elif is_c or is_cpp:
             cleanupWindowsNewlines(tmp_filename)
             if not _shouldNotFormatCode(effective_filename):
                 _cleanupClangFormat(tmp_filename)

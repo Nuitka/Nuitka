@@ -602,6 +602,10 @@ char const *getBinaryPath() {
 }
 #endif
 
+#if _NUITKA_ONEFILE_SPLASH_SCREEN
+#include "OnefileSplashScreen.cpp"
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
 #if defined(__MINGW32__) && !defined(_W64)
@@ -740,6 +744,10 @@ int main(int argc, char **argv) {
 
     static filename_char_t first_filename[1024] = {0};
 
+#if _NUITKA_ONEFILE_SPLASH_SCREEN
+    initSplashScreen();
+#endif
+
     // printf("Entering decompression loop:");
 
     for (;;) {
@@ -850,12 +858,32 @@ int main(int argc, char **argv) {
 
     DWORD exit_code = 0;
 
-    if (handle_process != 0) {
-        WaitForSingleObject(handle_process, INFINITE);
+#if _NUITKA_ONEFILE_SPLASH_SCREEN
+    DWORD wait_time = 50;
+#else
+    DWORD wait_time = INFINITE;
+#endif
+
+    // Loop with splash screen, otherwise this will be only once.
+    while (handle_process != 0) {
+        WaitForSingleObject(handle_process, wait_time);
 
         if (!GetExitCodeProcess(handle_process, &exit_code)) {
             exit_code = 1;
         }
+
+#if _NUITKA_ONEFILE_SPLASH_SCREEN
+        if (exit_code == STILL_ACTIVE) {
+            bool done = checkSplashScreen();
+
+            // Stop checking.
+            if (done) {
+                wait_time = INFINITE;
+            }
+
+            continue;
+        }
+#endif
 
         CloseHandle(handle_process);
 

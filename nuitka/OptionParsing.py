@@ -860,6 +860,15 @@ windows_group.add_option(
 )
 
 windows_group.add_option(
+    "--onefile-windows-splash-screen-image",
+    action="store",
+    dest="splash_screen_image",
+    default=None,
+    help="""\
+When compiling for Windows and onefile, show this while loading the application. Defaults to off.""",
+)
+
+windows_group.add_option(
     "--windows-uac-admin",
     action="store_true",
     dest="windows_uac_admin",

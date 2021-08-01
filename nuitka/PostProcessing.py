@@ -290,6 +290,19 @@ def executePostProcessingResources(manifest, onefile):
     else:
         _addWindowsIconFromIcons(onefile=onefile)
 
+    splash_screen_filename = Options.getWindowsSplashScreen()
+    if splash_screen_filename is not None:
+        splash_data = getFileContents(splash_screen_filename, mode="rb")
+
+        addResourceToFile(
+            target_filename=result_filename,
+            data=splash_data,
+            resource_kind=RT_RCDATA,
+            lang_id=0,
+            res_name=27,
+            logger=postprocessing_logger,
+        )
+
 
 def executePostProcessing():
     """Postprocessing of the resulting binary.

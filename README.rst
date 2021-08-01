@@ -469,10 +469,6 @@ This will create a single binary, which on Linux will not even unpack
 itself, but instead loop back mount its contents as a filesystem and use
 that.
 
-On Windows, there are two modes, one which is copying it to the AppData
-of your company specified, to also use it as a cache, and one which does
-it in the temporary directory. You need to do one this this.
-
 .. code:: bash
 
    # Create a binary that unpacks into a temporary folder
@@ -480,9 +476,9 @@ it in the temporary directory. You need to do one this this.
 
 .. note::
 
-   There are more Windows specific options, e.g. related to icons, but
-   also more version information, consider the ``--help`` output for the
-   details of these.
+   There are more platform specific options, e.g. related to icons,
+   splash screen, and version information, consider the ``--help``
+   output for the details of these and check the section "Good Looks".
 
 Again, on Windows, for the temporary file directory, by default the user
 one is used, however this is overridable with a path specification given
@@ -515,6 +511,63 @@ Currently these expanded tokens are available:
    path unique, and this is mainly intended for use cases, where e.g.
    you want things to reside in a place you choose or abide your naming
    conventions.
+
+********
+ Tweaks
+********
+
+Icons
+=====
+
+For good looks, you may specify icons. On Windows, you can provide an
+icon file, a template executable, or a PNG file. All of these will work
+and may even be combined:
+
+.. code:: bash
+
+   # These create binaries with icons:
+   python -m nuitka --onefile --windows-icon-from-ico=your-icon.png program.py
+   python -m nuitka --onefile --windows-icon-from-ico=your-icon.ico program.py
+   python -m nuitka --onefile --windows-icon-template-exe=your-icon.ico program.py
+
+Splash screen
+=============
+
+Splash screens are useful when program startup is slow. Onefile startup
+itself is not slow, but your program may be, and you cannot really know
+how fast the computer used will be, so it might be a good idea to have
+them. Luckily with Nuitka, they are easy to add for Windows.
+
+For splash screen, you need to specify it as an PNG file, and then make
+sure to disable the splash screen when your program is ready, e.g. has
+complete the imports, prepared the window, connected to the database,
+and wants the splash screen to go away. Here we are using the project
+syntax to combine the code with the creation, compile this:
+
+.. code:: python
+
+   # nuitka-project: --onefile
+   # nuitka-project: --onefile-windows-splash-screen-image={MAIN_DIRECTORY}/Splash-Screen.png
+
+   # Whatever this is obviously
+   print("Delaying startup by 10s...")
+   import time
+   time.sleep(10)
+
+   # Use this code to signal the splash screen removal.
+   if "NUITKA_ONEFILE_PARENT" in os.environ:
+      splash_filename = os.path.join(
+         tempfile.gettempdir(),
+         "onefile_%d_splash_feedback.tmp" % int(os.environ["NUITKA_ONEFILE_PARENT"]),
+      )
+
+      if os.path.exists(splash_filename):
+         os.unlink(splash_filename)
+
+   print("Done... splash should be gone.")
+   ...
+
+   # Rest of your program goes here.
 
 ******************
  Typical Problems

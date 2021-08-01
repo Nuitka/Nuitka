@@ -231,6 +231,15 @@ standalone where there is a sane default used inside the dist folder."""
             """Error, empty string is not an acceptable product name."""
         )
 
+    splash_screen_filename = getWindowsSplashScreen()
+
+    if splash_screen_filename is not None:
+        if not os.path.isfile(splash_screen_filename):
+            Tracing.options_logger.sysexit(
+                "Error, specified splash screen image '%s' does not exist."
+                % splash_screen_filename
+            )
+
     if file_version or product_version or getWindowsVersionInfoStrings():
         if not (file_version or product_version) and getWindowsCompanyName():
             Tracing.options_logger.sysexit(
@@ -403,6 +412,7 @@ def commentArgs():
             or getWindowsFileVersion()
             or getForcedStderrPath()  # not yet for other platforms
             or getForcedStdoutPath()
+            or getWindowsSplashScreen()
         ):
             Tracing.options_logger.warning(
                 "Using Windows specific options has no effect on other platforms."
@@ -954,6 +964,10 @@ def getWindowsProductVersion():
 def getWindowsFileVersion():
     """*tuple of 4 ints* or None --windows-file-version"""
     return _parseWindowsVersionNumber(options.windows_file_version)
+
+
+def getWindowsSplashScreen():
+    return options.splash_screen_image
 
 
 def getWindowsCompanyName():
