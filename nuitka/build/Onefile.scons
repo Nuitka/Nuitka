@@ -187,6 +187,8 @@ assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 # Onefile compression is optional.
 onefile_compression = getArgumentBool("onefile_compression", False)
 
+# Onefile bootstrap is opptional.
+onefile_splash_screen = getArgumentBool("onefile_splash_screen", False)
 
 if getArgumentBool("progress_bar", True):
     enableSconsProgressBar()
@@ -778,6 +780,11 @@ else:
 
 if onefile_compression:
     onefile_definitions["_NUITKA_ONEFILE_COMPRESSION"] = 1
+
+if onefile_splash_screen:
+    onefile_definitions["_NUITKA_ONEFILE_SPLASH_SCREEN"] = 1
+    env.Append(LIBS=["Ole32", "Windowscodecs", "User32", "Gdi32", "Shlwapi"])
+
 
 createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
 

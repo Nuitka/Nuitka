@@ -247,6 +247,9 @@ def _runOnefileScons(quiet, onefile_compression):
         "nuitka_src": SconsInterface.getSconsDataPath(),
         "compiled_exe": OutputDirectories.getResultFullpath(onefile=False),
         "onefile_compression": asBoolStr(onefile_compression),
+        "onefile_splash_screen": asBoolStr(
+            Options.getWindowsSplashScreen() is not None
+        ),
     }
 
     if Options.isClang():
