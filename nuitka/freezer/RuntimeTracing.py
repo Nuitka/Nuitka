@@ -167,3 +167,36 @@ Error, needs 'strace' on your system to scan used libraries."""
     result = list(sorted(set(result)))
 
     return result
+
+
+if __name__ == "__main__":
+    import sys
+
+    from nuitka.Tracing import general
+    from nuitka.utils.FileOperations import withTemporaryFile
+
+    source_code = """
+import sys
+from PySide2.QtQuick import QQuickView
+from PySide2.QtWidgets import QApplication
+from PySide2.QtCore import QUrl
+QApplication(sys.argv)
+viewer = QQuickView()
+viewer.setSource(QUrl.fromLocalFile(sys.argv[1]))
+"""
+
+    qml_code = """
+import QtQuick 2.0
+"""
+
+    with withTemporaryFile(suffix=".qml", delete=False) as qml_file:
+        qml_file.write(qml_code)
+        qml_filename = qml_file.name
+
+        with withTemporaryFile(suffix=".py", delete=False) as temp_file:
+            temp_file.write(source_code)
+            temp_filename = temp_file.name
+
+    getRuntimeTraceOfLoadedFiles(
+        logger=general, command=[sys.executable, temp_filename, qml_filename]
+    )
