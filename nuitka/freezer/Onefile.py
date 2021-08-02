@@ -195,7 +195,8 @@ Categories=Utility;"""
 
     if result != 0:
         # Useless now.
-        os.unlink(onefile_output_filename)
+        if os.path.exists(onefile_output_filename):
+            os.unlink(onefile_output_filename)
 
         stderr = getFileContents(stderr_filename, mode="rb")
 
