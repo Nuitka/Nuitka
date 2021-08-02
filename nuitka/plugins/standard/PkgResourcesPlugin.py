@@ -81,13 +81,13 @@ class NuitkaPluginResources(NuitkaPluginBase):
                 r"""\b(pkg_resources\.require\(\s*['"](.*?)['"]\s*\))""",
                 source_code,
             ):
-                # Explicitly call the require function at Nuitka compile, and
-                # if it fails remove it so that it doesn't fail at execution
+                # Explicitly call the require function at Nuitka compile time.
                 try:
                     self.pkg_resources.require(match[1])
                 except self.pkg_resources.ResolutionError:
-                    raise self.pkg_resources.ResolutionError(
-                        "Unmet requirement during compilation: "+match[1])
+                    self.sysexit(
+                        "Unmet requirement during compilation: '%s'." % match[1]
+                    )
                 else:
                     source_code = source_code.replace(match[0], "")
 
