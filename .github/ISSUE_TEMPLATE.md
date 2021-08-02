@@ -39,7 +39,7 @@ up to here:
   external dependencies. Issues without this may get rejected without much
   consideration.
 
-* In your issue the options used
+* Provide in your issue the Nuitka options used
 
   Ideally use the project feature, so options and example code go alone
 
@@ -49,6 +49,11 @@ up to here:
 
   If it used to work in an earlier version of Nuitka, please note what you know
   about that.
+
+* Consider getting commercial support
+
+  [Nuitka commercial](https://nuitka.net/pages/commercial.html) offers subscriptions and priority
+  support. This can help accelerate your problem solution.
 
 Some things are not welcome, please consider it.
 
