@@ -46,6 +46,7 @@ from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import getNullInput, withEnvironmentVarsOverriden
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
+    deleteFile,
     getFileContents,
     getFileList,
     removeDirectory,
@@ -194,9 +195,8 @@ Categories=Utility;"""
     stderr_file.close()
 
     if result != 0:
-        # Useless now.
-        if os.path.exists(onefile_output_filename):
-            os.unlink(onefile_output_filename)
+        # Useless result if there were errors, so now remove it.
+        deleteFile(onefile_output_filename, must_exist=False)
 
         stderr = getFileContents(stderr_filename, mode="rb")
 
@@ -221,8 +221,8 @@ Categories=Utility;"""
             % (onefile_output_filename, stdout_filename, stderr_filename)
         )
 
-    os.unlink(stdout_filename)
-    os.unlink(stderr_filename)
+    deleteFile(stdout_filename, must_exist=True)
+    deleteFile(stderr_filename, must_exist=True)
 
     postprocessing_logger.info("Completed onefile creation.")
 
