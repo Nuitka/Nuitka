@@ -23,7 +23,6 @@ able to execute them without creating the argument dictionary at all.
 
 """
 
-from nuitka import Options
 from nuitka.utils.Jinja2 import getTemplate
 
 from .CodeHelpers import (
@@ -35,9 +34,7 @@ from .ErrorCodes import getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .templates.CodeTemplatesCalls import (
     template_call_function_with_args_decl,
-    template_call_function_with_args_impl,
     template_call_method_with_args_decl,
-    template_call_method_with_args_impl,
 )
 from .templates.CodeTemplatesModules import (
     template_header_guard,
@@ -469,14 +466,25 @@ def _getInstanceCallCodeFromTuple(
 
     emitLineNumberUpdateCode(emit, context)
 
-    emit(
-        """\
+    if arg_size == 1:
+        template = """\
+%(to_name)s = CALL_METHOD_WITH_SINGLE_ARG(
+    %(called_name)s,
+    %(called_attribute_name)s,
+    PyTuple_GET_ITEM(%(arg_tuple)s, 0)
+);
+"""
+    else:
+        template = """\
 %(to_name)s = CALL_METHOD_WITH_ARGS%(arg_size)d(
     %(called_name)s,
     %(called_attribute_name)s,
     &PyTuple_GET_ITEM(%(arg_tuple)s, 0)
 );
 """
+
+    emit(
+        template
         % {
             "to_name": to_name,
             "arg_size": arg_size,
@@ -626,6 +634,9 @@ def getCallsDecls():
         )
 
     for quick_call_used in sorted(quick_instance_calls_used):
+        if quick_call_used <= max_quick_call:
+            continue
+
         result.append(
             template_call_method_with_args_decl % {"args_count": quick_call_used}
         )
@@ -655,23 +666,12 @@ def getCallsCode():
         if quick_call_used <= max_quick_call:
             continue
 
-        if Options.isExperimental("jinja-calls"):
-            code = getQuickCallCode(args_count=quick_call_used)
-
-            result.append(code)
-        else:
-            result.append(
-                template_call_function_with_args_impl % {"args_count": quick_call_used}
-            )
+        result.append(getQuickCallCode(args_count=quick_call_used))
 
     for quick_call_used in sorted(quick_instance_calls_used):
-        if Options.isExperimental("jinja-calls"):
-            code = getQuickMethodCallCode(args_count=quick_call_used)
+        if quick_call_used <= max_quick_call:
+            continue
 
-            result.append(code)
-        else:
-            result.append(
-                template_call_method_with_args_impl % {"args_count": quick_call_used}
-            )
+        result.append(getQuickMethodCallCode(args_count=quick_call_used))
 
     return "\n".join(result)
