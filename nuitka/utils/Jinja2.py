@@ -15,26 +15,48 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Jinja foklore wrappers.
+""" Jinja folklore wrappers and handling of inline copy usage.
 
 """
+
+from .Importing import importFromInlineCopy
 
 environments = {}
 
 
+def unlikely_if(value):
+    if value:
+        return "unlikely"
+    else:
+        return ""
+
+
+def unlikely_or_likely_from(value):
+    if value:
+        return "unlikely"
+    else:
+        return "likely"
+
+
 def getEnvironment(module_name):
     if module_name not in environments:
+        jinja2 = importFromInlineCopy("jinja2", must_exist=True)
         import jinja2
 
         env = jinja2.Environment(
             loader=jinja2.PackageLoader(module_name, "templates"),
-            extensions=["jinja2.ext.do"],
+            # extensions=["jinja2.ext.do"],
             trim_blocks=True,
             lstrip_blocks=True,
         )
 
-        # For future shared functions.
-        # env.globals.update({"makeObjectArraySpec": _makeObjectArraySpec})
+        # For shared global functions.
+        env.globals.update(
+            {
+                "unlikely_if": unlikely_if,
+                "unlikely_or_likely_from": unlikely_or_likely_from,
+            }
+        )
 
         env.undefined = jinja2.StrictUndefined
 

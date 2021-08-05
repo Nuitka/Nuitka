@@ -155,7 +155,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject **arg
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
-        if (flags & METH_NOARGS) {
+        if ({{ unlikely_or_likely_from(args_count != 0) }}(flags & METH_NOARGS)) {
 {% if args_count == 0 %}
             // Recursion guard is not strictly necessary, as we already have
             // one on our way to here.
@@ -199,7 +199,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject **arg
             );
             return NULL;
 {% endif %}
-        } else if (flags & METH_O) {
+        } else if ({{ unlikely_if(args_count != 1) }}(flags & METH_O)) {
 {% if args_count == 1 %}
             // Recursion guard is not strictly necessary, as we already have
             // one on our way to here.

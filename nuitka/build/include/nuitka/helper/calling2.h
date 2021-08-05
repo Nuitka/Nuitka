@@ -27,3 +27,15 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject **args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject **args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject **args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject **args);
+/* WARNING, this code is GENERATED. Modify the template CodeTemplateCallsMethodPositional.j2 instead! */
+extern PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attr_name);
+extern PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyObject *arg);
+extern PyObject *CALL_METHOD_WITH_ARGS2(PyObject *source, PyObject *attr_name, PyObject **args);
+extern PyObject *CALL_METHOD_WITH_ARGS3(PyObject *source, PyObject *attr_name, PyObject **args);
+extern PyObject *CALL_METHOD_WITH_ARGS4(PyObject *source, PyObject *attr_name, PyObject **args);
+extern PyObject *CALL_METHOD_WITH_ARGS5(PyObject *source, PyObject *attr_name, PyObject **args);
+extern PyObject *CALL_METHOD_WITH_ARGS6(PyObject *source, PyObject *attr_name, PyObject **args);
+extern PyObject *CALL_METHOD_WITH_ARGS7(PyObject *source, PyObject *attr_name, PyObject **args);
+extern PyObject *CALL_METHOD_WITH_ARGS8(PyObject *source, PyObject *attr_name, PyObject **args);
+extern PyObject *CALL_METHOD_WITH_ARGS9(PyObject *source, PyObject *attr_name, PyObject **args);
+extern PyObject *CALL_METHOD_WITH_ARGS10(PyObject *source, PyObject *attr_name, PyObject **args);

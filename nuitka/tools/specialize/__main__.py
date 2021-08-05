@@ -1982,7 +1982,11 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
 
 
 def makeHelperCalls():
-    from nuitka.codegen.CallCodes import getQuickCallCode, max_quick_call
+    from nuitka.codegen.CallCodes import (
+        getQuickCallCode,
+        getQuickMethodCallCode,
+        max_quick_call,
+    )
 
     filename_c = "nuitka/build/static_src/HelpersCalling2.c"
     filename_h = "nuitka/build/include/nuitka/helper/calling2.h"
@@ -2008,6 +2012,20 @@ def makeHelperCalls():
 
             for args_count in range(max_quick_call + 1):
                 code = getQuickCallCode(args_count=args_count)
+
+                emit_c(code)
+                emit_h("extern " + code.splitlines()[0].replace(" {", ";"))
+
+            template = getTemplate(
+                "nuitka.codegen", "CodeTemplateCallsMethodPositional.j2"
+            )
+
+            emitGenerationWarning(emit, template.name)
+
+            emitIDE(emit_c)
+
+            for args_count in range(max_quick_call + 1):
+                code = getQuickMethodCallCode(args_count=args_count)
 
                 emit_c(code)
                 emit_h("extern " + code.splitlines()[0].replace(" {", ";"))
