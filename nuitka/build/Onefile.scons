@@ -688,6 +688,9 @@ target = env.Program(result_exe, source_files + source_targets)
 # Avoid dependency on MinGW libraries.
 if win_target and gcc_mode and not clang_mode:
     env.Append(LINKFLAGS=["-static-libgcc"])
+# on Windows link against imagehlp to support signed applications detection
+if win_target:
+    link_libraries.append("imagehlp")
 
 # Avoid IO for compilation as much as possible, this should make the
 # compilation more memory hungry, but also faster.
