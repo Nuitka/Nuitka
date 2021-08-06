@@ -882,7 +882,7 @@ def getIconPaths():
         else:
             Tracing.options_logger.sysexit(
                 """\
-Error, the non of the default icons '%s' exist, making --linux-onefile-icon required."""
+Error, none of the default icons '%s' exist, making --linux-onefile-icon required."""
                 % ", ".join(default_icons)
             )
 
