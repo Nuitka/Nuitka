@@ -146,7 +146,7 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
 #endif
                 } else if (wcsicmp(var_name, L"PID") == 0) {
                     char pid_buffer[128];
-                    _itoa_s(GetCurrentProcessId(), pid_buffer, sizeof(pid_buffer), 10);
+                    snprintf(pid_buffer, sizeof(pid_buffer), "%d", GetCurrentProcessId());
 
                     appendStringSafeW(target, pid_buffer, buffer_size);
                 } else if (wcsicmp(var_name, L"TIME") == 0) {

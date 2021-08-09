@@ -716,7 +716,7 @@ int main(int argc, char **argv) {
             if (size > 0 && size < 127) {
                 onefile_ppid = atol(buffer);
 
-                HANDLE onefile_thread = CreateThread(NULL, 0, doOnefileParentMonitoring, NULL, 0, NULL);
+                CreateThread(NULL, 0, doOnefileParentMonitoring, NULL, 0, NULL);
             }
         }
 #endif

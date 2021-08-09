@@ -1002,7 +1002,13 @@ PyObject *IMPORT_EMBEDDED_MODULE(char const *name) {
 
 #if PYTHON_VERSION < 0x350
     if (unlikely(result == NULL)) {
+        PyObject *save_exception_type, *save_exception_value;
+        PyTracebackObject *save_exception_tb;
+        FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
+
         PyObject_DelItem(PyImport_GetModuleDict(), module_name);
+
+        RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
     }
 #endif
 

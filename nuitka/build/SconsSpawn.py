@@ -95,7 +95,7 @@ def runProcessMonitored(cmdline, env):
     return thread.getProcessResult()
 
 
-def _filterLinkOutput(module_mode, lto_mode, data):
+def _filterLinkOutput(module_mode, lto_mode, data, exit_code):
     # Training newline in some cases, esp. LTO it seems.
     data = data.rstrip()
 
@@ -110,7 +110,7 @@ def _filterLinkOutput(module_mode, lto_mode, data):
 
     # The linker will say generating code at the end, due to localization
     # we don't know.
-    if lto_mode:
+    if lto_mode and exit_code == 0:
         if len(data.split(b"\r\n")) == 2:
             data = b""
 
@@ -155,7 +155,9 @@ def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
                 raise exception
 
         if cmd == "link":
-            data = _filterLinkOutput(module_mode, lto_mode, data)
+            data = _filterLinkOutput(
+                module_mode=module_mode, lto_mode=lto_mode, data=data, exit_code=rv
+            )
 
         elif cmd in ("cl", "<clcache>"):
             # Skip forced output from cl.exe

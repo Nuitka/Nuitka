@@ -35,10 +35,51 @@ from nuitka.utils.Utils import getOS
 
 from .SyntaxErrors import raiseSyntaxError
 
+_fstrings_installed = False
+
+
+def _installFutureFStrings():
+    """Install fake UTF8 handle just as future-fstrings does.
+
+    This unbreaks at least
+    """
+
+    # Singleton, pylint: disable=global-statement
+    global _fstrings_installed
+
+    if _fstrings_installed:
+        return
+
+    # TODO: Not supporting anything before that.
+    if python_version >= 0x360:
+        import codecs
+
+        # Play trick for of "future_strings" PyPI package support. It's not needed,
+        # but some people use it even on newer Python.
+        try:
+            codecs.lookup("future-fstrings")
+        except LookupError:
+            import encodings
+
+            utf8 = encodings.search_function("utf8")
+            codec_map = {"future-fstrings": utf8, "future_fstrings": utf8}
+            codecs.register(codec_map.get)
+    else:
+        try:
+            import future_fstrings
+        except ImportError:
+            pass
+        else:
+            future_fstrings.register()
+
+    _fstrings_installed = True
+
 
 def _readSourceCodeFromFilename3(source_filename):
     # Only using this for Python3, for Python2 it's too buggy.
     import tokenize
+
+    _installFutureFStrings()
 
     with tokenize.open(source_filename) as source_file:
         return source_file.read()
@@ -72,6 +113,8 @@ def _detectEncoding2(source_file):
 
 
 def _readSourceCodeFromFilename2(source_filename):
+    _installFutureFStrings()
+
     # Detect the encoding.
     with open(source_filename, "rU") as source_file:
         encoding = _detectEncoding2(source_file)
@@ -148,7 +191,7 @@ def checkPythonVersionFromCode(source_code):
         if basename == "python":
             result = python_version < 0x300
         elif basename == "python3":
-            result = python_version > 0x300
+            result = python_version >= 0x300
         elif basename == "python2":
             result = python_version < 0x300
         elif basename == "python2.7":
@@ -171,6 +214,8 @@ def checkPythonVersionFromCode(source_code):
             result = 0x390 > python_version >= 0x380
         elif basename == "python3.9":
             result = 0x3A0 > python_version >= 0x390
+        elif basename == "python3.10":
+            result = 0x3B0 > python_version >= 0x3A0
         else:
             result = None
 

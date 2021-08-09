@@ -232,8 +232,6 @@ class FileLogger(OurLogger):
         self.file_handle = file_handle
 
     def my_print(self, message, **kwargs):
-        message = message + "\n"
-
         if "file" not in kwargs:
             kwargs["file"] = self.file_handle or sys.stdout
 
