@@ -327,6 +327,11 @@ def buildNode(provider, node, source_ref, allow_none=False):
         # Very likely the stack overflow, which we will turn into too complex
         # code exception, don't warn about it with a code dump then.
         raise
+    except KeyboardInterrupt:
+        # User interrupting is not a problem with the source, but tell where
+        # we got interrupted.
+        optimization_logger.info("Interrupted at '%s'." % source_ref)
+        raise
     except:
         optimization_logger.warning(
             "Problem at '%s' with %s." % (source_ref, ast.dump(node))
