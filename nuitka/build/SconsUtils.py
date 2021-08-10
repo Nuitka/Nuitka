@@ -390,6 +390,42 @@ def provideStaticSourceFile(sub_path, nuitka_src, source_dir, c11_mode):
     return target_filename
 
 
+def scanSourceDir(env, c11_mode, dirname, plugins):
+    if not os.path.exists(dirname):
+        return
+
+    # If we use C11 capable compiler, all good. Otherwise use C++, which Scons
+    # needs to derive from filenames, so make copies (or links) with a different
+    # name.
+    added_path = False
+
+    for filename in sorted(os.listdir(dirname)):
+        if filename.endswith(".h") and plugins and not added_path:
+            env.Append(CPPPATH=[dirname])
+            added_path = True
+
+        # Only C files are of interest here.
+        if not filename.endswith((".c", "cpp")) or not filename.startswith(
+            ("module.", "__", "plugin.")
+        ):
+            continue
+
+        filename = os.path.join(dirname, filename)
+
+        target_file = filename
+
+        # We pretend to use C++ if no C11 compiler is present.
+        if c11_mode:
+            yield filename
+        else:
+            if filename.endswith(".c"):
+                target_file += "pp"  # .cpp" suffix then
+
+                os.rename(filename, target_file)
+
+            yield target_file
+
+
 def makeCLiteral(value):
     value = value.replace("\\", r"\\")
     value = value.replace('"', r"\"")

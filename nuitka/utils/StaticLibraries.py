@@ -72,16 +72,25 @@ def _locateStaticLinkLibrary(dll_name):
 
 
 def getSystemStaticLibPythonPath():
+    # Return driven function with many cases, pylint: disable=too-many-branches,too-many-return-statements
+
     sys_prefix = getSystemPrefixPath()
     python_abi_version = python_version_str + getPythonABI()
 
     if isNuitkaPython():
         # Nuitka Python has this.
-        return os.path.join(
-            sys_prefix,
-            "libs",
-            "python" + python_abi_version.replace(".", "") + ".lib",
-        )
+        if isWin32Windows():
+            return os.path.join(
+                sys_prefix,
+                "libs",
+                "python" + python_abi_version.replace(".", "") + ".lib",
+            )
+        else:
+            return os.path.join(
+                sys_prefix,
+                "lib",
+                "libpython" + python_abi_version + ".a",
+            )
 
     if isWin32Windows():
         candidates = [

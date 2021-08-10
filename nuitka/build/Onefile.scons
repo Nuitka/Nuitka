@@ -379,7 +379,15 @@ if "clang" in the_cc_name:
         env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
 # Enable LTO for compiler.
-lto_mode = enableLtoSettings(env=env, lto_mode=lto_mode, msvc_mode=msvc_mode)
+lto_mode = enableLtoSettings(
+    env=env,
+    lto_mode=lto_mode,
+    msvc_mode=msvc_mode,
+    gcc_mode=gcc_mode,
+    clang_mode=clang_mode,
+    nuitka_python=False,
+    job_count=job_count,
+)
 
 # Support details for real g++, not clang++.
 if gcc_mode and not clang_mode:

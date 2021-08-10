@@ -77,9 +77,25 @@ def enableC11Settings(env, clangcl_mode, msvc_mode, clang_mode, gcc_mode, gcc_ve
     return c11_mode
 
 
-def enableLtoSettings(env, lto_mode, msvc_mode):
+def enableLtoSettings(
+    env, lto_mode, msvc_mode, gcc_mode, clang_mode, nuitka_python, job_count
+):
     if msvc_mode and not lto_mode and getMsvcVersion(env) >= 14:
         lto_mode = True
+
+    if nuitka_python:
+        lto_mode = True
+
+    if gcc_mode and lto_mode:
+        env.Append(CCFLAGS=["-flto"])
+
+        if clang_mode:
+            env.Append(LINKFLAGS=["-flto"])
+        else:
+            env.Append(CCFLAGS=["-fuse-linker-plugin", "-fno-fat-lto-objects"])
+            env.Append(LINKFLAGS=["-fuse-linker-plugin"])
+
+            env.Append(LINKFLAGS=["-flto=%d" % job_count])
 
     # Tell compiler to use link time optimization for MSVC
     if msvc_mode and lto_mode:
@@ -288,13 +304,15 @@ unsigned char const *getConstantsBlobData() {
                 if not c11_mode:
                     output.write('extern "C" {')
 
-                output.write("""
+                output.write(
+                    """
 // Constant data for the program.
 #if !defined(_NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS)
 const
 #endif
 unsigned char constant_bin_data[] =\n{\n
-""")
+"""
+                )
 
                 with open(constants_bin_filename, "rb") as f:
                     content = f.read()
@@ -313,7 +331,7 @@ unsigned char constant_bin_data[] =\n{\n
                 output.write("\n};\n")
 
                 if not c11_mode:
-                    output.write('}')
+                    output.write("}")
 
         writeConstantsDataSource()
     else:
