@@ -18,15 +18,25 @@
 /* WARNING, this code is GENERATED. Modify the template CodeTemplateCallsPositional.j2 instead! */
 extern PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called);
 extern PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg);
+extern PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args);
 /* WARNING, this code is GENERATED. Modify the template CodeTemplateCallsMethodPositional.j2 instead! */
 extern PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attr_name);
 extern PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyObject *arg);

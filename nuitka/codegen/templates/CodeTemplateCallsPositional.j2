@@ -17,11 +17,17 @@
 {#                                                                              #}
 {% if args_count == 0 %}
 PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
-{% elif args_count == 1 %}
+{% elif args_count == 1 and not has_tuple_arg %}
 PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
     PyObject **args = &arg; // For easier code compatibility.
 {% else %}
+{% if has_tuple_arg %}
+PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}(PyObject *called, PyObject *pos_args) {
+    assert(PyTuple_CheckExact(pos_args));
+    PyObject **args = &PyTuple_GET_ITEM(pos_args, 0);
+{% else %}
 PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject **args) {
+{% endif %}
 {% endif %}
     CHECK_OBJECT(called);
 {% if args_count != 0 %}
@@ -254,41 +260,70 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject **arg
             PyCFunction method = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
-{% if args_count != 0 %}
-            PyObject *pos_args = MAKE_TUPLE(args, {{args_count}});
-{% else %}
-            PyObject *pos_args = const_tuple_empty;
-{% endif %}
-
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
+{% if not has_tuple_arg and args_count != 0 %}
+            PyObject *pos_args = MAKE_TUPLE(args, {{args_count}});
+{% elif not has_tuple_arg %}
+            PyObject *pos_args = const_tuple_empty;
+{% endif %}
             if (flags & METH_KEYWORDS) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else {
                 result = (*method)(self, pos_args);
             }
+
+{% if not has_tuple_arg and args_count != 0 %}
+            Py_DECREF(pos_args);
+{% endif %}
 #else
             if (flags == (METH_VARARGS|METH_KEYWORDS)) {
+{% if not has_tuple_arg and args_count != 0 %}
+            PyObject *pos_args = MAKE_TUPLE(args, {{args_count}});
+{% elif not has_tuple_arg %}
+            PyObject *pos_args = const_tuple_empty;
+{% endif %}
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+{% if not has_tuple_arg and args_count != 0 %}
+            Py_DECREF(pos_args);
+{% endif %}
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, &PyTuple_GET_ITEM(pos_args, 0), {{args_count}}, NULL);
+{% if args_count != 0 %}
+                result = (*(_PyCFunctionFast)method)(self, args, {{args_count}}, NULL);
+{% else %}
+                result = (*(_PyCFunctionFast)method)(self, NULL, 0, NULL);
+{% endif %}
 #else
+{% if not has_tuple_arg and args_count != 0 %}
+            PyObject *pos_args = MAKE_TUPLE(args, {{args_count}});
+{% elif not has_tuple_arg %}
+            PyObject *pos_args = const_tuple_empty;
+{% endif %}
                 result = (*(_PyCFunctionFast)method)(self, &pos_args, {{args_count}});
+{% if not has_tuple_arg and args_count != 0 %}
+            Py_DECREF(pos_args);
+{% endif %}
 #endif
             } else {
+{% if not has_tuple_arg and args_count != 0 %}
+            PyObject *pos_args = MAKE_TUPLE(args, {{args_count}});
+{% elif not has_tuple_arg %}
+            PyObject *pos_args = const_tuple_empty;
+{% endif %}
                 result = (*method)(self, pos_args);
+{% if not has_tuple_arg and args_count != 0 %}
+            Py_DECREF(pos_args);
+{% endif %}
             }
 #endif
+
 
 #ifdef _NUITKA_FULL_COMPAT
             Py_LeaveRecursiveCall();
 #endif
 
-{% if args_count != 0 %}
-            Py_DECREF(pos_args);
-{% endif %}
             if (result != NULL) {
                 // Some buggy C functions do set an error, but do not indicate it
                 // and Nuitka inner workings can get upset/confused from it.
@@ -407,11 +442,15 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject **arg
 {% if args_count == 0 %}
     PyObject *result = CALL_FUNCTION(called, const_tuple_empty, NULL);
 {% else %}
+{% if not has_tuple_arg %}
     PyObject *pos_args = MAKE_TUPLE(args, {{args_count}});
+{% endif %}
 
     PyObject *result = CALL_FUNCTION(called, pos_args, NULL);
 
+{% if not has_tuple_arg %}
     Py_DECREF(pos_args);
+{% endif %}
 {% endif %}
 
     return result;
