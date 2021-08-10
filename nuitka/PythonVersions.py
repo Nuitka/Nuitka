@@ -67,7 +67,10 @@ python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
 def isNuitkaPython():
     """Is this our own fork of CPython named Nuitka-Python."""
 
-    return python_version >= 0x300 and sys.implementation.name == "nuitkapython"
+    if python_version >= 0x300:
+        return sys.implementation.name == "nuitkapython"
+    else:
+        return sys.subversion[0] == "nuitkapython"
 
 
 def getErrorMessageExecWithNestedFunction():

@@ -57,6 +57,7 @@ from nuitka.Tracing import (
     scons_logger,
     setQuiet,
 )
+from nuitka.utils.Execution import check_output
 from nuitka.utils.Utils import isDebianBasedLinux
 
 from .SconsCaching import enableCcache, enableClcache
@@ -93,6 +94,7 @@ from .SconsUtils import (
     isGccName,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
+    scanSourceDir,
     setArguments,
     setupScons,
     switchFromGccToGpp,
@@ -490,7 +492,15 @@ if "clang" in the_cc_name:
         env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
 # Enable LTO for compiler.
-lto_mode = enableLtoSettings(env=env, lto_mode=lto_mode, msvc_mode=msvc_mode)
+lto_mode = enableLtoSettings(
+    env=env,
+    lto_mode=lto_mode,
+    msvc_mode=msvc_mode,
+    gcc_mode=gcc_mode,
+    clang_mode=clang_mode,
+    nuitka_python=nuitka_python,
+    job_count=job_count,
+)
 
 if lto_mode and mingw_mode:
     scons_logger.warning(
@@ -567,17 +577,10 @@ version (>= 5.3)."""
     env.Append(CCFLAGS=["-fcompare-debug-second"])
 
 if gcc_mode and lto_mode:
-    env.Append(CCFLAGS=["-flto"])
-
-    if clang_mode:
-        env.Append(LINKFLAGS=["-flto"])
-    else:
-        env.Append(LINKFLAGS=["-flto=%d" % job_count])
-
     if debug_mode:
         env.Append(LINKFLAGS=["-Og"])
     else:
-        env.Append(LINKFLAGS=["-O2" if lto_mode else "-O3"])
+        env.Append(LINKFLAGS=["-O2" if lto_mode and not nuitka_python else "-O3"])
 
     if not clang_mode:
         env.Append(LINKFLAGS=["-fpartial-inlining", "-freorder-functions"])
@@ -839,6 +842,7 @@ if win_target:
                 "/USEPROFILE:PGD=" + os.path.join(python_prefix, "python.pgd"),
             ]
         )
+
         with open(os.path.join(python_prefix, "link.json")) as f:
             linkData = json.load(f)
             env.Append(LIBS=linkData["libraries"])
@@ -877,7 +881,34 @@ elif not module_mode:
     python_lib_path = os.path.join(python_prefix, "lib")
     env.Append(LIBPATH=[python_lib_path])
 
-    if not module_mode and static_libpython:
+    if nuitka_python and "pgo-link" in experimental:
+        # With Nuitka-Python, we do not use the static link library actually, but
+        # instead we link against the object files, as otherwise gcc doesn't seem
+        # to want to pick the profiling information up. TODO: This is not showing
+        # any benefit over plain LTO yet.
+        pgo_dir = os.path.join(python_prefix, "lib/pgo")
+
+        env.Append(LINKFLAGS=["-fprofile-dir=%s" % pgo_dir])
+        env.Append(LINKFLAGS=["-fprofile-correction"])
+
+        for filename in check_output(["ar", "t", static_libpython]).splitlines():
+            filename = os.path.join(pgo_dir, filename)
+
+            if not filename.endswith(".o"):
+                continue
+
+            if os.path.basename(filename) in ("main.o", "python.o"):
+                continue
+
+            gcda_filename = filename[:-2] + ".gcda"
+
+            if os.path.exists(gcda_filename):
+                env.Append(
+                    LINKFLAGS=["-fprofile-use=%s" % os.path.basename(gcda_filename)]
+                )
+
+            env.Append(LIBS=[env.File(filename)])
+    elif static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
 
         # The linker won't succeed in searching for those for system Python of Debian
@@ -962,7 +993,7 @@ if debug_mode:
         env.Append(CCFLAGS=["-O2"])
 else:
     if gcc_mode:
-        env.Append(CCFLAGS=["-O2" if lto_mode else "-O3"])
+        env.Append(CCFLAGS=["-O2" if lto_mode and not nuitka_python else "-O3"])
 
         # Check inlining of calls, except in debug mode, where it will all be
         # wrong due to additional code.
@@ -1041,45 +1072,18 @@ else:
 def discoverSourceFiles():
     result = []
 
-    # If we use C11 capable compiler, all good. Otherwise use C++, which Scons
-    # needs to derive from filenames, so make copies (or links) with a different
-    # name.
-
-    def _scanSourceDir(dirname, plugins):
-        if not os.path.exists(dirname):
-            return
-
-        added_path = False
-
-        for filename in sorted(os.listdir(dirname)):
-            if filename.endswith(".h") and plugins and not added_path:
-                env.Append(CPPPATH=[dirname])
-                added_path = True
-
-            # Only C files are of interest here.
-            if not filename.endswith((".c", "cpp")) or not filename.startswith(
-                ("module.", "__", "plugin.")
-            ):
-                continue
-
-            filename = os.path.join(dirname, filename)
-
-            target_file = filename
-
-            # We pretend to use C++ if no C11 compiler is present.
-            if c11_mode:
-                result.append(filename)
-            else:
-                if filename.endswith(".c"):
-                    target_file += "pp"  # .cpp" suffix then
-
-                    os.rename(filename, target_file)
-
-                result.append(target_file)
-
     # Scan for Nuitka created source files, and add them too.
-    _scanSourceDir(source_dir, plugins=False)
-    _scanSourceDir(os.path.join(source_dir, "plugins"), plugins=True)
+    result.extend(
+        scanSourceDir(env=env, c11_mode=c11_mode, dirname=source_dir, plugins=False)
+    )
+    result.extend(
+        scanSourceDir(
+            env=env,
+            c11_mode=c11_mode,
+            dirname=os.path.join(source_dir, "plugins"),
+            plugins=True,
+        )
+    )
 
     static_src_filenames = []
 
