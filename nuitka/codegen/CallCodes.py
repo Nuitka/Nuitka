@@ -23,6 +23,7 @@ able to execute them without creating the argument dictionary at all.
 
 """
 
+from nuitka.Constants import isMutable
 from nuitka.utils.Jinja2 import getTemplate
 
 from .CodeHelpers import (
@@ -32,10 +33,6 @@ from .CodeHelpers import (
 )
 from .ErrorCodes import getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
-from .templates.CodeTemplatesCalls import (
-    template_call_function_with_args_decl,
-    template_call_method_with_args_decl,
-)
 from .templates.CodeTemplatesModules import (
     template_header_guard,
     template_helper_impl_decl,
@@ -348,6 +345,7 @@ def _getInstanceCallCodeNoArgs(
 
 
 quick_calls_used = set()
+quick_tuple_calls_used = set()
 quick_instance_calls_used = set()
 
 
@@ -513,29 +511,35 @@ def _getCallCodeFromTuple(to_name, called_name, args_value, needs_check, emit, c
 
     emitLineNumberUpdateCode(emit, context)
 
-    if arg_size == 1:
-        arg_name = context.getConstantCode(args_value[0])
+    # We create a tuple for the call, as this can be prepared and might have to be
+    # recreated for cases, e.g. when calling C functions, so this is a good way of
+    # having them.
+    if isMutable(args_value):
+        arg_tuple_name = context.allocateTempName("call_args_kwsplit")
 
-        emit(
-            """%s = CALL_FUNCTION_WITH_SINGLE_ARG(%s, %s);"""
-            % (to_name, called_name, arg_name)
+        arg_tuple_name.getCType().emitAssignmentCodeFromConstant(
+            to_name=arg_tuple_name,
+            constant=args_value,
+            emit=emit,
+            context=context,
         )
+        args_name = arg_tuple_name
     else:
-        # TODO: Having to use a full tuple is wasteful, a PyObject ** would do.
         arg_tuple_name = context.getConstantCode(constant=args_value)
+        args_name = None
 
-        quick_calls_used.add(arg_size)
+    quick_tuple_calls_used.add(arg_size)
 
-        emit(
-            """\
-%s = CALL_FUNCTION_WITH_ARGS%d(%s, &PyTuple_GET_ITEM(%s, 0));
+    emit(
+        """\
+%s = CALL_FUNCTION_WITH_POSARGS%d(%s, %s);
 """
-            % (to_name, arg_size, called_name, arg_tuple_name)
-        )
+        % (to_name, arg_size, called_name, arg_tuple_name)
+    )
 
     getErrorExitCode(
         check_name=to_name,
-        release_name=called_name,
+        release_names=(called_name, args_name),
         needs_check=needs_check,
         emit=emit,
         context=context,
@@ -622,34 +626,9 @@ def _getCallCodePosKeywordArgs(
 max_quick_call = 10
 
 
-def getCallsDecls():
-    result = []
-
-    for quick_call_used in sorted(quick_calls_used.union(quick_instance_calls_used)):
-        if quick_call_used <= max_quick_call:
-            continue
-
-        result.append(
-            template_call_function_with_args_decl % {"args_count": quick_call_used}
-        )
-
-    for quick_call_used in sorted(quick_instance_calls_used):
-        if quick_call_used <= max_quick_call:
-            continue
-
-        result.append(
-            template_call_method_with_args_decl % {"args_count": quick_call_used}
-        )
-
-    return template_header_guard % {
-        "header_guard_name": "__NUITKA_CALLS_H__",
-        "header_body": "\n".join(result),
-    }
-
-
-def getQuickCallCode(args_count):
+def getQuickCallCode(args_count, has_tuple_arg):
     template = getTemplate("nuitka.codegen", "CodeTemplateCallsPositional.j2")
-    return template.render(args_count=args_count)
+    return template.render(args_count=args_count, has_tuple_arg=has_tuple_arg)
 
 
 def getQuickMethodCallCode(args_count):
@@ -657,21 +636,46 @@ def getQuickMethodCallCode(args_count):
     return template.render(args_count=args_count)
 
 
-def getCallsCode():
-    result = []
+def getTemplateCodeDeclaredFunction(code):
+    return "extern " + code.splitlines()[0].replace(" {", ";")
 
-    result.append(template_helper_impl_decl % {})
+
+def getCallsCode():
+    header_codes = []
+    body_codes = []
+
+    body_codes.append(template_helper_impl_decl % {})
 
     for quick_call_used in sorted(quick_calls_used.union(quick_instance_calls_used)):
         if quick_call_used <= max_quick_call:
             continue
 
-        result.append(getQuickCallCode(args_count=quick_call_used))
+        code = getQuickCallCode(args_count=quick_call_used, has_tuple_arg=False)
+        body_codes.append(code)
+        header_codes.append(getTemplateCodeDeclaredFunction(code))
 
-    for quick_call_used in sorted(quick_instance_calls_used):
-        if quick_call_used <= max_quick_call:
+    for quick_tuple_call_used in sorted(quick_tuple_calls_used):
+        if quick_tuple_call_used <= max_quick_call:
             continue
 
-        result.append(getQuickMethodCallCode(args_count=quick_call_used))
+        code = getQuickCallCode(args_count=quick_tuple_call_used, has_tuple_arg=True)
+        body_codes.append(code)
+        header_codes.append(getTemplateCodeDeclaredFunction(code))
 
-    return "\n".join(result)
+    for quick_instance_call_used in sorted(quick_instance_calls_used):
+        if quick_instance_call_used <= max_quick_call:
+            continue
+
+        code = getQuickMethodCallCode(args_count=quick_instance_call_used)
+
+        body_codes.append(code)
+        header_codes.append(getTemplateCodeDeclaredFunction(code))
+
+    return (
+        template_header_guard
+        % {
+            "header_guard_name": "__NUITKA_CALLS_H__",
+            "header_body": "\n".join(header_codes),
+        },
+        "\n".join(body_codes),
+    )

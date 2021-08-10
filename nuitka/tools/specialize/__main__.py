@@ -1985,6 +1985,7 @@ def makeHelperCalls():
     from nuitka.codegen.CallCodes import (
         getQuickCallCode,
         getQuickMethodCallCode,
+        getTemplateCodeDeclaredFunction,
         max_quick_call,
     )
 
@@ -2011,10 +2012,16 @@ def makeHelperCalls():
             emitIDE(emit_c)
 
             for args_count in range(max_quick_call + 1):
-                code = getQuickCallCode(args_count=args_count)
+                code = getQuickCallCode(args_count=args_count, has_tuple_arg=False)
 
                 emit_c(code)
-                emit_h("extern " + code.splitlines()[0].replace(" {", ";"))
+                emit_h(getTemplateCodeDeclaredFunction(code))
+
+                if args_count >= 1:
+                    code = getQuickCallCode(args_count=args_count, has_tuple_arg=True)
+
+                    emit_c(code)
+                    emit_h(getTemplateCodeDeclaredFunction(code))
 
             template = getTemplate(
                 "nuitka.codegen", "CodeTemplateCallsMethodPositional.j2"
@@ -2028,7 +2035,7 @@ def makeHelperCalls():
                 code = getQuickMethodCallCode(args_count=args_count)
 
                 emit_c(code)
-                emit_h("extern " + code.splitlines()[0].replace(" {", ";"))
+                emit_h(getTemplateCodeDeclaredFunction(code))
 
 
 def writeline(output, *args):
