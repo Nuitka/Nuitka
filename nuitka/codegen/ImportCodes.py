@@ -49,6 +49,7 @@ def generateBuiltinImportCode(to_name, expression, emit, context):
     ) as value_name:
 
         _getBuiltinImportCode(
+            expression=expression,
             to_name=value_name,
             module_name=module_name,
             globals_name=globals_name,
@@ -100,6 +101,7 @@ def _getCountedArgumentsHelperCallCode(
 
 
 def _getBuiltinImportCode(
+    expression,
     to_name,
     module_name,
     globals_name,
@@ -111,7 +113,7 @@ def _getBuiltinImportCode(
     context,
 ):
 
-    emitLineNumberUpdateCode(emit, context)
+    emitLineNumberUpdateCode(expression, emit, context)
 
     _getCountedArgumentsHelperCallCode(
         helper_prefix="IMPORT_MODULE",
@@ -128,7 +130,7 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
     module_name = expression.getModuleName()
     needs_check = expression.mayRaiseException(BaseException)
 
-    emitLineNumberUpdateCode(emit, context)
+    emitLineNumberUpdateCode(expression, emit, context)
 
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
@@ -152,7 +154,7 @@ def generateImportModuleNameHardCode(to_name, expression, emit, context):
         if module_name == "sys":
             emit("""%s = PySys_GetObject((char *)"%s");""" % (value_name, import_name))
         elif module_name in hard_modules:
-            emitLineNumberUpdateCode(emit, context)
+            emitLineNumberUpdateCode(expression, emit, context)
 
             # TODO: The import name wouldn't have to be an object really, could do with a
             # C string only.

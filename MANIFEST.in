@@ -42,3 +42,6 @@ recursive-include tests/standalone *.py
 recursive-include tests/onefile *.py
 recursive-include tests/reflected *.py
 recursive-include tests/plugins *.py
+
+# Templates for code generation.
+recursive-include nuitka/codegen/templates *.j2

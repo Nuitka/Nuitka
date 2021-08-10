@@ -53,7 +53,7 @@ NUITKA_MAY_BE_UNUSED static inline void CLEAR_ERROR_OCCURRED(void) {
 
 // Clear error, which is not likely set. This is about bugs from CPython,
 // use CLEAR_ERROR_OCCURRED is not sure.
-NUITKA_MAY_BE_UNUSED static inline void DROP_ERROR_OCCURRED(void) {
+NUITKA_MAY_BE_UNUSED static inline bool DROP_ERROR_OCCURRED(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
     if (unlikely(tstate->curexc_type != NULL)) {
@@ -68,7 +68,11 @@ NUITKA_MAY_BE_UNUSED static inline void DROP_ERROR_OCCURRED(void) {
         Py_DECREF(old_type);
         Py_XDECREF(old_value);
         Py_XDECREF(old_tb);
+
+        return true;
     }
+
+    return false;
 }
 
 // Fetch the current error into object variables.

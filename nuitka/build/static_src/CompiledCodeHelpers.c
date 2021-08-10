@@ -179,7 +179,7 @@ PyObject *BUILTIN_RANGE2(PyObject *low, PyObject *high) {
 
         NUITKA_ASSIGN_BUILTIN(range);
 
-        PyObject *result = CALL_FUNCTION_WITH_POSARGS(NUITKA_ACCESS_BUILTIN(range), pos_args);
+        PyObject *result = CALL_FUNCTION_WITH_POSARGS2(NUITKA_ACCESS_BUILTIN(range), pos_args);
 
         Py_DECREF(pos_args);
 
@@ -245,7 +245,7 @@ PyObject *BUILTIN_RANGE3(PyObject *low, PyObject *high, PyObject *step) {
 
         NUITKA_ASSIGN_BUILTIN(range);
 
-        PyObject *result = CALL_FUNCTION_WITH_POSARGS(NUITKA_ACCESS_BUILTIN(range), pos_args);
+        PyObject *result = CALL_FUNCTION_WITH_POSARGS3(NUITKA_ACCESS_BUILTIN(range), pos_args);
 
         Py_DECREF(pos_args);
 
@@ -1516,9 +1516,10 @@ PyObject *BUILTIN_SUM2(PyObject *sequence, PyObject *start) {
     PyTuple_SET_ITEM(pos_args, 1, start);
     Py_INCREF(start);
 
-    PyObject *result = CALL_FUNCTION_WITH_POSARGS(NUITKA_ACCESS_BUILTIN(sum), pos_args);
+    PyObject *result = CALL_FUNCTION_WITH_POSARGS2(NUITKA_ACCESS_BUILTIN(sum), pos_args);
 
     Py_DECREF(pos_args);
+
     return result;
 }
 

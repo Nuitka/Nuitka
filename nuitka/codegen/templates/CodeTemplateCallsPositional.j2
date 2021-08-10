@@ -24,9 +24,10 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
 {% if has_tuple_arg %}
 PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}(PyObject *called, PyObject *pos_args) {
     assert(PyTuple_CheckExact(pos_args));
-    PyObject **args = &PyTuple_GET_ITEM(pos_args, 0);
+    assert(PyTuple_GET_SIZE(pos_args) == {{args_count}});
+    PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
 {% else %}
-PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject **args) {
+PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *const *args) {
 {% endif %}
 {% endif %}
     CHECK_OBJECT(called);
@@ -48,7 +49,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject **arg
                 Py_INCREF(args[i]);
             }
 {% endif %}
-            result = function->m_c_code(function, {% if args_count != 0 %} args {% else %} NULL {% endif %});
+            result = function->m_c_code(function, {% if args_count != 0 %} (PyObject **)args {% else %} NULL {% endif %});
         } else if (function->m_args_simple && {{args_count}} + function->m_defaults_given == function->m_args_positional_count) {
 {% if args_count != 0 %}
 #ifdef _MSC_VER
@@ -68,22 +69,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject **arg
 
             result = function->m_c_code(function, python_pars);
         } else {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_overall_count);
-#else
-            PyObject *python_pars[function->m_args_overall_count];
-#endif
-            memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
-
 {% if args_count == 0 %}
-            if (unlikely(parseArgumentsEmpty(function, python_pars))) {
+            result = Nuitka_CallFunctionNoArgs(function);
 {% else %}
-            if (unlikely(parseArgumentsPos(function, python_pars, args, {{args_count}}))) {
+            result = Nuitka_CallFunctionPosArgs(function, args, {{args_count}});
 {% endif %}
-                result = function->m_c_code(function, python_pars);
-            } else {
-                result = NULL;
-            }
         }
 
         Py_LeaveRecursiveCall();
@@ -136,18 +126,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject **arg
                 result = function->m_c_code(function, python_pars);
             } else {
 {% if args_count != 0 %}
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_overall_count);
-#else
-                PyObject *python_pars[function->m_args_overall_count];
-#endif
-                memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
-
-                if (parseArgumentsMethodPos(function, python_pars, method->m_object, args, {{args_count}})) {
-                    result = function->m_c_code(function, python_pars);
-                } else {
-                    result = NULL;
-                }
+                result = Nuitka_CallMethodFunctionPosArgs(function, method->m_object, args, {{args_count}});
 {% else %}
                 result = Nuitka_CallMethodFunctionNoArgs(function, method->m_object);
 {% endif %}
@@ -179,24 +158,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject **arg
             Py_LeaveRecursiveCall();
 #endif
 
-            if (result != NULL) {
-                // Some buggy C functions do set an error, but do not indicate it
-                // and Nuitka inner workings can get upset/confused from it.
-                DROP_ERROR_OCCURRED();
-
-                return result;
-            } else {
-                // Other buggy C functions do this, return NULL, but with
-                // no error set, not allowed.
-                if (unlikely(!ERROR_OCCURRED())) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(
-                        PyExc_SystemError,
-                        "NULL result without error in PyObject_Call"
-                    );
-                }
-
-                return NULL;
-            }
+            return Nuitka_CheckFunctionResult(result);
 {% else %}
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(
                 PyExc_TypeError,
@@ -224,24 +186,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject **arg
             Py_LeaveRecursiveCall();
 #endif
 
-            if (result != NULL) {
-            // Some buggy C functions do set an error, but do not indicate it
-            // and Nuitka inner workings can get upset/confused from it.
-                DROP_ERROR_OCCURRED();
-
-                return result;
-            } else {
-                // Other buggy C functions do this, return NULL, but with
-                // no error set, not allowed.
-                if (unlikely(!ERROR_OCCURRED())) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(
-                        PyExc_SystemError,
-                        "NULL result without error in PyObject_Call"
-                    );
-                }
-
-                return NULL;
-            }
+            return Nuitka_CheckFunctionResult(result);
 {% else %}
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError,
                 "%s() takes exactly one argument ({{args_count}} given)",
@@ -291,7 +236,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject **arg
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
 {% if args_count != 0 %}
-                result = (*(_PyCFunctionFast)method)(self, args, {{args_count}}, NULL);
+                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, {{args_count}}, NULL);
 {% else %}
                 result = (*(_PyCFunctionFast)method)(self, NULL, 0, NULL);
 {% endif %}
@@ -324,24 +269,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject **arg
             Py_LeaveRecursiveCall();
 #endif
 
-            if (result != NULL) {
-                // Some buggy C functions do set an error, but do not indicate it
-                // and Nuitka inner workings can get upset/confused from it.
-                DROP_ERROR_OCCURRED();
-
-                return result;
-            } else {
-                // Other buggy C functions do this, return NULL, but with
-                // no error set, not allowed.
-                if (unlikely(!ERROR_OCCURRED())) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(
-                        PyExc_SystemError,
-                        "NULL result without error in PyObject_Call"
-                    );
-                }
-
-                return NULL;
-            }
+            return Nuitka_CheckFunctionResult(result);
         }
     } else if (PyFunction_Check(called)) {
 {% if args_count == 0 %}
@@ -431,6 +359,20 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject **arg
 {% if False %}
     } else if (PyClass_Check(called)) {
 {% endif %}
+#if PYTHON_VERSION >= 0x380
+    } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+        if (likely(func != NULL)) {
+{% if args_count == 0 %}
+            PyObject *result = func(called, NULL, 0, NULL);
+{% else %}
+            PyObject *result = func(called, args, {{args_count}}, NULL);
+{% endif %}
+
+            return Nuitka_CheckFunctionResult(result);
+        }
+#endif
     }
 
 #if 0

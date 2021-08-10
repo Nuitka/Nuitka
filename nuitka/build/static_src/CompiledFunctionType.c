@@ -55,56 +55,6 @@ static PyObject *Nuitka_Function_tp_repr(struct Nuitka_FunctionObject *function)
         function);
 }
 
-static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function, PyObject *tuple_args, PyObject *kw) {
-    CHECK_OBJECT(tuple_args);
-    assert(PyTuple_CheckExact(tuple_args));
-
-    if (kw == NULL) {
-        PyObject **args = &PyTuple_GET_ITEM(tuple_args, 0);
-        Py_ssize_t args_size = PyTuple_GET_SIZE(tuple_args);
-
-        if (function->m_args_simple && args_size == function->m_args_positional_count) {
-            for (Py_ssize_t i = 0; i < args_size; i++) {
-                Py_INCREF(args[i]);
-            }
-
-            return function->m_c_code(function, args);
-        } else if (function->m_args_simple &&
-                   args_size + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_overall_count);
-#else
-            PyObject *python_pars[function->m_args_overall_count];
-#endif
-            memcpy(python_pars, args, args_size * sizeof(PyObject *));
-            memcpy(python_pars + args_size, &PyTuple_GET_ITEM(function->m_defaults, 0),
-                   function->m_defaults_given * sizeof(PyObject *));
-
-            for (Py_ssize_t i = 0; i < function->m_args_overall_count; i++) {
-                Py_INCREF(python_pars[i]);
-            }
-
-            return function->m_c_code(function, python_pars);
-        } else {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_overall_count);
-#else
-            PyObject *python_pars[function->m_args_overall_count];
-#endif
-            memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
-
-            if (parseArgumentsPos(function, python_pars, args, args_size)) {
-                return function->m_c_code(function, python_pars);
-            } else {
-                return NULL;
-            }
-        }
-    } else {
-        return Nuitka_CallFunctionPosArgsKwArgs(function, &PyTuple_GET_ITEM(tuple_args, 0),
-                                                PyTuple_GET_SIZE(tuple_args), kw);
-    }
-}
-
 static long Nuitka_Function_tp_traverse(struct Nuitka_FunctionObject *function, visitproc visit, void *arg) {
     // TODO: Identify the impact of not visiting other owned objects. It appears
     // to be mostly harmless, as these are strings.
@@ -512,6 +462,8 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
 static PyMethodDef Nuitka_Function_methods[] = {{"__reduce__", (PyCFunction)Nuitka_Function_reduce, METH_NOARGS, NULL},
                                                 {NULL}};
 
+static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function, PyObject *tuple_args, PyObject *kw);
+
 PyTypeObject Nuitka_Function_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "compiled_function", /* tp_name */
     sizeof(struct Nuitka_FunctionObject),               /* tp_basicsize */
@@ -787,6 +739,15 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     return result;
 }
 
+#if PYTHON_VERSION >= 0x300
+static void formatErrorNoArgumentAllowedKwSplit(struct Nuitka_FunctionObject const *function, PyObject *kw_name,
+                                                Py_ssize_t given) {
+    char const *function_name = Nuitka_String_AsString(function->m_name);
+    PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'", function_name,
+                 Nuitka_String_AsString(kw_name));
+}
+#endif
+
 static void formatErrorNoArgumentAllowed(struct Nuitka_FunctionObject const *function,
 #if PYTHON_VERSION >= 0x300
                                          PyObject *kw,
@@ -1046,9 +1007,17 @@ static void formatErrorTooFewKwOnlyArguments(struct Nuitka_FunctionObject const 
 static void formatErrorKeywordsMustBeString(struct Nuitka_FunctionObject const *function) {
 #if PYTHON_VERSION < 0x390
     char const *function_name = Nuitka_String_AsString(function->m_name);
-    PyErr_Format(PyExc_TypeError, "%s() keywords must be strings", function_name);
+    SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() keywords must be strings", function_name);
 #else
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "keywords must be strings");
+#endif
+}
+
+static inline bool checkKeywordType(PyObject *arg_name) {
+#if PYTHON_VERSION < 0x300
+    return (PyString_Check(arg_name) || PyUnicode_Check(arg_name));
+#else
+    return PyUnicode_Check(arg_name);
 #endif
 }
 
@@ -1072,12 +1041,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
     PyObject *key, *value;
 
     while (PyDict_Next(kw, &ppos, &key, &value)) {
-#if PYTHON_VERSION < 0x300
-        if (unlikely(!PyString_Check(key) && !PyUnicode_Check(key)))
-#else
-        if (unlikely(!PyUnicode_Check(key)))
-#endif
-        {
+        if (unlikely(!checkKeywordType(key))) {
             formatErrorKeywordsMustBeString(function);
             return -1;
         }
@@ -1168,6 +1132,115 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
     return kw_found;
 }
 
+#if PYTHON_VERSION < 0x300
+static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
+                                         PyObject *const *kw_values, PyObject *kw_names)
+#else
+static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
+                                         Py_ssize_t *kw_only_found, PyObject *const *kw_values, PyObject *kw_names)
+#endif
+{
+    Py_ssize_t keywords_count = function->m_args_keywords_count;
+
+#if PYTHON_VERSION >= 0x300
+    Py_ssize_t keyword_after_index = function->m_args_positional_count;
+#endif
+
+    assert(function->m_args_star_dict_index == -1);
+
+    Py_ssize_t kw_found = 0;
+
+    Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
+
+    for (Py_ssize_t kw_index = 0; kw_index < nkwargs; kw_index++) {
+        PyObject *key = PyTuple_GET_ITEM(kw_names, kw_index);
+        PyObject *value = kw_values[kw_index];
+
+        assert(checkKeywordType(key));
+
+        NUITKA_MAY_BE_UNUSED bool found = false;
+
+#if PYTHON_VERSION < 0x380
+        Py_ssize_t kw_arg_start = 0;
+#else
+        Py_ssize_t kw_arg_start = function->m_args_pos_only_count;
+#endif
+
+        Py_INCREF(value);
+
+        for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
+            if (function->m_varnames[i] == key) {
+                assert(python_pars[i] == NULL);
+                python_pars[i] = value;
+
+#if PYTHON_VERSION >= 0x300
+                if (i >= keyword_after_index) {
+                    *kw_only_found += 1;
+                }
+#endif
+
+                found = true;
+                break;
+            }
+        }
+
+        if (found == false) {
+            PyObject **varnames = function->m_varnames;
+
+            for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
+                // TODO: Could do better here, STR/UNICODE key knowledge being there.
+                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
+                    assert(python_pars[i] == NULL);
+                    python_pars[i] = value;
+
+#if PYTHON_VERSION >= 0x300
+                    if (i >= keyword_after_index) {
+                        *kw_only_found += 1;
+                    }
+#endif
+
+                    found = true;
+                    break;
+                }
+            }
+        }
+
+        if (unlikely(found == false)) {
+            bool pos_only_error = false;
+
+            for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
+                PyObject **varnames = function->m_varnames;
+
+                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
+                    pos_only_error = true;
+                    break;
+                }
+            }
+
+            if (pos_only_error == true) {
+                PyErr_Format(PyExc_TypeError,
+                             "%s() got some positional-only arguments passed as keyword arguments: '%s'",
+                             Nuitka_String_AsString(function->m_name),
+                             Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
+
+            } else {
+
+                PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'",
+                             Nuitka_String_AsString(function->m_name),
+                             Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
+            }
+
+            Py_DECREF(value);
+
+            return -1;
+        }
+
+        kw_found += 1;
+    }
+
+    return kw_found;
+}
+
 static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
                                            PyObject *kw) {
     Py_ssize_t star_dict_index = function->m_args_star_dict_index;
@@ -1183,8 +1256,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
             PyDictEntry *entry = &((PyDictObject *)kw)->ma_table[i];
 
             if (entry->me_value != NULL) {
-
-                if (unlikely(!PyString_Check(entry->me_key) && !PyUnicode_Check(entry->me_key))) {
+                if (unlikely(!checkKeywordType(entry->me_key))) {
                     formatErrorKeywordsMustBeString(function);
                     return false;
                 }
@@ -1225,7 +1297,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
 #else
                 PyDictKeyEntry *entry = &DK_ENTRIES(split_copy->ma_keys)[i];
 #endif
-                if ((entry->me_key != NULL) && unlikely(!PyUnicode_Check(entry->me_key))) {
+                if ((entry->me_key != NULL) && unlikely(!checkKeywordType(entry->me_key))) {
                     formatErrorKeywordsMustBeString(function);
                     return false;
                 }
@@ -1255,7 +1327,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
                 PyObject *value = entry->me_value;
 
                 if (value != NULL) {
-                    if (unlikely(!PyUnicode_Check(entry->me_key))) {
+                    if (unlikely(!checkKeywordType(entry->me_key))) {
                         formatErrorKeywordsMustBeString(function);
                         return false;
                     }
@@ -1296,7 +1368,7 @@ static Py_ssize_t handleKeywordArgsWithStarDict(struct Nuitka_FunctionObject con
     Py_ssize_t keyword_after_index = function->m_args_positional_count;
 #endif
 
-    Py_ssize_t dict_star_index = function->m_args_star_dict_index;
+    Py_ssize_t star_dict_index = function->m_args_star_dict_index;
 
     PyObject **varnames = function->m_varnames;
 
@@ -1309,14 +1381,78 @@ static Py_ssize_t handleKeywordArgsWithStarDict(struct Nuitka_FunctionObject con
     for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
         PyObject *arg_name = varnames[i];
 
-        PyObject *kw_arg_value = DICT_GET_ITEM1(python_pars[dict_star_index], arg_name);
+        PyObject *kw_arg_value = DICT_GET_ITEM1(python_pars[star_dict_index], arg_name);
 
         if (kw_arg_value != NULL) {
             assert(python_pars[i] == NULL);
 
             python_pars[i] = kw_arg_value;
 
-            PyDict_DelItem(python_pars[dict_star_index], arg_name);
+            PyDict_DelItem(python_pars[star_dict_index], arg_name);
+
+            kw_found += 1;
+
+#if PYTHON_VERSION >= 0x300
+            if (i >= keyword_after_index) {
+                *kw_only_found += 1;
+            }
+#endif
+        }
+    }
+
+    return kw_found;
+}
+
+#if PYTHON_VERSION < 0x300
+static Py_ssize_t handleKeywordArgsSplitWithStarDict(struct Nuitka_FunctionObject const *function,
+                                                     PyObject **python_pars, PyObject *const *kw_values,
+                                                     PyObject *kw_names)
+#else
+static Py_ssize_t handleKeywordArgsSplitWithStarDict(struct Nuitka_FunctionObject const *function,
+                                                     PyObject **python_pars, Py_ssize_t *kw_only_found,
+                                                     PyObject *const *kw_values, PyObject *kw_names)
+#endif
+{
+
+    Py_ssize_t star_dict_index = function->m_args_star_dict_index;
+    assert(star_dict_index != -1);
+
+    Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
+
+    python_pars[star_dict_index] = _PyDict_NewPresized(nkwargs);
+
+    for (Py_ssize_t i = 0; i < nkwargs; i++) {
+        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+        PyObject *value = kw_values[i];
+
+        PyDict_SetItem(python_pars[star_dict_index], key, value);
+    }
+
+    Py_ssize_t kw_found = 0;
+    Py_ssize_t keywords_count = function->m_args_keywords_count;
+#if PYTHON_VERSION >= 0x300
+    Py_ssize_t keyword_after_index = function->m_args_positional_count;
+#endif
+
+    PyObject **varnames = function->m_varnames;
+
+#if PYTHON_VERSION < 0x380
+    Py_ssize_t kw_arg_start = 0;
+#else
+    Py_ssize_t kw_arg_start = function->m_args_pos_only_count;
+#endif
+
+    for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
+        PyObject *arg_name = varnames[i];
+
+        PyObject *kw_arg_value = DICT_GET_ITEM1(python_pars[star_dict_index], arg_name);
+
+        if (kw_arg_value != NULL) {
+            assert(python_pars[i] == NULL);
+
+            python_pars[i] = kw_arg_value;
+
+            PyDict_DelItem(python_pars[star_dict_index], arg_name);
 
             kw_found += 1;
 
@@ -1461,7 +1597,7 @@ static bool _handleArgumentsPlainOnly(struct Nuitka_FunctionObject const *functi
 }
 
 static bool handleMethodArgumentsPlainOnly(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
-                                           PyObject *object, PyObject **args, Py_ssize_t args_size) {
+                                           PyObject *object, PyObject *const *args, Py_ssize_t args_size) {
     Py_ssize_t arg_count = function->m_args_positional_count;
 
     // There may be no self, otherwise we can directly assign it.
@@ -1702,15 +1838,11 @@ static void releaseParameters(struct Nuitka_FunctionObject const *function, PyOb
     }
 }
 
-bool parseArgumentsPos(struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args,
-                       Py_ssize_t args_size) {
+static bool parseArgumentsPos(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
+                              PyObject *const *args, Py_ssize_t args_size) {
     bool result;
 
     Py_ssize_t arg_count = function->m_args_positional_count;
-
-#if PYTHON_VERSION >= 0x300
-    bool kw_only_error;
-#endif
 
     if (unlikely(arg_count == 0 && function->m_args_simple && args_size != 0)) {
 #if PYTHON_VERSION < 0x300
@@ -1729,9 +1861,8 @@ bool parseArgumentsPos(struct Nuitka_FunctionObject const *function, PyObject **
     }
 
 #if PYTHON_VERSION >= 0x300
-
     // For Python3.3 the keyword only errors are all reported at once.
-    kw_only_error = false;
+    bool kw_only_error = false;
 
     for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
         if (python_pars[i] == NULL) {
@@ -1768,17 +1899,13 @@ error_exit:
 }
 
 // We leave it to partial inlining to specialize this.
-bool parseArgumentsEmpty(struct Nuitka_FunctionObject const *function, PyObject **python_pars) {
+static bool parseArgumentsEmpty(struct Nuitka_FunctionObject const *function, PyObject **python_pars) {
     return parseArgumentsPos(function, python_pars, NULL, 0);
 }
 
-bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *object,
-                             PyObject **args, Py_ssize_t args_size) {
+static bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
+                                    PyObject *object, PyObject *const *args, Py_ssize_t args_size) {
     bool result;
-
-#if PYTHON_VERSION >= 0x300
-    bool kw_only_error;
-#endif
 
     result = handleMethodArgumentsPlainOnly(function, python_pars, object, args, args_size);
 
@@ -1787,9 +1914,8 @@ bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function, PyObj
     }
 
 #if PYTHON_VERSION >= 0x300
-
     // For Python3 the keyword only errors are all reported at once.
-    kw_only_error = false;
+    bool kw_only_error = false;
 
     for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
         if (python_pars[i] == NULL) {
@@ -1825,15 +1951,99 @@ error_exit:
     return false;
 }
 
-static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args,
-                               Py_ssize_t args_size, PyObject *kw) {
+static bool parseArgumentsFullKwSplit(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
+                                      PyObject *const *args, Py_ssize_t args_size, PyObject *const *kw_values,
+                                      PyObject *kw_names) {
+    Py_ssize_t kw_size = PyTuple_GET_SIZE(kw_names);
+    Py_ssize_t kw_found;
+    bool result;
+
+    Py_ssize_t arg_count = function->m_args_keywords_count;
+
+    if (unlikely(arg_count == 0 && function->m_args_simple && args_size + kw_size > 0)) {
+#if PYTHON_VERSION < 0x300
+        formatErrorNoArgumentAllowed(function, args_size + kw_size);
+#else
+        formatErrorNoArgumentAllowedKwSplit(function, PyTuple_GET_ITEM(kw_names, 0), args_size);
+#endif
+
+        goto error_exit;
+    }
+
+#if PYTHON_VERSION >= 0x300
+    Py_ssize_t kw_only_found = 0;
+#endif
+    if (function->m_args_star_dict_index != -1) {
+#if PYTHON_VERSION < 0x300
+        kw_found = handleKeywordArgsSplitWithStarDict(function, python_pars, kw_values, kw_names);
+#else
+        kw_found = handleKeywordArgsSplitWithStarDict(function, python_pars, &kw_only_found, kw_values, kw_names);
+#endif
+        if (kw_found == -1) {
+            goto error_exit;
+        }
+    } else {
+#if PYTHON_VERSION < 0x300
+        kw_found = handleKeywordArgsSplit(function, python_pars, kw_values, kw_names);
+#else
+        kw_found = handleKeywordArgsSplit(function, python_pars, &kw_only_found, kw_values, kw_names);
+#endif
+        if (kw_found == -1) {
+            goto error_exit;
+        }
+    }
+
+#if PYTHON_VERSION < 0x270
+    result = _handleArgumentsPlain(function, python_pars, args, args_size, kw_found, kw_size);
+#elif PYTHON_VERSION < 0x300
+    result = _handleArgumentsPlain(function, python_pars, args, args_size, kw_found);
+#else
+    result = _handleArgumentsPlain(function, python_pars, args, args_size, kw_found, kw_only_found);
+#endif
+
+    if (result == false) {
+        goto error_exit;
+    }
+
+#if PYTHON_VERSION >= 0x300
+    // For Python3.3 the keyword only errors are all reported at once.
+    bool kw_only_error = false;
+
+    for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
+        if (python_pars[i] == NULL) {
+            PyObject *arg_name = function->m_varnames[i];
+
+            if (function->m_kwdefaults != NULL) {
+                python_pars[i] = DICT_GET_ITEM1(function->m_kwdefaults, arg_name);
+            }
+
+            if (unlikely(python_pars[i] == NULL)) {
+                kw_only_error = true;
+            }
+        }
+    }
+
+    if (unlikely(kw_only_error)) {
+        formatErrorTooFewKwOnlyArguments(function, &python_pars[function->m_args_positional_count]);
+
+        goto error_exit;
+    }
+
+#endif
+
+    return true;
+
+error_exit:
+
+    releaseParameters(function, python_pars);
+    return false;
+}
+
+static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
+                               PyObject *const *args, Py_ssize_t args_size, PyObject *kw) {
     Py_ssize_t kw_size = kw ? DICT_SIZE(kw) : 0;
     Py_ssize_t kw_found;
     bool result;
-#if PYTHON_VERSION >= 0x300
-    Py_ssize_t kw_only_found;
-    bool kw_only_error;
-#endif
 
     Py_ssize_t arg_count = function->m_args_keywords_count;
 
@@ -1850,7 +2060,7 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
     }
 
 #if PYTHON_VERSION >= 0x300
-    kw_only_found = 0;
+    Py_ssize_t kw_only_found = 0;
 #endif
     if (function->m_args_star_dict_index != -1) {
 #if PYTHON_VERSION < 0x300
@@ -1887,9 +2097,8 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
     }
 
 #if PYTHON_VERSION >= 0x300
-
     // For Python3.3 the keyword only errors are all reported at once.
-    kw_only_error = false;
+    bool kw_only_error = false;
 
     for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
         if (python_pars[i] == NULL) {
@@ -1921,7 +2130,38 @@ error_exit:
     return false;
 }
 
-PyObject *Nuitka_CallFunctionPosArgsKwArgs(struct Nuitka_FunctionObject const *function, PyObject **args,
+PyObject *Nuitka_CallFunctionNoArgs(struct Nuitka_FunctionObject const *function) {
+#ifdef _MSC_VER
+    PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_overall_count);
+#else
+    PyObject *python_pars[function->m_args_overall_count];
+#endif
+    memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
+
+    if (unlikely(!parseArgumentsEmpty(function, python_pars))) {
+        return NULL;
+    }
+
+    return function->m_c_code(function, python_pars);
+}
+
+PyObject *Nuitka_CallFunctionPosArgs(struct Nuitka_FunctionObject const *function, PyObject *const *args,
+                                     Py_ssize_t args_size) {
+#ifdef _MSC_VER
+    PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_overall_count);
+#else
+    PyObject *python_pars[function->m_args_overall_count];
+#endif
+    memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
+
+    if (unlikely(!parseArgumentsPos(function, python_pars, args, args_size))) {
+        return NULL;
+    }
+
+    return function->m_c_code(function, python_pars);
+}
+
+PyObject *Nuitka_CallFunctionPosArgsKwArgs(struct Nuitka_FunctionObject const *function, PyObject *const *args,
                                            Py_ssize_t args_size, PyObject *kw) {
 #ifdef _MSC_VER
     PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_overall_count);
@@ -1930,8 +2170,26 @@ PyObject *Nuitka_CallFunctionPosArgsKwArgs(struct Nuitka_FunctionObject const *f
 #endif
     memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
 
-    if (!parseArgumentsFull(function, python_pars, args, args_size, kw))
+    if (unlikely(!parseArgumentsFull(function, python_pars, args, args_size, kw))) {
         return NULL;
+    }
+
+    return function->m_c_code(function, python_pars);
+}
+
+PyObject *Nuitka_CallFunctionPosArgsKwSplit(struct Nuitka_FunctionObject const *function, PyObject *const *args,
+                                            Py_ssize_t args_size, PyObject *const *kw_values, PyObject *kw_names) {
+#ifdef _MSC_VER
+    PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_overall_count);
+#else
+    PyObject *python_pars[function->m_args_overall_count];
+#endif
+    memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
+
+    if (unlikely(!parseArgumentsFullKwSplit(function, python_pars, args, args_size, kw_values, kw_names))) {
+        return NULL;
+    }
+
     return function->m_c_code(function, python_pars);
 }
 
@@ -1943,56 +2201,15 @@ PyObject *Nuitka_CallMethodFunctionNoArgs(struct Nuitka_FunctionObject const *fu
 #endif
     memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
 
-    bool result = handleMethodArgumentsPlainOnly(function, python_pars, object, NULL, 0);
-    // For Python3.3 the keyword only errors are all reported at once.
-#if PYTHON_VERSION >= 0x300
-    bool kw_only_error;
-#endif
-
-    if (result == false) {
-        goto error_exit;
-    }
-
-#if PYTHON_VERSION >= 0x300
-
-    kw_only_error = false;
-
-    for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
-        if (python_pars[i] == NULL) {
-            PyObject *arg_name = function->m_varnames[i];
-
-            if (function->m_kwdefaults != NULL) {
-                python_pars[i] = DICT_GET_ITEM1(function->m_kwdefaults, arg_name);
-            }
-
-            if (unlikely(python_pars[i] == NULL)) {
-                kw_only_error = true;
-            }
-        }
-    }
-
-    if (unlikely(kw_only_error)) {
-        formatErrorTooFewKwOnlyArguments(function, &python_pars[function->m_args_positional_count]);
-
-        goto error_exit;
-    }
-
-#endif
-
-    if (function->m_args_star_dict_index != -1) {
-        python_pars[function->m_args_star_dict_index] = PyDict_New();
+    if (unlikely(!parseArgumentsMethodPos(function, python_pars, object, NULL, 0))) {
+        return NULL;
     }
 
     return function->m_c_code(function, python_pars);
-
-error_exit:
-
-    releaseParameters(function, python_pars);
-    return NULL;
 }
 
 PyObject *Nuitka_CallMethodFunctionPosArgs(struct Nuitka_FunctionObject const *function, PyObject *object,
-                                           PyObject **args, Py_ssize_t args_size) {
+                                           PyObject *const *args, Py_ssize_t args_size) {
 #ifdef _MSC_VER
     PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_overall_count);
 #else
@@ -2000,55 +2217,15 @@ PyObject *Nuitka_CallMethodFunctionPosArgs(struct Nuitka_FunctionObject const *f
 #endif
     memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
 
-    bool result = handleMethodArgumentsPlainOnly(function, python_pars, object, args, args_size);
-    // For Python3.3 the keyword only errors are all reported at once.
-#if PYTHON_VERSION >= 0x300
-    bool kw_only_error;
-#endif
-
-    if (result == false) {
-        goto error_exit;
-    }
-
-#if PYTHON_VERSION >= 0x300
-    kw_only_error = false;
-
-    for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
-        if (python_pars[i] == NULL) {
-            PyObject *arg_name = function->m_varnames[i];
-
-            if (function->m_kwdefaults != NULL) {
-                python_pars[i] = DICT_GET_ITEM1(function->m_kwdefaults, arg_name);
-            }
-
-            if (unlikely(python_pars[i] == NULL)) {
-                kw_only_error = true;
-            }
-        }
-    }
-
-    if (unlikely(kw_only_error)) {
-        formatErrorTooFewKwOnlyArguments(function, &python_pars[function->m_args_positional_count]);
-
-        goto error_exit;
-    }
-
-#endif
-
-    if (function->m_args_star_dict_index != -1) {
-        python_pars[function->m_args_star_dict_index] = PyDict_New();
+    if (unlikely(!parseArgumentsMethodPos(function, python_pars, object, args, args_size))) {
+        return NULL;
     }
 
     return function->m_c_code(function, python_pars);
-
-error_exit:
-
-    releaseParameters(function, python_pars);
-    return NULL;
 }
 
 PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(struct Nuitka_FunctionObject const *function, PyObject *object,
-                                                 PyObject **args, Py_ssize_t args_size, PyObject *kw) {
+                                                 PyObject *const *args, Py_ssize_t args_size, PyObject *kw) {
 #ifdef _MSC_VER
     PyObject **new_args = (PyObject **)_alloca(sizeof(PyObject *) * (args_size + 1));
 #else
@@ -2060,8 +2237,6 @@ PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(struct Nuitka_FunctionObject co
     // TODO: Specialize implementation for massive gains.
     return Nuitka_CallFunctionPosArgsKwArgs(function, new_args, args_size + 1, kw);
 }
-
-#if PYTHON_VERSION >= 0x380
 
 static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
                                               Py_ssize_t *kw_only_found, PyObject *const *kw_names,
@@ -2077,14 +2252,18 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
     for (Py_ssize_t ppos = 0; ppos < kw_size; ++ppos) {
         PyObject *key = kw_names[ppos];
 
-        if (unlikely(!PyUnicode_Check(key))) {
+        if (unlikely(!checkKeywordType(key))) {
             formatErrorKeywordsMustBeString(function);
             return -1;
         }
 
         NUITKA_MAY_BE_UNUSED bool found = false;
 
+#if PYTHON_VERSION < 0x380
+        Py_ssize_t kw_arg_start = 0;
+#else
         Py_ssize_t kw_arg_start = function->m_args_pos_only_count;
+#endif
 
         for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
             if (function->m_varnames[i] == key) {
@@ -2165,7 +2344,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY38(struct Nuitka_FunctionObject const 
     for (int i = 0; i < kw_size; i++) {
         PyObject *key = kw_names[i];
 
-        if (unlikely(!PyUnicode_Check(key))) {
+        if (unlikely(!checkKeywordType(key))) {
             formatErrorKeywordsMustBeString(function);
             return false;
         }
@@ -2194,21 +2373,27 @@ static Py_ssize_t handleVectorcallKeywordArgsWithStarDict(struct Nuitka_Function
     Py_ssize_t keywords_count = function->m_args_keywords_count;
     Py_ssize_t keyword_after_index = function->m_args_positional_count;
 
-    Py_ssize_t dict_star_index = function->m_args_star_dict_index;
+    Py_ssize_t star_dict_index = function->m_args_star_dict_index;
 
     PyObject **varnames = function->m_varnames;
 
-    for (Py_ssize_t i = 0; i < keywords_count; i++) {
+#if PYTHON_VERSION < 0x380
+    Py_ssize_t kw_arg_start = 0;
+#else
+    Py_ssize_t kw_arg_start = function->m_args_pos_only_count;
+#endif
+
+    for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
         PyObject *arg_name = varnames[i];
 
-        PyObject *kw_arg_value = DICT_GET_ITEM1(python_pars[dict_star_index], arg_name);
+        PyObject *kw_arg_value = DICT_GET_ITEM1(python_pars[star_dict_index], arg_name);
 
         if (kw_arg_value != NULL) {
             assert(python_pars[i] == NULL);
 
             python_pars[i] = kw_arg_value;
 
-            PyDict_DelItem(python_pars[dict_star_index], arg_name);
+            PyDict_DelItem(python_pars[star_dict_index], arg_name);
 
             kw_found += 1;
 
@@ -2227,9 +2412,11 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
     Py_ssize_t kw_found;
     bool result;
     Py_ssize_t kw_only_found;
-    bool kw_only_error;
 
     Py_ssize_t arg_count = function->m_args_keywords_count;
+
+    // TODO: Create different the vector call slot entries for different function types for extra
+    // performance.
 
     if (unlikely(arg_count == 0 && function->m_args_simple && args_size + kw_size > 0)) {
         char const *function_name = Nuitka_String_AsString(function->m_name);
@@ -2247,7 +2434,7 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
     kw_only_found = 0;
     if (function->m_args_star_dict_index != -1) {
         kw_found = handleVectorcallKeywordArgsWithStarDict(function, python_pars, &kw_only_found, kw_names,
-                                                           args + args_size, kw_size);
+                                                           &args[args_size], kw_size);
         if (kw_found == -1) {
             goto error_exit;
         }
@@ -2255,21 +2442,28 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
         kw_found = 0;
     } else {
         kw_found =
-            handleVectorcallKeywordArgs(function, python_pars, &kw_only_found, kw_names, args + args_size, kw_size);
+            handleVectorcallKeywordArgs(function, python_pars, &kw_only_found, kw_names, &args[args_size], kw_size);
 
         if (kw_found == -1) {
             goto error_exit;
         }
     }
 
+#if PYTHON_VERSION < 0x270
+    result = _handleArgumentsPlain(function, python_pars, args, args_size, kw_found, kw_size);
+#elif PYTHON_VERSION < 0x300
+    result = _handleArgumentsPlain(function, python_pars, args, args_size, kw_found);
+#else
     result = _handleArgumentsPlain(function, python_pars, args, args_size, kw_found, kw_only_found);
+#endif
 
     if (result == false) {
         goto error_exit;
     }
 
-    // For Python3.3 the keyword only errors are all reported at once.
-    kw_only_error = false;
+#if PYTHON_VERSION >= 0x300
+    // For Python3 the keyword only errors are all reported at once.
+    bool kw_only_error = false;
 
     for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
         if (python_pars[i] == NULL) {
@@ -2290,6 +2484,7 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
 
         goto error_exit;
     }
+#endif
 
     return true;
 
@@ -2299,8 +2494,8 @@ error_exit:
     return false;
 }
 
-static PyObject *Nuitka_CallFunctionVectorcall(struct Nuitka_FunctionObject const *function, PyObject *const *args,
-                                               Py_ssize_t args_size, PyObject *const *kw_names, Py_ssize_t kw_size) {
+PyObject *Nuitka_CallFunctionVectorcall(struct Nuitka_FunctionObject const *function, PyObject *const *args,
+                                        Py_ssize_t args_size, PyObject *const *kw_names, Py_ssize_t kw_size) {
 #ifdef _MSC_VER
     PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_overall_count);
 #else
@@ -2308,11 +2503,63 @@ static PyObject *Nuitka_CallFunctionVectorcall(struct Nuitka_FunctionObject cons
 #endif
     memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
 
-    if (!parseArgumentsVectorcall(function, python_pars, args, args_size, kw_names, kw_size))
+    if (unlikely(!parseArgumentsVectorcall(function, python_pars, args, args_size, kw_names, kw_size))) {
         return NULL;
+    }
     return function->m_c_code(function, python_pars);
 }
 
+static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function, PyObject *tuple_args, PyObject *kw) {
+    CHECK_OBJECT(tuple_args);
+    assert(PyTuple_CheckExact(tuple_args));
+
+    if (kw == NULL) {
+        PyObject **args = &PyTuple_GET_ITEM(tuple_args, 0);
+        Py_ssize_t args_size = PyTuple_GET_SIZE(tuple_args);
+
+        if (function->m_args_simple && args_size == function->m_args_positional_count) {
+            for (Py_ssize_t i = 0; i < args_size; i++) {
+                Py_INCREF(args[i]);
+            }
+
+            return function->m_c_code(function, args);
+        } else if (function->m_args_simple &&
+                   args_size + function->m_defaults_given == function->m_args_positional_count) {
+#ifdef _MSC_VER
+            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_overall_count);
+#else
+            PyObject *python_pars[function->m_args_overall_count];
+#endif
+            memcpy(python_pars, args, args_size * sizeof(PyObject *));
+            memcpy(python_pars + args_size, &PyTuple_GET_ITEM(function->m_defaults, 0),
+                   function->m_defaults_given * sizeof(PyObject *));
+
+            for (Py_ssize_t i = 0; i < function->m_args_overall_count; i++) {
+                Py_INCREF(python_pars[i]);
+            }
+
+            return function->m_c_code(function, python_pars);
+        } else {
+#ifdef _MSC_VER
+            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_overall_count);
+#else
+            PyObject *python_pars[function->m_args_overall_count];
+#endif
+            memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
+
+            if (parseArgumentsPos(function, python_pars, args, args_size)) {
+                return function->m_c_code(function, python_pars);
+            } else {
+                return NULL;
+            }
+        }
+    } else {
+        return Nuitka_CallFunctionPosArgsKwArgs(function, &PyTuple_GET_ITEM(tuple_args, 0),
+                                                PyTuple_GET_SIZE(tuple_args), kw);
+    }
+}
+
+#if PYTHON_VERSION >= 0x380
 static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *function, PyObject *const *stack,
                                                size_t nargsf, PyObject *kwnames) {
     assert(kwnames == NULL || PyTuple_CheckExact(kwnames));
@@ -2328,3 +2575,5 @@ static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *fun
 #endif
 
 #include "CompiledMethodType.c"
+
+#include "CompiledCodeHelpers.c"

@@ -68,7 +68,9 @@ def emitErrorLineNumberUpdateCode(emit, context):
         emit(update_code)
 
 
-def emitLineNumberUpdateCode(emit, context):
+def emitLineNumberUpdateCode(expression, emit, context):
+    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
+
     code = getLineNumberUpdateCode(context)
 
     if code:
