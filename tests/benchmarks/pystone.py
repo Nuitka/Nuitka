@@ -276,7 +276,7 @@ def Func3(EnumParIn):
     if EnumLoc == Ident3: return TRUE
     return FALSE
 
-if __name__ == "__main__":
+def pystone():
     import sys
     def error(msg):
         print >>sys.stderr, msg,
@@ -292,3 +292,6 @@ if __name__ == "__main__":
     else:
         loops = LOOPS
     main(loops)
+
+if __name__ == "__main__":
+    pystone()
