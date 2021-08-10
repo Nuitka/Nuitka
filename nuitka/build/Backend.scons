@@ -1104,7 +1104,6 @@ def discoverSourceFiles():
     static_src_filenames.append("CompiledGeneratorType.c")
 
     # Helper codes.
-    static_src_filenames.append("CompiledCodeHelpers.c")
     static_src_filenames.append("InspectPatcher.c")
     static_src_filenames.append("MetaPathBasedLoader.c")
 

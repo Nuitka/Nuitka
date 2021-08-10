@@ -2006,9 +2006,12 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
 
 
 def makeHelperCalls():
+    # Many cases, pylint: disable=too-many-locals
+
     from nuitka.codegen.CallCodes import (
         getQuickCallCode,
         getQuickMethodCallCode,
+        getQuickMixedCallCode,
         getTemplateCodeDeclaredFunction,
         max_quick_call,
     )
@@ -2047,13 +2050,37 @@ def makeHelperCalls():
                     emit_c(code)
                     emit_h(getTemplateCodeDeclaredFunction(code))
 
+            template = getTemplate("nuitka.codegen", "CodeTemplateCallsMixed.j2")
+
+            # Only keywords, but not positional arguments, via split args.
+            code = getQuickMixedCallCode(
+                args_count=0,
+                has_tuple_arg=False,
+                has_dict_values=True,
+            )
+
+            emit_c(code)
+            emit_h(getTemplateCodeDeclaredFunction(code))
+
+            for args_count in range(1, max_quick_call + 1):
+                for has_tuple_arg in (False, True):
+                    for has_dict_values in (False, True):
+                        # We do not do that.
+                        if not has_dict_values and has_tuple_arg:
+                            continue
+
+                        code = getQuickMixedCallCode(
+                            args_count=args_count,
+                            has_tuple_arg=has_tuple_arg,
+                            has_dict_values=has_dict_values,
+                        )
+
+                        emit_c(code)
+                        emit_h(getTemplateCodeDeclaredFunction(code))
+
             template = getTemplate(
                 "nuitka.codegen", "CodeTemplateCallsMethodPositional.j2"
             )
-
-            emitGenerationWarning(emit, template.name)
-
-            emitIDE(emit_c)
 
             for args_count in range(max_quick_call + 1):
                 code = getQuickMethodCallCode(args_count=args_count)

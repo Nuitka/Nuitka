@@ -59,10 +59,10 @@ typedef struct {
 } PyModuleObject;
 
 // Generated code helpers, used in static helper codes:
-extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject **args);
-extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject **args);
-extern PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject **args);
-extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args);
 
 // Most fundamental, because we use it for debugging in everything else.
 #include "nuitka/helper/printing.h"
@@ -76,7 +76,7 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject **args);
 #define CHECK_OBJECTS(values, count)                                                                                   \
     {                                                                                                                  \
         for (int i = 0; i < count; i++) {                                                                              \
-            CHECK_OBJECT(values[i]);                                                                                   \
+            CHECK_OBJECT((values)[i]);                                                                                 \
         }                                                                                                              \
     }
 #else
@@ -441,7 +441,7 @@ extern PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename);
 
 #include <nuitka/threading.h>
 
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyObject **elements, Py_ssize_t size) {
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyObject *const *elements, Py_ssize_t size) {
     PyObject *result = PyTuple_New(size);
 
     for (Py_ssize_t i = 0; i < size; i++) {

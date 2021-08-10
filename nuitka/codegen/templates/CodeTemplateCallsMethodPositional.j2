@@ -28,9 +28,9 @@ CALL_FUNCTION_WITH_ARGS{{args_count}}({{ called }}, {{args}})
 PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attr_name) {
 {% elif args_count == 1 %}
 PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyObject *arg) {
-    PyObject **args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg; // For easier code compatibility.
 {% else %}
-PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyObject *source, PyObject *attr_name, PyObject **args) {
+PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyObject *source, PyObject *attr_name, PyObject *const *args) {
 {% endif %}
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);

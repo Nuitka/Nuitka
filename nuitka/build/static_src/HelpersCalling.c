@@ -21,7 +21,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-PyObject *callPythonFunction(PyObject *func, PyObject **args, int count) {
+PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count) {
     PyCodeObject *co = (PyCodeObject *)PyFunction_GET_CODE(func);
     PyObject *globals = PyFunction_GET_GLOBALS(func);
     PyObject *argdefs = PyFunction_GET_DEFAULTS(func);
@@ -74,14 +74,14 @@ PyObject *callPythonFunction(PyObject *func, PyObject **args, int count) {
 #else
         co, // code object
 #endif
-        globals,      // globals
-        NULL,         // no locals
-        args,         // args
-        count,        // argcount
-        NULL,         // kwds
-        0,            // kwcount
-        defaults,     // defaults
-        num_defaults, // defcount
+        globals,           // globals
+        NULL,              // no locals
+        (PyObject **)args, // args
+        count,             // argcount
+        NULL,              // kwds
+        0,                 // kwcount
+        defaults,          // defaults
+        num_defaults,      // defcount
 #if PYTHON_VERSION >= 0x300
         kwdefs,
 #endif

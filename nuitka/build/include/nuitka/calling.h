@@ -53,7 +53,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION(PyObject *function_object, P
     } else {
         // Some buggy C functions do this, and Nuitka inner workings can get
         // upset from it.
-        DROP_ERROR_OCCURRED();
+        if (unlikely(DROP_ERROR_OCCURRED())) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "result with error set");
+
+            return NULL;
+        }
 
         return result;
     }
@@ -70,22 +74,33 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_POSARGS(PyObject *funct
 // Method call variants with positional arguments tuple.
 extern PyObject *CALL_METHOD_WITH_POSARGS(PyObject *source, PyObject *attr_name, PyObject *positional_args);
 
+// TODO: Specialize in template too.
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS(PyObject *function_object, PyObject *named_args) {
     return CALL_FUNCTION(function_object, const_tuple_empty, named_args);
 }
 
-// Method call variant with no arguments provided at all.
-extern PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attribute);
-
-// Forms for single argument calls to not require an array of args from the user side.
-extern PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg);
-extern PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyObject *arg);
-
 #include "nuitka/helper/calling2.h"
 
-// TODO: Until methods are pre-generated too.
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_ARGS1(PyObject *called, PyObject **args) {
-    return CALL_FUNCTION_WITH_SINGLE_ARG(called, args[0]);
+// Also used in generated helper code.
+NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_CheckFunctionResult(PyObject *result) {
+    if (result == NULL) {
+        if (unlikely(!ERROR_OCCURRED())) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "NULL result without error from call");
+        }
+
+        return NULL;
+    } else {
+        // Some buggy C functions do this, and Nuitka inner workings can get
+        // upset from it.
+        if (unlikely(DROP_ERROR_OCCURRED())) {
+            Py_DECREF(result);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "result with error set from call");
+            return NULL;
+        }
+
+        return result;
+    }
 }
 
 #endif

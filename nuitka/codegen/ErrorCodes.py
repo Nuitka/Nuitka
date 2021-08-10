@@ -85,6 +85,7 @@ def getErrorExitBoolCode(
         assert not release_name
 
     if release_name is not None:
+        assert type(release_name) is not tuple
         getReleaseCode(release_name, emit, context)
         assert not release_names
 
