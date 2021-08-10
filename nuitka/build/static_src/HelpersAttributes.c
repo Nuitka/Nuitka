@@ -35,9 +35,7 @@ PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name) {
     if (result == NULL) {
         assert(PyTuple_Check(klass->cl_bases));
 
-        // TODO: Why is PyTuple_GET_SIZE performing worse, should not be possible. It seems
-        // tail end recursion and gcc 8.3 might be to blame, clang doesn't show it.
-        Py_ssize_t base_count = PyTuple_Size(klass->cl_bases);
+        Py_ssize_t base_count = PyTuple_GET_SIZE(klass->cl_bases);
 
         for (Py_ssize_t i = 0; i < base_count; i++) {
             result = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)PyTuple_GET_ITEM(klass->cl_bases, i), attr_name);
