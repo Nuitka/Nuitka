@@ -64,6 +64,21 @@ extern nuitka_bool RICH_COMPARE_GE_NBOOL_STR_OBJECT(PyObject *operand1, PyObject
 #endif
 
 #if PYTHON_VERSION < 0x300
+/* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
+extern PyObject *RICH_COMPARE_GE_OBJECT_STR_STR(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
+extern bool RICH_COMPARE_GE_CBOOL_STR_STR(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
+extern nuitka_bool RICH_COMPARE_GE_NBOOL_STR_STR(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 extern PyObject *RICH_COMPARE_GE_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2);
 #endif

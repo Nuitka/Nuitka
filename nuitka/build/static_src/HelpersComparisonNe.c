@@ -3256,6 +3256,30 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
 #endif
 
 #if PYTHON_VERSION < 0x300
+/* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
+PyObject *RICH_COMPARE_NE_OBJECT_STR_STR(PyObject *operand1, PyObject *operand2) {
+
+    return COMPARE_NE_OBJECT_STR_STR(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
+bool RICH_COMPARE_NE_CBOOL_STR_STR(PyObject *operand1, PyObject *operand2) {
+
+    return COMPARE_NE_CBOOL_STR_STR(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
+nuitka_bool RICH_COMPARE_NE_NBOOL_STR_STR(PyObject *operand1, PyObject *operand2) {
+
+    return COMPARE_NE_NBOOL_STR_STR(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 PyObject *RICH_COMPARE_NE_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
 
