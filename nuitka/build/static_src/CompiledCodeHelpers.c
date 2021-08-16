@@ -1875,7 +1875,11 @@ static char const *getDllDirectory() {
 }
 #endif
 
+static void _initDeepCopy();
+
 void _initBuiltinModule() {
+    _initDeepCopy();
+
 #if _NUITKA_MODULE
     if (builtin_module != NULL) {
         return;
