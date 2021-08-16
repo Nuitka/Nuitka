@@ -152,7 +152,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
                     needs_deep = False
 
                 if needs_deep:
-                    code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
+                    code = "DEEP_COPY_DICT(%s)" % context.getConstantCode(constant)
                 else:
                     code = "PyDict_Copy(%s)" % context.getConstantCode(constant)
             else:
@@ -176,7 +176,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
                     needs_deep = False
 
                 if needs_deep:
-                    code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
+                    code = "DEEP_COPY_LIST(%s)" % context.getConstantCode(constant)
                 else:
                     code = "LIST_COPY(%s)" % context.getConstantCode(constant)
             else:
@@ -192,7 +192,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
                 needs_deep = False
 
             if needs_deep:
-                code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
+                code = "DEEP_COPY_TUPLE(%s)" % context.getConstantCode(constant)
 
                 ref_count = 1
             else:
