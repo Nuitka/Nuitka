@@ -176,3 +176,30 @@ extern bool RICH_COMPARE_LT_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
 
 /* Code referring to "TUPLE" corresponds to Python 'tuple' and "OBJECT" to any Python object. */
 extern nuitka_bool RICH_COMPARE_LT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LIST" corresponds to Python 'list' and "LIST" to Python 'list'. */
+extern PyObject *RICH_COMPARE_LT_OBJECT_LIST_LIST(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LIST" corresponds to Python 'list' and "LIST" to Python 'list'. */
+extern bool RICH_COMPARE_LT_CBOOL_LIST_LIST(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LIST" corresponds to Python 'list' and "LIST" to Python 'list'. */
+extern nuitka_bool RICH_COMPARE_LT_NBOOL_LIST_LIST(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
+extern PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
+extern bool RICH_COMPARE_LT_CBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
+extern nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
+extern PyObject *RICH_COMPARE_LT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
+extern bool RICH_COMPARE_LT_CBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
+extern nuitka_bool RICH_COMPARE_LT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2);
