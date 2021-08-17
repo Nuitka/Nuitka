@@ -1122,6 +1122,10 @@ class BytesDesc(ConcreteTypeBase):
             return slot == "nb_remainder"
         elif slot.startswith("sq_"):
             return "ass" not in slot and slot != "sq_slice" and "inplace" not in slot
+        elif slot == "tp_richcompare":
+            return True
+        elif slot == "tp_compare":
+            return False
         else:
             assert False, slot
 
@@ -1461,16 +1465,14 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
     #     template = env.get_template("HelperOperationComparisonLong.c.j2")
     elif left == float_desc:
         template = env.get_template("HelperOperationComparisonFloat.c.j2")
-    # elif left == list_desc:
-    #     template = env.get_template("HelperOperationComparisonList.c.j2")
     elif left == tuple_desc:
         template = env.get_template("HelperOperationComparisonTuple.c.j2")
     elif left == list_desc:
         template = env.get_template("HelperOperationComparisonList.c.j2")
     # elif left == set_desc:
     #     template = env.get_template("HelperOperationComparisonSet.c.j2")
-    # elif left == bytes_desc:
-    #     template = env.get_template("HelperOperationComparisonBytes.c.j2")
+    elif left == bytes_desc:
+        template = env.get_template("HelperOperationComparisonBytes.c.j2")
     elif left == str_desc:
         template = env.get_template("HelperOperationComparisonStr.c.j2")
     else:
@@ -1692,6 +1694,8 @@ def makeHelperOperations(
 def makeHelperComparisons(
     template, helpers_set, operator, op_code, emit_h, emit_c, emit
 ):
+    # Details to look for, pylint: disable=too-many-locals
+
     emit(
         '/* C helpers for type specialized "%s" (%s) comparisons */'
         % (operator, op_code)
@@ -1739,6 +1743,18 @@ def makeHelperComparisons(
             )
         )
 
+        if not python_requirement:
+            is_py3_only = False
+            is_py2_only = False
+        elif python_requirement == "PYTHON_VERSION < 0x300":
+            is_py3_only = False
+            is_py2_only = True
+        elif python_requirement == "PYTHON_VERSION >= 0x300":
+            is_py3_only = True
+            is_py2_only = False
+        else:
+            assert False, python_requirement
+
         code = template.render(
             target=target,
             left=left,
@@ -1746,6 +1762,8 @@ def makeHelperComparisons(
             op_code=op_code,
             reversed_args_op_code=reversed_args_compare_op_codes[op_code],
             operator=operator,
+            is_py3_only=is_py3_only,
+            is_py2_only=is_py2_only,
         )
 
         emit_c(code)

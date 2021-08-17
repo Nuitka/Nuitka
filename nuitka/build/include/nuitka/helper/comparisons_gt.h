@@ -78,6 +78,46 @@ extern bool RICH_COMPARE_GT_CBOOL_STR_STR(PyObject *operand1, PyObject *operand2
 extern nuitka_bool RICH_COMPARE_GT_NBOOL_STR_STR(PyObject *operand1, PyObject *operand2);
 #endif
 
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
+extern bool RICH_COMPARE_GT_CBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
+extern nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
+extern PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
+extern bool RICH_COMPARE_GT_CBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
+extern nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
+extern PyObject *RICH_COMPARE_GT_OBJECT_BYTES_BYTES(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
+extern bool RICH_COMPARE_GT_CBOOL_BYTES_BYTES(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
+extern nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_BYTES(PyObject *operand1, PyObject *operand2);
+#endif
+
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 extern PyObject *RICH_COMPARE_GT_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2);
