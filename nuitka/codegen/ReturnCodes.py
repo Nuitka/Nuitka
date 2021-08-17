@@ -74,6 +74,7 @@ def generateReturnConstantCode(statement, emit, context):
     return_value_name.getCType().emitAssignmentCodeFromConstant(
         to_name=return_value_name,
         constant=statement.getConstant(),
+        may_escape=True,
         emit=emit,
         context=context,
     )
@@ -127,7 +128,11 @@ def generateGeneratorReturnNoneCode(statement, emit, context):
             emit("Py_DECREF(%s);" % return_value_name)
 
         return_value_name.getCType().emitAssignmentCodeFromConstant(
-            to_name=return_value_name, constant=None, emit=emit, context=context
+            to_name=return_value_name,
+            constant=None,
+            may_escape=False,
+            emit=emit,
+            context=context,
         )
 
         if context.needsCleanup(return_value_name):

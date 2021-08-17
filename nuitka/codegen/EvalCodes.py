@@ -268,6 +268,7 @@ def generateExecCode(statement, emit, context):
         constant="<string>"
         if Options.is_fullcompat
         else "<string at %s>" % source_ref.getAsString(),
+        may_escape=False,
         emit=emit,
         context=context,
     )

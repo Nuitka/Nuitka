@@ -69,6 +69,7 @@ def _generateCallCodePosOnly(
                 call_arg_name.getCType().emitAssignmentCodeFromConstant(
                     to_name=call_arg_name,
                     constant=call_arg_element,
+                    may_escape=True,
                     emit=emit,
                     context=context,
                 )
@@ -520,6 +521,7 @@ def _getCallCodeFromTuple(to_name, called_name, args_value, needs_check, emit, c
         arg_tuple_name.getCType().emitAssignmentCodeFromConstant(
             to_name=arg_tuple_name,
             constant=args_value,
+            may_escape=True,
             emit=emit,
             context=context,
         )
