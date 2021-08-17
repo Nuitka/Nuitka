@@ -513,7 +513,7 @@ def simpleFunction55():
 
 
 def simpleFunction56():
-    """ Throw into finished generator. """
+    """Throw into finished generator."""
     g = (x for x in range(9))
 
     list(g)
@@ -802,9 +802,44 @@ class C:
     def __iadd__(self, other):
         return self
 
+    def method_function(*args, **kwargs):
+        # Make sure to mutate the list argument value
+        if "x" in kwargs:
+            x = kwargs["x"]
+
+            if type(x) is list:
+                x.append(1)
+
+        for x in args:
+            if type(x) is list:
+                x.append(1)
+
+        return args, kwargs
+
+    exec(
+        """
+def method_uncompiled_function(*args, **kwargs):
+    # Make sure to mutate the list argument value
+    if "x" in kwargs:
+        x = kwargs["x"]
+
+        if type(x) is list:
+            x.append(1)
+
+    for x in args:
+        if type(x) is list:
+            x.append(1)
+
+
+    return args, kwargs
+"""
+    )
+
+    def method_function_with_defaults(self, a, b, c, d=1, e=2, f=3):
+        return True
+
 
 def simpleFunction88():
-
     x = C()
     x += C()
 
@@ -1182,6 +1217,103 @@ def simpleFunction131():
 
 def simpleFunction132():
     C().f.__reduce_ex__(5)
+
+
+x = 5
+
+
+def local_function(*args, **kwargs):
+    # Make sure to mutate the list argument value
+    if "x" in kwargs:
+        x = kwargs["x"]
+
+        if type(x) is list:
+            x.append(1)
+
+    for x in args:
+        if type(x) is list:
+            x.append(1)
+
+    return args, kwargs
+
+
+exec(
+    """
+def local_uncompiled_function(*args, **kwargs):
+    # Make sure to mutate the list argument value
+    if "x" in kwargs:
+        x = kwargs["x"]
+
+        if type(x) is list:
+            x.append(1)
+
+    for x in args:
+        if type(x) is list:
+            x.append(1)
+
+
+    return args, kwargs
+"""
+)
+
+
+def simpleFunction133():
+    local_function(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+    local_function(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=1)
+    local_function(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=x)
+    local_function(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=[])
+    local_function(1, 2, 3, 4, 5, 6, 7, x, 9, 10, 11, x=1)
+    local_function(1, 2, 3, 4, 5, 6, 7, x, 9, 10, 11, x=x)
+    local_function(1, 2, 3, 4, 5, 6, 7, [], 9, 10, 11, x=[])
+    local_function(x=1)
+    local_function(x=x)
+    local_function(x=[])
+
+    local_uncompiled_function(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+    local_uncompiled_function(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=1)
+    local_uncompiled_function(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=x)
+    local_uncompiled_function(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=[])
+    local_uncompiled_function(1, 2, 3, 4, 5, 6, 7, x, 9, 10, 11, x=1)
+    local_uncompiled_function(1, 2, 3, 4, 5, 6, 7, x, 9, 10, 11, x=x)
+    local_uncompiled_function(1, 2, 3, 4, 5, 6, 7, [], 9, 10, 11, x=[])
+    local_uncompiled_function(x=1)
+    local_uncompiled_function(x=x)
+    local_uncompiled_function(x=[])
+
+    c = C()
+    C().method_function(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=1)
+    C.method_function(c, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=1)
+    C().method_function(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=x)
+    C().method_function(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=[1])
+    C.method_function(c, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=x)
+    C().method_function(1, 2, 3, 4, 5, 6, 7, x, 9, 10, 11, x=1)
+    C.method_function(c, 1, 2, 3, 4, 5, 6, 7, x, 9, 10, 11, x=1)
+    C().method_function(1, 2, 3, 4, 5, 6, 7, x, 9, 10, 11, x=x)
+    C.method_function(c, 1, 2, 3, 4, 5, 6, 7, x, 9, 10, 11, x=x)
+    C().method_function(1, 2, 3, 4, 5, 6, 7, [1], 9, 10, 11, x=[1])
+    C.method_function(c, 1, 2, 3, 4, 5, 6, 7, [1], 9, 10, 11, x=[1])
+    C().method_function(x=1)
+    C().method_function(x=x)
+    C().method_function(x=[1])
+
+    C().method_uncompiled_function(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=1)
+    C.method_uncompiled_function(c, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=1)
+    C().method_uncompiled_function(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=x)
+    C().method_uncompiled_function(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=[1])
+    C.method_uncompiled_function(c, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, x=x)
+    C().method_uncompiled_function(1, 2, 3, 4, 5, 6, 7, x, 9, 10, 11, x=1)
+    C.method_uncompiled_function(c, 1, 2, 3, 4, 5, 6, 7, x, 9, 10, 11, x=1)
+    C().method_uncompiled_function(1, 2, 3, 4, 5, 6, 7, x, 9, 10, 11, x=x)
+    C.method_uncompiled_function(c, 1, 2, 3, 4, 5, 6, 7, x, 9, 10, 11, x=x)
+    C().method_uncompiled_function(1, 2, 3, 4, 5, 6, 7, [1], 9, 10, 11, x=[1])
+    C.method_uncompiled_function(c, 1, 2, 3, 4, 5, 6, 7, [1], 9, 10, 11, x=[1])
+    C().method_uncompiled_function(x=1)
+    C().method_uncompiled_function(x=x)
+    C().method_uncompiled_function(x=[1])
+
+    C().method_function_with_defaults(1, 2, 3, d=1)
+    C().method_function_with_defaults(1, x, 3, d=x)
+    C().method_function_with_defaults(1, x, 3, d=[1])
 
 
 ####################################
