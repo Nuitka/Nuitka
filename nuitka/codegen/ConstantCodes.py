@@ -49,6 +49,8 @@ def generateConstantReferenceCode(to_name, expression, emit, context):
     to_name.getCType().emitAssignmentCodeFromConstant(
         to_name=to_name,
         constant=expression.getCompileTimeConstant(),
+        # Derive this from context.
+        may_escape=True,
         emit=emit,
         context=context,
     )
@@ -63,6 +65,7 @@ def generateConstantGenericAliasCode(to_name, expression, emit, context):
     origin_name.getCType().emitAssignmentCodeFromConstant(
         to_name=origin_name,
         constant=expression.getCompileTimeConstant().__origin__,
+        may_escape=True,
         emit=emit,
         context=context,
     )
@@ -70,6 +73,7 @@ def generateConstantGenericAliasCode(to_name, expression, emit, context):
     args_name.getCType().emitAssignmentCodeFromConstant(
         to_name=args_name,
         constant=expression.getCompileTimeConstant().__args__,
+        may_escape=True,
         emit=emit,
         context=context,
     )
