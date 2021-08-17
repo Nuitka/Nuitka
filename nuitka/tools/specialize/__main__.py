@@ -1037,6 +1037,10 @@ class ListDesc(ConcreteTypeBase):
             return False
         elif slot.startswith("sq_"):
             return True
+        elif slot == "tp_richcompare":
+            return True
+        elif slot == "tp_compare":
+            return False
         else:
             assert False, slot
 
@@ -1461,6 +1465,8 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
     #     template = env.get_template("HelperOperationComparisonList.c.j2")
     elif left == tuple_desc:
         template = env.get_template("HelperOperationComparisonTuple.c.j2")
+    elif left == list_desc:
+        template = env.get_template("HelperOperationComparisonList.c.j2")
     # elif left == set_desc:
     #     template = env.get_template("HelperOperationComparisonSet.c.j2")
     # elif left == bytes_desc:
