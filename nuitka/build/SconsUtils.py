@@ -33,6 +33,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
 )
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Execution import getNullInput
+from nuitka.utils.FileOperations import getFileContentByLine
 
 
 def initScons():
@@ -273,7 +274,7 @@ def readSconsReport(source_dir):
     if source_dir not in scons_reports:
         scons_report = {}
 
-        for line in open(os.path.join(source_dir, "scons-report.txt")):
+        for line in getFileContentByLine(os.path.join(source_dir, "scons-report.txt")):
             if "=" not in line:
                 continue
 

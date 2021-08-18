@@ -421,7 +421,8 @@ def getNullInput():
     try:
         return subprocess.NULLDEV
     except AttributeError:
-        return open(os.devnull, "rb")
+        subprocess.NULLDEV = open(os.devnull, "rb")
+        return subprocess.NULLDEV
 
 
 def executeToolChecked(logger, command, absence_message, stderr_filter=None):
