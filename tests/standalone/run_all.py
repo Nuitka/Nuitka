@@ -114,9 +114,9 @@ def main():
             reportSkip("boto3 test not fully working yet", ".", filename)
             continue
 
-        if filename == "SocketUsing.py" and os.name == "nt":
+        if filename == "Urllib3Using.py" and os.name == "nt":
             reportSkip(
-                "Socket module early import not working on Windows current",
+                "Socket module early import not working on Windows currently",
                 ".",
                 filename,
             )
