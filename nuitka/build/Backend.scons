@@ -864,7 +864,14 @@ if win_target:
             else:
                 win_lib_name = "python" + python_abi_version.replace(".", "")
 
-            for candidate in ("libs", "PCBuild"):
+            if python_version >= (3,):
+                pc_build_dir = (
+                    "PCBuild/amd64" if target_arch == "x86_64" else "PCBuild/win32"
+                )
+            else:
+                pc_build_dir = "PCBuild"
+
+            for candidate in ("libs", pc_build_dir):
                 win_lib_path = os.path.join(python_prefix, candidate)
 
                 if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
