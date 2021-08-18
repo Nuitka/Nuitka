@@ -714,6 +714,8 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 }
 
 void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *type_description, ...) {
+    assertFrameObject(frame);
+
     assert(frame->m_type_description == NULL);
 
     // TODO: Do not call this if there is nothing to do. Instead make all the

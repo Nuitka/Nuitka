@@ -591,5 +591,13 @@ void CHECK_OBJECT_DEEP(PyObject *value) {
 
             CHECK_OBJECT_DEEP(element);
         }
+    } else if (PyDict_Check(value)) {
+        Py_ssize_t ppos = 0;
+        PyObject *dict_key, *dict_value;
+
+        while (PyDict_Next(value, &ppos, &dict_key, &dict_value)) {
+            CHECK_OBJECT_DEEP(dict_key);
+            CHECK_OBJECT_DEEP(dict_value);
+        }
     }
 }
