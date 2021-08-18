@@ -706,7 +706,7 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
 #endif
 
     if (unlikely(module == NULL)) {
-        if (!ERROR_OCCURRED()) {
+        if (unlikely(!ERROR_OCCURRED())) {
             PyErr_Format(PyExc_SystemError, "dynamic module '%s' not initialized properly", full_name);
         }
 
