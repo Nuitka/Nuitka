@@ -355,7 +355,6 @@ class PythonContextBase(getMetaClassBase("Context")):
         self.source_ref = None
 
         self.current_source_ref = None
-        self.last_source_ref = None
 
     if isCountingInstances():
         __del__ = counted_del()
@@ -367,14 +366,6 @@ class PythonContextBase(getMetaClassBase("Context")):
         result = self.current_source_ref
         self.current_source_ref = value
 
-        if value is not None:
-            self.last_source_ref = result
-
-        return result
-
-    def getLastSourceCodeReference(self):
-        result = self.last_source_ref
-        # self.last_source_ref = None
         return result
 
     def getInplaceLeftName(self):
