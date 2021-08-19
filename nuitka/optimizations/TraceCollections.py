@@ -50,6 +50,8 @@ from .ValueTraces import (
     ValueTraceDeleted,
     ValueTraceEscaped,
     ValueTraceInit,
+    ValueTraceInitStarArgs,
+    ValueTraceInitStarDict,
     ValueTraceLoopComplete,
     ValueTraceLoopIncomplete,
     ValueTraceMerge,
@@ -233,6 +235,20 @@ class CollectionStartpointMixin(CollectionUpdateMixin):
 
         return trace
 
+    def _initVariableInitStarArgs(self, variable):
+        trace = ValueTraceInitStarArgs(self.owner)
+
+        self.addVariableTrace(variable, 0, trace)
+
+        return trace
+
+    def _initVariableInitStarDict(self, variable):
+        trace = ValueTraceInitStarDict(self.owner)
+
+        self.addVariableTrace(variable, 0, trace)
+
+        return trace
+
     def _initVariableUninit(self, variable):
         trace = ValueTraceUninit(owner=self.owner, previous=None)
 
@@ -273,6 +289,7 @@ class CollectionStartpointMixin(CollectionUpdateMixin):
 
     def initVariable(self, variable):
         if variable.isParameterVariable():
+            # TODO: That's not happening, maybe just assert against it.
             result = self._initVariableInit(variable)
         elif variable.isLocalVariable():
             result = self._initVariableUninit(variable)
@@ -940,9 +957,21 @@ class TraceCollectionFunction(CollectionStartpointMixin, TraceCollectionBase):
         )
 
         if function_body.isExpressionFunctionBody():
-            for parameter_variable in function_body.getParameters().getAllVariables():
+            parameters = function_body.getParameters()
+
+            for parameter_variable in parameters.getTopLevelVariables():
                 self._initVariableInit(parameter_variable)
                 self.variable_actives[parameter_variable] = 0
+
+            list_star_variable = parameters.getListStarArgVariable()
+            if list_star_variable is not None:
+                self._initVariableInitStarArgs(list_star_variable)
+                self.variable_actives[list_star_variable] = 0
+
+            dict_star_variable = parameters.getDictStarArgVariable()
+            if dict_star_variable is not None:
+                self._initVariableInitStarDict(dict_star_variable)
+                self.variable_actives[dict_star_variable] = 0
 
         for closure_variable in function_body.getClosureVariables():
             self.initVariableUnknown(closure_variable)
