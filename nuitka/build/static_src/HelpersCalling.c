@@ -250,3 +250,134 @@ PyObject *CALL_METHOD_WITH_POSARGS(PyObject *source, PyObject *attr_name, PyObje
         return result;
     }
 }
+
+char const *GET_CALLABLE_NAME(PyObject *object) {
+    if (Nuitka_Function_Check(object)) {
+        return Nuitka_String_AsString(Nuitka_Function_GetName(object));
+    } else if (Nuitka_Generator_Check(object)) {
+        return Nuitka_String_AsString(Nuitka_Generator_GetName(object));
+    } else if (PyMethod_Check(object)) {
+        return PyEval_GetFuncName(PyMethod_GET_FUNCTION(object));
+    } else if (PyFunction_Check(object)) {
+        return Nuitka_String_AsString(((PyFunctionObject *)object)->func_name);
+    }
+#if PYTHON_VERSION < 0x300
+    else if (PyInstance_Check(object)) {
+        return Nuitka_String_AsString(((PyInstanceObject *)object)->in_class->cl_name);
+    } else if (PyClass_Check(object)) {
+        return Nuitka_String_AsString(((PyClassObject *)object)->cl_name);
+    }
+#endif
+    else if (PyCFunction_Check(object)) {
+        return ((PyCFunctionObject *)object)->m_ml->ml_name;
+    } else {
+        return Py_TYPE(object)->tp_name;
+    }
+}
+
+char const *GET_CALLABLE_DESC(PyObject *object) {
+    if (Nuitka_Function_Check(object) || Nuitka_Generator_Check(object) || PyMethod_Check(object) ||
+        PyFunction_Check(object) || PyCFunction_Check(object)) {
+        return "()";
+    }
+#if PYTHON_VERSION < 0x300
+    else if (PyClass_Check(object)) {
+        return " constructor";
+    } else if (PyInstance_Check(object)) {
+        return " instance";
+    }
+#endif
+    else {
+        return " object";
+    }
+}
+
+char const *GET_CLASS_NAME(PyObject *klass) {
+    if (klass == NULL) {
+        return "?";
+    } else {
+#if PYTHON_VERSION < 0x300
+        if (PyClass_Check(klass)) {
+            return Nuitka_String_AsString(((PyClassObject *)klass)->cl_name);
+        }
+#endif
+
+        if (!PyType_Check(klass)) {
+            klass = (PyObject *)Py_TYPE(klass);
+        }
+
+        return ((PyTypeObject *)klass)->tp_name;
+    }
+}
+
+char const *GET_INSTANCE_CLASS_NAME(PyObject *instance) {
+    PyObject *klass = PyObject_GetAttr(instance, const_str_plain___class__);
+
+    // Fallback to type as this cannot fail.
+    if (klass == NULL) {
+        CLEAR_ERROR_OCCURRED();
+
+        klass = (PyObject *)Py_TYPE(instance);
+        Py_INCREF(klass);
+    }
+
+    char const *result = GET_CLASS_NAME(klass);
+
+    Py_DECREF(klass);
+
+    return result;
+}
+
+static PyObject *getTypeAbstractMethods(PyTypeObject *type, void *context) {
+    PyObject *result = DICT_GET_ITEM_WITH_ERROR(type->tp_dict, const_str_plain___abstractmethods__);
+    if (unlikely(result == NULL)) {
+        if (!ERROR_OCCURRED()) {
+            SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___abstractmethods__);
+        }
+        return NULL;
+    }
+
+    return result;
+}
+
+void formatCannotInstantiateAbstractClass(PyTypeObject *type) {
+    PyObject *abstract_methods = getTypeAbstractMethods(type, NULL);
+    if (unlikely(abstract_methods == NULL)) {
+        return;
+    }
+
+    PyObject *sorted_methods = PySequence_List(abstract_methods);
+    Py_DECREF(abstract_methods);
+    if (unlikely(sorted_methods == NULL)) {
+        return;
+    }
+    if (unlikely(PyList_Sort(sorted_methods))) {
+        Py_DECREF(sorted_methods);
+        return;
+    }
+    PyObject *comma = Nuitka_String_FromString(", ");
+    CHECK_OBJECT(comma);
+#if PYTHON_VERSION < 0x300
+    PyObject *joined = CALL_METHOD_WITH_SINGLE_ARG(comma, const_str_plain_join, sorted_methods);
+
+    char const *joined_str = Nuitka_String_AsString(joined);
+    if (unlikely(joined_str == NULL)) {
+        Py_DECREF(joined);
+        return;
+    }
+#else
+    PyObject *joined = PyUnicode_Join(comma, sorted_methods);
+#endif
+    Py_DECREF(sorted_methods);
+    if (unlikely(joined == NULL)) {
+        return;
+    }
+
+    Py_ssize_t method_count = PyList_GET_SIZE(sorted_methods);
+
+    SET_CURRENT_EXCEPTION_TYPE0_FORMAT3(PyExc_TypeError,
+                                        "Can't instantiate abstract class %s with abstract method%s %s", type->tp_name,
+                                        method_count > 1 ? "s" : "", Nuitka_String_AsString(joined));
+
+    Py_DECREF(joined);
+}

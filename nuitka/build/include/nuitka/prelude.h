@@ -350,6 +350,8 @@ extern PyObject **global_constants;
 #define const_str_plain___package__ global_constants[14]
 // '__metaclass__'
 #define const_str_plain___metaclass__ global_constants[15]
+// '__abstractmethods__'
+#define const_str_plain___abstractmethods__ global_constants[15]
 // '__dict__'
 #define const_str_plain___dict__ global_constants[16]
 // '__doc__'

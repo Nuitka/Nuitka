@@ -59,6 +59,7 @@ def getConstantDefaultPopulation():
         "__name__",
         "__package__",
         "__metaclass__",
+        "__abstractmethods__",
         "__dict__",
         "__doc__",
         "__file__",
@@ -138,6 +139,9 @@ def getConstantDefaultPopulation():
 
         # For setting Python2 "sys" attributes for current exception
         result += ("exc_type", "exc_value", "exc_traceback")
+
+        # Abstract base classes need to call the method
+        result.append("join")
 
     # The xrange built-in is Python2 only.
     if python_version < 0x300:

@@ -54,7 +54,14 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyErr_Format(
+                PyExc_TypeError,
+                "unbound compiled_method %s%s must be called with %s instance as first argument (got nothing instead)",
+                GET_CALLABLE_NAME((PyObject *)method->m_function), GET_CALLABLE_DESC((PyObject *)method->m_function),
+                GET_CLASS_NAME(method->m_class));
+            return NULL;
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -168,6 +175,100 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
         }
     } else if (PyFunction_Check(called)) {
         return _fast_function_noargs(called);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *pos_args = const_tuple_empty;
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result =
+                                Nuitka_CallMethodFunctionNoArgs((struct Nuitka_FunctionObject const *)init_method, obj);
+                        } else {
+                            result = CALL_FUNCTION_NO_ARGS(init_method);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -181,6 +282,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -234,7 +336,26 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 1);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -357,6 +478,115 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 1);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called == (PyObject *)&PyType_Type)) {
+                PyObject *result = (PyObject *)Py_TYPE(args[0]);
+                Py_INCREF(result);
+                return result;
+            }
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *pos_args = NULL;
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                pos_args = MAKE_TUPLE(args, 1);
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    Py_DECREF(pos_args);
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+                        Py_XDECREF(pos_args);
+                        pos_args = NULL;
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 1);
+                        } else {
+                            result = CALL_FUNCTION_WITH_SINGLE_ARG(init_method, args[0]);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+                        if (pos_args == NULL) {
+                            pos_args = MAKE_TUPLE(args, 1);
+                        }
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            Py_XDECREF(pos_args);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            Py_XDECREF(pos_args);
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -370,6 +600,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -429,7 +660,26 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 1);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -544,6 +794,105 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 1);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called == (PyObject *)&PyType_Type)) {
+                PyObject *result = (PyObject *)Py_TYPE(args[0]);
+                Py_INCREF(result);
+                return result;
+            }
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 1);
+                        } else {
+                            result = CALL_FUNCTION_WITH_SINGLE_ARG(init_method, args[0]);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -557,6 +906,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -609,7 +959,26 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 2);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -718,6 +1087,109 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 2);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *pos_args = NULL;
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                pos_args = MAKE_TUPLE(args, 2);
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    Py_DECREF(pos_args);
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+                        Py_XDECREF(pos_args);
+                        pos_args = NULL;
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 2);
+                        } else {
+                            result = CALL_FUNCTION_WITH_ARGS2(init_method, args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+                        if (pos_args == NULL) {
+                            pos_args = MAKE_TUPLE(args, 2);
+                        }
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            Py_XDECREF(pos_args);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            Py_XDECREF(pos_args);
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -731,6 +1203,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -790,7 +1263,26 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 2);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -891,6 +1383,99 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 2);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 2);
+                        } else {
+                            result = CALL_FUNCTION_WITH_POSARGS2(init_method, pos_args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -904,6 +1489,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -956,7 +1542,26 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 3);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -1065,6 +1670,109 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 3);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *pos_args = NULL;
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                pos_args = MAKE_TUPLE(args, 3);
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    Py_DECREF(pos_args);
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+                        Py_XDECREF(pos_args);
+                        pos_args = NULL;
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 3);
+                        } else {
+                            result = CALL_FUNCTION_WITH_ARGS3(init_method, args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+                        if (pos_args == NULL) {
+                            pos_args = MAKE_TUPLE(args, 3);
+                        }
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            Py_XDECREF(pos_args);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            Py_XDECREF(pos_args);
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -1078,6 +1786,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -1137,7 +1846,26 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 3);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -1238,6 +1966,99 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 3);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 3);
+                        } else {
+                            result = CALL_FUNCTION_WITH_POSARGS3(init_method, pos_args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -1251,6 +2072,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -1303,7 +2125,26 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 4);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -1412,6 +2253,109 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 4);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *pos_args = NULL;
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                pos_args = MAKE_TUPLE(args, 4);
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    Py_DECREF(pos_args);
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+                        Py_XDECREF(pos_args);
+                        pos_args = NULL;
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 4);
+                        } else {
+                            result = CALL_FUNCTION_WITH_ARGS4(init_method, args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+                        if (pos_args == NULL) {
+                            pos_args = MAKE_TUPLE(args, 4);
+                        }
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            Py_XDECREF(pos_args);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            Py_XDECREF(pos_args);
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -1425,6 +2369,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -1484,7 +2429,26 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 4);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -1585,6 +2549,99 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 4);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 4);
+                        } else {
+                            result = CALL_FUNCTION_WITH_POSARGS4(init_method, pos_args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -1598,6 +2655,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -1650,7 +2708,26 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 5);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -1759,6 +2836,109 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 5);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *pos_args = NULL;
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                pos_args = MAKE_TUPLE(args, 5);
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    Py_DECREF(pos_args);
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+                        Py_XDECREF(pos_args);
+                        pos_args = NULL;
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 5);
+                        } else {
+                            result = CALL_FUNCTION_WITH_ARGS5(init_method, args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+                        if (pos_args == NULL) {
+                            pos_args = MAKE_TUPLE(args, 5);
+                        }
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            Py_XDECREF(pos_args);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            Py_XDECREF(pos_args);
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -1772,6 +2952,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -1831,7 +3012,26 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 5);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -1932,6 +3132,99 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 5);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 5);
+                        } else {
+                            result = CALL_FUNCTION_WITH_POSARGS5(init_method, pos_args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -1945,6 +3238,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -1997,7 +3291,26 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject *const *args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 6);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -2106,6 +3419,109 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject *const *args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 6);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *pos_args = NULL;
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                pos_args = MAKE_TUPLE(args, 6);
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    Py_DECREF(pos_args);
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+                        Py_XDECREF(pos_args);
+                        pos_args = NULL;
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 6);
+                        } else {
+                            result = CALL_FUNCTION_WITH_ARGS6(init_method, args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+                        if (pos_args == NULL) {
+                            pos_args = MAKE_TUPLE(args, 6);
+                        }
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            Py_XDECREF(pos_args);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            Py_XDECREF(pos_args);
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -2119,6 +3535,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject *const *args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -2178,7 +3595,26 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 6);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -2279,6 +3715,99 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 6);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 6);
+                        } else {
+                            result = CALL_FUNCTION_WITH_POSARGS6(init_method, pos_args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -2292,6 +3821,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -2344,7 +3874,26 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject *const *args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 7);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -2453,6 +4002,109 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject *const *args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 7);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *pos_args = NULL;
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                pos_args = MAKE_TUPLE(args, 7);
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    Py_DECREF(pos_args);
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+                        Py_XDECREF(pos_args);
+                        pos_args = NULL;
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 7);
+                        } else {
+                            result = CALL_FUNCTION_WITH_ARGS7(init_method, args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+                        if (pos_args == NULL) {
+                            pos_args = MAKE_TUPLE(args, 7);
+                        }
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            Py_XDECREF(pos_args);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            Py_XDECREF(pos_args);
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -2466,6 +4118,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject *const *args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -2525,7 +4178,26 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 7);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -2626,6 +4298,99 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 7);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 7);
+                        } else {
+                            result = CALL_FUNCTION_WITH_POSARGS7(init_method, pos_args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -2639,6 +4404,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -2691,7 +4457,26 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject *const *args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 8);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -2800,6 +4585,109 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject *const *args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 8);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *pos_args = NULL;
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                pos_args = MAKE_TUPLE(args, 8);
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    Py_DECREF(pos_args);
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+                        Py_XDECREF(pos_args);
+                        pos_args = NULL;
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 8);
+                        } else {
+                            result = CALL_FUNCTION_WITH_ARGS8(init_method, args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+                        if (pos_args == NULL) {
+                            pos_args = MAKE_TUPLE(args, 8);
+                        }
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            Py_XDECREF(pos_args);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            Py_XDECREF(pos_args);
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -2813,6 +4701,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject *const *args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -2872,7 +4761,26 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 8);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -2973,6 +4881,99 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 8);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 8);
+                        } else {
+                            result = CALL_FUNCTION_WITH_POSARGS8(init_method, pos_args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -2986,6 +4987,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -3038,7 +5040,26 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject *const *args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 9);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -3147,6 +5168,109 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject *const *args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 9);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *pos_args = NULL;
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                pos_args = MAKE_TUPLE(args, 9);
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    Py_DECREF(pos_args);
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+                        Py_XDECREF(pos_args);
+                        pos_args = NULL;
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 9);
+                        } else {
+                            result = CALL_FUNCTION_WITH_ARGS9(init_method, args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+                        if (pos_args == NULL) {
+                            pos_args = MAKE_TUPLE(args, 9);
+                        }
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            Py_XDECREF(pos_args);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            Py_XDECREF(pos_args);
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -3160,6 +5284,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject *const *args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -3219,7 +5344,26 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 9);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -3320,6 +5464,99 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 9);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 9);
+                        } else {
+                            result = CALL_FUNCTION_WITH_POSARGS9(init_method, pos_args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -3333,6 +5570,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -3385,7 +5623,26 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject *const *args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 10);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -3494,6 +5751,109 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject *const *args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 10);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *pos_args = NULL;
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                pos_args = MAKE_TUPLE(args, 10);
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    Py_DECREF(pos_args);
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+                        Py_XDECREF(pos_args);
+                        pos_args = NULL;
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 10);
+                        } else {
+                            result = CALL_FUNCTION_WITH_ARGS10(init_method, args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+                        if (pos_args == NULL) {
+                            pos_args = MAKE_TUPLE(args, 10);
+                        }
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            Py_XDECREF(pos_args);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            Py_XDECREF(pos_args);
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -3507,6 +5867,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject *const *args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -3566,7 +5927,26 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
-        if (method->m_object != NULL) {
+        if (method->m_object == NULL) {
+            PyObject *self = args[0];
+
+            int res = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(res < 0)) {
+                return NULL;
+            } else if (unlikely(res == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+
+                return NULL;
+            }
+
+            return Nuitka_CallFunctionPosArgs(method->m_function, args, 10);
+        } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
                 return NULL;
             }
@@ -3667,6 +6047,99 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
         }
     } else if (PyFunction_Check(called)) {
         return callPythonFunction(called, args, 10);
+    } else if (PyType_Check(called)) {
+        PyTypeObject *type = Py_TYPE(called);
+
+        if (type->tp_call == PyType_Type.tp_call) {
+            PyTypeObject *called_type = (PyTypeObject *)(called);
+
+            if (unlikely(called_type->tp_new == NULL)) {
+                PyErr_Format(PyExc_TypeError, "cannot create '%s' instances", called_type->tp_name);
+                return NULL;
+            }
+
+            PyObject *obj;
+
+            if (called_type->tp_new == PyBaseObject_Type.tp_new) {
+                if (unlikely(called_type->tp_flags & Py_TPFLAGS_IS_ABSTRACT)) {
+                    formatCannotInstantiateAbstractClass(called_type);
+                    return NULL;
+                }
+
+                obj = called_type->tp_alloc(called_type, 0);
+                CHECK_OBJECT(obj);
+            } else {
+                obj = called_type->tp_new(called_type, pos_args, NULL);
+            }
+
+            if (likely(obj != NULL)) {
+                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                    return obj;
+                }
+
+                // Work on produced type.
+                type = Py_TYPE(obj);
+
+                if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
+                    if (type->tp_init == default_tp_init_wrapper) {
+
+                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+
+                        // Not really allowed, since we wouldn't have the default wrapper set.
+                        assert(init_method != NULL);
+
+                        bool is_compiled_function = false;
+
+                        if (likely(init_method != NULL)) {
+                            descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
+                            if (func == NULL) {
+                                Py_INCREF(init_method);
+                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+                                is_compiled_function = true;
+                            } else {
+                                init_method = func(init_method, obj, (PyObject *)(type));
+                            }
+                        }
+
+                        if (unlikely(init_method == NULL)) {
+                            if (!ERROR_OCCURRED()) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            }
+
+                            return NULL;
+                        }
+
+                        PyObject *result;
+                        if (is_compiled_function) {
+                            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method,
+                                                                      obj, args, 10);
+                        } else {
+                            result = CALL_FUNCTION_WITH_POSARGS10(init_method, pos_args);
+                            Py_DECREF(init_method);
+                        }
+
+                        if (unlikely(result == NULL)) {
+                            return NULL;
+                        }
+
+                        Py_DECREF(result);
+
+                        if (unlikely(result != Py_None)) {
+                            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+                            return NULL;
+                        }
+                    } else {
+
+                        if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
+                            Py_DECREF(obj);
+                            return NULL;
+                        }
+                    }
+                }
+            }
+
+            return obj;
+        }
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -3680,6 +6153,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
     }
 
 #if 0
+    PRINT_NEW_LINE();
     PRINT_STRING("FALLBACK");
     PRINT_ITEM(called);
     PRINT_NEW_LINE();
@@ -3758,6 +6232,8 @@ PyObject *CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(PyObject *called, PyObject *const *
 
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -3832,6 +6308,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
+
+    CHECK_OBJECTS(args, 1);
 
     Py_LeaveRecursiveCall();
 
@@ -3917,6 +6395,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KWSPLIT(PyObject *called, PyObject *const *ar
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 1);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -4000,6 +6481,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 1);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -4074,6 +6558,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
+
+    CHECK_OBJECTS(args, 2);
 
     Py_LeaveRecursiveCall();
 
@@ -4159,6 +6645,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KWSPLIT(PyObject *called, PyObject *const *ar
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 2);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -4242,6 +6731,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 2);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -4316,6 +6808,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
+
+    CHECK_OBJECTS(args, 3);
 
     Py_LeaveRecursiveCall();
 
@@ -4401,6 +6895,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KWSPLIT(PyObject *called, PyObject *const *ar
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 3);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -4484,6 +6981,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 3);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -4558,6 +7058,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
+
+    CHECK_OBJECTS(args, 4);
 
     Py_LeaveRecursiveCall();
 
@@ -4643,6 +7145,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KWSPLIT(PyObject *called, PyObject *const *ar
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 4);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -4726,6 +7231,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 4);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -4800,6 +7308,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
+
+    CHECK_OBJECTS(args, 5);
 
     Py_LeaveRecursiveCall();
 
@@ -4885,6 +7395,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KWSPLIT(PyObject *called, PyObject *const *ar
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 5);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -4968,6 +7481,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 5);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -5042,6 +7558,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
+
+    CHECK_OBJECTS(args, 6);
 
     Py_LeaveRecursiveCall();
 
@@ -5127,6 +7645,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KWSPLIT(PyObject *called, PyObject *const *ar
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 6);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -5210,6 +7731,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 6);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -5284,6 +7808,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
+
+    CHECK_OBJECTS(args, 7);
 
     Py_LeaveRecursiveCall();
 
@@ -5369,6 +7895,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KWSPLIT(PyObject *called, PyObject *const *ar
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 7);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -5452,6 +7981,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 7);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -5526,6 +8058,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
+
+    CHECK_OBJECTS(args, 8);
 
     Py_LeaveRecursiveCall();
 
@@ -5611,6 +8145,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KWSPLIT(PyObject *called, PyObject *const *ar
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 8);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -5694,6 +8231,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 8);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -5768,6 +8308,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
+
+    CHECK_OBJECTS(args, 9);
 
     Py_LeaveRecursiveCall();
 
@@ -5853,6 +8395,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KWSPLIT(PyObject *called, PyObject *const *ar
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 9);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -5936,6 +8481,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 9);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -6010,6 +8558,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_VECTORCALL(PyObject *called, PyObject *const
 
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
+
+    CHECK_OBJECTS(args, 10);
 
     Py_LeaveRecursiveCall();
 
@@ -6095,6 +8645,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KWSPLIT(PyObject *called, PyObject *const *a
     Py_DECREF(pos_args);
     Py_DECREF(named_args);
 
+    CHECK_OBJECTS(args, 10);
+    CHECK_OBJECTS(kw_values, nkwargs);
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
@@ -6177,6 +8730,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10_KWSPLIT(PyObject *called, PyObject *pos_a
     PyObject *result = (*call_slot)(called, pos_args, named_args);
 
     Py_DECREF(named_args);
+
+    CHECK_OBJECTS(args, 10);
+    CHECK_OBJECTS(kw_values, nkwargs);
 
     Py_LeaveRecursiveCall();
 
