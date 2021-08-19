@@ -310,29 +310,27 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
 
     tmp_name2 = context.allocateTempName("assign_source")
 
-    old_source_ref = context.setCurrentSourceCodeReference(
+    with context.withCurrentSourceCodeReference(
         assign_source.getSourceReference()
         if Options.is_fullcompat
         else statement.getSourceReference()
-    )
+    ):
 
-    getBuiltinLoopBreakNextCode(
-        to_name=tmp_name2, value=tmp_name, emit=emit, context=context
-    )
+        getBuiltinLoopBreakNextCode(
+            to_name=tmp_name2, value=tmp_name, emit=emit, context=context
+        )
 
-    getVariableAssignmentCode(
-        tmp_name=tmp_name2,
-        variable=tried_statement.getVariable(),
-        variable_trace=tried_statement.getVariableTrace(),
-        needs_release=None,
-        in_place=False,
-        emit=emit,
-        context=context,
-    )
+        getVariableAssignmentCode(
+            tmp_name=tmp_name2,
+            variable=tried_statement.getVariable(),
+            variable_trace=tried_statement.getVariableTrace(),
+            needs_release=None,
+            in_place=False,
+            emit=emit,
+            context=context,
+        )
 
-    context.setCurrentSourceCodeReference(old_source_ref)
-
-    if context.needsCleanup(tmp_name2):
-        context.removeCleanupTempName(tmp_name2)
+        if context.needsCleanup(tmp_name2):
+            context.removeCleanupTempName(tmp_name2)
 
     return True

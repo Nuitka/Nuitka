@@ -187,41 +187,34 @@ def generateImportStarCode(statement, emit, context):
         context=context,
     )
 
-    old_source_ref = context.setCurrentSourceCodeReference(
-        statement.getSourceReference()
-    )
+    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+        res_name = context.getBoolResName()
 
-    res_name = context.getBoolResName()
+        target_scope = statement.getTargetDictScope()
 
-    target_scope = statement.getTargetDictScope()
+        if type(target_scope) is GlobalsDictHandle:
+            emit(
+                "%s = IMPORT_MODULE_STAR(%s, true, %s);"
+                % (res_name, getModuleAccessCode(context=context), module_name)
+            )
+        else:
+            locals_declaration = context.addLocalsDictName(target_scope.getCodeName())
 
-    if type(target_scope) is GlobalsDictHandle:
-        emit(
-            "%s = IMPORT_MODULE_STAR(%s, true, %s);"
-            % (res_name, getModuleAccessCode(context=context), module_name)
+            emit(
+                "%(res_name)s = IMPORT_MODULE_STAR(%(locals_dict)s, false, %(module_name)s);"
+                % {
+                    "res_name": res_name,
+                    "locals_dict": locals_declaration,
+                    "module_name": module_name,
+                }
+            )
+
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            release_name=module_name,
+            emit=emit,
+            context=context,
         )
-    else:
-        locals_declaration = context.addLocalsDictName(target_scope.getCodeName())
-
-        emit(
-            """
-%(res_name)s = IMPORT_MODULE_STAR(%(locals_dict)s, false, %(module_name)s);
-"""
-            % {
-                "res_name": res_name,
-                "locals_dict": locals_declaration,
-                "module_name": module_name,
-            }
-        )
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
-        release_name=module_name,
-        emit=emit,
-        context=context,
-    )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
 
 
 def generateImportNameCode(to_name, expression, emit, context):

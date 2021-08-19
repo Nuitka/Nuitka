@@ -38,13 +38,10 @@ from .PythonAPICodes import getReferenceExportCode
 
 
 def generateReraiseCode(statement, emit, context):
-    old_source_ref = context.setCurrentSourceCodeReference(
+    with context.withCurrentSourceCodeReference(
         value=statement.getCompatibleSourceReference()
-    )
-
-    getReRaiseExceptionCode(emit=emit, context=context)
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+    ):
+        getReRaiseExceptionCode(emit=emit, context=context)
 
 
 def generateRaiseCode(statement, emit, context):
@@ -77,18 +74,15 @@ def generateRaiseCode(statement, emit, context):
             context=context,
         )
 
-        old_source_ref = context.setCurrentSourceCodeReference(
+        with context.withCurrentSourceCodeReference(
             exception_cause.getSourceReference()
-        )
-
-        _getRaiseExceptionWithCauseCode(
-            raise_type_name=raise_type_name,
-            raise_cause_name=raise_cause_name,
-            emit=emit,
-            context=context,
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
+        ):
+            _getRaiseExceptionWithCauseCode(
+                raise_type_name=raise_type_name,
+                raise_cause_name=raise_cause_name,
+                emit=emit,
+                context=context,
+            )
     elif exception_type is None:
         assert False, statement
     elif exception_value is None and exception_tb is None:
@@ -101,15 +95,13 @@ def generateRaiseCode(statement, emit, context):
             context=context,
         )
 
-        old_source_ref = context.setCurrentSourceCodeReference(
+        with context.withCurrentSourceCodeReference(
             value=exception_type.getCompatibleSourceReference()
-        )
+        ):
+            _getRaiseExceptionWithTypeCode(
+                raise_type_name=raise_type_name, emit=emit, context=context
+            )
 
-        _getRaiseExceptionWithTypeCode(
-            raise_type_name=raise_type_name, emit=emit, context=context
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
     elif exception_tb is None:
         raise_type_name = context.allocateTempName("raise_type")
 
@@ -129,21 +121,16 @@ def generateRaiseCode(statement, emit, context):
             context=context,
         )
 
-        old_source_ref = context.setCurrentSourceCodeReference(
-            exception_value.getSourceReference()
-        )
-
-        context.setCurrentSourceCodeReference(statement.getCompatibleSourceReference())
-
-        _getRaiseExceptionWithValueCode(
-            raise_type_name=raise_type_name,
-            raise_value_name=raise_value_name,
-            implicit=statement.isStatementRaiseExceptionImplicit(),
-            emit=emit,
-            context=context,
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
+        with context.withCurrentSourceCodeReference(
+            exception_value.getCompatibleSourceReference()
+        ):
+            _getRaiseExceptionWithValueCode(
+                raise_type_name=raise_type_name,
+                raise_value_name=raise_value_name,
+                implicit=statement.isStatementRaiseExceptionImplicit(),
+                emit=emit,
+                context=context,
+            )
     else:
         raise_type_name = context.allocateTempName("raise_type")
 
@@ -169,19 +156,14 @@ def generateRaiseCode(statement, emit, context):
             to_name=raise_tb_name, expression=exception_tb, emit=emit, context=context
         )
 
-        old_source_ref = context.setCurrentSourceCodeReference(
-            exception_tb.getSourceReference()
-        )
-
-        _getRaiseExceptionWithTracebackCode(
-            raise_type_name=raise_type_name,
-            raise_value_name=raise_value_name,
-            raise_tb_name=raise_tb_name,
-            emit=emit,
-            context=context,
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
+        with context.withCurrentSourceCodeReference(exception_tb.getSourceReference()):
+            _getRaiseExceptionWithTracebackCode(
+                raise_type_name=raise_type_name,
+                raise_value_name=raise_value_name,
+                raise_tb_name=raise_tb_name,
+                emit=emit,
+                context=context,
+            )
 
 
 def generateRaiseExpressionCode(to_name, expression, emit, context):

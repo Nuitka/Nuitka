@@ -81,10 +81,6 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none=False
     assert not hasattr(expression, "code_generated"), expression
     expression.code_generated = True
 
-    old_source_ref = context.setCurrentSourceCodeReference(
-        expression.getSourceReference()
-    )
-
     if not expression.isExpression():
         printError("No expression %r" % expression)
 
@@ -100,9 +96,10 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none=False
             expression.kind,
         )
 
-    code_generator(to_name=to_name, expression=expression, emit=emit, context=context)
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+    with context.withCurrentSourceCodeReference(expression.getSourceReference()):
+        code_generator(
+            to_name=to_name, expression=expression, emit=emit, context=context
+        )
 
 
 def generateExpressionsCode(names, expressions, emit, context):
