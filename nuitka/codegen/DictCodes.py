@@ -219,24 +219,19 @@ def generateDictOperationUpdateCode(statement, emit, context):
         context=context,
     )
 
-    old_source_ref = context.setCurrentSourceCodeReference(
-        statement.getSourceReference()
-    )
+    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+        res_name = context.getIntResName()
 
-    res_name = context.getIntResName()
+        emit("assert(PyDict_Check(%s));" % dict_arg_name)
+        emit("%s = PyDict_Update(%s, %s);" % (res_name, dict_arg_name, value_arg_name))
 
-    emit("assert(PyDict_Check(%s));" % dict_arg_name)
-    emit("%s = PyDict_Update(%s, %s);" % (res_name, dict_arg_name, value_arg_name))
-
-    getErrorExitBoolCode(
-        condition="%s != 0" % res_name,
-        release_names=(dict_arg_name, value_arg_name),
-        needs_check=statement.mayRaiseException(BaseException),
-        emit=emit,
-        context=context,
-    )
-
-    old_source_ref = context.setCurrentSourceCodeReference(old_source_ref)
+        getErrorExitBoolCode(
+            condition="%s != 0" % res_name,
+            release_names=(dict_arg_name, value_arg_name),
+            needs_check=statement.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
 
 
 def generateDictOperationGetCode(to_name, expression, emit, context):
@@ -390,22 +385,19 @@ def generateDictOperationRemoveCode(statement, emit, context):
         context=context,
     )
 
-    old_source_ref = context.setCurrentSourceCodeReference(
+    with context.withCurrentSourceCodeReference(
         statement.subnode_key.getSourceReference()
         if Options.is_fullcompat
         else statement.getSourceReference()
-    )
+    ):
+        res_name = context.getBoolResName()
 
-    res_name = context.getBoolResName()
+        emit("%s = DICT_REMOVE_ITEM(%s, %s);" % (res_name, dict_arg_name, key_arg_name))
 
-    emit("%s = DICT_REMOVE_ITEM(%s, %s);" % (res_name, dict_arg_name, key_arg_name))
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
-        release_names=(dict_arg_name, key_arg_name),
-        needs_check=statement.mayRaiseException(BaseException),
-        emit=emit,
-        context=context,
-    )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            release_names=(dict_arg_name, key_arg_name),
+            needs_check=statement.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )

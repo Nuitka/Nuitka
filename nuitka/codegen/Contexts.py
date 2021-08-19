@@ -22,6 +22,7 @@
 import collections
 import hashlib
 from abc import abstractmethod
+from contextlib import contextmanager
 
 from nuitka import Options
 from nuitka.__past__ import getMetaClassBase, iterItems
@@ -367,6 +368,14 @@ class PythonContextBase(getMetaClassBase("Context")):
         self.current_source_ref = value
 
         return result
+
+    @contextmanager
+    def withCurrentSourceCodeReference(self, value):
+        old_source_ref = self.setCurrentSourceCodeReference(value)
+
+        yield old_source_ref
+
+        self.setCurrentSourceCodeReference(value)
 
     def getInplaceLeftName(self):
         return self.allocateTempName("inplace_orig", "PyObject *", True)

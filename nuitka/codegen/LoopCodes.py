@@ -75,15 +75,10 @@ def generateLoopCode(statement, emit, context):
     context.setLoopContinueTarget(old_loop_continue)
 
     # Note: We are using the wrong line here, but it's an exception, it's unclear what line it would be anyway.
-    old_source_ref = context.setCurrentSourceCodeReference(
-        statement.getSourceReference()
-    )
-
-    getErrorExitBoolCode(
-        condition="CONSIDER_THREADING() == false", emit=emit, context=context
-    )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+        getErrorExitBoolCode(
+            condition="CONSIDER_THREADING() == false", emit=emit, context=context
+        )
 
     getGotoCode(loop_start_label, emit)
 

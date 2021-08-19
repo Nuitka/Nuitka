@@ -279,61 +279,61 @@ def generateExecCode(statement, emit, context):
     getReferenceExportCode(source_name, emit, context)
     context.addCleanupTempName(source_name)
 
-    old_source_ref = context.setCurrentSourceCodeReference(
+    with context.withCurrentSourceCodeReference(
         locals_arg.getSourceReference()
         if Options.is_fullcompat
         else statement.getSourceReference()
-    )
+    ):
 
-    res_name = context.getBoolResName()
+        res_name = context.getBoolResName()
 
-    emit(
-        "%s = EXEC_FILE_ARG_HANDLING(&%s, &%s);"
-        % (res_name, source_name, filename_name)
-    )
+        emit(
+            "%s = EXEC_FILE_ARG_HANDLING(&%s, &%s);"
+            % (res_name, source_name, filename_name)
+        )
 
-    getErrorExitBoolCode(condition="%s == false" % res_name, emit=emit, context=context)
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name, emit=emit, context=context
+        )
 
-    compiled_name = context.allocateTempName("exec_compiled")
+        compiled_name = context.allocateTempName("exec_compiled")
 
-    _getBuiltinCompileCode(
-        to_name=compiled_name,
-        source_name=source_name,
-        filename_name=filename_name,
-        mode_name=context.getConstantCode(constant="exec"),
-        flags_name="NULL",
-        dont_inherit_name="NULL",
-        optimize_name="NULL",
-        emit=emit,
-        context=context,
-    )
+        _getBuiltinCompileCode(
+            to_name=compiled_name,
+            source_name=source_name,
+            filename_name=filename_name,
+            mode_name=context.getConstantCode(constant="exec"),
+            flags_name="NULL",
+            dont_inherit_name="NULL",
+            optimize_name="NULL",
+            emit=emit,
+            context=context,
+        )
 
-    to_name = context.allocateTempName("exec_result")
+        to_name = context.allocateTempName("exec_result")
 
-    emit(
-        "%s = EVAL_CODE(%s, %s, %s);"
-        % (to_name, compiled_name, globals_name, locals_name)
-    )
+        emit(
+            "%s = EVAL_CODE(%s, %s, %s);"
+            % (to_name, compiled_name, globals_name, locals_name)
+        )
 
-    getErrorExitCode(
-        check_name=to_name,
-        release_names=(
-            compiled_name,
-            globals_name,
-            locals_name,
-            source_name,
-            filename_name,
-        ),
-        emit=emit,
-        context=context,
-    )
+        getErrorExitCode(
+            check_name=to_name,
+            release_names=(
+                compiled_name,
+                globals_name,
+                locals_name,
+                source_name,
+                filename_name,
+            ),
+            emit=emit,
+            context=context,
+        )
 
-    # Immediately release the exec result, no point in keeping it, it's a
-    # statement.
-    context.addCleanupTempName(to_name)
-    getReleaseCode(release_name=to_name, emit=emit, context=context)
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+        # Immediately release the exec result, no point in keeping it, it's a
+        # statement.
+        context.addCleanupTempName(to_name)
+        getReleaseCode(release_name=to_name, emit=emit, context=context)
 
 
 def _generateEvalCode(to_name, node, emit, context):
@@ -408,16 +408,11 @@ def generateLocalsDictSyncCode(statement, emit, context):
         to_name=locals_name, expression=locals_arg, emit=emit, context=context
     )
 
-    old_source_ref = context.setCurrentSourceCodeReference(
-        statement.getSourceReference()
-    )
-
-    _getStoreLocalsCode(
-        locals_name=locals_name,
-        variable_traces=statement.getPreviousVariablesTraces(),
-        is_dict=locals_arg.getTypeShape() is tshape_dict,
-        emit=emit,
-        context=context,
-    )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+        _getStoreLocalsCode(
+            locals_name=locals_name,
+            variable_traces=statement.getPreviousVariablesTraces(),
+            is_dict=locals_arg.getTypeShape() is tshape_dict,
+            emit=emit,
+            context=context,
+        )

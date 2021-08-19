@@ -66,31 +66,28 @@ def generateAssignmentSubscriptCode(statement, emit, context):
         to_name=subscript_name, expression=subscript, emit=emit, context=context
     )
 
-    old_source_ref = context.setCurrentSourceCodeReference(
+    with context.withCurrentSourceCodeReference(
         value.getSourceReference()
         if Options.is_fullcompat
         else statement.getSourceReference()
-    )
-
-    if integer_subscript:
-        _getIntegerSubscriptAssignmentCode(
-            subscribed_name=subscribed_name,
-            subscript_name=subscript_name,
-            subscript_value=subscript_constant,
-            value_name=value_name,
-            emit=emit,
-            context=context,
-        )
-    else:
-        _getSubscriptAssignmentCode(
-            target_name=subscribed_name,
-            subscript_name=subscript_name,
-            value_name=value_name,
-            emit=emit,
-            context=context,
-        )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+    ):
+        if integer_subscript:
+            _getIntegerSubscriptAssignmentCode(
+                subscribed_name=subscribed_name,
+                subscript_name=subscript_name,
+                subscript_value=subscript_constant,
+                value_name=value_name,
+                emit=emit,
+                context=context,
+            )
+        else:
+            _getSubscriptAssignmentCode(
+                target_name=subscribed_name,
+                subscript_name=subscript_name,
+                value_name=value_name,
+                emit=emit,
+                context=context,
+            )
 
 
 def generateDelSubscriptCode(statement, emit, context):
@@ -104,20 +101,17 @@ def generateDelSubscriptCode(statement, emit, context):
         context=context,
     )
 
-    old_source_ref = context.setCurrentSourceCodeReference(
+    with context.withCurrentSourceCodeReference(
         subscript.getSourceReference()
         if Options.is_fullcompat
         else statement.getSourceReference()
-    )
-
-    _getSubscriptDelCode(
-        target_name=target_name,
-        subscript_name=subscript_name,
-        emit=emit,
-        context=context,
-    )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+    ):
+        _getSubscriptDelCode(
+            target_name=target_name,
+            subscript_name=subscript_name,
+            emit=emit,
+            context=context,
+        )
 
 
 def generateSubscriptLookupCode(to_name, expression, emit, context):
