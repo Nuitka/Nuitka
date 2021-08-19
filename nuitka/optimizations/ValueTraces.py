@@ -32,6 +32,7 @@ Values can be seen as:
 * LoopComplete (complete knowledge of loop types)
 """
 
+from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict, tshape_tuple
 from nuitka.nodes.shapes.StandardShapes import (
     ShapeLoopCompleteAlternative,
     ShapeLoopInitialAlternative,
@@ -260,6 +261,18 @@ class ValueTraceInit(ValueTraceBase):
     @staticmethod
     def mustNotHaveValue():
         return False
+
+
+class ValueTraceInitStarArgs(ValueTraceInit):
+    @staticmethod
+    def getTypeShape():
+        return tshape_tuple
+
+
+class ValueTraceInitStarDict(ValueTraceInit):
+    @staticmethod
+    def getTypeShape():
+        return tshape_dict
 
 
 class ValueTraceUnknown(ValueTraceBase):
