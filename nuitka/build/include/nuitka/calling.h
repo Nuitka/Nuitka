@@ -103,4 +103,13 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_CheckFunctionResult(PyObject
     }
 }
 
+// For exception test formatting and call code mostly.
+extern char const *GET_CALLABLE_NAME(PyObject *object);
+extern char const *GET_CALLABLE_DESC(PyObject *object);
+extern char const *GET_CLASS_NAME(PyObject *klass);
+extern char const *GET_INSTANCE_CLASS_NAME(PyObject *instance);
+
+// For abstract class instantiation error message, during call.
+extern void formatCannotInstantiateAbstractClass(PyTypeObject *type);
+
 #endif

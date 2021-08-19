@@ -36,6 +36,11 @@ void SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyObject *exception_type, char const *f
     PyErr_Format(exception_type, format, value1, value2);
 }
 
+void SET_CURRENT_EXCEPTION_TYPE0_FORMAT3(PyObject *exception_type, char const *format, char const *value1,
+                                         char const *value2, char const *value3) {
+    PyErr_Format(exception_type, format, value1, value2, value3);
+}
+
 void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(char const *format, PyObject *mistyped) {
     SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, Py_TYPE(mistyped)->tp_name);
 }
