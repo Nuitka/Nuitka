@@ -28,7 +28,7 @@ from optparse import OptionParser
 
 from nuitka.PythonVersions import python_version
 from nuitka.tools.Basics import addPYTHONPATH, getHomePath, goHome, setupPATH
-from nuitka.tools.quality.Git import getModifiedPaths
+from nuitka.tools.quality.Git import getModifiedPaths, getUnpushedPaths
 from nuitka.tools.quality.pylint import PyLint
 from nuitka.tools.quality.ScanSources import isPythonFile, scanTargets
 from nuitka.tools.testing.Common import hasModule, setup
@@ -48,6 +48,15 @@ def main():
         "--diff",
         action="store_true",
         dest="diff",
+        default=False,
+        help="""\
+Analyse the changed files in git. Default is %default.""",
+    )
+
+    parser.add_option(
+        "--unpushed",
+        action="store_true",
+        dest="unpushed",
         default=False,
         help="""\
 Analyse the changed files in git. Default is %default.""",
@@ -97,7 +106,7 @@ Insist on PyLint to be installed. Default is %default.""",
         sys.exit(0)
 
     if positional_args:
-        if options.diff:
+        if options.diff or options.unpushed:
             sys.exit("Error, no filenames argument allowed in git diff mode.")
     else:
         goHome()
@@ -105,6 +114,10 @@ Insist on PyLint to be installed. Default is %default.""",
         if options.diff:
             positional_args = [
                 filename for filename in getModifiedPaths() if isPythonFile(filename)
+            ]
+        elif options.unpushed:
+            positional_args = [
+                filename for filename in getUnpushedPaths() if isPythonFile(filename)
             ]
         else:
             positional_args = ["bin", "nuitka", "setup.py", "tests/*/run_all.py"]
