@@ -6359,14 +6359,32 @@ PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attr_name) {
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
+        PyObject *descr = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(called_object == NULL)) {
+        if (unlikely(descr == NULL)) {
             return NULL;
         }
 
-        PyObject *result = CALL_FUNCTION_NO_ARGS(called_object);
-        Py_DECREF(called_object);
+        descrgetfunc func = NULL;
+        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
+            func = Py_TYPE(descr)->tp_descr_get;
+
+            if (func != NULL && PyDescr_IsData(descr)) {
+                PyObject *called_object = func(descr, source, (PyObject *)type);
+                Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_NO_ARGS(called_object);
+                Py_DECREF(called_object);
+                return result;
+            }
+        }
+
+        PyObject *result = CALL_FUNCTION_NO_ARGS(descr);
+        Py_DECREF(descr);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -6567,14 +6585,32 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyO
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
+        PyObject *descr = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(called_object == NULL)) {
+        if (unlikely(descr == NULL)) {
             return NULL;
         }
 
-        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(called_object, args[0]);
-        Py_DECREF(called_object);
+        descrgetfunc func = NULL;
+        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
+            func = Py_TYPE(descr)->tp_descr_get;
+
+            if (func != NULL && PyDescr_IsData(descr)) {
+                PyObject *called_object = func(descr, source, (PyObject *)type);
+                Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(called_object, args[0]);
+                Py_DECREF(called_object);
+                return result;
+            }
+        }
+
+        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(descr, args[0]);
+        Py_DECREF(descr);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -6774,14 +6810,32 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyObject *source, PyObject *attr_name, PyObject
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
+        PyObject *descr = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(called_object == NULL)) {
+        if (unlikely(descr == NULL)) {
             return NULL;
         }
 
-        PyObject *result = CALL_FUNCTION_WITH_ARGS2(called_object, args);
-        Py_DECREF(called_object);
+        descrgetfunc func = NULL;
+        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
+            func = Py_TYPE(descr)->tp_descr_get;
+
+            if (func != NULL && PyDescr_IsData(descr)) {
+                PyObject *called_object = func(descr, source, (PyObject *)type);
+                Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS2(called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+        }
+
+        PyObject *result = CALL_FUNCTION_WITH_ARGS2(descr, args);
+        Py_DECREF(descr);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -6981,14 +7035,32 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyObject *source, PyObject *attr_name, PyObject
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
+        PyObject *descr = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(called_object == NULL)) {
+        if (unlikely(descr == NULL)) {
             return NULL;
         }
 
-        PyObject *result = CALL_FUNCTION_WITH_ARGS3(called_object, args);
-        Py_DECREF(called_object);
+        descrgetfunc func = NULL;
+        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
+            func = Py_TYPE(descr)->tp_descr_get;
+
+            if (func != NULL && PyDescr_IsData(descr)) {
+                PyObject *called_object = func(descr, source, (PyObject *)type);
+                Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS3(called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+        }
+
+        PyObject *result = CALL_FUNCTION_WITH_ARGS3(descr, args);
+        Py_DECREF(descr);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -7188,14 +7260,32 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyObject *source, PyObject *attr_name, PyObject
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
+        PyObject *descr = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(called_object == NULL)) {
+        if (unlikely(descr == NULL)) {
             return NULL;
         }
 
-        PyObject *result = CALL_FUNCTION_WITH_ARGS4(called_object, args);
-        Py_DECREF(called_object);
+        descrgetfunc func = NULL;
+        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
+            func = Py_TYPE(descr)->tp_descr_get;
+
+            if (func != NULL && PyDescr_IsData(descr)) {
+                PyObject *called_object = func(descr, source, (PyObject *)type);
+                Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS4(called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+        }
+
+        PyObject *result = CALL_FUNCTION_WITH_ARGS4(descr, args);
+        Py_DECREF(descr);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -7395,14 +7485,32 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyObject *source, PyObject *attr_name, PyObject
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
+        PyObject *descr = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(called_object == NULL)) {
+        if (unlikely(descr == NULL)) {
             return NULL;
         }
 
-        PyObject *result = CALL_FUNCTION_WITH_ARGS5(called_object, args);
-        Py_DECREF(called_object);
+        descrgetfunc func = NULL;
+        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
+            func = Py_TYPE(descr)->tp_descr_get;
+
+            if (func != NULL && PyDescr_IsData(descr)) {
+                PyObject *called_object = func(descr, source, (PyObject *)type);
+                Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS5(called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+        }
+
+        PyObject *result = CALL_FUNCTION_WITH_ARGS5(descr, args);
+        Py_DECREF(descr);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -7602,14 +7710,32 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyObject *source, PyObject *attr_name, PyObject
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
+        PyObject *descr = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(called_object == NULL)) {
+        if (unlikely(descr == NULL)) {
             return NULL;
         }
 
-        PyObject *result = CALL_FUNCTION_WITH_ARGS6(called_object, args);
-        Py_DECREF(called_object);
+        descrgetfunc func = NULL;
+        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
+            func = Py_TYPE(descr)->tp_descr_get;
+
+            if (func != NULL && PyDescr_IsData(descr)) {
+                PyObject *called_object = func(descr, source, (PyObject *)type);
+                Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS6(called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+        }
+
+        PyObject *result = CALL_FUNCTION_WITH_ARGS6(descr, args);
+        Py_DECREF(descr);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -7809,14 +7935,32 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyObject *source, PyObject *attr_name, PyObject
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
+        PyObject *descr = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(called_object == NULL)) {
+        if (unlikely(descr == NULL)) {
             return NULL;
         }
 
-        PyObject *result = CALL_FUNCTION_WITH_ARGS7(called_object, args);
-        Py_DECREF(called_object);
+        descrgetfunc func = NULL;
+        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
+            func = Py_TYPE(descr)->tp_descr_get;
+
+            if (func != NULL && PyDescr_IsData(descr)) {
+                PyObject *called_object = func(descr, source, (PyObject *)type);
+                Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS7(called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+        }
+
+        PyObject *result = CALL_FUNCTION_WITH_ARGS7(descr, args);
+        Py_DECREF(descr);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -8016,14 +8160,32 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyObject *source, PyObject *attr_name, PyObject
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
+        PyObject *descr = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(called_object == NULL)) {
+        if (unlikely(descr == NULL)) {
             return NULL;
         }
 
-        PyObject *result = CALL_FUNCTION_WITH_ARGS8(called_object, args);
-        Py_DECREF(called_object);
+        descrgetfunc func = NULL;
+        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
+            func = Py_TYPE(descr)->tp_descr_get;
+
+            if (func != NULL && PyDescr_IsData(descr)) {
+                PyObject *called_object = func(descr, source, (PyObject *)type);
+                Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS8(called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+        }
+
+        PyObject *result = CALL_FUNCTION_WITH_ARGS8(descr, args);
+        Py_DECREF(descr);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -8223,14 +8385,32 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyObject *source, PyObject *attr_name, PyObject
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
+        PyObject *descr = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(called_object == NULL)) {
+        if (unlikely(descr == NULL)) {
             return NULL;
         }
 
-        PyObject *result = CALL_FUNCTION_WITH_ARGS9(called_object, args);
-        Py_DECREF(called_object);
+        descrgetfunc func = NULL;
+        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
+            func = Py_TYPE(descr)->tp_descr_get;
+
+            if (func != NULL && PyDescr_IsData(descr)) {
+                PyObject *called_object = func(descr, source, (PyObject *)type);
+                Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS9(called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+        }
+
+        PyObject *result = CALL_FUNCTION_WITH_ARGS9(descr, args);
+        Py_DECREF(descr);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
@@ -8430,14 +8610,32 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyObject *source, PyObject *attr_name, PyObjec
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *called_object = (*type->tp_getattro)(source, attr_name);
+        PyObject *descr = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(called_object == NULL)) {
+        if (unlikely(descr == NULL)) {
             return NULL;
         }
 
-        PyObject *result = CALL_FUNCTION_WITH_ARGS10(called_object, args);
-        Py_DECREF(called_object);
+        descrgetfunc func = NULL;
+        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
+            func = Py_TYPE(descr)->tp_descr_get;
+
+            if (func != NULL && PyDescr_IsData(descr)) {
+                PyObject *called_object = func(descr, source, (PyObject *)type);
+                Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL)) {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_ARGS10(called_object, args);
+                Py_DECREF(called_object);
+                return result;
+            }
+        }
+
+        PyObject *result = CALL_FUNCTION_WITH_ARGS10(descr, args);
+        Py_DECREF(descr);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
