@@ -263,17 +263,33 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyObject *source, PyObject *attr_n
     }
 #endif
     else if (type->tp_getattro != NULL) {
-        PyObject *called_object = (*type->tp_getattro)(
-            source,
-            attr_name
-        );
+        PyObject *descr = (*type->tp_getattro)(source, attr_name);
 
-        if (unlikely(called_object == NULL)) {
+        if (unlikely(descr == NULL)) {
             return NULL;
         }
 
-        PyObject *result = {{ call_function_with_args( "called_object", "args", args_count) }};
-        Py_DECREF(called_object);
+        descrgetfunc func = NULL;
+        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
+            func = Py_TYPE(descr)->tp_descr_get;
+
+            if (func != NULL && PyDescr_IsData(descr)) {
+                PyObject *called_object = func(descr, source, (PyObject *)type);
+                Py_DECREF(descr);
+
+                if (unlikely(called_object == NULL))
+                {
+                    return NULL;
+                }
+
+                PyObject *result = {{ call_function_with_args("called_object", "args", args_count) }};
+                Py_DECREF(called_object);
+                return result;
+            }
+        }
+
+        PyObject *result = {{ call_function_with_args("descr", "args", args_count) }};
+        Py_DECREF(descr);
         return result;
     } else if (type->tp_getattr != NULL) {
         PyObject *called_object = (*type->tp_getattr)(
