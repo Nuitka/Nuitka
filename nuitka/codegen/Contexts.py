@@ -26,6 +26,7 @@ from contextlib import contextmanager
 
 from nuitka import Options
 from nuitka.__past__ import getMetaClassBase, iterItems
+from nuitka.Constants import isMutable
 from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import (
@@ -381,7 +382,7 @@ class PythonContextBase(getMetaClassBase("Context")):
         return self.allocateTempName("inplace_orig", "PyObject *", True)
 
     @abstractmethod
-    def getConstantCode(self, constant):
+    def getConstantCode(self, constant, deep_check=False):
         pass
 
     @abstractmethod
@@ -541,8 +542,8 @@ class PythonChildContextBase(PythonContextBase):
 
         self.parent = parent
 
-    def getConstantCode(self, constant):
-        return self.parent.getConstantCode(constant)
+    def getConstantCode(self, constant, deep_check=False):
+        return self.parent.getConstantCode(constant, deep_check=deep_check)
 
     def getModuleCodeName(self):
         return self.parent.getModuleCodeName()
@@ -840,7 +841,10 @@ class PythonModuleContext(
     def mayRecurse(self):
         return False
 
-    def getConstantCode(self, constant):
+    def getConstantCode(self, constant, deep_check=False):
+        if deep_check and Options.is_debug:
+            assert not isMutable(constant)
+
         return self.constant_accessor.getConstantCode(constant)
 
     def getConstantsCount(self):
