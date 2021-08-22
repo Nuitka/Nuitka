@@ -755,7 +755,7 @@ static bool SET_ATTRIBUTE_GENERIC(PyTypeObject *type, PyObject *target, PyObject
 
             // TODO: Not possible for set, is it?
             if (res < 0 && PyErr_ExceptionMatches(PyExc_KeyError)) {
-                PyErr_SetObject(PyExc_AttributeError, attr_name);
+                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, attr_name);
                 return false;
             }
 

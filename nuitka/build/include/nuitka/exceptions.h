@@ -276,6 +276,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0(PyObject *ex
     Py_XDECREF(old_exception_traceback);
 }
 
+// Same as PyErr_SetObject CPython API, use this instead.
 NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyObject *exception_type,
                                                                            PyObject *exception_value) {
     PyThreadState *tstate = PyThreadState_GET();
@@ -324,6 +325,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyObj
 }
 
 // Helper that sets the current thread exception, and has no reference passed.
+// Same as CPython API PyErr_SetString
 NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_STR(PyObject *exception_type, char const *value) {
     PyObject *exception_value = Nuitka_String_FromString(value);
 
