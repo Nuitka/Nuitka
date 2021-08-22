@@ -59,7 +59,7 @@ __version__ = "1.1"
 
 [Ident1, Ident2, Ident3, Ident4, Ident5] = range(1, 6)
 
-class Record(object):
+class Record:
 
     def __init__(self, PtrComp = None, Discr = 0, EnumComp = 0,
                        IntComp = 0, StringComp = 0):
