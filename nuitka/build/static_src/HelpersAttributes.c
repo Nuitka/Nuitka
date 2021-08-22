@@ -51,8 +51,6 @@ PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name) {
 #endif
 
 #if PYTHON_VERSION < 0x300
-extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args);
-
 static PyObject *LOOKUP_INSTANCE(PyObject *source, PyObject *attr_name) {
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);

@@ -416,7 +416,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
                         if (is_compiled_function) {
                             result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, {{args_count}});
                         } else {
+{% if has_tuple_arg %}
+                            result = CALL_FUNCTION_WITH_POSARGS{{args_count}}(init_method, pos_args);
+{% else %}
                             result = CALL_FUNCTION_WITH_ARGS{{args_count}}(init_method, args);
+{% endif %}
                             Py_DECREF(init_method);
                         }
 {% endif %}
@@ -455,8 +459,87 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
             return obj;
         }
 {# TODO: For Python2 old style classes, this should exist. #}
-{% if False %}
+{% if True %}
+#if PYTHON_VERSION < 0x300
     } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if ({{ unlikely_if(args_count != 0)}}(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+{% if args_count == 0 %}
+            return obj;
+{% else %}
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+{% endif %}
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+{% if args_count == 0 %}
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionNoArgs((struct Nuitka_FunctionObject const *)init_method, obj);
+        } else {
+            result = CALL_FUNCTION_NO_ARGS(init_method);
+            Py_DECREF(init_method);
+        }
+{% elif args_count == 1 %}
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 1);
+        } else {
+            result = CALL_FUNCTION_WITH_SINGLE_ARG(init_method, args[0]);
+            Py_DECREF(init_method);
+        }
+{% else %}
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, {{args_count}});
+        } else {
+{% if has_tuple_arg %}
+            result = CALL_FUNCTION_WITH_POSARGS{{args_count}}(init_method, pos_args);
+{% else %}
+            result = CALL_FUNCTION_WITH_ARGS{{args_count}}(init_method, args);
+{% endif %}
+            Py_DECREF(init_method);
+        }
+{% endif %}
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 {% endif %}
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
