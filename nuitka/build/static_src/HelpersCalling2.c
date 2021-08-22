@@ -269,6 +269,59 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
 
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if ((init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            return obj;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionNoArgs((struct Nuitka_FunctionObject const *)init_method, obj);
+        } else {
+            result = CALL_FUNCTION_NO_ARGS(init_method);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -587,6 +640,62 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
             Py_XDECREF(pos_args);
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 1);
+        } else {
+            result = CALL_FUNCTION_WITH_SINGLE_ARG(init_method, args[0]);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -893,6 +1002,62 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
 
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 1);
+        } else {
+            result = CALL_FUNCTION_WITH_SINGLE_ARG(init_method, args[0]);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -1190,6 +1355,62 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args) {
             Py_XDECREF(pos_args);
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 2);
+        } else {
+            result = CALL_FUNCTION_WITH_ARGS2(init_method, args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -1476,6 +1697,62 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args) {
 
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 2);
+        } else {
+            result = CALL_FUNCTION_WITH_POSARGS2(init_method, pos_args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -1773,6 +2050,62 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args) {
             Py_XDECREF(pos_args);
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 3);
+        } else {
+            result = CALL_FUNCTION_WITH_ARGS3(init_method, args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -2059,6 +2392,62 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args) {
 
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 3);
+        } else {
+            result = CALL_FUNCTION_WITH_POSARGS3(init_method, pos_args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -2356,6 +2745,62 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args) {
             Py_XDECREF(pos_args);
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 4);
+        } else {
+            result = CALL_FUNCTION_WITH_ARGS4(init_method, args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -2642,6 +3087,62 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args) {
 
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 4);
+        } else {
+            result = CALL_FUNCTION_WITH_POSARGS4(init_method, pos_args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -2939,6 +3440,62 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args) {
             Py_XDECREF(pos_args);
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 5);
+        } else {
+            result = CALL_FUNCTION_WITH_ARGS5(init_method, args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -3225,6 +3782,62 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args) {
 
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 5);
+        } else {
+            result = CALL_FUNCTION_WITH_POSARGS5(init_method, pos_args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -3522,6 +4135,62 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject *const *args) {
             Py_XDECREF(pos_args);
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 6);
+        } else {
+            result = CALL_FUNCTION_WITH_ARGS6(init_method, args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -3808,6 +4477,62 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args) {
 
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 6);
+        } else {
+            result = CALL_FUNCTION_WITH_POSARGS6(init_method, pos_args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -4105,6 +4830,62 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject *const *args) {
             Py_XDECREF(pos_args);
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 7);
+        } else {
+            result = CALL_FUNCTION_WITH_ARGS7(init_method, args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -4391,6 +5172,62 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args) {
 
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 7);
+        } else {
+            result = CALL_FUNCTION_WITH_POSARGS7(init_method, pos_args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -4688,6 +5525,62 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject *const *args) {
             Py_XDECREF(pos_args);
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 8);
+        } else {
+            result = CALL_FUNCTION_WITH_ARGS8(init_method, args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -4974,6 +5867,62 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args) {
 
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 8);
+        } else {
+            result = CALL_FUNCTION_WITH_POSARGS8(init_method, pos_args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -5271,6 +6220,62 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject *const *args) {
             Py_XDECREF(pos_args);
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 9);
+        } else {
+            result = CALL_FUNCTION_WITH_ARGS9(init_method, args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -5557,6 +6562,62 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args) {
 
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 9);
+        } else {
+            result = CALL_FUNCTION_WITH_POSARGS9(init_method, pos_args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -5854,6 +6915,62 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject *const *args) {
             Py_XDECREF(pos_args);
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 10);
+        } else {
+            result = CALL_FUNCTION_WITH_ARGS10(init_method, args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
@@ -6140,6 +7257,62 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
 
             return obj;
         }
+#if PYTHON_VERSION < 0x300
+    } else if (PyClass_Check(called)) {
+        PyObject *obj = PyInstance_NewRaw(called, NULL);
+
+        PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
+
+        if (unlikely(init_method == NULL)) {
+            if (unlikely(ERROR_OCCURRED())) {
+                Py_DECREF(obj);
+                return NULL;
+            }
+
+            Py_DECREF(obj);
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            return NULL;
+        }
+
+        bool is_compiled_function = false;
+
+        descrgetfunc descr_get = Py_TYPE(init_method)->tp_descr_get;
+
+        if (descr_get == NULL) {
+            Py_INCREF(init_method);
+        } else if (descr_get == Nuitka_Function_Type.tp_descr_get) {
+            is_compiled_function = true;
+        } else if (descr_get != NULL) {
+            PyObject *descr_method = descr_get(init_method, obj, called);
+
+            if (unlikely(descr_method == NULL)) {
+                return NULL;
+            }
+
+            init_method = descr_method;
+        }
+
+        PyObject *result;
+        if (is_compiled_function) {
+            result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 10);
+        } else {
+            result = CALL_FUNCTION_WITH_POSARGS10(init_method, pos_args);
+            Py_DECREF(init_method);
+        }
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        Py_DECREF(result);
+
+        if (unlikely(result != Py_None)) {
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
+            return NULL;
+        }
+
+        return obj;
+#endif
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
