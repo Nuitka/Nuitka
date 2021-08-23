@@ -38,7 +38,7 @@ from nuitka.freezer.IncludedEntryPoints import (
 )
 from nuitka.freezer.Standalone import copyDataFiles
 from nuitka.importing import Importing, Recursion
-from nuitka.Options import getPythonFlags
+from nuitka.Options import getPythonFlags, hasPythonFlagNoAsserts
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import executePostProcessing
 from nuitka.Progress import (
@@ -468,7 +468,7 @@ def runSconsBackend(quiet):
     if "no_warnings" in getPythonFlags():
         options["no_python_warnings"] = asBoolStr(True)
 
-    if "no_asserts" in getPythonFlags():
+    if hasPythonFlagNoAsserts():
         options["python_sysflag_optimize"] = asBoolStr(True)
 
     if python_version < 0x300 and sys.flags.py3k_warning:

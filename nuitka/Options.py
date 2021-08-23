@@ -1008,6 +1008,18 @@ def hasPythonFlagNoAnnotations():
     return "no_annotations" in getPythonFlags()
 
 
+def hasPythonFlagNoAsserts():
+    """*bool* = "no_asserts" in python flags given"""
+
+    return "no_asserts" in getPythonFlags()
+
+
+def hasPythonFlagNoDocstrings():
+    """*bool* = "no_docstrings" in python flags given"""
+
+    return "no_docstrings" in getPythonFlags()
+
+
 def shallFreezeAllStdlib():
     """*bool* = **not** shallFollowStandardLibrary"""
     return not shallFollowStandardLibrary()
