@@ -15,7 +15,6 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-
 /** Compiled methods.
  *
  * It strives to be full replacement for normal method objects, but
@@ -151,12 +150,20 @@ static PyMethodDef Nuitka_Method_methods[] = {
 #if PYTHON_VERSION >= 0x380
 static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method, PyObject *const *stack, size_t nargsf,
                                              PyObject *kwnames) {
+    assert(Nuitka_Method_Check((PyObject *)method));
     assert(kwnames == NULL || PyTuple_CheckExact(kwnames));
     Py_ssize_t nkwargs = (kwnames == NULL) ? 0 : PyTuple_GET_SIZE(kwnames);
     Py_ssize_t nargs = PyVectorcall_NARGS(nargsf);
 
     assert(nargs >= 0);
     assert((nargs == 0 && nkwargs == 0) || stack != NULL);
+
+    Py_ssize_t totalargs = nargs + nkwargs;
+
+    // Shortcut possible, no args.
+    if (totalargs == 0) {
+        return Nuitka_CallMethodFunctionNoArgs(method->m_function, method->m_object);
+    }
 
     PyObject *result;
 
@@ -165,21 +172,20 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
            we can consider the else branch irrelevant? Also does it not make sense
            to check pos arg and kw counts and shortcut somewhat. */
 
-        PyObject **newargs = (PyObject **)stack - 1;
-        nargs += 1;
-        PyObject *tmp = newargs[0];
-        newargs[0] = method->m_object;
-        result = Nuitka_CallFunctionVectorcall(method->m_function, newargs, nargs,
+        PyObject **new_args = (PyObject **)stack - 1;
+
+        PyObject *tmp = new_args[0];
+        new_args[0] = method->m_object;
+
+        CHECK_OBJECTS(new_args, totalargs + 1);
+
+        result = Nuitka_CallFunctionVectorcall(method->m_function, new_args, nargs + 1,
                                                kwnames ? &PyTuple_GET_ITEM(kwnames, 0) : NULL, nkwargs);
-        newargs[0] = tmp;
+
+        CHECK_OBJECTS(new_args, totalargs + 1);
+
+        new_args[0] = tmp;
     } else {
-        Py_ssize_t totalargs = nargs + nkwargs;
-
-        // Shortcut possible, no args.
-        if (totalargs == 0) {
-            return Nuitka_CallMethodFunctionNoArgs(method->m_function, method->m_object);
-        }
-
 #ifdef _MSC_VER
         PyObject **new_args = (PyObject **)_alloca(sizeof(PyObject *) * (totalargs + 1));
 #else
@@ -190,10 +196,14 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
 
         /* Definitely have args at this point. */
         assert(stack != NULL);
-        memcpy(new_args + 1, stack, totalargs * sizeof(PyObject *));
+        memcpy(&new_args[1], stack, totalargs * sizeof(PyObject *));
+
+        CHECK_OBJECTS(new_args, totalargs + 1);
 
         result = Nuitka_CallFunctionVectorcall(method->m_function, new_args, nargs + 1,
                                                kwnames ? &PyTuple_GET_ITEM(kwnames, 0) : NULL, nkwargs);
+
+        CHECK_OBJECTS(new_args, totalargs + 1);
     }
 
     return result;
