@@ -458,8 +458,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 {% endif %}
             return obj;
         }
-{# TODO: For Python2 old style classes, this should exist. #}
-{% if True %}
 #if PYTHON_VERSION < 0x300
     } else if (PyClass_Check(called)) {
         PyObject *obj = PyInstance_NewRaw(called, NULL);
@@ -540,7 +538,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 
         return obj;
 #endif
-{% endif %}
 #if PYTHON_VERSION >= 0x380
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
