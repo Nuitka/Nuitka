@@ -1187,9 +1187,3 @@ void loadConstantsBlob(PyObject **output, char const *name) {
 
     unpackBlobConstants(output, w);
 }
-
-#ifndef __NUITKA_NO_ASSERT__
-void checkConstantsBlob(PyObject **output, char const *name) {
-    // TODO: Unpack and check for correct values in output only.
-}
-#endif

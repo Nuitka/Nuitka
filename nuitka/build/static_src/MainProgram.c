@@ -742,9 +742,7 @@ int main(int argc, char **argv) {
     checkGlobalConstants();
 
     /* TODO: Walk over all loaded compiled modules, and make this kind of checks. */
-#if 0
     checkModuleConstants___main__();
-#endif
 
 #endif
 

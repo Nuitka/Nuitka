@@ -61,6 +61,9 @@ PyDictObject *moduledict_%(module_identifier)s;
 
 /* The declarations of module constants used, if any. */
 static PyObject *mod_consts[%(constants_count)d];
+#ifndef __NUITKA_NO_ASSERT__
+static Py_hash_t mod_consts_hash[%(constants_count)d];
+#endif
 
 static PyObject *module_filename_obj = NULL;
 
@@ -72,6 +75,12 @@ static void createModuleConstants(void) {
     if (constants_created == false) {
         loadConstantsBlob(&mod_consts[0], UNTRANSLATE(%(module_const_blob_name)s));
         constants_created = true;
+
+#ifndef __NUITKA_NO_ASSERT__
+        for(int i = 0; i < %(constants_count)d; i++) {
+            mod_consts_hash[i] = DEEP_HASH(mod_consts[i]);
+        }
+#endif
     }
 }
 
@@ -88,7 +97,10 @@ void checkModuleConstants_%(module_identifier)s(void) {
     // The module may not have been used at all, then ignore this.
     if (constants_created == false) return;
 
-    checkConstantsBlob(&mod_consts[0], "%(module_name)s");
+    for(int i = 0; i < %(constants_count)d; i++) {
+        assert(mod_consts_hash[i] == DEEP_HASH(mod_consts[i]));
+        CHECK_OBJECT_DEEP(mod_consts[i]);
+    }
 }
 #endif
 

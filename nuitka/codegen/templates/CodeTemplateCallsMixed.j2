@@ -134,6 +134,13 @@ PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}_KWSPLIT(PyObject *called, PyO
 {% endif %}
     Py_DECREF(named_args);
 
+{% if args_count != 0 %}
+    CHECK_OBJECTS(args, {{args_count}});
+{% endif %}
+{% if has_dict_values %}
+    CHECK_OBJECTS(kw_values, nkwargs);
+{% endif %}
+
     Py_LeaveRecursiveCall();
 
     return Nuitka_CheckFunctionResult(result);
