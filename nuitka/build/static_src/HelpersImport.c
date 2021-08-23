@@ -216,12 +216,9 @@ PyObject *IMPORT_NAME(PyObject *module, PyObject *import_name) {
     PyObject *result = PyObject_GetAttr(module, import_name);
 
     if (unlikely(result == NULL)) {
-        if (EXCEPTION_MATCH_BOOL_SINGLE(GET_ERROR_OCCURRED(), PyExc_AttributeError)) {
+        if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED()) {
 #if PYTHON_VERSION >= 0x370
-            PyObject *filename = PyModule_GetFilenameObject(module);
-            if (filename == NULL) {
-                filename = PyUnicode_FromString("unknown location");
-            }
+            PyObject *filename = Nuitka_GetFilenameObject(module);
 
             PyObject *name = LOOKUP_ATTRIBUTE(module, const_str_plain___name__);
             if (name == NULL) {
