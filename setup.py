@@ -76,8 +76,6 @@ def findNuitkaPackages():
 
     for root, dirnames, filenames in os.walk("nuitka"):
         # Ignore the inline copy of scons, these are not packages of Nuitka.
-        if "scons-" in root:
-            continue
 
         # Packages must contain "__init__.py" or they are merely directories
         # in Nuitka as we are Python2 compatible.
@@ -85,32 +83,57 @@ def findNuitkaPackages():
             continue
 
         # The "release" namespace is code used to release, but not itself for
-        # release, same goes for "qualit"y.
+        # release, same goes for "quality".
         if "release" in dirnames:
             dirnames.remove("release")
         if "quality" in dirnames:
             dirnames.remove("quality")
+
+        # Handled separatedly.
+        if "inline_copy" in dirnames:
+            dirnames.remove("inline_copy")
 
         result.append(root.replace(os.path.sep, "."))
 
     return result
 
 
-if (
-    os.path.exists("/usr/bin/scons")
-    and "sdist" not in sys.argv
-    and "bdist_wininst" not in sys.argv
-    and "bdist_msi" not in sys.argv
-):
-    scons_files = []
+inline_copy_files = []
+
+
+def addInlineCopy(name):
+    inline_copy_files.extend(
+        (
+            "inline_copy/%s/*.py" % name,
+            "inline_copy/%s/*/*.py" % name,
+            "inline_copy/%s/*/*/*.py" % name,
+            "inline_copy/%s/*/*/*/*.py" % name,
+            "inline_copy/%s/*/*/*/*/*.py" % name,
+        )
+    )
+
+
+addInlineCopy("appdirs")
+addInlineCopy("glob2")
+addInlineCopy("jinja2")
+addInlineCopy("tqdm")
+
+if os.name == "nt":
+    addInlineCopy("atomicwrites")
+    addInlineCopy("clcache")
+    addInlineCopy("colorama")
+
+if sys.version_info < (3,):
+    addInlineCopy("yaml_27")
+elif sys.version_info < (3, 6):
+    addInlineCopy("yaml_35")
 else:
-    scons_files = [
-        "inline_copy/*/*.py",
-        "inline_copy/*/*/*.py",
-        "inline_copy/*/*/*/*.py",
-        "inline_copy/*/*/*/*/*.py",
-        "inline_copy/*/*/*/*/*/*.py",
-    ]
+    addInlineCopy("yaml")
+
+# Scons really only, with historic naming and positioning. Needs to match the
+# "scons.py" in bin with respect to versions selection.
+addInlineCopy("bin")
+addInlineCopy("lib/scons-2.3.2" if sys.version_info < (2, 7) else "lib/scons-3.1.2")
 
 # Have different project names for MSI installers, so 32 and 64 bit versions do
 # not conflict.
@@ -125,11 +148,6 @@ orig_byte_compile = distutils.util.byte_compile
 
 
 def byte_compile(py_files, *args, **kw):
-    # Lets hack the byte_compile function so it doesn't byte compile old Scons built-in
-    # copy with Python3 or Windows as it's not used there.
-    if sys.version_info >= (3,) or (os.name == "nt" and "sdist" not in sys.argv):
-        py_files = [py_file for py_file in py_files if "scons-2.3.2" not in py_file]
-
     # Disable bytecode compilation output, too annoying.
     kw["verbose"] = 0
 
@@ -313,7 +331,8 @@ setup(
             "include/*/*.h",
             "include/*/*/*.h",
         ]
-        + scons_files,
+        + inline_copy_files,
+        "nuitka.codegen": ["templates/*.j2"],
     },
     # metadata for upload to PyPI
     author="Kay Hayen",
