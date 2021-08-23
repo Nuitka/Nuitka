@@ -1174,7 +1174,7 @@ static PyObject *_path_unfreezer_repr_module(PyObject *self, PyObject *args, PyO
         return NULL;
     }
 
-    return PyUnicode_FromFormat("<module '%s' from %R>", PyModule_GetName(module), PyModule_GetFilenameObject(module));
+    return PyUnicode_FromFormat("<module '%s' from %R>", PyModule_GetName(module), Nuitka_GetFilenameObject(module));
 }
 
 static PyObject *getModuleSpecClass(PyObject *importlib_module) {

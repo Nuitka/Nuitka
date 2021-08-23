@@ -88,4 +88,20 @@ NUITKA_MAY_BE_UNUSED static bool Nuitka_SetModuleString(char const *module_name,
     return result;
 }
 
+// Wrapper for PyModule_GetFilenameObject that has no error.
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetFilenameObject(PyObject *module) {
+#if PYTHON_VERSION < 0x300
+    PyObject *filename = LOOKUP_ATTRIBUTE(module, const_str_plain___file__);
+#else
+    PyObject *filename = PyModule_GetFilenameObject(module);
+#endif
+
+    if (unlikely(filename == NULL)) {
+        DROP_ERROR_OCCURRED();
+        filename = PyUnicode_FromString("unknown location");
+    }
+
+    return filename;
+}
+
 #endif
