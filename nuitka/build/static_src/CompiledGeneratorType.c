@@ -848,9 +848,9 @@ static bool _Nuitka_Generator_check_throw2(PyObject **exception_type, PyObject *
 
 failed_throw:
     // Release exception, we are done with it now.
-    Py_DECREF(exception_type);
-    Py_XDECREF(exception_value);
-    Py_XDECREF(exception_tb);
+    Py_DECREF(*exception_type);
+    Py_XDECREF(*exception_value);
+    Py_XDECREF(*exception_tb);
 
     return false;
 }
