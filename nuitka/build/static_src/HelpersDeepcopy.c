@@ -53,6 +53,7 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
             int res = PyDict_SetItem(result, entry->me_key, deep_copy);
 
             Py_DECREF(deep_copy);
+            CHECK_OBJECT(deep_copy);
 
             if (unlikely(res != 0)) {
                 return NULL;
@@ -117,6 +118,7 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
                 PyDict_SetItem(result, entry->me_key, deep_copy);
 
                 Py_DECREF(deep_copy);
+                CHECK_OBJECT(deep_copy);
             }
         }
 

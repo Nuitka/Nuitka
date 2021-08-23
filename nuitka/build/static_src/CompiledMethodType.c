@@ -270,7 +270,7 @@ static PyObject *Nuitka_Method_tp_descr_get(struct Nuitka_MethodObject *method, 
 }
 
 static PyObject *Nuitka_Method_tp_getattro(struct Nuitka_MethodObject *method, PyObject *name) {
-    PyObject *descr = _PyType_Lookup(&Nuitka_Method_Type, name);
+    PyObject *descr = Nuitka_TypeLookup(&Nuitka_Method_Type, name);
 
     if (descr != NULL) {
         if (NuitkaType_HasFeatureClass(Py_TYPE(descr)) && (Py_TYPE(descr)->tp_descr_get != NULL)) {

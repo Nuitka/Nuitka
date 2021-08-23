@@ -217,6 +217,21 @@ extern _PyRuntimeState _PyRuntime;
 #define PyUnicode_GET_LENGTH(x) (PyUnicode_GET_SIZE(x))
 #endif
 
+// Wrap the type lookup for debug mode, to identify errors, and potentially
+// to make our own enhancement later on. For now only verify it is not being
+// called with an error set, which 3.9 asserts against in core code.
+#ifdef __NUITKA_NO_ASSERT__
+#define Nuitka_TypeLookup(x, y) _PyType_Lookup(x, y)
+#else
+NUITKA_MAY_BE_UNUSED static inline bool ERROR_OCCURRED(void);
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_TypeLookup(PyTypeObject *type, PyObject *name) {
+    assert(!ERROR_OCCURRED());
+
+    return _PyType_Lookup(type, name);
+}
+
+#endif
+
 /* With the idea to reduce the amount of exported symbols in the DLLs, make it
  * clear that the module "init" function should of course be exported, but not
  * for executable, where we call it ourselves from the main code.

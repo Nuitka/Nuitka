@@ -212,7 +212,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -578,7 +578,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
                         Py_XDECREF(pos_args);
                         pos_args = NULL;
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -945,7 +945,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -1293,7 +1293,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args) {
                         Py_XDECREF(pos_args);
                         pos_args = NULL;
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -1640,7 +1640,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args) {
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -1988,7 +1988,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args) {
                         Py_XDECREF(pos_args);
                         pos_args = NULL;
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -2335,7 +2335,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args) {
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -2683,7 +2683,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args) {
                         Py_XDECREF(pos_args);
                         pos_args = NULL;
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -3030,7 +3030,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args) {
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -3378,7 +3378,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args) {
                         Py_XDECREF(pos_args);
                         pos_args = NULL;
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -3725,7 +3725,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args) {
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -4073,7 +4073,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject *const *args) {
                         Py_XDECREF(pos_args);
                         pos_args = NULL;
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -4420,7 +4420,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args) {
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -4768,7 +4768,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject *const *args) {
                         Py_XDECREF(pos_args);
                         pos_args = NULL;
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -5115,7 +5115,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args) {
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -5463,7 +5463,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject *const *args) {
                         Py_XDECREF(pos_args);
                         pos_args = NULL;
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -5810,7 +5810,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args) {
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -6158,7 +6158,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject *const *args) {
                         Py_XDECREF(pos_args);
                         pos_args = NULL;
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -6505,7 +6505,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args) {
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -6853,7 +6853,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject *const *args) {
                         Py_XDECREF(pos_args);
                         pos_args = NULL;
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -7200,7 +7200,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
                 if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
                     if (type->tp_init == default_tp_init_wrapper) {
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);
@@ -9925,7 +9925,7 @@ PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attr_name) {
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
@@ -10149,7 +10149,7 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyO
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
@@ -10374,7 +10374,7 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyObject *source, PyObject *attr_name, PyObject
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
@@ -10599,7 +10599,7 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyObject *source, PyObject *attr_name, PyObject
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
@@ -10824,7 +10824,7 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyObject *source, PyObject *attr_name, PyObject
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
@@ -11049,7 +11049,7 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyObject *source, PyObject *attr_name, PyObject
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
@@ -11274,7 +11274,7 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyObject *source, PyObject *attr_name, PyObject
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
@@ -11499,7 +11499,7 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyObject *source, PyObject *attr_name, PyObject
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
@@ -11724,7 +11724,7 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyObject *source, PyObject *attr_name, PyObject
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
@@ -11949,7 +11949,7 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyObject *source, PyObject *attr_name, PyObject
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
@@ -12174,7 +12174,7 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyObject *source, PyObject *attr_name, PyObjec
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {

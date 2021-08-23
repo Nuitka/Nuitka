@@ -371,7 +371,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
                         pos_args = NULL;
 {% endif %}
 
-                        PyObject *init_method = _PyType_Lookup(type, const_str_plain___init__);
+                        PyObject *init_method = Nuitka_TypeLookup(type, const_str_plain___init__);
 
                         // Not really allowed, since we wouldn't have the default wrapper set.
                         assert(init_method != NULL);

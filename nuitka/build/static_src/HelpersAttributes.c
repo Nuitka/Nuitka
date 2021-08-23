@@ -126,7 +126,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
@@ -243,7 +243,7 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, const_str_plain___dict__);
+        PyObject *descr = Nuitka_TypeLookup(type, const_str_plain___dict__);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
@@ -356,7 +356,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, const_str_plain___class__);
+        PyObject *descr = Nuitka_TypeLookup(type, const_str_plain___class__);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
@@ -520,7 +520,7 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
@@ -710,7 +710,7 @@ static bool SET_ATTRIBUTE_GENERIC(PyTypeObject *type, PyObject *target, PyObject
         }
     }
 
-    PyObject *descr = _PyType_Lookup(type, attr_name);
+    PyObject *descr = Nuitka_TypeLookup(type, attr_name);
 
     if (descr != NULL) {
         Py_INCREF(descr);
@@ -951,7 +951,7 @@ PyObject *LOOKUP_SPECIAL(PyObject *source, PyObject *attr_name) {
     // TODO: There is heavy optimization in CPython to avoid it. Potentially
     // that's worth it to imitate that.
 
-    PyObject *result = _PyType_Lookup(Py_TYPE(source), attr_name);
+    PyObject *result = Nuitka_TypeLookup(Py_TYPE(source), attr_name);
 
     if (likely(result)) {
         descrgetfunc func = Py_TYPE(result)->tp_descr_get;
