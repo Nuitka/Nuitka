@@ -358,6 +358,9 @@ extern void createGlobalConstants(void);
 // Call this to check of common constants are still intact.
 #ifndef __NUITKA_NO_ASSERT__
 extern void checkGlobalConstants(void);
+#ifdef _NUITKA_EXE
+extern void checkModuleConstants___main__(void);
+#endif
 #endif
 
 #if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED || _NUITKA_PLUGIN_TRACEBACK_ENCRYPTION_ENABLED
