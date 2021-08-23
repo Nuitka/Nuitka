@@ -49,7 +49,7 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyObject *source, PyObject *attr_n
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
