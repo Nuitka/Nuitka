@@ -186,16 +186,11 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
 
         new_args[0] = tmp;
     } else {
-#ifdef _MSC_VER
-        PyObject **new_args = (PyObject **)_alloca(sizeof(PyObject *) * (totalargs + 1));
-#else
-        PyObject *new_args[totalargs + 1];
-#endif
-
-        new_args[0] = method->m_object;
-
-        /* Definitely have args at this point. */
+        /* Definitely having args at this point. */
         assert(stack != NULL);
+
+        NUITKA_DYNAMIC_ARRAY_DECL(new_args, PyObject *, totalargs + 1);
+        new_args[0] = method->m_object;
         memcpy(&new_args[1], stack, totalargs * sizeof(PyObject *));
 
         CHECK_OBJECTS(new_args, totalargs + 1);

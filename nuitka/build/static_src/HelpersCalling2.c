@@ -79,11 +79,8 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        0 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -364,11 +361,8 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 1 * sizeof(PyObject *));
             memcpy(python_pars + 1, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -430,11 +424,8 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        1 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -744,11 +735,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 1 * sizeof(PyObject *));
             memcpy(python_pars + 1, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -810,11 +798,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        1 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -1099,11 +1084,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 2 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 2 * sizeof(PyObject *));
             memcpy(python_pars + 2, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -1165,11 +1147,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        2 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -1459,11 +1438,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 2 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 2 * sizeof(PyObject *));
             memcpy(python_pars + 2, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -1525,11 +1501,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        2 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -1794,11 +1767,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 3 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 3 * sizeof(PyObject *));
             memcpy(python_pars + 3, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -1860,11 +1830,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        3 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -2154,11 +2121,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 3 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 3 * sizeof(PyObject *));
             memcpy(python_pars + 3, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -2220,11 +2184,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        3 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -2489,11 +2450,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 4 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 4 * sizeof(PyObject *));
             memcpy(python_pars + 4, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -2555,11 +2513,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        4 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -2849,11 +2804,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 4 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 4 * sizeof(PyObject *));
             memcpy(python_pars + 4, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -2915,11 +2867,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        4 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -3184,11 +3133,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 5 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 5 * sizeof(PyObject *));
             memcpy(python_pars + 5, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -3250,11 +3196,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        5 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -3544,11 +3487,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 5 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 5 * sizeof(PyObject *));
             memcpy(python_pars + 5, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -3610,11 +3550,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        5 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -3879,11 +3816,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject *const *args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 6 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 6 * sizeof(PyObject *));
             memcpy(python_pars + 6, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -3945,11 +3879,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject *const *args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        6 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -4239,11 +4170,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 6 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 6 * sizeof(PyObject *));
             memcpy(python_pars + 6, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -4305,11 +4233,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        6 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -4574,11 +4499,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject *const *args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 7 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 7 * sizeof(PyObject *));
             memcpy(python_pars + 7, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -4640,11 +4562,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject *const *args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        7 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -4934,11 +4853,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 7 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 7 * sizeof(PyObject *));
             memcpy(python_pars + 7, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -5000,11 +4916,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        7 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -5269,11 +5182,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject *const *args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 8 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 8 * sizeof(PyObject *));
             memcpy(python_pars + 8, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -5335,11 +5245,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject *const *args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        8 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -5629,11 +5536,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 8 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 8 * sizeof(PyObject *));
             memcpy(python_pars + 8, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -5695,11 +5599,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        8 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -5964,11 +5865,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject *const *args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 9 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 9 * sizeof(PyObject *));
             memcpy(python_pars + 9, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -6030,11 +5928,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject *const *args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        9 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -6324,11 +6219,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 9 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 9 * sizeof(PyObject *));
             memcpy(python_pars + 9, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -6390,11 +6282,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        9 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -6659,11 +6548,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject *const *args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 10 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 10 * sizeof(PyObject *));
             memcpy(python_pars + 10, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -6725,11 +6611,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject *const *args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        10 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -7019,11 +6902,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
             }
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 10 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-            PyObject *python_pars[function->m_args_positional_count];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
             memcpy(python_pars, args, 10 * sizeof(PyObject *));
             memcpy(python_pars + 10, &PyTuple_GET_ITEM(function->m_defaults, 0),
                    function->m_defaults_given * sizeof(PyObject *));
@@ -7085,11 +6965,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        10 + 1 + function->m_defaults_given == function->m_args_positional_count) {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca(sizeof(PyObject *) * function->m_args_positional_count);
-#else
-                PyObject *python_pars[function->m_args_positional_count];
-#endif
+                NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
+
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
@@ -7515,11 +7392,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KWSPLIT(PyObject *called, PyObject *const *ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (1 + nkwargs));
-#else
-            PyObject *vectorcall_args[1 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + nkwargs);
+
             memcpy(vectorcall_args, args, 1 * sizeof(PyObject *));
             memcpy(&vectorcall_args[1], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -7604,11 +7478,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1_KWSPLIT(PyObject *called, PyObject *pos_ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (1 + nkwargs));
-#else
-            PyObject *vectorcall_args[1 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 1 + nkwargs);
+
             memcpy(vectorcall_args, args, 1 * sizeof(PyObject *));
             memcpy(&vectorcall_args[1], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -7765,11 +7636,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KWSPLIT(PyObject *called, PyObject *const *ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (2 + nkwargs));
-#else
-            PyObject *vectorcall_args[2 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 2 + nkwargs);
+
             memcpy(vectorcall_args, args, 2 * sizeof(PyObject *));
             memcpy(&vectorcall_args[2], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -7854,11 +7722,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2_KWSPLIT(PyObject *called, PyObject *pos_ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (2 + nkwargs));
-#else
-            PyObject *vectorcall_args[2 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 2 + nkwargs);
+
             memcpy(vectorcall_args, args, 2 * sizeof(PyObject *));
             memcpy(&vectorcall_args[2], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -8015,11 +7880,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KWSPLIT(PyObject *called, PyObject *const *ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (3 + nkwargs));
-#else
-            PyObject *vectorcall_args[3 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 3 + nkwargs);
+
             memcpy(vectorcall_args, args, 3 * sizeof(PyObject *));
             memcpy(&vectorcall_args[3], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -8104,11 +7966,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3_KWSPLIT(PyObject *called, PyObject *pos_ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (3 + nkwargs));
-#else
-            PyObject *vectorcall_args[3 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 3 + nkwargs);
+
             memcpy(vectorcall_args, args, 3 * sizeof(PyObject *));
             memcpy(&vectorcall_args[3], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -8265,11 +8124,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KWSPLIT(PyObject *called, PyObject *const *ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (4 + nkwargs));
-#else
-            PyObject *vectorcall_args[4 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 4 + nkwargs);
+
             memcpy(vectorcall_args, args, 4 * sizeof(PyObject *));
             memcpy(&vectorcall_args[4], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -8354,11 +8210,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4_KWSPLIT(PyObject *called, PyObject *pos_ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (4 + nkwargs));
-#else
-            PyObject *vectorcall_args[4 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 4 + nkwargs);
+
             memcpy(vectorcall_args, args, 4 * sizeof(PyObject *));
             memcpy(&vectorcall_args[4], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -8515,11 +8368,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KWSPLIT(PyObject *called, PyObject *const *ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (5 + nkwargs));
-#else
-            PyObject *vectorcall_args[5 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 5 + nkwargs);
+
             memcpy(vectorcall_args, args, 5 * sizeof(PyObject *));
             memcpy(&vectorcall_args[5], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -8604,11 +8454,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5_KWSPLIT(PyObject *called, PyObject *pos_ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (5 + nkwargs));
-#else
-            PyObject *vectorcall_args[5 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 5 + nkwargs);
+
             memcpy(vectorcall_args, args, 5 * sizeof(PyObject *));
             memcpy(&vectorcall_args[5], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -8765,11 +8612,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KWSPLIT(PyObject *called, PyObject *const *ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (6 + nkwargs));
-#else
-            PyObject *vectorcall_args[6 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 6 + nkwargs);
+
             memcpy(vectorcall_args, args, 6 * sizeof(PyObject *));
             memcpy(&vectorcall_args[6], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -8854,11 +8698,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6_KWSPLIT(PyObject *called, PyObject *pos_ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (6 + nkwargs));
-#else
-            PyObject *vectorcall_args[6 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 6 + nkwargs);
+
             memcpy(vectorcall_args, args, 6 * sizeof(PyObject *));
             memcpy(&vectorcall_args[6], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -9015,11 +8856,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KWSPLIT(PyObject *called, PyObject *const *ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (7 + nkwargs));
-#else
-            PyObject *vectorcall_args[7 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 7 + nkwargs);
+
             memcpy(vectorcall_args, args, 7 * sizeof(PyObject *));
             memcpy(&vectorcall_args[7], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -9104,11 +8942,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7_KWSPLIT(PyObject *called, PyObject *pos_ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (7 + nkwargs));
-#else
-            PyObject *vectorcall_args[7 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 7 + nkwargs);
+
             memcpy(vectorcall_args, args, 7 * sizeof(PyObject *));
             memcpy(&vectorcall_args[7], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -9265,11 +9100,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KWSPLIT(PyObject *called, PyObject *const *ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (8 + nkwargs));
-#else
-            PyObject *vectorcall_args[8 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 8 + nkwargs);
+
             memcpy(vectorcall_args, args, 8 * sizeof(PyObject *));
             memcpy(&vectorcall_args[8], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -9354,11 +9186,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8_KWSPLIT(PyObject *called, PyObject *pos_ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (8 + nkwargs));
-#else
-            PyObject *vectorcall_args[8 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 8 + nkwargs);
+
             memcpy(vectorcall_args, args, 8 * sizeof(PyObject *));
             memcpy(&vectorcall_args[8], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -9515,11 +9344,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KWSPLIT(PyObject *called, PyObject *const *ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (9 + nkwargs));
-#else
-            PyObject *vectorcall_args[9 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 9 + nkwargs);
+
             memcpy(vectorcall_args, args, 9 * sizeof(PyObject *));
             memcpy(&vectorcall_args[9], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -9604,11 +9430,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9_KWSPLIT(PyObject *called, PyObject *pos_ar
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (9 + nkwargs));
-#else
-            PyObject *vectorcall_args[9 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 9 + nkwargs);
+
             memcpy(vectorcall_args, args, 9 * sizeof(PyObject *));
             memcpy(&vectorcall_args[9], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -9765,11 +9588,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KWSPLIT(PyObject *called, PyObject *const *a
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (10 + nkwargs));
-#else
-            PyObject *vectorcall_args[10 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 10 + nkwargs);
+
             memcpy(vectorcall_args, args, 10 * sizeof(PyObject *));
             memcpy(&vectorcall_args[10], kw_values, nkwargs * sizeof(PyObject *));
 
@@ -9854,11 +9674,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10_KWSPLIT(PyObject *called, PyObject *pos_a
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
         if (likely(func != NULL)) {
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * (10 + nkwargs));
-#else
-            PyObject *vectorcall_args[10 + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, 10 + nkwargs);
+
             memcpy(vectorcall_args, args, 10 * sizeof(PyObject *));
             memcpy(&vectorcall_args[10], kw_values, nkwargs * sizeof(PyObject *));
 
