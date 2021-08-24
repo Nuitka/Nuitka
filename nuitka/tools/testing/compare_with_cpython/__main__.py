@@ -713,35 +713,36 @@ Stderr was:
                 trace_result=False
             )
 
-            if exit_code_stdout or exit_code_stderr or exit_code_return:
-                old_stdout_cpython = stdout_cpython
-                old_stderr_cpython = stderr_cpython
-                old_exit_cpython = exit_cpython
+            if not int(os.environ.get("NUITKA_CPYTHON_NO_CACHE_UPDATE", "0")):
+                if exit_code_stdout or exit_code_stderr or exit_code_return:
+                    old_stdout_cpython = stdout_cpython
+                    old_stderr_cpython = stderr_cpython
+                    old_exit_cpython = exit_cpython
 
-                my_print(
-                    "Updating CPython cache by force due to non-matching comparison results.",
-                    style="yellow",
-                )
+                    my_print(
+                        "Updating CPython cache by force due to non-matching comparison results.",
+                        style="yellow",
+                    )
 
-                (
-                    cpython_time,
-                    stdout_cpython,
-                    stderr_cpython,
-                    exit_cpython,
-                ) = getCPythonResults(
-                    cpython_cmd=cpython_cmd,
-                    cpython_cached=cpython_cached,
-                    force_update=True,
-                    send_kill=send_kill,
-                )
+                    (
+                        cpython_time,
+                        stdout_cpython,
+                        stderr_cpython,
+                        exit_cpython,
+                    ) = getCPythonResults(
+                        cpython_cmd=cpython_cmd,
+                        cpython_cached=cpython_cached,
+                        force_update=True,
+                        send_kill=send_kill,
+                    )
 
-                if not silent_mode:
-                    if (
-                        old_stdout_cpython != stdout_cpython
-                        or old_stderr_cpython != stderr_cpython
-                        or old_exit_cpython != exit_cpython
-                    ):
-                        displayOutput(stdout_cpython, stderr_cpython)
+                    if not silent_mode:
+                        if (
+                            old_stdout_cpython != stdout_cpython
+                            or old_stderr_cpython != stderr_cpython
+                            or old_exit_cpython != exit_cpython
+                        ):
+                            displayOutput(stdout_cpython, stderr_cpython)
 
         exit_code_stdout, exit_code_stderr, exit_code_return = makeComparisons(
             trace_result=True
