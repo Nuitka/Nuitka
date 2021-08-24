@@ -309,6 +309,8 @@
 
                 {{ target.getReturnFromObjectExpressionCode("result") }}
             }
+
+            Py_DECREF(result);
         }
     }
 

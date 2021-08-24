@@ -364,6 +364,8 @@ PyObject *RICH_COMPARE_GE_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
 
                 return result;
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -720,6 +722,8 @@ bool RICH_COMPARE_GE_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -1076,6 +1080,8 @@ nuitka_bool RICH_COMPARE_GE_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -1419,6 +1425,8 @@ PyObject *RICH_COMPARE_GE_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
 
                 return result;
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -1818,6 +1826,8 @@ bool RICH_COMPARE_GE_CBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -2217,6 +2227,8 @@ nuitka_bool RICH_COMPARE_GE_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -2508,6 +2520,8 @@ PyObject *RICH_COMPARE_GE_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
 
                 return result;
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -2855,6 +2869,8 @@ bool RICH_COMPARE_GE_CBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -3202,6 +3218,8 @@ nuitka_bool RICH_COMPARE_GE_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -3625,6 +3643,8 @@ bool RICH_COMPARE_GE_CBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) 
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -4024,6 +4044,8 @@ nuitka_bool RICH_COMPARE_GE_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -4367,6 +4389,8 @@ PyObject *RICH_COMPARE_GE_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
 
                 return result;
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -4714,6 +4738,8 @@ bool RICH_COMPARE_GE_CBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -5061,6 +5087,8 @@ nuitka_bool RICH_COMPARE_GE_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -5400,6 +5428,8 @@ PyObject *RICH_COMPARE_GE_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
 
                 return result;
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -5747,6 +5777,8 @@ bool RICH_COMPARE_GE_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -6094,6 +6126,8 @@ nuitka_bool RICH_COMPARE_GE_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -6385,6 +6419,8 @@ PyObject *RICH_COMPARE_GE_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
 
                 return result;
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -6732,6 +6768,8 @@ bool RICH_COMPARE_GE_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -7079,6 +7117,8 @@ nuitka_bool RICH_COMPARE_GE_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -7453,6 +7493,8 @@ PyObject *RICH_COMPARE_GE_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
 
                 return result;
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -7798,6 +7840,8 @@ bool RICH_COMPARE_GE_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -8143,6 +8187,8 @@ nuitka_bool RICH_COMPARE_GE_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -8432,6 +8478,8 @@ PyObject *RICH_COMPARE_GE_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
 
                 return result;
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -8777,6 +8825,8 @@ bool RICH_COMPARE_GE_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -9122,6 +9172,8 @@ nuitka_bool RICH_COMPARE_GE_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -9588,6 +9640,8 @@ PyObject *RICH_COMPARE_GE_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
 
                 return result;
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -9933,6 +9987,8 @@ bool RICH_COMPARE_GE_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -10278,6 +10334,8 @@ nuitka_bool RICH_COMPARE_GE_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -10567,6 +10625,8 @@ PyObject *RICH_COMPARE_GE_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
 
                 return result;
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -10912,6 +10972,8 @@ bool RICH_COMPARE_GE_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -11257,6 +11319,8 @@ nuitka_bool RICH_COMPARE_GE_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -11723,6 +11787,8 @@ PyObject *RICH_COMPARE_GE_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
 
                 return result;
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -12068,6 +12134,8 @@ bool RICH_COMPARE_GE_CBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -12413,6 +12481,8 @@ nuitka_bool RICH_COMPARE_GE_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -12702,6 +12772,8 @@ PyObject *RICH_COMPARE_GE_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
 
                 return result;
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -13047,6 +13119,8 @@ bool RICH_COMPARE_GE_CBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
@@ -13392,6 +13466,8 @@ nuitka_bool RICH_COMPARE_GE_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
                     return r;
                 }
             }
+
+            Py_DECREF(result);
         }
     }
 
