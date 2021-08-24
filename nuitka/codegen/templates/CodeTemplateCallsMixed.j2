@@ -70,11 +70,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}_KWSPLIT(PyObject *called, PyO
 {% elif not has_dict_values %}
             PyObject *result = func(called, args, {{args_count}}, kw_names);
 {% else %}
-#ifdef _MSC_VER
-            PyObject **vectorcall_args = (PyObject **)_alloca(sizeof(PyObject *) * ({{args_count}} + nkwargs));
-#else
-            PyObject *vectorcall_args[{{args_count}} + nkwargs];
-#endif
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, {{args_count}} + nkwargs);
+
             memcpy(vectorcall_args, args, {{args_count}}*sizeof(PyObject *));
             memcpy(&vectorcall_args[{{args_count}}], kw_values, nkwargs*sizeof(PyObject *));
 

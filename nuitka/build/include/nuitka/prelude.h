@@ -121,13 +121,6 @@ extern _PyRuntimeState _PyRuntime;
 /* Include the C header files most often used. */
 #include <stdio.h>
 
-/* Using "_alloca" extension due to MSVC restrictions for array variables
- * on the local stack.
- */
-#ifdef _MSC_VER
-#include <malloc.h>
-#endif
-
 #include "hedley.h"
 
 /* Use annotations for branch prediction. They still make sense as the L1
@@ -161,6 +154,17 @@ extern _PyRuntimeState _PyRuntime;
     abort();
 #else
 #define NUITKA_CANNOT_GET_HERE(NAME) abort();
+#endif
+
+#ifdef _MSC_VER
+/* Using "_alloca" extension due to MSVC restrictions for array variables
+ * on the local stack.
+ */
+#include <malloc.h>
+#define NUITKA_DYNAMIC_ARRAY_DECL(VARIABLE_NAME, ELEMENT_TYPE, COUNT)                                                  \
+    ELEMENT_TYPE *VARIABLE_NAME = (ELEMENT_TYPE *)_alloca(sizeof(ELEMENT_TYPE) * (COUNT));
+#else
+#define NUITKA_DYNAMIC_ARRAY_DECL(VARIABLE_NAME, ELEMENT_TYPE, COUNT) ELEMENT_TYPE VARIABLE_NAME[COUNT];
 #endif
 
 // Stringizing, to make strings out of defines use XSTRINGIZED(SOME_DEFINE) needs
