@@ -75,8 +75,6 @@ def findNuitkaPackages():
     result = []
 
     for root, dirnames, filenames in os.walk("nuitka"):
-        # Ignore the inline copy of scons, these are not packages of Nuitka.
-
         # Packages must contain "__init__.py" or they are merely directories
         # in Nuitka as we are Python2 compatible.
         if "__init__.py" not in filenames:
@@ -118,22 +116,27 @@ addInlineCopy("glob2")
 addInlineCopy("jinja2")
 addInlineCopy("tqdm")
 
-if os.name == "nt":
+sdist_mode = "sdist" in sys.argv
+
+if os.name == "nt" or sdist_mode:
     addInlineCopy("atomicwrites")
     addInlineCopy("clcache")
     addInlineCopy("colorama")
 
-if sys.version_info < (3,):
+if sys.version_info < (3,) or sdist_mode:
     addInlineCopy("yaml_27")
-elif sys.version_info < (3, 6):
+if sys.version_info < (3, 6) or sdist_mode:
     addInlineCopy("yaml_35")
-else:
-    addInlineCopy("yaml")
+
+addInlineCopy("yaml")
 
 # Scons really only, with historic naming and positioning. Needs to match the
 # "scons.py" in bin with respect to versions selection.
 addInlineCopy("bin")
-addInlineCopy("lib/scons-2.3.2" if sys.version_info < (2, 7) else "lib/scons-3.1.2")
+if sys.version_info < (2, 7) or sdist_mode:
+    addInlineCopy("lib/scons-2.3.2")
+if sys.version_info >= (2, 7) or sdist_mode:
+    addInlineCopy("lib/scons-3.1.2")
 
 # Have different project names for MSI installers, so 32 and 64 bit versions do
 # not conflict.
