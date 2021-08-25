@@ -110,7 +110,6 @@ fi
 rm -rf nuitka/build/inline_copy/clcache
 rm -rf nuitka/build/inline_copy/atomicwrites
 rm -rf nuitka/build/inline_copy/colorama
-rm -rf nuitka/build/inline_copy/zstd
 
 if [ "$python2" != "" ]
 then
