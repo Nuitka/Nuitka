@@ -19,7 +19,7 @@
 
 import ast
 
-from nuitka.Options import getPythonFlags
+from nuitka.Options import hasPythonFlagNoAsserts, hasPythonFlagNoDocstrings
 from nuitka.tree.TreeHelpers import getKind
 
 doc_having = tuple(
@@ -40,31 +40,44 @@ def _removeDocFromBody(node):
 def compileSourceToBytecode(source_code, filename):
     """Compile given source code into bytecode."""
 
-    if "no_docstrings" in getPythonFlags():
-        tree = ast.parse(source_code, filename)
+    # Prepare compile call with AST tree.
+    tree = ast.parse(source_code, filename)
 
-        _removeDocFromBody(tree)
+    # Do we need to remove docstrings.
+    remove_docstrings_from_tree = hasPythonFlagNoDocstrings()
+
+    # For Python2, we need to do this manually.
+    remove_asserts_from_tree = hasPythonFlagNoAsserts() and str is bytes
+
+    if remove_docstrings_from_tree or remove_asserts_from_tree:
+        # Module level docstring.
+        if remove_docstrings_from_tree:
+            _removeDocFromBody(tree)
 
         for node in ast.walk(tree):
-            # Check if it's a documented thing.
-            if not isinstance(node, doc_having):
-                continue
+            if remove_asserts_from_tree:
+                if type(node) is ast.Name and node.id == "__debug__":
+                    node.id = "False"
 
-            _removeDocFromBody(node)
+            # Check if it's a docstring having node type.
+            if remove_docstrings_from_tree and isinstance(node, doc_having):
+                _removeDocFromBody(node)
 
+    if str is bytes:
         bytecode = compile(
             tree,
             filename=filename,
             mode="exec",
             dont_inherit=True,
         )
-
     else:
+        # Let the handling of __debug__ happen within compile built-in.
+        optimize = 0
+        if hasPythonFlagNoAsserts():
+            optimize = 1
+
         bytecode = compile(
-            source_code,
-            filename=filename,
-            mode="exec",
-            dont_inherit=True,
+            tree, filename=filename, mode="exec", dont_inherit=True, optimize=optimize
         )
 
     return bytecode
