@@ -538,9 +538,18 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        trace_collection.onExceptionRaiseExit(BaseException)
+        # The called and the arguments escape for good.
+        self.onContentEscapes(trace_collection)
+        if call_args is not None:
+            call_args.onContentEscapes(trace_collection)
+        if call_kw is not None:
+            call_kw.onContentEscapes(trace_collection)
 
+        # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         if (
             self.variable.getName() in _hard_names
