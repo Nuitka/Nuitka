@@ -26,7 +26,7 @@ from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
-from nuitka.Options import getPythonFlags
+from nuitka.Options import hasPythonFlagNoAsserts
 from nuitka.PythonVersions import python_version
 
 from .TreeHelpers import buildNode
@@ -49,7 +49,7 @@ def buildAssertNode(provider, node, source_ref):
 
     exception_value = buildNode(provider, node.msg, source_ref, True)
 
-    if "no_asserts" in getPythonFlags():
+    if hasPythonFlagNoAsserts():
         return None
 
     if exception_value is not None and python_version >= 0x272:

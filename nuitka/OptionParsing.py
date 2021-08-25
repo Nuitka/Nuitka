@@ -979,7 +979,7 @@ linux_group.add_option(
     dest="icon_path",
     metavar="ICON_PATH",
     default=[],
-    help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to ",
+    help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to Python icon if available.",
 )
 
 parser.add_option_group(linux_group)
