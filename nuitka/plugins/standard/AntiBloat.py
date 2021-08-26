@@ -139,7 +139,14 @@ which can and should be a top level package and then one choice, "error",
 
             if replace_code:
                 if not context_ready:
-                    exec(context_code, context)
+                    try:
+                        exec(context_code, context)
+                    except Exception as e:  # pylint: disable=broad-except
+                        self.sysexit(
+                            "Error, cannot context code '%s' due to: %s"
+                            % (context_code, e)
+                        )
+
                     context_ready = True
                 try:
                     replace_dst = eval(replace_code, context)
