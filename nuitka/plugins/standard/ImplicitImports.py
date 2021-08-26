@@ -24,18 +24,16 @@ to add to this and submit patches to make it more complete.
 
 import os
 import pkgutil
-import shutil
 import sys
 
 from nuitka.containers.oset import OrderedSet
+from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import getPyWin32Dir, locateDLL
 from nuitka.utils.Utils import getOS, isWin32Windows
-
-_added_pywin32 = False
 
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
@@ -1269,22 +1267,22 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             uuid_dll_path = locateDLL("uuid")
 
             if uuid_dll_path is not None:
-                dist_dll_path = os.path.join(dist_dir, os.path.basename(uuid_dll_path))
-
-                shutil.copy(uuid_dll_path, dist_dll_path)
-
-                return ((uuid_dll_path, dist_dll_path, None),)
+                return (
+                    makeDllEntryPoint(
+                        uuid_dll_path, os.path.basename(uuid_dll_path), None
+                    ),
+                )
         elif full_name == "iptc" and getOS() == "Linux":
             import iptc.util  # pylint: disable=I0021,import-error
 
             xtwrapper_dll = iptc.util.find_library("xtwrapper")[0]
             xtwrapper_dll_path = xtwrapper_dll._name  # pylint: disable=protected-access
 
-            dist_dll_path = os.path.join(dist_dir, os.path.basename(xtwrapper_dll_path))
-
-            shutil.copy(xtwrapper_dll_path, dist_dll_path)
-
-            return ((xtwrapper_dll_path, dist_dll_path, None),)
+            return (
+                makeDllEntryPoint(
+                    xtwrapper_dll_path, os.path.basename(xtwrapper_dll_path), None
+                ),
+            )
         elif full_name == "gi._gi":
             gtk_dll_path = locateDLL("gtk-3")
 
@@ -1292,20 +1290,21 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 gtk_dll_path = locateDLL("gtk-3-0")
 
             if gtk_dll_path is not None:
-                dist_dll_path = os.path.join(dist_dir, os.path.basename(gtk_dll_path))
-                shutil.copy(gtk_dll_path, dist_dll_path)
+                return (
+                    makeDllEntryPoint(
+                        gtk_dll_path, os.path.basename(gtk_dll_path), None
+                    ),
+                )
 
-                return ((gtk_dll_path, dist_dll_path, None),)
-        elif full_name in ("win32api", "pythoncom") and isWin32Windows():
-            # Do this only once, pylint: disable=global-statement
-            global _added_pywin32
-
+        # TODO: This should be its own plugin.
+        elif (
+            full_name in ("win32api", "pythoncom", "win32file", "win32com")
+            and isWin32Windows()
+        ):
             result = []
             pywin_dir = getPyWin32Dir()
 
-            if pywin_dir is not None and not _added_pywin32:
-                _added_pywin32 = True
-
+            if pywin_dir is not None:
                 for dll_name in "pythoncom", "pywintypes":
 
                     pythoncom_filename = "%s%d%d.dll" % (
@@ -1314,12 +1313,13 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                         sys.version_info[1],
                     )
                     pythoncom_dll_path = os.path.join(pywin_dir, pythoncom_filename)
-                    dist_dll_path = os.path.join(dist_dir, pythoncom_filename)
 
                     if os.path.exists(pythoncom_dll_path):
-                        shutil.copy(pythoncom_dll_path, dist_dir)
-
-                        result.append((pythoncom_dll_path, dist_dll_path, None))
+                        result.append(
+                            makeDllEntryPoint(
+                                pythoncom_dll_path, pythoncom_filename, None
+                            )
+                        )
 
             return result
 
