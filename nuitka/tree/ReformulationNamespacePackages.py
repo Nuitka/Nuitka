@@ -30,6 +30,7 @@ from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import (
     makeExpressionMakeList,
     makeExpressionMakeTuple,
+    makeExpressionMakeTupleOrConstant,
 )
 from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
 from nuitka.nodes.FutureSpecs import FutureSpec
@@ -60,17 +61,27 @@ def _makeCall(module_name, import_name, attribute_name, source_ref, *args):
             attribute_name=attribute_name,
             source_ref=source_ref,
         ),
-        args=makeExpressionMakeTuple(elements=args, source_ref=source_ref),
+        args=makeExpressionMakeTupleOrConstant(
+            elements=args, user_provided=True, source_ref=source_ref
+        ),
         source_ref=source_ref,
     )
 
 
-def createPathAssignment(package, source_ref):
-    if Options.getFileReferenceMode() == "original":
-        path_value = makeConstantRefNode(
-            constant=[os.path.dirname(source_ref.getFilename())],
+def getNameSpacePathExpression(package, source_ref):
+    """Create the __path__ expression for a package."""
+
+    reference_mode = Options.getFileReferenceMode()
+
+    if reference_mode == "original":
+        return makeConstantRefNode(
+            constant=[package.getCompileTimeDirectory()],
             source_ref=source_ref,
-            user_provided=True,
+        )
+    elif reference_mode == "frozen":
+        return makeConstantRefNode(
+            constant=[],
+            source_ref=source_ref,
         )
     else:
         elements = [
@@ -126,17 +137,19 @@ def createPathAssignment(package, source_ref):
 
                 elements.append(path_part)
 
-        path_value = makeExpressionMakeList(elements=elements, source_ref=source_ref)
+        return makeExpressionMakeList(elements=elements, source_ref=source_ref)
 
+
+def createPathAssignment(package, source_ref):
     return StatementAssignmentVariableName(
         provider=package,
         variable_name="__path__",
-        source=path_value,
+        source=getNameSpacePathExpression(package=package, source_ref=source_ref),
         source_ref=source_ref,
     )
 
 
-def createPython3NamespacePath(package, dirname, source_ref):
+def createPython3NamespacePath(package, source_ref):
     return StatementAssignmentVariableName(
         provider=package,
         variable_name="__path__",
@@ -152,8 +165,17 @@ def createPython3NamespacePath(package, dirname, source_ref):
                 level=0,
                 source_ref=source_ref,
             ),
-            args=makeConstantRefNode(
-                constant=(package.getFullName().asString(), [dirname], None),
+            args=makeExpressionMakeTupleOrConstant(
+                elements=(
+                    makeConstantRefNode(
+                        constant=package.getFullName().asString(),
+                        user_provided=True,
+                        source_ref=source_ref,
+                    ),
+                    getNameSpacePathExpression(package=package, source_ref=source_ref),
+                    makeConstantRefNode(constant=None, source_ref=source_ref),
+                ),
+                user_provided=True,
                 source_ref=source_ref,
             ),
             source_ref=source_ref,
@@ -172,9 +194,7 @@ def createNamespacePackage(module_name, is_top, source_ref):
     )
 
     if python_version >= 0x300:
-        statement = createPython3NamespacePath(
-            package=package, dirname=source_ref.getFilename(), source_ref=source_ref
-        )
+        statement = createPython3NamespacePath(package=package, source_ref=source_ref)
     else:
         statement = createPathAssignment(package, source_ref)
 

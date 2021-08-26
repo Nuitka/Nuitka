@@ -171,7 +171,6 @@ class PythonModuleBase(NodeBase):
         return result
 
     def getRunTimeFilename(self):
-        # TODO: Don't look at such things this late, push this into building.
         reference_mode = Options.getFileReferenceMode()
 
         if reference_mode == "original":
