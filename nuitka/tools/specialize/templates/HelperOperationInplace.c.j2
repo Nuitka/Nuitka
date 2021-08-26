@@ -196,7 +196,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 
 {# TODO: No special function for tuple += tuple yet. #}
 {# Fast path for sequences in-place add with at least one known sequence type. #}
-{% if operator == "+" and left.type_name in ("list", "tuple", "object") and right.type_name in ("list", "tuple", "object") and not (left.type_name == "object" == right.type_name) %}
+{% if operator == "+" and left.type_name in ("list", "tuple") and right.type_name in ("list", "tuple", "object") %}
     if ({{ left.getSequenceCheckExpression("*operand1", right)}} && {{ right.getSequenceCheckExpression("operand2", left) }}) {
         PyObject *result = PySequence_InPlaceConcat(*operand1, operand2);
 
