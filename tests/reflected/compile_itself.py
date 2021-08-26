@@ -42,7 +42,12 @@ import shutil
 import subprocess
 import time
 
-from nuitka.tools.testing.Common import getTempDir, my_print, setup
+from nuitka.tools.testing.Common import (
+    getTempDir,
+    my_print,
+    setup,
+    test_logger,
+)
 from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
 from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
 from nuitka.utils.Importing import getSharedLibrarySuffix
@@ -120,7 +125,7 @@ def diffRecursive(dir1, dir2):
             continue
 
         if not os.path.exists(path2):
-            my_print("Only in %s: %s" % (dir1, filename))
+            test_logger.warning("Only in %s: %s" % (dir1, filename))
             result = False
             continue
 
@@ -165,15 +170,21 @@ def diffRecursive(dir1, dir2):
             continue
 
         if not os.path.exists(path1):
-            my_print("Only in %s: %s" % (dir2, filename))
+            test_logger.warning("Only in %s: %s" % (dir2, filename))
             result = False
             continue
 
     return result
 
 
+def _traceCompilation(path, pass_number):
+    test_logger.info("Compiling '%s' (PASS %d)." % (path, pass_number))
+
+
 def executePASS1():
-    my_print("PASS 1: Compiling from compiler running from .py files.")
+    test_logger.info(
+        "PASS 1: Compiling to many compiled modules from compiler running from .py files."
+    )
 
     base_dir = os.path.join("..", "..")
 
@@ -199,7 +210,7 @@ def executePASS1():
                 continue
 
             if filename != "__init__.py":
-                my_print("Compiling '%s'." % path)
+                _traceCompilation(path=path, pass_number=1)
 
                 command = [
                     os.environ["PYTHON"],
@@ -213,6 +224,8 @@ def executePASS1():
                 ]
                 command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
+                my_print("Command: ", " ".join(command))
+
                 result = subprocess.call(command)
 
                 if result != 0:
@@ -220,7 +233,7 @@ def executePASS1():
             else:
                 shutil.copyfile(path, os.path.join(target_dir, filename))
 
-    my_print("Compiling '%s'." % nuitka_main_path)
+    _traceCompilation(path=nuitka_main_path, pass_number=1)
 
     shutil.copyfile(nuitka_main_path, "nuitka-runner.py")
 
@@ -267,8 +280,10 @@ def executePASS1():
         os.path.join("nuitka", "tools"),
     )
 
+    test_logger.info("OK.")
 
-def compileAndCompareWith(nuitka):
+
+def compileAndCompareWith(nuitka, pass_number):
     if "PYTHONHASHSEED" not in os.environ:
         os.environ["PYTHONHASHSEED"] = "0"
 
@@ -289,7 +304,7 @@ def compileAndCompareWith(nuitka):
             path = os.path.join(source_dir, filename)
 
             if filename != "__init__.py":
-                my_print("Compiling '%s'." % path)
+                _traceCompilation(path=path, pass_number=pass_number)
 
                 target = filename.replace(".py", ".build")
 
@@ -334,24 +349,30 @@ def compileAndCompareWith(nuitka):
 
 
 def executePASS2():
-    my_print("PASS 2: Compiling from compiler running from .exe and many .so files.")
+    test_logger.info(
+        "PASS 2: Compiling from compiler running from entry .exe and many .so files."
+    )
 
     # Windows will load the compiled modules (pyd) only from PYTHONPATH, so we
     # have to add it.
     if os.name == "nt":
         os.environ["PYTHONPATH"] = ":".join(PACKAGE_LIST)
 
-    compileAndCompareWith(os.path.join(".", "nuitka" + exe_suffix))
+    compileAndCompareWith(
+        nuitka=os.path.join(".", "nuitka" + exe_suffix), pass_number=2
+    )
 
     # Undo the damage from above.
     if os.name == "nt":
         del os.environ["PYTHONPATH"]
 
-    my_print("OK.")
+    test_logger.info("OK.")
 
 
 def executePASS3():
-    my_print("PASS 3: Compiling from compiler running from .py files to single .exe.")
+    test_logger.info(
+        "PASS 3: Compiling from compiler running from .py files to single .exe."
+    )
 
     exe_path = os.path.join(tmp_dir, "nuitka" + exe_suffix)
 
@@ -365,7 +386,7 @@ def executePASS3():
 
     path = os.path.join("..", "..", "bin", "nuitka")
 
-    my_print("Compiling '%s'." % path)
+    _traceCompilation(path=path, pass_number=3)
 
     command = [
         os.environ["PYTHON"],
@@ -385,17 +406,17 @@ def executePASS3():
 
     shutil.rmtree(build_path)
 
-    my_print("OK.")
+    test_logger.info("OK.")
 
 
 def executePASS4():
-    my_print("PASS 4: Compiling the compiler running from single exe.")
+    test_logger.info("PASS 4: Compiling the compiler running from single exe.")
 
     exe_path = os.path.join(tmp_dir, "nuitka" + exe_suffix)
 
-    compileAndCompareWith(exe_path)
+    compileAndCompareWith(exe_path, pass_number=4)
 
-    my_print("OK.")
+    test_logger.info("OK.")
 
 
 def executePASS5():
