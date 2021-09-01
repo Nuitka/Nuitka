@@ -868,6 +868,14 @@ def isOnefileTempDirMode():
     return options.is_onefile_tempdir or getOS() != "Linux"
 
 
+def isNuitkaPgoMode():
+    return options.is_nuitka_pgo
+
+
+def getNuitkaPgoArgs():
+    return options.nuitka_pgo_args
+
+
 def getOnefileTempDirSpec(use_default):
     if use_default:
         return (

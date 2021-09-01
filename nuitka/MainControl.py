@@ -25,6 +25,8 @@ a distribution folder.
 """
 
 import os
+import shlex
+import subprocess
 import sys
 
 from nuitka.build.DataComposerInterface import runDataComposer
@@ -504,6 +506,18 @@ def runSconsBackend(quiet):
         options["module_suffix"] = getSharedLibrarySuffix(preferred=True)
 
     SconsInterface.setCommonOptions(options)
+
+    if Options.isNuitkaPgoMode():
+        options["pgo_step"] = "generate"
+        SconsInterface.runScons(
+            options=options, quiet=quiet, scons_filename="Backend.scons"
+        )
+
+        subprocess.call(
+            [os.path.abspath(options["result_exe"])]
+            + shlex.split(Options.getNuitkaPgoArgs())
+        )
+        options["pgo_step"] = "use"
 
     return (
         SconsInterface.runScons(

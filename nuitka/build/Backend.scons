@@ -719,6 +719,16 @@ if "linux" in sys.platform:
 if not msvc_mode:
     env.Append(LIBS=["m"])
 
+pgo_step = ARGUMENTS.get("pgo_step")
+if pgo_step:
+    if pgo_step == "generate":
+        env.Append(CCFLAGS=["-fprofile-generate"])
+        env.Append(LINKFLAGS=["-fprofile-generate"])
+    if pgo_step == "use":
+        env.Append(CCFLAGS=["-fprofile-use"])
+        env.Append(LINKFLAGS=["-fprofile-use"])
+
+
 if win_target:
     # For MinGW and cross compilation, we need to tell the subsystem
     # to target as well as to automatically import everything used.
