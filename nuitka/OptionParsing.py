@@ -107,6 +107,25 @@ parser.add_option(
 )
 
 
+parser.add_option(
+    "--nuitka-pgo",
+    action="store_true",
+    dest="is_nuitka_pgo",
+    default=False,
+    help="""\
+Enables PGO on the Nuitka-generated code. Defaults to off.""",
+)
+
+parser.add_option(
+    "--nuitka-pgo-args",
+    action="store",
+    dest="nuitka_pgo_args",
+    default="",
+    help="""\
+Allows to pass extra arguments to the resulting executable during the PGO profiling run.""",
+)
+
+
 if os.name == "nt":
     parser.add_option(
         "--python-arch",

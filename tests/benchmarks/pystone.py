@@ -81,7 +81,7 @@ def main(loops = LOOPS):
 
     import os
     if int(os.environ.get("BENCH", "0")):
-        print("%g" % stones)
+        print("%.2f" % stones)
     else:
         print "Pystone(%s) time for %d passes = %g" % \
             (__version__, loops, benchtime)
