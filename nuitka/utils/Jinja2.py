@@ -40,6 +40,9 @@ def unlikely_or_likely_from(value):
 
 def getEnvironment(module_name):
     if module_name not in environments:
+        # Import dependencies, sadly we get to manage this ourselves.
+        importFromInlineCopy("markupsafe", must_exist=True)
+
         jinja2 = importFromInlineCopy("jinja2", must_exist=True)
         import jinja2
 

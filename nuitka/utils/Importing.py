@@ -173,7 +173,7 @@ def importFromFolder(logger, module_name, path, must_exist, message):
             return None
 
         exit_message = (
-            "Error, expected inline copy of %r to be in %r there, error was: %r."
+            "Error, expected inline copy of %r to be in %r, error was: %r."
             % (module_name, path, e)
         )
 

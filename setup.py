@@ -114,6 +114,7 @@ def addInlineCopy(name):
 addInlineCopy("appdirs")
 addInlineCopy("glob2")
 addInlineCopy("jinja2")
+addInlineCopy("markupsafe")
 addInlineCopy("tqdm")
 
 sdist_mode = "sdist" in sys.argv
