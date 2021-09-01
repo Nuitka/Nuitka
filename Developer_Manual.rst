@@ -635,10 +635,6 @@ For fine grained control, it has the following options::
                          standalone mode, e.g. not referring to outside,
                          important 3rd library packages like PyQt fine. Default
                          is True.
-   --skip-reflection-test
-                         The reflection test compiles Nuitka with Nuitka, and
-                         then Nuitka with the compile Nuitka and compares the
-                         outputs. Default is True.
    --skip-cpython26-tests
                          The standard CPython2.6 test suite. Execute this for
                          all corner cases to be covered. With Python 2.7 this
@@ -768,23 +764,6 @@ constants. These can be run like this:
 .. code:: sh
 
    ./tests/generated/run_all.py search
-
-Compile Nuitka with Nuitka
-==========================
-
-And there is the "compile itself" or "reflected" test. This test makes
-Nuitka compile itself and compare the resulting C++ when running
-compiled to non-compiled, which helps to find in-determinism.
-
-The test compiles every module of Nuitka into an extension module and
-all of Nuitka into a single binary.
-
-That test case also gives good coverage of the ``import`` mechanisms,
-because Nuitka uses a lot of packages and imports between them.
-
-.. code:: sh
-
-   ./tests/reflected/compile_itself.py
 
 *********************
  Internal/Plugin API

@@ -138,14 +138,14 @@ then
     echo "Basic compilation test of empty program:"
     $python2 -m nuitka.__main__ --show-scons --run tests/basics/Empty.py
 
-    $python2 ./tests/run-tests --skip-reflection-test
+    $python2 ./tests/run-tests
 else
     echo "Basic compilation test of empty module:"
     python3 -m nuitka --module --show-scons --run tests/basics/Empty.py
     echo "Basic compilation test of empty program:"
     python3 -m nuitka --show-scons --run tests/basics/Empty.py
 
-    python3 ./tests/run-tests --skip-reflection-test
+    python3 ./tests/run-tests
 fi
 
 %install

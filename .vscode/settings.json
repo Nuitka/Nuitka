@@ -13,7 +13,6 @@
         "**/__pycache__": true,
         "**/*.orig": true,
         "**/*.tmp": true,
-        "tests/reflected/nuitka": true,
         "tests/distutils/venv_*": true,
         "build" : true,
     },

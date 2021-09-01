@@ -131,16 +131,6 @@ Default is %default.""",
     )
 
     parser.add_option(
-        "--skip-reflection-test",
-        action="store_false",
-        dest="reflection_test",
-        default=True,
-        help="""\
-The reflection test compiles Nuitka with Nuitka, and then Nuitka with the
-compile Nuitka and compares the outputs. Default is %default.""",
-    )
-
-    parser.add_option(
         "--skip-cpython26-tests",
         action="store_false",
         dest="cpython26",
@@ -742,14 +732,6 @@ def main():
                     executeSubTest("./tests/onefile/run_all.py search")
             else:
                 my_print("The onefile tests are not run due to missing requirements.")
-
-        if options.reflection_test and not options.coverage:
-            my_print(
-                "Running the reflection test with options '%s' with '%s':"
-                % (flags, use_python)
-            )
-            with withExtendedExtraOptions(*getExtraFlags(None, "reflected", flags)):
-                executeSubTest("./tests/reflected/compile_itself.py search")
 
         if not use_python.startswith("python3"):
             if os.path.exists("./tests/CPython26/run_all.py"):
