@@ -23,7 +23,7 @@ BuildRequires:  python
 BuildRequires:  python-devel
 BuildRequires:  python-setuptools
 %endif
-%if 0%{?fedora} < 31
+%if 0%{?fedora} < 31 && 0%{?rhel} < 8
 BuildRequires:  python-markupsafe
 %endif
 %if 0%{?fedora} >= 24
@@ -64,7 +64,7 @@ Requires:       python3-devel
 %if 0%{?rhel} == 8
 Requires:       python36-devel
 %endif
-%if 0%{?fedora} < 31
+%if 0%{?fedora} < 31 && 0%{?rhel} < 8
 Requires:       python-markupsafe
 %endif
 %if 0%{?fedora} >= 24 || 0%{?rhel} == 8
