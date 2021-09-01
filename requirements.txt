@@ -17,24 +17,21 @@
 #
 
 # Folders to use for cache files.
-appdirs == 1.4.4
-
-# Scons is the backend building tool to turn C files to binaries.
-scons == 3.1.2; os.name != "nt"
+appdirs
 
 # For the progress bar to look nicely.
-tqdm == 4.60.0; python_version == '2.7' or python_version >= '3.4'
+tqdm; python_version == '2.7' or python_version >= '3.4'
 
 # Faster OrderedSet
-orderedset == 2.0.3; python_version >= '3.6' or os.name != "nt"
+orderedset; python_version >= '3.6' or os.name != "nt"
 
 # More capable subprocess.
-subprocess32 == 3.5.4 ; python_version == '2.7'
+subprocess32; python_version == '2.7'
 
 # Onefile compression
 zstandard; python_version >= '3.5'
 
 # Plugins need that, but there is an inline copy for old versions too.
-pyyaml == 5.4.1; python_version == '2.7' or python_version >= '3.6'
+pyyaml; python_version == '2.7' or python_version >= '3.6'
 
 Jinja2 >= 2.10.2
