@@ -507,13 +507,13 @@ def runSconsBackend(quiet):
     SconsInterface.setCommonOptions(options)
 
     if Options.isPgoMode():
-        options["pgo_step"] = "generate"
+        options["pgo_mode"] = "generate"
         SconsInterface.runScons(
             options=options, quiet=quiet, scons_filename="Backend.scons"
         )
 
         subprocess.call([os.path.abspath(options["result_exe"])] + Options.getPgoArgs())
-        options["pgo_step"] = "use"
+        options["pgo_mode"] = "use"
 
     return (
         SconsInterface.runScons(

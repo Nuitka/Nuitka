@@ -89,6 +89,16 @@ def getArgumentDefaulted(name, default):
     return scons_arguments.get(name, default)
 
 
+def getArgumentInt(option_name, default=None):
+    """Small helper for boolean mode flags."""
+    if default is None:
+        value = scons_arguments[option_name]
+    else:
+        value = int(scons_arguments.get(option_name, default))
+
+    return value
+
+
 def getArgumentBool(option_name, default=None):
     """Small helper for boolean mode flags."""
     if default is None:

@@ -168,11 +168,11 @@ if int(os.environ.get("NUITKA_QUIET", "0")):
     setQuiet()
 
 # Home of Python to be compiled against, used to find tools like clcache and
-# ccache.
-python_prefix = ARGUMENTS["python_prefix"]
+# ccache, no linking against Python is needed here.
+python_prefix = getArgumentRequired("python_prefix")
 
 # Forced MSVC version (windows-only)
-msvc_version = ARGUMENTS.get("msvc_version")
+msvc_version = getArgumentDefaulted("msvc_version", None)
 
 # Preprocessor defines from plugins
 cpp_defines = getArgumentList("cpp_defines", "")

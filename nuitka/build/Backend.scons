@@ -85,6 +85,7 @@ from .SconsUtils import (
     createEnvironment,
     getArgumentBool,
     getArgumentDefaulted,
+    getArgumentInt,
     getArgumentList,
     getArgumentRequired,
     getExecutablePath,
@@ -161,10 +162,12 @@ experimental = getArgumentList("experimental", "")
 # Tracing mode. Output program progress.
 trace_mode = getArgumentBool("trace_mode", False)
 
-# LTO mode: Use link time optimizations of g++ compiler if available and known
-# good with the compiler in question. The 4.5 one didn't have good enough
-# support, the compiled result would not run correctly.
+# LTO mode: Use link time optimizations of C compiler if available and known
+# good with the compiler in question.
 lto_mode = getArgumentBool("lto_mode", False)
+
+# PGO mode: Use profile guided optimization of C compiler if available.
+pgo_mode = getArgumentDefaulted("pgo_mode", "no")
 
 static_libpython = getArgumentDefaulted("static_libpython", "")
 if static_libpython:
@@ -189,7 +192,7 @@ unstripped_mode = getArgumentBool("unstripped_mode", False)
 
 # Target arch, uses for compiler choice and quick linking of constants binary
 # data.
-target_arch = ARGUMENTS["target_arch"]
+target_arch = getArgumentRequired("target_arch")
 
 # MinGW compiler mode, optional and interesting to Windows only.
 mingw_mode = getArgumentBool("mingw_mode", False)
@@ -205,11 +208,11 @@ if win_target and not mingw_mode and clang_mode:
 
 # Shared library and compiled modules count, determines the need for the
 # compiled module loader.
-module_count = int(ARGUMENTS["module_count"])
+module_count = getArgumentInt("module_count")
 
 # Frozen modules count, determines the need for the bytecode frozen
 # modules loader.
-frozen_modules = int(ARGUMENTS.get("frozen_modules", 0))
+frozen_modules = getArgumentInt("frozen_modules", 0)
 
 # Standalone mode
 standalone_mode = getArgumentBool("standalone_mode", False)
@@ -220,8 +223,8 @@ onefile_mode = getArgumentBool("onefile_mode", False)
 # Onefile temp mode
 onefile_temp_mode = getArgumentBool("onefile_temp_mode", False)
 
-forced_stdout_path = ARGUMENTS.get("forced_stdout_path", None)
-forced_stderr_path = ARGUMENTS.get("forced_stderr_path", None)
+forced_stdout_path = getArgumentDefaulted("forced_stdout_path", None)
+forced_stderr_path = getArgumentDefaulted("forced_stderr_path", None)
 
 # Show scons mode, output information about Scons operation
 show_scons_mode = getArgumentBool("show_scons", False)
@@ -232,10 +235,10 @@ if int(os.environ.get("NUITKA_QUIET", "0")):
 
 # Home of Python to be compiled against, used to find include files and
 # libraries to link against.
-python_prefix = ARGUMENTS["python_prefix"]
+python_prefix = getArgumentRequired("python_prefix")
 
 # Forced MSVC version (windows-only)
-msvc_version = ARGUMENTS.get("msvc_version")
+msvc_version = getArgumentDefaulted("msvc_version", None)
 
 no_python_warnings = getArgumentBool("no_python_warnings", False)
 
@@ -719,14 +722,12 @@ if "linux" in sys.platform:
 if not msvc_mode:
     env.Append(LIBS=["m"])
 
-pgo_step = ARGUMENTS.get("pgo_step")
-if pgo_step:
-    if pgo_step == "generate":
-        env.Append(CCFLAGS=["-fprofile-generate"])
-        env.Append(LINKFLAGS=["-fprofile-generate"])
-    if pgo_step == "use":
-        env.Append(CCFLAGS=["-fprofile-use"])
-        env.Append(LINKFLAGS=["-fprofile-use"])
+if pgo_mode == "generate":
+    env.Append(CCFLAGS=["-fprofile-generate"])
+    env.Append(LINKFLAGS=["-fprofile-generate"])
+if pgo_mode == "use":
+    env.Append(CCFLAGS=["-fprofile-use"])
+    env.Append(LINKFLAGS=["-fprofile-use"])
 
 
 if win_target:
