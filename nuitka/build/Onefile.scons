@@ -733,11 +733,8 @@ if "LDFLAGS" in os.environ:
 if os.path.exists(target[0].abspath):
     os.unlink(target[0].abspath)
 
-if show_scons_mode:
-    my_print("Scons: Told to run compilation on %d CPUs." % job_count)
-
-if show_scons_mode:
-    my_print("Scons: Launching target:", target)
+if job_count:
+    scons_details_logger.info("Told to run compilation on %d CPUs." % job_count)
 
 # Plugin contributed C defines should be used too.
 env.Append(CPPDEFINES=cpp_defines)
@@ -808,4 +805,5 @@ writeSconsReport(
 
 setSconsProgressBarTotal("Onefile", len(source_files))
 
+scons_details_logger.info("Launching Scons target: %s" % target)
 env.Default(target)

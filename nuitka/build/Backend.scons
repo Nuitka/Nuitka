@@ -1184,8 +1184,9 @@ if "LDFLAGS" in os.environ:
 if os.path.exists(target[0].abspath):
     os.unlink(target[0].abspath)
 
-if show_scons_mode:
-    my_print("Scons: Told to run compilation on %d CPUs." % job_count)
+
+if job_count:
+    scons_details_logger.info("Told to run compilation on %d CPUs." % job_count)
 
 
 def createBuildDefinitionsFile():
@@ -1243,9 +1244,6 @@ createBuildDefinitionsFile()
 if module_mode and python_sysflag_verbose:
     env.Append(CPPDEFINES=["_NUITKA_SYSFLAG_VERBOSE=1"])
 
-if show_scons_mode:
-    my_print("Scons: Launching target:", target)
-
 # Hack to make Scons use tempfile for gcc linking, to avoid line length limits,
 # which can make linking fail with many modules otherwise. Most needed on Windows,
 # but useful on other platforms too.
@@ -1300,4 +1298,5 @@ setSconsProgressBarTotal(
     "Backend" if pgo_mode != "generate" else "Profiling", len(source_files)
 )
 
+scons_details_logger.info("Launching Scons target: %s" % target)
 env.Default(target)
