@@ -51,6 +51,7 @@ from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
     getSystemPrefixPath,
+    isDebianPackagePython,
     isNuitkaPython,
     python_version,
     python_version_str,
@@ -435,6 +436,9 @@ def runSconsBackend(quiet):
 
     if Options.shallUseStaticLibPython():
         options["static_libpython"] = getSystemStaticLibPythonPath()
+
+    if isDebianPackagePython():
+        options["debian_python"] = asBoolStr(True)
 
     if Options.isStandaloneMode():
         options["standalone_mode"] = asBoolStr(True)

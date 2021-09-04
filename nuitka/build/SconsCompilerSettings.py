@@ -78,7 +78,15 @@ def enableC11Settings(env, clangcl_mode, msvc_mode, clang_mode, gcc_mode, gcc_ve
 
 
 def enableLtoSettings(
-    env, lto_mode, pgo_mode, msvc_mode, gcc_mode, clang_mode, nuitka_python, job_count
+    env,
+    lto_mode,
+    pgo_mode,
+    msvc_mode,
+    gcc_mode,
+    clang_mode,
+    nuitka_python,
+    debian_python,
+    job_count,
 ):
     orig_lto_mode = lto_mode
 
@@ -94,7 +102,7 @@ def enableLtoSettings(
     elif msvc_mode and not lto_mode and getMsvcVersion(env) >= 14:
         lto_mode = True
         reason = "known to be supported"
-    elif nuitka_python:
+    elif nuitka_python or debian_python:
         lto_mode = True
         reason = "known to be supported"
     else:

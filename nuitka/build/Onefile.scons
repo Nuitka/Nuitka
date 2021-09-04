@@ -386,6 +386,7 @@ lto_mode = enableLtoSettings(
     gcc_mode=gcc_mode,
     clang_mode=clang_mode,
     nuitka_python=False,
+    debian_python=False,
     job_count=job_count,
 )
 

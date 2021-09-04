@@ -146,7 +146,11 @@ python_version = tuple(int(d) for d in python_version_str.split("."))
 abiflags = getArgumentDefaulted("abiflags", "")
 python_abi_version = python_version_str + abiflags
 
+# Our own Python fork, for which we know a lot of optimization can be done.
 nuitka_python = getArgumentBool("nuitka_python", False)
+
+# The Debian Python, for which we know that some optimization can be done.
+debian_python = getArgumentBool("debian_python", False)
 
 # Python debug mode: reference count checking, assertions in CPython core.
 python_debug = getArgumentBool("python_debug", False)
@@ -503,6 +507,7 @@ lto_mode = enableLtoSettings(
     gcc_mode=gcc_mode,
     clang_mode=clang_mode,
     nuitka_python=nuitka_python,
+    debian_python=debian_python,
     job_count=job_count,
 )
 
