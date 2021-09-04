@@ -766,8 +766,8 @@ def getJobLimit():
     return int(options.jobs)
 
 
-def isLto():
-    """*bool* = "--lto" """
+def getLtoMode():
+    """*bool* = "--lto" or "--pgo" """
     return options.lto
 
 

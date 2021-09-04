@@ -380,8 +380,8 @@ def setCommonOptions(options):
     if Options.shallDisableConsoleWindow():
         options["win_disable_console"] = asBoolStr(True)
 
-    if Options.isLto():
-        options["lto_mode"] = asBoolStr(True)
+    if Options.getLtoMode() != "auto":
+        options["lto_mode"] = Options.getLtoMode()
 
     cpp_defines = Plugins.getPreprocessorSymbols()
     if cpp_defines:

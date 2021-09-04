@@ -78,13 +78,28 @@ def enableC11Settings(env, clangcl_mode, msvc_mode, clang_mode, gcc_mode, gcc_ve
 
 
 def enableLtoSettings(
-    env, lto_mode, msvc_mode, gcc_mode, clang_mode, nuitka_python, job_count
+    env, lto_mode, pgo_mode, msvc_mode, gcc_mode, clang_mode, nuitka_python, job_count
 ):
-    if msvc_mode and not lto_mode and getMsvcVersion(env) >= 14:
-        lto_mode = True
+    orig_lto_mode = lto_mode
 
-    if nuitka_python:
+    if lto_mode == "no":
+        lto_mode = False
+        reason = "disabled"
+    elif lto_mode == "yes":
         lto_mode = True
+        reason = "enabled"
+    elif pgo_mode != "no":
+        lto_mode = True
+        reason = "PGO implies LTO"
+    elif msvc_mode and not lto_mode and getMsvcVersion(env) >= 14:
+        lto_mode = True
+        reason = "known to be supported"
+    elif nuitka_python:
+        lto_mode = True
+        reason = "known to be supported"
+    else:
+        lto_mode = False
+        reason = "not known to be supported"
 
     if gcc_mode and lto_mode:
         env.Append(CCFLAGS=["-flto"])
@@ -101,6 +116,12 @@ def enableLtoSettings(
     if msvc_mode and lto_mode:
         env.Append(CCFLAGS=["/GL"])
         env.Append(LINKFLAGS=["/LTCG"])
+
+    if orig_lto_mode == "auto":
+        scons_details_logger.info(
+            "LTO mode auto was resolved to mode: '%s' (%s)."
+            % ("yes" if lto_mode else "no", reason)
+        )
 
     return lto_mode
 

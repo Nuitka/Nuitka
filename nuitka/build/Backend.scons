@@ -164,7 +164,7 @@ trace_mode = getArgumentBool("trace_mode", False)
 
 # LTO mode: Use link time optimizations of C compiler if available and known
 # good with the compiler in question.
-lto_mode = getArgumentBool("lto_mode", False)
+lto_mode = getArgumentDefaulted("lto_mode", "auto")
 
 # PGO mode: Use profile guided optimization of C compiler if available.
 pgo_mode = getArgumentDefaulted("pgo_mode", "no")
@@ -498,6 +498,7 @@ if "clang" in the_cc_name:
 lto_mode = enableLtoSettings(
     env=env,
     lto_mode=lto_mode,
+    pgo_mode=pgo_mode,
     msvc_mode=msvc_mode,
     gcc_mode=gcc_mode,
     clang_mode=clang_mode,
@@ -725,7 +726,7 @@ if not msvc_mode:
 if pgo_mode == "generate":
     env.Append(CCFLAGS=["-fprofile-generate"])
     env.Append(LINKFLAGS=["-fprofile-generate"])
-if pgo_mode == "use":
+elif pgo_mode == "use":
     env.Append(CCFLAGS=["-fprofile-use"])
     env.Append(LINKFLAGS=["-fprofile-use"])
 

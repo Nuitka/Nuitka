@@ -129,10 +129,9 @@ experimental = getArgumentList("experimental", "")
 # Tracing mode. Output program progress.
 trace_mode = getArgumentBool("trace_mode", False)
 
-# LTO mode: Use link time optimizations of g++ compiler if available and known
-# good with the compiler in question. The 4.5 one didn't have good enough
-# support, the compiled result would not run correctly.
-lto_mode = getArgumentBool("lto_mode", False)
+# LTO mode: Use link time optimizations of C compiler if available and known
+# good with the compiler in question.
+lto_mode = getArgumentDefaulted("lto_mode", "auto")
 
 # Windows target mode: Compile for Windows. Used to be an option, but we
 # no longer cross compile this way.
@@ -382,6 +381,7 @@ if "clang" in the_cc_name:
 lto_mode = enableLtoSettings(
     env=env,
     lto_mode=lto_mode,
+    pgo_mode=False,  # TODO: Have this here too, decompression might benefit.
     msvc_mode=msvc_mode,
     gcc_mode=gcc_mode,
     clang_mode=clang_mode,

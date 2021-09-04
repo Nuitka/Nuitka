@@ -706,12 +706,13 @@ system CPU count.""",
 
 c_compiler_group.add_option(
     "--lto",
-    action="store_true",
+    action="store",
     dest="lto",
-    default=False,
+    default="auto",
+    choices=("yes", "no", "auto"),
     help="""\
 Use link time optimizations if available and usable (MSVC, gcc >=4.6, clang).
-Defaults to off.""",
+Defaults to auto.""",
 )
 
 c_compiler_group.add_option(
