@@ -107,25 +107,6 @@ parser.add_option(
 )
 
 
-parser.add_option(
-    "--nuitka-pgo",
-    action="store_true",
-    dest="is_nuitka_pgo",
-    default=False,
-    help="""\
-Enables PGO on the Nuitka-generated code. Defaults to off.""",
-)
-
-parser.add_option(
-    "--nuitka-pgo-args",
-    action="store",
-    dest="nuitka_pgo_args",
-    default="",
-    help="""\
-Allows to pass extra arguments to the resulting executable during the PGO profiling run.""",
-)
-
-
 if os.name == "nt":
     parser.add_option(
         "--python-arch",
@@ -743,6 +724,28 @@ c_compiler_group.add_option(
 Use static link library of Python if available. Defaults to auto, i.e. enabled for where
 we know it's working.""",
 )
+
+c_compiler_group.add_option(
+    "--pgo",
+    action="store_true",
+    dest="is_pgo",
+    default=False,
+    help="""\
+Enables profile guided optimization (PGO), by executing a dedicated build first for a profiling
+run, and then using the result to feedback into the C compilation. Note: This is highly
+experimental and not working with many modes of Nuitka yet. Defaults to off.""",
+)
+
+c_compiler_group.add_option(
+    "--pgo-args",
+    action="store",
+    dest="pgo_args",
+    default="",
+    help="""\
+Arguments to be passed in case of profile guided optimization. These are passed to the special
+built executable during the PGO profiling run.""",
+)
+
 
 parser.add_option_group(c_compiler_group)
 

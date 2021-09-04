@@ -25,7 +25,6 @@ a distribution folder.
 """
 
 import os
-import shlex
 import subprocess
 import sys
 
@@ -507,16 +506,13 @@ def runSconsBackend(quiet):
 
     SconsInterface.setCommonOptions(options)
 
-    if Options.isNuitkaPgoMode():
+    if Options.isPgoMode():
         options["pgo_step"] = "generate"
         SconsInterface.runScons(
             options=options, quiet=quiet, scons_filename="Backend.scons"
         )
 
-        subprocess.call(
-            [os.path.abspath(options["result_exe"])]
-            + shlex.split(Options.getNuitkaPgoArgs())
-        )
+        subprocess.call([os.path.abspath(options["result_exe"])] + Options.getPgoArgs())
         options["pgo_step"] = "use"
 
     return (

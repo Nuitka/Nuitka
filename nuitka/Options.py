@@ -18,6 +18,7 @@
 """ Options module """
 
 import os
+import shlex
 import sys
 
 from nuitka import Progress, Tracing
@@ -454,6 +455,22 @@ def commentArgs():
             "In module mode, providing --static-libpython has no effect, it's not used."
         )
 
+    if not isPgoMode() and getPgoArgs():
+        Tracing.optimization_logger.warning(
+            "Providing PGO arguments without enabling PGO mode has no effect."
+        )
+
+    if isPgoMode():
+        if isStandaloneMode():
+            Tracing.optimization_logger.warning(
+                "Using PGO with standalone/onefile mode is not currently working. Expect errors."
+            )
+
+        if getOS() == "Windows":
+            Tracing.optimization_logger.warning(
+                "Using PGO on Windows is not currently working. Expect errors."
+            )
+
 
 def isVerbose():
     """*bool* = "--verbose" """
@@ -868,12 +885,14 @@ def isOnefileTempDirMode():
     return options.is_onefile_tempdir or getOS() != "Linux"
 
 
-def isNuitkaPgoMode():
-    return options.is_nuitka_pgo
+def isPgoMode():
+    """*bool* = "--nuitka-pgo" """
+    return options.is_pgo
 
 
-def getNuitkaPgoArgs():
-    return options.nuitka_pgo_args
+def getPgoArgs():
+    """*list* = "--nuitka-pgo-args" """
+    return shlex.split(options.pgo_args)
 
 
 def getOnefileTempDirSpec(use_default):

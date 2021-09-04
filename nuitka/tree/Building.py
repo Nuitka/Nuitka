@@ -790,7 +790,6 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
                     )
                 )
 
-
         statements.append(
             StatementAssignmentVariableName(
                 provider=provider,
