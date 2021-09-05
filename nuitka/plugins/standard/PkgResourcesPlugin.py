@@ -92,6 +92,11 @@ class NuitkaPluginResources(NuitkaPluginBase):
                     self.sysexit(
                         "Unmet requirement during compilation: '%s'." % match[1]
                     )
+                except Exception:  # catch all, pylint: disable=broad-except
+                    self.sysexit(
+                        "Error, failed to resolve '%s', probably a parsing bug for '%s' code."
+                        % (match[1], module_name)
+                    )
                 else:
                     source_code = source_code.replace(match[0], "")
 
