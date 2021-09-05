@@ -29,6 +29,4 @@ import numpy
 # nuitka-project: --enable-plugin=anti-bloat
 # nuitka-project: --noinclude-setuptools-mode=error
 # nuitka-project: --noinclude-pytest-mode=error
-# nuitka-project: --noinclude-custom-mode=numpy._pytesttester:error
-# nuitka-project: --noinclude-custom-mode=numpy.testing:error
 # nuitka-project: --noinclude-custom-mode=numpy.distutils:error
