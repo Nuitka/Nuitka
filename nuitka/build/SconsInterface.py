@@ -323,6 +323,7 @@ def cleanSconsDirectory(source_dir):
         ".S",
         ".txt",
         ".const",
+        ".gcda",
     )
 
     def check(path):
