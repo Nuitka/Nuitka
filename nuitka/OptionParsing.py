@@ -744,7 +744,17 @@ c_compiler_group.add_option(
     default="",
     help="""\
 Arguments to be passed in case of profile guided optimization. These are passed to the special
-built executable during the PGO profiling run.""",
+built executable during the PGO profiling run. Default empty.""",
+)
+
+c_compiler_group.add_option(
+    "--pgo-executable",
+    action="store",
+    dest="pgo_executable",
+    default="",
+    help="""\
+Command to execute when collecting profile information. Use this only, if you need to
+launch it through a script that prepares it to run. Default use created program.""",
 )
 
 

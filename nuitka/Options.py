@@ -886,13 +886,18 @@ def isOnefileTempDirMode():
 
 
 def isPgoMode():
-    """*bool* = "--nuitka-pgo" """
+    """*bool* = "--pgo" """
     return options.is_pgo
 
 
 def getPgoArgs():
-    """*list* = "--nuitka-pgo-args" """
+    """*list* = "--pgo-args" """
     return shlex.split(options.pgo_args)
+
+
+def getPgoExecutable():
+    """*str* = "--pgo-args" """
+    return options.pgo_executable
 
 
 def getOnefileTempDirSpec(use_default):

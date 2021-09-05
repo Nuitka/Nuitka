@@ -25,7 +25,6 @@ a distribution folder.
 """
 
 import os
-import subprocess
 import sys
 
 from nuitka.build.DataComposerInterface import runDataComposer
@@ -516,7 +515,11 @@ def runSconsBackend(quiet):
             options=options, quiet=quiet, scons_filename="Backend.scons"
         )
 
-        subprocess.call([os.path.abspath(options["result_exe"])] + Options.getPgoArgs())
+        Execution.call(
+            [Options.getPgoExecutable() or os.path.abspath(options["result_exe"])]
+            + Options.getPgoArgs(),
+            shell=False,
+        )
         options["pgo_mode"] = "use"
 
     return (
