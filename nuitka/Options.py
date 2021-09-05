@@ -356,7 +356,7 @@ standalone where there is a sane default used inside the dist folder."""
                 % pattern
             )
 
-    if options.static_libpython == "yes" and getSystemStaticLibPythonPath() is None:
+    if shallUseStaticLibPython() and getSystemStaticLibPythonPath() is None:
         Tracing.options_logger.sysexit(
             "Error, static libpython is not found or not supported for this Python installation."
         )
@@ -470,6 +470,14 @@ def commentArgs():
             Tracing.optimization_logger.warning(
                 "Using PGO on Windows is not currently working. Expect errors."
             )
+
+    if (
+        options.static_libpython == "auto"
+        and getSystemStaticLibPythonPath() is not None
+    ):
+        Tracing.options_logger.info(
+            "Detected static libpython to exist, consider '--static-libpython=yes' for better performance."
+        )
 
 
 def isVerbose():
@@ -696,13 +704,10 @@ def shallClearPythonPathEnvironment():
     return not options.keep_pythonpath
 
 
-def shallUseStaticLibPython():
-    """*bool* = "--static-libpython=yes|auto"
+_shall_use_static_lib_python = None
 
-    Notes:
-        Currently only Anaconda on non-Windows can do this and MSYS2.
-    """
 
+def _shallUseStaticLibPython():
     if options.static_libpython == "auto":
         # Nuitka-Python is good to to static linking.
         if isNuitkaPython():
@@ -726,14 +731,22 @@ def shallUseStaticLibPython():
         ):
             return True
 
-        options.static_libpython = "no"
-
-        if getSystemStaticLibPythonPath() is not None:
-            Tracing.options_logger.info(
-                "Detected static libpython to exist, consider '--static-libpython=yes' for better performance."
-            )
-
     return options.static_libpython == "yes"
+
+
+def shallUseStaticLibPython():
+    """*bool* = "--static-libpython=yes|auto"
+
+    Notes:
+        Currently only Anaconda on non-Windows can do this and MSYS2.
+    """
+
+    global _shall_use_static_lib_python  # singleton, pylint: disable=global-statement
+
+    if _shall_use_static_lib_python is None:
+        _shall_use_static_lib_python = _shallUseStaticLibPython()
+
+    return _shall_use_static_lib_python
 
 
 def shallTreatUninstalledPython():

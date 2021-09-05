@@ -71,8 +71,12 @@ def _locateStaticLinkLibrary(dll_name):
     return None
 
 
-def getSystemStaticLibPythonPath():
+_static_lib_python_path = False
+
+
+def _getSystemStaticLibPythonPath():
     # Return driven function with many cases, pylint: disable=too-many-branches,too-many-return-statements
+    global _static_lib_python_path  # singleton, pylint: disable=global-statement
 
     sys_prefix = getSystemPrefixPath()
     python_abi_version = python_version_str + getPythonABI()
@@ -148,3 +152,12 @@ def getSystemStaticLibPythonPath():
                 pass
 
     return None
+
+
+def getSystemStaticLibPythonPath():
+    global _static_lib_python_path  # singleton, pylint: disable=global-statement
+
+    if _static_lib_python_path is False:
+        _static_lib_python_path = _getSystemStaticLibPythonPath()
+
+    return _static_lib_python_path
