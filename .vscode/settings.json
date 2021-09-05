@@ -68,4 +68,5 @@
     "python.analysis.extraPaths": ["nuitka/build/inline_copy/lib/scons-3.1.2", "nuitka/build/inline_copy/clcache"],
     "python.formatting.provider": "black",
     "restructuredtext.confPath": "",
+    "python.analysis.diagnosticSeverityOverrides": {"reportMissingImports": "none"},
 }
