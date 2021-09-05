@@ -157,6 +157,9 @@ if str is bytes:
 else:
     import subprocess
 
+# Just to make this not Windows-specific.
+WindowsError = OSError
+
 
 # For PyLint to be happy.
 assert long

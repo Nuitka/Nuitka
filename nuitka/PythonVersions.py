@@ -27,6 +27,8 @@ import os
 import re
 import sys
 
+from nuitka.__past__ import WindowsError
+
 
 def getSupportedPythonVersions():
     """Officially supported Python versions for Nuitka."""

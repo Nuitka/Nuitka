@@ -34,6 +34,7 @@ import time
 from contextlib import contextmanager
 
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    WindowsError,
     basestring,
 )
 from nuitka.PythonVersions import python_version
