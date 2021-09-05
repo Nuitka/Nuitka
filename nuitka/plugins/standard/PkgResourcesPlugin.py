@@ -61,6 +61,10 @@ class NuitkaPluginResources(NuitkaPluginBase):
         return True
 
     def onModuleSourceCode(self, module_name, source_code):
+        # This one has strings with false matches, don't attempt those.
+        if module_name == "setuptools.command.easy_install":
+            return source_code
+
         if self.pkg_resources:
             for match in re.findall(
                 r"""\b(pkg_resources\.get_distribution\(\s*['"](.*?)['"]\s*\)\.((?:parsed_)?version))""",
