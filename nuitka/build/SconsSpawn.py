@@ -231,6 +231,14 @@ def isIgnoredError(line):
     if b"at Python/import.c" in line:
         return True
 
+    # Bullseys when compiling in directory with spaces:
+    if b"overriding recipe for target" in line:
+        return True
+    if b"ignoring old recipe for target" in line:
+        return True
+    if b"Error 1 (ignored)" in line:
+        return True
+
     return False
 
 
