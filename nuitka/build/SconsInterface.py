@@ -231,7 +231,7 @@ def _buildSconsCommand(quiet, options, scons_filename):
     ]
 
     if Options.isShowScons():
-        scons_command.append("--debug=explain,stacktrace")
+        scons_command.append("--debug=stacktrace")
 
     # Python2, encoding unicode values
     def encode(value):
