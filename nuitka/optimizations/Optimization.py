@@ -118,6 +118,8 @@ def optimizeCompiledPythonModule(module):
                 scopes_were_incomplete = module.computeModule()
         except NuitkaForbiddenImportEncounter as e:
             optimization_logger.sysexit("Error, forbidden import '%s' encountered." % e)
+        except SystemExit:
+            raise
         except BaseException:
             general.info("Interrupted while working on '%s'." % module)
             raise
