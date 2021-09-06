@@ -3382,19 +3382,6 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_TUPLE_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
-    if ((PyTuple_CheckExact(*operand1) || PySequence_Check(*operand1)) && 1) {
-        PyObject *result = PySequence_InPlaceConcat(*operand1, operand2);
-
-        if (unlikely(result == NULL)) {
-            return false;
-        }
-
-        Py_DECREF(*operand1);
-        *operand1 = result;
-
-        return true;
-    }
-
     PyTypeObject *type1 = Py_TYPE(*operand1);
     PyTypeObject *type2 = &PyTuple_Type;
 
@@ -3819,19 +3806,6 @@ static inline bool _BINARY_OPERATION_ADD_OBJECT_LIST_INPLACE(PyObject **operand1
 
     if (PyList_CheckExact(*operand1) && 1) {
         return LIST_EXTEND_FROM_LIST(*operand1, operand2);
-    }
-
-    if (PySequence_Check(*operand1) && 1) {
-        PyObject *result = PySequence_InPlaceConcat(*operand1, operand2);
-
-        if (unlikely(result == NULL)) {
-            return false;
-        }
-
-        Py_DECREF(*operand1);
-        *operand1 = result;
-
-        return true;
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
