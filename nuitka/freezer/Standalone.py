@@ -639,6 +639,18 @@ _linux_dll_ignore_list = (
 )
 
 
+def _getLdLibraryPath(package_name, python_rpath, original_dir):
+    ld_library_path = OrderedSet()
+    if python_rpath:
+        ld_library_path.add(python_rpath)
+    ld_library_path.update(getPackageSpecificDLLDirectories(package_name))
+
+    if original_dir is not None:
+        ld_library_path.add(original_dir)
+
+    return ld_library_path
+
+
 def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     # This is complex, as it also includes the caching mechanism
     # pylint: disable=too-many-branches
@@ -648,7 +660,6 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
 
     # Ask "ldd" about the libraries being used by the created binary, these
     # are the ones that interest us.
-    result = set()
 
     # This is the rpath of the Python binary, which will be effective when
     # loading the other DLLs too. This happens at least for Python installs
@@ -662,16 +673,14 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
                 "$ORIGIN", os.path.dirname(sys.executable)
             )
 
-    ld_library_path = OrderedSet()
-    if _detected_python_rpath:
-        ld_library_path.add(_detected_python_rpath)
-    ld_library_path.update(getPackageSpecificDLLDirectories(package_name))
-
-    if original_dir is not None:
-        ld_library_path.add(original_dir)
-        # ld_library_path.update(getSubDirectories(original_dir, ignore_dirs=("__pycache__",)))
-
-    with withEnvironmentPathAdded("LD_LIBRARY_PATH", *ld_library_path):
+    with withEnvironmentPathAdded(
+        "LD_LIBRARY_PATH",
+        *_getLdLibraryPath(
+            package_name=package_name,
+            python_rpath=_detected_python_rpath,
+            original_dir=original_dir,
+        )
+    ):
         process = subprocess.Popen(
             args=["ldd", dll_filename],
             stdin=getNullInput(),
@@ -681,48 +690,50 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
 
         stdout, stderr = process.communicate()
 
-        stderr = b"\n".join(
-            line
-            for line in stderr.splitlines()
-            if not line.startswith(
-                b"ldd: warning: you do not have execution permission for"
-            )
+    stderr = b"\n".join(
+        line
+        for line in stderr.splitlines()
+        if not line.startswith(
+            b"ldd: warning: you do not have execution permission for"
         )
+    )
 
-        inclusion_logger.debug("ldd output for %s is:\n%s" % (dll_filename, stdout))
+    inclusion_logger.debug("ldd output for %s is:\n%s" % (dll_filename, stdout))
 
-        if stderr:
-            inclusion_logger.debug("ldd error for %s is:\n%s" % (dll_filename, stderr))
+    if stderr:
+        inclusion_logger.debug("ldd error for %s is:\n%s" % (dll_filename, stderr))
 
-        for line in stdout.split(b"\n"):
-            if not line:
-                continue
+    result = set()
 
-            if b"=>" not in line:
-                continue
+    for line in stdout.split(b"\n"):
+        if not line:
+            continue
 
-            part = line.split(b" => ", 2)[1]
+        if b"=>" not in line:
+            continue
 
-            if b"(" in part:
-                filename = part[: part.rfind(b"(") - 1]
-            else:
-                filename = part
+        part = line.split(b" => ", 2)[1]
 
-            if not filename:
-                continue
+        if b"(" in part:
+            filename = part[: part.rfind(b"(") - 1]
+        else:
+            filename = part
 
-            if python_version >= 0x300:
-                filename = filename.decode("utf8")
+        if not filename:
+            continue
 
-            # Sometimes might use stuff not found or supplied by ldd itself.
-            if filename in ("not found", "ldd"):
-                continue
+        if python_version >= 0x300:
+            filename = filename.decode("utf8")
 
-            # Do not include kernel DLLs on the ignore list.
-            if os.path.basename(filename).startswith(_linux_dll_ignore_list):
-                continue
+        # Sometimes might use stuff not found or supplied by ldd itself.
+        if filename in ("not found", "ldd"):
+            continue
 
-            result.add(filename)
+        # Do not include kernel DLLs on the ignore list.
+        if os.path.basename(filename).startswith(_linux_dll_ignore_list):
+            continue
+
+        result.add(filename)
 
     ldd_result_cache[dll_filename] = result
 
@@ -740,18 +751,26 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     return sub_result
 
 
-def _detectBinaryPathDLLsMacOS(original_dir, binary_filename, keep_unresolved):
-    result = OrderedSet()
-
-    process = subprocess.Popen(
-        args=["otool", "-L", binary_filename],
-        stdin=getNullInput(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
+def _detectBinaryPathDLLsMacOS(
+    original_dir, binary_filename, package_name, keep_unresolved
+):
+    with withEnvironmentPathAdded(
+        "DYLD_LIBRARY_PATH",
+        *_getLdLibraryPath(
+            package_name=package_name, python_rpath=None, original_dir=original_dir
+        )
+    ):
+        process = subprocess.Popen(
+            args=["otool", "-L", binary_filename],
+            stdin=getNullInput(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
 
     stdout, _stderr = process.communicate()
     system_paths = ("/usr/lib/", "/System/Library/Frameworks/")
+
+    result = OrderedSet()
 
     for line in stdout.split(b"\n")[1:]:
         if str is not bytes:
@@ -769,7 +788,10 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename, keep_unresolved):
             result.add(filename)
 
     resolved_result = _resolveBinaryPathDLLsMacOS(
-        original_dir, binary_filename, result, keep_unresolved
+        original_dir=original_dir,
+        binary_filename=binary_filename,
+        paths=result,
+        keep_unresolved=keep_unresolved,
     )
     return resolved_result
 
@@ -1023,7 +1045,7 @@ def detectBinaryDLLs(
         )
     elif Utils.isWin32Windows():
         with TimerReport(
-            message="Running depends.exe for %s took %%.2f seconds" % binary_filename,
+            message="Running 'depends.exe' for %s took %%.2f seconds" % binary_filename,
             decider=Options.isShowProgress,
         ):
             return detectBinaryPathDLLsWindowsDependencyWalker(
@@ -1039,6 +1061,7 @@ def detectBinaryDLLs(
         return _detectBinaryPathDLLsMacOS(
             original_dir=os.path.dirname(original_filename),
             binary_filename=original_filename,
+            package_name=package_name,
             keep_unresolved=False,
         )
     else:
@@ -1120,6 +1143,7 @@ def fixupBinaryDLLPathsMacOS(binary_filename, dll_map, original_location):
     rpath_map = _detectBinaryPathDLLsMacOS(
         original_dir=os.path.dirname(original_location),
         binary_filename=original_location,
+        package_name=None,
         keep_unresolved=True,
     )
     for i, o in enumerate(dll_map):
