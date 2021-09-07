@@ -33,6 +33,7 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.utils.FileOperations import (
+    isPathExecutable,
     openTextFile,
     resolveShellPatternToFilenames,
 )
@@ -72,6 +73,13 @@ def parseArgs(will_reexec):
     is_nuitka_run, options, positional_args, extra_args = parseOptions(
         logger=Tracing.options_logger
     )
+
+    is_debug = _isDebug()
+    is_nondebug = not is_debug
+    is_fullcompat = _isFullCompat()
+
+    # TODO: Have dedicated option for it.
+    is_report_missing = is_debug
 
     if options.quiet or int(os.environ.get("NUITKA_QUIET", "0")):
         Tracing.setQuiet()
@@ -361,12 +369,12 @@ standalone where there is a sane default used inside the dist folder."""
             "Error, static libpython is not found or not supported for this Python installation."
         )
 
-    is_debug = _isDebug()
-    is_nondebug = not is_debug
-    is_fullcompat = _isFullCompat()
-
-    # TODO: Have dedicated option for it.
-    is_report_missing = is_debug
+    pgo_executable = getPgoExecutable()
+    if pgo_executable and not isPathExecutable(pgo_executable):
+        Tracing.options_logger.sysexit(
+            "Error, path '%s' to binary to use for PGO is not executable."
+            % pgo_executable
+        )
 
 
 def commentArgs():
@@ -464,6 +472,11 @@ def commentArgs():
         if isStandaloneMode():
             Tracing.optimization_logger.warning(
                 "Using PGO with standalone/onefile mode is not currently working. Expect errors."
+            )
+
+        if shallMakeModule():
+            Tracing.optimization_logger.warning(
+                "Using PGO with module mode is not currently working. Expect errors."
             )
 
         if getOS() == "Windows":
@@ -910,6 +923,13 @@ def getPgoArgs():
 
 def getPgoExecutable():
     """*str* = "--pgo-args" """
+
+    if options.pgo_executable and os.path.exists(options.pgo_executable):
+        if not os.path.isabs(options.pgo_executable):
+            options.pgo_executable = os.path.normcase(
+                os.path.join(".", options.pgo_executable)
+            )
+
     return options.pgo_executable
 
 

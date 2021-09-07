@@ -165,6 +165,11 @@ def makePath(path):
             os.makedirs(path)
 
 
+def isPathExecutable(path):
+    """Is the given path executable."""
+    return os.path.isfile(path) and os.access(path, os.X_OK)
+
+
 def _getRealPathWindows(path):
     # Slow, because we are using an external process, we it's only for standalone and Python2,
     # which is slow already.

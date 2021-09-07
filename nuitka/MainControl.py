@@ -400,6 +400,28 @@ def makeSourceDirectory():
     )
 
 
+def runPgoBinary():
+    # Exit code, we do not insist on anything.
+    Execution.call(
+        [
+            Options.getPgoExecutable()
+            or os.path.abspath(OutputDirectories.getResultFullpath(onefile=False))
+        ]
+        + Options.getPgoArgs(),
+        shell=False,
+    )
+
+    # TODO: For other compilers, this will have to be different suffix, maybe check all of them
+    constants_pgo_filename = os.path.join(
+        OutputDirectories.getSourceDirectoryPath(), "__constants.gcda"
+    )
+
+    if not os.path.exists(constants_pgo_filename):
+        general.sysexit(
+            "Error, no PGO information produced, did the created binary run at all?"
+        )
+
+
 def runSconsBackend(quiet):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
@@ -509,17 +531,15 @@ def runSconsBackend(quiet):
 
     SconsInterface.setCommonOptions(options)
 
+    # For PGO, we have a 2 pass system. TODO: Make it more global for onefile
+    # and standalone mode proper support, which might need data files to be
+    # there, which currently are not yet there, so it won't run.
     if Options.isPgoMode():
         options["pgo_mode"] = "generate"
         SconsInterface.runScons(
             options=options, quiet=quiet, scons_filename="Backend.scons"
         )
-
-        Execution.call(
-            [Options.getPgoExecutable() or os.path.abspath(options["result_exe"])]
-            + Options.getPgoArgs(),
-            shell=False,
-        )
+        runPgoBinary()
         options["pgo_mode"] = "use"
 
     return (

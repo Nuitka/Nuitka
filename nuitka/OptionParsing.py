@@ -751,7 +751,7 @@ c_compiler_group.add_option(
     "--pgo-executable",
     action="store",
     dest="pgo_executable",
-    default="",
+    default=None,
     help="""\
 Command to execute when collecting profile information. Use this only, if you need to
 launch it through a script that prepares it to run. Default use created program.""",
