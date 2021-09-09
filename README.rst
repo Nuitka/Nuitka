@@ -152,8 +152,8 @@ Requirements
 .. [#]
 
    Download for free from
-   http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
-   (the Express editions work just fine).
+   https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
+   (the community editions work just fine).
 
    The latest version is recommended but not required. On the other hand,
    there is no need to except pre-Windows 10 support, and they might work
@@ -1490,54 +1490,54 @@ The order is sorted by time.
 Projects used by Nuitka
 =======================
 
--  The `CPython project <http://www.python.org>`__
+-  The `CPython project <https://www.python.org>`__
 
    Thanks for giving us CPython, which is the base of Nuitka. We are
    nothing without it.
 
--  The `GCC project <http://gcc.gnu.org>`__
+-  The `GCC project <https://gcc.gnu.org>`__
 
    Thanks for not only the best compiler suite but also thanks for
    making it easy supporting to get Nuitka off the ground. Your compiler
    was the first usable for Nuitka and with very little effort.
 
--  The `Scons project <http://www.scons.org>`__
+-  The `Scons project <https://www.scons.org>`__
 
    Thanks for tackling the difficult points and providing a Python
    environment to make the build results. This is such a perfect fit to
    Nuitka and a dependency that will likely remain.
 
--  The `valgrind project <http://valgrind.org>`__
+-  The `valgrind project <https://valgrind.org>`__
 
    Luckily we can use Valgrind to determine if something is an actual
    improvement without the noise. And it's also helpful to determine
    what's actually happening when comparing.
 
--  The `NeuroDebian project <http://neuro.debian.net>`__
+-  The `NeuroDebian project <https://neuro.debian.net>`__
 
    Thanks for hosting the build infrastructure that the Debian and
    sponsor Yaroslav Halchenko uses to provide packages for all Ubuntu
    versions.
 
--  The `openSUSE Buildservice <http://openbuildservice.org>`__
+-  The `openSUSE Buildservice <https://openbuildservice.org>`__
 
    Thanks for hosting this excellent service that allows us to provide
    RPMs for a large variety of platforms and make them available
    immediately nearly at release time.
 
--  The `MinGW64 project <http://mingw-w64.org>`__
+-  The `MinGW64 project <https://mingw-w64.org>`__
 
    Thanks for porting the gcc to Windows. This allowed portability of
    Nuitka with relatively little effort.
 
--  The `Buildbot project <http://buildbot.net>`__
+-  The `Buildbot project <https://buildbot.net>`__
 
    Thanks for creating an easy to deploy and use continuous integration
    framework that also runs on Windows and is written and configured in
    Python code. This allows running the Nuitka tests long before release
    time.
 
--  The `isort project <http://timothycrosley.github.io/isort/>`__
+-  The `isort project <https://timothycrosley.github.io/isort/>`__
 
    Thanks for making nice import ordering so easy. This makes it so easy
    to let your IDE do it and clean up afterward.

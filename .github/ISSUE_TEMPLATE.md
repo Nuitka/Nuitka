@@ -32,7 +32,7 @@ up to here:
   Then even a `print("hello world")` program will not work, please try that and report
   that instead.
 
-* Also supply a [Short, Self Contained, Correct, Example](http://sscce.org/)
+* Also supply a [Short, Self Contained, Correct, Example](https://sscce.org/)
 
   That demonstrates the issue i.e a small piece of code which reproduces
   the issue and can be run with out any other (or as few as possible)
