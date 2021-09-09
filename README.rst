@@ -3,6 +3,7 @@
 ####################
 
 .. image:: doc/images/Nuitka-Logo-Symbol.png
+   :alt: Nuitka Logo
 
 .. contents::
 
