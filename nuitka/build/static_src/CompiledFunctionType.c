@@ -1851,13 +1851,15 @@ static bool parseArgumentsPos(struct Nuitka_FunctionObject const *function, PyOb
         formatErrorNoArgumentAllowed(function, NULL, args_size);
 #endif
 
-        goto error_exit;
+        releaseParameters(function, python_pars);
+        return false;
     }
 
     result = _handleArgumentsPlainOnly(function, python_pars, args, args_size);
 
     if (result == false) {
-        goto error_exit;
+        releaseParameters(function, python_pars);
+        return false;
     }
 
 #if PYTHON_VERSION >= 0x300
@@ -1881,7 +1883,8 @@ static bool parseArgumentsPos(struct Nuitka_FunctionObject const *function, PyOb
     if (unlikely(kw_only_error)) {
         formatErrorTooFewKwOnlyArguments(function, &python_pars[function->m_args_positional_count]);
 
-        goto error_exit;
+        releaseParameters(function, python_pars);
+        return false;
     }
 
 #endif
@@ -1891,11 +1894,6 @@ static bool parseArgumentsPos(struct Nuitka_FunctionObject const *function, PyOb
     }
 
     return true;
-
-error_exit:
-
-    releaseParameters(function, python_pars);
-    return false;
 }
 
 // We leave it to partial inlining to specialize this.
@@ -1910,7 +1908,8 @@ static bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function
     result = handleMethodArgumentsPlainOnly(function, python_pars, object, args, args_size);
 
     if (result == false) {
-        goto error_exit;
+        releaseParameters(function, python_pars);
+        return false;
     }
 
 #if PYTHON_VERSION >= 0x300
@@ -1934,7 +1933,8 @@ static bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function
     if (unlikely(kw_only_error)) {
         formatErrorTooFewKwOnlyArguments(function, &python_pars[function->m_args_positional_count]);
 
-        goto error_exit;
+        releaseParameters(function, python_pars);
+        return false;
     }
 
 #endif
@@ -1944,11 +1944,6 @@ static bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function
     }
 
     return true;
-
-error_exit:
-
-    releaseParameters(function, python_pars);
-    return false;
 }
 
 static bool parseArgumentsFullKwSplit(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
@@ -1967,7 +1962,8 @@ static bool parseArgumentsFullKwSplit(struct Nuitka_FunctionObject const *functi
         formatErrorNoArgumentAllowedKwSplit(function, PyTuple_GET_ITEM(kw_names, 0), args_size);
 #endif
 
-        goto error_exit;
+        releaseParameters(function, python_pars);
+        return false;
     }
 
 #if PYTHON_VERSION >= 0x300
@@ -1980,7 +1976,8 @@ static bool parseArgumentsFullKwSplit(struct Nuitka_FunctionObject const *functi
         kw_found = handleKeywordArgsSplitWithStarDict(function, python_pars, &kw_only_found, kw_values, kw_names);
 #endif
         if (kw_found == -1) {
-            goto error_exit;
+            releaseParameters(function, python_pars);
+            return false;
         }
     } else {
 #if PYTHON_VERSION < 0x300
@@ -1989,7 +1986,8 @@ static bool parseArgumentsFullKwSplit(struct Nuitka_FunctionObject const *functi
         kw_found = handleKeywordArgsSplit(function, python_pars, &kw_only_found, kw_values, kw_names);
 #endif
         if (kw_found == -1) {
-            goto error_exit;
+            releaseParameters(function, python_pars);
+            return false;
         }
     }
 
@@ -2002,7 +2000,8 @@ static bool parseArgumentsFullKwSplit(struct Nuitka_FunctionObject const *functi
 #endif
 
     if (result == false) {
-        goto error_exit;
+        releaseParameters(function, python_pars);
+        return false;
     }
 
 #if PYTHON_VERSION >= 0x300
@@ -2026,17 +2025,13 @@ static bool parseArgumentsFullKwSplit(struct Nuitka_FunctionObject const *functi
     if (unlikely(kw_only_error)) {
         formatErrorTooFewKwOnlyArguments(function, &python_pars[function->m_args_positional_count]);
 
-        goto error_exit;
+        releaseParameters(function, python_pars);
+        return false;
     }
 
 #endif
 
     return true;
-
-error_exit:
-
-    releaseParameters(function, python_pars);
-    return false;
 }
 
 static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
@@ -2056,7 +2051,8 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
         formatErrorNoArgumentAllowed(function, kw_size > 0 ? kw : NULL, args_size);
 #endif
 
-        goto error_exit;
+        releaseParameters(function, python_pars);
+        return false;
     }
 
 #if PYTHON_VERSION >= 0x300
@@ -2069,7 +2065,8 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
         kw_found = handleKeywordArgsWithStarDict(function, python_pars, &kw_only_found, kw);
 #endif
         if (kw_found == -1) {
-            goto error_exit;
+            releaseParameters(function, python_pars);
+            return false;
         }
     } else if (kw == NULL || DICT_SIZE(kw) == 0) {
         kw_found = 0;
@@ -2080,7 +2077,8 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
         kw_found = handleKeywordArgs(function, python_pars, &kw_only_found, kw);
 #endif
         if (kw_found == -1) {
-            goto error_exit;
+            releaseParameters(function, python_pars);
+            return false;
         }
     }
 
@@ -2093,7 +2091,8 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
 #endif
 
     if (result == false) {
-        goto error_exit;
+        releaseParameters(function, python_pars);
+        return false;
     }
 
 #if PYTHON_VERSION >= 0x300
@@ -2117,17 +2116,13 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
     if (unlikely(kw_only_error)) {
         formatErrorTooFewKwOnlyArguments(function, &python_pars[function->m_args_positional_count]);
 
-        goto error_exit;
+        releaseParameters(function, python_pars);
+        return false;
     }
 
 #endif
 
     return true;
-
-error_exit:
-
-    releaseParameters(function, python_pars);
-    return false;
 }
 
 PyObject *Nuitka_CallFunctionNoArgs(struct Nuitka_FunctionObject const *function) {
@@ -2401,7 +2396,8 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
                          Nuitka_String_AsString(kw_names[0]));
         }
 
-        goto error_exit;
+        releaseParameters(function, python_pars);
+        return false;
     }
 
     kw_only_found = 0;
@@ -2409,7 +2405,8 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
         kw_found = handleVectorcallKeywordArgsWithStarDict(function, python_pars, &kw_only_found, kw_names,
                                                            &args[args_size], kw_size);
         if (kw_found == -1) {
-            goto error_exit;
+            releaseParameters(function, python_pars);
+            return false;
         }
     } else if (kw_size == 0) {
         kw_found = 0;
@@ -2418,7 +2415,8 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
             handleVectorcallKeywordArgs(function, python_pars, &kw_only_found, kw_names, &args[args_size], kw_size);
 
         if (kw_found == -1) {
-            goto error_exit;
+            releaseParameters(function, python_pars);
+            return false;
         }
     }
 
@@ -2431,7 +2429,8 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
 #endif
 
     if (result == false) {
-        goto error_exit;
+        releaseParameters(function, python_pars);
+        return false;
     }
 
 #if PYTHON_VERSION >= 0x300
@@ -2455,16 +2454,12 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
     if (unlikely(kw_only_error)) {
         formatErrorTooFewKwOnlyArguments(function, &python_pars[function->m_args_positional_count]);
 
-        goto error_exit;
+        releaseParameters(function, python_pars);
+        return false;
     }
 #endif
 
     return true;
-
-error_exit:
-
-    releaseParameters(function, python_pars);
-    return false;
 }
 
 PyObject *Nuitka_CallFunctionVectorcall(struct Nuitka_FunctionObject const *function, PyObject *const *args,
