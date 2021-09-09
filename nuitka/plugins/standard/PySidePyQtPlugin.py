@@ -109,6 +109,7 @@ not exist, a list of all available will be given.""",
                         "mediaservice",
                         "printsupport",
                         "platforms",
+                        "platformthemes",
                         "styles",
                     )
                     if self.hasPluginFamily(family)
