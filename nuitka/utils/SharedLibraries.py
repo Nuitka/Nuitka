@@ -385,7 +385,44 @@ def removeMacOSCodeSignature(filename):
     with withMadeWritableFileMode(filename):
         executeToolChecked(
             logger=postprocessing_logger,
-            command=["codesign", "--remove-signature", filename],
+            command=["codesign", "--remove-signature", "--all-architectures", filename],
+            absence_message=_codesign_usage,
+        )
+
+
+def addMacOSCodeSignature(filename, identity, entitlements_filename, deep):
+    extra_args = []
+
+    # Weak signing is supported.
+    if not identity:
+        identity = "-"
+
+    command = [
+        "codesign",
+        "-s",
+        identity,
+        "--force",
+        "--timestamp",
+        "--all-architectures",
+    ]
+
+    # hardened runtime unless no good identify
+    if identity != "-":
+        extra_args.append("--options=runtime")
+
+    if entitlements_filename:
+        extra_args.append("--entitlements")
+        extra_args.append(entitlements_filename)
+
+    if deep:
+        extra_args.append("--deep")
+
+    command.append(filename)
+
+    with withMadeWritableFileMode(filename):
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=command,
             absence_message=_codesign_usage,
         )
 
