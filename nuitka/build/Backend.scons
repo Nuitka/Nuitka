@@ -186,7 +186,7 @@ noelf_mode = getArgumentBool("noelf_mode", False)
 macosx_target = sys.platform == "darwin"
 
 # Windows subsystem mode: Disable console for windows builds.
-win_disable_console = getArgumentBool("win_disable_console", False)
+disable_console = getArgumentBool("disable_console", False)
 
 # Windows might be running a Python whose DLL we have to use.
 uninstalled_python = getArgumentBool("uninstalled_python", False)
@@ -743,10 +743,10 @@ if win_target:
         if not clang_mode:
             env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
 
-        if win_disable_console:
+        if disable_console:
             env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
 
-    if win_disable_console:
+    if disable_console:
         env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
     if msvc_mode:

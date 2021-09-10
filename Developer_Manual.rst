@@ -1007,7 +1007,7 @@ processes:
    known good with the compiler in question. So far, this was not found
    to make major differences.
 
--  ``win_disable_console``
+-  ``disable_console``
 
    Windows subsystem mode: Disable console for windows builds.
 

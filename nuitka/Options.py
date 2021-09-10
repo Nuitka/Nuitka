@@ -818,8 +818,8 @@ def getMsvcVersion():
 
 
 def shallDisableConsoleWindow():
-    """*bool* = "--win-disable-console" """
-    return options.win_disable_console
+    """*bool* = "--win-disable-console or --macos-disable-console" """
+    return options.disable_console
 
 
 def _isFullCompat():
@@ -1043,6 +1043,21 @@ def getWindowsCompanyName():
 def getWindowsProductName():
     """*str* name of the product to use"""
     return options.windows_product_name
+
+
+def shallCreateAppBundle():
+    """*bool* shall create an application bundle"""
+    return options.macos_create_bundle
+
+
+def getMacOSAppName():
+    """*str* name of the app to use"""
+    return options.macos_app_name
+
+
+def getMacOSSignedAppName():
+    """*str* name of the app to use during signing"""
+    return options.macos_signed_app_name
 
 
 _python_flags = None

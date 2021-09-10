@@ -379,7 +379,7 @@ def setCommonOptions(options):
         options["msvc_version"] = msvc_version
 
     if Options.shallDisableConsoleWindow():
-        options["win_disable_console"] = asBoolStr(True)
+        options["disable_console"] = asBoolStr(True)
 
     if Options.getLtoMode() != "auto":
         options["lto_mode"] = Options.getLtoMode()

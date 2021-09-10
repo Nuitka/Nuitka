@@ -138,7 +138,7 @@ lto_mode = getArgumentDefaulted("lto_mode", "auto")
 win_target = os.name == "nt"
 
 # Windows subsystem mode: Disable console for windows builds.
-win_disable_console = getArgumentBool("win_disable_console", False)
+disable_console = getArgumentBool("disable_console", False)
 
 # Unstriped mode: Do not remove debug symbols.
 unstripped_mode = getArgumentBool("unstripped_mode", False)
@@ -559,10 +559,10 @@ if win_target:
         if not clang_mode:
             env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
 
-        if win_disable_console:
+        if disable_console:
             env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
 
-    if win_disable_console:
+    if disable_console:
         env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
 # For shell API usage to lookup app folders we need this.

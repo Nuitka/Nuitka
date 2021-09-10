@@ -864,7 +864,7 @@ windows_group.add_option(
 windows_group.add_option(
     "--windows-disable-console",
     action="store_true",
-    dest="win_disable_console",
+    dest="disable_console",
     default=False,
     help="""\
 When compiling for Windows, disable the console window. Defaults to off.""",
@@ -1031,6 +1031,54 @@ to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your program.""",
 
 
 parser.add_option_group(windows_group)
+
+macos_group = OptionGroup(parser, "macOS specific controls")
+
+macos_group.add_option(
+    "--macos-disable-console",
+    action="store_true",
+    dest="disable_console",
+    default=False,
+    help="""\
+When compiling for macOS, disable the console window and create a GUI
+application. Defaults to off.""",
+)
+
+macos_group.add_option(
+    "--macos-create-app-bundle",
+    action="store_true",
+    dest="macos_create_bundle",
+    default=False,
+    help="""\
+When compiling for macOS, create a bundle rather than a plain binary
+application. Currently experimental and incomplete. Currently this
+is the only way to unlock disabling of console.Defaults to off.""",
+)
+
+macos_group.add_option(
+    "--macos-signed-app-name",
+    action="store",
+    dest="macos_signed_app_name",
+    metavar="MACOS_SIGNED_APP_NAME",
+    default=None,
+    help="""\
+Name of the application to use for macOS signing. Follow com.yourcompany.appname naming
+results for best results, as these have to be globally unique, and will grant protected
+API accesses.""",
+)
+
+macos_group.add_option(
+    "--macos-app-name",
+    action="store",
+    dest="macos_app_name",
+    metavar="MACOS_APP_NAME",
+    default=None,
+    help="""\
+Name of the product to use in macOS bundle information. Defaults to base
+filename of the binary.""",
+)
+
+parser.add_option_group(macos_group)
 
 linux_group = OptionGroup(parser, "Linux specific controls")
 
