@@ -34,11 +34,12 @@ are in another context.
 
 from nuitka import Tracing
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.containers.oset import OrderedSet
 from nuitka.PythonVersions import python_version
 
 from .FinalizeBase import FinalizationVisitorBase
 
-imported_names = set()
+imported_names = OrderedSet()
 
 
 def getImportedNames():
