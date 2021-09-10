@@ -79,10 +79,10 @@ from nuitka.utils.SharedLibraries import (
     getPyWin32Dir,
     getSharedLibraryRPATH,
     getWindowsDLLVersion,
-    removeMacOSCodeSignature,
     removeSharedLibraryRPATH,
     removeSxsFromDLL,
 )
+from nuitka.utils.Signing import removeMacOSCodeSignature
 from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
 
