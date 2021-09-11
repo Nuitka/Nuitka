@@ -116,6 +116,10 @@ not exist, a list of all available will be given.""",
                 )
             )
 
+            # OpenGL rendering, maybe should be something separate.
+            if self.hasPluginFamily("xcbglintegrations"):
+                self.qt_plugins.add("xcbglintegrations")
+
             self.qt_plugins.remove("sensible")
 
             # Make sure the above didn't detect nothing, which would be
