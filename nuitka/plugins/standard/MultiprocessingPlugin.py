@@ -29,7 +29,6 @@ from nuitka.ModuleRegistry import getRootTopModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
-from nuitka.utils import Utils
 from nuitka.utils.ModuleNames import ModuleName
 
 
@@ -46,11 +45,11 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     """
 
     plugin_name = "multiprocessing"
-    plugin_desc = "Required by Python's multiprocessing module on Windows"
+    plugin_desc = "Required by Python's multiprocessing module"
 
     @classmethod
     def isRelevant(cls):
-        return Utils.getOS() == "Windows" and not Options.shallMakeModule()
+        return not Options.shallMakeModule()
 
     @staticmethod
     def getPreprocessorSymbols():
@@ -60,6 +59,11 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     def createPreModuleLoadCode(module):
         full_name = module.getFullName()
 
+        # TODO: Replace the setting of "sys.frozen" with a change to the source code of the
+        # modules we want to affect from this plugin, it's a huge impact on compatibility
+        # with other things potentially. We should do it, once the anti-bloat engine is
+        # re-usable or supports conditional replacements based on plugin activity and is
+        # always on.
         if full_name == "multiprocessing":
             code = """\
 import sys, os
@@ -160,17 +164,24 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
         # TODO: Make this demotable too.
         # or module_name in( "multiprocessing-preLoad", "multiprocessing-postLoad"):
 
+    def onFrozenModuleSourceCode(self, module_name, is_package, source_code):
+        if module_name == "multiprocessing.resource_tracker":
+            source_code = source_code.replace(
+                "args += ['-c', cmd % r]",
+                "args += ['--multiprocessing-resource-tracker', str(r)]",
+            )
+
+        return source_code
+
 
 class NuitkaPluginDetectorMultiprocessingWorkarounds(NuitkaPluginBase):
     detector_for = NuitkaPluginMultiprocessingWorkarounds
 
     @classmethod
     def isRelevant(cls):
-        return Utils.getOS() == "Windows" and not Options.shallMakeModule()
+        return not Options.shallMakeModule()
 
     def checkModuleSourceCode(self, module_name, source_code):
         if module_name == "__main__":
             if "multiprocessing" in source_code:
-                self.warnUnusedPlugin(
-                    "Multiprocessing workarounds for compiled code on Windows."
-                )
+                self.warnUnusedPlugin("Multiprocessing workarounds for compiled code.")

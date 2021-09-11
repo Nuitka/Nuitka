@@ -202,10 +202,18 @@ DWORD WINAPI SvcStartPython(LPVOID lpParam) {
 }
 #endif
 
+// This is a multiprocessing fork
+static bool is_multiprocessing_fork = false;
+// This is a multiprocessing resource tracker.
+static PyObject *multiprocessing_resource_tracker_arg = NULL;
+
+// Platform compat
+#if !defined(_WIN32) && PYTHON_VERSION >= 0x300
+static long _wtoi(const wchar_t *value) { return wcstol(value, 0, 10); }
+#endif
+
 // Parse the command line parameters and provide it to "sys" built-in module,
 // as well as decide if it's a multiprocessing usage.
-static bool is_multiprocessing_fork = false;
-
 static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
     if (initial) {
         /* We might need to handle special parameters from plugins that are
@@ -218,11 +226,24 @@ static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
 #if PYTHON_VERSION < 0x300
             if ((strcmp(argv[i], "--multiprocessing-fork")) == 0 && (i + 1 < argc))
 #else
-            // TODO: Should simply use wide char literal
             if ((wcscmp(argv[i], L"--multiprocessing-fork")) == 0 && (i + 1 < argc))
 #endif
             {
                 is_multiprocessing_fork = true;
+                break;
+            }
+
+#if PYTHON_VERSION < 0x300
+            if ((strcmp(argv[i], "--multiprocessing-resource-tracker")) == 0 && (i + 1 < argc))
+#else
+            if ((wcscmp(argv[i], L"--multiprocessing-resource-tracker")) == 0 && (i + 1 < argc))
+#endif
+            {
+#if PYTHON_VERSION < 0x300
+                multiprocessing_resource_tracker_arg = PyInt_FromLong(atoi(argv[i + 1]));
+#else
+                multiprocessing_resource_tracker_arg = PyLong_FromLong(_wtoi(argv[i + 1]));
+#endif
                 break;
             }
 
@@ -704,6 +725,22 @@ int main(int argc, char **argv) {
     if (unlikely(is_multiprocessing_fork)) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
         IMPORT_EMBEDDED_MODULE("__parents_main__");
+
+        NUITKA_PRINT_TRACE("main(): Calling __parents_main__ Py_Exit.");
+
+        // TODO: Should check for exceptions to be fully compatible, but that's maybe over the
+        // edge for now.
+        exit(0);
+    } else if (unlikely(multiprocessing_resource_tracker_arg != NULL)) {
+        NUITKA_PRINT_TRACE("main(): Calling resource_tracker.");
+        PyObject *resource_tracker_module = IMPORT_EMBEDDED_MODULE("multiprocessing.resource_tracker");
+
+        PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
+
+        CALL_FUNCTION_WITH_SINGLE_ARG(main_function, multiprocessing_resource_tracker_arg);
+
+        NUITKA_PRINT_TRACE("main(): Calling resource_tracker Py_Exit.");
+        Py_Exit(0);
     } else {
 #endif
 #if defined(_NUITKA_ONEFILE) && defined(_WIN32)

@@ -166,10 +166,8 @@ def main():
 
             extra_flags.append("ignore_warnings")
         elif filename == "multiprocessing_using":
-            if os.name == "nt":
-                extra_flags.append("plugin_enable:multiprocessing")
-
-            elif sys.platform == "darwin" and python_version >= (3, 8):
+            # TODO: Still true?
+            if sys.platform == "darwin" and python_version >= (3, 8):
                 reportSkip("Hangs for unknown reasons", ".", filename)
                 continue
         else:
