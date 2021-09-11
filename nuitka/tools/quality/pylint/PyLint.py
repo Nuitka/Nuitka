@@ -113,7 +113,9 @@ def checkVersion():
 # Not too useful for us.
 #
 # useless-object-inheritance
-# The code is for Python2 still, where it makes a difference.
+# The code is for Python2 still, where it makes a difference, if you do
+# not specify a base class, object is not the default there, but old style
+# classes are, which perform different/worse.
 #
 # useless-return
 # We like explicit None returns where the return value can be overloaded
@@ -128,6 +130,13 @@ def checkVersion():
 # assignment-from-none
 # Overloaded functions are not detected, default value returns are all
 # warned about, not worth it.
+#
+# raise-missing-from
+# cannot do that, as long as we are backwards compatible
+
+# import-outside-toplevel
+# We do this deliberately, to avoid importing modules we do not use in
+# all cases, e.g. Windows/macOS specific stuff.
 
 
 def getOptions():
@@ -135,9 +144,12 @@ def getOptions():
 
     default_pylint_options = """\
 --init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())
---disable=I0011,I0012,no-init,bad-whitespace,bad-continuation,E1103,W0632,W1504,C0123,C0411,C0413,R0204,\
-similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none,ungrouped-imports,\
-no-else-return,c-extension-no-member,inconsistent-return-statements
+--disable=I0011,I0012,no-init,bad-whitespace,bad-continuation,E1103,W0632,W1504,\
+C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,\
+deprecated-module, deprecated-method,assignment-from-none,ungrouped-imports,\
+no-else-return,c-extension-no-member,inconsistent-return-statements,\
+raise-missing-from,import-outside-toplevel,useless-object-inheritance,\
+useless-return,assignment-from-no-return
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no
@@ -164,34 +176,6 @@ no-else-return,c-extension-no-member,inconsistent-return-statements
 """.split(
         "\n"
     )
-
-    if pylint_version >= "2.0":
-        default_pylint_options += """\
---disable=useless-object-inheritance,useless-return,assignment-from-no-return\
-""".split(
-            "\n"
-        )
-
-    if pylint_version >= "2.4":
-        default_pylint_options += """\
---disable=import-outside-toplevel\
-""".split(
-            "\n"
-        )
-
-    if pylint_version >= "2.6":
-        default_pylint_options += """\
---disable=raise-missing-from\
-""".split(
-            "\n"
-        )
-
-    if pylint_version < "2.0":
-        default_pylint_options += """\
---disable=slots-on-old-class\
-""".split(
-            "\n"
-        )
 
     if os.name != "nt":
         default_pylint_options.append("--rcfile=%s" % os.devnull)
