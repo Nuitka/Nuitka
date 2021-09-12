@@ -33,7 +33,7 @@ from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
 from nuitka.utils import Utils
 from nuitka.utils.FileOperations import getFileContentByLine
-from nuitka.Version import getNuitkaVersion
+from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
@@ -49,6 +49,7 @@ parser = OptionParser(
     version="\n".join(
         (
             getNuitkaVersion(),
+            "Commercial: %s" % getCommercialVersion(),
             "Python: " + sys.version.split("\n")[0],
             "Executable: " + sys.executable,
             "OS: " + Utils.getOS(),
@@ -1209,6 +1210,7 @@ def _expandProjectArg(arg, filename_arg, for_eval):
         "OS": wrap(Utils.getOS()),
         "Arch": wrap(Utils.getArchitecture()),
         "Version": getNuitkaVersion(),
+        "Commercial": getCommercialVersion(),
         "MAIN_DIRECTORY": wrap(os.path.dirname(filename_arg) or "."),
     }
     arg = arg.format(**values)

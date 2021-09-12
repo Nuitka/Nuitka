@@ -690,7 +690,9 @@ other keywords than the used ones demonstrated above.
 | {OS}             | Name of the OS used                  | Linux, Windows, Darwin,        |
 |                  |                                      | FreeBSD, OpenBSD               |
 +------------------+--------------------------------------+--------------------------------+
-| {Version}        | Version of Nuitka                    | (0, 6, 14)                     |
+| {Version}        | Version of Nuitka                    | e.g. (0, 6, 16)                |
++------------------+--------------------------------------+--------------------------------+
+| {Commercial}     | Version of Nuitka Commercial         | e.g. (0, 9, 4)                 |
 +------------------+--------------------------------------+--------------------------------+
 | {Arch}           | Architecture used                    | x86_64, arm64, etc.            |
 +------------------+--------------------------------------+--------------------------------+
