@@ -135,19 +135,22 @@ parser.add_option(
     "--python-flag",
     action="append",
     dest="python_flags",
+    metavar="FLAG",
     default=[],
     help="""\
-Python flags to use. Default uses what you are using to run Nuitka, this
+Python flags to use. Default is what you are using to run Nuitka, this
 enforces a specific mode. These are options that also exist to standard
 Python executable. Currently supported: "-S" (alias "nosite"),
 "static_hashes" (do not use hash randomization), "no_warnings" (do not
-give Python runtime warnings), "-O" (alias "noasserts"). Default empty.""",
+give Python runtime warnings), "-O" (alias "no_asserts"), "no_docstrings"
+(do not use docstrings). Default empty.""",
 )
 
 parser.add_option(
     "--python-for-scons",
     action="store",
     dest="python_scons",
+    metavar="PATH",
     default=None,
     help="""\
 If using Python3.3 or Python3.4, provide the path of a Python binary to use
@@ -179,7 +182,8 @@ parser.add_option(
     dest="assume_yes_for_downloads",
     default=False,
     help="""\
-Allow Nuitka to download code if necessary, e.g. dependency walker on Windows.""",
+Allow Nuitka to download external code if necessary, e.g. dependency
+walker, ccache, and even gcc on Windows.""",
 )
 
 
@@ -323,7 +327,7 @@ data_group.add_option(
     "--include-package-data",
     action="append",
     dest="package_data",
-    metavar="PACKAGE_DATA",
+    metavar="PACKAGE",
     default=[],
     help="""\
 Include data files of the given package name. Can use patterns. By default
@@ -336,7 +340,7 @@ data_group.add_option(
     "--include-data-file",
     action="append",
     dest="data_files",
-    metavar="DATA_FILES",
+    metavar="DESC",
     default=[],
     help="""\
 Include data files by filenames in the distribution. There are many
@@ -352,7 +356,7 @@ data_group.add_option(
     "--include-data-dir",
     action="append",
     dest="data_dirs",
-    metavar="DATA_DIRS",
+    metavar="DIRECTORY",
     default=[],
     help="""\
 Include data files from complete directory in the distribution. This is
@@ -455,6 +459,7 @@ codegen_group.add_option(
     "--file-reference-choice",
     action="store",
     dest="file_reference_mode",
+    metavar="MODE",
     choices=("original", "runtime", "frozen"),
     default=None,
     help="""\
@@ -604,6 +609,7 @@ debug_group.add_option(
     "--experimental",
     action="append",
     dest="experimental",
+    metavar="FLAG",
     default=[],
     help="""\
 Use features declared as 'experimental'. May have no effect if no experimental
@@ -709,25 +715,32 @@ c_compiler_group.add_option(
     "--lto",
     action="store",
     dest="lto",
+    metavar="choice",
     default="auto",
     choices=("yes", "no", "auto"),
     help="""\
-Use link time optimizations if available and usable (MSVC, gcc >=4.6, clang).
-Defaults to auto.""",
+Use link time optimizations (MSVC, gcc, clang). Allowed values are
+"yes", "no", and "auto" (when it's known to work). Defaults to
+"auto".""",
 )
 
 c_compiler_group.add_option(
     "--static-libpython",
     action="store",
     dest="static_libpython",
+    metavar="choice",
     default="auto",
     choices=("yes", "no", "auto"),
     help="""\
-Use static link library of Python if available. Defaults to auto, i.e. enabled for where
-we know it's working.""",
+Use static link library of Python. Allowed values are "yes", "no",
+and "auto" (when it's known to work). Defaults to "auto".""",
 )
 
-c_compiler_group.add_option(
+parser.add_option_group(c_compiler_group)
+
+pgo_group = OptionGroup(parser, "PGO compilation choices")
+
+pgo_group.add_option(
     "--pgo",
     action="store_true",
     dest="is_pgo",
@@ -738,7 +751,7 @@ run, and then using the result to feedback into the C compilation. Note: This is
 experimental and not working with many modes of Nuitka yet. Defaults to off.""",
 )
 
-c_compiler_group.add_option(
+pgo_group.add_option(
     "--pgo-args",
     action="store",
     dest="pgo_args",
@@ -748,7 +761,7 @@ Arguments to be passed in case of profile guided optimization. These are passed 
 built executable during the PGO profiling run. Default empty.""",
 )
 
-c_compiler_group.add_option(
+pgo_group.add_option(
     "--pgo-executable",
     action="store",
     dest="pgo_executable",
@@ -759,7 +772,7 @@ launch it through a script that prepares it to run. Default use created program.
 )
 
 
-parser.add_option_group(c_compiler_group)
+parser.add_option_group(pgo_group)
 
 tracing_group = OptionGroup(parser, "Tracing features")
 
@@ -826,6 +839,7 @@ tracing_group.add_option(
     "--show-modules-output",
     action="store",
     dest="show_inclusion_output",
+    metavar="PATH",
     default=None,
     help="""\
 Where to output --show-modules, should be a filename. Default is standard output.""",
@@ -845,6 +859,7 @@ tracing_group.add_option(
     "--verbose-output",
     action="store",
     dest="verbose_output",
+    metavar="PATH",
     default=None,
     help="""\
 Where to output --verbose, should be a filename. Default is standard output.""",
@@ -1036,6 +1051,15 @@ parser.add_option_group(windows_group)
 macos_group = OptionGroup(parser, "macOS specific controls")
 
 macos_group.add_option(
+    "--macos-onefile-icon",
+    action="append",
+    dest="icon_path",
+    metavar="ICON_PATH",
+    default=[],
+    help="Add executable icon for binary to use. Can be given only one time. Defaults to Python icon if available.",
+)
+
+macos_group.add_option(
     "--macos-disable-console",
     action="store_true",
     dest="disable_console",
@@ -1101,6 +1125,7 @@ plugin_group.add_option(
     "--enable-plugin",
     action="append",
     dest="plugins_enabled",
+    metavar="PLUGIN_NAME",
     default=[],
     help="""\
 Enabled plugins. Must be plug-in names. Use --plugin-list to query the
@@ -1112,6 +1137,7 @@ plugin_group.add_option(
     "--disable-plugin",
     action="append",
     dest="plugins_disabled",
+    metavar="PLUGIN_NAME",
     default=[],
     help="""\
 Disabled plugins. Must be plug-in names. Use --plugin-list to query the
@@ -1147,6 +1173,7 @@ plugin_group.add_option(
     "--user-plugin",
     action="append",
     dest="user_plugins",
+    metavar="PATH",
     default=[],
     help="The file name of user plugin. Can be given multiple times. Default empty.",
 )
