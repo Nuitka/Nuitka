@@ -40,6 +40,7 @@ from nuitka.utils.FileOperations import (
     putTextFileContents,
     removeFileExecutablePermission,
 )
+from nuitka.utils.Images import convertImageToIconFormat
 from nuitka.utils.MacOSApp import createPlistInfoFile
 from nuitka.utils.SharedLibraries import callInstallNameTool
 from nuitka.utils.Utils import getOS, isWin32Windows
@@ -130,35 +131,22 @@ def _addWindowsIconFromIcons(onefile):
                     % icon_spec
                 )
 
-            try:
-                import imageio
-            except ImportError:
-                postprocessing_logger.sysexit(
-                    "Need to install 'imageio' to automatically convert non-ico icon file in '%s'."
-                    % icon_spec
-                )
-
-            try:
-                image = imageio.imread(icon_path)
-            except ValueError:
-                postprocessing_logger.sysexit(
-                    "Unsupported file format for imageio in '%s', use e.g. PNG files."
-                    % icon_spec
-                )
-
             icon_build_path = os.path.join(
                 OutputDirectories.getSourceDirectoryPath(onefile=onefile),
                 "icons",
             )
-
             makePath(icon_build_path)
-
             converted_icon_path = os.path.join(
                 icon_build_path,
                 "icon-%d.ico" % image_id,
             )
 
-            imageio.imwrite(converted_icon_path, image)
+            convertImageToIconFormat(
+                logger=postprocessing_logger,
+                image_filename=icon_spec,
+                icon_filename=converted_icon_path,
+            )
+
             icon_path = converted_icon_path
 
         with open(icon_path, "rb") as icon_file:
