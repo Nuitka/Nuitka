@@ -19,12 +19,15 @@
 
 """
 
+from .FileOperations import hasFilenameExtension
+
 
 def convertImageToIconFormat(logger, image_filename, icon_filename):
     """Convert image file to icon file."""
-    icon_format = icon_filename.rsplit(".", 1)[1]
+    icon_format = icon_filename.rsplit(".", 1)[1].lower()
 
-    assert icon_format in (".ico", ".icns")
+    # Limit to supported icon formats.
+    assert hasFilenameExtension(icon_filename, (".ico", ".icns")), icon_format
 
     try:
         import imageio

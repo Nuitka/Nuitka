@@ -363,10 +363,18 @@ def splitPath(path):
     return tuple(element for element in os.path.split(path) if element)
 
 
+def getFilenameExtension(path):
+    """Get the filename extension.
+
+    Note: For checks on extension, use hasFilenameExtension instead.
+    """
+    return os.path.splitext(os.path.normcase(path))[1]
+
+
 def hasFilenameExtension(path, extensions):
     """Has a filename one of the given extensions."""
 
-    extension = os.path.splitext(os.path.normcase(path))[1]
+    extension = getFilenameExtension(path)
 
     return extension in extensions
 

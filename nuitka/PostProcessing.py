@@ -123,7 +123,9 @@ def _addWindowsIconFromIcons(onefile):
         icon_path = os.path.normcase(icon_path)
 
         if not icon_path.endswith(".ico"):
-            postprocessing_logger.info("Not in Windows icon format, converting to it.")
+            postprocessing_logger.info(
+                "File '%s' is not in Windows icon format, converting to it." % icon_path
+            )
 
             if icon_index is not None:
                 postprocessing_logger.sysexit(
@@ -361,7 +363,7 @@ def executePostProcessing():
         )
 
     if getOS() == "Darwin" and Options.shallCreateAppBundle():
-        createPlistInfoFile()
+        createPlistInfoFile(logger=postprocessing_logger, onefile=False)
 
     # Modules should not be executable, but Scons creates them like it, fix
     # it up here.

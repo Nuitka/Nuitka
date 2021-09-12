@@ -19,23 +19,27 @@
 
 """
 import os
+import shutil
 
 from nuitka import Options, OutputDirectories
 
-from .FileOperations import openTextFile
+from .FileOperations import makePath, openTextFile
+from .Images import convertImageToIconFormat
 
 
-def createPlistInfoFile():
+def createPlistInfoFile(logger, onefile):
+    # Many details, pylint: disable=too-many-locals
+
     import plistlib
 
     if Options.isStandaloneMode():
         bundle_dir = os.path.dirname(OutputDirectories.getStandaloneDirectoryPath())
     else:
         bundle_dir = os.path.dirname(
-            OutputDirectories.getResultRunFilename(onefile=False)
+            OutputDirectories.getResultRunFilename(onefile=onefile)
         )
 
-    result_filename = OutputDirectories.getResultFullpath(onefile=False)
+    result_filename = OutputDirectories.getResultFullpath(onefile=onefile)
     app_name = Options.getMacOSAppName() or os.path.basename(result_filename)
 
     signed_app_name = Options.getMacOSSignedAppName() or app_name
@@ -55,8 +59,39 @@ def createPlistInfoFile():
     icon_paths = Options.getIconPaths()
 
     if icon_paths:
-        # TODO: Convert/merge to single macOS .icns file if necessary
-        infos["CFBundleIconFile"] = os.path.basename(icon_paths[0])
+        assert len(icon_paths) == 1
+        icon_path = icon_paths[0]
+
+        # Convert to single macOS .icns file if necessary
+        if not icon_path.endswith(".icns"):
+            logger.info(
+                "File '%s' is not in macOS icon format, converting to it." % icon_path
+            )
+
+            icon_build_path = os.path.join(
+                OutputDirectories.getSourceDirectoryPath(onefile=onefile),
+                "icons",
+            )
+            makePath(icon_build_path)
+            converted_icon_path = os.path.join(
+                icon_build_path,
+                "Icons.icns",
+            )
+
+            convertImageToIconFormat(
+                logger=logger,
+                image_filename=icon_path,
+                icon_filename=converted_icon_path,
+            )
+            icon_path = converted_icon_path
+
+        icon_name = os.path.basename(icon_path)
+        resources_dir = os.path.join(bundle_dir, "Resources")
+        makePath(resources_dir)
+
+        shutil.copyfile(icon_path, os.path.join(resources_dir, icon_name))
+
+        infos["CFBundleIconFile"] = icon_name
 
     # Console mode, which is why we have to use bundle in the first place typically.
     if Options.shallDisableConsoleWindow():
