@@ -41,7 +41,8 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     same principle.
 
     So by default, this module is on and works around the behavior of the
-    "multiprocessing.forking/multiprocessing.spawn" expectations.
+    "multiprocessing.forking/multiprocessing.spawn/multiprocessing.manager"
+    expectations.
     """
 
     plugin_name = "multiprocessing"
@@ -129,6 +130,8 @@ Monkey patching "multiprocessing" for compiled methods.""",
         if python_version >= 0x340:
             source_code += """
 __import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
+# Not needed, and can crash from minor __file__ differences, depending on invocation
+__import__("multiprocessing.spawn").spawn._fixup_main_from_path = lambda mod_name : None
 __import__("multiprocessing.spawn").spawn.freeze_support()"""
         else:
             source_code += """

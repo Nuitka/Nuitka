@@ -358,6 +358,39 @@ DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
 }
 #endif
 
+static int HANDLE_PROGRAM_EXIT() {
+    int exit_code;
+
+    if (ERROR_OCCURRED()) {
+#if PYTHON_VERSION >= 0x300
+        /* Remove the frozen importlib traceback part, which would not be compatible. */
+        PyThreadState *thread_state = PyThreadState_GET();
+
+        while (thread_state->curexc_traceback) {
+            PyTracebackObject *tb = (PyTracebackObject *)thread_state->curexc_traceback;
+            PyFrameObject *frame = tb->tb_frame;
+
+            if (0 == strcmp(PyUnicode_AsUTF8(frame->f_code->co_filename), "<frozen importlib._bootstrap>")) {
+                thread_state->curexc_traceback = (PyObject *)tb->tb_next;
+                Py_INCREF(tb->tb_next);
+
+                continue;
+            }
+
+            break;
+        }
+#endif
+
+        PyErr_PrintEx(0);
+
+        exit_code = 1;
+    } else {
+        exit_code = 0;
+    }
+
+    return exit_code;
+}
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
 #if defined(__MINGW32__) && !defined(_W64)
@@ -718,7 +751,7 @@ int main(int argc, char **argv) {
 #endif
 
     /* Execute the main module unless plugins want to do something else. In case of
-       multiprocessing making a fork on Windows, we should execute __parents_main__
+       multiprocessing making a fork on Windows, we should execute "__parents_main__"
        instead. And for Windows Service we call the plugin C code to call us back
        to launch main code in a callback. */
 #ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
@@ -726,11 +759,12 @@ int main(int argc, char **argv) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
         IMPORT_EMBEDDED_MODULE("__parents_main__");
 
+        int exit_code = HANDLE_PROGRAM_EXIT();
+
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__ Py_Exit.");
 
-        // TODO: Should check for exceptions to be fully compatible, but that's maybe over the
-        // edge for now.
-        exit(0);
+        // TODO: Should maybe call Py_Exit here, but there were issues with that.
+        exit(exit_code);
     } else if (unlikely(multiprocessing_resource_tracker_arg != NULL)) {
         NUITKA_PRINT_TRACE("main(): Calling resource_tracker.");
         PyObject *resource_tracker_module = IMPORT_EMBEDDED_MODULE("multiprocessing.resource_tracker");
@@ -739,8 +773,11 @@ int main(int argc, char **argv) {
 
         CALL_FUNCTION_WITH_SINGLE_ARG(main_function, multiprocessing_resource_tracker_arg);
 
+        int exit_code = HANDLE_PROGRAM_EXIT();
+
         NUITKA_PRINT_TRACE("main(): Calling resource_tracker Py_Exit.");
-        Py_Exit(0);
+        // TODO: Should maybe call Py_Exit here, but there were issues with that.
+        exit(exit_code);
     } else {
 #endif
 #if defined(_NUITKA_ONEFILE) && defined(_WIN32)
@@ -783,34 +820,7 @@ int main(int argc, char **argv) {
 
 #endif
 
-    int exit_code;
-
-    if (ERROR_OCCURRED()) {
-#if PYTHON_VERSION >= 0x300
-        /* Remove the frozen importlib traceback part, which would not be compatible. */
-        PyThreadState *thread_state = PyThreadState_GET();
-
-        while (thread_state->curexc_traceback) {
-            PyTracebackObject *tb = (PyTracebackObject *)thread_state->curexc_traceback;
-            PyFrameObject *frame = tb->tb_frame;
-
-            if (0 == strcmp(PyUnicode_AsUTF8(frame->f_code->co_filename), "<frozen importlib._bootstrap>")) {
-                thread_state->curexc_traceback = (PyObject *)tb->tb_next;
-                Py_INCREF(tb->tb_next);
-
-                continue;
-            }
-
-            break;
-        }
-#endif
-
-        PyErr_PrintEx(0);
-
-        exit_code = 1;
-    } else {
-        exit_code = 0;
-    }
+    int exit_code = HANDLE_PROGRAM_EXIT();
 
 #if _DEBUG_REFCOUNTS
     PRINT_REFCOUNTS();
