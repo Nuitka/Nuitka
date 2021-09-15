@@ -66,6 +66,7 @@
 #define ONEFILE_COMPANY "SomeVendor"
 #define ONEFILE_PRODUCT "SomeProduct"
 #define ONEFILE_VERSION "SomeVersion"
+#define _NUITKA_ONEFILE_TEMP_SPEC "%TEMP%/onefile_%PID%_%TIME%"
 #endif
 
 #ifdef _NUITKA_ONEFILE_COMPRESSION
