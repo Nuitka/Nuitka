@@ -574,6 +574,59 @@ syntax to combine the code with the creation, compile this:
  Typical Problems
 ******************
 
+Memory issues and compiler bugs
+===============================
+
+Sometimes the C compilers will crash saying they cannot allocate memory
+or that some input was truncated, or similar error messages, clearly
+from it. There are several options you can explore here:
+
+Avoid 32 bit C compiler/assembler memory limits
+-----------------------------------------------
+
+Do not use a 32 bits compiler, but a 64 bit one. If you are using Python
+with 32 bits on Windows, you most definitely ought to use MSVC as the C
+compiler, and not MinGW64. The MSVC is a cross compiler, and can use
+more memory than gcc on that platform. If you are not on Windows, that
+is not an option of course. Also using the 64 bits Python will work.
+
+Use LTO compilation or not
+--------------------------
+
+With ``--lto=yes`` or ``--lto=no`` you can switch the C compilation to
+only produce bytecode, and not assembler code and machine code directly,
+but make a whole program optimization at the end. This will change the
+memory usage pretty dramatically, and if you error is coming from the
+assembler, using LTO will most definitely avoid that.
+
+Switch the C compiler to clang
+------------------------------
+
+People have reported that programs that fail to compile with gcc due to
+its bugs or memory usage work fine with clang on Linux. On Windows, this
+could still be an option, but it needs to be implemented first for the
+automatic downloaded gcc, that would contain it. Since MSVC is known to
+be more memory effective anyway, you should go there, and if you want to
+use Clang, there is support for the one contained in MSVC.
+
+Add a larger swap file to your embedded Linux
+---------------------------------------------
+
+On systems with not enough RAM, you need to use swap space. Running out
+of it is possibly a cause, and adding more swap space, or one at all,
+might solve the issue, but beware that it will make things extremely
+slow when the compilers swap back and forth, so consider the next tip
+first or on top of it.
+
+Limit the amount of compilation jobs
+------------------------------------
+
+With the ``--jobs`` option of Nuitka, it will not start many C compiler
+instances at once, each competing for the scarce resource of RAM. By
+picking a value of one, only one C compiler instance will be running,
+and on a 8 core system, that reduces the amount of memory by factor 8,
+so that's a natural choice right there.
+
 Dynamic ``sys.path``
 ====================
 
