@@ -1074,7 +1074,7 @@ env.Append(CPPDEFINES=["_NUITKA_FROZEN=%d" % frozen_modules])
 
 # Tell compiler to create a shared library or program.
 if module_mode:
-    if "gcc" in the_cc_name or "g++" in the_cc_name:
+    if isGccName(the_cc_name):
         env.Append(CCFLAGS=["-shared"])
     elif clang_mode:
         pass
