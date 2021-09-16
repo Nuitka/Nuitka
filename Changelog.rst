@@ -2,6 +2,114 @@
  Nuitka Release 0.6.17 (Draft)
 ###############################
 
+This release has a focus on performance improvements, while also
+polishing plugins and adding new features.
+
+***********
+ Bug Fixes
+***********
+
+-  Fix, plugins were not catching being used on packages not installed.
+   Fixed in 0.6.16.2 already.
+
+-  Linux: Allow onefile program args with spaces passed via AppRun.
+   Fixed in 0.6.16.3 already.
+
+-  Windows: Fix, onefile binaries were not working after being signed.
+   This now works.
+
+-  Standalone: Added missing implicit dependency for sklearn.
+
+-  Compatibility: Modules giving ``SyntaxError`` from source were not
+   properly handled, giving runtime ``ImportError``. Now they are giving
+   ``SyntaxError``.
+
+-  Fix, the LTO mode has issues with ``incbin`` usage on older gcc, so
+   use ``linker`` mode when it is enabled and repaired it.
+
+-  Python3: Fix, locals dict codes were not properly checking errors
+   that the mapping might raise when setting values.
+
+**************
+ New Features
+**************
+
+-  Plugins: Add support for ``pkg_resources.require`` calls to be
+   resolved at compile time. These are not working at runtime, but this
+   avoids the issue very nicely.
+
+-  Plugins: Massive improvements to the ``anti-bloat`` plugin, it can
+   now make ``numpy``, ``scipy``, ``skimage``, and ``matplotlib`` use
+   much less packages and has better error handling.
+
+-  Added ability to persist source code changes done by plugins in the
+   Python installation. This is considered experimental and needs write
+   access to the Python installation, so this is best done in a
+   virtualenv.
+
+**************
+ Optimization
+**************
+
+-  Faster threading code was used for Python3.8 or higher, and this has
+   been extended to 3.7 on Windows, but we won't be able to have it
+   other platforms and not on earlier Python3 versions.
+
+-  Faster attribute check code in case of non-present attributes
+
+-  Allow using static linking with Debian Python giving much better
+   performance with the system Python.
+
+-  Demote to ``range`` when iterating over ``range`` calls.
+
+****************
+ Organisational
+****************
+
+-  Revived support for vmprof based analysis of compiled programs, but
+   it requires a fork of it now.
+
+**********
+ Cleanups
+**********
+
+-  Encoding names for UTF8 were inconsistent in the source code, added
+   cleanup to autoformat that picks the one blessed.
+
+-  Cleanup taking of runtime traces of DLLs used in preparation for
+   using it in main code eventually.
+
+-  Avoid special names for Nuitka options in test runner, this only adds
+   a level of confusion. Needs more work
+
+-  Unify implementation to create modules into single function. We had 3
+   forms, one in recursion, one for main module, and one for plugin
+   generated code.
+
+-  Further reduced code duplication between the scons files.
+
+-  Faster method calls when called from Python core
+
+-  Faster string comparisons for Python by specializing for the ``str``
+   type as well.
+
+-  Escaped variables are still known to be assigned/unassigned rather
+   than unknown, allowing for many optimizations to still work on them.,
+   esp. for immutable value
+
+*******
+ Tests
+*******
+
+-  Removed ``reflected`` test, because of Nuitka special needs to
+   restart with variable Python flags.
+-  Use ``anti-bloat`` plugin in standalone tests of Pandas and Jinja2
+   tests to reduce compile times.
+
+*********
+ Summary
+*********
+
 This release is not done yet.
 
 #######################
