@@ -83,7 +83,7 @@ def main():
         # We annotate some tests, use that to lower warnings.
         extra_flags.append("plugin_enable:pylint-warnings")
         extra_flags.append("remove_output")
-        extra_flags.append("recurse_all")
+        extra_flags.append("--follow-imports")
 
         plugin_files = [p for p in os.listdir(filename) if p.endswith("-plugin.py")]
 

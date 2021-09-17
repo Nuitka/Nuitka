@@ -127,7 +127,7 @@ def main():
 
         extra_flags.append("remove_output")
 
-        extra_flags.append("recurse_all")
+        extra_flags.append("--follow-imports")
 
         # Use the original __file__ value, at least one case warns about things
         # with filename included, but for pkgutil iteration, make sure we do not

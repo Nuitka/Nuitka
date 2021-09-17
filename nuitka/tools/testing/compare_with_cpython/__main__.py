@@ -221,8 +221,8 @@ def main():
     standalone_mode = hasArg("--standalone")
     onefile_mode = hasArg("--onefile")
     no_site = hasArg("no_site")
-    recurse_none = hasArg("recurse_none")
-    recurse_all = hasArg("recurse_all")
+    nofollow_imports = hasArg("recurse_none") or hasArg("--nofollow-imports")
+    follow_imports = hasArg("recurse_all") or hasArg("--follow-imports")
     timing = hasArg("timing")
     coverage_mode = hasArg("coverage")
     original_file = hasArg("original_file") or hasArg(
@@ -290,7 +290,7 @@ def main():
         two_step_execution = True
 
     assert not standalone_mode or not module_mode
-    assert not recurse_all or not recurse_none
+    assert not follow_imports or not nofollow_imports
 
     if "PYTHONHASHSEED" not in os.environ:
         os.environ["PYTHONHASHSEED"] = "0"
@@ -444,10 +444,10 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     if keep_python_path or binary_python_path:
         extra_options.append("--execute-with-pythonpath")
 
-    if recurse_none:
+    if nofollow_imports:
         extra_options.append("--nofollow-imports")
 
-    if recurse_all:
+    if follow_imports:
         extra_options.append("--follow-imports")
 
     if recurse_not:
