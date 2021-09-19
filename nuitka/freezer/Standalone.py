@@ -314,6 +314,19 @@ print("\\n".join(sorted(
                     continue
 
                 detections.append((module_name, 3, "precompiled", filename))
+            elif origin == b"from" and python_version < 0x300:
+                filename = parts[1][len(b"from ") :]
+                if python_version >= 0x300:  # For consistency, and maybe later reuse
+                    filename = filename.decode("utf8")
+
+                # Do not leave standard library when freezing.
+                if not isStandardLibraryPath(filename):
+                    continue
+
+                if filename.endswith(".py"):
+                    detections.append((module_name, 2, "sourcefile", filename))
+                else:
+                    assert False
             elif origin == b"sourcefile":
                 filename = parts[1][len(b"sourcefile ") :]
                 if python_version >= 0x300:
