@@ -1120,6 +1120,12 @@ def hasPythonFlagNoDocstrings():
     return "no_docstrings" in getPythonFlags()
 
 
+def hasPythonFlagNoWarnings():
+    """*bool* = "no_docstrings" in python flags given"""
+
+    return "no_warnings" in getPythonFlags()
+
+
 def shallFreezeAllStdlib():
     """*bool* = **not** shallFollowStandardLibrary"""
     return not shallFollowStandardLibrary()

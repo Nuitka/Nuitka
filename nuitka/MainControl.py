@@ -37,7 +37,7 @@ from nuitka.freezer.IncludedEntryPoints import (
 )
 from nuitka.freezer.Standalone import copyDataFiles
 from nuitka.importing import Importing, Recursion
-from nuitka.Options import getPythonFlags, hasPythonFlagNoAsserts
+from nuitka.Options import hasPythonFlagNoAsserts, hasPythonFlagNoWarnings
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import executePostProcessing
 from nuitka.Progress import (
@@ -489,7 +489,7 @@ def runSconsBackend(quiet):
     if Options.isProfile():
         options["profile_mode"] = asBoolStr(True)
 
-    if "no_warnings" in getPythonFlags():
+    if hasPythonFlagNoWarnings():
         options["no_python_warnings"] = asBoolStr(True)
 
     if hasPythonFlagNoAsserts():
