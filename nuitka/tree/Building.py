@@ -128,6 +128,7 @@ from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import (
+    general,
     memory_logger,
     optimization_logger,
     plugins_logger,
@@ -996,11 +997,9 @@ def _decideModuleSourceRef(filename, package, is_shlib, is_top, is_main, is_fake
                 module_name = module_name[:-3]
 
             if "." in module_name:
-                sys.stderr.write(
-                    "Error, '%s' is not a proper python module name.\n" % (module_name)
+                general.sysexit(
+                    "Error, '%s' is not a proper python module name.\n" % module_name
                 )
-
-                sys.exit(2)
 
             module_name = ModuleName.makeModuleNameInPackage(module_name, package)
     elif Importing.isPackageDir(filename):
