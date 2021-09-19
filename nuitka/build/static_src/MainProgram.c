@@ -508,6 +508,21 @@ int main(int argc, char **argv) {
     char const *old_env = getenv("PYTHONHASHSEED");
     setenv("PYTHONHASHSEED", "0", 1);
 #endif
+
+    /* Disable CPython warnings if requested to. */
+#if NO_PYTHON_WARNINGS
+    {
+#if PYTHON_VERSION >= 0x300
+        wchar_t ignore[] = L"ignore";
+#else
+        char ignore[] = "ignore";
+#endif
+
+        PySys_ResetWarnOptions();
+        PySys_AddWarnOption(ignore);
+    }
+#endif
+
     /* Initialize the embedded CPython interpreter. */
     NUITKA_PRINT_TIMING("main(): Calling Py_Initialize to initialize interpreter.");
     Py_Initialize();
@@ -717,28 +732,20 @@ int main(int argc, char **argv) {
     /* Enable meta path based loader. */
     setupMetaPathBasedLoader();
 
+    /* Initialize warnings module. */
     _PyWarnings_Init();
 
-    /* Disable CPython warnings if requested to. */
-#if NO_PYTHON_WARNINGS
-    {
-#if PYTHON_VERSION >= 0x300
-        wchar_t ignore[] = L"ignore";
-#else
-        char ignore[] = "ignore";
+#if NO_PYTHON_WARNINGS && PYTHON_VERSION >= 0x342 && defined(_NUITKA_FULL_COMPAT)
+    // For full compatibility bump the warnings registry version,
+    // otherwise modules "__warningsregistry__" will mismatch.
+    PyObject *warnings_module = PyImport_ImportModule("warnings");
+    PyObject *meth = PyObject_GetAttrString(warnings_module, "_filters_mutated");
+
+    CALL_FUNCTION_NO_ARGS(meth);
+#if PYTHON_VERSION < 0x380
+    // Two times, so "__warningregistry__" version matches.
+    CALL_FUNCTION_NO_ARGS(meth);
 #endif
-
-        PySys_AddWarnOption(ignore);
-
-#if PYTHON_VERSION >= 0x342 && defined(_NUITKA_FULL_COMPAT)
-        // For full compatibility bump the warnings registry version,
-        // otherwise modules "__warningsregistry__" will mismatch.
-        PyObject *warnings_module = PyImport_ImportModule("warnings");
-        PyObject *meth = PyObject_GetAttrString(warnings_module, "_filters_mutated");
-
-        CALL_FUNCTION_NO_ARGS(meth);
-#endif
-    }
 #endif
 
 #if PYTHON_VERSION >= 0x300
