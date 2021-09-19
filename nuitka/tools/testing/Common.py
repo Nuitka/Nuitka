@@ -48,6 +48,7 @@ from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
     getFileList,
+    isPathBelow,
     makePath,
     removeDirectory,
 )
@@ -530,7 +531,8 @@ def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
         if loaded_filename.startswith("/dev/"):
             continue
 
-        if loaded_filename.startswith("/tmp/"):
+        # TODO: Use this for all.
+        if isPathBelow("/tmp", loaded_filename):
             continue
 
         if loaded_filename.startswith("/run/"):
@@ -1511,7 +1513,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         if loaded_filename.startswith("/dev/"):
             continue
 
-        if loaded_filename.startswith("/tmp/"):
+        if loaded_filename.startswith("/tmp/") or loaded_filename == "/proc":
             continue
 
         if loaded_filename.startswith("/run/"):

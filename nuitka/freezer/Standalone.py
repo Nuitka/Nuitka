@@ -165,11 +165,6 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
             "PREFIXES = [sys.prefix, sys.exec_prefix]", "PREFIXES = []"
         )
 
-        # Anaconda3 4.1.2 site.py
-        source_code = source_code.replace(
-            "def main():", "def main():return\n\nif 0:\n def _unused():"
-        )
-
     if Options.isShowInclusion():
         inclusion_logger.info(
             "Freezing module '%s' (from '%s')." % (module_name, filename)
