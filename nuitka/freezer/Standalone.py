@@ -776,7 +776,11 @@ def _detectBinaryPathDLLsMacOS(
         )
 
     stdout, _stderr = process.communicate()
-    system_paths = ("/usr/lib/", "/System/Library/Frameworks/")
+    system_paths = (
+        "/usr/lib/",
+        "/System/Library/Frameworks/",
+        "/System/Library/PrivateFrameworks/",
+    )
 
     result = OrderedSet()
 
