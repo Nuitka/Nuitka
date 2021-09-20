@@ -382,6 +382,30 @@ def _cleanupRstFmt(filename):
 
     updated_contents = contents.replace(b":\n\n.. code::\n", b"::\n")
 
+    lines = []
+    inside = False
+    needs_empty = False
+
+    for line in updated_contents.splitlines():
+        if line.startswith(b"-"):
+            if inside and needs_empty:
+                lines.append(b"")
+
+            inside = True
+            needs_empty = True
+            lines.append(line)
+        elif inside and line == b"":
+            needs_empty = False
+            lines.append(line)
+        elif inside and line.startswith(b"  "):
+            needs_empty = True
+            lines.append(line)
+        else:
+            inside = False
+            lines.append(line)
+
+    updated_contents = b"\n".join(lines)
+
     if updated_contents != contents:
         with open(filename, "wb") as out_file:
             out_file.write(updated_contents)
