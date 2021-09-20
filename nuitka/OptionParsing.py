@@ -676,28 +676,27 @@ Enforce the use of clang. On Windows this requires a working Visual
 Studio version to piggy back on. Defaults to off.""",
 )
 
-if os.name == "nt":
-    c_compiler_group.add_option(
-        "--mingw64",
-        action="store_true",
-        dest="mingw64",
-        default=False,
-        help="""\
+c_compiler_group.add_option(
+    "--mingw64",
+    action="store_true",
+    dest="mingw64",
+    default=False,
+    help="""\
 Enforce the use of MinGW64 on Windows. Defaults to off.""",
-    )
+)
 
-    c_compiler_group.add_option(
-        "--msvc",
-        action="store",
-        dest="msvc",
-        default=None,
-        help="""\
+c_compiler_group.add_option(
+    "--msvc",
+    action="store",
+    dest="msvc",
+    default=None,
+    help="""\
 Enforce the use of specific MSVC version on Windows. Allowed values
 are e.g. 14.0, specify an illegal value for a list of installed compilers,
 beware that only latest MSVC is really supported.
 
 Defaults to the most recent version.""",
-    )
+)
 
 c_compiler_group.add_option(
     "-j",
