@@ -308,18 +308,18 @@ env = checkWindowsCompilerFound(
 )
 
 the_compiler = env["CC"] or env["CXX"]
-the_cc_name = os.path.normcase(os.path.basename(the_compiler))
+env.the_cc_name = os.path.normcase(os.path.basename(the_compiler))
 
-scons_logger.info("Backend C compiler: %s (%s)." % (the_compiler, the_cc_name))
+scons_logger.info("Backend C compiler: %s (%s)." % (the_compiler, env.the_cc_name))
 
 # Requested or user provided, detect if it's clang even from environment
-if "clang" in the_cc_name and "-cl" not in the_cc_name:
+if "clang" in env.the_cc_name and "-cl" not in env.the_cc_name:
     clang_mode = True
     env["CCVERSION"] = None
 
 # We consider clang to be a form of gcc for the most things, they strive to
 # be compatible.
-gcc_mode = isGccName(the_cc_name) or clang_mode
+gcc_mode = isGccName(env.the_cc_name) or clang_mode
 
 
 # Only use MSVC if not already clear, we are using MinGW.
@@ -367,7 +367,7 @@ if gcc_mode:
     env.Append(CCFLAGS=["-fwrapv"])
 
 # Support for clang.
-if "clang" in the_cc_name:
+if "clang" in env.the_cc_name:
     env.Append(CCFLAGS=["-w"])
     env.Append(CPPDEFINES=["_XOPEN_SOURCE"])
 

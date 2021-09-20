@@ -88,6 +88,8 @@ def enableLtoSettings(
     debian_python,
     job_count,
 ):
+    # This is driven by many branches on purpose, pylint: disable=too-many-branches
+
     orig_lto_mode = lto_mode
 
     if lto_mode == "no":
@@ -102,9 +104,15 @@ def enableLtoSettings(
     elif msvc_mode and not lto_mode and getMsvcVersion(env) >= 14:
         lto_mode = True
         reason = "known to be supported"
-    elif nuitka_python or debian_python:
+    elif nuitka_python:
         lto_mode = True
-        reason = "known to be supported"
+        reason = "known to be supported (Nuitka-Python)"
+    elif debian_python:
+        lto_mode = True
+        reason = "known to be supported (Debian)"
+    elif gcc_mode and env.the_cc_name == "gnu-cc":
+        lto_mode = True
+        reason = "known to be supported (CondaCC)"
     else:
         lto_mode = False
         reason = "not known to be supported"
