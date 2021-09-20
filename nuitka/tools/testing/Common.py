@@ -48,7 +48,7 @@ from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
     getFileList,
-    isPathBelow,
+    isPathBelowOrSameAs,
     makePath,
     removeDirectory,
 )
@@ -495,7 +495,7 @@ def displayRuntimeTraces(logger, path):
 
 def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
     # A lot of special white listing is required.
-    # pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches
 
     result = []
 
@@ -522,42 +522,34 @@ def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
         if ok:
             continue
 
-        if loaded_filename.startswith(("/etc/", "/usr/etc", "/usr/local/etc")):
+        ignore = True
+        for ignored_dir in (
+            # System configuration is OK
+            "/etc",
+            "/usr/etc",
+            "/usr/local/etc",
+            # Runtime user state and kernel information is OK.
+            "/proc",
+            "/dev",
+            "/run",
+            "/sys",
+            "/tmp",
+            # Locals may of course be loaded.
+            "/usr/lib/locale",
+            "/usr/share/locale",
+            "/usr/share/X11/locale",
+            # Themes may of course be loaded.
+            "/usr/share/themes",
+            # Terminal info files are OK too.
+            "/lib/terminfo",
+        ):
+            if isPathBelowOrSameAs(ignored_dir, loaded_filename):
+                ignore = False
+                break
+        if not ignore:
             continue
 
-        if loaded_filename.startswith("/proc/") or loaded_filename == "/proc":
-            continue
-
-        if loaded_filename.startswith("/dev/"):
-            continue
-
-        # TODO: Use this for all.
-        if isPathBelow("/tmp", loaded_filename):
-            continue
-
-        if loaded_filename.startswith("/run/"):
-            continue
-
-        if loaded_filename.startswith("/sys/"):
-            continue
-
-        if loaded_filename.startswith("/usr/lib/locale/"):
-            continue
-
-        if loaded_filename.startswith("/usr/share/locale/"):
-            continue
-
-        if loaded_filename.startswith("/usr/share/X11/locale/"):
-            continue
-
-        # Themes may of course be loaded.
-        if loaded_filename.startswith("/usr/share/themes"):
-            continue
         if "gtk" in loaded_filename and "/engines/" in loaded_filename:
-            continue
-
-        # Terminal info files are OK too.
-        if loaded_filename.startswith("/lib/terminfo/"):
             continue
 
         # System C libraries are to be expected.
@@ -1501,31 +1493,31 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         if loaded_filename.startswith(current_dir_ext):
             continue
 
-        if loaded_filename.startswith("/etc/"):
-            continue
-
-        if loaded_filename.startswith("/usr/etc/"):
-            continue
-
-        if loaded_filename.startswith("/proc/") or loaded_filename == "/proc":
-            continue
-
-        if loaded_filename.startswith("/dev/"):
-            continue
-
-        if loaded_filename.startswith("/tmp/") or loaded_filename == "/proc":
-            continue
-
-        if loaded_filename.startswith("/run/"):
-            continue
-
-        if loaded_filename.startswith("/usr/lib/locale/"):
-            continue
-
-        if loaded_filename.startswith("/usr/share/locale/"):
-            continue
-
-        if loaded_filename.startswith("/usr/share/X11/locale/"):
+        ignore = True
+        for ignored_dir in (
+            # System configuration is OK
+            "/etc",
+            "/usr/etc",
+            "/usr/local/etc",
+            # Runtime user state and kernel information is OK.
+            "/proc",
+            "/dev",
+            "/run",
+            "/sys",
+            "/tmp",
+            # Locals may of course be loaded.
+            "/usr/lib/locale",
+            "/usr/share/locale",
+            "/usr/share/X11/locale",
+            # Themes may of course be loaded.
+            "/usr/share/themes",
+            # Terminal info files are OK too.
+            "/lib/terminfo",
+        ):
+            if isPathBelowOrSameAs(ignored_dir, loaded_filename):
+                ignore = False
+                break
+        if not ignore:
             continue
 
         # Themes may of course be loaded.

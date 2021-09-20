@@ -170,7 +170,7 @@ def main():
             displayRuntimeTraces(test_logger, binary_filename)
 
             test_logger.warning(
-                "Should not access these file(s): '%r'." % illegal_accesses
+                "Should not access these file(s): '%s'." % ",".join(illegal_accesses)
             )
 
             search_mode.onErrorDetected(1)

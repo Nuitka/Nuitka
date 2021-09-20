@@ -567,6 +567,7 @@ def getWindowsDrive(path):
 
 
 def isPathBelow(path, filename):
+    """Is a path inside of a given directory path."""
     path = os.path.abspath(path)
     filename = os.path.abspath(filename)
 
@@ -575,6 +576,11 @@ def isPathBelow(path, filename):
             return False
 
     return os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
+
+
+def isPathBelowOrSameAs(path, filename):
+    """Is a path inside of a given directory path or the same path as that directory."""
+    return isPathBelow(path, filename) or areSamePaths(path, filename)
 
 
 def getWindowsShortPathName(filename):
