@@ -140,7 +140,7 @@ parser.add_option(
     help="""\
 Python flags to use. Default is what you are using to run Nuitka, this
 enforces a specific mode. These are options that also exist to standard
-Python executable. Currently supported: "-S" (alias "nosite"),
+Python executable. Currently supported: "-S" (alias "no_site"),
 "static_hashes" (do not use hash randomization), "no_warnings" (do not
 give Python runtime warnings), "-O" (alias "no_asserts"), "no_docstrings"
 (do not use docstrings). Default empty.""",
@@ -805,7 +805,7 @@ Defaults to off.""",
 )
 
 tracing_group.add_option(
-    "--no-progress",
+    "--no-progressbar",
     action="store_false",
     dest="progress_bar",
     default=True,
