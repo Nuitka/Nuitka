@@ -53,7 +53,6 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyErr_Format(
                 PyExc_TypeError,
@@ -382,7 +381,6 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -756,7 +754,6 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -1105,7 +1102,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -1459,7 +1455,6 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -1788,7 +1783,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -2142,7 +2136,6 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -2471,7 +2464,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -2825,7 +2817,6 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -3154,7 +3145,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -3508,7 +3498,6 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -3837,7 +3826,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject *const *args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -4191,7 +4179,6 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -4520,7 +4507,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject *const *args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -4874,7 +4860,6 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -5203,7 +5188,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject *const *args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -5557,7 +5541,6 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -5886,7 +5869,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject *const *args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -6240,7 +6222,6 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -6569,7 +6550,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject *const *args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
@@ -6923,7 +6903,6 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 

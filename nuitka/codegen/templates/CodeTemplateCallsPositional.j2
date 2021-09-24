@@ -79,7 +79,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
-        // Unbound method without arguments, let the error path be slow.
         if (method->m_object == NULL) {
 {% if args_count < 1 %}
             PyErr_Format(
