@@ -169,4 +169,4 @@ def generateNuitkaLoaderCreationCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "nuitka_loader_value", expression, emit, context
     ) as result_name:
-        emit("%s = Nuitka_Loader_New(module_entry);" % result_name)
+        emit("%s = Nuitka_Loader_New(loader_entry);" % result_name)

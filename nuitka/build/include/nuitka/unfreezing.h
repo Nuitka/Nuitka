@@ -31,7 +31,7 @@
 
 struct Nuitka_MetaPathBasedLoaderEntry;
 
-typedef PyObject *(*module_initfunc)(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *module_entry);
+typedef PyObject *(*module_initfunc)(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry);
 
 struct Nuitka_MetaPathBasedLoaderEntry {
     /* Full module name, including package name. */
