@@ -72,12 +72,17 @@ numpy.testing:
   description:
     "remove numpy testing framework"
   module_code: |
+    from contextlib import contextmanager
     class Tester:
       test = None
       bench = None
 
     def assert_allclose(*args, **kwargs):
       return True
+
+    @contextmanager
+    def suppress_warnings(forwarding_rule="always"):
+      yield
 
 numpy._pytesttester:
   description:
