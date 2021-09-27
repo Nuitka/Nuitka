@@ -42,6 +42,7 @@ sys.path.insert(
 )
 
 # isort:start
+from nuitka.freezer.RuntimeTracing import getRuntimeTraceOfLoadedFiles
 from nuitka.tools.testing.Common import (
     addExtendedExtraOptions,
     checkLoadedFileAccesses,
@@ -51,7 +52,6 @@ from nuitka.tools.testing.Common import (
     decideFilenameVersionSkip,
     displayFileContents,
     displayRuntimeTraces,
-    getRuntimeTraceOfLoadedFiles,
     reportSkip,
     setup,
     test_logger,
@@ -120,9 +120,9 @@ def main():
 
             if os.name == "nt":
                 reportSkip(
+                    "Testing cannot send KeyboardInterrupt on Windows yet",
                     ".",
                     filename,
-                    "Testing cannot send KeyboardInterrupt on Windows yet",
                 )
                 continue
 
@@ -158,7 +158,7 @@ def main():
             "Determining run time loaded files took %.2f", logger=test_logger
         ):
             loaded_filenames = getRuntimeTraceOfLoadedFiles(
-                logger=test_logger, path=binary_filename
+                logger=test_logger, command=[binary_filename]
             )
 
         illegal_accesses = checkLoadedFileAccesses(
@@ -170,7 +170,7 @@ def main():
             displayRuntimeTraces(test_logger, binary_filename)
 
             test_logger.warning(
-                "Should not access these file(s): '%r'." % illegal_accesses
+                "Should not access these file(s): '%s'." % ",".join(illegal_accesses)
             )
 
             search_mode.onErrorDetected(1)

@@ -23,9 +23,9 @@ binaries (needed for exec) and run them capturing outputs.
 
 
 import os
-import subprocess
 from contextlib import contextmanager
 
+from nuitka.__past__ import WindowsError, subprocess
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
@@ -216,6 +216,15 @@ def check_call(*popenargs, **kwargs):
         )
 
 
+def call(*popenargs, **kwargs):
+    """Call a process and return result code.
+
+    Note: We use same name as in Python stdlib, violating our rules to
+    make it more recognizable what this does.
+    """
+    subprocess.call(*popenargs, **kwargs)
+
+
 @contextmanager
 def withEnvironmentPathAdded(env_var_name, *paths):
     assert os.path.sep not in env_var_name
@@ -225,7 +234,7 @@ def withEnvironmentPathAdded(env_var_name, *paths):
 
     if path:
         if str is not bytes and type(path) is bytes:
-            path = path.decode("utf-8")
+            path = path.decode("utf8")
 
         if env_var_name in os.environ:
             old_path = os.environ[env_var_name]
@@ -412,7 +421,8 @@ def getNullInput():
     try:
         return subprocess.NULLDEV
     except AttributeError:
-        return open(os.devnull, "rb")
+        subprocess.NULLDEV = open(os.devnull, "rb")
+        return subprocess.NULLDEV
 
 
 def executeToolChecked(logger, command, absence_message, stderr_filter=None):

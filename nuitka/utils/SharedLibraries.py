@@ -232,7 +232,7 @@ def _getSharedLibraryRPATHElf(filename):
             result = line[line.find(b"[") + 1 : line.rfind(b"]")]
 
             if str is not bytes:
-                result = result.decode("utf-8")
+                result = result.decode("utf8")
 
             return result
 
@@ -262,7 +262,7 @@ def _getSharedLibraryRPATHDarwin(filename):
                 result = line[5 : line.rfind(b"(") - 1]
 
                 if str is not bytes:
-                    result = result.decode("utf-8")
+                    result = result.decode("utf8")
 
                 return result
 
@@ -363,30 +363,6 @@ def callInstallNameTool(filename, mapping, rpath):
             command=command,
             absence_message=_installnametool_usage,
             stderr_filter=_filterInstallNameToolErrorOutput,
-        )
-
-
-_codesign_usage = "The 'codesign' is used to remove invalidated signatures on macOS and required to be found."
-
-
-def removeMacOSCodeSignature(filename):
-    """Remove the code signature from a filename.
-
-    Args:
-        filename - The file to be modified.
-
-    Returns:
-        None
-
-    Notes:
-        This is macOS specific.
-    """
-
-    with withMadeWritableFileMode(filename):
-        executeToolChecked(
-            logger=postprocessing_logger,
-            command=["codesign", "--remove-signature", filename],
-            absence_message=_codesign_usage,
         )
 
 

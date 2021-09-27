@@ -59,10 +59,10 @@ typedef struct {
 } PyModuleObject;
 
 // Generated code helpers, used in static helper codes:
-extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject **args);
-extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject **args);
-extern PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject **args);
-extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args);
 
 // Most fundamental, because we use it for debugging in everything else.
 #include "nuitka/helper/printing.h"
@@ -70,6 +70,18 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject **args);
 // Helper to check that an object is valid and has positive reference count.
 #define CHECK_OBJECT(value) (assert((value) != NULL), assert(Py_REFCNT(value) > 0))
 #define CHECK_OBJECT_X(value) (assert((value) == NULL || Py_REFCNT(value) > 0))
+
+// Helper to check an array of objects with CHECK_OBJECT
+#ifndef __NUITKA_NO_ASSERT__
+#define CHECK_OBJECTS(values, count)                                                                                   \
+    {                                                                                                                  \
+        for (int i = 0; i < count; i++) {                                                                              \
+            CHECK_OBJECT((values)[i]);                                                                                 \
+        }                                                                                                              \
+    }
+#else
+#define CHECK_OBJECTS(values, count)
+#endif
 
 extern void CHECK_OBJECT_DEEP(PyObject *value);
 
@@ -346,6 +358,9 @@ extern void createGlobalConstants(void);
 // Call this to check of common constants are still intact.
 #ifndef __NUITKA_NO_ASSERT__
 extern void checkGlobalConstants(void);
+#ifdef _NUITKA_EXE
+extern void checkModuleConstants___main__(void);
+#endif
 #endif
 
 #if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED || _NUITKA_PLUGIN_TRACEBACK_ENCRYPTION_ENABLED
@@ -378,10 +393,11 @@ extern void patchTypeComparison(void);
 // to be slightly faster for exception control flows.
 extern void patchTracebackDealloc(void);
 
-#if PYTHON_VERSION < 0x300
-// Initialize value for "tp_compare" default.
+// Initialize value for "tp_compare" and "tp_init" defaults.
 extern void _initSlotCompare(void);
-#endif
+
+// Default __init__ slot wrapper.
+extern python_initproc default_tp_init_wrapper;
 
 #if PYTHON_VERSION >= 0x300
 // Select the metaclass from specified one and given bases.
@@ -428,7 +444,7 @@ extern PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename);
 
 #include <nuitka/threading.h>
 
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyObject **elements, Py_ssize_t size) {
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyObject *const *elements, Py_ssize_t size) {
     PyObject *result = PyTuple_New(size);
 
     for (Py_ssize_t i = 0; i < size; i++) {
@@ -440,8 +456,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyObject **elements, Py_ssize_t
     return result;
 }
 
-// Make a deep copy of an object.
+// Make a deep copy of an object of general or specific type.
 extern PyObject *DEEP_COPY(PyObject *value);
+extern PyObject *DEEP_COPY_DICT(PyObject *value);
+extern PyObject *DEEP_COPY_LIST(PyObject *value);
+extern PyObject *DEEP_COPY_TUPLE(PyObject *value);
+extern PyObject *DEEP_COPY_SET(PyObject *value);
 
 // Force a garbage collection, for debugging purposes.
 NUITKA_MAY_BE_UNUSED static void forceGC() {

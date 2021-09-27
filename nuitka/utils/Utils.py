@@ -22,6 +22,7 @@ Here the small things that fit nowhere else and don't deserve their own module.
 """
 
 import os
+import platform
 import sys
 
 from nuitka.PythonVersions import python_version
@@ -40,6 +41,55 @@ def getOS():
         return result
     else:
         assert False, os.name
+
+
+_linux_distribution = None
+
+
+def getLinuxDistribution():
+    """Name of the Linux distribution.
+
+    We should usually avoid this, and rather test for the feature,
+    but in some cases it's hard to manage that.
+    """
+    # singleton, pylint: disable=global-statement
+    global _linux_distribution
+
+    if getOS() != "Linux":
+        return None
+
+    if _linux_distribution is None:
+        # pylint: disable=I0021,deprecated-method,no-member
+        try:
+            result = platform.dist()[0].title()
+        except AttributeError:
+            from .Execution import check_output
+
+            try:
+                result = check_output(["lsb_release", "-i", "-s"], shell=False).title()
+
+                if str is not bytes:
+                    result = result.decode("utf8")
+            except FileNotFoundError:
+                from .FileOperations import getFileContentByLine
+
+                for line in getFileContentByLine("/etc/os-release"):
+                    if line.startswith("ID="):
+                        result = line[3:]
+                        break
+                else:
+                    from nuitka.Tracing import general
+
+                    general.sysexit("Error, cannot detect Linux distribution.")
+
+        _linux_distribution = result.title()
+
+    return _linux_distribution
+
+
+def isDebianBasedLinux():
+    # TODO: What is with Mint, maybe others, this list should be expanded potentially.
+    return getLinuxDistribution() in ("Debian", "Ubuntu")
 
 
 def isWin32Windows():

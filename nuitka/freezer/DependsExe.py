@@ -125,7 +125,7 @@ def _parseDependsExeOutput2(lines):
     return result
 
 
-def _parseDependsExeOutput(filename):
+def parseDependsExeOutput(filename):
     return _parseDependsExeOutput2(getFileContentByLine(filename, encoding="latin1"))
 
 
@@ -184,7 +184,7 @@ SxS
 
     # Note: Do this under lock to avoid forked processes to hold
     # a copy of the file handle on Windows.
-    result = _parseDependsExeOutput(output_filename)
+    result = parseDependsExeOutput(output_filename)
 
     deleteFile(output_filename, must_exist=True)
     deleteFile(dwp_filename, must_exist=True)

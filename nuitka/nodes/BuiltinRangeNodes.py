@@ -114,28 +114,24 @@ class ExpressionBuiltinRangeMixin(object):
     def computeExpressionIter1(self, iter_node, trace_collection):
         assert python_version < 0x300
 
-        iteration_length = self.getIterationLength()
+        # TODO: The xrange is always faster and more memory usage than range, so this makes no sense, to
+        # use it as a source for any iteration, esp. as xrange is the Python3 only type that will be
+        # best optimized.
+        result = makeExpressionBuiltinXrange(
+            low=self.subnode_low,
+            high=self.subnode_high,
+            step=self.subnode_step,
+            source_ref=self.source_ref,
+        )
 
-        if iteration_length is not None and iteration_length > 256:
-            result = makeExpressionBuiltinXrange(
-                low=self.subnode_low,
-                high=self.subnode_high,
-                step=self.subnode_step,
-                source_ref=self.source_ref,
-            )
+        self.parent.replaceChild(self, result)
+        del self.parent
 
-            self.parent.replaceChild(self, result)
-            del self.parent
-
-            return (
-                iter_node,
-                "new_expression",
-                "Replaced 'range' with 'xrange' built-in call for iteration.",
-            )
-
-        # No exception will be raised on ranges.
-
-        return iter_node, None, None
+        return (
+            iter_node,
+            "new_expression",
+            "Replaced 'range' with 'xrange' built-in call for iteration.",
+        )
 
     def canPredictIterationValues(self):
         return self.getIterationLength() is not None

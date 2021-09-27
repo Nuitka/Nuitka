@@ -18,6 +18,7 @@
 """ Options module """
 
 import os
+import shlex
 import sys
 
 from nuitka import Progress, Tracing
@@ -25,16 +26,18 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import parseOptions
 from nuitka.PythonVersions import (
     getSupportedPythonVersions,
-    getSystemStaticLibPythonPath,
+    isDebianPackagePython,
     isNuitkaPython,
-    isStaticallyLinkedPython,
     isUninstalledPython,
+    python_version,
     python_version_str,
 )
 from nuitka.utils.FileOperations import (
+    isPathExecutable,
     openTextFile,
     resolveShellPatternToFilenames,
 )
+from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
     getOS,
@@ -49,12 +52,13 @@ is_nuitka_run = None
 is_debug = None
 is_nondebug = None
 is_fullcompat = None
+is_report_missing = None
 
 
 def parseArgs(will_reexec):
     # singleton with many cases checking the options right away.
     # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements
-    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat
+    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat, is_report_missing
 
     if os.name == "nt":
         # Windows store Python's don't allow looking at the python, catch that.
@@ -69,6 +73,13 @@ def parseArgs(will_reexec):
     is_nuitka_run, options, positional_args, extra_args = parseOptions(
         logger=Tracing.options_logger
     )
+
+    is_debug = _isDebug()
+    is_nondebug = not is_debug
+    is_fullcompat = _isFullCompat()
+
+    # TODO: Have dedicated option for it.
+    is_report_missing = is_debug
 
     if options.quiet or int(os.environ.get("NUITKA_QUIET", "0")):
         Tracing.setQuiet()
@@ -229,6 +240,15 @@ standalone where there is a sane default used inside the dist folder."""
             """Error, empty string is not an acceptable product name."""
         )
 
+    splash_screen_filename = getWindowsSplashScreen()
+
+    if splash_screen_filename is not None:
+        if not os.path.isfile(splash_screen_filename):
+            Tracing.options_logger.sysexit(
+                "Error, specified splash screen image '%s' does not exist."
+                % splash_screen_filename
+            )
+
     if file_version or product_version or getWindowsVersionInfoStrings():
         if not (file_version or product_version) and getWindowsCompanyName():
             Tracing.options_logger.sysexit(
@@ -344,14 +364,17 @@ standalone where there is a sane default used inside the dist folder."""
                 % pattern
             )
 
-    if options.static_libpython == "yes" and getSystemStaticLibPythonPath() is None:
+    if shallUseStaticLibPython() and getSystemStaticLibPythonPath() is None:
         Tracing.options_logger.sysexit(
-            "Error, static libpython is not found for this Python installation."
+            "Error, static libpython is not found or not supported for this Python installation."
         )
 
-    is_debug = _isDebug()
-    is_nondebug = not is_debug
-    is_fullcompat = _isFullCompat()
+    pgo_executable = getPgoExecutable()
+    if pgo_executable and not isPathExecutable(pgo_executable):
+        Tracing.options_logger.sysexit(
+            "Error, path '%s' to binary to use for PGO is not executable."
+            % pgo_executable
+        )
 
 
 def commentArgs():
@@ -398,9 +421,15 @@ def commentArgs():
             or getWindowsFileVersion()
             or getForcedStderrPath()  # not yet for other platforms
             or getForcedStdoutPath()
+            or getWindowsSplashScreen()
         ):
             Tracing.options_logger.warning(
                 "Using Windows specific options has no effect on other platforms."
+            )
+
+        if options.mingw64 or options.msvc:
+            Tracing.options_logger.warning(
+                "Requesting Windows specific compilers has no effect on other platforms."
             )
 
     if isOnefileMode():
@@ -437,6 +466,35 @@ def commentArgs():
     if shallMakeModule() and options.static_libpython == "yes":
         Tracing.options_logger.warning(
             "In module mode, providing --static-libpython has no effect, it's not used."
+        )
+
+    if not isPgoMode() and getPgoArgs():
+        Tracing.optimization_logger.warning(
+            "Providing PGO arguments without enabling PGO mode has no effect."
+        )
+
+    if isPgoMode():
+        if isStandaloneMode():
+            Tracing.optimization_logger.warning(
+                "Using PGO with standalone/onefile mode is not currently working. Expect errors."
+            )
+
+        if shallMakeModule():
+            Tracing.optimization_logger.warning(
+                "Using PGO with module mode is not currently working. Expect errors."
+            )
+
+        if getOS() == "Windows":
+            Tracing.optimization_logger.warning(
+                "Using PGO on Windows is not currently working. Expect errors."
+            )
+
+    if (
+        options.static_libpython == "auto"
+        and getSystemStaticLibPythonPath() is not None
+    ):
+        Tracing.options_logger.info(
+            "Detected static libpython to exist, consider '--static-libpython=yes' for better performance."
         )
 
 
@@ -664,15 +722,17 @@ def shallClearPythonPathEnvironment():
     return not options.keep_pythonpath
 
 
-def shallUseStaticLibPython():
-    """*bool* = "--static-libpython=yes|auto"
+_shall_use_static_lib_python = None
 
-    Notes:
-        Currently only Anaconda on non-Windows can do this and MSYS2.
-    """
 
+def _shallUseStaticLibPython():
     if options.static_libpython == "auto":
+        # Nuitka-Python is good to to static linking.
         if isNuitkaPython():
+            return True
+
+        # Debian packages with Python2 are usable, Python3 will follow eventually maybe.
+        if python_version < 0x300 and isDebianPackagePython() and not isPythonDebug():
             return True
 
         if isWin32Windows() and os.path.exists(
@@ -689,14 +749,22 @@ def shallUseStaticLibPython():
         ):
             return True
 
-        options.static_libpython = "no"
-
-        if getSystemStaticLibPythonPath() is not None:
-            Tracing.options_logger.info(
-                "Detected static libpython as existing, consider using '--static-libpython=yes'."
-            )
-
     return options.static_libpython == "yes"
+
+
+def shallUseStaticLibPython():
+    """*bool* = "--static-libpython=yes|auto"
+
+    Notes:
+        Currently only Anaconda on non-Windows can do this and MSYS2.
+    """
+
+    global _shall_use_static_lib_python  # singleton, pylint: disable=global-statement
+
+    if _shall_use_static_lib_python is None:
+        _shall_use_static_lib_python = _shallUseStaticLibPython()
+
+    return _shall_use_static_lib_python
 
 
 def shallTreatUninstalledPython():
@@ -716,10 +784,6 @@ def shallTreatUninstalledPython():
     if shallMakeModule() or isStandaloneMode():
         return False
 
-    # Of course only if there is a DLL.
-    if isStaticallyLinkedPython():
-        return False
-
     return isUninstalledPython()
 
 
@@ -733,8 +797,8 @@ def getJobLimit():
     return int(options.jobs)
 
 
-def isLto():
-    """*bool* = "--lto" """
+def getLtoMode():
+    """*bool* = "--lto" or "--pgo" """
     return options.lto
 
 
@@ -750,17 +814,20 @@ def isClang():
 
 def isMingw64():
     """*bool* = "--mingw64", available only on Windows, otherwise false"""
-    return getattr(options, "mingw64", False)
+    return getOS() == "Windows" and getattr(options, "mingw64", False)
 
 
 def getMsvcVersion():
     """*str*, value of "--msvc", available only on Windows, otherwise None"""
-    return getattr(options, "msvc", None)
+    if isWin32Windows():
+        return getattr(options, "msvc", None)
+    else:
+        return None
 
 
 def shallDisableConsoleWindow():
-    """*bool* = "--win-disable-console" """
-    return options.win_disable_console
+    """*bool* = "--win-disable-console or --macos-disable-console" """
+    return options.disable_console
 
 
 def _isFullCompat():
@@ -852,6 +919,28 @@ def isOnefileTempDirMode():
     return options.is_onefile_tempdir or getOS() != "Linux"
 
 
+def isPgoMode():
+    """*bool* = "--pgo" """
+    return options.is_pgo
+
+
+def getPgoArgs():
+    """*list* = "--pgo-args" """
+    return shlex.split(options.pgo_args)
+
+
+def getPgoExecutable():
+    """*str* = "--pgo-args" """
+
+    if options.pgo_executable and os.path.exists(options.pgo_executable):
+        if not os.path.isabs(options.pgo_executable):
+            options.pgo_executable = os.path.normcase(
+                os.path.join(".", options.pgo_executable)
+            )
+
+    return options.pgo_executable
+
+
 def getOnefileTempDirSpec(use_default):
     if use_default:
         return (
@@ -882,7 +971,7 @@ def getIconPaths():
         else:
             Tracing.options_logger.sysexit(
                 """\
-Error, the non of the default icons '%s' exist, making --linux-onefile-icon required."""
+Error, none of the default icons '%s' exist, making '--linux-onefile-icon' required."""
                 % ", ".join(default_icons)
             )
 
@@ -950,6 +1039,10 @@ def getWindowsFileVersion():
     return _parseWindowsVersionNumber(options.windows_file_version)
 
 
+def getWindowsSplashScreen():
+    return options.splash_screen_image
+
+
 def getWindowsCompanyName():
     """*str* name of the company to use"""
     return options.windows_company_name
@@ -958,6 +1051,21 @@ def getWindowsCompanyName():
 def getWindowsProductName():
     """*str* name of the product to use"""
     return options.windows_product_name
+
+
+def shallCreateAppBundle():
+    """*bool* shall create an application bundle"""
+    return options.macos_create_bundle
+
+
+def getMacOSAppName():
+    """*str* name of the app to use"""
+    return options.macos_app_name
+
+
+def getMacOSSignedAppName():
+    """*str* name of the app to use during signing"""
+    return options.macos_signed_app_name
 
 
 _python_flags = None
@@ -1018,6 +1126,12 @@ def hasPythonFlagNoDocstrings():
     """*bool* = "no_docstrings" in python flags given"""
 
     return "no_docstrings" in getPythonFlags()
+
+
+def hasPythonFlagNoWarnings():
+    """*bool* = "no_docstrings" in python flags given"""
+
+    return "no_warnings" in getPythonFlags()
 
 
 def shallFreezeAllStdlib():
@@ -1137,3 +1251,8 @@ def getForcedStdoutPath():
 def getForcedStderrPath():
     """*str* force program stderr output into that filename"""
     return options.force_stderr_spec
+
+
+def shallPersistModifications():
+    """*bool* write plugin source changes to disk"""
+    return options is not None and options.persist_source_changes

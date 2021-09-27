@@ -706,7 +706,7 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
 #endif
 
     if (unlikely(module == NULL)) {
-        if (!ERROR_OCCURRED()) {
+        if (unlikely(!ERROR_OCCURRED())) {
             PyErr_Format(PyExc_SystemError, "dynamic module '%s' not initialized properly", full_name);
         }
 
@@ -1048,7 +1048,6 @@ static PyObject *_path_unfreezer_load_module(PyObject *self, PyObject *args, PyO
         PyObject *extension_module_filename = DICT_GET_ITEM0(installed_extension_modules, module_name);
 
         if (extension_module_filename != NULL) {
-
             return callIntoInstalledShlibModule(module_name, extension_module_filename);
         }
     }
@@ -1175,7 +1174,7 @@ static PyObject *_path_unfreezer_repr_module(PyObject *self, PyObject *args, PyO
         return NULL;
     }
 
-    return PyUnicode_FromFormat("<module '%s' from %R>", PyModule_GetName(module), PyModule_GetFilenameObject(module));
+    return PyUnicode_FromFormat("<module '%s' from %R>", PyModule_GetName(module), Nuitka_GetFilenameObject(module));
 }
 
 static PyObject *getModuleSpecClass(PyObject *importlib_module) {

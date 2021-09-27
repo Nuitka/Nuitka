@@ -33,7 +33,7 @@ from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
 from nuitka.utils import Utils
 from nuitka.utils.FileOperations import getFileContentByLine
-from nuitka.Version import getNuitkaVersion
+from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
@@ -49,6 +49,7 @@ parser = OptionParser(
     version="\n".join(
         (
             getNuitkaVersion(),
+            "Commercial: %s" % getCommercialVersion(),
             "Python: " + sys.version.split("\n")[0],
             "Executable: " + sys.executable,
             "OS: " + Utils.getOS(),
@@ -134,19 +135,22 @@ parser.add_option(
     "--python-flag",
     action="append",
     dest="python_flags",
+    metavar="FLAG",
     default=[],
     help="""\
-Python flags to use. Default uses what you are using to run Nuitka, this
+Python flags to use. Default is what you are using to run Nuitka, this
 enforces a specific mode. These are options that also exist to standard
-Python executable. Currently supported: "-S" (alias "nosite"),
+Python executable. Currently supported: "-S" (alias "no_site"),
 "static_hashes" (do not use hash randomization), "no_warnings" (do not
-give Python runtime warnings), "-O" (alias "noasserts"). Default empty.""",
+give Python runtime warnings), "-O" (alias "no_asserts"), "no_docstrings"
+(do not use docstrings). Default empty.""",
 )
 
 parser.add_option(
     "--python-for-scons",
     action="store",
     dest="python_scons",
+    metavar="PATH",
     default=None,
     help="""\
 If using Python3.3 or Python3.4, provide the path of a Python binary to use
@@ -178,7 +182,8 @@ parser.add_option(
     dest="assume_yes_for_downloads",
     default=False,
     help="""\
-Allow Nuitka to download code if necessary, e.g. dependency walker on Windows.""",
+Allow Nuitka to download external code if necessary, e.g. dependency
+walker, ccache, and even gcc on Windows.""",
 )
 
 
@@ -322,7 +327,7 @@ data_group.add_option(
     "--include-package-data",
     action="append",
     dest="package_data",
-    metavar="PACKAGE_DATA",
+    metavar="PACKAGE",
     default=[],
     help="""\
 Include data files of the given package name. Can use patterns. By default
@@ -335,7 +340,7 @@ data_group.add_option(
     "--include-data-file",
     action="append",
     dest="data_files",
-    metavar="DATA_FILES",
+    metavar="DESC",
     default=[],
     help="""\
 Include data files by filenames in the distribution. There are many
@@ -351,7 +356,7 @@ data_group.add_option(
     "--include-data-dir",
     action="append",
     dest="data_dirs",
-    metavar="DATA_DIRS",
+    metavar="DIRECTORY",
     default=[],
     help="""\
 Include data files from complete directory in the distribution. This is
@@ -360,6 +365,25 @@ inclusion. An example would be '--include-data-dir=/path/somedir=data/somedir'
 for plain copy, of the whole directory. All files are copied, if you want to
 exclude files you need to remove them beforehand. Default empty.""",
 )
+
+data_files_tags = [("inhibit", "do not include the file")]
+
+# TODO: Expose this when finished, pylint: disable=using-constant-test
+if False:
+    data_group.add_option(
+        "--data-file-tags",
+        action="append",
+        dest="data_tags",
+        metavar="DATA_TAGS",
+        default=[],
+        help="""\
+    For included data files, special handlings can be chosen. With the
+    commercial plugins, e.g. files can be included directly in the
+    binary. The list is completed by some plugins. With the current
+    list of plugins, these are available: %s.
+    The default is empty."""
+        % ",".join("'%s' (%s)" % d for d in data_files_tags),
+    )
 
 
 parser.add_option_group(data_group)
@@ -435,6 +459,7 @@ codegen_group.add_option(
     "--file-reference-choice",
     action="store",
     dest="file_reference_mode",
+    metavar="MODE",
     choices=("original", "runtime", "frozen"),
     default=None,
     help="""\
@@ -584,6 +609,7 @@ debug_group.add_option(
     "--experimental",
     action="append",
     dest="experimental",
+    metavar="FLAG",
     default=[],
     help="""\
 Use features declared as 'experimental'. May have no effect if no experimental
@@ -650,28 +676,27 @@ Enforce the use of clang. On Windows this requires a working Visual
 Studio version to piggy back on. Defaults to off.""",
 )
 
-if os.name == "nt":
-    c_compiler_group.add_option(
-        "--mingw64",
-        action="store_true",
-        dest="mingw64",
-        default=False,
-        help="""\
+c_compiler_group.add_option(
+    "--mingw64",
+    action="store_true",
+    dest="mingw64",
+    default=False,
+    help="""\
 Enforce the use of MinGW64 on Windows. Defaults to off.""",
-    )
+)
 
-    c_compiler_group.add_option(
-        "--msvc",
-        action="store",
-        dest="msvc",
-        default=None,
-        help="""\
+c_compiler_group.add_option(
+    "--msvc",
+    action="store",
+    dest="msvc",
+    default=None,
+    help="""\
 Enforce the use of specific MSVC version on Windows. Allowed values
 are e.g. 14.0, specify an illegal value for a list of installed compilers,
 beware that only latest MSVC is really supported.
 
 Defaults to the most recent version.""",
-    )
+)
 
 c_compiler_group.add_option(
     "-j",
@@ -687,26 +712,66 @@ system CPU count.""",
 
 c_compiler_group.add_option(
     "--lto",
-    action="store_true",
+    action="store",
     dest="lto",
-    default=False,
+    metavar="choice",
+    default="auto",
+    choices=("yes", "no", "auto"),
     help="""\
-Use link time optimizations if available and usable (MSVC, gcc >=4.6, clang).
-Defaults to off.""",
+Use link time optimizations (MSVC, gcc, clang). Allowed values are
+"yes", "no", and "auto" (when it's known to work). Defaults to
+"auto".""",
 )
 
 c_compiler_group.add_option(
     "--static-libpython",
     action="store",
     dest="static_libpython",
+    metavar="choice",
     default="auto",
     choices=("yes", "no", "auto"),
     help="""\
-Use static link library of Python if available. Defaults to auto, i.e. enabled for where
-we know it's working.""",
+Use static link library of Python. Allowed values are "yes", "no",
+and "auto" (when it's known to work). Defaults to "auto".""",
 )
 
 parser.add_option_group(c_compiler_group)
+
+pgo_group = OptionGroup(parser, "PGO compilation choices")
+
+pgo_group.add_option(
+    "--pgo",
+    action="store_true",
+    dest="is_pgo",
+    default=False,
+    help="""\
+Enables profile guided optimization (PGO), by executing a dedicated build first for a profiling
+run, and then using the result to feedback into the C compilation. Note: This is highly
+experimental and not working with many modes of Nuitka yet. Defaults to off.""",
+)
+
+pgo_group.add_option(
+    "--pgo-args",
+    action="store",
+    dest="pgo_args",
+    default="",
+    help="""\
+Arguments to be passed in case of profile guided optimization. These are passed to the special
+built executable during the PGO profiling run. Default empty.""",
+)
+
+pgo_group.add_option(
+    "--pgo-executable",
+    action="store",
+    dest="pgo_executable",
+    default=None,
+    help="""\
+Command to execute when collecting profile information. Use this only, if you need to
+launch it through a script that prepares it to run. Default use created program.""",
+)
+
+
+parser.add_option_group(pgo_group)
 
 tracing_group = OptionGroup(parser, "Tracing features")
 
@@ -740,7 +805,7 @@ Defaults to off.""",
 )
 
 tracing_group.add_option(
-    "--no-progress",
+    "--no-progressbar",
     action="store_false",
     dest="progress_bar",
     default=True,
@@ -773,6 +838,7 @@ tracing_group.add_option(
     "--show-modules-output",
     action="store",
     dest="show_inclusion_output",
+    metavar="PATH",
     default=None,
     help="""\
 Where to output --show-modules, should be a filename. Default is standard output.""",
@@ -792,6 +858,7 @@ tracing_group.add_option(
     "--verbose-output",
     action="store",
     dest="verbose_output",
+    metavar="PATH",
     default=None,
     help="""\
 Where to output --verbose, should be a filename. Default is standard output.""",
@@ -812,7 +879,7 @@ windows_group.add_option(
 windows_group.add_option(
     "--windows-disable-console",
     action="store_true",
-    dest="win_disable_console",
+    dest="disable_console",
     default=False,
     help="""\
 When compiling for Windows, disable the console window. Defaults to off.""",
@@ -838,6 +905,15 @@ windows_group.add_option(
     metavar="ICON_EXE_PATH",
     default=None,
     help="Copy executable icons from this existing executable (Windows only).",
+)
+
+windows_group.add_option(
+    "--onefile-windows-splash-screen-image",
+    action="store",
+    dest="splash_screen_image",
+    default=None,
+    help="""\
+When compiling for Windows and onefile, show this while loading the application. Defaults to off.""",
 )
 
 windows_group.add_option(
@@ -971,6 +1047,63 @@ to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your program.""",
 
 parser.add_option_group(windows_group)
 
+macos_group = OptionGroup(parser, "macOS specific controls")
+
+macos_group.add_option(
+    "--macos-onefile-icon",
+    action="append",
+    dest="icon_path",
+    metavar="ICON_PATH",
+    default=[],
+    help="Add executable icon for binary to use. Can be given only one time. Defaults to Python icon if available.",
+)
+
+macos_group.add_option(
+    "--macos-disable-console",
+    action="store_true",
+    dest="disable_console",
+    default=False,
+    help="""\
+When compiling for macOS, disable the console window and create a GUI
+application. Defaults to off.""",
+)
+
+macos_group.add_option(
+    "--macos-create-app-bundle",
+    action="store_true",
+    dest="macos_create_bundle",
+    default=False,
+    help="""\
+When compiling for macOS, create a bundle rather than a plain binary
+application. Currently experimental and incomplete. Currently this
+is the only way to unlock disabling of console.Defaults to off.""",
+)
+
+macos_group.add_option(
+    "--macos-signed-app-name",
+    action="store",
+    dest="macos_signed_app_name",
+    metavar="MACOS_SIGNED_APP_NAME",
+    default=None,
+    help="""\
+Name of the application to use for macOS signing. Follow com.yourcompany.appname naming
+results for best results, as these have to be globally unique, and will grant protected
+API accesses.""",
+)
+
+macos_group.add_option(
+    "--macos-app-name",
+    action="store",
+    dest="macos_app_name",
+    metavar="MACOS_APP_NAME",
+    default=None,
+    help="""\
+Name of the product to use in macOS bundle information. Defaults to base
+filename of the binary.""",
+)
+
+parser.add_option_group(macos_group)
+
 linux_group = OptionGroup(parser, "Linux specific controls")
 
 linux_group.add_option(
@@ -991,6 +1124,7 @@ plugin_group.add_option(
     "--enable-plugin",
     action="append",
     dest="plugins_enabled",
+    metavar="PLUGIN_NAME",
     default=[],
     help="""\
 Enabled plugins. Must be plug-in names. Use --plugin-list to query the
@@ -1002,6 +1136,7 @@ plugin_group.add_option(
     "--disable-plugin",
     action="append",
     dest="plugins_disabled",
+    metavar="PLUGIN_NAME",
     default=[],
     help="""\
 Disabled plugins. Must be plug-in names. Use --plugin-list to query the
@@ -1037,8 +1172,21 @@ plugin_group.add_option(
     "--user-plugin",
     action="append",
     dest="user_plugins",
+    metavar="PATH",
     default=[],
     help="The file name of user plugin. Can be given multiple times. Default empty.",
+)
+
+plugin_group.add_option(
+    "--persist-source-changes",
+    action="store_true",
+    dest="persist_source_changes",
+    default=False,
+    help="""\
+Write source changes to original Python files. Use with care. May need
+permissions, best for use in a virtualenv to debug if plugin code
+changes work with standard Python or to benefit from bloat removal
+even with pure Python. Default False.""",
 )
 
 
@@ -1059,7 +1207,9 @@ def _considerPluginOptions(logger):
                 )
 
             addPluginCommandLineOptions(
-                parser=parser, plugin_names=plugin_names.split(",")
+                parser=parser,
+                plugin_names=plugin_names.split(","),
+                data_files_tags=data_files_tags,
             )
 
         if arg.startswith("--user-plugin="):
@@ -1070,7 +1220,9 @@ def _considerPluginOptions(logger):
                     % plugin_name.split("=", 1)[0]
                 )
 
-            addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
+            addUserPluginCommandLineOptions(
+                parser=parser, filename=plugin_name, data_files_tags=data_files_tags
+            )
 
 
 def _expandProjectArg(arg, filename_arg, for_eval):
@@ -1084,6 +1236,7 @@ def _expandProjectArg(arg, filename_arg, for_eval):
         "OS": wrap(Utils.getOS()),
         "Arch": wrap(Utils.getArchitecture()),
         "Version": getNuitkaVersion(),
+        "Commercial": getCommercialVersion(),
         "MAIN_DIRECTORY": wrap(os.path.dirname(filename_arg) or "."),
     }
     arg = arg.format(**values)

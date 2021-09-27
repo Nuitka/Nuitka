@@ -83,7 +83,7 @@ def main():
 
         vmprof.disable()
 
-        stats = vmprof.read_profile(prof_file.name, virtual_only=True)
+        stats = vmprof.read_profile(prof_file.name)
 
         show(stats)
 

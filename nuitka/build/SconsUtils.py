@@ -33,6 +33,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
 )
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Execution import getNullInput
+from nuitka.utils.FileOperations import getFileContentByLine
 
 
 def initScons():
@@ -86,6 +87,16 @@ def getArgumentRequired(name):
 def getArgumentDefaulted(name, default):
     """Helper for string options with default value."""
     return scons_arguments.get(name, default)
+
+
+def getArgumentInt(option_name, default=None):
+    """Small helper for boolean mode flags."""
+    if default is None:
+        value = scons_arguments[option_name]
+    else:
+        value = int(scons_arguments.get(option_name, default))
+
+    return value
 
 
 def getArgumentBool(option_name, default=None):
@@ -273,7 +284,7 @@ def readSconsReport(source_dir):
     if source_dir not in scons_reports:
         scons_report = {}
 
-        for line in open(os.path.join(source_dir, "scons-report.txt")):
+        for line in getFileContentByLine(os.path.join(source_dir, "scons-report.txt")):
             if "=" not in line:
                 continue
 
@@ -388,6 +399,42 @@ def provideStaticSourceFile(sub_path, nuitka_src, source_dir, c11_mode):
     cheapCopyFile(source_filename, target_filename)
 
     return target_filename
+
+
+def scanSourceDir(env, c11_mode, dirname, plugins):
+    if not os.path.exists(dirname):
+        return
+
+    # If we use C11 capable compiler, all good. Otherwise use C++, which Scons
+    # needs to derive from filenames, so make copies (or links) with a different
+    # name.
+    added_path = False
+
+    for filename in sorted(os.listdir(dirname)):
+        if filename.endswith(".h") and plugins and not added_path:
+            env.Append(CPPPATH=[dirname])
+            added_path = True
+
+        # Only C files are of interest here.
+        if not filename.endswith((".c", "cpp")) or not filename.startswith(
+            ("module.", "__", "plugin.")
+        ):
+            continue
+
+        filename = os.path.join(dirname, filename)
+
+        target_file = filename
+
+        # We pretend to use C++ if no C11 compiler is present.
+        if c11_mode:
+            yield filename
+        else:
+            if filename.endswith(".c"):
+                target_file += "pp"  # .cpp" suffix then
+
+                os.rename(filename, target_file)
+
+            yield target_file
 
 
 def makeCLiteral(value):

@@ -55,7 +55,7 @@ def getRootModules():
 def getRootTopModule():
     top_module = next(iter(root_modules))
 
-    assert top_module.isTopModule()
+    assert top_module.isTopModule(), top_module
 
     return top_module
 
@@ -172,7 +172,7 @@ def getDoneModulesCount():
 
 
 def getDoneModules():
-    return sorted(done_modules, key=lambda module: module.getFullName())
+    return sorted(done_modules, key=lambda module: (module.getFullName(), module.kind))
 
 
 def removeDoneModule(module):

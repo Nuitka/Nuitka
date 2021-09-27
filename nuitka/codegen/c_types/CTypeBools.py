@@ -53,7 +53,9 @@ class CTypeBool(CTypeNotReferenceCountedMixin, CTypeBase):
             )
 
     @classmethod
-    def emitAssignmentCodeFromConstant(cls, to_name, constant, emit, context):
+    def emitAssignmentCodeFromConstant(
+        cls, to_name, constant, may_escape, emit, context
+    ):
         # No context needed, pylint: disable=unused-argument
         emit("%s = %s;" % (to_name, "true" if constant else "false"))
 

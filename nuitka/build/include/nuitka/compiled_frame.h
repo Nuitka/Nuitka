@@ -47,7 +47,10 @@ extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyO
 
 extern PyTypeObject Nuitka_Frame_Type;
 
-static inline bool Nuitka_Frame_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Frame_Type; }
+static inline bool Nuitka_Frame_Check(PyObject *object) {
+    CHECK_OBJECT(object);
+    return Py_TYPE(object) == &Nuitka_Frame_Type;
+}
 
 struct Nuitka_FrameObject {
     PyFrameObject m_frame;
@@ -79,8 +82,8 @@ NUITKA_MAY_BE_UNUSED static inline bool isFrameUnusable(struct Nuitka_FrameObjec
         PRINT_STRING("NOT REUSING FRAME:");
         PRINT_ITEM((PyObject *)frame_object);
         PRINT_REFCOUNT((PyObject *)frame_object);
-        if (frame_object->f_back) {
-            PRINT_ITEM((PyObject *)frame_object->f_back);
+        if (frame_object->m_frame.f_back) {
+            PRINT_ITEM((PyObject *)frame_object->m_frame.f_back);
         }
         PRINT_NEW_LINE();
     }
@@ -108,15 +111,40 @@ inline static void assertFrameObject(struct Nuitka_FrameObject *frame_object) {
 // this is a no-op. Using a define to spare the compile from inlining an empty
 // function.
 #if PYTHON_VERSION >= 0x340
-static inline void Nuitka_Frame_MarkAsExecuting(struct Nuitka_FrameObject *frame) { frame->m_frame.f_executing = 1; }
+static inline void Nuitka_Frame_MarkAsExecuting(struct Nuitka_FrameObject *frame) {
+    CHECK_OBJECT(frame);
+#if PYTHON_VERSION >= 0x3a0
+    frame->m_frame.f_state = FRAME_EXECUTING;
+#else
+    frame->m_frame.f_executing = 1;
+#endif
+}
 #else
 #define Nuitka_Frame_MarkAsExecuting(frame) ;
 #endif
 
 #if PYTHON_VERSION >= 0x340
-static inline void Nuitka_Frame_MarkAsNotExecuting(struct Nuitka_FrameObject *frame) { frame->m_frame.f_executing = 0; }
+static inline void Nuitka_Frame_MarkAsNotExecuting(struct Nuitka_FrameObject *frame) {
+    CHECK_OBJECT(frame);
+#if PYTHON_VERSION >= 0x3a0
+    frame->m_frame.f_state = FRAME_SUSPENDED;
+#else
+    frame->m_frame.f_executing = 0;
+#endif
+}
 #else
 #define Nuitka_Frame_MarkAsNotExecuting(frame) ;
+#endif
+
+#if PYTHON_VERSION >= 0x340
+static inline bool Nuitka_Frame_IsExecuting(struct Nuitka_FrameObject *frame) {
+    CHECK_OBJECT(frame);
+#if PYTHON_VERSION >= 0x3a0
+    return frame->m_frame.f_state == FRAME_EXECUTING;
+#else
+    return frame->m_frame.f_executing == 1;
+#endif
+}
 #endif
 
 // Put frame at the top of the frame stack and mark as executing.
@@ -130,6 +158,7 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject
     // Look at current frame, "old" is the one previously active.
     PyThreadState *tstate = PyThreadState_GET();
     PyFrameObject *old = tstate->frame;
+    CHECK_OBJECT_X(old);
 
 #if _DEBUG_FRAME
     if (old) {
@@ -166,6 +195,7 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
     PyFrameObject *old = tstate->frame;
+    CHECK_OBJECT(old);
 
 #if _DEBUG_FRAME
     printf("Taking off frame %s %s\n", Nuitka_String_AsString(PyObject_Str((PyObject *)old)),

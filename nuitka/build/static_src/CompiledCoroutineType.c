@@ -689,8 +689,7 @@ static PyObject *_Nuitka_Coroutine_throw2(struct Nuitka_CoroutineObject *corouti
 #endif
 
     if (coroutine->m_yieldfrom != NULL) {
-        // TODO: This probably should be changed to EXCEPTION_MATCH_BOOL_SINGLE for performance.
-        if (PyErr_GivenExceptionMatches(exception_type, PyExc_GeneratorExit)) {
+        if (EXCEPTION_MATCH_BOOL_SINGLE(exception_type, PyExc_GeneratorExit)) {
             // Coroutines need to close the yield_from.
             coroutine->m_running = 1;
             bool res = Nuitka_gen_close_iter(coroutine->m_yieldfrom);

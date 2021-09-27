@@ -46,6 +46,7 @@ from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import getNullInput, withEnvironmentVarsOverriden
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
+    deleteFile,
     getFileContents,
     getFileList,
     removeDirectory,
@@ -194,8 +195,8 @@ Categories=Utility;"""
     stderr_file.close()
 
     if result != 0:
-        # Useless now.
-        os.unlink(onefile_output_filename)
+        # Useless result if there were errors, so now remove it.
+        deleteFile(onefile_output_filename, must_exist=False)
 
         stderr = getFileContents(stderr_filename, mode="rb")
 
@@ -220,8 +221,8 @@ Categories=Utility;"""
             % (onefile_output_filename, stdout_filename, stderr_filename)
         )
 
-    os.unlink(stdout_filename)
-    os.unlink(stderr_filename)
+    deleteFile(stdout_filename, must_exist=True)
+    deleteFile(stderr_filename, must_exist=True)
 
     postprocessing_logger.info("Completed onefile creation.")
 
@@ -246,6 +247,9 @@ def _runOnefileScons(quiet, onefile_compression):
         "nuitka_src": SconsInterface.getSconsDataPath(),
         "compiled_exe": OutputDirectories.getResultFullpath(onefile=False),
         "onefile_compression": asBoolStr(onefile_compression),
+        "onefile_splash_screen": asBoolStr(
+            Options.getWindowsSplashScreen() is not None
+        ),
     }
 
     if Options.isClang():
@@ -419,6 +423,12 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
                 )
             )
 
+        # add padding to have the start position at a double world boundary
+        # this is needed on windows so that a possible certificate immediately
+        # follows the start position
+        pad = output_file.tell() % 8
+        if pad != 0:
+            output_file.write(bytes(8 - pad))
         output_file.write(struct.pack("Q", start_pos))
 
     closeProgressBar()

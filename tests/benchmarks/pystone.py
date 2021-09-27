@@ -78,9 +78,14 @@ FALSE = 0
 
 def main(loops = LOOPS):
     benchtime, stones = pystones(loops)
-    print "Pystone(%s) time for %d passes = %g" % \
-          (__version__, loops, benchtime)
-    print "This machine benchmarks at %g pystones/second" % stones
+
+    import os
+    if int(os.environ.get("BENCH", "0")):
+        print("%.2f" % stones)
+    else:
+        print "Pystone(%s) time for %d passes = %g" % \
+            (__version__, loops, benchtime)
+        print "This machine benchmarks at %g pystones/second" % stones
 
 
 def pystones(loops = LOOPS):
@@ -271,7 +276,7 @@ def Func3(EnumParIn):
     if EnumLoc == Ident3: return TRUE
     return FALSE
 
-if __name__ == "__main__":
+def pystone():
     import sys
     def error(msg):
         print >>sys.stderr, msg,
@@ -287,3 +292,6 @@ if __name__ == "__main__":
     else:
         loops = LOOPS
     main(loops)
+
+if __name__ == "__main__":
+    pystone()

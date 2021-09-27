@@ -62,10 +62,26 @@ def getSourceDirectoryPath(onefile=False):
     return result
 
 
+def getStandaloneDistSuffix():
+    """Suffix to use for standalone distribition folder."""
+
+    if Options.shallCreateAppBundle():
+        return ".app"
+    else:
+        return ".dist"
+
+
 def getStandaloneDirectoryPath():
-    return Options.getOutputPath(
-        path=os.path.basename(getTreeFilenameWithSuffix(_main_module, ".dist"))
+    result = Options.getOutputPath(
+        path=os.path.basename(
+            getTreeFilenameWithSuffix(_main_module, getStandaloneDistSuffix())
+        )
     )
+
+    if Options.shallCreateAppBundle():
+        result = os.path.join(result, "Contents", "MacOS")
+
+    return result
 
 
 def getResultBasepath(onefile=False):

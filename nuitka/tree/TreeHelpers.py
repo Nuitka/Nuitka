@@ -24,6 +24,7 @@ import __future__
 import ast
 
 from nuitka import Constants, Options
+from nuitka.Errors import CodeTooComplexCode
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -77,13 +78,20 @@ def extractDocFromBody(node):
     return body, doc
 
 
-def parseSourceCodeToAst(source_code, filename, line_offset):
+def parseSourceCodeToAst(source_code, module_name, filename, line_offset):
     # Workaround: ast.parse cannot cope with some situations where a file is not
     # terminated by a new line.
     if not source_code.endswith("\n"):
         source_code = source_code + "\n"
 
-    body = ast.parse(source_code, filename)
+    try:
+        body = ast.parse(source_code, filename)
+    except RuntimeError as e:
+        if "maximum recursion depth" in e.args[0]:
+            raise CodeTooComplexCode(module_name, filename)
+
+        raise
+
     assert getKind(body) == "Module"
 
     if line_offset > 0:

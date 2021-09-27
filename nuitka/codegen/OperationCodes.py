@@ -22,7 +22,6 @@ of course types could play into it. Then there is also the added difficulty of
 in-place assignments, which have other operation variants.
 """
 
-
 from . import HelperDefinitions, OperatorCodes
 from .CodeHelpers import (
     generateChildExpressionsCode,

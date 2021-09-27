@@ -229,6 +229,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                     return false;
                 } else if (strcasecmp(var_name, "PID") == 0) {
                     char pid_buffer[128];
+
                     snprintf(pid_buffer, sizeof(pid_buffer), "%d", getpid());
 
                     appendStringSafe(target, pid_buffer, buffer_size);
@@ -237,9 +238,9 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
 
                     struct timeval current_time;
                     gettimeofday(&current_time, NULL);
-
                     snprintf(time_buffer, sizeof(time_buffer), "%ld_%ld", current_time.tv_sec, current_time.tv_usec);
 
+                    appendStringSafe(target, time_buffer, buffer_size);
                 } else {
                     return false;
                 }

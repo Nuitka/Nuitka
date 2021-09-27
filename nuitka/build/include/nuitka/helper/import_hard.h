@@ -35,6 +35,9 @@ extern PyObject *IMPORT_HARD__FROZEN_IMPORTLIB(void);
 #if PYTHON_VERSION >= 0x350
 extern PyObject *IMPORT_HARD__FROZEN_IMPORTLIB_EXTERNAL(void);
 #endif
+/* C helper for hard import of module "functools" import. */
+
+extern PyObject *IMPORT_HARD_FUNCTOOLS(void);
 /* C helper for hard import of module "importlib" import. */
 
 extern PyObject *IMPORT_HARD_IMPORTLIB(void);

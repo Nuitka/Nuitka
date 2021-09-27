@@ -43,6 +43,7 @@
 
 #if defined(_WIN32)
 #include <Shlobj.h>
+#include <imagehlp.h>
 #include <windows.h>
 
 #ifndef CSIDL_LOCAL_APPDATA
@@ -58,8 +59,6 @@
 #include <unistd.h>
 #endif
 
-#define NUITKA_PRINT_TRACE(arg)
-
 #ifndef __IDE_ONLY__
 // Generated during build with optional defines.
 #include "onefile_definitions.h"
@@ -67,6 +66,7 @@
 #define ONEFILE_COMPANY "SomeVendor"
 #define ONEFILE_PRODUCT "SomeProduct"
 #define ONEFILE_VERSION "SomeVersion"
+#define _NUITKA_ONEFILE_TEMP_SPEC "%TEMP%/onefile_%PID%_%TIME%"
 #endif
 
 #ifdef _NUITKA_ONEFILE_COMPRESSION
@@ -88,6 +88,12 @@
 #include "decompress/zstd_decompress_block.c"
 #endif
 
+// Some handy macro definitions, e.g. unlikely.
+#include "nuitka/hedley.h"
+#define likely(x) HEDLEY_LIKELY(x)
+#define unlikely(x) HEDLEY_UNLIKELY(x)
+
+// Safe string operations.
 #include "HelpersSafeStrings.c"
 
 // For tracing outputs if enabled at compile time.
@@ -476,6 +482,37 @@ static void cleanupChildProcess() {
 }
 
 #if defined(_WIN32)
+static char *convertUnicodePathToAnsi(wchar_t const *path) {
+    // first get short path as otherwise, conversion might not be reliable
+    DWORD l = GetShortPathNameW(path, NULL, 0);
+    wchar_t *shortPath = (wchar_t *)malloc(sizeof(wchar_t) * (l + 1));
+    assert(shortPath);
+
+    l = GetShortPathNameW(path, shortPath, l);
+    if (unlikely(l == 0)) {
+        goto err_shortPath;
+    }
+
+    size_t i;
+    if (unlikely(wcstombs_s(&i, NULL, 0, shortPath, _TRUNCATE) != 0)) {
+        goto err_shortPath;
+    }
+    char *ansiPath = (char *)malloc(i);
+    assert(ansiPath);
+    if (unlikely(wcstombs_s(&i, ansiPath, i, shortPath, _TRUNCATE) != 0)) {
+        goto err_ansiPath;
+    }
+    return ansiPath;
+
+err_ansiPath:
+    free(ansiPath);
+err_shortPath:
+    free(shortPath);
+    return NULL;
+}
+#endif
+
+#if defined(_WIN32)
 BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
     switch (fdwCtrlType) {
         // Handle the CTRL-C signal.
@@ -566,6 +603,10 @@ char const *getBinaryPath() {
 }
 #endif
 
+#if _NUITKA_ONEFILE_SPLASH_SCREEN
+#include "OnefileSplashScreen.cpp"
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
 #if defined(__MINGW32__) && !defined(_W64)
@@ -638,7 +679,36 @@ int main(int argc, char **argv) {
 #endif
 
 #if defined(_WIN32)
-    res = SetFilePointer(exe_file, -8, NULL, FILE_END);
+    /* if an application is signed, the signature is at the end of the file
+       where we normally expect the start position of out container.
+       the overcome this limitation, use the windows function MapAndLoad()
+       to parse the PE header. The header contains information whether
+       a signature is present and at which address the first signature
+       start. so we can use that address to find the start position value */
+    DWORD cert_table_addr = 0;
+
+    PSTR exe_filename_a = convertUnicodePathToAnsi(exe_filename);
+    if (exe_filename_a) {
+        LOADED_IMAGE loaded_image;
+        if (MapAndLoad(exe_filename_a, "\\dont-search-path", &loaded_image, false, true)) {
+            if (loaded_image.FileHeader) {
+                if (loaded_image.FileHeader->OptionalHeader.NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_SECURITY) {
+                    cert_table_addr =
+                        loaded_image.FileHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY]
+                            .VirtualAddress;
+                    // printf("Certificate Table at: %d\n", cert_table_addr);
+                }
+            }
+            UnMapAndLoad(&loaded_image);
+        }
+        free(exe_filename_a);
+    }
+
+    if (cert_table_addr == 0) {
+        res = SetFilePointer(exe_file, -8, NULL, FILE_END);
+    } else {
+        res = SetFilePointer(exe_file, cert_table_addr - 8, NULL, FILE_BEGIN);
+    }
     assert(res != INVALID_SET_FILE_POINTER);
 #else
     int res = fseek(exe_file, -8, SEEK_END);
@@ -674,6 +744,10 @@ int main(int argc, char **argv) {
 #endif
 
     static filename_char_t first_filename[1024] = {0};
+
+#if _NUITKA_ONEFILE_SPLASH_SCREEN
+    initSplashScreen();
+#endif
 
     // printf("Entering decompression loop:");
 
@@ -785,12 +859,32 @@ int main(int argc, char **argv) {
 
     DWORD exit_code = 0;
 
-    if (handle_process != 0) {
-        WaitForSingleObject(handle_process, INFINITE);
+#if _NUITKA_ONEFILE_SPLASH_SCREEN
+    DWORD wait_time = 50;
+#else
+    DWORD wait_time = INFINITE;
+#endif
+
+    // Loop with splash screen, otherwise this will be only once.
+    while (handle_process != 0) {
+        WaitForSingleObject(handle_process, wait_time);
 
         if (!GetExitCodeProcess(handle_process, &exit_code)) {
             exit_code = 1;
         }
+
+#if _NUITKA_ONEFILE_SPLASH_SCREEN
+        if (exit_code == STILL_ACTIVE) {
+            bool done = checkSplashScreen();
+
+            // Stop checking.
+            if (done) {
+                wait_time = INFINITE;
+            }
+
+            continue;
+        }
+#endif
 
         CloseHandle(handle_process);
 

@@ -21,6 +21,12 @@
 
 from __future__ import print_function
 
+import nuitka.Options
+
+nuitka.Options.is_fullcompat = False
+
+# isort:start
+
 import contextlib
 import math
 import os
@@ -36,6 +42,7 @@ from nuitka.__past__ import getMetaClassBase
 from nuitka.nodes.ImportNodes import hard_modules
 from nuitka.tools.quality.autoformat.Autoformat import autoformat
 from nuitka.Tracing import my_print
+from nuitka.utils.Jinja2 import getTemplate
 
 
 class TypeDescBase(getMetaClassBase("Type")):
@@ -907,8 +914,12 @@ class StrDesc(ConcreteTypeBase):
             return slot == "nb_remainder"
         elif slot.startswith("sq_"):
             return "ass" not in slot and "inplace" not in slot
+        elif slot == "tp_richcompare":
+            return True
+        elif slot == "tp_compare":
+            return False
         else:
-            assert False, slot
+            assert False, (self, slot)
 
 
 str_desc = StrDesc()
@@ -1026,6 +1037,10 @@ class ListDesc(ConcreteTypeBase):
             return False
         elif slot.startswith("sq_"):
             return True
+        elif slot == "tp_richcompare":
+            return True
+        elif slot == "tp_compare":
+            return False
         else:
             assert False, slot
 
@@ -1107,6 +1122,10 @@ class BytesDesc(ConcreteTypeBase):
             return slot == "nb_remainder"
         elif slot.startswith("sq_"):
             return "ass" not in slot and slot != "sq_slice" and "inplace" not in slot
+        elif slot == "tp_richcompare":
+            return True
+        elif slot == "tp_compare":
+            return False
         else:
             assert False, slot
 
@@ -1446,14 +1465,16 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
     #     template = env.get_template("HelperOperationComparisonLong.c.j2")
     elif left == float_desc:
         template = env.get_template("HelperOperationComparisonFloat.c.j2")
-    # elif left == list_desc:
-    #     template = env.get_template("HelperOperationComparisonList.c.j2")
     elif left == tuple_desc:
         template = env.get_template("HelperOperationComparisonTuple.c.j2")
+    elif left == list_desc:
+        template = env.get_template("HelperOperationComparisonList.c.j2")
     # elif left == set_desc:
     #     template = env.get_template("HelperOperationComparisonSet.c.j2")
-    # elif left == bytes_desc:
-    #     template = env.get_template("HelperOperationComparisonBytes.c.j2")
+    elif left == bytes_desc:
+        template = env.get_template("HelperOperationComparisonBytes.c.j2")
+    elif left == str_desc:
+        template = env.get_template("HelperOperationComparisonStr.c.j2")
     else:
         return
 
@@ -1673,6 +1694,8 @@ def makeHelperOperations(
 def makeHelperComparisons(
     template, helpers_set, operator, op_code, emit_h, emit_c, emit
 ):
+    # Details to look for, pylint: disable=too-many-locals
+
     emit(
         '/* C helpers for type specialized "%s" (%s) comparisons */'
         % (operator, op_code)
@@ -1720,6 +1743,18 @@ def makeHelperComparisons(
             )
         )
 
+        if not python_requirement:
+            is_py3_only = False
+            is_py2_only = False
+        elif python_requirement == "PYTHON_VERSION < 0x300":
+            is_py3_only = False
+            is_py2_only = True
+        elif python_requirement == "PYTHON_VERSION >= 0x300":
+            is_py3_only = True
+            is_py2_only = False
+        else:
+            assert False, python_requirement
+
         code = template.render(
             target=target,
             left=left,
@@ -1727,6 +1762,8 @@ def makeHelperComparisons(
             op_code=op_code,
             reversed_args_op_code=reversed_args_compare_op_codes[op_code],
             operator=operator,
+            is_py3_only=is_py3_only,
+            is_py2_only=is_py2_only,
         )
 
         emit_c(code)
@@ -1797,11 +1834,9 @@ def makeHelpersComparisonOperation(operand, op_code):
                 emit_h(*args)
                 emit_c(*args)
 
-            emitGenerationWarning(emit_h, template.name)
-            emitGenerationWarning(emit_c, template.name)
+            emitGenerationWarning(emit, template.name)
 
-            emitIDE(emit_c)
-            emitIDE(emit_h)
+            emitIDE(emit)
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -1844,11 +1879,9 @@ def makeHelpersBinaryOperation(operand, op_code):
                 emit_h(*args)
                 emit_c(*args)
 
-            emitGenerationWarning(emit_h, template.name)
-            emitGenerationWarning(emit_c, template.name)
+            emitGenerationWarning(emit, template.name)
 
-            emitIDE(emit_c)
-            emitIDE(emit_h)
+            emitIDE(emit)
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -1893,11 +1926,9 @@ def makeHelpersInplaceOperation(operand, op_code):
                 emit_h(*args)
                 emit_c(*args)
 
-            emitGenerationWarning(emit_h, template.name)
-            emitGenerationWarning(emit_c, template.name)
+            emitGenerationWarning(emit, template.name)
 
-            emitIDE(emit_c)
-            emitIDE(emit_h)
+            emitIDE(emit)
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -1935,11 +1966,9 @@ def makeHelpersImportHard():
                 emit_h(*args)
                 emit_c(*args)
 
-            emitGenerationWarning(emit_h, template.name)
-            emitGenerationWarning(emit_c, template.name)
+            emitGenerationWarning(emit, template.name)
 
-            emitIDE(emit_c)
-            emitIDE(emit_h)
+            emitIDE(emit)
 
             for module_name in sorted(hard_modules):
                 makeHelperImportModuleHard(
@@ -1976,6 +2005,90 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
         emit("#endif")
 
 
+def makeHelperCalls():
+    # Many cases, pylint: disable=too-many-locals
+
+    from nuitka.codegen.CallCodes import (
+        getQuickCallCode,
+        getQuickMethodCallCode,
+        getQuickMixedCallCode,
+        getTemplateCodeDeclaredFunction,
+        max_quick_call,
+    )
+
+    filename_c = "nuitka/build/static_src/HelpersCalling2.c"
+    filename_h = "nuitka/build/include/nuitka/helper/calling2.h"
+
+    with withFileOpenedAndAutoformatted(filename_c) as output_c:
+        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+
+            def emit_h(*args):
+                writeline(output_h, *args)
+
+            def emit_c(*args):
+                writeline(output_c, *args)
+
+            def emit(*args):
+                emit_h(*args)
+                emit_c(*args)
+
+            template = getTemplate("nuitka.codegen", "CodeTemplateCallsPositional.j2")
+
+            emitGenerationWarning(emit, template.name)
+
+            emitIDE(emit_c)
+
+            for args_count in range(max_quick_call + 1):
+                code = getQuickCallCode(args_count=args_count, has_tuple_arg=False)
+
+                emit_c(code)
+                emit_h(getTemplateCodeDeclaredFunction(code))
+
+                if args_count >= 1:
+                    code = getQuickCallCode(args_count=args_count, has_tuple_arg=True)
+
+                    emit_c(code)
+                    emit_h(getTemplateCodeDeclaredFunction(code))
+
+            template = getTemplate("nuitka.codegen", "CodeTemplateCallsMixed.j2")
+
+            # Only keywords, but not positional arguments, via split args.
+            code = getQuickMixedCallCode(
+                args_count=0,
+                has_tuple_arg=False,
+                has_dict_values=True,
+            )
+
+            emit_c(code)
+            emit_h(getTemplateCodeDeclaredFunction(code))
+
+            for args_count in range(1, max_quick_call + 1):
+                for has_tuple_arg in (False, True):
+                    for has_dict_values in (False, True):
+                        # We do not do that.
+                        if not has_dict_values and has_tuple_arg:
+                            continue
+
+                        code = getQuickMixedCallCode(
+                            args_count=args_count,
+                            has_tuple_arg=has_tuple_arg,
+                            has_dict_values=has_dict_values,
+                        )
+
+                        emit_c(code)
+                        emit_h(getTemplateCodeDeclaredFunction(code))
+
+            template = getTemplate(
+                "nuitka.codegen", "CodeTemplateCallsMethodPositional.j2"
+            )
+
+            for args_count in range(max_quick_call + 1):
+                code = getQuickMethodCallCode(args_count=args_count)
+
+                emit_c(code)
+                emit_h(getTemplateCodeDeclaredFunction(code))
+
+
 def writeline(output, *args):
     if not args:
         output.write("\n")
@@ -1987,10 +2100,13 @@ def writeline(output, *args):
 
 def main():
     # Cover many things once first, then cover all for quicker turnaround during development.
+    makeHelpersComparisonOperation("==", "EQ")
     makeHelpersBinaryOperation("+", "ADD")
     makeHelpersInplaceOperation("+", "ADD")
 
     makeHelpersImportHard()
+
+    makeHelperCalls()
 
     makeHelpersBinaryOperation("-", "SUB")
     makeHelpersBinaryOperation("*", "MULT")
@@ -2021,7 +2137,6 @@ def main():
     makeHelpersInplaceOperation("**", "POW")
     makeHelpersInplaceOperation("@", "MATMULT")
 
-    makeHelpersComparisonOperation("==", "EQ")
     makeHelpersComparisonOperation("!=", "NE")
     makeHelpersComparisonOperation("<=", "LE")
     makeHelpersComparisonOperation(">=", "GE")

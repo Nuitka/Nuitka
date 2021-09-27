@@ -33,9 +33,8 @@ import sys
 from collections import namedtuple
 
 from nuitka.__past__ import getMetaClassBase
-from nuitka.containers.oset import OrderedSet
 from nuitka.Tracing import plugins_logger
-from nuitka.utils.Execution import check_output
+from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.FileOperations import makePath
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -43,8 +42,6 @@ pre_modules = {}
 post_modules = {}
 
 warned_unused_plugins = set()
-
-registered_pkgutil_getdata_callbacks = OrderedSet()
 
 
 class NuitkaPluginBase(getMetaClassBase("Plugin")):
@@ -119,6 +116,11 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     def addPluginCommandLineOptions(cls, group):
         # Call group.add_option() here.
         pass
+
+    @classmethod
+    def getTagDataFileTagOptions(cls):
+        # Return tag_name, description tuples
+        return ()
 
     @classmethod
     def getPluginDefaultOptionValues(cls):
@@ -601,20 +603,29 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             query_codes.append('print("-" * 27)')
 
         if type(setup_codes) is str:
-            setup_codes = [setup_codes]
+            setup_codes = setup_codes.split("\n")
 
         cmd = r"""\
 from __future__ import print_function
 from __future__ import absolute_import
 
-%(setup_codes)s
+try:
+    %(setup_codes)s
+except ImportError:
+    import sys
+    sys.exit(38)
 %(query_codes)s
 """ % {
-            "setup_codes": "\n".join(setup_codes),
+            "setup_codes": "\n   ".join(setup_codes),
             "query_codes": "\n".join(query_codes),
         }
 
-        feedback = check_output([sys.executable, "-c", cmd])
+        try:
+            feedback = check_output([sys.executable, "-c", cmd])
+        except NuitkaCalledProcessError as e:
+            if e.returncode == 38:
+                return None
+            raise
 
         if str is not bytes:  # We want to work with strings, that's hopefully OK.
             feedback = feedback.decode("utf8")
@@ -646,9 +657,8 @@ from __future__ import absolute_import
         ).key
 
     @staticmethod
-    def registerPkgutilGetDataCallback(callback):
-        """Allow a plugin to register for that node type."""
-        registered_pkgutil_getdata_callbacks.add(callback)
+    def onFunctionAssignmentParsed(module_name, function_body, assign_node):
+        pass
 
     @classmethod
     def warning(cls, message):

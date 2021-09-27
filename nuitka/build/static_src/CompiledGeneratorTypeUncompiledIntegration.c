@@ -87,12 +87,16 @@ static inline void Nuitka_PyGen_exc_state_clear(_PyErr_StackItem *exc_state) {
 // what it does. It's unrelated to compiled generators, and used from coroutines
 // and asyncgen to interact with them.
 static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
+    PyFrameObject *f = gen->gi_frame;
+
+#if PYTHON_VERSION >= 0x3a0
+    if (f != NULL && _PyFrame_IsExecuting(f)) {
+#else
     if (unlikely(gen->gi_running)) {
+#endif
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "generator already executing");
         return NULL;
     }
-
-    PyFrameObject *f = gen->gi_frame;
 
     if (f == NULL || f->f_stacktop == NULL) {
         // Set exception if called from send()
@@ -428,10 +432,19 @@ static PyObject *Nuitka_PyGen_gen_close(PyGenObject *gen, PyObject *args) {
     int err = 0;
 
     if (yf != NULL) {
+#if PYTHON_VERSION >= 0x3a0
+        PyFrameState state = gen->gi_frame->f_state;
+        gen->gi_frame->f_state = FRAME_EXECUTING;
+#else
         gen->gi_running = 1;
+#endif
         err = Nuitka_PyGen_gen_close_iter(yf);
-        gen->gi_running = 0;
 
+#if PYTHON_VERSION >= 0x3a0
+        gen->gi_frame->f_state = state;
+#else
+        gen->gi_running = 0;
+#endif
         Py_DECREF(yf);
     }
 
@@ -490,7 +503,7 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyGenObject *gen, int close_on
     PyObject *yf = Nuitka_PyGen_yf(gen);
 
     if (yf != NULL) {
-        if (close_on_genexit && PyErr_GivenExceptionMatches(exception_type, PyExc_GeneratorExit)) {
+        if (close_on_genexit && EXCEPTION_MATCH_BOOL_SINGLE(exception_type, PyExc_GeneratorExit)) {
             gen->gi_running = 1;
             int err = Nuitka_PyGen_gen_close_iter(yf);
             gen->gi_running = 0;

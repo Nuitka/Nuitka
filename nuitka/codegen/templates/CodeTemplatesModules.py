@@ -61,6 +61,9 @@ PyDictObject *moduledict_%(module_identifier)s;
 
 /* The declarations of module constants used, if any. */
 static PyObject *mod_consts[%(constants_count)d];
+#ifndef __NUITKA_NO_ASSERT__
+static Py_hash_t mod_consts_hash[%(constants_count)d];
+#endif
 
 static PyObject *module_filename_obj = NULL;
 
@@ -72,6 +75,12 @@ static void createModuleConstants(void) {
     if (constants_created == false) {
         loadConstantsBlob(&mod_consts[0], UNTRANSLATE(%(module_const_blob_name)s));
         constants_created = true;
+
+#ifndef __NUITKA_NO_ASSERT__
+        for(int i = 0; i < %(constants_count)d; i++) {
+            mod_consts_hash[i] = DEEP_HASH(mod_consts[i]);
+        }
+#endif
     }
 }
 
@@ -88,7 +97,10 @@ void checkModuleConstants_%(module_identifier)s(void) {
     // The module may not have been used at all, then ignore this.
     if (constants_created == false) return;
 
-    checkConstantsBlob(&mod_consts[0], "%(module_name)s");
+    for(int i = 0; i < %(constants_count)d; i++) {
+        assert(mod_consts_hash[i] == DEEP_HASH(mod_consts[i]));
+        CHECK_OBJECT_DEEP(mod_consts[i]);
+    }
 }
 #endif
 
@@ -272,7 +284,7 @@ static PyMethodDef _method_def_create_compiled_function = {
 #endif
 
 // Internal entry point for module code.
-PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *module_entry) {
+PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry) {
     module_%(module_identifier)s = module;
 
 #ifdef _NUITKA_MODULE
@@ -291,9 +303,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
     _initCompiledMethodType();
     _initCompiledFrameType();
 
-#if PYTHON_VERSION < 0x300
     _initSlotCompare();
-#endif
 #if PYTHON_VERSION >= 0x270
     _initSlotIternext();
 #endif
@@ -336,7 +346,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
     moduledict_%(module_identifier)s = MODULE_DICT(module_%(module_identifier)s);
 
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
-    registerDillPluginTables(module_entry->name, &_method_def_reduce_compiled_function, &_method_def_create_compiled_function);
+    registerDillPluginTables(loader_entry->name, &_method_def_reduce_compiled_function, &_method_def_create_compiled_function);
 #endif
 
     // Set "__compiled__" to what version information we have.
@@ -570,7 +580,7 @@ template_helper_impl_decl = """\
 
 #include "nuitka/prelude.h"
 
-extern PyObject *callPythonFunction( PyObject *func, PyObject **args, int count );
+extern PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count);
 
 """
 

@@ -43,7 +43,6 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.Errors import NuitkaPluginError
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPointOld
 from nuitka.ModuleRegistry import addUsedModule
-from nuitka.SourceCodeReferences import fromFilename
 from nuitka.Tracing import plugins_logger, printLine
 from nuitka.utils.FileOperations import makePath, putTextFileContents, relpath
 from nuitka.utils.Importing import importFileAsModule
@@ -55,6 +54,7 @@ from .PluginBase import NuitkaPluginBase, post_modules, pre_modules
 active_plugins = OrderedDict()
 plugin_name2plugin_classes = {}
 plugin_options = {}
+plugin_datatag2pluginclasses = {}
 plugin_values = {}
 user_plugins = OrderedSet()
 
@@ -287,7 +287,8 @@ class Plugins(object):
             )
 
             if decision:
-                imported_module, added_flag = Recursion.recurseTo(
+                imported_module = Recursion.recurseTo(
+                    signal_change=signal_change,
                     module_package=full_name.getPackageName(),
                     module_filename=module_filename,
                     module_relpath=relpath(module_filename),
@@ -296,13 +297,6 @@ class Plugins(object):
                 )
 
                 addUsedModule(imported_module)
-
-                if added_flag:
-                    signal_change(
-                        "new_code",
-                        imported_module.getSourceReference(),
-                        "Recursed to module.",
-                    )
 
     @classmethod
     def considerImplicitImports(cls, module, signal_change):
@@ -467,31 +461,10 @@ class Plugins(object):
         Returns
             trigger_module
         """
-        from nuitka.nodes.ModuleNodes import CompiledPythonModule
-        from nuitka.tree.Building import createModuleTree
+
+        from nuitka.tree.Building import buildModule
 
         module_name = ModuleName(module.getFullName() + trigger_name)
-        source_ref = fromFilename(module.getCompileTimeFilename() + trigger_name)
-
-        mode = cls.decideCompilation(module_name, source_ref)
-
-        trigger_module = CompiledPythonModule(
-            module_name=module_name,
-            is_top=False,
-            mode=mode,
-            future_spec=None,
-            source_ref=source_ref,
-        )
-
-        createModuleTree(
-            module=trigger_module,
-            source_ref=module.getSourceReference(),
-            source_code=code,
-            is_main=False,
-        )
-
-        if mode == "bytecode":
-            trigger_module.setSourceCode(code)
 
         # In debug mode, put the files in the build folder, so they can be looked up easily.
         if Options.is_debug and "HIDE_SOURCE" not in flags:
@@ -501,6 +474,28 @@ class Plugins(object):
 
             putTextFileContents(filename=source_path, contents=code)
 
+        try:
+            trigger_module, _added = buildModule(
+                module_filename=os.path.join(
+                    os.path.dirname(module.getCompileTimeFilename()),
+                    module_name.asPath() + ".py",
+                ),
+                module_package=module_name.getPackageName(),
+                source_code=code,
+                is_top=False,
+                is_main=False,
+                is_shlib=False,
+                is_fake=module_name,
+                hide_syntax_error=False,
+            )
+        except SyntaxError:
+            plugins_logger.sysexit(
+                "SyntaxError in plugin provided source code for '%s'." % module_name
+            )
+
+        if trigger_module.getCompilationMode() == "bytecode":
+            trigger_module.setSourceCode(code)
+
         return trigger_module
 
     @classmethod
@@ -508,6 +503,9 @@ class Plugins(object):
         full_name = module.getFullName()
 
         def _untangleLoadDesc(descs):
+            if descs and inspect.isgenerator(descs):
+                descs = tuple(descs)
+
             if descs:
                 if type(descs[0]) not in (tuple, list):
                     descs = [descs]
@@ -811,6 +809,17 @@ class Plugins(object):
 
         return name
 
+    @classmethod
+    def onFunctionAssignmentParsed(cls, function_body, assign_node):
+        module_name = function_body.getParentModule().getFullName()
+
+        for plugin in getActivePlugins():
+            plugin.onFunctionAssignmentParsed(
+                module_name=module_name,
+                function_body=function_body,
+                assign_node=assign_node,
+            )
+
 
 def listPlugins():
     """Print available standard plugins."""
@@ -945,6 +954,9 @@ def activatePlugins():
         plugin_name2plugin_classes.items()
     ):
         if plugin_name in Options.getPluginsEnabled():
+            if plugin_class.isAlwaysEnabled():
+                plugin_class.warning("Plugin is defined as always enabled.")
+
             if plugin_class.isRelevant():
                 _addActivePlugin(plugin_class, args=True)
             else:
@@ -976,9 +988,11 @@ def lateActivatePlugin(plugin_name, option_values):
     _addActivePlugin(getPluginClass(plugin_name), args=True, force=True)
 
 
-def _addPluginCommandLineOptions(parser, plugin_class):
-    if plugin_class.plugin_name not in plugin_options:
-        option_group = OptionGroup(parser, "Plugin %s" % plugin_class.plugin_name)
+def _addPluginCommandLineOptions(parser, plugin_class, data_files_tags):
+    plugin_name = plugin_class.plugin_name
+
+    if plugin_name not in plugin_options:
+        option_group = OptionGroup(parser, "Plugin %s" % plugin_name)
         try:
             plugin_class.addPluginCommandLineOptions(option_group)
         except OptionConflictError as e:
@@ -991,17 +1005,31 @@ def _addPluginCommandLineOptions(parser, plugin_class):
                     ):
                         plugins_logger.sysexit(
                             "Plugin '%s' failed to add options due to conflict with '%s' from plugin '%s."
-                            % (plugin_class.plugin_name, e.option_id, other_plugin_name)
+                            % (plugin_name, e.option_id, other_plugin_name)
                         )
 
         if option_group.option_list:
             parser.add_option_group(option_group)
-            plugin_options[plugin_class.plugin_name] = option_group.option_list
+            plugin_options[plugin_name] = option_group.option_list
         else:
-            plugin_options[plugin_class.plugin_name] = ()
+            plugin_options[plugin_name] = ()
+
+        plugin_data_files_tags = plugin_class.getTagDataFileTagOptions()
+
+        if plugin_data_files_tags:
+            for tag_name, tag_desc in plugin_data_files_tags:
+                if tag_name in (tag for tag, _desc in data_files_tags):
+                    plugins_logger.sysexit(
+                        "Plugin '%s' provides data files tag handling '%s' already provided."
+                        % (plugin_name, tag_name)
+                    )
+
+                data_files_tags.append((tag_name, tag_desc))
+
+                plugin_datatag2pluginclasses[tag_name] = plugin_class
 
 
-def addPluginCommandLineOptions(parser, plugin_names):
+def addPluginCommandLineOptions(parser, plugin_names, data_files_tags):
     """Add option group for the plugin to the parser.
 
     Notes:
@@ -1015,12 +1043,16 @@ def addPluginCommandLineOptions(parser, plugin_names):
     """
     for plugin_name in plugin_names:
         plugin_class = getPluginClass(plugin_name)
-        _addPluginCommandLineOptions(parser, plugin_class)
+        _addPluginCommandLineOptions(
+            parser=parser, plugin_class=plugin_class, data_files_tags=data_files_tags
+        )
 
 
-def addUserPluginCommandLineOptions(parser, filename):
+def addUserPluginCommandLineOptions(parser, filename, data_files_tags):
     plugin_class = loadUserPlugin(filename)
-    _addPluginCommandLineOptions(parser, plugin_class)
+    _addPluginCommandLineOptions(
+        parser=parser, plugin_class=plugin_class, data_files_tags=data_files_tags
+    )
 
     user_plugins.add(plugin_class)
 

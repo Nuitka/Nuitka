@@ -15,3 +15,123 @@ psutil:
     "from ._common import POSIX" : "'POSIX = %r' % psutil.POSIX"
     "from ._common import SUNOS" : "'SUNOS = %r' % psutil.SUNOS"
     "from ._common import WINDOWS" : "'WINDOWS = %r' % psutil.WINDOWS"
+
+cffi.ffiplatform:
+  description:
+    "disable distutils hacks"
+  replacements:
+    "import setuptools" : "'pass'"
+
+skimage:
+  description:
+    "remove pytest testing framework"
+  replacements:
+    "imp.find_module('pytest')" : "'None'"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+sklearn.random_projection:
+  description:
+    "remove numpy testing framework"
+  replacements:
+    "from numpy.testing import assert_equal" : "r'assert_equal = (lambda actual, desired, err_msg=None, verbose=True: True)'"
+
+matplotlib:
+  description:
+    "remove pytest testing framework"
+  replacements:
+    "test.__test__ = False" : ""
+  change_function:
+    "_init_tests": "'None'"
+    "test": "'None'"
+
+pandas:
+  description:
+    "remove pandas testing framework"
+  replacements:
+    "import pandas.testing" : ""
+    "from pandas.util._tester import test" : ""
+
+jinja2.defaults:
+  description:
+    "remove jinja2 testing framework"
+  replacements:
+    "from .tests import TESTS as DEFAULT_TESTS" : ""
+
+numpy.ctypeslib:
+  description:
+    "remove numpy.distutils references"
+  context:
+    - "import numpy.distutils.misc_util"
+  replacements:
+    "from numpy.distutils.misc_util import get_shared_lib_extension" : ""
+    "get_shared_lib_extension()" : "repr(numpy.distutils.misc_util.get_shared_lib_extension())"
+    "get_shared_lib_extension(is_python_ext=True)" : "repr(numpy.distutils.misc_util.get_shared_lib_extension(is_python_ext=True))"
+
+numpy.testing:
+  description:
+    "remove numpy testing framework"
+  module_code: |
+    from contextlib import contextmanager
+    class Tester:
+      test = None
+      bench = None
+
+    def assert_allclose(*args, **kwargs):
+      return True
+
+    @contextmanager
+    def suppress_warnings(forwarding_rule="always"):
+      yield
+
+numpy._pytesttester:
+  description:
+    "remove numpy testing framework"
+  module_code: |
+    class PytestTester:
+      def __init__(self, name):
+        pass
+
+numpy.testing._private.pytesttester:
+  description:
+    "remove numpy testing framework"
+  module_code: |
+    class PytestTester:
+      def __init__(self, name):
+        pass
+
+numpy.core.overrides:
+  # see #1189, apparently an upstream problem hard to grasp
+  description:
+    "workaround for numpy and python flag 'no_docstrings'"
+  replacements:
+    "add_docstring(implementation, dispatcher.__doc__)" : "'''add_docstring(implementation, dispatcher.__doc__ or '')'''"
+
+scipy.stats.morestats:
+  description:
+    "remove numpy testing framework"
+  replacements:
+    "from numpy.testing.decorators import setastest" : ""
+    "@setastest(False)" : ""
+
+scipy.lib.numpy_compat:
+  description:
+    "remove numpy testing framework"
+  replacements:
+    "from numpy.testing import suppress_warnings" : "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
+    "NumpyVersion(np.__version__) > '1.7.0.dev'" : "'0'"
+
+scipy._lib._numpy_compat:
+  description:
+    "remove numpy testing framework"
+  replacements:
+    "from numpy.testing import suppress_warnings" : "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
+    "NumpyVersion(np.__version__) > '1.7.0.dev'" : "'0'"
+
+scipy._lib._testutils:
+  description:
+    "remove numpy testing framework"
+  module_code: |
+    class PytestTester:
+      def __init__(self, name):
+        pass

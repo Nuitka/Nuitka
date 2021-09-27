@@ -22,9 +22,11 @@
 import collections
 import hashlib
 from abc import abstractmethod
+from contextlib import contextmanager
 
 from nuitka import Options
 from nuitka.__past__ import getMetaClassBase, iterItems
+from nuitka.Constants import isMutable
 from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import (
@@ -344,7 +346,7 @@ class CodeObjectsMixin(object):
     else:
 
         def _calcHash(self, key):
-            hash_value = hashlib.md5("-".join(str(s) for s in key).encode("utf-8"))
+            hash_value = hashlib.md5("-".join(str(s) for s in key).encode("utf8"))
 
             return hash_value.hexdigest()
 
@@ -355,7 +357,6 @@ class PythonContextBase(getMetaClassBase("Context")):
         self.source_ref = None
 
         self.current_source_ref = None
-        self.last_source_ref = None
 
     if isCountingInstances():
         __del__ = counted_del()
@@ -367,21 +368,21 @@ class PythonContextBase(getMetaClassBase("Context")):
         result = self.current_source_ref
         self.current_source_ref = value
 
-        if value is not None:
-            self.last_source_ref = result
-
         return result
 
-    def getLastSourceCodeReference(self):
-        result = self.last_source_ref
-        # self.last_source_ref = None
-        return result
+    @contextmanager
+    def withCurrentSourceCodeReference(self, value):
+        old_source_ref = self.setCurrentSourceCodeReference(value)
+
+        yield old_source_ref
+
+        self.setCurrentSourceCodeReference(value)
 
     def getInplaceLeftName(self):
         return self.allocateTempName("inplace_orig", "PyObject *", True)
 
     @abstractmethod
-    def getConstantCode(self, constant):
+    def getConstantCode(self, constant, deep_check=False):
         pass
 
     @abstractmethod
@@ -541,8 +542,8 @@ class PythonChildContextBase(PythonContextBase):
 
         self.parent = parent
 
-    def getConstantCode(self, constant):
-        return self.parent.getConstantCode(constant)
+    def getConstantCode(self, constant, deep_check=False):
+        return self.parent.getConstantCode(constant, deep_check=deep_check)
 
     def getModuleCodeName(self):
         return self.parent.getModuleCodeName()
@@ -840,7 +841,10 @@ class PythonModuleContext(
     def mayRecurse(self):
         return False
 
-    def getConstantCode(self, constant):
+    def getConstantCode(self, constant, deep_check=False):
+        if deep_check and Options.is_debug:
+            assert not isMutable(constant)
+
         return self.constant_accessor.getConstantCode(constant)
 
     def getConstantsCount(self):

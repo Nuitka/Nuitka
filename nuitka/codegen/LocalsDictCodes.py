@@ -204,23 +204,34 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
         if is_dict:
             template = template_read_locals_dict_with_fallback
             fallback_codes = indented(fallback_emit.codes)
+
+            emit(
+                template
+                % {
+                    "to_name": value_name,
+                    "locals_dict": locals_declaration,
+                    "fallback": fallback_codes,
+                    "var_name": context.getConstantCode(constant=variable_name),
+                }
+            )
         else:
             template = template_read_locals_mapping_with_fallback
             fallback_codes = indented(fallback_emit.codes, 2)
 
+            emit(
+                template
+                % {
+                    "to_name": value_name,
+                    "locals_dict": locals_declaration,
+                    "fallback": fallback_codes,
+                    "var_name": context.getConstantCode(constant=variable_name),
+                    "exception_exit": context.getExceptionEscape(),
+                }
+            )
+
             # If the fallback took no reference, then make it do it
             # anyway.
             context.addCleanupTempName(value_name)
-
-        emit(
-            template
-            % {
-                "to_name": value_name,
-                "locals_dict": locals_declaration,
-                "fallback": fallback_codes,
-                "var_name": context.getConstantCode(constant=variable_name),
-            }
-        )
 
 
 def generateLocalsDictVariableRefCode(to_name, expression, emit, context):

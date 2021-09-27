@@ -74,7 +74,15 @@ static PyObject *_BUILTIN_RANGE_INT3(long low, long high, long step) {
 
 static PyObject *_BUILTIN_RANGE_INT2(long low, long high) { return _BUILTIN_RANGE_INT3(low, high, 1); }
 
-static PyObject *_BUILTIN_RANGE_INT(long boundary) { return _BUILTIN_RANGE_INT2(0, boundary); }
+static PyObject *_BUILTIN_RANGE_INT(long boundary) {
+    PyObject *result = PyList_New(boundary > 0 ? boundary : 0);
+
+    for (int i = 0; i < boundary; i++) {
+        PyList_SET_ITEM(result, i, PyInt_FromLong(i));
+    }
+
+    return result;
+}
 
 static PyObject *TO_RANGE_ARG(PyObject *value, char const *name) {
     if (likely(PyInt_Check(value) || PyLong_Check(value))) {
@@ -171,7 +179,7 @@ PyObject *BUILTIN_RANGE2(PyObject *low, PyObject *high) {
 
         NUITKA_ASSIGN_BUILTIN(range);
 
-        PyObject *result = CALL_FUNCTION_WITH_POSARGS(NUITKA_ACCESS_BUILTIN(range), pos_args);
+        PyObject *result = CALL_FUNCTION_WITH_POSARGS2(NUITKA_ACCESS_BUILTIN(range), pos_args);
 
         Py_DECREF(pos_args);
 
@@ -237,7 +245,7 @@ PyObject *BUILTIN_RANGE3(PyObject *low, PyObject *high, PyObject *step) {
 
         NUITKA_ASSIGN_BUILTIN(range);
 
-        PyObject *result = CALL_FUNCTION_WITH_POSARGS(NUITKA_ACCESS_BUILTIN(range), pos_args);
+        PyObject *result = CALL_FUNCTION_WITH_POSARGS3(NUITKA_ACCESS_BUILTIN(range), pos_args);
 
         Py_DECREF(pos_args);
 
@@ -1106,7 +1114,7 @@ static PyObject *nuitka_class_getattr(PyClassObject *klass, PyObject *attr_name)
 
     PyTypeObject *type = Py_TYPE(value);
 
-    descrgetfunc tp_descr_get = PyType_HasFeature(type, Py_TPFLAGS_HAVE_CLASS) ? type->tp_descr_get : NULL;
+    descrgetfunc tp_descr_get = NuitkaType_HasFeatureClass(type) ? type->tp_descr_get : NULL;
 
     if (tp_descr_get == NULL) {
         Py_INCREF(value);
@@ -1508,9 +1516,10 @@ PyObject *BUILTIN_SUM2(PyObject *sequence, PyObject *start) {
     PyTuple_SET_ITEM(pos_args, 1, start);
     Py_INCREF(start);
 
-    PyObject *result = CALL_FUNCTION_WITH_POSARGS(NUITKA_ACCESS_BUILTIN(sum), pos_args);
+    PyObject *result = CALL_FUNCTION_WITH_POSARGS2(NUITKA_ACCESS_BUILTIN(sum), pos_args);
 
     Py_DECREF(pos_args);
+
     return result;
 }
 
@@ -1867,7 +1876,11 @@ static char const *getDllDirectory() {
 }
 #endif
 
+static void _initDeepCopy();
+
 void _initBuiltinModule() {
+    _initDeepCopy();
+
 #if _NUITKA_MODULE
     if (builtin_module != NULL) {
         return;
@@ -1918,6 +1931,7 @@ void _initBuiltinModule() {
 }
 
 #include "HelpersCalling.c"
+#include "HelpersCalling2.c"
 
 PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
     CHECK_OBJECT(relative);

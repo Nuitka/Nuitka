@@ -24,10 +24,11 @@ typical support functions to building parts.
 
 from contextlib import contextmanager
 
+from nuitka import Options
 from nuitka.nodes.NodeMetaClasses import NuitkaNodeDesignError
-from nuitka.Options import isExperimental, shallTraceExecution
+from nuitka.Options import shallTraceExecution
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import my_print, printError
+from nuitka.Tracing import printError
 
 from .Emission import withSubCollector
 from .LabelCodes import getGotoCode, getLabelCode, getStatementTrace
@@ -80,10 +81,6 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none=False
     assert not hasattr(expression, "code_generated"), expression
     expression.code_generated = True
 
-    old_source_ref = context.setCurrentSourceCodeReference(
-        expression.getSourceReference()
-    )
-
     if not expression.isExpression():
         printError("No expression %r" % expression)
 
@@ -99,9 +96,10 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none=False
             expression.kind,
         )
 
-    code_generator(to_name=to_name, expression=expression, emit=emit, context=context)
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+    with context.withCurrentSourceCodeReference(expression.getSourceReference()):
+        code_generator(
+            to_name=to_name, expression=expression, emit=emit, context=context
+        )
 
 
 def generateExpressionsCode(names, expressions, emit, context):
@@ -449,10 +447,7 @@ def pickCodeHelper(
             helper_right=right_shape,
         )
 
-    if isExperimental("nuitka_ilong"):
-        my_print(ideal_helper)
-
-    if source_ref is not None and (not nonhelpers or ideal_helper not in nonhelpers):
+    if Options.is_report_missing and (not nonhelpers or ideal_helper not in nonhelpers):
         onMissingHelper(ideal_helper, source_ref)
 
     fallback_helper = "%s_%s_%s_%s%s" % (prefix, "OBJECT", "OBJECT", "OBJECT", suffix)

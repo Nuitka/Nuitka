@@ -57,6 +57,8 @@ def getTupleCreationCode(to_name, elements, emit, context):
         to_name.getCType().emitAssignmentCodeFromConstant(
             to_name=to_name,
             constant=tuple(element.getCompileTimeConstant() for element in elements),
+            # TODO: Would depend on our target being escaping.
+            may_escape=True,
             emit=emit,
             context=context,
         )

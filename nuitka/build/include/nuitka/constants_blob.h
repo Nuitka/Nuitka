@@ -30,8 +30,5 @@
  */
 
 extern void loadConstantsBlob(PyObject **, char const *name);
-#ifndef __NUITKA_NO_ASSERT__
-extern void checkConstantsBlob(PyObject **, char const *name);
-#endif
 
 #endif

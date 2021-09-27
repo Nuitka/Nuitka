@@ -109,11 +109,16 @@ not exist, a list of all available will be given.""",
                         "mediaservice",
                         "printsupport",
                         "platforms",
+                        "platformthemes",
                         "styles",
                     )
                     if self.hasPluginFamily(family)
                 )
             )
+
+            # OpenGL rendering, maybe should be something separate.
+            if self.hasPluginFamily("xcbglintegrations"):
+                self.qt_plugins.add("xcbglintegrations")
 
             self.qt_plugins.remove("sensible")
 
@@ -129,13 +134,13 @@ not exist, a list of all available will be given.""",
             return template % {"binding_name": self.binding_name}
 
         setup_codes = applyBindingName(
-            r"""\
+            r"""
 import os
 import %(binding_name)s.QtCore
 """
         )
 
-        return self.queryRuntimeInformationMultiple(
+        info = self.queryRuntimeInformationMultiple(
             info_name=applyBindingName("%(binding_name)s_info"),
             setup_codes=setup_codes,
             values=(
@@ -181,6 +186,11 @@ import %(binding_name)s.QtCore
                 ),
             ),
         )
+
+        if info is None:
+            self.sysexit("Error, it seems '%s' is not installed." % self.binding_name)
+
+        return info
 
     def _getBindingVersion(self):
         """Get the version of the binding in tuple digit form, e.g. (6,0,3)"""
@@ -556,7 +566,8 @@ if not path.startswith(__nuitka_binary_dir):
         if full_name == self.binding_name:
             if not self.getQtPluginDirs():
                 self.sysexit(
-                    "Error, failed to detect %r plugin directories." % self.binding_name
+                    "Error, failed to detect '%s' plugin directories."
+                    % self.binding_name
                 )
 
             target_plugin_dir = os.path.join(dist_dir, full_name.asPath(), "qt-plugins")
@@ -837,7 +848,7 @@ This PySide2 version only partially supported through workarounds, full support:
 
         result = NuitkaPluginQtBindingsPluginBase.createPostModuleLoadCode(self, module)
         if result:
-            return result
+            yield result
 
         if (
             self._getNuitkaPatchLevel() < 1
@@ -918,7 +929,7 @@ import PySide2.QtCore
 PySide2.QtCore.QAbstractItemModel.__init_subclass__ = my_init_subclass
 PySide2.QtCore.QObject.__init_subclass__ = my_init_subclass
 """
-            return (
+            yield (
                 code,
                 """\
 Monkey patching classes derived from PySide2 base classes to pass PySide2 checks.""",

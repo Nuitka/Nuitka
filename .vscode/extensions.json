@@ -11,7 +11,8 @@
         "laurenttreguier.rpm-spec",
         "ms-vscode.cpptools",
         "mervin.markdown-formatter",
-        "stkb.rewrap"
+        "stkb.rewrap",
+        "trond-snekvik.simple-rst"
     ],
     // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
     "unwantedRecommendations": [

@@ -48,8 +48,6 @@
     }
 {% endif %}
 
-// TODO: Get hint from recursion control if that's needed and have variants
-// with and without.
 #if PYTHON_VERSION < 0x300
     if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
         return {{target.getExceptionResultIndicatorValue()}};
@@ -311,6 +309,8 @@
 
                 {{ target.getReturnFromObjectExpressionCode("result") }}
             }
+
+            Py_DECREF(result);
         }
     }
 

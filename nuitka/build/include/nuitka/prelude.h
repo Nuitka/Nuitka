@@ -37,29 +37,62 @@
 /* This is needed or else we can't create modules name "proc" or "func". For
  * Python3, the name collision can't happen, so we can limit it to Python2.
  */
-#if PYTHON_VERSION < 0x300
 #define initproc python_initproc
 #define initfunc python_initfunc
-#define initstate system_initstate
-#endif
+#define initstate python_initstate
 
 /* Include the relevant Python C-API header files. */
 #include "Python.h"
 #include "frameobject.h"
 #include "marshal.h"
 #include "methodobject.h"
-#include "pydebug.h"
 
-#if PYTHON_VERSION >= 0x380
-#define NUITKA_USE_PYCORE_THREADSTATE
+#if PYTHON_VERSION < 0x3a0
+#include "pydebug.h"
+#endif
+
+#if defined(_NUITKA_STATIC_LIBPYTHON)
+#define _NUITKA_USE_UNEXPOSED_API 1
 #else
+#define _NUITKA_USE_UNEXPOSED_API 0
+#endif
+
+// We are not following the 3.10 change to an inline function. At least
+// not immediately.
+#if PYTHON_VERSION >= 0x3a0
+#undef Py_REFCNT
+#define Py_REFCNT(ob) (_PyObject_CAST(ob)->ob_refcnt)
+#endif
+
+#if defined(_WIN32)
+// Windows is too difficult for API redefines.
+#define MIN_PYCORE_PYTHON_VERSION 0x380
+#else
+#define MIN_PYCORE_PYTHON_VERSION 0x371
+#endif
+
+#if PYTHON_VERSION >= MIN_PYCORE_PYTHON_VERSION
+#define NUITKA_USE_PYCORE_THREADSTATE
 #endif
 
 #ifdef NUITKA_USE_PYCORE_THREADSTATE
 #undef Py_BUILD_CORE
 #define Py_BUILD_CORE
 #undef _PyGC_FINALIZED
+
+#if PYTHON_VERSION < 0x380
+#undef Py_ATOMIC_H
+#include "pyatomic.h"
+#undef Py_INTERNAL_PYSTATE_H
+#include "internal/pystate.h"
+#undef Py_STATE_H
+#include "pystate.h"
+
+extern _PyRuntimeState _PyRuntime;
+#else
 #include "internal/pycore_pystate.h"
+#endif
+
 #if PYTHON_VERSION >= 0x390
 #include <internal/pycore_interp.h>
 #include <internal/pycore_runtime.h>
@@ -87,13 +120,6 @@
 
 /* Include the C header files most often used. */
 #include <stdio.h>
-
-/* Using "_alloca" extension due to MSVC restrictions for array variables
- * on the local stack.
- */
-#ifdef _MSC_VER
-#include <malloc.h>
-#endif
 
 #include "hedley.h"
 
@@ -128,6 +154,17 @@
     abort();
 #else
 #define NUITKA_CANNOT_GET_HERE(NAME) abort();
+#endif
+
+#ifdef _MSC_VER
+/* Using "_alloca" extension due to MSVC restrictions for array variables
+ * on the local stack.
+ */
+#include <malloc.h>
+#define NUITKA_DYNAMIC_ARRAY_DECL(VARIABLE_NAME, ELEMENT_TYPE, COUNT)                                                  \
+    ELEMENT_TYPE *VARIABLE_NAME = (ELEMENT_TYPE *)_alloca(sizeof(ELEMENT_TYPE) * (COUNT));
+#else
+#define NUITKA_DYNAMIC_ARRAY_DECL(VARIABLE_NAME, ELEMENT_TYPE, COUNT) ELEMENT_TYPE VARIABLE_NAME[COUNT];
 #endif
 
 // Stringizing, to make strings out of defines use XSTRINGIZED(SOME_DEFINE) needs
@@ -182,6 +219,21 @@
 
 #if PYTHON_VERSION < 0x300
 #define PyUnicode_GET_LENGTH(x) (PyUnicode_GET_SIZE(x))
+#endif
+
+// Wrap the type lookup for debug mode, to identify errors, and potentially
+// to make our own enhancement later on. For now only verify it is not being
+// called with an error set, which 3.9 asserts against in core code.
+#ifdef __NUITKA_NO_ASSERT__
+#define Nuitka_TypeLookup(x, y) _PyType_Lookup(x, y)
+#else
+NUITKA_MAY_BE_UNUSED static inline bool ERROR_OCCURRED(void);
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_TypeLookup(PyTypeObject *type, PyObject *name) {
+    assert(!ERROR_OCCURRED());
+
+    return _PyType_Lookup(type, name);
+}
+
 #endif
 
 /* With the idea to reduce the amount of exported symbols in the DLLs, make it
@@ -272,6 +324,13 @@ extern PyThreadState *_PyThreadState_Current;
 #define Py_MAX(x, y) (((x) > (y)) ? (x) : (y))
 #endif
 
+// For older Python, we don't have a feature "CLASS" anymore, that's implied now.
+#if PYTHON_VERSION < 0x300
+#define NuitkaType_HasFeatureClass(descr) (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS))
+#else
+#define NuitkaType_HasFeatureClass(descr) (1)
+#endif
+
 // Generated.
 // TODO: Move generated ones to separate file.
 #ifdef __IDE_ONLY__
@@ -310,6 +369,8 @@ extern PyObject **global_constants;
 #define const_str_plain___package__ global_constants[14]
 // '__metaclass__'
 #define const_str_plain___metaclass__ global_constants[15]
+// '__abstractmethods__'
+#define const_str_plain___abstractmethods__ global_constants[15]
 // '__dict__'
 #define const_str_plain___dict__ global_constants[16]
 // '__doc__'
@@ -328,6 +389,8 @@ extern PyObject **global_constants;
 #define const_str_plain___all__ global_constants[23]
 // '__cmp__'
 #define const_str_plain___cmp__ global_constants[24]
+// '__init__'
+#define const_str_plain___init__ global_constants[24]
 // '__iter__'
 #define const_str_plain___iter__ global_constants[25]
 // '__compiled__'
@@ -342,6 +405,12 @@ extern PyObject **global_constants;
 #define const_str_plain_range global_constants[29]
 // 'open'
 #define const_str_plain_open global_constants[30]
+// 'close'
+#define const_str_plain_close global_constants[30]
+// 'throw'
+#define const_str_plain_throw global_constants[30]
+// 'throw'
+#define const_str_plain_send global_constants[30]
 // 'sum'
 #define const_str_plain_sum global_constants[31]
 // 'format'
@@ -453,13 +522,8 @@ extern PyObject *Nuitka_dunder_compiled_value;
 
 #include "nuitka/safe_string_ops.h"
 
-#if defined(__has_include)
-#if __has_include("nuitka_data_decoder.h")
+#if _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
 #include "nuitka_data_decoder.h"
-#else
-#define DECODE(x) assert(x)
-#define UNTRANSLATE(x) (x)
-#endif
 #else
 #define DECODE(x) assert(x)
 #define UNTRANSLATE(x) (x)

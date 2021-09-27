@@ -101,6 +101,19 @@ def simpleFunction7():
         pass
 
 
+def simpleFunction8():
+    from decimal import *
+
+    d1 = Decimal("5")
+    d2 = Decimal("2")
+
+    (p, q) = divmod(d1, d2)
+    (p, q) = divmod(d1, 4)
+    (p, q) = divmod(7, d1)
+
+    return q, p
+
+
 # These need stderr to be wrapped.
 tests_stderr = ()
 

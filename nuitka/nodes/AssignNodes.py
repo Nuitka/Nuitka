@@ -346,7 +346,10 @@ Removed assignment of %s from itself which is known to be defined."""
 
             if last_trace is not None and not last_trace.getMergeOrNameUsageCount():
                 if source.isCompileTimeConstant():
-                    if variable.isModuleVariable():
+                    if (
+                        variable.isModuleVariable()
+                        or variable.owner.locals_scope.isUnoptimizedFunctionScope()
+                    ):
                         # TODO: We do not trust these yet a lot, but more might be
                         pass
                     else:
@@ -572,14 +575,20 @@ class StatementDelVariable(StatementBase):
                     % (self.getVariableName(),),
                 )
             else:
-                assert self.variable.isLocalVariable(), self.variable
-
-                result = makeRaiseExceptionReplacementStatement(
-                    statement=self,
-                    exception_type="UnboundLocalError",
-                    exception_value="""local variable '%s' referenced before assignment"""
-                    % variable.getName(),
-                )
+                if self.variable.isLocalVariable():
+                    result = makeRaiseExceptionReplacementStatement(
+                        statement=self,
+                        exception_type="UnboundLocalError",
+                        exception_value="""local variable '%s' referenced before assignment"""
+                        % variable.getName(),
+                    )
+                else:
+                    result = makeRaiseExceptionReplacementStatement(
+                        statement=self,
+                        exception_type="NameError",
+                        exception_value="""name '%s' is not defined"""
+                        % variable.getName(),
+                    )
 
                 return trace_collection.computedStatementResult(
                     result,
@@ -621,8 +630,6 @@ class StatementDelVariable(StatementBase):
         self.variable_trace = trace_collection.onVariableDel(
             variable=variable, version=self.variable_version, del_node=self
         )
-
-        trace_collection.onVariableContentEscapes(variable)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -728,7 +735,7 @@ class StatementReleaseVariable(StatementBase):
                 "Uninitialized %s is not released." % (self.variable.getDescription()),
             )
 
-        trace_collection.onVariableContentEscapes(self.variable)
+        # TODO: Annotate value content as escaped, as destruction might run.
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)

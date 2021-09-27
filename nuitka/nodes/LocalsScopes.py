@@ -162,6 +162,10 @@ class LocalsDictHandleBase(object):
     def isFunctionScope():
         return False
 
+    @staticmethod
+    def isUnoptimizedFunctionScope():
+        return False
+
     def getProvidedVariables(self):
         return self.providing.values()
 
@@ -339,6 +343,9 @@ class LocalsDictHandle(LocalsDictHandleBase):
                 elif variable_trace.isUnknownTrace():
                     propagate = False
                     break
+                elif variable_trace.isEscapeTrace():
+                    propagate = False
+                    break
                 else:
                     assert False, (variable, variable_trace)
 
@@ -424,10 +431,6 @@ class LocalsDictFunctionHandle(LocalsDictHandleBase):
     @staticmethod
     def isFunctionScope():
         return True
-
-    @staticmethod
-    def isUnoptimizedFunctionScope():
-        return False
 
 
 class GlobalsDictHandle(LocalsDictHandleBase):

@@ -123,23 +123,22 @@ static inline PyObject *Nuitka_Function_GetName(PyObject *object) {
     return ((struct Nuitka_FunctionObject *)object)->m_name;
 }
 
-extern bool parseArgumentsPos(struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args,
-                              Py_ssize_t args_size);
-extern bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
-                                    PyObject *object, PyObject **args, Py_ssize_t args_size);
+PyObject *Nuitka_CallFunctionNoArgs(struct Nuitka_FunctionObject const *function);
 
-extern PyObject *Nuitka_CallFunctionPosArgsKwArgs(struct Nuitka_FunctionObject const *function, PyObject **args,
-                                                  Py_ssize_t args_size, PyObject *kw);
+PyObject *Nuitka_CallFunctionPosArgs(struct Nuitka_FunctionObject const *function, PyObject *const *args,
+                                     Py_ssize_t args_size);
 
-// These are fast calls of known compiled methods, without an actual object
-// of that kind. The object is that first argument, "self" or whatever, to
-// which the function would be bound.
-extern PyObject *Nuitka_CallMethodFunctionNoArgs(struct Nuitka_FunctionObject const *function, PyObject *object);
-extern PyObject *Nuitka_CallMethodFunctionPosArgs(struct Nuitka_FunctionObject const *function, PyObject *object,
-                                                  PyObject **args, Py_ssize_t args_size);
+PyObject *Nuitka_CallFunctionVectorcall(struct Nuitka_FunctionObject const *function, PyObject *const *args,
+                                        Py_ssize_t args_size, PyObject *const *kw_names, Py_ssize_t kw_size);
+PyObject *Nuitka_CallFunctionPosArgsKwArgs(struct Nuitka_FunctionObject const *function, PyObject *const *args,
+                                           Py_ssize_t args_size, PyObject *kw);
+PyObject *Nuitka_CallFunctionPosArgsKwSplit(struct Nuitka_FunctionObject const *function, PyObject *const *args,
+                                            Py_ssize_t args_size, PyObject *const *kw_values, PyObject *kw_names);
 
-// This is also used by bound compiled methods
-extern PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(struct Nuitka_FunctionObject const *function, PyObject *object,
-                                                        PyObject **args, Py_ssize_t args_size, PyObject *kw);
+PyObject *Nuitka_CallMethodFunctionNoArgs(struct Nuitka_FunctionObject const *function, PyObject *object);
+PyObject *Nuitka_CallMethodFunctionPosArgs(struct Nuitka_FunctionObject const *function, PyObject *object,
+                                           PyObject *const *args, Py_ssize_t args_size);
+PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(struct Nuitka_FunctionObject const *function, PyObject *object,
+                                                 PyObject *const *args, Py_ssize_t args_size, PyObject *kw);
 
 #endif

@@ -43,6 +43,7 @@ sys.path.insert(
 
 # isort:start
 
+from nuitka.freezer.RuntimeTracing import getRuntimeTraceOfLoadedFiles
 from nuitka.tools.testing.Common import (
     checkLoadedFileAccesses,
     checkRequirements,
@@ -52,7 +53,6 @@ from nuitka.tools.testing.Common import (
     displayFileContents,
     displayFolderContents,
     displayRuntimeTraces,
-    getRuntimeTraceOfLoadedFiles,
     reportSkip,
     setup,
     test_logger,
@@ -101,8 +101,6 @@ def main():
             "cpython_cache",
             # To understand what is slow.
             "timing",
-            # TODO: This plugin probably ought to be on by default.
-            "plugin_enable:pkg-resources",
         ]
 
         # skip each test if their respective requirements are not met
@@ -111,14 +109,9 @@ def main():
             reportSkip(error_message, ".", filename)
             continue
 
-        # catch error
-        if filename == "Boto3Using.py":
-            reportSkip("boto3 test not fully working yet", ".", filename)
-            continue
-
-        if filename == "SocketUsing.py" and os.name == "nt":
+        if filename == "Urllib3Using.py" and os.name == "nt":
             reportSkip(
-                "Socket module early import not working on Windows current",
+                "Socket module early import not working on Windows currently",
                 ".",
                 filename,
             )
@@ -164,8 +157,6 @@ def main():
             extra_flags.append("ignore_warnings")
 
         if filename == "NumpyUsing.py":
-            extra_flags.append("plugin_enable:numpy")
-
             # TODO: Disabled for now.
             reportSkip("numpy.test not fully working yet", ".", filename)
             continue
@@ -280,7 +271,7 @@ def main():
             "Determining run time loaded files took %.2f", logger=test_logger
         ):
             loaded_filenames = getRuntimeTraceOfLoadedFiles(
-                logger=test_logger, path=binary_filename
+                logger=test_logger, command=[binary_filename]
             )
 
         illegal_accesses = checkLoadedFileAccesses(

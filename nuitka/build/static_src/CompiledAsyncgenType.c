@@ -526,8 +526,7 @@ static PyObject *_Nuitka_Asyncgen_throw2(struct Nuitka_AsyncgenObject *asyncgen,
     if (asyncgen->m_yieldfrom != NULL) {
         // TODO: This check is not done for coroutines, correct?
         if (close_on_genexit) {
-            // TODO: This probably should be changed to EXCEPTION_MATCH_BOOL_SINGLE for performance.
-            if (PyErr_GivenExceptionMatches(exception_type, PyExc_GeneratorExit)) {
+            if (EXCEPTION_MATCH_BOOL_SINGLE(exception_type, PyExc_GeneratorExit)) {
                 // Asynchronous generators need to close the yield_from.
                 asyncgen->m_running = 1;
                 bool res = Nuitka_gen_close_iter(asyncgen->m_yieldfrom);
@@ -1272,12 +1271,13 @@ NUITKA_MAY_BE_UNUSED static void _PRINT_ASYNCGENASEND_STATUS(char const *descrip
  * yet we have to unwrap ourselves too. These could break in future updates,
  * and ideally we would have checks to cover those.
  */
-typedef struct {
+
+struct _PyAsyncGenWrappedValue {
     /* Python object folklore: */
     PyObject_HEAD;
 
     PyObject *agw_val;
-} _PyAsyncGenWrappedValue;
+};
 
 #define _PyAsyncGenWrappedValue_CheckExact(o) (Py_TYPE(o) == &_PyAsyncGenWrappedValue_Type)
 
@@ -1301,7 +1301,7 @@ static PyObject *Nuitka_Asyncgen_unwrap_value(struct Nuitka_AsyncgenObject *asyn
 
     if (_PyAsyncGenWrappedValue_CheckExact(result)) {
         /* async yield */
-        _PyGen_SetStopIterationValue(((_PyAsyncGenWrappedValue *)result)->agw_val);
+        _PyGen_SetStopIterationValue(((struct _PyAsyncGenWrappedValue *)result)->agw_val);
 
         Py_DECREF(result);
 

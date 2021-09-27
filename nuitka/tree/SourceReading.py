@@ -25,11 +25,12 @@ import os
 import re
 import sys
 
-from nuitka import SourceCodeReferences
+from nuitka import Options, SourceCodeReferences
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version, python_version_str
 from nuitka.Tracing import general
+from nuitka.utils.FileOperations import putTextFileContents
 from nuitka.utils.Shebang import getShebangFromSource, parseShebang
 from nuitka.utils.Utils import getOS
 
@@ -162,12 +163,22 @@ def readSourceCodeFromFilename(module_name, source_filename):
     else:
         source_code = _readSourceCodeFromFilename3(source_filename)
 
-    # Allow plug-ins to mess with source code, test framework usages
-    # will pass None for module name.
+    # Allow plug-ins to mess with source code. Test code calls this
+    # without a module and doesn't want changes from plugins.
     if module_name is not None:
-        source_code = Plugins.onModuleSourceCode(module_name, source_code)
+        source_code_modified = Plugins.onModuleSourceCode(module_name, source_code)
+    else:
+        source_code_modified = source_code
 
-    return source_code
+    if Options.shallPersistModifications() and source_code_modified != source_code:
+        orig_source_filename = source_filename + ".orig"
+
+        if not os.path.exists(orig_source_filename):
+            putTextFileContents(filename=orig_source_filename, contents=source_code)
+
+        putTextFileContents(filename=source_filename, contents=source_code_modified)
+
+    return source_code_modified
 
 
 def checkPythonVersionFromCode(source_code):

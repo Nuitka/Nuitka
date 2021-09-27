@@ -28,6 +28,13 @@ extern volatile int _Py_Ticker;
 
 #ifdef NUITKA_USE_PYCORE_THREADSTATE
 
+#if PYTHON_VERSION < 0x380
+// Signals pending got their own indicator only in 3.8, covered by calls to do before.
+#define HAS_WORK_TO_DO(ceval, ceval2) (ceval2->pending.calls_to_do._value)
+#else
+#define HAS_WORK_TO_DO(ceval, ceval2) (ceval->signals_pending._value || ceval2->pending.calls_to_do._value)
+#endif
+
 NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -45,8 +52,8 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
     struct _ceval_runtime_state *ceval2 = ceval;
 #endif
 
-    /* Pending signals */
-    if (ceval->signals_pending._value || ceval2->pending.calls_to_do._value) {
+    /* Pending signals or calls to do*/
+    if (HAS_WORK_TO_DO(ceval, ceval2)) {
         int res = Py_MakePendingCalls();
 
         if (unlikely(res < 0 && ERROR_OCCURRED())) {

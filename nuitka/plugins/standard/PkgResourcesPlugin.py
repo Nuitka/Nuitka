@@ -81,6 +81,25 @@ class NuitkaPluginResources(NuitkaPluginBase):
 
                 source_code = source_code.replace(match[0], value)
 
+            for match in re.findall(
+                r"""\b(pkg_resources\.require\(\s*['"](.*?)['"]\s*\))""",
+                source_code,
+            ):
+                # Explicitly call the require function at Nuitka compile time.
+                try:
+                    self.pkg_resources.require(match[1])
+                except self.pkg_resources.ResolutionError:
+                    self.sysexit(
+                        "Unmet requirement during compilation: '%s'." % match[1]
+                    )
+                except Exception:  # catch all, pylint: disable=broad-except
+                    self.sysexit(
+                        "Error, failed to resolve '%s', probably a parsing bug for '%s' code."
+                        % (match[1], module_name)
+                    )
+                else:
+                    source_code = source_code.replace(match[0], "")
+
         if self.metadata:
             for match in re.findall(
                 r"""\b((?:importlib_)?metadata\.version\(\s*['"](.*?)['"]\s*\))""",

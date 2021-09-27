@@ -63,6 +63,11 @@ def cleanupWindowsNewlines(filename):
     updated_code = source_code.replace(b"\r\n", b"\n")
     updated_code = updated_code.replace(b"\n\r", b"\n")
 
+    # Smuggle consistency replacement in here.
+    if "Autoformat.py" not in filename:
+        updated_code = updated_code.replace(b'.decode("utf-8")', b'.decode("utf8")')
+        updated_code = updated_code.replace(b'.encode("utf-8")', b'.encode("utf8")')
+
     if updated_code != source_code:
         with open(filename, "wb") as out_file:
             out_file.write(updated_code)
@@ -377,6 +382,30 @@ def _cleanupRstFmt(filename):
 
     updated_contents = contents.replace(b":\n\n.. code::\n", b"::\n")
 
+    lines = []
+    inside = False
+    needs_empty = False
+
+    for line in updated_contents.splitlines():
+        if line.startswith(b"-"):
+            if inside and needs_empty:
+                lines.append(b"")
+
+            inside = True
+            needs_empty = True
+            lines.append(line)
+        elif inside and line == b"":
+            needs_empty = False
+            lines.append(line)
+        elif inside and line.startswith(b"  "):
+            needs_empty = True
+            lines.append(line)
+        else:
+            inside = False
+            lines.append(line)
+
+    updated_contents = b"\n".join(lines)
+
     if updated_contents != contents:
         with open(filename, "wb") as out_file:
             out_file.write(updated_contents)
@@ -483,7 +512,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
         None
     """
 
-    # This does a lot of distinctions, pylint: disable=too-many-branches,too-many-statements
+    # This does a lot of distinctions, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if effective_filename is None:
         effective_filename = filename
@@ -500,6 +529,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
     is_python = isPythonFile(filename, effective_filename)
 
     is_c = effective_filename.endswith((".c", ".h"))
+    is_cpp = effective_filename.endswith((".cpp", ".h"))
 
     is_txt = effective_filename.endswith(
         (
@@ -519,6 +549,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
             ".json",
             ".spec",
             "-rpmlintrc",
+            "Containerfile",
         )
     ) or os.path.basename(filename) in (
         "changelog",
@@ -532,7 +563,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
-    if not (is_python or is_c or is_txt or is_rst):
+    if not (is_python or is_c or is_cpp or is_txt or is_rst):
         my_print("Ignored file type.")
         return
 
@@ -560,7 +591,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
                 subprocess.call(black_call + ["-q", "--fast", tmp_filename])
                 cleanupWindowsNewlines(tmp_filename)
 
-        elif is_c:
+        elif is_c or is_cpp:
             cleanupWindowsNewlines(tmp_filename)
             if not _shouldNotFormatCode(effective_filename):
                 _cleanupClangFormat(tmp_filename)

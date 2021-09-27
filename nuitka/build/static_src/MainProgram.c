@@ -202,10 +202,18 @@ DWORD WINAPI SvcStartPython(LPVOID lpParam) {
 }
 #endif
 
+// This is a multiprocessing fork
+static bool is_multiprocessing_fork = false;
+// This is a multiprocessing resource tracker.
+static PyObject *multiprocessing_resource_tracker_arg = NULL;
+
+// Platform compat
+#if !defined(_WIN32) && PYTHON_VERSION >= 0x300
+static long _wtoi(const wchar_t *value) { return wcstol(value, 0, 10); }
+#endif
+
 // Parse the command line parameters and provide it to "sys" built-in module,
 // as well as decide if it's a multiprocessing usage.
-static bool is_multiprocessing_fork = false;
-
 static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
     if (initial) {
         /* We might need to handle special parameters from plugins that are
@@ -218,11 +226,24 @@ static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
 #if PYTHON_VERSION < 0x300
             if ((strcmp(argv[i], "--multiprocessing-fork")) == 0 && (i + 1 < argc))
 #else
-            // TODO: Should simply use wide char literal
             if ((wcscmp(argv[i], L"--multiprocessing-fork")) == 0 && (i + 1 < argc))
 #endif
             {
                 is_multiprocessing_fork = true;
+                break;
+            }
+
+#if PYTHON_VERSION < 0x300
+            if ((strcmp(argv[i], "--multiprocessing-resource-tracker")) == 0 && (i + 1 < argc))
+#else
+            if ((wcscmp(argv[i], L"--multiprocessing-resource-tracker")) == 0 && (i + 1 < argc))
+#endif
+            {
+#if PYTHON_VERSION < 0x300
+                multiprocessing_resource_tracker_arg = PyInt_FromLong(atoi(argv[i + 1]));
+#else
+                multiprocessing_resource_tracker_arg = PyLong_FromLong(_wtoi(argv[i + 1]));
+#endif
                 break;
             }
 
@@ -336,6 +357,39 @@ DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
     return 0;
 }
 #endif
+
+static int HANDLE_PROGRAM_EXIT() {
+    int exit_code;
+
+    if (ERROR_OCCURRED()) {
+#if PYTHON_VERSION >= 0x300
+        /* Remove the frozen importlib traceback part, which would not be compatible. */
+        PyThreadState *thread_state = PyThreadState_GET();
+
+        while (thread_state->curexc_traceback) {
+            PyTracebackObject *tb = (PyTracebackObject *)thread_state->curexc_traceback;
+            PyFrameObject *frame = tb->tb_frame;
+
+            if (0 == strcmp(PyUnicode_AsUTF8(frame->f_code->co_filename), "<frozen importlib._bootstrap>")) {
+                thread_state->curexc_traceback = (PyObject *)tb->tb_next;
+                Py_INCREF(tb->tb_next);
+
+                continue;
+            }
+
+            break;
+        }
+#endif
+
+        PyErr_PrintEx(0);
+
+        exit_code = 1;
+    } else {
+        exit_code = 0;
+    }
+
+    return exit_code;
+}
 
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
@@ -454,6 +508,21 @@ int main(int argc, char **argv) {
     char const *old_env = getenv("PYTHONHASHSEED");
     setenv("PYTHONHASHSEED", "0", 1);
 #endif
+
+    /* Disable CPython warnings if requested to. */
+#if NO_PYTHON_WARNINGS
+    {
+#if PYTHON_VERSION >= 0x300
+        wchar_t ignore[] = L"ignore";
+#else
+        char ignore[] = "ignore";
+#endif
+
+        PySys_ResetWarnOptions();
+        PySys_AddWarnOption(ignore);
+    }
+#endif
+
     /* Initialize the embedded CPython interpreter. */
     NUITKA_PRINT_TIMING("main(): Calling Py_Initialize to initialize interpreter.");
     Py_Initialize();
@@ -540,9 +609,7 @@ int main(int argc, char **argv) {
     _initCompiledMethodType();
     _initCompiledFrameType();
 
-#if PYTHON_VERSION < 0x300
     _initSlotCompare();
-#endif
 #if PYTHON_VERSION >= 0x270
     _initSlotIternext();
 #endif
@@ -665,28 +732,20 @@ int main(int argc, char **argv) {
     /* Enable meta path based loader. */
     setupMetaPathBasedLoader();
 
+    /* Initialize warnings module. */
     _PyWarnings_Init();
 
-    /* Disable CPython warnings if requested to. */
-#if NO_PYTHON_WARNINGS
-    {
-#if PYTHON_VERSION >= 0x300
-        wchar_t ignore[] = L"ignore";
-#else
-        char ignore[] = "ignore";
+#if NO_PYTHON_WARNINGS && PYTHON_VERSION >= 0x342 && defined(_NUITKA_FULL_COMPAT)
+    // For full compatibility bump the warnings registry version,
+    // otherwise modules "__warningsregistry__" will mismatch.
+    PyObject *warnings_module = PyImport_ImportModule("warnings");
+    PyObject *meth = PyObject_GetAttrString(warnings_module, "_filters_mutated");
+
+    CALL_FUNCTION_NO_ARGS(meth);
+#if PYTHON_VERSION < 0x380
+    // Two times, so "__warningregistry__" version matches.
+    CALL_FUNCTION_NO_ARGS(meth);
 #endif
-
-        PySys_AddWarnOption(ignore);
-
-#if PYTHON_VERSION >= 0x342 && defined(_NUITKA_FULL_COMPAT)
-        // For full compatibility bump the warnings registry version,
-        // otherwise modules "__warningsregistry__" will mismatch.
-        PyObject *warnings_module = PyImport_ImportModule("warnings");
-        PyObject *meth = PyObject_GetAttrString(warnings_module, "_filters_mutated");
-
-        CALL_FUNCTION_NO_ARGS(meth);
-#endif
-    }
 #endif
 
 #if PYTHON_VERSION >= 0x300
@@ -699,13 +758,33 @@ int main(int argc, char **argv) {
 #endif
 
     /* Execute the main module unless plugins want to do something else. In case of
-       multiprocessing making a fork on Windows, we should execute __parents_main__
+       multiprocessing making a fork on Windows, we should execute "__parents_main__"
        instead. And for Windows Service we call the plugin C code to call us back
        to launch main code in a callback. */
 #ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
     if (unlikely(is_multiprocessing_fork)) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
         IMPORT_EMBEDDED_MODULE("__parents_main__");
+
+        int exit_code = HANDLE_PROGRAM_EXIT();
+
+        NUITKA_PRINT_TRACE("main(): Calling __parents_main__ Py_Exit.");
+
+        // TODO: Should maybe call Py_Exit here, but there were issues with that.
+        exit(exit_code);
+    } else if (unlikely(multiprocessing_resource_tracker_arg != NULL)) {
+        NUITKA_PRINT_TRACE("main(): Calling resource_tracker.");
+        PyObject *resource_tracker_module = IMPORT_EMBEDDED_MODULE("multiprocessing.resource_tracker");
+
+        PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
+
+        CALL_FUNCTION_WITH_SINGLE_ARG(main_function, multiprocessing_resource_tracker_arg);
+
+        int exit_code = HANDLE_PROGRAM_EXIT();
+
+        NUITKA_PRINT_TRACE("main(): Calling resource_tracker Py_Exit.");
+        // TODO: Should maybe call Py_Exit here, but there were issues with that.
+        exit(exit_code);
     } else {
 #endif
 #if defined(_NUITKA_ONEFILE) && defined(_WIN32)
@@ -744,40 +823,11 @@ int main(int argc, char **argv) {
     checkGlobalConstants();
 
     /* TODO: Walk over all loaded compiled modules, and make this kind of checks. */
-#if 0
     checkModuleConstants___main__();
-#endif
 
 #endif
 
-    int exit_code;
-
-    if (ERROR_OCCURRED()) {
-#if PYTHON_VERSION >= 0x300
-        /* Remove the frozen importlib traceback part, which would not be compatible. */
-        PyThreadState *thread_state = PyThreadState_GET();
-
-        while (thread_state->curexc_traceback) {
-            PyTracebackObject *tb = (PyTracebackObject *)thread_state->curexc_traceback;
-            PyFrameObject *frame = tb->tb_frame;
-
-            if (0 == strcmp(PyUnicode_AsUTF8(frame->f_code->co_filename), "<frozen importlib._bootstrap>")) {
-                thread_state->curexc_traceback = (PyObject *)tb->tb_next;
-                Py_INCREF(tb->tb_next);
-
-                continue;
-            }
-
-            break;
-        }
-#endif
-
-        PyErr_PrintEx(0);
-
-        exit_code = 1;
-    } else {
-        exit_code = 0;
-    }
+    int exit_code = HANDLE_PROGRAM_EXIT();
 
 #if _DEBUG_REFCOUNTS
     PRINT_REFCOUNTS();

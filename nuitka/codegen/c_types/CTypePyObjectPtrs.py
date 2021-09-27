@@ -137,11 +137,16 @@ class CPythonPyObjectPtrBase(CTypeBase):
         )
 
     @classmethod
-    def emitAssignmentCodeFromConstant(cls, to_name, constant, emit, context):
+    def emitAssignmentCodeFromConstant(
+        cls, to_name, constant, may_escape, emit, context
+    ):
         # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
 
         if type(constant) is dict:
-            if constant:
+            if not may_escape:
+                code = context.getConstantCode(constant)
+                ref_count = 0
+            elif constant:
                 for key, value in iterItems(constant):
                     # key cannot be mutable.
                     assert not isMutable(key)
@@ -152,22 +157,33 @@ class CPythonPyObjectPtrBase(CTypeBase):
                     needs_deep = False
 
                 if needs_deep:
-                    code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
+                    code = "DEEP_COPY_DICT(%s)" % context.getConstantCode(
+                        constant, deep_check=False
+                    )
+                    ref_count = 1
                 else:
-                    code = "PyDict_Copy(%s)" % context.getConstantCode(constant)
+                    code = "PyDict_Copy(%s)" % context.getConstantCode(
+                        constant, deep_check=False
+                    )
+                    ref_count = 1
             else:
                 code = "PyDict_New()"
-
-            ref_count = 1
+                ref_count = 1
         elif type(constant) is set:
-            if constant:
+            if not may_escape:
+                code = context.getConstantCode(constant)
+                ref_count = 0
+            elif constant:
                 code = "PySet_New(%s)" % context.getConstantCode(constant)
+                ref_count = 1
             else:
                 code = "PySet_New(NULL)"
-
-            ref_count = 1
+                ref_count = 1
         elif type(constant) is list:
-            if constant:
+            if not may_escape:
+                code = context.getConstantCode(constant)
+                ref_count = 0
+            elif constant:
                 for value in constant:
                     if isMutable(value):
                         needs_deep = True
@@ -176,35 +192,43 @@ class CPythonPyObjectPtrBase(CTypeBase):
                     needs_deep = False
 
                 if needs_deep:
-                    code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
+                    code = "DEEP_COPY_LIST(%s)" % context.getConstantCode(
+                        constant, deep_check=False
+                    )
+                    ref_count = 1
                 else:
-                    code = "LIST_COPY(%s)" % context.getConstantCode(constant)
+                    code = "LIST_COPY(%s)" % context.getConstantCode(
+                        constant, deep_check=False
+                    )
+                    ref_count = 1
             else:
                 code = "PyList_New(0)"
-
-            ref_count = 1
+                ref_count = 1
         elif type(constant) is tuple:
-            for value in constant:
-                if isMutable(value):
-                    needs_deep = True
-                    break
-            else:
-                needs_deep = False
+            needs_deep = False
 
+            if may_escape:
+                for value in constant:
+                    if isMutable(value):
+                        needs_deep = True
+                        break
             if needs_deep:
-                code = "DEEP_COPY(%s)" % context.getConstantCode(constant)
-
+                code = "DEEP_COPY_TUPLE(%s)" % context.getConstantCode(
+                    constant, deep_check=False
+                )
                 ref_count = 1
             else:
                 code = context.getConstantCode(constant)
-
                 ref_count = 0
         elif type(constant) is bytearray:
-            code = "BYTEARRAY_COPY(%s)" % context.getConstantCode(constant)
-            ref_count = 1
+            if may_escape:
+                code = "BYTEARRAY_COPY(%s)" % context.getConstantCode(constant)
+                ref_count = 1
+            else:
+                code = context.getConstantCode(constant)
+                ref_count = 0
         else:
             code = context.getConstantCode(constant=constant)
-
             ref_count = 0
 
         if to_name.c_type == "PyObject *":

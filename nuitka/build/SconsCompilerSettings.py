@@ -77,14 +77,67 @@ def enableC11Settings(env, clangcl_mode, msvc_mode, clang_mode, gcc_mode, gcc_ve
     return c11_mode
 
 
-def enableLtoSettings(env, lto_mode, msvc_mode):
-    if msvc_mode and not lto_mode and getMsvcVersion(env) >= 14:
+def enableLtoSettings(
+    env,
+    lto_mode,
+    pgo_mode,
+    msvc_mode,
+    gcc_mode,
+    clang_mode,
+    nuitka_python,
+    debian_python,
+    job_count,
+):
+    # This is driven by many branches on purpose, pylint: disable=too-many-branches
+
+    orig_lto_mode = lto_mode
+
+    if lto_mode == "no":
+        lto_mode = False
+        reason = "disabled"
+    elif lto_mode == "yes":
         lto_mode = True
+        reason = "enabled"
+    elif pgo_mode != "no":
+        lto_mode = True
+        reason = "PGO implies LTO"
+    elif msvc_mode and not lto_mode and getMsvcVersion(env) >= 14:
+        lto_mode = True
+        reason = "known to be supported"
+    elif nuitka_python:
+        lto_mode = True
+        reason = "known to be supported (Nuitka-Python)"
+    elif debian_python:
+        lto_mode = True
+        reason = "known to be supported (Debian)"
+    elif gcc_mode and env.the_cc_name == "gnu-cc":
+        lto_mode = True
+        reason = "known to be supported (CondaCC)"
+    else:
+        lto_mode = False
+        reason = "not known to be supported"
+
+    if gcc_mode and lto_mode:
+        env.Append(CCFLAGS=["-flto"])
+
+        if clang_mode:
+            env.Append(LINKFLAGS=["-flto"])
+        else:
+            env.Append(CCFLAGS=["-fuse-linker-plugin", "-fno-fat-lto-objects"])
+            env.Append(LINKFLAGS=["-fuse-linker-plugin"])
+
+            env.Append(LINKFLAGS=["-flto=%d" % job_count])
 
     # Tell compiler to use link time optimization for MSVC
     if msvc_mode and lto_mode:
         env.Append(CCFLAGS=["/GL"])
         env.Append(LINKFLAGS=["/LTCG"])
+
+    if orig_lto_mode == "auto":
+        scons_details_logger.info(
+            "LTO mode auto was resolved to mode: '%s' (%s)."
+            % ("yes" if lto_mode else "no", reason)
+        )
 
     return lto_mode
 
@@ -200,25 +253,34 @@ def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_dow
     return env
 
 
-def decideConstantsBlobResourceMode():
+def decideConstantsBlobResourceMode(gcc_mode, clang_mode, lto_mode):
     if "NUITKA_RESOURCE_MODE" in os.environ:
         resource_mode = os.environ["NUITKA_RESOURCE_MODE"]
+        reason = "user provided"
     elif os.name == "nt":
         resource_mode = "win_resource"
+        reason = "default for Windows"
+    elif lto_mode and gcc_mode and not clang_mode:
+        resource_mode = "linker"
+        reason = "default for lto gcc with --lto bugs for incbin"
     else:
         # All is done already, this is for most platforms.
         resource_mode = "incbin"
+        reason = "default"
 
-    return resource_mode
+    return resource_mode, reason
 
 
 def addConstantBlobFile(
-    env, resource_mode, source_dir, c11_mode, mingw_mode, target_arch
+    env, resource_desc, source_dir, c11_mode, mingw_mode, target_arch
 ):
+    resource_mode, reason = resource_desc
 
     constants_bin_filename = getConstantBlobFilename(source_dir)
 
-    scons_details_logger.info("Using resource mode: %r." % resource_mode)
+    scons_details_logger.info(
+        "Using resource mode: '%s' (%s)." % (resource_mode, reason)
+    )
 
     if resource_mode == "win_resource":
         # On Windows constants can be accessed as a resource by Nuitka runtime afterwards.
@@ -277,9 +339,17 @@ unsigned char const *getConstantsBlobData() {
         def writeConstantsDataSource():
             with open(constants_generated_filename, "w") as output:
                 if not c11_mode:
-                    output.write('extern "C" ')
+                    output.write('extern "C" {')
 
-                output.write("const unsigned char constant_bin_data[] =\n{\n")
+                output.write(
+                    """
+// Constant data for the program.
+#if !defined(_NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS)
+const
+#endif
+unsigned char constant_bin_data[] =\n{\n
+"""
+                )
 
                 with open(constants_bin_filename, "rb") as f:
                     content = f.read()
@@ -296,6 +366,9 @@ unsigned char const *getConstantsBlobData() {
                     output.write(" 0x%02x," % stream_byte)
 
                 output.write("\n};\n")
+
+                if not c11_mode:
+                    output.write("}")
 
         writeConstantsDataSource()
     else:

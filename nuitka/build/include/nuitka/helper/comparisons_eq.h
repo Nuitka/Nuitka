@@ -34,6 +34,91 @@ extern bool RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
 extern nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
 
 #if PYTHON_VERSION < 0x300
+/* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
+extern PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
+extern bool RICH_COMPARE_EQ_CBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
+extern nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
+extern PyObject *RICH_COMPARE_EQ_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
+extern bool RICH_COMPARE_EQ_CBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
+extern nuitka_bool RICH_COMPARE_EQ_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
+extern PyObject *RICH_COMPARE_EQ_OBJECT_STR_STR(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
+extern bool RICH_COMPARE_EQ_CBOOL_STR_STR(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
+extern nuitka_bool RICH_COMPARE_EQ_NBOOL_STR_STR(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
+extern bool RICH_COMPARE_EQ_CBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
+extern nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
+extern PyObject *RICH_COMPARE_EQ_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
+extern bool RICH_COMPARE_EQ_CBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
+extern nuitka_bool RICH_COMPARE_EQ_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
+extern PyObject *RICH_COMPARE_EQ_OBJECT_BYTES_BYTES(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
+extern bool RICH_COMPARE_EQ_CBOOL_BYTES_BYTES(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
+extern nuitka_bool RICH_COMPARE_EQ_NBOOL_BYTES_BYTES(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 extern PyObject *RICH_COMPARE_EQ_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2);
 #endif
@@ -131,3 +216,30 @@ extern bool RICH_COMPARE_EQ_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
 
 /* Code referring to "TUPLE" corresponds to Python 'tuple' and "OBJECT" to any Python object. */
 extern nuitka_bool RICH_COMPARE_EQ_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LIST" corresponds to Python 'list' and "LIST" to Python 'list'. */
+extern PyObject *RICH_COMPARE_EQ_OBJECT_LIST_LIST(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LIST" corresponds to Python 'list' and "LIST" to Python 'list'. */
+extern bool RICH_COMPARE_EQ_CBOOL_LIST_LIST(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LIST" corresponds to Python 'list' and "LIST" to Python 'list'. */
+extern nuitka_bool RICH_COMPARE_EQ_NBOOL_LIST_LIST(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
+extern PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
+extern bool RICH_COMPARE_EQ_CBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
+extern nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
+extern PyObject *RICH_COMPARE_EQ_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
+extern bool RICH_COMPARE_EQ_CBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
+extern nuitka_bool RICH_COMPARE_EQ_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2);

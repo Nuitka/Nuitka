@@ -187,6 +187,7 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
             getCallCodePosArgsQuick(
                 to_name=value_name,
                 called_name=getExceptionIdentifier(exception_type),
+                expression=expression,
                 arg_names=exception_arg_names,
                 needs_check=False,
                 emit=emit,
@@ -197,6 +198,7 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
             getCallCodeNoArgs(
                 to_name=value_name,
                 called_name=getExceptionIdentifier(exception_type),
+                expression=expression,
                 needs_check=False,
                 emit=emit,
                 context=context,

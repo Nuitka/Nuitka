@@ -77,8 +77,10 @@ def makeExtensionModuleEntryPoint(source_path, dest_path, package_name):
 standalone_entry_points = []
 
 
-def addIncludedEntryPoints(arg):
-    standalone_entry_points.extend(arg)
+def addIncludedEntryPoints(entry_points):
+    for entry_point in entry_points:
+        if entry_point not in standalone_entry_points:
+            standalone_entry_points.append(entry_point)
 
 
 def setMainEntryPoint(binary_filename):

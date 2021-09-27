@@ -95,7 +95,13 @@ def getMetapathLoaderBodyCode(bytecode_accessor):
     metapath_loader_inittab = []
     metapath_module_decls = []
 
+    uncompiled_modules = getUncompiledModules()
+
     for other_module in getDoneModules():
+        # Put those at the end.
+        if other_module in uncompiled_modules:
+            continue
+
         metapath_loader_inittab.append(
             getModuleMetapathLoaderEntryCode(
                 module=other_module, bytecode_accessor=bytecode_accessor
@@ -109,7 +115,7 @@ extern PyObject *modulecode_%(module_identifier)s(PyObject *, struct Nuitka_Meta
                 % {"module_identifier": other_module.getCodeName()}
             )
 
-    for uncompiled_module in getUncompiledModules():
+    for uncompiled_module in uncompiled_modules:
         metapath_loader_inittab.append(
             getModuleMetapathLoaderEntryCode(
                 module=uncompiled_module, bytecode_accessor=bytecode_accessor

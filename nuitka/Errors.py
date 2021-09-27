@@ -72,3 +72,13 @@ class NuitkaNodeDesignError(Exception):
 
 class NuitkaForbiddenImportEncounter(Exception):
     pass
+
+
+class CodeTooComplexCode(Exception):
+    """The code of the module is too complex.
+
+    It cannot be compiled, with recursive code, and therefore the bytecode
+    should be used instead.
+
+    Example of this is "idnadata".
+    """

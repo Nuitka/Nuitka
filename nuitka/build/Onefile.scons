@@ -64,7 +64,7 @@ from .SconsCompilerSettings import (
 )
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
 from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
-from .SconsSpawn import getWindowsSpawnFunction, getWrappedSpawnFunction
+from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
     addClangClPathFromMSVC,
     addToPATH,
@@ -129,17 +129,16 @@ experimental = getArgumentList("experimental", "")
 # Tracing mode. Output program progress.
 trace_mode = getArgumentBool("trace_mode", False)
 
-# LTO mode: Use link time optimizations of g++ compiler if available and known
-# good with the compiler in question. The 4.5 one didn't have good enough
-# support, the compiled result would not run correctly.
-lto_mode = getArgumentBool("lto_mode", False)
+# LTO mode: Use link time optimizations of C compiler if available and known
+# good with the compiler in question.
+lto_mode = getArgumentDefaulted("lto_mode", "auto")
 
 # Windows target mode: Compile for Windows. Used to be an option, but we
 # no longer cross compile this way.
 win_target = os.name == "nt"
 
 # Windows subsystem mode: Disable console for windows builds.
-win_disable_console = getArgumentBool("win_disable_console", False)
+disable_console = getArgumentBool("disable_console", False)
 
 # Unstriped mode: Do not remove debug symbols.
 unstripped_mode = getArgumentBool("unstripped_mode", False)
@@ -168,11 +167,11 @@ if int(os.environ.get("NUITKA_QUIET", "0")):
     setQuiet()
 
 # Home of Python to be compiled against, used to find tools like clcache and
-# ccache.
-python_prefix = ARGUMENTS["python_prefix"]
+# ccache, no linking against Python is needed here.
+python_prefix = getArgumentRequired("python_prefix")
 
 # Forced MSVC version (windows-only)
-msvc_version = ARGUMENTS.get("msvc_version")
+msvc_version = getArgumentDefaulted("msvc_version", None)
 
 # Preprocessor defines from plugins
 cpp_defines = getArgumentList("cpp_defines", "")
@@ -187,6 +186,8 @@ assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 # Onefile compression is optional.
 onefile_compression = getArgumentBool("onefile_compression", False)
 
+# Onefile bootstrap is opptional.
+onefile_splash_screen = getArgumentBool("onefile_splash_screen", False)
 
 if getArgumentBool("progress_bar", True):
     enableSconsProgressBar()
@@ -307,18 +308,18 @@ env = checkWindowsCompilerFound(
 )
 
 the_compiler = env["CC"] or env["CXX"]
-the_cc_name = os.path.normcase(os.path.basename(the_compiler))
+env.the_cc_name = os.path.normcase(os.path.basename(the_compiler))
 
-scons_logger.info("Backend C compiler: %s (%s)." % (the_compiler, the_cc_name))
+scons_logger.info("Backend C compiler: %s (%s)." % (the_compiler, env.the_cc_name))
 
 # Requested or user provided, detect if it's clang even from environment
-if "clang" in the_cc_name and "-cl" not in the_cc_name:
+if "clang" in env.the_cc_name and "-cl" not in env.the_cc_name:
     clang_mode = True
     env["CCVERSION"] = None
 
 # We consider clang to be a form of gcc for the most things, they strive to
 # be compatible.
-gcc_mode = isGccName(the_cc_name) or clang_mode
+gcc_mode = isGccName(env.the_cc_name) or clang_mode
 
 
 # Only use MSVC if not already clear, we are using MinGW.
@@ -366,7 +367,7 @@ if gcc_mode:
     env.Append(CCFLAGS=["-fwrapv"])
 
 # Support for clang.
-if "clang" in the_cc_name:
+if "clang" in env.the_cc_name:
     env.Append(CCFLAGS=["-w"])
     env.Append(CPPDEFINES=["_XOPEN_SOURCE"])
 
@@ -377,7 +378,17 @@ if "clang" in the_cc_name:
         env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
 # Enable LTO for compiler.
-lto_mode = enableLtoSettings(env=env, lto_mode=lto_mode, msvc_mode=msvc_mode)
+lto_mode = enableLtoSettings(
+    env=env,
+    lto_mode=lto_mode,
+    pgo_mode=False,  # TODO: Have this here too, decompression might benefit.
+    msvc_mode=msvc_mode,
+    gcc_mode=gcc_mode,
+    clang_mode=clang_mode,
+    nuitka_python=False,
+    debian_python=False,
+    job_count=job_count,
+)
 
 # Support details for real g++, not clang++.
 if gcc_mode and not clang_mode:
@@ -548,10 +559,10 @@ if win_target:
         if not clang_mode:
             env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
 
-        if win_disable_console:
+        if disable_console:
             env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
 
-    if win_disable_console:
+    if disable_console:
         env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
 # For shell API usage to lookup app folders we need this.
@@ -688,6 +699,9 @@ target = env.Program(result_exe, source_files + source_targets)
 # Avoid dependency on MinGW libraries.
 if win_target and gcc_mode and not clang_mode:
     env.Append(LINKFLAGS=["-static-libgcc"])
+# on Windows link against imagehlp to support signed applications detection
+if win_target:
+    link_libraries.append("imagehlp")
 
 # Avoid IO for compilation as much as possible, this should make the
 # compilation more memory hungry, but also faster.
@@ -719,11 +733,8 @@ if "LDFLAGS" in os.environ:
 if os.path.exists(target[0].abspath):
     os.unlink(target[0].abspath)
 
-if show_scons_mode:
-    my_print("Scons: Told to run compilation on %d CPUs." % job_count)
-
-if show_scons_mode:
-    my_print("Scons: Launching target:", target)
+if job_count:
+    scons_details_logger.info("Told to run compilation on %d CPUs." % job_count)
 
 # Plugin contributed C defines should be used too.
 env.Append(CPPDEFINES=cpp_defines)
@@ -731,12 +742,13 @@ env.Append(CPPDEFINES=cpp_defines)
 env.Append(LIBS=link_libraries)
 
 # Work around windows bugs and use watchdogs to track progress of compilation.
-if win_target:
-    env["SPAWN"] = getWindowsSpawnFunction(
-        module_mode=module_mode, lto_mode=lto_mode, source_files=source_files
-    )
-else:
-    env["SPAWN"] = getWrappedSpawnFunction(env["SPAWN"])
+enableSpawnMonitoring(
+    env=env,
+    win_target=win_target,
+    module_mode=module_mode,
+    lto_mode=lto_mode,
+    source_files=source_files,
+)
 
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit as the
 # scons traceback is not going to be very interesting to us.
@@ -775,6 +787,11 @@ else:
 if onefile_compression:
     onefile_definitions["_NUITKA_ONEFILE_COMPRESSION"] = 1
 
+if onefile_splash_screen:
+    onefile_definitions["_NUITKA_ONEFILE_SPLASH_SCREEN"] = 1
+    env.Append(LIBS=["Ole32", "Windowscodecs", "User32", "Gdi32", "Shlwapi"])
+
+
 createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
 
 writeSconsReport(
@@ -788,4 +805,5 @@ writeSconsReport(
 
 setSconsProgressBarTotal("Onefile", len(source_files))
 
+scons_details_logger.info("Launching Scons target: %s" % target)
 env.Default(target)

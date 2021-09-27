@@ -89,9 +89,19 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
             # Need to compute the replacement still.
             return replacement.computeExpressionRaw(trace_collection)
 
+        no_exec = not self.locals_scope.isUnoptimizedFunctionScope()
+
+        # if we can be sure if doesn't have a value set, go to the fallback directly.
+        if no_exec and self.variable_trace.mustNotHaveValue():
+            return trace_collection.computedExpressionResultRaw(
+                self.subnode_fallback,
+                "new_expression",
+                "Name '%s' cannot be in locals dict." % self.variable.getName(),
+            )
+
         # If we cannot be sure if the value is set, then we need the fallback,
         # otherwise we could remove it simply.
-        if self.variable_trace.mustHaveValue():
+        if no_exec and self.variable_trace.mustHaveValue():
             trace_collection.signalChange(
                 "new_expression",
                 self.source_ref,
@@ -117,14 +127,6 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
 
             trace_collection.mergeBranches(branch_fallback, None)
 
-        # if we can be sure if doesn't have a value set, go to the fallback directly.
-        if self.variable_trace.mustNotHaveValue():
-            return (
-                self.subnode_fallback,
-                "new_expression",
-                "Name '%s' cannot be in locals dict." % self.variable.getName(),
-            )
-        else:
             return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
@@ -181,9 +183,15 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
 
         return call_node, None, None
 
+    # TODO: Specialize for Python3 maybe to save attribute for Python2.
+    may_raise_access = python_version >= 0x300
+
     def mayRaiseException(self, exception_type):
-        if python_version < 0x300 or self.locals_scope.getTypeShape() is tshape_dict:
-            return False
+        if (
+            self.may_raise_access
+            and self.locals_scope.getTypeShape() is not tshape_dict
+        ):
+            return True
 
         return self.subnode_fallback.mayRaiseException(exception_type)
 
@@ -506,8 +514,6 @@ class StatementLocalsDictOperationDel(StatementBase):
         _variable_trace = trace_collection.onVariableDel(
             variable=self.variable, version=self.variable_version, del_node=self
         )
-
-        trace_collection.onVariableContentEscapes(self.variable)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)

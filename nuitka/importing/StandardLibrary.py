@@ -29,6 +29,7 @@ module.
 import os
 
 from nuitka.Options import shallUseStaticLibPython
+from nuitka.utils.FileOperations import isPathBelow
 from nuitka.utils.Utils import getOS
 
 
@@ -106,22 +107,22 @@ def getStandardLibraryPaths():
     return getStandardLibraryPaths.result
 
 
-def isStandardLibraryPath(path):
+def isStandardLibraryPath(filename):
     """Check if a path is in the standard library."""
 
-    path = os.path.normcase(os.path.normpath(path))
+    filename = os.path.normcase(os.path.normpath(filename))
 
     # In virtualenv, the "site.py" lives in a place that suggests it is not in
     # standard library, although it is.
-    if os.path.basename(path) == "site.py":
+    if os.path.basename(filename) == "site.py":
         return True
 
     # These never are in standard library paths.
-    if "dist-packages" in path or "site-packages" in path:
+    if "dist-packages" in filename or "site-packages" in filename:
         return False
 
     for candidate in getStandardLibraryPaths():
-        if path.startswith(candidate):
+        if isPathBelow(path=candidate, filename=filename):
             return True
 
     return False

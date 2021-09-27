@@ -3,6 +3,7 @@
 ####################
 
 .. image:: doc/images/Nuitka-Logo-Symbol.png
+   :alt: Nuitka Logo
 
 .. contents::
 
@@ -151,8 +152,8 @@ Requirements
 .. [#]
 
    Download for free from
-   http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
-   (the Express editions work just fine).
+   https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
+   (the community editions work just fine).
 
    The latest version is recommended but not required. On the other hand,
    there is no need to except pre-Windows 10 support, and they might work
@@ -469,10 +470,6 @@ This will create a single binary, which on Linux will not even unpack
 itself, but instead loop back mount its contents as a filesystem and use
 that.
 
-On Windows, there are two modes, one which is copying it to the AppData
-of your company specified, to also use it as a cache, and one which does
-it in the temporary directory. You need to do one this this.
-
 .. code:: bash
 
    # Create a binary that unpacks into a temporary folder
@@ -480,9 +477,9 @@ it in the temporary directory. You need to do one this this.
 
 .. note::
 
-   There are more Windows specific options, e.g. related to icons, but
-   also more version information, consider the ``--help`` output for the
-   details of these.
+   There are more platform specific options, e.g. related to icons,
+   splash screen, and version information, consider the ``--help``
+   output for the details of these and check the section "Good Looks".
 
 Again, on Windows, for the temporary file directory, by default the user
 one is used, however this is overridable with a path specification given
@@ -516,9 +513,119 @@ Currently these expanded tokens are available:
    you want things to reside in a place you choose or abide your naming
    conventions.
 
+********
+ Tweaks
+********
+
+Icons
+=====
+
+For good looks, you may specify icons. On Windows, you can provide an
+icon file, a template executable, or a PNG file. All of these will work
+and may even be combined:
+
+.. code:: bash
+
+   # These create binaries with icons:
+   python -m nuitka --onefile --windows-icon-from-ico=your-icon.png program.py
+   python -m nuitka --onefile --windows-icon-from-ico=your-icon.ico program.py
+   python -m nuitka --onefile --windows-icon-template-exe=your-icon.ico program.py
+
+Splash screen
+=============
+
+Splash screens are useful when program startup is slow. Onefile startup
+itself is not slow, but your program may be, and you cannot really know
+how fast the computer used will be, so it might be a good idea to have
+them. Luckily with Nuitka, they are easy to add for Windows.
+
+For splash screen, you need to specify it as an PNG file, and then make
+sure to disable the splash screen when your program is ready, e.g. has
+complete the imports, prepared the window, connected to the database,
+and wants the splash screen to go away. Here we are using the project
+syntax to combine the code with the creation, compile this:
+
+.. code:: python
+
+   # nuitka-project: --onefile
+   # nuitka-project: --onefile-windows-splash-screen-image={MAIN_DIRECTORY}/Splash-Screen.png
+
+   # Whatever this is obviously
+   print("Delaying startup by 10s...")
+   import time
+   time.sleep(10)
+
+   # Use this code to signal the splash screen removal.
+   if "NUITKA_ONEFILE_PARENT" in os.environ:
+      splash_filename = os.path.join(
+         tempfile.gettempdir(),
+         "onefile_%d_splash_feedback.tmp" % int(os.environ["NUITKA_ONEFILE_PARENT"]),
+      )
+
+      if os.path.exists(splash_filename):
+         os.unlink(splash_filename)
+
+   print("Done... splash should be gone.")
+   ...
+
+   # Rest of your program goes here.
+
 ******************
  Typical Problems
 ******************
+
+Memory issues and compiler bugs
+===============================
+
+Sometimes the C compilers will crash saying they cannot allocate memory
+or that some input was truncated, or similar error messages, clearly
+from it. There are several options you can explore here:
+
+Avoid 32 bit C compiler/assembler memory limits
+-----------------------------------------------
+
+Do not use a 32 bits compiler, but a 64 bit one. If you are using Python
+with 32 bits on Windows, you most definitely ought to use MSVC as the C
+compiler, and not MinGW64. The MSVC is a cross compiler, and can use
+more memory than gcc on that platform. If you are not on Windows, that
+is not an option of course. Also using the 64 bits Python will work.
+
+Use LTO compilation or not
+--------------------------
+
+With ``--lto=yes`` or ``--lto=no`` you can switch the C compilation to
+only produce bytecode, and not assembler code and machine code directly,
+but make a whole program optimization at the end. This will change the
+memory usage pretty dramatically, and if you error is coming from the
+assembler, using LTO will most definitely avoid that.
+
+Switch the C compiler to clang
+------------------------------
+
+People have reported that programs that fail to compile with gcc due to
+its bugs or memory usage work fine with clang on Linux. On Windows, this
+could still be an option, but it needs to be implemented first for the
+automatic downloaded gcc, that would contain it. Since MSVC is known to
+be more memory effective anyway, you should go there, and if you want to
+use Clang, there is support for the one contained in MSVC.
+
+Add a larger swap file to your embedded Linux
+---------------------------------------------
+
+On systems with not enough RAM, you need to use swap space. Running out
+of it is possibly a cause, and adding more swap space, or one at all,
+might solve the issue, but beware that it will make things extremely
+slow when the compilers swap back and forth, so consider the next tip
+first or on top of it.
+
+Limit the amount of compilation jobs
+------------------------------------
+
+With the ``--jobs`` option of Nuitka, it will not start many C compiler
+instances at once, each competing for the scarce resource of RAM. By
+picking a value of one, only one C compiler instance will be running,
+and on a 8 core system, that reduces the amount of memory by factor 8,
+so that's a natural choice right there.
 
 Dynamic ``sys.path``
 ====================
@@ -636,7 +743,9 @@ other keywords than the used ones demonstrated above.
 | {OS}             | Name of the OS used                  | Linux, Windows, Darwin,        |
 |                  |                                      | FreeBSD, OpenBSD               |
 +------------------+--------------------------------------+--------------------------------+
-| {Version}        | Version of Nuitka                    | (0, 6, 14)                     |
+| {Version}        | Version of Nuitka                    | e.g. (0, 6, 16)                |
++------------------+--------------------------------------+--------------------------------+
+| {Commercial}     | Version of Nuitka Commercial         | e.g. (0, 9, 4)                 |
 +------------------+--------------------------------------+--------------------------------+
 | {Arch}           | Architecture used                    | x86_64, arm64, etc.            |
 +------------------+--------------------------------------+--------------------------------+
@@ -795,6 +904,34 @@ Detecting Nuitka at run time
 It doesn't set ``sys.frozen`` unlike other tools. For Nuitka, we have
 the module attribute ``__compiled__`` to test if a specific module was
 compiled.
+
+*************
+ Performance
+*************
+
+This chapter gives an overview, of what to currently expect in terms of
+performance from Nuitka. It's a work in progress and is updated as we
+go. The current focus for performance measurements is Python 2.7, but
+3.x is going to follow later.
+
+pystone results
+===============
+
+The results are the top value from this kind of output, running pystone
+1000 times and taking the minimal value. The idea is that the fastest
+run is most meanigful, and eliminates usage spikes.
+
+.. code:: sh
+
+   for i in {1..100}; do BENCH=1 python tests/benchmarks/pystone.py ; done | sort -n -r | head -n 10
+
++-------------------+-------------------+----------------------+---------------------+
+| Python            | Uncompiled        | Compiled LTO         | Compiled PGO        |
++===================+===================+======================+=====================+
+| Debian Python 2.7 | 137497.87 (1.000) | 460995.20 (3.353)    | 503681.91 (3.663)   |
++-------------------+-------------------+----------------------+---------------------+
+| Nuitka Python 2.7 | 144074.78 (1.048) | 479271.51 (3.486)    | 511247.44 (3.718)   |
++-------------------+-------------------+----------------------+---------------------+
 
 ******************
  Where to go next
@@ -1408,54 +1545,54 @@ The order is sorted by time.
 Projects used by Nuitka
 =======================
 
--  The `CPython project <http://www.python.org>`__
+-  The `CPython project <https://www.python.org>`__
 
    Thanks for giving us CPython, which is the base of Nuitka. We are
    nothing without it.
 
--  The `GCC project <http://gcc.gnu.org>`__
+-  The `GCC project <https://gcc.gnu.org>`__
 
    Thanks for not only the best compiler suite but also thanks for
    making it easy supporting to get Nuitka off the ground. Your compiler
    was the first usable for Nuitka and with very little effort.
 
--  The `Scons project <http://www.scons.org>`__
+-  The `Scons project <https://www.scons.org>`__
 
    Thanks for tackling the difficult points and providing a Python
    environment to make the build results. This is such a perfect fit to
    Nuitka and a dependency that will likely remain.
 
--  The `valgrind project <http://valgrind.org>`__
+-  The `valgrind project <https://valgrind.org>`__
 
    Luckily we can use Valgrind to determine if something is an actual
    improvement without the noise. And it's also helpful to determine
    what's actually happening when comparing.
 
--  The `NeuroDebian project <http://neuro.debian.net>`__
+-  The `NeuroDebian project <https://neuro.debian.net>`__
 
    Thanks for hosting the build infrastructure that the Debian and
    sponsor Yaroslav Halchenko uses to provide packages for all Ubuntu
    versions.
 
--  The `openSUSE Buildservice <http://openbuildservice.org>`__
+-  The `openSUSE Buildservice <https://openbuildservice.org>`__
 
    Thanks for hosting this excellent service that allows us to provide
    RPMs for a large variety of platforms and make them available
    immediately nearly at release time.
 
--  The `MinGW64 project <http://mingw-w64.org>`__
+-  The `MinGW64 project <https://mingw-w64.org>`__
 
    Thanks for porting the gcc to Windows. This allowed portability of
    Nuitka with relatively little effort.
 
--  The `Buildbot project <http://buildbot.net>`__
+-  The `Buildbot project <https://buildbot.net>`__
 
    Thanks for creating an easy to deploy and use continuous integration
    framework that also runs on Windows and is written and configured in
    Python code. This allows running the Nuitka tests long before release
    time.
 
--  The `isort project <http://timothycrosley.github.io/isort/>`__
+-  The `isort project <https://timothycrosley.github.io/isort/>`__
 
    Thanks for making nice import ordering so easy. This makes it so easy
    to let your IDE do it and clean up afterward.

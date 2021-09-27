@@ -73,7 +73,7 @@ from .BuiltinCodes import (
     generateBuiltinXrange2Code,
     generateBuiltinXrange3Code,
 )
-from .CallCodes import generateCallCode, getCallsCode, getCallsDecls
+from .CallCodes import generateCallCode, getCallsCode
 from .ClassCodes import generateBuiltinSuperCode, generateSelectMetaclassCode
 from .CodeHelpers import setExpressionDispatchDict, setStatementDispatchDict
 from .ComparisonCodes import (
@@ -475,9 +475,7 @@ def generateModuleCode(module, data_filename):
 
 
 def generateHelpersCode():
-    calls_decl_code = getCallsDecls()
-
-    calls_body_code = getCallsCode()
+    calls_decl_code, calls_body_code = getCallsCode()
 
     constants_header_code, constants_body_code = getConstantsDefinitionCode()
 

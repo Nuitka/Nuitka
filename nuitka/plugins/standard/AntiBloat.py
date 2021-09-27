@@ -28,6 +28,7 @@ that to be done and causing massive degradations.
 
 """
 
+import ast
 import pkgutil
 
 from nuitka.containers.odict import OrderedDict
@@ -39,7 +40,9 @@ from nuitka.utils.Yaml import parseYaml
 
 class NuitkaPluginAntiBloat(NuitkaPluginBase):
     plugin_name = "anti-bloat"
-    plugin_desc = "Patch stupid imports out of common library modules source code."
+    plugin_desc = (
+        "Patch stupid imports out of widely used library modules source codes."
+    )
 
     def __init__(
         self, noinclude_setuptools_mode, noinclude_pytest_mode, custom_choices
@@ -65,7 +68,7 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
 
             module_name, mode = custom_choice.rsplit(":", 1)
 
-            if mode not in ("error", "warning", "nofollow", "allow"):
+            if mode not in ("error", "warning", "nofollow", "allow", "bytecode"):
                 self.sysexit(
                     "Error, illegal mode given '%s' in '--noinclude-custom-mode=%s'"
                     % (mode, custom_choice)
@@ -109,6 +112,8 @@ which can and should be a top level package and then one choice, "error",
         )
 
     def onModuleSourceCode(self, module_name, source_code):
+        # Complex dealing with many cases, pylint: disable=too-many-branches,too-many-locals
+
         config = self.config.get(module_name)
 
         if not config:
@@ -116,9 +121,8 @@ which can and should be a top level package and then one choice, "error",
 
         description = config.get("description", "description not given")
 
-        self.info(
-            "Handling module '%s' for: %s." % (module_name.asString(), description)
-        )
+        # To allow detection if it did anything.
+        change_count = 0
 
         context = {}
         context_code = config.get("context", "")
@@ -126,14 +130,129 @@ which can and should be a top level package and then one choice, "error",
             context_code = "\n".join(context_code)
 
         # We trust the yaml files, pylint: disable=eval-used,exec-used
-        exec(context_code, context)
+        context_ready = not bool(context_code)
 
         for replace_src, replace_code in config.get("replacements", {}).items():
-            replace_dst = eval(replace_code, context)
+            # Avoid the eval, if the replace doesn't hit.
+            if replace_src not in source_code:
+                continue
 
+            if replace_code:
+                if not context_ready:
+                    try:
+                        exec(context_code, context)
+                    except Exception as e:  # pylint: disable=broad-except
+                        self.sysexit(
+                            "Error, cannot context code '%s' due to: %s"
+                            % (context_code, e)
+                        )
+
+                    context_ready = True
+                try:
+                    replace_dst = eval(replace_code, context)
+                except Exception as e:  # pylint: disable=broad-except
+                    self.sysexit(
+                        "Error, cannot evaluate code '%s' in '%s' due to: %s"
+                        % (replace_code, context_code, e)
+                    )
+            else:
+                replace_dst = ""
+
+            old = source_code
             source_code = source_code.replace(replace_src, replace_dst)
 
+            if old != source_code:
+                change_count += 1
+
+        append_code = config.get("append_result", "")
+        if type(append_code) in (tuple, list):
+            append_code = "\n".join(append_code)
+
+        if append_code:
+            if not context_ready:
+                exec(context_code, context)
+                context_ready = True
+
+            try:
+                append_result = eval(append_code, context)
+            except Exception as e:  # pylint: disable=broad-except
+                self.sysexit(
+                    "Error, cannot evaluate code '%s' in '%s' due to: %s"
+                    % (append_code, context_code, e)
+                )
+
+            source_code += "\n" + append_result
+            change_count += 1
+
+        if change_count > 0:
+            self.info(
+                "Handling module '%s' with %d change(s) for: %s."
+                % (module_name.asString(), change_count, description)
+            )
+
+        module_code = config.get("module_code", None)
+
+        if module_code is not None:
+            assert not change_count
+
+            self.info(
+                "Handling module '%s' with full replacement : %s."
+                % (module_name.asString(), description)
+            )
+
+            source_code = module_code
+
         return source_code
+
+    def onFunctionAssignmentParsed(self, module_name, function_body, assign_node):
+        config = self.config.get(module_name)
+
+        if not config:
+            return
+
+        context = {}
+        context_code = config.get("context", "")
+        if type(context_code) in (tuple, list):
+            context_code = "\n".join(context_code)
+
+        # We trust the yaml files, pylint: disable=eval-used,exec-used
+        context_ready = not bool(context_code)
+
+        for function_name, replace_code in config.get("change_function", {}).items():
+            if assign_node.getVariableName() != function_name:
+                continue
+
+            if not context_ready:
+                exec(context_code, context)
+                context_ready = True
+
+            try:
+                replacement = eval(replace_code, context)
+            except Exception as e:  # pylint: disable=broad-except
+                self.sysexit(
+                    "Error, cannot evaluate code '%s' in '%s' due to: %s"
+                    % (replace_code, context_code, e)
+                )
+
+            # Single node is required, extrace the generated module body with
+            # single expression only statement value.
+            (new_node,) = ast.parse(replacement).body
+            new_node = new_node.value
+
+            # Cyclic dependencies.
+            from nuitka.tree.Building import buildNode
+
+            replace_node = buildNode(
+                provider=function_body.getParentVariableProvider(),
+                node=new_node,
+                source_ref=assign_node.source_ref,
+            )
+
+            assign_node.setChild("source", replace_node)
+
+            self.info(
+                "Updated '%s' function '%s'." % (module_name.asString(), function_name)
+            )
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         for handled_module_name, mode in self.handled_modules.items():
@@ -157,3 +276,11 @@ which can and should be a top level package and then one choice, "error",
 
         # Do not provide an opinion about it.
         return None
+
+    def decideCompilation(self, module_name, source_ref):
+        for handled_module_name, mode in self.handled_modules.items():
+            if mode != "bytecode":
+                continue
+
+            if module_name.hasNamespace(handled_module_name):
+                return "bytecode"

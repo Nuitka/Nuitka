@@ -138,19 +138,29 @@ def main():
 
     os.chdir(getTempDir())
 
+    case_name = os.path.basename(test_case)
+
+    no_site = "Numpy" not in case_name
+
     if nuitka:
+
         nuitka_call = [
             os.environ["PYTHON"],
             nuitka,
             "--quiet",
-            "--python-flag=-S",
-            os.path.basename(test_case),
+            "--no-progress",
         ]
+
+        if no_site:
+            nuitka_call.append("--python-flag=-S")
+
         nuitka_call.extend(os.environ.get("NUITKA_EXTRA_OPTIONS", "").split())
+
+        nuitka_call.append(case_name)
 
         # We want to compile under the same filename to minimize differences, and
         # then copy the resulting files afterwards.
-        shutil.copyfile(test_case_1, os.path.basename(test_case))
+        shutil.copyfile(test_case_1, case_name)
 
         check_call(nuitka_call)
 
@@ -240,16 +250,25 @@ def main():
         my_print("NUITKA_CONSTRUCT=%s" % nuitka_diff)
 
     if options.cpython:
+        cpython_call = [os.environ["PYTHON"], "-S", test_case_1]
+        if not no_site:
+            cpython_call.remove("-S")
+
         cpython_1 = runValgrind(
             "CPython construct",
             "callgrind",
-            (os.environ["PYTHON"], "-S", test_case_1),
+            cpython_call,
             include_startup=True,
         )
+
+        cpython_call = [os.environ["PYTHON"], "-S", test_case_2]
+        if not no_site:
+            cpython_call.remove("-S")
+
         cpython_2 = runValgrind(
             "CPython baseline",
             "callgrind",
-            (os.environ["PYTHON"], "-S", test_case_2),
+            cpython_call,
             include_startup=True,
         )
 

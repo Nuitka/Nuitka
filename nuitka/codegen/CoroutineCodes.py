@@ -197,7 +197,7 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
 
 
 def generateAsyncWaitCode(to_name, expression, emit, context):
-    emitLineNumberUpdateCode(emit, context)
+    emitLineNumberUpdateCode(expression, emit, context)
 
     (value_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context

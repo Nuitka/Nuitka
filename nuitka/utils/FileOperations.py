@@ -34,6 +34,7 @@ import time
 from contextlib import contextmanager
 
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    WindowsError,
     basestring,
 )
 from nuitka.PythonVersions import python_version
@@ -162,6 +163,11 @@ def makePath(path):
     with withFileLock("creating directory %s" % path):
         if not os.path.isdir(path):
             os.makedirs(path)
+
+
+def isPathExecutable(path):
+    """Is the given path executable."""
+    return os.path.isfile(path) and os.access(path, os.X_OK)
 
 
 def _getRealPathWindows(path):
@@ -357,10 +363,18 @@ def splitPath(path):
     return tuple(element for element in os.path.split(path) if element)
 
 
+def getFilenameExtension(path):
+    """Get the filename extension.
+
+    Note: For checks on extension, use hasFilenameExtension instead.
+    """
+    return os.path.splitext(os.path.normcase(path))[1]
+
+
 def hasFilenameExtension(path, extensions):
     """Has a filename one of the given extensions."""
 
-    extension = os.path.splitext(os.path.normcase(path))[1]
+    extension = getFilenameExtension(path)
 
     return extension in extensions
 
@@ -553,6 +567,7 @@ def getWindowsDrive(path):
 
 
 def isPathBelow(path, filename):
+    """Is a path inside of a given directory path."""
     path = os.path.abspath(path)
     filename = os.path.abspath(filename)
 
@@ -561,6 +576,11 @@ def isPathBelow(path, filename):
             return False
 
     return os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
+
+
+def isPathBelowOrSameAs(path, filename):
+    """Is a path inside of a given directory path or the same path as that directory."""
+    return isPathBelow(path, filename) or areSamePaths(path, filename)
 
 
 def getWindowsShortPathName(filename):

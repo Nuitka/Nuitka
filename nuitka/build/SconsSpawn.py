@@ -23,6 +23,7 @@ progress, and gives warnings about things taking very long.
 
 import os
 import subprocess
+import sys
 import threading
 
 from nuitka.Tracing import my_print, scons_logger
@@ -209,16 +210,76 @@ def _unescape(arg):
     return arg
 
 
+def isIgnoredError(line):
+    # Many cases, pylint: disable=too-many-return-statements
+
+    # Debian Python2 static libpython lto warnings:
+    if b"function `posix_tmpnam':" in line:
+        return True
+    if b"function `posix_tempnam':" in line:
+        return True
+
+    # Self compiled Python2 static libpython lot warnings:
+    if b"the use of `tmpnam_r' is dangerous" in line:
+        return True
+    if b"the use of `tempnam' is dangerous" in line:
+        return True
+    if line.startswith((b"Objects/structseq.c:", b"Python/import.c:")):
+        return True
+    if line == b"In function 'load_next',":
+        return True
+    if b"at Python/import.c" in line:
+        return True
+
+    # Bullseys when compiling in directory with spaces:
+    if b"overriding recipe for target" in line:
+        return True
+    if b"ignoring old recipe for target" in line:
+        return True
+    if b"Error 1 (ignored)" in line:
+        return True
+
+    return False
+
+
+def subprocess_spawn(args):
+    sh, _cmd, args, env = args
+
+    proc = subprocess.Popen(
+        [sh, "-c", " ".join(args)], env=env, close_fds=True, stderr=subprocess.PIPE
+    )
+
+    _stdout, stderr = proc.communicate()
+
+    stderr_lines = stderr.splitlines()
+
+    ignore_next = False
+    for line in stderr_lines:
+        if ignore_next:
+            ignore_next = False
+            continue
+
+        if isIgnoredError(line):
+            ignore_next = True
+            continue
+
+        if str is not bytes:
+            line = decodeData(line)
+
+        my_print(line, style="yellow", file=sys.stderr)
+
+    return proc.wait()
+
+
 class SpawnThread(threading.Thread):
-    def __init__(self, spawn, *args):
+    def __init__(self, *args):
         threading.Thread.__init__(self)
 
-        self.spawn = spawn
         self.args = args
 
         self.timer_report = TimerReport(
             message="Running %s took %%.2f seconds"
-            % (" ".join(_unescape(arg) for arg in self.args[3]).replace("%", "%%"),),
+            % (" ".join(_unescape(arg) for arg in self.args[2]).replace("%", "%%"),),
             min_report_time=60,
             logger=scons_logger,
         )
@@ -230,7 +291,7 @@ class SpawnThread(threading.Thread):
         try:
             # execute the command, queue the result
             with self.timer_report:
-                self.result = self.spawn(*self.args)
+                self.result = subprocess_spawn(self.args)
         except Exception as e:  # will rethrow all, pylint: disable=broad-except
             self.exception = e
 
@@ -238,8 +299,8 @@ class SpawnThread(threading.Thread):
         return self.result, self.exception
 
 
-def runSpawnMonitored(spawn, sh, escape, cmd, args, env):
-    thread = SpawnThread(spawn, sh, escape, cmd, args, env)
+def runSpawnMonitored(sh, cmd, args, env):
+    thread = SpawnThread(sh, cmd, args, env)
     thread.start()
 
     # Allow a minute before warning for long compile time.
@@ -258,15 +319,17 @@ def runSpawnMonitored(spawn, sh, escape, cmd, args, env):
     return thread.getSpawnResult()
 
 
-def getWrappedSpawnFunction(spawn):
+def getWrappedSpawnFunction():
     def spawnCommand(sh, escape, cmd, args, env):
+        # signature needed towards Scons core, pylint: disable=unused-argument
+
         # Avoid using ccache on binary constants blob, not useful and not working
         # with old ccache.
         if '"__constants_data.o"' in args or '"__constants_data.os"' in args:
             env = dict(env)
             env["CCACHE_DISABLE"] = "1"
 
-        result, exception = runSpawnMonitored(spawn, sh, escape, cmd, args, env)
+        result, exception = runSpawnMonitored(sh, cmd, args, env)
 
         if exception:
             closeSconsProgressBar()
@@ -276,3 +339,12 @@ def getWrappedSpawnFunction(spawn):
         return result
 
     return spawnCommand
+
+
+def enableSpawnMonitoring(env, win_target, module_mode, lto_mode, source_files):
+    if win_target:
+        env["SPAWN"] = getWindowsSpawnFunction(
+            module_mode=module_mode, lto_mode=lto_mode, source_files=source_files
+        )
+    else:
+        env["SPAWN"] = getWrappedSpawnFunction()

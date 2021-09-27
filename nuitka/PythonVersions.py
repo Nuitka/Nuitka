@@ -27,6 +27,8 @@ import os
 import re
 import sys
 
+from nuitka.__past__ import WindowsError
+
 
 def getSupportedPythonVersions():
     """Officially supported Python versions for Nuitka."""
@@ -67,7 +69,10 @@ python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
 def isNuitkaPython():
     """Is this our own fork of CPython named Nuitka-Python."""
 
-    return python_version >= 0x300 and sys.implementation.name == "nuitkapython"
+    if python_version >= 0x300:
+        return sys.implementation.name == "nuitkapython"
+    else:
+        return sys.subversion[0] == "nuitkapython"
 
 
 def getErrorMessageExecWithNestedFunction():
@@ -138,7 +143,28 @@ def needsDuplicateArgumentColOffset():
         return True
 
 
+def isDebianPackagePython():
+    """Is this Python from a debian package."""
+
+    if python_version < 0x300:
+        return hasattr(sys, "_multiarch")
+    else:
+        try:
+            from distutils.dir_util import _multiarch
+        except ImportError:
+            return False
+        else:
+            return True
+
+
 def isUninstalledPython():
+    # Debian package.
+    if isDebianPackagePython():
+        return False
+
+    if isStaticallyLinkedPython():
+        return True
+
     if os.name == "nt":
         import ctypes.wintypes
 
@@ -227,26 +253,6 @@ def isStaticallyLinkedPython():
 
     result = sysconfig.get_config_var("Py_ENABLE_SHARED") == 0
 
-    if result:
-        from nuitka.utils.Execution import check_output
-
-        with open(os.devnull, "w") as devnull:
-            output = check_output(
-                (os.path.realpath(sys.executable) + "-config", "--ldflags"),
-                stderr=devnull,
-            )
-
-        if str is not bytes:
-            output = output.decode("utf8")
-
-        import shlex
-
-        output = shlex.split(output)
-
-        python_abi_version = python_version_str + getPythonABI()
-
-        result = ("-lpython" + python_abi_version) not in output
-
     return result
 
 
@@ -327,47 +333,3 @@ def getSystemPrefixPath():
         _the_sys_prefix = sys_prefix
 
     return _the_sys_prefix
-
-
-def getSystemStaticLibPythonPath():
-    sys_prefix = getSystemPrefixPath()
-    python_abi_version = python_version_str + getPythonABI()
-
-    if isNuitkaPython():
-        # Nuitka Python has this.
-        return os.path.join(
-            sys_prefix,
-            "libs",
-            "python" + python_abi_version.replace(".", "") + ".lib",
-        )
-
-    if os.name == "nt":
-        candidates = [
-            # Anaconda has this.
-            os.path.join(
-                sys_prefix,
-                "libs",
-                "libpython" + python_abi_version.replace(".", "") + ".dll.a",
-            ),
-            # MSYS2 mingw64 Python has this.
-            os.path.join(
-                sys_prefix,
-                "lib",
-                "libpython" + python_abi_version + ".dll.a",
-            ),
-        ]
-
-        for candidate in candidates:
-            if os.path.exists(candidate):
-                return candidate
-    else:
-        python_lib_path = os.path.join(sys_prefix, "lib")
-
-        candidate = os.path.join(
-            python_lib_path, "libpython" + python_abi_version + ".a"
-        )
-
-        if os.path.exists(candidate):
-            return candidate
-
-    return None

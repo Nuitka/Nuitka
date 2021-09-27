@@ -221,12 +221,14 @@ def main():
     standalone_mode = hasArg("--standalone")
     onefile_mode = hasArg("--onefile")
     no_site = hasArg("no_site")
-    recurse_none = hasArg("recurse_none")
-    recurse_all = hasArg("recurse_all")
+    nofollow_imports = hasArg("recurse_none") or hasArg("--nofollow-imports")
+    follow_imports = hasArg("recurse_all") or hasArg("--follow-imports")
     timing = hasArg("timing")
     coverage_mode = hasArg("coverage")
-    original_file = hasArg("original_file")
-    runtime_file = hasArg("runtime_file")
+    original_file = hasArg("original_file") or hasArg(
+        "--file-reference-choice=original"
+    )
+    runtime_file = hasArg("runtime_file") or hasArg("--file-reference-choice=runtime")
     no_warnings = not hasArg("warnings")
     full_compat = not hasArg("improved")
     cpython_cached = hasArg("cpython_cache")
@@ -288,7 +290,7 @@ def main():
         two_step_execution = True
 
     assert not standalone_mode or not module_mode
-    assert not recurse_all or not recurse_none
+    assert not follow_imports or not nofollow_imports
 
     if "PYTHONHASHSEED" not in os.environ:
         os.environ["PYTHONHASHSEED"] = "0"
@@ -442,10 +444,10 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     if keep_python_path or binary_python_path:
         extra_options.append("--execute-with-pythonpath")
 
-    if recurse_none:
+    if nofollow_imports:
         extra_options.append("--nofollow-imports")
 
-    if recurse_all:
+    if follow_imports:
         extra_options.append("--follow-imports")
 
     if recurse_not:
@@ -711,35 +713,36 @@ Stderr was:
                 trace_result=False
             )
 
-            if exit_code_stdout or exit_code_stderr or exit_code_return:
-                old_stdout_cpython = stdout_cpython
-                old_stderr_cpython = stderr_cpython
-                old_exit_cpython = exit_cpython
+            if not int(os.environ.get("NUITKA_CPYTHON_NO_CACHE_UPDATE", "0")):
+                if exit_code_stdout or exit_code_stderr or exit_code_return:
+                    old_stdout_cpython = stdout_cpython
+                    old_stderr_cpython = stderr_cpython
+                    old_exit_cpython = exit_cpython
 
-                my_print(
-                    "Updating CPython cache by force due to non-matching comparison results.",
-                    style="yellow",
-                )
+                    my_print(
+                        "Updating CPython cache by force due to non-matching comparison results.",
+                        style="yellow",
+                    )
 
-                (
-                    cpython_time,
-                    stdout_cpython,
-                    stderr_cpython,
-                    exit_cpython,
-                ) = getCPythonResults(
-                    cpython_cmd=cpython_cmd,
-                    cpython_cached=cpython_cached,
-                    force_update=True,
-                    send_kill=send_kill,
-                )
+                    (
+                        cpython_time,
+                        stdout_cpython,
+                        stderr_cpython,
+                        exit_cpython,
+                    ) = getCPythonResults(
+                        cpython_cmd=cpython_cmd,
+                        cpython_cached=cpython_cached,
+                        force_update=True,
+                        send_kill=send_kill,
+                    )
 
-                if not silent_mode:
-                    if (
-                        old_stdout_cpython != stdout_cpython
-                        or old_stderr_cpython != stderr_cpython
-                        or old_exit_cpython != exit_cpython
-                    ):
-                        displayOutput(stdout_cpython, stderr_cpython)
+                    if not silent_mode:
+                        if (
+                            old_stdout_cpython != stdout_cpython
+                            or old_stderr_cpython != stderr_cpython
+                            or old_exit_cpython != exit_cpython
+                        ):
+                            displayOutput(stdout_cpython, stderr_cpython)
 
         exit_code_stdout, exit_code_stderr, exit_code_return = makeComparisons(
             trace_result=True

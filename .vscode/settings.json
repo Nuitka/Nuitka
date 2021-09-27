@@ -13,7 +13,6 @@
         "**/__pycache__": true,
         "**/*.orig": true,
         "**/*.tmp": true,
-        "tests/reflected/nuitka": true,
         "tests/distutils/venv_*": true,
         "build" : true,
     },
@@ -24,7 +23,17 @@
         "*.h": "c",
         "*.c": "c",
         "typeinfo": "c",
-        "cstring": "c"
+        "cstring": "c",
+        "optional": "c",
+        "istream": "c",
+        "ostream": "c",
+        "system_error": "c",
+        "array": "c",
+        "functional": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c",
+        "memory": "c"
     },
     "python.linting.pylintArgs": ["--disable=I0011,I0012,no-init,bad-whitespace,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none",
         "--method-rgx=[a-z_][a-zA-Z0-9_]{2,40}$",
@@ -58,5 +67,8 @@
     "python.analysis.autoSearchPaths": false,
     "python.analysis.extraPaths": ["nuitka/build/inline_copy/lib/scons-3.1.2", "nuitka/build/inline_copy/clcache"],
     "python.formatting.provider": "black",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingImports": "none"
+    },
     "restructuredtext.confPath": "",
 }

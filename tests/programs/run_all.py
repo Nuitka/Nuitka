@@ -127,15 +127,15 @@ def main():
 
         extra_flags.append("remove_output")
 
-        extra_flags.append("recurse_all")
+        extra_flags.append("--follow-imports")
 
         # Use the original __file__ value, at least one case warns about things
         # with filename included, but for pkgutil iteration, make sure we do not
         # see original Python dirs.
         if filename != "pkgutil_itermodules":
-            extra_flags.append("original_file")
+            extra_flags.append("--file-reference-choice=original")
         else:
-            extra_flags.append("runtime_file")
+            extra_flags.append("--file-reference-choice=runtime")
 
         # Cannot include the files with syntax errors, these would then become
         # ImportError, but that's not the test. In all other cases, use two
@@ -166,10 +166,8 @@ def main():
 
             extra_flags.append("ignore_warnings")
         elif filename == "multiprocessing_using":
-            if os.name == "nt":
-                extra_flags.append("plugin_enable:multiprocessing")
-
-            elif sys.platform == "darwin" and python_version >= (3, 8):
+            # TODO: Still true?
+            if sys.platform == "darwin" and python_version >= (3, 8):
                 reportSkip("Hangs for unknown reasons", ".", filename)
                 continue
         else:

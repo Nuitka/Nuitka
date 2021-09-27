@@ -65,6 +65,19 @@ PyObject *IMPORT_HARD__FROZEN_IMPORTLIB_EXTERNAL(void) {
     return module__frozen_importlib_external;
 }
 #endif
+/* C helper for hard import of module "functools" import. */
+
+PyObject *IMPORT_HARD_FUNCTOOLS(void) {
+    static PyObject *module_functools = NULL;
+
+    if (module_functools == NULL) {
+        module_functools = PyImport_ImportModule("functools");
+    }
+
+    CHECK_OBJECT(module_functools);
+
+    return module_functools;
+}
 /* C helper for hard import of module "importlib" import. */
 
 PyObject *IMPORT_HARD_IMPORTLIB(void) {

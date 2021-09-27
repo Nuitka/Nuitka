@@ -23,6 +23,9 @@ BuildRequires:  python
 BuildRequires:  python-devel
 BuildRequires:  python-setuptools
 %endif
+%if 0%{?fedora} < 31 && 0%{?rhel} < 8
+BuildRequires:  python-markupsafe
+%endif
 %if 0%{?fedora} >= 24
 BuildRequires:  python-libs
 BuildRequires:  python-debug
@@ -34,6 +37,12 @@ BuildRequires:  python3-devel
 %if 0%{?rhel} == 8
 BuildRequires:  python36
 BuildRequires:  python36-devel
+%endif
+%if 0%{?fedora} >= 24 || 0%{?rhel} == 8
+BuildRequires:  python3-markupsafe
+%endif
+%if 0%{?suse_version} >= 1500
+BuildRequires:  python3-MarkupSafe
 %endif
 %if 0%{?fedora} >= 27
 BuildRequires:  python3-tools
@@ -54,6 +63,15 @@ Requires:       python3-devel
 %endif
 %if 0%{?rhel} == 8
 Requires:       python36-devel
+%endif
+%if 0%{?fedora} < 31 && 0%{?rhel} < 8
+Requires:       python-markupsafe
+%endif
+%if 0%{?fedora} >= 24 || 0%{?rhel} == 8
+Requires:       python3-markupsafe
+%endif
+%if 0%{?suse_version} >= 1500
+Requires:       python3-MarkupSafe
 %endif
 Requires:       gcc-c++
 Requires:       strace
@@ -96,7 +114,6 @@ fi
 rm -rf nuitka/build/inline_copy/clcache
 rm -rf nuitka/build/inline_copy/atomicwrites
 rm -rf nuitka/build/inline_copy/colorama
-rm -rf nuitka/build/inline_copy/zstd
 
 if [ "$python2" != "" ]
 then
@@ -121,14 +138,14 @@ then
     echo "Basic compilation test of empty program:"
     $python2 -m nuitka.__main__ --show-scons --run tests/basics/Empty.py
 
-    $python2 ./tests/run-tests --skip-reflection-test
+    $python2 ./tests/run-tests
 else
     echo "Basic compilation test of empty module:"
     python3 -m nuitka --module --show-scons --run tests/basics/Empty.py
     echo "Basic compilation test of empty program:"
     python3 -m nuitka --show-scons --run tests/basics/Empty.py
 
-    python3 ./tests/run-tests --skip-reflection-test
+    python3 ./tests/run-tests
 fi
 
 %install

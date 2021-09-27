@@ -15,7 +15,6 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-
 /** Compiled methods.
  *
  * It strives to be full replacement for normal method objects, but
@@ -148,92 +147,23 @@ static PyMethodDef Nuitka_Method_methods[] = {
     {"__deepcopy__", (PyCFunction)Nuitka_Method_deepcopy, METH_O, NULL},
     {NULL}};
 
-static char const *GET_CLASS_NAME(PyObject *klass) {
-    if (klass == NULL) {
-        return "?";
-    } else {
-#if PYTHON_VERSION < 0x300
-        if (PyClass_Check(klass)) {
-            return Nuitka_String_AsString(((PyClassObject *)klass)->cl_name);
-        }
-#endif
-
-        if (!PyType_Check(klass)) {
-            klass = (PyObject *)Py_TYPE(klass);
-        }
-
-        return ((PyTypeObject *)klass)->tp_name;
-    }
-}
-
-static char const *GET_INSTANCE_CLASS_NAME(PyObject *instance) {
-    PyObject *klass = PyObject_GetAttr(instance, const_str_plain___class__);
-
-    // Fallback to type as this cannot fail.
-    if (klass == NULL) {
-        CLEAR_ERROR_OCCURRED();
-
-        klass = (PyObject *)Py_TYPE(instance);
-        Py_INCREF(klass);
-    }
-
-    char const *result = GET_CLASS_NAME(klass);
-
-    Py_DECREF(klass);
-
-    return result;
-}
-
-static char const *GET_CALLABLE_DESC(PyObject *object) {
-    if (Nuitka_Function_Check(object) || Nuitka_Generator_Check(object) || PyMethod_Check(object) ||
-        PyFunction_Check(object) || PyCFunction_Check(object)) {
-        return "()";
-    }
-#if PYTHON_VERSION < 0x300
-    else if (PyClass_Check(object)) {
-        return " constructor";
-    } else if (PyInstance_Check(object)) {
-        return " instance";
-    }
-#endif
-    else {
-        return " object";
-    }
-}
-
-static char const *GET_CALLABLE_NAME(PyObject *object) {
-    if (Nuitka_Function_Check(object)) {
-        return Nuitka_String_AsString(Nuitka_Function_GetName(object));
-    } else if (Nuitka_Generator_Check(object)) {
-        return Nuitka_String_AsString(Nuitka_Generator_GetName(object));
-    } else if (PyMethod_Check(object)) {
-        return PyEval_GetFuncName(PyMethod_GET_FUNCTION(object));
-    } else if (PyFunction_Check(object)) {
-        return Nuitka_String_AsString(((PyFunctionObject *)object)->func_name);
-    }
-#if PYTHON_VERSION < 0x300
-    else if (PyInstance_Check(object)) {
-        return Nuitka_String_AsString(((PyInstanceObject *)object)->in_class->cl_name);
-    } else if (PyClass_Check(object)) {
-        return Nuitka_String_AsString(((PyClassObject *)object)->cl_name);
-    }
-#endif
-    else if (PyCFunction_Check(object)) {
-        return ((PyCFunctionObject *)object)->m_ml->ml_name;
-    } else {
-        return Py_TYPE(object)->tp_name;
-    }
-}
-
 #if PYTHON_VERSION >= 0x380
 static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method, PyObject *const *stack, size_t nargsf,
                                              PyObject *kwnames) {
+    assert(Nuitka_Method_Check((PyObject *)method));
     assert(kwnames == NULL || PyTuple_CheckExact(kwnames));
     Py_ssize_t nkwargs = (kwnames == NULL) ? 0 : PyTuple_GET_SIZE(kwnames);
     Py_ssize_t nargs = PyVectorcall_NARGS(nargsf);
 
     assert(nargs >= 0);
     assert((nargs == 0 && nkwargs == 0) || stack != NULL);
+
+    Py_ssize_t totalargs = nargs + nkwargs;
+
+    // Shortcut possible, no args.
+    if (totalargs == 0) {
+        return Nuitka_CallMethodFunctionNoArgs(method->m_function, method->m_object);
+    }
 
     PyObject *result;
 
@@ -242,35 +172,33 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
            we can consider the else branch irrelevant? Also does it not make sense
            to check pos arg and kw counts and shortcut somewhat. */
 
-        PyObject **newargs = (PyObject **)stack - 1;
-        nargs += 1;
-        PyObject *tmp = newargs[0];
-        newargs[0] = method->m_object;
-        result = Nuitka_CallFunctionVectorcall(method->m_function, newargs, nargs,
-                                               kwnames ? &PyTuple_GET_ITEM(kwnames, 0) : NULL, nkwargs);
-        newargs[0] = tmp;
-    } else {
-        Py_ssize_t totalargs = nargs + nkwargs;
+        PyObject **new_args = (PyObject **)stack - 1;
 
-        // Shortcut possible, no args.
-        if (totalargs == 0) {
-            return Nuitka_CallMethodFunctionNoArgs(method->m_function, method->m_object);
-        }
-
-#ifdef _MSC_VER
-        PyObject **new_args = (PyObject **)_alloca(sizeof(PyObject *) * (totalargs + 1));
-#else
-        PyObject *new_args[totalargs + 1];
-#endif
-
+        PyObject *tmp = new_args[0];
         new_args[0] = method->m_object;
 
-        /* Definitely have args at this point. */
-        assert(stack != NULL);
-        memcpy(new_args + 1, stack, totalargs * sizeof(PyObject *));
+        CHECK_OBJECTS(new_args, totalargs + 1);
 
         result = Nuitka_CallFunctionVectorcall(method->m_function, new_args, nargs + 1,
                                                kwnames ? &PyTuple_GET_ITEM(kwnames, 0) : NULL, nkwargs);
+
+        CHECK_OBJECTS(new_args, totalargs + 1);
+
+        new_args[0] = tmp;
+    } else {
+        /* Definitely having args at this point. */
+        assert(stack != NULL);
+
+        NUITKA_DYNAMIC_ARRAY_DECL(new_args, PyObject *, totalargs + 1);
+        new_args[0] = method->m_object;
+        memcpy(&new_args[1], stack, totalargs * sizeof(PyObject *));
+
+        CHECK_OBJECTS(new_args, totalargs + 1);
+
+        result = Nuitka_CallFunctionVectorcall(method->m_function, new_args, nargs + 1,
+                                               kwnames ? &PyTuple_GET_ITEM(kwnames, 0) : NULL, nkwargs);
+
+        CHECK_OBJECTS(new_args, totalargs + 1);
     }
 
     return result;
@@ -310,8 +238,17 @@ static PyObject *Nuitka_Method_tp_call(struct Nuitka_MethodObject *method, PyObj
 
         return Py_TYPE(method->m_function)->tp_call((PyObject *)method->m_function, args, kw);
     } else {
-        return Nuitka_CallMethodFunctionPosArgsKwArgs(method->m_function, method->m_object, &PyTuple_GET_ITEM(args, 0),
-                                                      arg_count, kw);
+        if (kw == NULL) {
+            if (arg_count == 0) {
+                return Nuitka_CallMethodFunctionNoArgs(method->m_function, method->m_object);
+            } else {
+                return Nuitka_CallMethodFunctionPosArgs(method->m_function, method->m_object,
+                                                        &PyTuple_GET_ITEM(args, 0), arg_count);
+            }
+        } else {
+            return Nuitka_CallMethodFunctionPosArgsKwArgs(method->m_function, method->m_object,
+                                                          &PyTuple_GET_ITEM(args, 0), arg_count, kw);
+        }
     }
 }
 
@@ -338,14 +275,10 @@ static PyObject *Nuitka_Method_tp_descr_get(struct Nuitka_MethodObject *method, 
 }
 
 static PyObject *Nuitka_Method_tp_getattro(struct Nuitka_MethodObject *method, PyObject *name) {
-    PyObject *descr = _PyType_Lookup(&Nuitka_Method_Type, name);
+    PyObject *descr = Nuitka_TypeLookup(&Nuitka_Method_Type, name);
 
     if (descr != NULL) {
-        if (
-#if PYTHON_VERSION < 0x300
-            PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS) &&
-#endif
-            (Py_TYPE(descr)->tp_descr_get != NULL)) {
+        if (NuitkaType_HasFeatureClass(Py_TYPE(descr)) && (Py_TYPE(descr)->tp_descr_get != NULL)) {
             return Py_TYPE(descr)->tp_descr_get(descr, (PyObject *)method, (PyObject *)Py_TYPE(method));
         } else {
             Py_INCREF(descr);

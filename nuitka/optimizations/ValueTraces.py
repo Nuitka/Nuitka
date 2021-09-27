@@ -32,6 +32,7 @@ Values can be seen as:
 * LoopComplete (complete knowledge of loop types)
 """
 
+from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict, tshape_tuple
 from nuitka.nodes.shapes.StandardShapes import (
     ShapeLoopCompleteAlternative,
     ShapeLoopInitialAlternative,
@@ -140,6 +141,14 @@ class ValueTraceBase(object):
 
     @staticmethod
     def isUnknownTrace():
+        return False
+
+    @staticmethod
+    def isEscapeTrace():
+        return False
+
+    @staticmethod
+    def isEscapeOrUnknownTrace():
         return False
 
     @staticmethod
@@ -254,6 +263,18 @@ class ValueTraceInit(ValueTraceBase):
         return False
 
 
+class ValueTraceInitStarArgs(ValueTraceInit):
+    @staticmethod
+    def getTypeShape():
+        return tshape_tuple
+
+
+class ValueTraceInitStarDict(ValueTraceInit):
+    @staticmethod
+    def getTypeShape():
+        return tshape_dict
+
+
 class ValueTraceUnknown(ValueTraceBase):
     __slots__ = ()
 
@@ -286,6 +307,10 @@ class ValueTraceUnknown(ValueTraceBase):
         return True
 
     @staticmethod
+    def isEscapeOrUnknownTrace():
+        return True
+
+    @staticmethod
     def mustHaveValue():
         return False
 
@@ -312,6 +337,27 @@ class ValueTraceEscaped(ValueTraceUnknown):
         self.merge_usage_count += 1
         if self.merge_usage_count <= 2:
             self.previous.addMergeUsage()
+
+    def mustHaveValue(self):
+        return self.previous.mustHaveValue()
+
+    def mustNotHaveValue(self):
+        return self.previous.mustNotHaveValue()
+
+    def getReplacementNode(self, usage):
+        return self.previous.getReplacementNode(usage)
+
+    @staticmethod
+    def isUnknownTrace():
+        return False
+
+    @staticmethod
+    def isEscapeTrace():
+        return True
+
+    @staticmethod
+    def isEscapeOrUnknownTrace():
+        return True
 
 
 class ValueTraceAssign(ValueTraceBase):

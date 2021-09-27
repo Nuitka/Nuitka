@@ -46,27 +46,26 @@ def generatePrintValueCode(statement, emit, context):
         expression=value, to_name=value_name, emit=emit, context=context
     )
 
-    old_source_ref = context.setCurrentSourceCodeReference(
-        statement.getSourceReference()
-    )
+    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+        res_name = context.getBoolResName()
 
-    res_name = context.getBoolResName()
+        if dest_name is not None:
+            print_code = "%s = PRINT_ITEM_TO(%s, %s);" % (
+                res_name,
+                dest_name,
+                value_name,
+            )
+        else:
+            print_code = "%s = PRINT_ITEM(%s);" % (res_name, value_name)
 
-    if dest_name is not None:
-        print_code = "%s = PRINT_ITEM_TO(%s, %s);" % (res_name, dest_name, value_name)
-    else:
-        print_code = "%s = PRINT_ITEM(%s);" % (res_name, value_name)
+        emit(print_code)
 
-    emit(print_code)
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
-        release_names=(dest_name, value_name),
-        emit=emit,
-        context=context,
-    )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            release_names=(dest_name, value_name),
+            emit=emit,
+            context=context,
+        )
 
 
 def generatePrintNewlineCode(statement, emit, context):
@@ -81,17 +80,12 @@ def generatePrintNewlineCode(statement, emit, context):
     else:
         dest_name = None
 
-    old_source_ref = context.setCurrentSourceCodeReference(
-        statement.getSourceReference()
-    )
+    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+        if dest_name is not None:
+            print_code = "PRINT_NEW_LINE_TO(%s) == false" % (dest_name,)
+        else:
+            print_code = "PRINT_NEW_LINE() == false"
 
-    if dest_name is not None:
-        print_code = "PRINT_NEW_LINE_TO(%s) == false" % (dest_name,)
-    else:
-        print_code = "PRINT_NEW_LINE() == false"
-
-    getErrorExitBoolCode(
-        condition=print_code, release_name=dest_name, emit=emit, context=context
-    )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+        getErrorExitBoolCode(
+            condition=print_code, release_name=dest_name, emit=emit, context=context
+        )

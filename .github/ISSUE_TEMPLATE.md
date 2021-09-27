@@ -32,14 +32,14 @@ up to here:
   Then even a `print("hello world")` program will not work, please try that and report
   that instead.
 
-* Also supply a [Short, Self Contained, Correct, Example](http://sscce.org/)
+* Also supply a [Short, Self Contained, Correct, Example](https://sscce.org/)
 
   That demonstrates the issue i.e a small piece of code which reproduces
   the issue and can be run with out any other (or as few as possible)
   external dependencies. Issues without this may get rejected without much
   consideration.
 
-* In your issue the options used
+* Provide in your issue the Nuitka options used
 
   Ideally use the project feature, so options and example code go alone
 
@@ -49,6 +49,11 @@ up to here:
 
   If it used to work in an earlier version of Nuitka, please note what you know
   about that.
+
+* Consider getting commercial support
+
+  [Nuitka commercial](https://nuitka.net/pages/commercial.html) offers subscriptions and priority
+  support. This can help accelerate your problem solution.
 
 Some things are not welcome, please consider it.
 

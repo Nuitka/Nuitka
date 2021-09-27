@@ -33,131 +33,301 @@ typedef struct {
 } GenericAliasObject;
 #endif
 
-PyObject *DEEP_COPY(PyObject *value) {
-    if (PyDict_Check(value)) {
-#if PYTHON_VERSION < 0x330
-        // For Python3, this can be done much faster in the same way as it is
-        // done in parameter parsing.
+typedef PyObject *(*copy_func)(PyObject *);
 
+static PyObject *DEEP_COPY_ITEM(PyObject *value, PyTypeObject **type, copy_func *copy_function);
+
+PyObject *DEEP_COPY_DICT(PyObject *value) {
+#if PYTHON_VERSION < 0x330
+    // For Python3, this can be done much faster in the same way as it is
+    // done in parameter parsing.
+
+    PyObject *result = _PyDict_NewPresized(((PyDictObject *)value)->ma_used);
+
+    for (Py_ssize_t i = 0; i <= ((PyDictObject *)value)->ma_mask; i++) {
+        PyDictEntry *entry = &((PyDictObject *)value)->ma_table[i];
+
+        if (entry->me_value != NULL) {
+            PyObject *deep_copy = DEEP_COPY(entry->me_value);
+
+            int res = PyDict_SetItem(result, entry->me_key, deep_copy);
+
+            Py_DECREF(deep_copy);
+            CHECK_OBJECT(deep_copy);
+
+            if (unlikely(res != 0)) {
+                return NULL;
+            }
+        }
+    }
+
+    return result;
+#else
+    /* Python 3.3 or higher */
+    if (_PyDict_HasSplitTable((PyDictObject *)value)) {
+        PyDictObject *mp = (PyDictObject *)value;
+
+        PyObject **newvalues = PyMem_NEW(PyObject *, mp->ma_keys->dk_size);
+        assert(newvalues != NULL);
+
+        PyDictObject *result = PyObject_GC_New(PyDictObject, &PyDict_Type);
+        assert(result != NULL);
+
+        result->ma_values = newvalues;
+        result->ma_keys = mp->ma_keys;
+        result->ma_used = mp->ma_used;
+
+        mp->ma_keys->dk_refcnt += 1;
+
+        Nuitka_GC_Track(result);
+
+#if PYTHON_VERSION < 0x360
+        Py_ssize_t size = mp->ma_keys->dk_size;
+#else
+        Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
+#endif
+        for (Py_ssize_t i = 0; i < size; i++) {
+            if (mp->ma_values[i]) {
+                result->ma_values[i] = DEEP_COPY(mp->ma_values[i]);
+            } else {
+                result->ma_values[i] = NULL;
+            }
+        }
+
+        return (PyObject *)result;
+    } else {
         PyObject *result = _PyDict_NewPresized(((PyDictObject *)value)->ma_used);
 
-        for (Py_ssize_t i = 0; i <= ((PyDictObject *)value)->ma_mask; i++) {
-            PyDictEntry *entry = &((PyDictObject *)value)->ma_table[i];
+        PyDictObject *mp = (PyDictObject *)value;
+
+#if PYTHON_VERSION < 0x360
+        Py_ssize_t size = mp->ma_keys->dk_size;
+#else
+        Py_ssize_t size = mp->ma_keys->dk_nentries;
+#endif
+        for (Py_ssize_t i = 0; i < size; i++) {
+#if PYTHON_VERSION < 0x360
+            PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
+#else
+            PyDictKeyEntry *entry = &DK_ENTRIES(mp->ma_keys)[i];
+#endif
 
             if (entry->me_value != NULL) {
                 PyObject *deep_copy = DEEP_COPY(entry->me_value);
 
-                int res = PyDict_SetItem(result, entry->me_key, deep_copy);
+                PyDict_SetItem(result, entry->me_key, deep_copy);
 
                 Py_DECREF(deep_copy);
-
-                if (unlikely(res != 0)) {
-                    return NULL;
-                }
+                CHECK_OBJECT(deep_copy);
             }
         }
 
         return result;
-#else
-        /* Python 3.3 or higher */
-        if (_PyDict_HasSplitTable((PyDictObject *)value)) {
-            PyDictObject *mp = (PyDictObject *)value;
-
-            PyObject **newvalues = PyMem_NEW(PyObject *, mp->ma_keys->dk_size);
-            assert(newvalues != NULL);
-
-            PyDictObject *result = PyObject_GC_New(PyDictObject, &PyDict_Type);
-            assert(result != NULL);
-
-            result->ma_values = newvalues;
-            result->ma_keys = mp->ma_keys;
-            result->ma_used = mp->ma_used;
-
-            mp->ma_keys->dk_refcnt += 1;
-
-            Nuitka_GC_Track(result);
-
-#if PYTHON_VERSION < 0x360
-            Py_ssize_t size = mp->ma_keys->dk_size;
-#else
-            Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
+    }
 #endif
-            for (Py_ssize_t i = 0; i < size; i++) {
-                if (mp->ma_values[i]) {
-                    result->ma_values[i] = DEEP_COPY(mp->ma_values[i]);
-                } else {
-                    result->ma_values[i] = NULL;
-                }
-            }
+}
 
-            return (PyObject *)result;
+PyObject *DEEP_COPY_LIST(PyObject *value) {
+    assert(PyList_CheckExact(value));
+
+    Py_ssize_t n = PyList_GET_SIZE(value);
+    PyObject *result = PyList_New(n);
+
+    PyTypeObject *type = NULL;
+    copy_func copy_function = NULL;
+
+    for (Py_ssize_t i = 0; i < n; i++) {
+        PyObject *item = PyList_GET_ITEM(value, i);
+        if (i == 0) {
+            PyList_SET_ITEM(result, i, DEEP_COPY_ITEM(item, &type, &copy_function));
         } else {
-            PyObject *result = _PyDict_NewPresized(((PyDictObject *)value)->ma_used);
+            PyObject *new_item;
 
-            PyDictObject *mp = (PyDictObject *)value;
-
-#if PYTHON_VERSION < 0x360
-            Py_ssize_t size = mp->ma_keys->dk_size;
-#else
-            Py_ssize_t size = mp->ma_keys->dk_nentries;
-#endif
-            for (Py_ssize_t i = 0; i < size; i++) {
-#if PYTHON_VERSION < 0x360
-                PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
-#else
-                PyDictKeyEntry *entry = &DK_ENTRIES(mp->ma_keys)[i];
-#endif
-
-                if (entry->me_value != NULL) {
-                    PyObject *deep_copy = DEEP_COPY(entry->me_value);
-
-                    PyDict_SetItem(result, entry->me_key, deep_copy);
-
-                    Py_DECREF(deep_copy);
+            if (likely(type == Py_TYPE(item))) {
+                if (copy_function) {
+                    new_item = copy_function(item);
+                } else {
+                    new_item = item;
+                    Py_INCREF(item);
                 }
+            } else {
+                new_item = DEEP_COPY_ITEM(item, &type, &copy_function);
             }
 
-            return result;
+            PyList_SET_ITEM(result, i, new_item);
         }
+    }
+
+    return result;
+}
+
+PyObject *DEEP_COPY_TUPLE(PyObject *value) {
+    assert(PyTuple_CheckExact(value));
+
+    Py_ssize_t n = PyTuple_GET_SIZE(value);
+    PyObject *result = PyTuple_New(n);
+
+    for (Py_ssize_t i = 0; i < n; i++) {
+        PyTuple_SET_ITEM(result, i, DEEP_COPY(PyTuple_GET_ITEM(value, i)));
+    }
+
+    return result;
+}
+
+PyObject *DEEP_COPY_SET(PyObject *value) {
+    // Sets cannot contain unhashable types, so these all must be immutable,
+    // but the set itself might be changed, so we need to copy it.
+    return PySet_New(value);
+}
+
+#if PYTHON_VERSION >= 0x390
+PyObject *DEEP_COPY_GENERICALIAS(PyObject *value) {
+    assert(Py_TYPE(value) == &Py_GenericAliasType);
+
+    GenericAliasObject *generic_alias = (GenericAliasObject *)value;
+
+    PyObject *args = DEEP_COPY(generic_alias->args);
+    PyObject *origin = DEEP_COPY(generic_alias->origin);
+
+    if (generic_alias->args == args && generic_alias->origin == origin) {
+        Py_INCREF(value);
+        return value;
+    } else {
+        return Py_GenericAlias(origin, args);
+    }
+}
 #endif
-    } else if (PyTuple_Check(value)) {
-        Py_ssize_t n = PyTuple_GET_SIZE(value);
-        PyObject *result = PyTuple_New(n);
 
-        for (Py_ssize_t i = 0; i < n; i++) {
-            PyTuple_SET_ITEM(result, i, DEEP_COPY(PyTuple_GET_ITEM(value, i)));
-        }
+static PyObject *_deep_copy_dispatch = NULL;
+static PyObject *_deep_noop = NULL;
 
-        return result;
-    } else if (PyList_Check(value)) {
-        Py_ssize_t n = PyList_GET_SIZE(value);
-        PyObject *result = PyList_New(n);
+static PyObject *Nuitka_CapsuleNew(void *pointer) {
+#if PYTHON_VERSION < 0x300
+    return PyCObject_FromVoidPtr(pointer, NULL);
+#else
+    return PyCapsule_New(pointer, "", NULL);
+#endif
+}
 
-        for (Py_ssize_t i = 0; i < n; i++) {
-            PyList_SET_ITEM(result, i, DEEP_COPY(PyList_GET_ITEM(value, i)));
-        }
+#if PYTHON_VERSION >= 0x300
+typedef struct {
+    PyObject_HEAD;
+    void *pointer;
+    const char *name;
+    void *context;
+    PyCapsule_Destructor destructor;
+} Nuitka_PyCapsule;
 
-        return result;
-    } else if (PySet_Check(value)) {
-        // Sets cannot contain unhashable types, so they must be immutable.
-        return PySet_New(value);
-    } else if (PyFrozenSet_Check(value)) {
-        // Sets cannot contain unhashable types, so they must be immutable.
-        return PyFrozenSet_New(value);
+#define Nuitka_CapsuleGetPointer(capsule) (((Nuitka_PyCapsule *)(capsule))->pointer)
+
+#else
+#define Nuitka_CapsuleGetPointer(capsule) (PyCObject_AsVoidPtr(capsule))
+#endif
+
+static void _initDeepCopy() {
+    _deep_copy_dispatch = PyDict_New();
+    _deep_noop = Py_None;
+
+    CHECK_OBJECT(_deep_noop);
+
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyDict_Type, Nuitka_CapsuleNew((void *)DEEP_COPY_DICT));
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyList_Type, Nuitka_CapsuleNew((void *)DEEP_COPY_LIST));
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyTuple_Type, Nuitka_CapsuleNew((void *)DEEP_COPY_TUPLE));
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PySet_Type, Nuitka_CapsuleNew((void *)DEEP_COPY_SET));
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyByteArray_Type, Nuitka_CapsuleNew((void *)BYTEARRAY_COPY));
+
+#if PYTHON_VERSION >= 0x390
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&Py_GenericAliasType,
+                   Nuitka_CapsuleNew((void *)DEEP_COPY_GENERICALIAS));
+#endif
+
+#if PYTHON_VERSION < 0x300
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyString_Type, _deep_noop);
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyInt_Type, _deep_noop);
+#else
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyBytes_Type, _deep_noop);
+#endif
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyUnicode_Type, _deep_noop);
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyLong_Type, _deep_noop);
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)Py_TYPE(Py_None), _deep_noop);
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyBool_Type, _deep_noop);
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyFloat_Type, _deep_noop);
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyRange_Type, _deep_noop);
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyType_Type, _deep_noop);
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PySlice_Type, _deep_noop);
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyComplex_Type, _deep_noop);
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyCFunction_Type, _deep_noop);
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)Py_TYPE(Py_Ellipsis), _deep_noop);
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)Py_TYPE(Py_NotImplemented), _deep_noop);
+
+    // Sets can be changed, but frozensets not.
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyFrozenSet_Type, _deep_noop);
+}
+
+static PyObject *DEEP_COPY_ITEM(PyObject *value, PyTypeObject **type, copy_func *copy_function) {
+    *type = Py_TYPE(value);
+
+    PyObject *dispatcher = DICT_GET_ITEM0(_deep_copy_dispatch, (PyObject *)*type);
+
+    if (unlikely(dispatcher == NULL)) {
+        NUITKA_CANNOT_GET_HERE("DEEP_COPY encountered unknown type");
+    }
+
+    if (dispatcher == Py_None) {
+        *copy_function = NULL;
+
+        Py_INCREF(value);
+        return value;
+    } else {
+        *copy_function = (copy_func)(Nuitka_CapsuleGetPointer(dispatcher));
+        return (*copy_function)(value);
+    }
+}
+
+PyObject *DEEP_COPY(PyObject *value) {
+#if 1
+    PyObject *dispatcher = DICT_GET_ITEM0(_deep_copy_dispatch, (PyObject *)Py_TYPE(value));
+
+    if (unlikely(dispatcher == NULL)) {
+        NUITKA_CANNOT_GET_HERE("DEEP_COPY encountered unknown type");
+    }
+
+    if (dispatcher == Py_None) {
+        Py_INCREF(value);
+        return value;
+    } else {
+        copy_func copy_function = (copy_func)(Nuitka_CapsuleGetPointer(dispatcher));
+        return copy_function(value);
+    }
+
+#else
+
+    if (PyDict_CheckExact(value)) {
+        return DEEP_COPY_DICT(value);
+    } else if (PyList_CheckExact(value)) {
+        return DEEP_COPY_LIST(value);
+    } else if (PyTuple_CheckExact(value)) {
+        return DEEP_COPY_TUPLE(value);
+    } else if (PySet_CheckExact(value)) {
+        return DEEP_COPY_SET(value);
+    } else if (PyFrozenSet_CheckExact(value)) {
+        // Sets cannot contain unhashable types, so they must be immutable and
+        // the frozenset itself is immutable.
+        return value;
     } else if (
 #if PYTHON_VERSION < 0x300
         PyString_Check(value) ||
 #endif
         PyUnicode_Check(value) ||
 #if PYTHON_VERSION < 0x300
-        PyInt_Check(value) ||
+        PyInt_CheckExact(value) ||
 #endif
-        PyLong_Check(value) || value == Py_None || PyBool_Check(value) || PyFloat_Check(value) ||
-        PyBytes_Check(value) || PyRange_Check(value) || PyType_Check(value) || PySlice_Check(value) ||
-        PyComplex_Check(value) || PyCFunction_Check(value) || value == Py_Ellipsis || value == Py_NotImplemented) {
+        PyLong_CheckExact(value) || value == Py_None || PyBool_Check(value) || PyFloat_CheckExact(value) ||
+        PyBytes_CheckExact(value) || PyRange_Check(value) || PyType_Check(value) || PySlice_Check(value) ||
+        PyComplex_CheckExact(value) || PyCFunction_Check(value) || value == Py_Ellipsis || value == Py_NotImplemented) {
         Py_INCREF(value);
         return value;
-    } else if (PyByteArray_Check(value)) {
+    } else if (PyByteArray_CheckExact(value)) {
         // TODO: Could make an exception for zero size.
         return PyByteArray_FromObject(value);
 #if PYTHON_VERSION >= 0x390
@@ -175,10 +345,9 @@ PyObject *DEEP_COPY(PyObject *value) {
         }
 #endif
     } else {
-        PyErr_Format(PyExc_TypeError, "DEEP_COPY does not implement: %s", value->ob_type->tp_name);
-
-        return NULL;
+        NUITKA_CANNOT_GET_HERE("DEEP_COPY encountered unknown type");
     }
+#endif
 }
 
 #ifndef __NUITKA_NO_ASSERT__
@@ -389,6 +558,17 @@ Py_hash_t DEEP_HASH(PyObject *value) {
 #endif
 
         return result;
+#if PYTHON_VERSION >= 0x390
+    } else if (Py_TYPE(value) == &Py_GenericAliasType) {
+        GenericAliasObject *generic_alias = (GenericAliasObject *)value;
+
+        Py_hash_t result = DEEP_HASH_INIT(value);
+
+        result ^= DEEP_HASH(generic_alias->args);
+        result ^= DEEP_HASH(generic_alias->origin);
+
+        return result;
+#endif
     } else {
         assert(false);
 
@@ -412,6 +592,14 @@ void CHECK_OBJECT_DEEP(PyObject *value) {
             PyObject *element = PyList_GET_ITEM(value, i);
 
             CHECK_OBJECT_DEEP(element);
+        }
+    } else if (PyDict_Check(value)) {
+        Py_ssize_t ppos = 0;
+        PyObject *dict_key, *dict_value;
+
+        while (PyDict_Next(value, &ppos, &dict_key, &dict_value)) {
+            CHECK_OBJECT_DEEP(dict_key);
+            CHECK_OBJECT_DEEP(dict_value);
         }
     }
 }

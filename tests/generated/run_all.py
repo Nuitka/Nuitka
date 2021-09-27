@@ -132,10 +132,10 @@ def main():
             # Keep no temporary files.
             "remove_output",
             # Include imported files, mostly nothing though.
-            "recurse_all",
+            "--follow-imports",
             # Use the original __file__ value, at least one case warns about things
             # with filename included.
-            "original_file",
+            "--file-reference-choice=original",
             # Cache the CPython results for re-use, they will normally not change.
             "cpython_cache",
             # We annotate some tests, use that to lower warnings.

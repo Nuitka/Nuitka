@@ -25,6 +25,4 @@
 #include "nuitka/helper/comparisons_lt.h"
 #include "nuitka/helper/comparisons_ne.h"
 
-#define RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT_NORECURSE RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT
-
 #endif
