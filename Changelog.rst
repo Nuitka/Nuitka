@@ -1,5 +1,11 @@
+###############################
+ Nuitka Release 0.6.18 (Draft)
+###############################
+
+This release is not done yet.
+
 #######################
- Nuitka Release 0.6.17 
+ Nuitka Release 0.6.17
 #######################
 
 This release has a focus on performance improvements, while also
