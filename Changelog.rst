@@ -1,6 +1,6 @@
-###############################
- Nuitka Release 0.6.17 (Draft)
-###############################
+#######################
+ Nuitka Release 0.6.17 
+#######################
 
 This release has a focus on performance improvements, while also
 polishing plugins and adding new features.
