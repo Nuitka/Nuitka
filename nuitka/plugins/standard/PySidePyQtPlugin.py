@@ -45,6 +45,8 @@ from nuitka.utils.Utils import isWin32Windows
 # Use to detect the Qt plugin that is active and check for conflicts.
 _qt_binding_names = ("PySide", "PySide2", "PySide6", "PyQt4", "PyQt5", "PyQt6")
 
+# TODO: Detect usage of "wx" and warn/exclude that as well.
+
 
 def getQtPluginNames():
     return tuple(qt_binding_name.lower() for qt_binding_name in _qt_binding_names)
