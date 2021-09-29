@@ -381,7 +381,7 @@ if "clang" in env.the_cc_name:
 lto_mode = enableLtoSettings(
     env=env,
     lto_mode=lto_mode,
-    pgo_mode=False,  # TODO: Have this here too, decompression might benefit.
+    pgo_mode="no",  # TODO: Have this here too, decompression might benefit.
     msvc_mode=msvc_mode,
     gcc_mode=gcc_mode,
     clang_mode=clang_mode,
@@ -426,9 +426,6 @@ The gcc compiler %s (version %s) doesn't have the sufficient \
 version for lto mode (>= 4.6)."""
             % (env["CXX"], env["CXXVERSION"])
         )
-
-    if lto_mode and mingw_mode:
-        sys.exit("""The gcc compiler on Windows, doesn't currently support lto mode.""")
 
     # For gcc 4.6 there are some new interesting functions.
     if gcc_version >= (4, 6):
