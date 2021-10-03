@@ -45,7 +45,9 @@ from nuitka.utils.Utils import isWin32Windows
 # Use to detect the Qt plugin that is active and check for conflicts.
 _qt_binding_names = ("PySide", "PySide2", "PySide6", "PyQt4", "PyQt5", "PyQt6")
 
-# TODO: Detect usage of "wx" and warn/exclude that as well.
+# Detect usage of "wx" and warn/exclude that as well. Add more here as
+# necessary.
+_other_gui_binding_names = ("wx",)
 
 
 def getQtPluginNames():
@@ -736,6 +738,14 @@ if not path.startswith(__nuitka_binary_dir):
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         if module_name in _qt_binding_names and module_name != self.binding_name:
+            self.warning(
+                """\
+Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encountered. Use \
+'--nofollow-import-to=%(unwanted)s' or uninstall it."""
+                % {"unwanted": module_name, "binding_name": self.binding_name}
+            )
+
+        if module_name in _other_gui_binding_names:
             self.warning(
                 """\
 Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encountered. Use \
