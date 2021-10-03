@@ -644,6 +644,9 @@ _linux_dll_ignore_list = (
     # libraries like MESA to not load any drivers, so we exclude it too, and
     # it can be assumed to be installed everywhere anyway.
     "libstdc++.so.",
+    # The DRM layer should also be taken from the OS in question and won't
+    # allow loading native drivers otherwise.
+    "libdrm.so",
 )
 
 
