@@ -766,6 +766,20 @@ Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encount
                     % self.binding_name,
                 )
 
+    def onModuleSourceCode(self, module_name, source_code):
+        """Third party packages that make binding selections."""
+        if module_name.hasNamespace("pyqtgraph"):
+            # TODO: Add a mechanism to force all variable references of a name to something
+            # during tree building, that would cover all uses in a nicer way.
+            source_code = source_code.replace(
+                "{QT_LIB.lower()}", self.binding_name.lower()
+            )
+            source_code = source_code.replace(
+                "QT_LIB.lower()", repr(self.binding_name.lower())
+            )
+
+        return source_code
+
 
 class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
     """This is for plugins of PyQt5.
