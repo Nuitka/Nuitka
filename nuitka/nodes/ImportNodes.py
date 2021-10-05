@@ -247,17 +247,17 @@ class ExpressionImportModuleHard(ExpressionBase):
                     trace_collection.onExceptionRaiseExit(ImportError)
                 elif trust is trust_constant:
                     # Make sure it's actually there, and not becoming the getattr default by accident.
-                    assert hasattr(self.module, self.import_name), self
+                    assert hasattr(self.module, attribute_name), self
 
                     return (
                         makeConstantRefNode(
-                            constant=getattr(self.module, self.import_name),
+                            constant=getattr(self.module, attribute_name),
                             source_ref=lookup_node.getSourceReference(),
                             user_provided=True,
                         ),
                         "new_constant",
                         "Hard module %r imported %r pre-computed to constant value."
-                        % (self.module_name, self.import_name),
+                        % (self.module_name, attribute_name),
                     )
                 else:
                     result = ExpressionImportModuleNameHard(
