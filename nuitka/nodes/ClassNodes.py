@@ -158,7 +158,46 @@ class ExpressionBuiltinType3(ExpressionChildrenHavingBase):
             source_ref=source_ref,
         )
 
+    def _calculateMetaClass(self):
+        # TODO: Share code with ExpressionSelectMetaclass
+
+        if not self.subnode_bases.isCompileTimeConstant():
+            return None
+
+        # TODO: Want to cache this result probably for speed reasons and it may also
+        # contain allocations for dataclasses, generics, etc.
+
+        # Need to use private CPython API unless we want to re-implement it, pylint: disable=protected-access
+        import ctypes
+
+        ctypes.pythonapi._PyType_CalculateMetaclass.argtypes = [
+            ctypes.py_object,
+            ctypes.py_object,
+        ]
+        ctypes.pythonapi._PyType_CalculateMetaclass.restype = ctypes.py_object
+
+        bases = self.subnode_bases.getCompileTimeConstant()
+
+        return ctypes.pythonapi._PyType_CalculateMetaclass(type, bases)
+
+    def mayRaiseException(self, exception_type):
+        # TODO: In many cases, this will not raise for compile time knowable
+        # case classes. We might ask the bases for the metaclass selected by
+        # compile time inspection.
+        return True
+
     def computeExpression(self, trace_collection):
-        # TODO: Should be compile time computable if bases and dict are.
+
+        # TODO: Can use this to specialize to the correct metaclass at compile
+        # time.
+        # metacls = self._calculateMetaClass()
+
+        # TODO: Should be compile time computable if bases and dict are
+        # allowing that to happen into a dedicated class creation node,
+        # with known metaclass selection.
+
+        # Any exception may be raised.
+        if self.mayRaiseException(BaseException):
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

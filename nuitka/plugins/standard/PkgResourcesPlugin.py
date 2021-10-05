@@ -61,6 +61,8 @@ class NuitkaPluginResources(NuitkaPluginBase):
         return True
 
     def onModuleSourceCode(self, module_name, source_code):
+        # Many cases to deal with, pylint: disable=too-many-branches
+
         # This one has strings with false matches, don't attempt those.
         if module_name == "setuptools.command.easy_install":
             return source_code
@@ -70,16 +72,29 @@ class NuitkaPluginResources(NuitkaPluginBase):
                 r"""\b(pkg_resources\.get_distribution\(\s*['"](.*?)['"]\s*\)\.((?:parsed_)?version))""",
                 source_code,
             ):
-                value = self.pkg_resources.get_distribution(match[1]).version
-
-                if match[2] == "version":
-                    value = repr(value)
-                elif match[2] == "parsed_version":
-                    value = "pkg_resources.extern.packaging.version.Version(%r)" % value
+                try:
+                    value = self.pkg_resources.get_distribution(match[1]).version
+                except self.pkg_resources.DistributionNotFound:
+                    self.warning(
+                        "Cannot find distribution '%s' for '%s', expect potential run time problem."
+                        % (match[1], module_name)
+                    )
+                except Exception:  # catch all, pylint: disable=broad-except
+                    self.sysexit(
+                        "Error, failed to find distribution '%s', probably a plugin parsing bug for '%s' code."
+                        % (match[1], module_name)
+                    )
                 else:
-                    assert False
+                    if match[2] == "version":
+                        value = repr(value)
+                    elif match[2] == "parsed_version":
+                        value = (
+                            "pkg_resources.extern.packaging.version.Version(%r)" % value
+                        )
+                    else:
+                        assert False
 
-                source_code = source_code.replace(match[0], value)
+                    source_code = source_code.replace(match[0], value)
 
             for match in re.findall(
                 r"""\b(pkg_resources\.require\(\s*['"](.*?)['"]\s*\))""",
@@ -89,12 +104,13 @@ class NuitkaPluginResources(NuitkaPluginBase):
                 try:
                     self.pkg_resources.require(match[1])
                 except self.pkg_resources.ResolutionError:
-                    self.sysexit(
-                        "Unmet requirement during compilation: '%s'." % match[1]
+                    self.warning(
+                        "Cannot find requirement '%s' for '%s', expect potential run time problem."
+                        % (match[1], module_name)
                     )
                 except Exception:  # catch all, pylint: disable=broad-except
                     self.sysexit(
-                        "Error, failed to resolve '%s', probably a parsing bug for '%s' code."
+                        "Error, failed to resolve '%s', probably a plugin parsing bug for '%s' code."
                         % (match[1], module_name)
                     )
                 else:
