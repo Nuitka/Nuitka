@@ -70,24 +70,6 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
             description="Comparison of constant arguments.",
         )
 
-    def computeExpression(self, trace_collection):
-        left = self.subnode_left
-        right = self.subnode_right
-
-        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
-            return self._computeCompileTimeConstantComparision(trace_collection)
-
-        # The value of these nodes escaped and could change its contents.
-        # TODO: Comparisons don't do much, but add this.
-        # trace_collection.onValueEscapeRichComparison(left, right, self.comparator)
-
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
-
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        return self, None, None
-
     def makeInverseComparision(self):
         # Making this accessing for tree building phase as well.
         return makeComparisonExpression(
@@ -163,10 +145,16 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
         left = self.subnode_left
         right = self.subnode_right
 
-        # TODO: Defer the left and right nodes, so that variable reference for immutable variables
-        # such as "sys.version_info" can also use this kind of code path.
-        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
-            return self._computeCompileTimeConstantComparision(trace_collection)
+        left_value = left.getComparisonValue()
+        if left_value is not None:
+            right_value = right.getComparisonValue()
+
+            if right_value is not None:
+                return trace_collection.getCompileTimeComputationResult(
+                    node=self,
+                    computation=lambda: self.getSimulator()(left_value, right_value),
+                    description="Comparison of constant arguments.",
+                )
 
         left_shape = left.getTypeShape()
         right_shape = right.getTypeShape()
@@ -394,9 +382,19 @@ Determined values to not alias and therefore result of '%s' comparison."""
                 % (self.comparator),
             )
 
-        return ExpressionComparisonBase.computeExpression(
-            self, trace_collection=trace_collection
-        )
+        left_value = left.getComparisonValue()
+        if left_value is not None:
+            right_value = right.getComparisonValue()
+
+            if right_value is not None:
+                return trace_collection.getCompileTimeComputationResult(
+                    node=self,
+                    computation=lambda: self.getSimulator()(left_value, right_value),
+                    description="Comparison '%s' with constant arguments."
+                    % self.comparator,
+                )
+
+        return self, None, None
 
     def extractSideEffects(self):
         left, right = self.getOperands()
@@ -454,6 +452,28 @@ class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
     @staticmethod
     def getTypeShape():
         return tshape_bool
+
+    def computeExpression(self, trace_collection):
+        left = self.subnode_left
+        right = self.subnode_right
+
+        left_value = left.getComparisonValue()
+        if left_value is not None:
+            right_value = right.getComparisonValue()
+
+            if right_value is not None:
+                return trace_collection.getCompileTimeComputationResult(
+                    node=self,
+                    computation=lambda: self.getSimulator()(left_value, right_value),
+                    description="Exception matched with constant arguments.",
+                )
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
 
     def getSimulator(self):
         # TODO: Doesn't happen yet, but will once we trace exceptions.

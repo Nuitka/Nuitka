@@ -182,6 +182,10 @@ class ValueTraceBase(object):
     def getTruthValue():
         return None
 
+    @staticmethod
+    def getComparisonValue():
+        return None
+
 
 class ValueTraceUnassignedBase(ValueTraceBase):
     __slots__ = ()
@@ -411,6 +415,9 @@ class ValueTraceAssign(ValueTraceBase):
     def getTruthValue(self):
         return self.assign_node.subnode_source.getTruthValue()
 
+    def getComparisonValue(self):
+        return self.assign_node.subnode_source.getComparisonValue()
+
 
 class ValueTraceMergeBase(ValueTraceBase):
     """Merge of two or more traces or start of loops."""
@@ -523,6 +530,11 @@ class ValueTraceMerge(ValueTraceMergeBase):
         # Now all agreed and were not unknown, so we can conclude all false or all true.
         return any_true
 
+    def getComparisonValue(self):
+        # TODO: Support multiple values as candidates, e.g. both 1, 3 could be compared to 2, for
+        # now we are delaying that.
+        return None
+
 
 class ValueTraceLoopBase(ValueTraceMergeBase):
     __slots__ = ("loop_node", "type_shapes", "type_shape", "recursion")
@@ -605,6 +617,10 @@ class ValueTraceLoopComplete(ValueTraceLoopBase):
     def getTruthValue():
         return None
 
+    @staticmethod
+    def getComparisonValue():
+        return None
+
 
 class ValueTraceLoopIncomplete(ValueTraceLoopBase):
     __slots__ = ()
@@ -629,4 +645,8 @@ class ValueTraceLoopIncomplete(ValueTraceLoopBase):
 
     @staticmethod
     def getTruthValue():
+        return None
+
+    @staticmethod
+    def getComparisonValue():
         return None
