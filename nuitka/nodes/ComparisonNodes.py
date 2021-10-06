@@ -163,6 +163,8 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
         left = self.subnode_left
         right = self.subnode_right
 
+        # TODO: Defer the left and right nodes, so that variable reference for immutable variables
+        # such as "sys.version_info" can also use this kind of code path.
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             return self._computeCompileTimeConstantComparision(trace_collection)
 

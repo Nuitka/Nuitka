@@ -21,6 +21,7 @@ This contains tools to compare, classify and test constants.
 """
 
 import math
+import sys
 from types import BuiltinFunctionType
 
 from nuitka.Builtins import builtin_type_names
@@ -198,6 +199,8 @@ def isConstant(constant):
         return True
     elif constant_type is GenericAlias:
         return True
+    elif constant is sys.version_info:
+        return True
     else:
         return False
 
@@ -209,7 +212,7 @@ def isMutable(constant):
     a prime example of immutable, dictionaries are mutable.
     """
     # Many cases and all return, that is how we do it here,
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     constant_type = type(constant)
 
@@ -248,6 +251,8 @@ def isMutable(constant):
         return False
     elif constant_type is GenericAlias:
         return isMutable(constant.__origin__) or isMutable(constant.__args__)
+    elif constant is sys.version_info:
+        return False
     else:
         assert False, repr(constant)
 

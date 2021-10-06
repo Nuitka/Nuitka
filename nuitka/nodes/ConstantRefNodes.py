@@ -19,6 +19,8 @@
 
 """
 
+import sys
+
 from nuitka import Options
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     GenericAlias,
@@ -70,6 +72,7 @@ from .shapes.BuiltinTypeShapes import (
     tshape_int,
     tshape_list,
     tshape_long,
+    tshape_namedtuple,
     tshape_none,
     tshape_set,
     tshape_slice,
@@ -1576,3 +1579,54 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
         else:
             # Missing constant type, ought to not happen, please report.
             assert False, (constant, constant_type)
+
+
+class ExpressionConstantSysVersionInfoRef(ExpressionConstantUntrackedRefBase):
+    kind = "EXPRESSION_CONSTANT_SYS_VERSION_INFO_REF"
+
+    __slots__ = ()
+
+    def __init__(self, source_ref):
+        ExpressionConstantUntrackedRefBase.__init__(
+            self, constant=sys.version_info, source_ref=source_ref
+        )
+
+    @staticmethod
+    def getDetails():
+        return {}
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_namedtuple
+
+    @staticmethod
+    def isMutable():
+        return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isIterableConstant():
+        return True
+
+    def getIterationHandle(self):
+        return ConstantTupleIterationHandle(self)
+
+    def getIterationLength(self):
+        return len(self.constant)
+
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        # For iteration, we are just a normal tuple.
+        return (
+            ExpressionConstantTupleRef(
+                self.constant, user_provided=True, source_ref=self.source_ref
+            ),
+            "new_constant",
+            """Iteration over constant sys.version_info lowered to tuple.""",
+        )
+
+    @staticmethod
+    def getTruthValue():
+        return True

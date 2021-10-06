@@ -26,7 +26,6 @@ deeper that what it normally could. The import expression node can recurse.
 """
 
 import os
-import pkgutil
 import sys
 
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
@@ -43,12 +42,19 @@ from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.ModuleRegistry import getUncompiledModule
 from nuitka.Options import isStandaloneMode, shallWarnUnusualCode
-from nuitka.PythonOperators import python_version
+from nuitka.PythonVersions import (
+    getFutureModuleKeys,
+    getImportlibSubPackages,
+    python_version,
+)
 from nuitka.Tracing import inclusion_logger, unusual_logger
 from nuitka.utils.FileOperations import relpath
 from nuitka.utils.ModuleNames import ModuleName
 
-from .ConstantRefNodes import makeConstantRefNode
+from .ConstantRefNodes import (
+    ExpressionConstantSysVersionInfoRef,
+    makeConstantRefNode,
+)
 from .ExpressionBases import (
     ExpressionBase,
     ExpressionChildHavingBase,
@@ -80,43 +86,37 @@ trust_constant = 1
 trust_exist = 2
 trust_future = trust_exist
 trust_importable = 3
+trust_node = 4
+
+trust_node_factory = {}
+
+module_importlib_trust = dict(
+    (key, trust_importable) for key in getImportlibSubPackages()
+)
+module_sys_trust = {
+    "version": trust_constant,
+    "stdout": trust_exist,
+    "stderr": trust_exist,
+}
+
+if python_version < 0x270:
+    module_sys_trust["version_info"] = trust_constant
+else:
+    module_sys_trust["version_info"] = trust_node
+    trust_node_factory[("sys", "version_info")] = ExpressionConstantSysVersionInfoRef
 
 hard_modules_trust = {
     "os": {},
-    "sys": {"version": trust_constant, "stdout": trust_exist, "stderr": trust_exist},
+    "sys": module_sys_trust,
     "types": {},
-    "__future__": {},
+    "__future__": dict((key, trust_future) for key in getFutureModuleKeys()),
     "site": {},
-    "importlib": {},
+    "importlib": module_importlib_trust,
     "_frozen_importlib": {},
     "_frozen_importlib_external": {},
     "pkgutil": {"get_data": trust_exist},
     "functools": {"partial": trust_exist},
 }
-
-hard_modules_trust["__future__"] = {
-    "unicode_literals": trust_future,
-    "absolute_import": trust_future,
-    "division": trust_future,
-    "print_function": trust_future,
-    "generator_stop": trust_future,
-    "nested_scopes": trust_future,
-    "generators": trust_future,
-    "with_statement": trust_future,
-}
-
-if python_version >= 0x270:
-    import importlib
-
-    for module_info in pkgutil.walk_packages(importlib.__path__):
-        hard_modules_trust["importlib"][module_info[1]] = trust_importable
-
-import __future__
-
-if hasattr(__future__, "barry_as_FLUFL"):
-    hard_modules_trust["__future__"]["barry_as_FLUFL"] = trust_future
-if hasattr(__future__, "annotations"):
-    hard_modules_trust["__future__"]["annotations"] = trust_future
 
 
 def isHardModuleWithoutSideEffect(module_name):
@@ -258,6 +258,17 @@ class ExpressionImportModuleHard(ExpressionBase):
                         "new_constant",
                         "Hard module %r imported %r pre-computed to constant value."
                         % (self.module_name, attribute_name),
+                    )
+                elif trust is trust_node:
+                    result = trust_node_factory[self.module_name, attribute_name](
+                        source_ref=lookup_node.source_ref
+                    )
+
+                    return (
+                        result,
+                        "new_expression",
+                        "Attribute lookup %r of hard module %r becomes node %r."
+                        % (self.module_name, attribute_name, result.kind),
                     )
                 else:
                     result = ExpressionImportModuleNameHard(

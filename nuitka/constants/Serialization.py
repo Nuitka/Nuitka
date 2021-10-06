@@ -21,6 +21,7 @@
 
 import os
 import pickle
+import sys
 
 from nuitka import OutputDirectories
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
@@ -69,6 +70,8 @@ class BuiltinSpecialValue(object):
             return to_byte(0)
         elif self.value == "NotImplemented":
             return to_byte(1)
+        elif self.value == "Py_SysVersionInfo":
+            return to_byte(2)
         else:
             assert False, self.value
 
@@ -90,6 +93,8 @@ def _pickleAnonValues(pickler, value):
         pickler.save(BuiltinSpecialValue("Ellipsis"))
     elif value is NotImplemented:
         pickler.save(BuiltinSpecialValue("NotImplemented"))
+    elif value is sys.version_info:
+        pickler.save(BuiltinSpecialValue("Py_SysVersionInfo"))
     else:
         pickler.save_global(value)
 
@@ -112,6 +117,9 @@ class ConstantStreamWriter(object):
         self.pickle.dispatch[type] = _pickleAnonValues
         self.pickle.dispatch[type(Ellipsis)] = _pickleAnonValues
         self.pickle.dispatch[type(NotImplemented)] = _pickleAnonValues
+
+        if type(sys.version_info) is not tuple:
+            self.pickle.dispatch[type(sys.version_info)] = _pickleAnonValues
 
     def addConstantValue(self, constant_value):
         self.pickle.dump(constant_value)
@@ -144,7 +152,7 @@ class ConstantAccessor(object):
     def getConstantCode(self, constant):
         # Use in user code, or for constants building code itself, many
         # constant types get special code immediately.
-        # pylint: disable=too-many-branches
+        # pylint: disable=too-many-branches,too-many-statements
         if constant is None:
             key = "Py_None"
         elif constant is True:
@@ -155,6 +163,8 @@ class ConstantAccessor(object):
             key = "Py_Ellipsis"
         elif constant is NotImplemented:
             key = "Py_NotImplemented"
+        elif constant is sys.version_info:
+            key = "Py_SysVersionInfo"
         elif type(constant) is type:
             # TODO: Maybe make this a mapping in nuitka.Builtins
 
