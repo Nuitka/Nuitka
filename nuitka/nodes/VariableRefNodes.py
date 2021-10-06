@@ -566,6 +566,9 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
     def getTruthValue(self):
         return self.variable_trace.getTruthValue()
 
+    def getComparisonValue(self):
+        return self.variable_trace.getComparisonValue()
+
     @staticmethod
     def isKnownToBeIterable(count):
         return None
