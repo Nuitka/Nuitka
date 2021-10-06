@@ -23,6 +23,8 @@ should attempt to make run time detections.
 
 """
 
+import __future__
+
 import os
 import re
 import sys
@@ -333,3 +335,35 @@ def getSystemPrefixPath():
         _the_sys_prefix = sys_prefix
 
     return _the_sys_prefix
+
+
+def getFutureModuleKeys():
+    result = [
+        "unicode_literals",
+        "absolute_import",
+        "division",
+        "print_function",
+        "generator_stop",
+        "nested_scopes",
+        "generators",
+        "with_statement",
+    ]
+
+    if hasattr(__future__, "barry_as_FLUFL"):
+        result.append("barry_as_FLUFL")
+    if hasattr(__future__, "annotations"):
+        result.append("annotations")
+
+    return result
+
+
+def getImportlibSubPackages():
+    result = []
+    if python_version >= 0x270:
+        import importlib
+        import pkgutil
+
+        for module_info in pkgutil.walk_packages(importlib.__path__):
+            result.append(module_info[1])
+
+    return result

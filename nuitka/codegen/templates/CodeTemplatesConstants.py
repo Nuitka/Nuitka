@@ -38,7 +38,13 @@ PyObject *Nuitka_dunder_compiled_value = NULL;
 extern PyObject *getStandaloneSysExecutablePath(PyObject *basename);
 #endif
 
+// We provide the sys.version info shortcut as a global value here for ease of use.
+PyObject *Py_SysVersionInfo = NULL;
+
 static void _createGlobalConstants(void) {
+    // We provide the sys.version info shortcut as a global value here for ease of use.
+    Py_SysVersionInfo = PySys_GetObject((char *)"version_info");
+
     // The empty name means global.
     loadConstantsBlob(&global_constants[0], "");
 

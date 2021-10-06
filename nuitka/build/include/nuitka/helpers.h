@@ -468,4 +468,7 @@ NUITKA_MAY_BE_UNUSED static void forceGC() {
     PyObject_CallObject(PyObject_GetAttrString(PyImport_ImportModule("gc"), "collect"), NULL);
 }
 
+// We provide the sys.version info shortcut as a global value here for ease of use.
+extern PyObject *Py_SysVersionInfo;
+
 #endif

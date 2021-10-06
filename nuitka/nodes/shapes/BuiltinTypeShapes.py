@@ -760,6 +760,42 @@ class ShapeTypeTuple(ShapeContainerMixin, ShapeNotNumberMixin, ShapeBase):
 tshape_tuple = ShapeTypeTuple()
 
 
+class ShapeTypeNamedTuple(ShapeContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    @staticmethod
+    def getTypeName():
+        return "namedtuple"
+
+    helper_code = "NAMEDTUPLE"
+
+    @staticmethod
+    def getShapeIter():
+        return tshape_tuple_iterator
+
+    # TODO: Unsupported operation would be different, account for that.
+    add_shapes = add_shapes_tuple
+    sub_shapes = sub_shapes_tuple
+    mult_shapes = mult_shapes_tuple
+    floordiv_shapes = floordiv_shapes_tuple
+    truediv_shapes = truediv_shapes_tuple
+    olddiv_shapes = olddiv_shapes_tuple
+    mod_shapes = mod_shapes_tuple
+    divmod_shapes = divmod_shapes_tuple
+    pow_shapes = pow_shapes_tuple
+    bitor_shapes = bitor_shapes_tuple
+    bitand_shapes = bitand_shapes_tuple
+    bitxor_shapes = bitxor_shapes_tuple
+    lshift_shapes = lshift_shapes_tuple
+    rshift_shapes = rshift_shapes_tuple
+    matmult_shapes = matmult_shapes_tuple
+
+    def getComparisonLtShape(self, right_shape):
+        # Need to consider value shape for this.
+        return operation_result_unknown
+
+
+tshape_namedtuple = ShapeTypeNamedTuple()
+
+
 class TypeShapeTupleIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = iter(tshape_tuple.typical_value)
 

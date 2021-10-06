@@ -245,7 +245,7 @@ def makeCompileTimeConstantReplacementNode(value, node, user_provided):
             )
         else:
             return node
-    elif isinstance(value, GenericAlias):
+    elif GenericAlias is not None and isinstance(value, GenericAlias):
         from .BuiltinTypeNodes import ExpressionConstantGenericAlias
 
         return ExpressionConstantGenericAlias(
