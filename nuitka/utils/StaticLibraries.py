@@ -32,7 +32,7 @@ from nuitka.PythonVersions import (
 )
 
 from .FileOperations import getFileContentByLine, getFileList
-from .Utils import isDebianBasedLinux, isWin32Windows
+from .Utils import getLinuxDistribution, isDebianBasedLinux, isWin32Windows
 
 _ldconf_paths = None
 
@@ -72,6 +72,20 @@ def _locateStaticLinkLibrary(dll_name):
 
 
 _static_lib_python_path = False
+
+
+def isDebianSuitableForStaticLinking():
+    dist_name, dist_version = getLinuxDistribution()
+
+    if dist_name == "Debian":
+        dist_version = tuple(int(x) for x in dist_version.split("."))
+
+        return dist_version >= (10,)
+    elif dist_name == "Ubuntu":
+        return True
+    else:
+        # TODO: Needs implementing potentially.
+        return True
 
 
 def _getSystemStaticLibPythonPath():
@@ -124,7 +138,11 @@ def _getSystemStaticLibPythonPath():
             return candidate
 
         # For Python2 this works. TODO: Figure out Debian and Python3.
-        if python_version < 0x300 and isDebianBasedLinux() and isDebianPackagePython():
+        if (
+            python_version < 0x300
+            and isDebianPackagePython()
+            and isDebianSuitableForStaticLinking()
+        ):
             candidate = locateStaticLinkLibrary("python" + python_abi_version)
         else:
             candidate = None
@@ -134,7 +152,7 @@ def _getSystemStaticLibPythonPath():
 
         # This is not necessarily only for Python3 on Debian, but maybe others as well,
         # but that's what's been tested.
-        if python_version >= 0x300 and isDebianBasedLinux() and isDebianPackagePython():
+        if python_version >= 0x300 and isDebianPackagePython() and isDebianBasedLinux():
             try:
                 import sysconfig
 

@@ -43,7 +43,7 @@ def getOS():
         assert False, os.name
 
 
-_linux_distribution = None
+_linux_distribution_info = None
 
 
 def getLinuxDistribution():
@@ -53,43 +53,55 @@ def getLinuxDistribution():
     but in some cases it's hard to manage that.
     """
     # singleton, pylint: disable=global-statement
-    global _linux_distribution
+    global _linux_distribution_info
 
     if getOS() != "Linux":
-        return None
+        return None, None
 
-    if _linux_distribution is None:
+    if _linux_distribution_info is None:
         # pylint: disable=I0021,deprecated-method,no-member
         try:
-            result = platform.dist()[0].title()
+            result = platform.dist()[0]
+            version = platform.dist()[1]
         except AttributeError:
-            from .Execution import check_output
+            result = None
+            version = None
 
-            try:
-                result = check_output(["lsb_release", "-i", "-s"], shell=False).title()
-
-                if str is not bytes:
-                    result = result.decode("utf8")
-            except FileNotFoundError:
+            if os.path.exists("/etc/os-release"):
                 from .FileOperations import getFileContentByLine
 
                 for line in getFileContentByLine("/etc/os-release"):
                     if line.startswith("ID="):
                         result = line[3:]
-                        break
-                else:
-                    from nuitka.Tracing import general
+                    if line.startswith("VERSION="):
+                        version = line[8:]
 
-                    general.sysexit("Error, cannot detect Linux distribution.")
+            if result is None:
+                from .Execution import check_output
 
-        _linux_distribution = result.title()
+                try:
+                    result = check_output(["lsb_release", "-i", "-s"], shell=False)
 
-    return _linux_distribution
+                    if str is not bytes:
+                        result = result.decode("utf8")
+                except FileNotFoundError:
+                    pass
+
+            if result is None:
+                from nuitka.Tracing import general
+
+                general.sysexit("Error, cannot detect Linux distribution.")
+
+        _linux_distribution_info = result.title(), version
+
+    return _linux_distribution_info
 
 
 def isDebianBasedLinux():
     # TODO: What is with Mint, maybe others, this list should be expanded potentially.
-    return getLinuxDistribution() in ("Debian", "Ubuntu")
+    dist_name, _dist_version = getLinuxDistribution()
+
+    return dist_name in ("Debian", "Ubuntu")
 
 
 def isWin32Windows():

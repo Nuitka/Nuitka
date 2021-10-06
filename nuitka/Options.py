@@ -491,10 +491,12 @@ def commentArgs():
 
     if (
         options.static_libpython == "auto"
+        and not shallUseStaticLibPython()
         and getSystemStaticLibPythonPath() is not None
     ):
         Tracing.options_logger.info(
-            "Detected static libpython to exist, consider '--static-libpython=yes' for better performance."
+            """Detected static libpython to exist, consider '--static-libpython=yes' for better performance, \
+but errors may happen."""
         )
 
 
@@ -732,7 +734,16 @@ def _shallUseStaticLibPython():
             return True
 
         # Debian packages with Python2 are usable, Python3 will follow eventually maybe.
-        if python_version < 0x300 and isDebianPackagePython() and not isPythonDebug():
+        from nuitka.utils.StaticLibraries import (
+            isDebianSuitableForStaticLinking,
+        )
+
+        if (
+            python_version < 0x300
+            and isDebianPackagePython()
+            and isDebianSuitableForStaticLinking()
+            and not isPythonDebug()
+        ):
             return True
 
         if isWin32Windows() and os.path.exists(
