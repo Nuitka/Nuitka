@@ -172,6 +172,9 @@ def _createNodeTree(filename):
     # Then optimize the tree and potentially recursed modules.
     Optimization.optimize(main_module.getOutputFilename())
 
+    # Allow plugins to comment on final module set.
+    Plugins.onModuleCompleteSet()
+
     if Options.isExperimental("check_xml_persistence"):
         for module in ModuleRegistry.getRootModules():
             if module.isMainModule():

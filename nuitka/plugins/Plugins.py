@@ -649,11 +649,24 @@ class Plugins(object):
 
     @staticmethod
     def onModuleInitialSet():
+        """The initial set of root modules is complete, plugins may add more."""
+
         from nuitka.ModuleRegistry import addRootModule
 
         for plugin in getActivePlugins():
             for module in plugin.onModuleInitialSet():
                 addRootModule(module)
+
+    @staticmethod
+    def onModuleCompleteSet():
+        """The final set of modules is determined, this is only for inspection, cannot change."""
+        from nuitka.ModuleRegistry import getDoneModules
+
+        # Make sure it's immutable.
+        module_set = tuple(getDoneModules())
+
+        for plugin in getActivePlugins():
+            plugin.onModuleCompleteSet(module_set)
 
     @staticmethod
     def considerFailedImportReferrals(module_name):
