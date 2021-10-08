@@ -190,6 +190,49 @@ def generateImportModuleNameHardCode(to_name, expression, emit, context):
         )
 
 
+def generateImportlibImportCallCode(to_name, expression, emit, context):
+    needs_check = expression.mayRaiseException(BaseException)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "imported_module", expression, emit, context
+    ) as value_name:
+        import_name, package_name = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+        emitLineNumberUpdateCode(expression, emit, context)
+
+        # TODO: The import name wouldn't have to be an object really, could do with a
+        # C string only.
+        emit(
+            """\
+{
+    PyObject *hard_module = IMPORT_HARD_IMPORTLIB();
+    PyObject *import_module_func = LOOKUP_ATTRIBUTE(hard_module, %(import_name)s);
+    %(to_name)s = %(call_code)s;
+    Py_DECREF(import_module_func);
+}
+"""
+            % {
+                "to_name": value_name,
+                "import_name": context.getConstantCode("import_module"),
+                "call_code": (
+                    "CALL_FUNCTION_WITH_SINGLE_ARG(import_module_func, %s)"
+                    % import_name
+                )
+                if package_name is None
+                else (
+                    "CALL_FUNCTION_WITH_ARG2(import_module_func, %s, %s)"
+                    % (import_name, package_name)
+                ),
+            }
+        )
+
+        getErrorExitCode(
+            check_name=value_name, needs_check=needs_check, emit=emit, context=context
+        )
+
+
 def generateImportStarCode(statement, emit, context):
     module_name = context.allocateTempName("star_imported")
 

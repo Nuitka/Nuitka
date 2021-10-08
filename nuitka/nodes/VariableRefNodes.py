@@ -179,6 +179,17 @@ class ExpressionVariableRefBase(ExpressionBase):
         return len_node, None, None
 
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
+        if self.variable_trace is not None and self.variable_trace.isAssignTrace():
+            value = self.variable_trace.getAssignNode().subnode_source
+
+            # TODO: It being escaped is no harm, push this to traces.
+            if value.isExpressionImportModuleHard():
+                return value.computeExpressionAttribute(
+                    lookup_node=lookup_node,
+                    attribute_name=attribute_name,
+                    trace_collection=trace_collection,
+                )
+
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 

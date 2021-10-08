@@ -157,6 +157,7 @@ from .IdCodes import generateBuiltinHashCode, generateBuiltinIdCode
 from .ImportCodes import (
     generateBuiltinImportCode,
     generateConstantSysVersionInfoCode,
+    generateImportlibImportCallCode,
     generateImportModuleHardCode,
     generateImportModuleNameHardCode,
     generateImportNameCode,
@@ -632,6 +633,8 @@ setExpressionDispatchDict(
         "EXPRESSION_FUNCTION_ERROR_STR": generateFunctionErrorStrCode,
         "EXPRESSION_IMPORT_MODULE_HARD": generateImportModuleHardCode,
         "EXPRESSION_IMPORT_MODULE_NAME_HARD": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_IMPORT_MODULE_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_IMPORT_MODULE_CALL": generateImportlibImportCallCode,
         "EXPRESSION_IMPORT_NAME": generateImportNameCode,
         "EXPRESSION_LIST_OPERATION_EXTEND": generateListOperationExtendCode,
         "EXPRESSION_LIST_OPERATION_EXTEND_FOR_UNPACK": generateListOperationExtendCode,
