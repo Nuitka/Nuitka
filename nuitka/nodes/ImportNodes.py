@@ -47,6 +47,10 @@ from nuitka.PythonVersions import (
     getImportlibSubPackages,
     python_version,
 )
+from nuitka.specs.BuiltinParameterSpecs import (
+    BuiltinParameterSpec,
+    extractBuiltinArgs,
+)
 from nuitka.Tracing import inclusion_logger, unusual_logger
 from nuitka.utils.FileOperations import relpath
 from nuitka.utils.ModuleNames import ModuleName
@@ -87,12 +91,15 @@ trust_exist = 2
 trust_future = trust_exist
 trust_importable = 3
 trust_node = 4
+trust_may_exist = 5
+trust_not_exist = 6
 
 trust_node_factory = {}
 
 module_importlib_trust = dict(
     (key, trust_importable) for key in getImportlibSubPackages()
 )
+
 module_sys_trust = {
     "version": trust_constant,
     "stdout": trust_exist,
@@ -104,6 +111,15 @@ if python_version < 0x270:
 else:
     module_sys_trust["version_info"] = trust_node
     trust_node_factory[("sys", "version_info")] = ExpressionConstantSysVersionInfoRef
+
+if python_version < 0x300:
+    module_sys_trust["exc_type"] = trust_may_exist
+    module_sys_trust["exc_value"] = trust_may_exist
+    module_sys_trust["exc_traceback"] = trust_may_exist
+else:
+    module_sys_trust["exc_type"] = trust_not_exist
+    module_sys_trust["exc_value"] = trust_not_exist
+    module_sys_trust["exc_traceback"] = trust_not_exist
 
 hard_modules_trust = {
     "os": {},
@@ -216,12 +232,17 @@ class ExpressionImportModuleHard(ExpressionBase):
                 # themselves yet. We do not have to indicate exception, but it makes no sense to annotate
                 # that here at this point.
                 trace_collection.onExceptionRaiseExit(BaseException)
-            elif not hasattr(self.module, attribute_name) and hard_modules_trust[
-                self.module_name
-            ].get(attribute_name, attribute_name):
+            elif trust is trust_may_exist:
+                trace_collection.onExceptionRaiseExit(BaseException)
+            elif (
+                not hasattr(self.module, attribute_name)
+                and trust is not trust_undefined
+            ):
+                # TODO: Unify with below branches.
+
                 new_node = makeRaiseExceptionReplacementExpression(
                     expression=lookup_node,
-                    exception_type="ImportError",
+                    exception_type="AttributeError",
                     exception_value=self._getImportNameErrorString(
                         self.module, self.module_name, attribute_name
                     ),
@@ -335,6 +356,65 @@ class ExpressionImportModuleNameHard(ExpressionBase):
 
     def mayRaiseException(self, exception_type):
         return self.trust is None
+
+
+importlib_import_module_spec = BuiltinParameterSpec(
+    "importlib.import_module", ("name", "package"), default_count=1
+)
+
+
+class ExpressionImportlibImportModuleRef(ExpressionImportModuleNameHard):
+    kind = "EXPRESSION_IMPORTLIB_IMPORT_MODULE_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHard.__init__(
+            self,
+            module_name="importlib",
+            import_name="import_module",
+            source_ref=source_ref,
+        )
+
+    @staticmethod
+    def getDetails():
+        return {}
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibImportModuleCall,
+            builtin_spec=importlib_import_module_spec,
+        )
+
+        return result, "new_expression", "Call to 'importlib.import_module' resolved."
+
+
+class ExpressionImportlibImportModuleCall(ExpressionChildrenHavingBase):
+    """Call to "importlib.import_module" """
+
+    kind = "EXPRESSION_IMPORTLIB_IMPORT_MODULE_CALL"
+
+    named_children = "name", "package"
+
+    def __init__(self, name, package, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self, values={"name": name, "package": package}, source_ref=source_ref
+        )
+
+    def computeExpression(self, trace_collection):
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Importing may raise an exception obviously, unless we know it will
+        # not.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: May return a module or module variable reference of some sort in
+        # the future with embedded modules.
+        return self, None, None
+
+
+module_importlib_trust["import_module"] = trust_node
+trust_node_factory[("importlib", "import_module")] = ExpressionImportlibImportModuleRef
 
 
 class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
