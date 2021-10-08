@@ -311,6 +311,19 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use
         return ()
 
+    def onModuleCompleteSet(self, module_set):
+        """Provide extra modules to the initial root module set.
+
+        Args:
+            module_set - tuple of module objects
+        Returns:
+            None
+        Notes:
+            You must not change anything, this is purely for warning
+            and error checking, and potentially for later stages to
+            prepare.
+        """
+
     @staticmethod
     def locateModule(importing, module_name):
         """Provide a filename / -path for a to-be-imported module.

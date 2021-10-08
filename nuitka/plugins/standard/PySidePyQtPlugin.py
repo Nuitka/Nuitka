@@ -740,22 +740,6 @@ if not path.startswith(__nuitka_binary_dir):
                             yield sub_dll_filename
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
-        if module_name in _qt_binding_names and module_name != self.binding_name:
-            self.warning(
-                """\
-Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encountered. Use \
-'--nofollow-import-to=%(unwanted)s' or uninstall it."""
-                % {"unwanted": module_name, "binding_name": self.binding_name}
-            )
-
-        if module_name in _other_gui_binding_names:
-            self.warning(
-                """\
-Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encountered. Use \
-'--nofollow-import-to=%(unwanted)s' or uninstall it."""
-                % {"unwanted": module_name, "binding_name": self.binding_name}
-            )
-
         top_package_name = module_name.getTopLevelPackageName()
 
         if isStandaloneMode():
@@ -763,10 +747,38 @@ Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encount
                 top_package_name in _qt_binding_names
                 and top_package_name != self.binding_name
             ):
+                self.info(
+                    """\
+Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encountered, preventing
+its use. As a result an "ImportError" might be given at run time. Uninstall it for full compatible
+behaviour with the uncompiled code to debug it."""
+                    % {"unwanted": module_name, "binding_name": self.binding_name}
+                )
+
                 return (
                     False,
                     "Not included due to potentially conflicting Qt versions with selected Qt binding '%s'."
                     % self.binding_name,
+                )
+
+    def onModuleCompleteSet(self, module_set):
+        for module in module_set:
+            module_name = module.getFullName()
+
+            if module_name in _qt_binding_names and module_name != self.binding_name:
+                self.warning(
+                    """\
+Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encountered. Use \
+'--nofollow-import-to=%(unwanted)s' or uninstall it."""
+                    % {"unwanted": module_name, "binding_name": self.binding_name}
+                )
+
+            if module_name in _other_gui_binding_names:
+                self.warning(
+                    """\
+Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encountered. Use \
+'--nofollow-import-to=%(unwanted)s' or uninstall it."""
+                    % {"unwanted": module_name, "binding_name": self.binding_name}
                 )
 
     def onModuleSourceCode(self, module_name, source_code):
