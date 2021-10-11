@@ -190,6 +190,9 @@ onefile_compression = getArgumentBool("onefile_compression", False)
 # Onefile bootstrap is opptional.
 onefile_splash_screen = getArgumentBool("onefile_splash_screen", False)
 
+# Minimum version required on macOS.
+macos_minversion = getArgumentDefaulted("macos_minversion", "")
+
 if getArgumentBool("progress_bar", True):
     enableSconsProgressBar()
 
@@ -314,6 +317,7 @@ env.standalone_mode = True  # We are only used in this case.
 env.debug_mode = debug_mode
 env.source_dir = source_dir
 env.low_memory = False  # Never a concern in this case.
+env.macos_minversion = macos_minversion
 
 scons_logger.info("Backend C compiler: %s (%s)." % (the_compiler, env.the_cc_name))
 

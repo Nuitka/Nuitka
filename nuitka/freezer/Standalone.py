@@ -853,8 +853,8 @@ def _detectBinaryRPathsMacOS(original_dir, binary_filename):
 
     lines = stdout.split(b"\n")
 
-    for i, o in enumerate(lines):
-        if o.endswith(b"cmd LC_RPATH"):
+    for i, line in enumerate(lines):
+        if line.endswith(b"cmd LC_RPATH"):
             line = lines[i + 2]
             if str is not bytes:
                 line = line.decode("utf8")

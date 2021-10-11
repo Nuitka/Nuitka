@@ -20,6 +20,7 @@
 """
 
 import os
+import subprocess
 import sys
 
 from nuitka import Options
@@ -27,7 +28,11 @@ from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
-from .Execution import executeToolChecked, withEnvironmentVarOverriden
+from .Execution import (
+    executeToolChecked,
+    getNullInput,
+    withEnvironmentVarOverriden,
+)
 from .FileOperations import withMadeWritableFileMode
 from .Utils import isAlpineLinux, isMacOS, isWin32Windows
 from .WindowsResources import (
@@ -387,3 +392,43 @@ def getPyWin32Dir():
 
         if os.path.isdir(candidate):
             return candidate
+
+
+def detectBinaryMinMacOS(binary_filename):
+    """Detect the minimum required macOS version of a binary.
+
+    Args:
+        binary_filename - path of the binary to check
+
+    Returns:
+        str - minimum OS version that the binary will run on
+
+    """
+    process = subprocess.Popen(
+        args=["otool", "-l", binary_filename],
+        stdin=getNullInput(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    stdout, _stderr = process.communicate()
+
+    lines = stdout.split(b"\n")
+
+    for i, line in enumerate(lines):
+        # Form one, used by CPython builds.
+        if line.endswith(b"cmd LC_VERSION_MIN_MACOSX"):
+            line = lines[i + 2]
+            if str is not bytes:
+                line = line.decode("utf8")
+
+            return line.split("version ", 1)[1]
+
+        # Form two, used by Apple Python builds.
+        elif line.strip().startswith(b"minos"):
+            if str is not bytes:
+                line = line.decode("utf8")
+
+            return line.split("minos ", 1)[1]
+
+    return None

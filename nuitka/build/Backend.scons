@@ -285,6 +285,9 @@ assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 # Low memory mode, compile using less memory if possible.
 low_memory_mode = getArgumentBool("low_memory", False)
 
+# Minimum version required on macOS.
+macos_minversion = getArgumentDefaulted("macos_minversion", "")
+
 if getArgumentBool("progress_bar", True):
     enableSconsProgressBar()
 
@@ -373,6 +376,7 @@ env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
 env.source_dir = source_dir
 env.low_memory = low_memory_mode
+env.macos_minversion = macos_minversion
 
 scons_logger.info("Backend C compiler: %s (%s)." % (the_compiler, env.the_cc_name))
 

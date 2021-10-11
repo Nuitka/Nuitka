@@ -40,6 +40,7 @@ from nuitka.utils.FileOperations import (
     hasFilenameExtension,
     listDir,
 )
+from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
 
 from .SconsCaching import checkCachingSuccess
 
@@ -350,6 +351,7 @@ def cleanSconsDirectory(source_dir):
 def setCommonOptions(options):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
+    # pylint: disable=too-many-branches
 
     if Options.shallRunInDebugger():
         options["full_names"] = "true"
@@ -394,3 +396,18 @@ def setCommonOptions(options):
     link_libraries = Plugins.getExtraLinkLibraries()
     if link_libraries:
         options["link_libraries"] = ",".join(link_libraries)
+
+    if Utils.isMacOS() and Options.isStandaloneMode():
+        macos_minversion = os.environ.get("MACOSX_DEPLOYMENT_TARGET")
+        if macos_minversion is None:
+            macos_minversion = detectBinaryMinMacOS(sys.executable)
+
+            if macos_minversion is None:
+                Tracing.general.warning(
+                    "Could not detect minimum macOS version for %r." % sys.executable
+                )
+
+                # Default, but not a good idea.
+                macos_minversion = "10.9"
+
+        options["macos_minversion"] = macos_minversion
