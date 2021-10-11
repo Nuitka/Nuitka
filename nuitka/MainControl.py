@@ -819,6 +819,12 @@ def main():
             onefile=Options.isOnefileMode()
         )
 
+        if "macos_minversion" in options:
+            general.info(
+                "Created binary that runs on macOS %s or higher."
+                % options["macos_minversion"]
+            )
+
         Plugins.onFinalResult(final_filename)
 
         general.info("Successfully created %r." % final_filename)

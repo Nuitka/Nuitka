@@ -449,9 +449,5 @@ def setupCCompiler(env):
             env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
     # Support for macOS standalone backporting.
-    if isMacOS():
-        if "MACOSX_DEPLOYMENT_TARGET" not in os.environ:
-            # TODO: Provide the value to use by checking "sys.executable", this is what
-            # 3.9 officially supports from CPython, but system Python won't really do
-            # it, but CPython is the recommended one anyway.
-            setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", "10.9")
+    if isMacOS() and env.macos_minversion:
+        setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_minversion)
