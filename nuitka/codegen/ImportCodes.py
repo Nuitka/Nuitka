@@ -126,11 +126,32 @@ def _getBuiltinImportCode(
     )
 
 
+def generateImportModuleFixedCode(to_name, expression, emit, context):
+    module_name = expression.getModuleName()
+    needs_check = expression.mayRaiseException(BaseException)
+
+    if needs_check:
+        emitLineNumberUpdateCode(expression, emit, context)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "imported_value", expression, emit, context
+    ) as value_name:
+        emit(
+            """%s = IMPORT_MODULE1(%s);"""
+            % (value_name, context.getConstantCode(module_name.asString()))
+        )
+
+        getErrorExitCode(
+            check_name=value_name, needs_check=needs_check, emit=emit, context=context
+        )
+
+
 def generateImportModuleHardCode(to_name, expression, emit, context):
     module_name = expression.getModuleName()
     needs_check = expression.mayRaiseException(BaseException)
 
-    emitLineNumberUpdateCode(expression, emit, context)
+    if needs_check:
+        emitLineNumberUpdateCode(expression, emit, context)
 
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
