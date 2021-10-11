@@ -40,6 +40,7 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
+    getCoreCount,
     getOS,
     hasOnefileSupportedOS,
     isMacOS,
@@ -806,6 +807,12 @@ def isShowScons():
 
 def getJobLimit():
     """*int*, value of "--jobs" / "-j" or number of CPU kernels"""
+    if options.jobs is None:
+        if options.low_memory:
+            return 1
+        else:
+            return getCoreCount()
+
     return int(options.jobs)
 
 
@@ -1268,3 +1275,8 @@ def getForcedStderrPath():
 def shallPersistModifications():
     """*bool* write plugin source changes to disk"""
     return options is not None and options.persist_source_changes
+
+
+def isLowMemory():
+    """*bool* low memory usage requested"""
+    return options.low_memory

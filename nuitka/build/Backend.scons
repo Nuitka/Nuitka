@@ -279,7 +279,11 @@ link_libraries = getArgumentList("link_libraries", "")
 # only.
 compiler_version_mode = getArgumentBool("compiler_version", False)
 
+# Allow automatic downloads for ccache, etc.
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
+
+# Low memory mode, compile using less memory if possible.
+low_memory_mode = getArgumentBool("low_memory", False)
 
 if getArgumentBool("progress_bar", True):
     enableSconsProgressBar()
@@ -368,7 +372,7 @@ env.the_cc_name = os.path.normcase(os.path.basename(the_compiler))
 env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
 env.source_dir = source_dir
-env.low_memory = False  # TODO: Have a low_memory_mode passed.
+env.low_memory = low_memory_mode
 
 scons_logger.info("Backend C compiler: %s (%s)." % (the_compiler, env.the_cc_name))
 
