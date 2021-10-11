@@ -42,6 +42,7 @@ from nuitka.utils.Utils import (
     getArchitecture,
     getOS,
     hasOnefileSupportedOS,
+    isMacOS,
     isWin32Windows,
 )
 
@@ -756,7 +757,7 @@ def _shallUseStaticLibPython():
         if (
             os.path.exists(os.path.join(sys.prefix, "conda-meta"))
             and not isWin32Windows()
-            and not getOS() == "Darwin"
+            and not isMacOS()
         ):
             return True
 

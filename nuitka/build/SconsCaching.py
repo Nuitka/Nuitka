@@ -36,7 +36,7 @@ from nuitka.utils.FileOperations import (
     makePath,
 )
 from nuitka.utils.Importing import importFromInlineCopy
-from nuitka.utils.Utils import getOS, isWin32Windows
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 from .SconsUtils import (
     getExecutablePath,
@@ -68,7 +68,7 @@ def _getCcacheGuessedPaths(python_prefix):
             yield os.path.join(python_dir, "bin", "ccache.exe")
             yield os.path.join(python_dir, "scripts", "ccache.exe")
 
-    elif getOS() == "Darwin":
+    elif isMacOS():
         # For macOS, we might find Homebrew ccache installed but not in PATH.
         yield "/usr/local/opt/ccache"
 
@@ -98,7 +98,7 @@ def _injectCcache(
                     break
 
         if ccache_binary is None:
-            if getOS() == "Windows" and isWin32Windows():
+            if isWin32Windows():
                 url = "https://github.com/ccache/ccache/releases/download/v3.7.12/ccache-3.7.12-windows-32.zip"
                 ccache_binary = getCachedDownload(
                     url=url,
@@ -110,7 +110,7 @@ def _injectCcache(
                     reject=None,
                     assume_yes_for_downloads=assume_yes_for_downloads,
                 )
-            elif getOS() == "Darwin":
+            elif isMacOS():
                 # TODO: Do not yet have M1 access to create one and 10.14 is minimum
                 # we managed to compile ccache for.
                 if target_arch != "arm64" and tuple(

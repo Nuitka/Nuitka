@@ -1072,7 +1072,7 @@ def detectBinaryDLLs(
                 use_cache=use_cache,
                 update_cache=update_cache,
             )
-    elif Utils.getOS() == "Darwin":
+    elif Utils.isMacOS():
         return _detectBinaryPathDLLsMacOS(
             original_dir=os.path.dirname(original_filename),
             binary_filename=original_filename,
@@ -1309,7 +1309,7 @@ different from
                 % (dll_filename, ", ".join(sources))
             )
 
-    if Utils.getOS() == "Darwin":
+    if Utils.isMacOS():
         # For macOS, the binary and the DLLs needs to be changed to reflect
         # the relative DLL location in the ".dist" folder.
         for standalone_entry_point in standalone_entry_points:
@@ -1339,7 +1339,7 @@ different from
     if Utils.getOS() in ("Linux", "Darwin"):
         # For Linux, the "rpath" of libraries may be an issue and must be
         # removed.
-        if Utils.getOS() == "Darwin":
+        if Utils.isMacOS():
             start = 0
         else:
             start = 1

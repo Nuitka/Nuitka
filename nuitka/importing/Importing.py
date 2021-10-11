@@ -54,6 +54,7 @@ from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Utils import getOS, isMacOS
 
 from .IgnoreListing import isIgnoreListedNotExistingModule
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
@@ -312,7 +313,7 @@ def findModule(importing, module_name, parent_package, level, warn):
 
 
 # Some platforms are case insensitive.
-case_sensitive = not sys.platform.startswith(("win", "cygwin", "darwin"))
+case_sensitive = not isMacOS() and getOS() != "Windows"
 
 ImportScanFinding = collections.namedtuple(
     "ImportScanFinding", ("found_in", "priority", "full_path", "search_order")

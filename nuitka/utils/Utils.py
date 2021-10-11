@@ -114,6 +114,11 @@ def isPosixWindows():
     return os.name == "posix" and getOS() == "Windows"
 
 
+def isMacOS():
+    """The macOS platform."""
+    return getOS() == "Darwin"
+
+
 _is_alpine = None
 
 

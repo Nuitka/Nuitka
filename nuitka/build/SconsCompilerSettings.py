@@ -24,6 +24,7 @@ import re
 
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Download import getCachedDownload
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 from .DataComposerInterface import getConstantBlobFilename
 from .SconsHacks import myDetectVersion
@@ -37,10 +38,11 @@ from .SconsUtils import (
     getMsvcVersionString,
     isGccName,
     raiseNoCompilerFoundErrorExit,
+    setEnvironmentVariable,
 )
 
 
-def enableC11Settings(env, clangcl_mode, msvc_mode, clang_mode, gcc_mode, gcc_version):
+def enableC11Settings(env, clangcl_mode, msvc_mode, clang_mode, gcc_version):
     """Decide if C11 mode can be used and enable the C compile flags for it.
 
     Args:
@@ -63,13 +65,13 @@ def enableC11Settings(env, clangcl_mode, msvc_mode, clang_mode, gcc_mode, gcc_ve
         # float(env.get("MSVS_VERSION", "0")) >= 14.2
     elif clang_mode:
         c11_mode = True
-    elif gcc_mode and gcc_version >= (5,):
+    elif env.gcc_mode and gcc_version >= (5,):
         c11_mode = True
     else:
         c11_mode = False
 
     if c11_mode:
-        if gcc_mode:
+        if env.gcc_mode:
             env.Append(CCFLAGS=["-std=c11"])
         elif msvc_mode:
             env.Append(CCFLAGS=["/std:c11"])
@@ -82,7 +84,6 @@ def enableLtoSettings(
     lto_mode,
     pgo_mode,
     msvc_mode,
-    gcc_mode,
     clang_mode,
     nuitka_python,
     debian_python,
@@ -110,14 +111,14 @@ def enableLtoSettings(
     elif debian_python:
         lto_mode = True
         reason = "known to be supported (Debian)"
-    elif gcc_mode and env.the_cc_name == "gnu-cc":
+    elif env.gcc_mode and env.the_cc_name == "gnu-cc":
         lto_mode = True
         reason = "known to be supported (CondaCC)"
     else:
         lto_mode = False
         reason = "not known to be supported"
 
-    if gcc_mode and lto_mode:
+    if env.gcc_mode and lto_mode:
         env.Append(CCFLAGS=["-flto"])
 
         if clang_mode:
@@ -271,9 +272,7 @@ def decideConstantsBlobResourceMode(gcc_mode, clang_mode, lto_mode):
     return resource_mode, reason
 
 
-def addConstantBlobFile(
-    env, resource_desc, source_dir, c11_mode, mingw_mode, target_arch
-):
+def addConstantBlobFile(env, resource_desc, source_dir, mingw_mode, target_arch):
     resource_mode, reason = resource_desc
 
     constants_bin_filename = getConstantBlobFilename(source_dir)
@@ -338,7 +337,7 @@ unsigned char const *getConstantsBlobData() {
 
         def writeConstantsDataSource():
             with open(constants_generated_filename, "w") as output:
-                if not c11_mode:
+                if not env.c11_mode:
                     output.write('extern "C" {')
 
                 output.write(
@@ -367,7 +366,7 @@ unsigned char constant_bin_data[] =\n{\n
 
                 output.write("\n};\n")
 
-                if not c11_mode:
+                if not env.c11_mode:
                     output.write("}")
 
         writeConstantsDataSource()
@@ -407,3 +406,52 @@ def enableExperimentalSettings(env, experimental_flags):
                 env.Append(CPPDEFINES=[("_NUITKA_EXPERIMENTAL_%s" % experiment, value)])
             else:
                 env.Append(CPPDEFINES=["_NUITKA_EXPERIMENTAL_%s" % experiment])
+
+
+def setupCCompiler(env):
+    if env.gcc_mode:
+        # Support for gcc and clang, restricting visibility as much as possible.
+        env.Append(CCFLAGS=["-fvisibility=hidden"])
+
+        if not env.c11_mode:
+            env.Append(CXXFLAGS=["-fvisibility-inlines-hidden"])
+
+        if isWin32Windows():
+            # On Windows, exporting to DLL need to be controlled.
+            env.Append(LINKFLAGS=["-Wl,--exclude-all-symbols"])
+
+            # Make sure we handle import library on our own and put it into the
+            # build directory.
+            env.Append(
+                LINKFLAGS=[
+                    "-Wl,--out-implib,%s" % os.path.join(env.source_dir, "import.lib")
+                ]
+            )
+
+        # Make it clear how to handle integer overflows, namely by wrapping around
+        # to negative values.
+        env.Append(CCFLAGS=["-fwrapv"])
+
+        if not env.low_memory:
+            # Avoid IO for compilation as much as possible, this should make the
+            # compilation more memory hungry, but also faster.
+            env.Append(CCFLAGS="-pipe")
+
+    # Support for clang.
+    if "clang" in env.the_cc_name:
+        env.Append(CCFLAGS=["-w"])
+        env.Append(CPPDEFINES=["_XOPEN_SOURCE"])
+
+        # Don't export anything by default, this should create smaller executables.
+        env.Append(CCFLAGS=["-fvisibility=hidden", "-fvisibility-inlines-hidden"])
+
+        if env.debug_mode:
+            env.Append(CCFLAGS=["-Wunused-but-set-variable"])
+
+    # Support for macOS standalone backporting.
+    if isMacOS():
+        if "MACOSX_DEPLOYMENT_TARGET" not in os.environ:
+            # TODO: Provide the value to use by checking "sys.executable", this is what
+            # 3.9 officially supports from CPython, but system Python won't really do
+            # it, but CPython is the recommended one anyway.
+            setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", "10.9")

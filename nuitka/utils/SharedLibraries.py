@@ -29,7 +29,7 @@ from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
 from .Execution import executeToolChecked, withEnvironmentVarOverriden
 from .FileOperations import withMadeWritableFileMode
-from .Utils import getOS, isAlpineLinux, isWin32Windows
+from .Utils import isAlpineLinux, isMacOS, isWin32Windows
 from .WindowsResources import (
     RT_MANIFEST,
     VsFixedFileInfoStructure,
@@ -60,7 +60,7 @@ def locateDLL(dll_name):
     if isWin32Windows():
         return os.path.normpath(dll_name)
 
-    if getOS() == "Darwin":
+    if isMacOS():
         return dll_name
 
     if os.path.sep in dll_name:
@@ -275,7 +275,7 @@ def _getSharedLibraryRPATHDarwin(filename):
 
 
 def getSharedLibraryRPATH(filename):
-    if getOS() == "Darwin":
+    if isMacOS():
         return _getSharedLibraryRPATHDarwin(filename)
     else:
         return _getSharedLibraryRPATHElf(filename)
@@ -324,7 +324,7 @@ def removeSharedLibraryRPATH(filename):
             )
 
         with withMadeWritableFileMode(filename):
-            if getOS() == "Darwin":
+            if isMacOS():
                 return _removeSharedLibraryRPATHDarwin(filename, rpath)
             else:
                 return _removeSharedLibraryRPATHElf(filename)
