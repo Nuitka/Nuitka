@@ -625,6 +625,17 @@ debug_group.add_option(
     help=SUPPRESS_HELP,
 )
 
+debug_group.add_option(
+    "--low-memory",
+    action="store_true",
+    dest="low_memory",
+    default=False,
+    help="""\
+Attempt to use less memory, by forking less C compilation jobs and using
+options that use less memory. For use on embedded machines. Use this in
+case of out of memory problems. Defaults to off.""",
+)
+
 if os.name == "nt":
     debug_group.add_option(
         "--disable-dll-dependency-cache",
@@ -704,7 +715,7 @@ c_compiler_group.add_option(
     action="store",
     dest="jobs",
     metavar="N",
-    default=Utils.getCoreCount(),
+    default=None,
     help="""\
 Specify the allowed number of parallel C compiler jobs. Defaults to the
 system CPU count.""",

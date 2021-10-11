@@ -454,6 +454,9 @@ def runSconsBackend(quiet):
         ),
     }
 
+    if Options.isLowMemory():
+        options["low_memory"] = asBoolStr(True)
+
     if not Options.shallMakeModule():
         options["result_exe"] = OutputDirectories.getResultFullpath(onefile=False)
 
