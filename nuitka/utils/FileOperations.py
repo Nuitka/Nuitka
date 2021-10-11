@@ -531,7 +531,7 @@ def copyTree(source_path, dest_path):
         dest_path: where to copy to, may already exist
 
     Notes:
-        This must be used over `shutil.copytree` which as troubles
+        This must be used over `shutil.copytree` which has troubles
         with existing directories.
     """
 

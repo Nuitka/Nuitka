@@ -274,11 +274,14 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                 data_dirs = (data_dirs,)
 
             for data_dir in data_dirs:
-                yield makeIncludedDataDirectory(
-                    source_path=os.path.join(module_folder, data_dir),
-                    dest_path=os.path.join(module_name.asPath(), data_dir),
-                    reason="package data directory for %r" % module_name.asString(),
-                )
+                source_path = os.path.join(module_folder, data_dir)
+
+                if os.path.isdir(source_path):
+                    yield makeIncludedDataDirectory(
+                        source_path=source_path,
+                        dest_path=os.path.join(module_name.asPath(), data_dir),
+                        reason="package data directory for %r" % module_name.asString(),
+                    )
 
         if module_name in self.known_data_dir_structure:
             empty_dirs = self.known_data_dir_structure[module_name]
