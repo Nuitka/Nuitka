@@ -21,13 +21,13 @@
 
 from nuitka.Tracing import printLine
 
-from .Utils import getOS
+from .Utils import isMacOS, isWin32Windows
 
 
 def getOwnProcessMemoryUsage():
     """Memory usage of own process in bytes."""
 
-    if getOS() == "Windows":
+    if isWin32Windows():
         # adapted from http://code.activestate.com/recipes/578513
         import ctypes.wintypes
 
@@ -72,7 +72,7 @@ def getOwnProcessMemoryUsage():
 
         # The value is from "getrusage", which has OS dependent scaling, at least
         # macOS and Linux are different. Others maybe too.
-        if getOS() == "Darwin":
+        if isMacOS():
             factor = 1
         else:
             factor = 1024

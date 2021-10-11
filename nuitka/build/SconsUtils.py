@@ -253,7 +253,7 @@ def addToPATH(env, dirname, prefix):
     setEnvironmentVariable(env, "PATH", os.pathsep.join(path_value))
 
 
-def writeSconsReport(source_dir, env, gcc_mode, clang_mode, msvc_mode, clangcl_mode):
+def writeSconsReport(source_dir, env, clang_mode, msvc_mode, clangcl_mode):
     with open(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
         # We are friends to get at this debug info, pylint: disable=protected-access
         for key, value in sorted(env._dict.items()):
@@ -271,7 +271,7 @@ def writeSconsReport(source_dir, env, gcc_mode, clang_mode, msvc_mode, clangcl_m
 
             print(key + "=" + value, file=report_file)
 
-        print("gcc_mode=%s" % gcc_mode, file=report_file)
+        print("gcc_mode=%s" % env.gcc_mode, file=report_file)
         print("clang_mode=%s" % clang_mode, file=report_file)
         print("msvc_mode=%s" % msvc_mode, file=report_file)
         print("clangcl_mode=%s" % clangcl_mode, file=report_file)
@@ -401,7 +401,7 @@ def provideStaticSourceFile(sub_path, nuitka_src, source_dir, c11_mode):
     return target_filename
 
 
-def scanSourceDir(env, c11_mode, dirname, plugins):
+def scanSourceDir(env, dirname, plugins):
     if not os.path.exists(dirname):
         return
 
@@ -426,7 +426,7 @@ def scanSourceDir(env, c11_mode, dirname, plugins):
         target_file = filename
 
         # We pretend to use C++ if no C11 compiler is present.
-        if c11_mode:
+        if env.c11_mode:
             yield filename
         else:
             if filename.endswith(".c"):

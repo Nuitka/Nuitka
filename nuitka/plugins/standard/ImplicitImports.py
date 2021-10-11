@@ -33,7 +33,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import getPyWin32Dir, locateDLL
-from nuitka.utils.Utils import getOS, isWin32Windows
+from nuitka.utils.Utils import getOS, isMacOS, isWin32Windows
 
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
@@ -1025,7 +1025,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pyglet.text"
             yield "pyglet.window"
         elif full_name in ("pynput.keyboard", "pynput.mouse"):
-            if getOS() == "Darwin":
+            if isMacOS():
                 yield full_name.getChildNamed("_darwin")
             elif isWin32Windows():
                 yield full_name.getChildNamed("_win32")
@@ -1101,7 +1101,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                         if getOS() == "Linux":
                             yield plugin_name_part
                     elif os_part.startswith("darwin"):
-                        if getOS() == "Darwin":
+                        if isMacOS():
                             yield plugin_name_part
                     elif os_part.startswith(("posix", "osmesa", "egl")):
                         if getOS() != "Windows":
