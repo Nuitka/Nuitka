@@ -324,6 +324,7 @@ setup(
             "Backend.scons",
             "Onefile.scons",
             "static_src/*.c",
+            "static_src/*.cpp",
             "static_src/*/*.c",
             "static_src/*/*.h",
             "inline_copy/zstd/*.h",
