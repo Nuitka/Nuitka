@@ -572,7 +572,10 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
         return call_node, None, None
 
     def hasShapeDictionaryExact(self):
-        return self.variable_trace.hasShapeDictionaryExact()
+        return (
+            self.variable_trace is not None
+            and self.variable_trace.hasShapeDictionaryExact()
+        )
 
     def getTruthValue(self):
         return self.variable_trace.getTruthValue()

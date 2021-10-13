@@ -198,7 +198,7 @@ def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
         result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=value_node)
 
     else:
-        from .AttributeNodes import ExpressionAttributeLookup
+        from .AttributeNodes import makeExpressionAttributeLookup
         from .TypeNodes import ExpressionBuiltinType1
 
         source_ref = original_node.getSourceReference()
@@ -206,7 +206,7 @@ def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
         result = makeRaiseExceptionExpressionFromTemplate(
             exception_type="TypeError",
             template="object of type '%s' has no len()",
-            template_args=ExpressionAttributeLookup(
+            template_args=makeExpressionAttributeLookup(
                 expression=ExpressionBuiltinType1(
                     value=value_node.makeClone(), source_ref=source_ref
                 ),

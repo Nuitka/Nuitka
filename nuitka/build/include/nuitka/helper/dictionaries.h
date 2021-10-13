@@ -356,4 +356,12 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_
     }
 }
 
+#if PYTHON_VERSION < 0x300
+// Python2 dictionary items, return a list of key/value tuples
+extern PyObject *DICT_ITEMS(PyObject *dict);
+#endif
+
+// Python3 dictionary items, Python2 iteritems returns dictionary items iterator
+extern PyObject *DICT_ITERITEMS(PyObject *dict);
+
 #endif

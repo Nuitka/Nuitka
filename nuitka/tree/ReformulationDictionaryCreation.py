@@ -32,7 +32,7 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable,
 )
-from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -161,7 +161,7 @@ def getDictUnpackingHelper():
                             ),
                             right=makeExpressionMakeTuple(
                                 elements=(
-                                    ExpressionAttributeLookup(
+                                    makeExpressionAttributeLookup(
                                         expression=ExpressionBuiltinType1(
                                             value=ExpressionTempVariableRef(
                                                 variable=tmp_item_variable,
