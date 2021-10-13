@@ -272,11 +272,19 @@ class ValueTraceInitStarArgs(ValueTraceInit):
     def getTypeShape():
         return tshape_tuple
 
+    @staticmethod
+    def hasShapeDictionaryExact():
+        return False
+
 
 class ValueTraceInitStarDict(ValueTraceInit):
     @staticmethod
     def getTypeShape():
         return tshape_dict
+
+    @staticmethod
+    def hasShapeDictionaryExact():
+        return True
 
 
 class ValueTraceUnknown(ValueTraceBase):
