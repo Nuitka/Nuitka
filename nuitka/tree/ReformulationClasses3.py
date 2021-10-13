@@ -29,8 +29,8 @@ from nuitka.nodes.AssignNodes import (
 )
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeCheck,
-    ExpressionAttributeLookup,
     ExpressionBuiltinGetattr,
+    makeExpressionAttributeLookup,
 )
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
@@ -477,7 +477,7 @@ def buildClassNode3(provider, node, source_ref):
     call_prepare = StatementAssignmentVariable(
         variable=tmp_prepared,
         source=makeExpressionCall(
-            called=ExpressionAttributeLookup(
+            called=makeExpressionAttributeLookup(
                 expression=ExpressionTempVariableRef(
                     variable=tmp_metaclass, source_ref=source_ref
                 ),
@@ -529,7 +529,7 @@ def buildClassNode3(provider, node, source_ref):
                             ),
                             source_ref=source_ref,
                         ),
-                        ExpressionAttributeLookup(
+                        makeExpressionAttributeLookup(
                             expression=ExpressionBuiltinType1(
                                 value=ExpressionTempVariableRef(
                                     variable=tmp_prepared, source_ref=source_ref
@@ -691,7 +691,7 @@ def getClassBasesMroConversionHelper():
                     variable=tmp_result_variable, source_ref=internal_source_ref
                 ),
                 value=makeExpressionCall(
-                    called=ExpressionAttributeLookup(
+                    called=makeExpressionAttributeLookup(
                         expression=ExpressionTempVariableRef(
                             variable=tmp_item_variable, source_ref=internal_source_ref
                         ),

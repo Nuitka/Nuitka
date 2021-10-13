@@ -24,7 +24,7 @@ import os
 
 from nuitka import Options
 from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
-from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import (
@@ -54,7 +54,7 @@ from .VariableClosure import completeVariableClosures
 
 def _makeCall(module_name, import_name, attribute_name, source_ref, *args):
     return ExpressionCallNoKeywords(
-        called=ExpressionAttributeLookup(
+        called=makeExpressionAttributeLookup(
             expression=ExpressionImportModuleNameHard(
                 module_name=module_name, import_name=import_name, source_ref=source_ref
             ),
@@ -86,7 +86,7 @@ def getNameSpacePathExpression(package, source_ref):
     else:
         elements = [
             ExpressionCallNoKeywords(
-                called=ExpressionAttributeLookup(
+                called=makeExpressionAttributeLookup(
                     expression=ExpressionImportModuleNameHard(
                         module_name="os", import_name="path", source_ref=source_ref
                     ),

@@ -27,7 +27,7 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariableName,
     StatementReleaseVariable,
 )
-from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinAnonymousRef
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import ExpressionClassBody
@@ -199,7 +199,7 @@ def buildClassNode2(provider, node, source_ref):
                 tried=StatementTry(
                     tried=makeStatementsSequenceFromStatement(
                         statement=StatementReturn(
-                            expression=ExpressionAttributeLookup(
+                            expression=makeExpressionAttributeLookup(
                                 expression=ExpressionTempVariableRef(
                                     variable=tmp_base, source_ref=source_ref
                                 ),
