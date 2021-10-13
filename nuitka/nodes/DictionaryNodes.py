@@ -26,7 +26,7 @@ that is the child of the dictionary creation.
 from nuitka import Constants
 from nuitka.PythonVersions import python_version
 
-from .AttributeNodes import ExpressionAttributeLookup
+from .AttributeNodes import makeExpressionAttributeLookup
 from .BuiltinHashNodes import ExpressionBuiltinHash
 from .ConstantRefNodes import (
     ExpressionConstantDictEmptyRef,
@@ -46,7 +46,8 @@ from .NodeMakingHelpers import (
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_dict
+from .shapes.BuiltinTypeShapes import tshape_dict, tshape_list
+from .shapes.StandardShapes import tshape_iterator
 from .TypeNodes import ExpressionBuiltinType1
 
 
@@ -206,7 +207,7 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildHavingBase
                 result = makeRaiseExceptionExpressionFromTemplate(
                     exception_type="TypeError",
                     template="unhashable type: '%s'",
-                    template_args=ExpressionAttributeLookup(
+                    template_args=makeExpressionAttributeLookup(
                         expression=ExpressionBuiltinType1(
                             value=key.extractUnhashableNode(), source_ref=key.source_ref
                         ),
@@ -464,6 +465,64 @@ class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+
+class ExpressionDictOperationItems(ExpressionChildHavingBase):
+    kind = "EXPRESSION_DICT_OPERATION_ITEMS"
+
+    named_child = "dict_arg"
+
+    def __init__(self, dict_arg, source_ref):
+        assert dict_arg is not None
+
+        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_list
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return False
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+
+class ExpressionDictOperationIteritems(ExpressionChildHavingBase):
+    kind = "EXPRESSION_DICT_OPERATION_ITERITEMS"
+
+    named_child = "dict_arg"
+
+    def __init__(self, dict_arg, source_ref):
+        assert dict_arg is not None
+
+        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    @staticmethod
+    def getTypeShape():
+        # TODO: Actually iterator that yields 2 element tuples, add shapes
+        # for that too.
+        return tshape_iterator
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return False
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
 
 
 class StatementDictOperationUpdate(StatementChildrenHavingBase):

@@ -23,12 +23,14 @@ from nuitka import Options
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateChildExpressionsCode,
     generateExpressionCode,
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
+from .PythonAPICodes import generateCAPIObjectCode
 
 
 def generateBuiltinDictCode(to_name, expression, emit, context):
@@ -255,6 +257,32 @@ def generateDictOperationGetCode(to_name, expression, emit, context):
         )
 
         context.addCleanupTempName(value_name)
+
+
+def generateDictOperationItemsCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_ITEMS",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationIteritemsCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_ITERITEMS",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 def generateDictOperationInCode(to_name, expression, emit, context):
