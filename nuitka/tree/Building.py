@@ -74,8 +74,8 @@ from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
 from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
 from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeLookup,
     StatementAssignmentAttribute,
+    makeExpressionAttributeLookup,
 )
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinAscii,
@@ -513,7 +513,7 @@ def buildStatementLoopBreak(provider, node, source_ref):
 
 
 def buildAttributeNode(provider, node, source_ref):
-    return ExpressionAttributeLookup(
+    return makeExpressionAttributeLookup(
         expression=buildNode(provider, node.value, source_ref),
         attribute_name=mangleName(node.attr, provider),
         source_ref=source_ref,

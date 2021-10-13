@@ -407,3 +407,124 @@ int DICT_HAS_ITEM(PyObject *dict, PyObject *key) {
     return 1;
 #endif
 }
+
+#if PYTHON_VERSION < 0x300
+PyObject *DICT_ITEMS(PyObject *dict) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_Check(dict));
+
+    PyDictObject *mp = (PyDictObject *)dict;
+
+    PyObject *result;
+    Py_ssize_t size;
+
+    /* Preallocate the list of tuples, to avoid allocations during
+     * the loop over the items, which could trigger GC, which
+     * could resize the dict. :-(
+     */
+retry:
+    size = mp->ma_used;
+    result = PyList_New(size);
+    CHECK_OBJECT(result);
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyObject *item = PyTuple_New(2);
+        CHECK_OBJECT(item);
+
+        PyList_SET_ITEM(result, i, item);
+    }
+
+    if (unlikely(size != mp->ma_used)) {
+        // Garbage collection can compatify dictionaries.
+        Py_DECREF(result);
+        goto retry;
+    }
+
+    // Nothing must cause any functions to be called
+    PyDictEntry *ep = mp->ma_table;
+    Py_ssize_t mask = mp->ma_mask;
+
+    for (Py_ssize_t i = 0, j = 0; i <= mask; i++) {
+        PyObject *value = ep[i].me_value;
+        if (value != NULL) {
+            PyObject *key = ep[i].me_key;
+            PyObject *item = PyList_GET_ITEM(result, j);
+            PyTuple_SET_ITEM0(item, 0, key);
+            PyTuple_SET_ITEM0(item, 1, value);
+
+            j++;
+        }
+    }
+
+    assert(PyList_GET_SIZE(result) == size);
+
+    return result;
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+typedef struct {
+    PyObject_HEAD PyDictObject *di_dict;
+    Py_ssize_t di_used;
+    Py_ssize_t di_pos;
+    PyObject *di_result;
+    Py_ssize_t len;
+} dictiterobject;
+#endif
+
+#if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x350
+typedef struct {
+    PyObject_HEAD PyDictObject *dv_dict;
+} _PyDictViewObject;
+
+#endif
+
+// Generic helper for various dictionary iterations, to be inlined.
+static inline PyObject *_MAKE_DICT_ITERATOR(PyDictObject *dict, PyTypeObject *type, bool is_iteritems) {
+#if PYTHON_VERSION < 0x300
+    dictiterobject *di = PyObject_GC_New(dictiterobject, type);
+    CHECK_OBJECT(di);
+    Py_INCREF(dict);
+    di->di_dict = dict;
+    di->di_used = dict->ma_used;
+    di->di_pos = 0;
+    di->len = dict->ma_used;
+    if (is_iteritems) {
+        // TODO: Have this as faster variants, we do these sometimes.
+        di->di_result = PyTuple_Pack(2, Py_None, Py_None);
+        CHECK_OBJECT(di->di_result);
+    } else {
+        di->di_result = NULL;
+    }
+
+    Nuitka_GC_Track(di);
+    return (PyObject *)di;
+#else
+    _PyDictViewObject *dv = PyObject_GC_New(_PyDictViewObject, type);
+    CHECK_OBJECT(dv);
+
+    Py_INCREF(dict);
+    dv->dv_dict = dict;
+
+    Nuitka_GC_Track(dv);
+    return (PyObject *)dv;
+#endif
+}
+
+PyObject *DICT_ITERITEMS(PyObject *dict) {
+    CHECK_OBJECT(dict);
+
+#if PYTHON_VERSION < 0x270
+    static PyTypeObject *dictiter_type = NULL;
+
+    if (unlikely(dictiter_type)) {
+        dictiter_type = Py_TYPE(PyObject_GetIter(const_dict_empty));
+    }
+
+    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictiter_type, true);
+#elif PYTHON_VERSION < 0x300
+    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictIterItem_Type, true);
+#else
+    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictItems_Type, true);
+#endif
+}

@@ -28,10 +28,10 @@ from nuitka.nodes.AssignNodes import (
     StatementDelVariable,
 )
 from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeLookup,
     ExpressionBuiltinGetattr,
     ExpressionBuiltinHasattr,
     ExpressionBuiltinSetattr,
+    makeExpressionAttributeLookup,
 )
 from nuitka.nodes.BuiltinAllNodes import ExpressionBuiltinAll
 from nuitka.nodes.BuiltinAnyNodes import ExpressionBuiltinAny
@@ -168,7 +168,7 @@ def dir_extractor(node):
         )
 
         result = makeCallNode(
-            ExpressionAttributeLookup(
+            makeExpressionAttributeLookup(
                 expression=source, attribute_name="keys", source_ref=source_ref
             ),
             source_ref,
@@ -771,7 +771,7 @@ if python_version < 0x300:
                     makeStatementReturn(
                         expression=ExpressionBuiltinExecfile(
                             source_code=makeCallNode(
-                                ExpressionAttributeLookup(
+                                makeExpressionAttributeLookup(
                                     expression=ExpressionBuiltinOpen(
                                         filename=filename,
                                         mode=makeConstantRefNode(
@@ -887,7 +887,7 @@ def eval_extractor(node):
         string_fixup = StatementAssignmentVariable(
             variable=source_variable,
             source=makeExpressionCall(
-                called=ExpressionAttributeLookup(
+                called=makeExpressionAttributeLookup(
                     expression=ExpressionTempVariableRef(
                         variable=source_variable, source_ref=source_ref
                     ),

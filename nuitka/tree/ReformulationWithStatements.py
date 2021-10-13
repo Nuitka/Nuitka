@@ -28,8 +28,8 @@ from nuitka.nodes.AssignNodes import (
     StatementReleaseVariable,
 )
 from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeLookup,
     ExpressionAttributeLookupSpecial,
+    makeExpressionAttributeLookup,
 )
 from nuitka.nodes.CallNodes import (
     ExpressionCallEmpty,
@@ -128,12 +128,12 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     # The "__enter__" and "__exit__" were normal attribute lookups under
     # CPython2.6, but that changed with CPython2.7.
     if python_version < 0x270:
-        attribute_lookup_class = ExpressionAttributeLookup
+        attribute_lookup_maker = makeExpressionAttributeLookup
     else:
-        attribute_lookup_class = ExpressionAttributeLookupSpecial
+        attribute_lookup_maker = ExpressionAttributeLookupSpecial
 
     enter_value = ExpressionCallEmpty(
-        called=attribute_lookup_class(
+        called=attribute_lookup_maker(
             expression=ExpressionTempVariableRef(
                 variable=tmp_source_variable, source_ref=source_ref
             ),
@@ -203,7 +203,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
 
     attribute_exit_assignment = StatementAssignmentVariable(
         variable=tmp_exit_variable,
-        source=attribute_lookup_class(
+        source=attribute_lookup_maker(
             expression=ExpressionTempVariableRef(
                 variable=tmp_source_variable, source_ref=source_ref
             ),
