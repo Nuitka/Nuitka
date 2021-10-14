@@ -375,7 +375,7 @@ def setCommonOptions(options):
         msvc_version = Options.getMsvcVersion()
 
         msvc_version = msvc_version.replace("exp", "Exp")
-        if "." not in msvc_version:
+        if "." not in msvc_version and msvc_version != "latest":
             msvc_version += ".0"
 
         options["msvc_version"] = msvc_version
