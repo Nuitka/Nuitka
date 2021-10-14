@@ -20,6 +20,7 @@
 """
 
 import os
+import platform
 import re
 import sys
 from collections import defaultdict
@@ -72,7 +73,9 @@ def _getCcacheGuessedPaths(python_prefix):
         yield "/usr/local/opt/ccache"
 
 
-def _injectCcache(the_compiler, cc_path, env, python_prefix, assume_yes_for_downloads):
+def _injectCcache(
+    the_compiler, cc_path, env, python_prefix, target_arch, assume_yes_for_downloads
+):
     ccache_binary = os.environ.get("NUITKA_CCACHE_BINARY")
 
     # If not provided, search it in PATH and guessed directories.
@@ -108,18 +111,23 @@ def _injectCcache(the_compiler, cc_path, env, python_prefix, assume_yes_for_down
                     assume_yes_for_downloads=assume_yes_for_downloads,
                 )
             elif getOS() == "Darwin":
-                url = "https://nuitka.net/ccache/v4.2.1/ccache-4.2.1.zip"
+                # TODO: Do not yet have M1 access to create one and 10.14 is minimum
+                # we managed to compile ccache for.
+                if target_arch != "arm64" and tuple(
+                    int(d) for d in platform.release().split(".")
+                ) >= (18, 2):
+                    url = "https://nuitka.net/ccache/v4.2.1/ccache-4.2.1.zip"
 
-                ccache_binary = getCachedDownload(
-                    url=url,
-                    is_arch_specific=False,
-                    specifity=url.rsplit("/", 2)[1],
-                    flatten=True,
-                    binary="ccache",
-                    message="Nuitka will make use of ccache to speed up repeated compilation.",
-                    reject=None,
-                    assume_yes_for_downloads=assume_yes_for_downloads,
-                )
+                    ccache_binary = getCachedDownload(
+                        url=url,
+                        is_arch_specific=False,
+                        specifity=url.rsplit("/", 2)[1],
+                        flatten=True,
+                        binary="ccache",
+                        message="Nuitka will make use of ccache to speed up repeated compilation.",
+                        reject=None,
+                        assume_yes_for_downloads=assume_yes_for_downloads,
+                    )
 
     else:
         scons_details_logger.info(
@@ -158,6 +166,7 @@ def enableCcache(
     env,
     source_dir,
     python_prefix,
+    target_arch,
     assume_yes_for_downloads,
 ):
     # The ccache needs absolute path, otherwise it will not work.
@@ -193,6 +202,7 @@ def enableCcache(
         cc_path=cc_path,
         env=env,
         python_prefix=python_prefix,
+        target_arch=target_arch,
         assume_yes_for_downloads=assume_yes_for_downloads,
     )
 

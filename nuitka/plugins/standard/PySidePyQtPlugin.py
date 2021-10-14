@@ -181,7 +181,6 @@ import %(binding_name)s.QtCore
                     ),
                 ),
                 (
-                    # TODO: Expose this as an option to add it.
                     "translations_path",
                     applyBindingName(
                         """\
@@ -203,6 +202,10 @@ import %(binding_name)s.QtCore
     def _getNuitkaPatchLevel(self):
         """Does it include the Nuitka patch, i.e. is a self-built one with it applied."""
         return self._getQtInformation().nuitka_patch_level
+
+    def _getTranslationsPath(self):
+        """Get the path to the Qt translations."""
+        return self._getQtInformation().translations_path
 
     def getQtPluginDirs(self):
         if self.qt_plugins_dirs is not None:
@@ -680,7 +683,7 @@ if not path.startswith(__nuitka_binary_dir):
             plugin_parent = os.path.dirname(self.getQtPluginDirs()[0])
 
             if isWin32Windows():
-                bin_dir = os.path.join(plugin_parent, "bin")
+                bin_dir = plugin_parent
             else:  # TODO verify this for non-Windows!
                 bin_dir = os.path.join(plugin_parent, "libexec")
             target_bin_dir = os.path.join(dist_dir)
@@ -693,16 +696,16 @@ if not path.startswith(__nuitka_binary_dir):
             for f in os.listdir(resources_dir):
                 shutil.copy(os.path.join(resources_dir, f), target_resources_dir)
 
-            translations_dir = os.path.join(plugin_parent, "translations")
-            pos = len(translations_dir) + 1
-            target_translations_dir = os.path.join(
+            translations_path = self._getTranslationsPath()
+            pos = len(translations_path) + 1
+            translations_path = os.path.join(
                 dist_dir,
                 full_name.getTopLevelPackageName().asPath(),
                 "Qt",
                 "translations",
             )
-            for f in getFileList(translations_dir):
-                tar_f = os.path.join(target_translations_dir, f[pos:])
+            for f in getFileList(translations_path):
+                tar_f = os.path.join(translations_path, f[pos:])
                 makePath(os.path.dirname(tar_f))
                 shutil.copyfile(f, tar_f)
 
