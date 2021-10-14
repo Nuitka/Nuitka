@@ -201,6 +201,14 @@ class ExpressionVariableRefBase(ExpressionBase):
 
         return lookup_node, None, None
 
+    def computeExpressionImportName(self, import_node, import_name, trace_collection):
+        # TODO: For include modules, something might be possible here.
+        return self.computeExpressionAttribute(
+            lookup_node=import_node,
+            attribute_name=import_name,
+            trace_collection=trace_collection,
+        )
+
     def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
         tags = None
         message = None
