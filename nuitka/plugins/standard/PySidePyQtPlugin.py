@@ -82,6 +82,8 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
                 % active_qt_plugin_name
             )
 
+        self.warned_about = set()
+
     @classmethod
     def addPluginCommandLineOptions(cls, group):
         group.add_option(
@@ -747,13 +749,19 @@ if not path.startswith(__nuitka_binary_dir):
                 top_package_name in _qt_binding_names
                 and top_package_name != self.binding_name
             ):
-                self.info(
-                    """\
+                if top_package_name not in self.warned_about:
+                    self.info(
+                        """\
 Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encountered, preventing
 its use. As a result an "ImportError" might be given at run time. Uninstall it for full compatible
 behaviour with the uncompiled code to debug it."""
-                    % {"unwanted": module_name, "binding_name": self.binding_name}
-                )
+                        % {
+                            "unwanted": top_package_name,
+                            "binding_name": self.binding_name,
+                        }
+                    )
+
+                    self.warned_about.add(top_package_name)
 
                 return (
                     False,
