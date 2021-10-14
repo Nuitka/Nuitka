@@ -76,6 +76,7 @@ hard_modules = frozenset(
         "os",
         "sys",
         "types",
+        "typing",
         "__future__",
         "site",
         "importlib",
@@ -85,6 +86,12 @@ hard_modules = frozenset(
         "functools",
     )
 )
+
+hard_modules_version = {
+    "typing": 0x350,
+    "_frozen_importlib": 0x300,
+    "_frozen_importlib_external": 0x350,
+}
 
 trust_undefined = 0
 trust_constant = 1
@@ -122,10 +129,15 @@ else:
     module_sys_trust["exc_value"] = trust_not_exist
     module_sys_trust["exc_traceback"] = trust_not_exist
 
+module_typing_trust = {
+    "TYPE_CHECKING": trust_constant,
+}
+
 hard_modules_trust = {
     "os": {},
     "sys": module_sys_trust,
     "types": {},
+    "typing": module_typing_trust,
     "__future__": dict((key, trust_future) for key in getFutureModuleKeys()),
     "site": {},
     "importlib": module_importlib_trust,

@@ -56,3 +56,6 @@ extern PyObject *IMPORT_HARD_SYS(void);
 /* C helper for hard import of module "types" import. */
 
 extern PyObject *IMPORT_HARD_TYPES(void);
+/* C helper for hard import of module "typing" import. */
+
+extern PyObject *IMPORT_HARD_TYPING(void);
