@@ -133,6 +133,7 @@ def createEnvironment(mingw_mode, msvc_version, target_arch):
         os.name == "nt"
         and not mingw_mode
         and msvc_version is None
+        and msvc_version != "latest"
         and (
             getExecutablePath("cl", env=None) is not None
             or getExecutablePath("gcc", env=None) is not None
@@ -163,7 +164,8 @@ def createEnvironment(mingw_mode, msvc_version, target_arch):
         # Under windows, specify the target architecture is needed for Scons
         # to pick up MSVC.
         TARGET_ARCH=target_arch,
-        MSVC_VERSION=msvc_version,
+        # The MSVC version might be fixed by the user.
+        MSVC_VERSION=msvc_version if msvc_version != "latest" else None,
         **args
     )
 

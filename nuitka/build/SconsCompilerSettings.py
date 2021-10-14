@@ -203,8 +203,12 @@ def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_dow
                 env["CC"] = None
 
         if compiler_path is not None and msvc_version is not None:
+            if msvc_version == "latest":
+                scons_logger.info(
+                    "MSVC version resolved to %s." % getMsvcVersionString(env)
+                )
             # Requested a specific MSVC version, check if that worked.
-            if msvc_version != getMsvcVersionString(env):
+            elif msvc_version != getMsvcVersionString(env):
                 scons_logger.info(
                     "Failed to find requested MSVC version (%r != %r)."
                     % (msvc_version, getMsvcVersionString(env))

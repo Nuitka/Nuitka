@@ -429,7 +429,7 @@ def commentArgs():
                 "Using Windows specific options has no effect on other platforms."
             )
 
-        if options.mingw64 or options.msvc:
+        if options.mingw64 or options.msvc_version:
             Tracing.options_logger.warning(
                 "Requesting Windows specific compilers has no effect on other platforms."
             )
@@ -833,13 +833,16 @@ def isClang():
 
 def isMingw64():
     """*bool* = "--mingw64", available only on Windows, otherwise false"""
-    return getOS() == "Windows" and getattr(options, "mingw64", False)
+    if isWin32Windows():
+        return options.mingw64
+    else:
+        return None
 
 
 def getMsvcVersion():
     """*str*, value of "--msvc", available only on Windows, otherwise None"""
     if isWin32Windows():
-        return getattr(options, "msvc", None)
+        return options.msvc_version
     else:
         return None
 

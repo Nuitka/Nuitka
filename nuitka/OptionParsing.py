@@ -699,14 +699,15 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
 c_compiler_group.add_option(
     "--msvc",
     action="store",
-    dest="msvc",
+    dest="msvc_version",
     default=None,
     help="""\
 Enforce the use of specific MSVC version on Windows. Allowed values
-are e.g. 14.0, specify an illegal value for a list of installed compilers,
-beware that only latest MSVC is really supported.
+are e.g. "14.2" (MSVC 2019), specify an illegal value for a list of
+installed compilers, or use "latest". Notice that only latest
+MSVC is really supported, and you can use "latest" to enforce that.
 
-Defaults to the most recent version.""",
+Defaults to MSVC on Windows being used if installed, otherwise MinGW64.""",
 )
 
 c_compiler_group.add_option(
