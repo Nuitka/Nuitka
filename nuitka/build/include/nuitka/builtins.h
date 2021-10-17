@@ -82,4 +82,13 @@ NUITKA_DECLARE_BUILTIN(long);
 extern void _initBuiltinOriginalValues();
 #endif
 
+// Avoid the casts needed for older Python, as it's easily forgotten and potentially
+// have our own better implementation later.
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_SysGetObject(char const *name) { return PySys_GetObject((char *)name); }
+
+NUITKA_MAY_BE_UNUSED static void Nuitka_SysSetObject(char const *name, PyObject *value) {
+    // TODO: Check error in debug mode at least.
+    PySys_SetObject((char *)name, value);
+}
+
 #endif
