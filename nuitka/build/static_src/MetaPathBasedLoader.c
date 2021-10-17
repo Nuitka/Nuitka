@@ -659,7 +659,7 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
     // structure internals of 3.8 or higher.
     static PyObject *dlopenflags_object = NULL;
     if (dlopenflags_object == NULL) {
-        dlopenflags_object = CALL_FUNCTION_NO_ARGS(PySys_GetObject((char *)"getdlopenflags"));
+        dlopenflags_object = CALL_FUNCTION_NO_ARGS(Nuitka_SysGetObject("getdlopenflags"));
     }
     int dlopenflags = PyInt_AsLong(dlopenflags_object);
 
@@ -1643,7 +1643,7 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 #endif
 
     // Register it as a meta path loader.
-    int res = PyList_Insert(PySys_GetObject((char *)"meta_path"),
+    int res = PyList_Insert(Nuitka_SysGetObject("meta_path"),
 #if PYTHON_VERSION < 0x300
                             0,
 #else
