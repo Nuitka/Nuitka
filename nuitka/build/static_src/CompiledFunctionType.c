@@ -742,7 +742,12 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
 #if PYTHON_VERSION >= 0x300
 static void formatErrorNoArgumentAllowedKwSplit(struct Nuitka_FunctionObject const *function, PyObject *kw_name,
                                                 Py_ssize_t given) {
+#if PYTHON_VERSION < 0x3a0
     char const *function_name = Nuitka_String_AsString(function->m_name);
+#else
+    char const *function_name = Nuitka_String_AsString(function->m_qualname);
+#endif
+
     PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'", function_name,
                  Nuitka_String_AsString(kw_name));
 }
@@ -753,7 +758,11 @@ static void formatErrorNoArgumentAllowed(struct Nuitka_FunctionObject const *fun
                                          PyObject *kw,
 #endif
                                          Py_ssize_t given) {
+#if PYTHON_VERSION < 0x3a0
     char const *function_name = Nuitka_String_AsString(function->m_name);
+#else
+    char const *function_name = Nuitka_String_AsString(function->m_qualname);
+#endif
 
 #if PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "%s() takes no arguments (%zd given)", function_name, given);
@@ -797,7 +806,11 @@ static void formatErrorTooFewArguments(struct Nuitka_FunctionObject const *funct
                                        Py_ssize_t given) {
     Py_ssize_t required_parameter_count = function->m_args_positional_count - function->m_defaults_given;
 
+#if PYTHON_VERSION < 0x390
     char const *function_name = Nuitka_String_AsString(function->m_name);
+#else
+    char const *function_name = Nuitka_String_AsString(function->m_qualname);
+#endif
     char const *violation =
         (function->m_defaults != Py_None || function->m_args_star_list_index != -1) ? "at least" : "exactly";
     char const *plural = required_parameter_count == 1 ? "" : "s";
@@ -817,7 +830,11 @@ static void formatErrorTooFewArguments(struct Nuitka_FunctionObject const *funct
 }
 #else
 static void formatErrorTooFewArguments(struct Nuitka_FunctionObject const *function, PyObject **values) {
+#if PYTHON_VERSION < 0x3a0
     char const *function_name = Nuitka_String_AsString(function->m_name);
+#else
+    char const *function_name = Nuitka_String_AsString(function->m_qualname);
+#endif
 
     Py_ssize_t max_missing = 0;
 
@@ -898,7 +915,12 @@ static void formatErrorTooManyArguments(struct Nuitka_FunctionObject const *func
 ) {
     Py_ssize_t top_level_parameter_count = function->m_args_positional_count;
 
+#if PYTHON_VERSION < 0x3a0
     char const *function_name = Nuitka_String_AsString(function->m_name);
+#else
+    char const *function_name = Nuitka_String_AsString(function->m_qualname);
+#endif
+
 #if PYTHON_VERSION < 0x300
     char const *violation = function->m_defaults != Py_None ? "at most" : "exactly";
 #endif
@@ -934,7 +956,11 @@ static void formatErrorTooManyArguments(struct Nuitka_FunctionObject const *func
 
 #if PYTHON_VERSION >= 0x300
 static void formatErrorTooFewKwOnlyArguments(struct Nuitka_FunctionObject const *function, PyObject **kw_vars) {
+#if PYTHON_VERSION < 0x3a0
     char const *function_name = Nuitka_String_AsString(function->m_name);
+#else
+    char const *function_name = Nuitka_String_AsString(function->m_qualname);
+#endif
 
     Py_ssize_t kwonlyargcount = function->m_code_object->co_kwonlyargcount;
 
@@ -1105,16 +1131,19 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
                 }
             }
 
+#if PYTHON_VERSION < 0x3a0
+            char const *function_name = Nuitka_String_AsString(function->m_name);
+#else
+            char const *function_name = Nuitka_String_AsString(function->m_qualname);
+#endif
+
             if (pos_only_error == true) {
                 PyErr_Format(PyExc_TypeError,
-                             "%s() got some positional-only arguments passed as keyword arguments: '%s'",
-                             Nuitka_String_AsString(function->m_name),
+                             "%s() got some positional-only arguments passed as keyword arguments: '%s'", function_name,
                              Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
 
             } else {
-
-                PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'",
-                             Nuitka_String_AsString(function->m_name),
+                PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'", function_name,
                              Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
             }
 
@@ -1217,16 +1246,19 @@ static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *fun
                 }
             }
 
+#if PYTHON_VERSION < 0x3a0
+            char const *function_name = Nuitka_String_AsString(function->m_name);
+#else
+            char const *function_name = Nuitka_String_AsString(function->m_qualname);
+#endif
+
             if (pos_only_error == true) {
                 PyErr_Format(PyExc_TypeError,
-                             "%s() got some positional-only arguments passed as keyword arguments: '%s'",
-                             Nuitka_String_AsString(function->m_name),
+                             "%s() got some positional-only arguments passed as keyword arguments: '%s'", function_name,
                              Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
 
             } else {
-
-                PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'",
-                             Nuitka_String_AsString(function->m_name),
+                PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'", function_name,
                              Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
             }
 
@@ -2279,16 +2311,19 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
                 }
             }
 
+#if PYTHON_VERSION < 0x3a0
+            char const *function_name = Nuitka_String_AsString(function->m_name);
+#else
+            char const *function_name = Nuitka_String_AsString(function->m_qualname);
+#endif
+
             if (pos_only_error == true) {
                 PyErr_Format(PyExc_TypeError,
-                             "%s() got some positional-only arguments passed as keyword arguments: '%s'",
-                             Nuitka_String_AsString(function->m_name),
+                             "%s() got some positional-only arguments passed as keyword arguments: '%s'", function_name,
                              Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
 
             } else {
-
-                PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'",
-                             Nuitka_String_AsString(function->m_name),
+                PyErr_Format(PyExc_TypeError, "%s() got an unexpected keyword argument '%s'", function_name,
                              Nuitka_String_Check(key) ? Nuitka_String_AsString(key) : "<non-string>");
             }
 
@@ -2387,7 +2422,12 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
     // performance.
 
     if (unlikely(arg_count == 0 && function->m_args_simple && args_size + kw_size > 0)) {
+#if PYTHON_VERSION < 0x3a0
         char const *function_name = Nuitka_String_AsString(function->m_name);
+#else
+        char const *function_name = Nuitka_String_AsString(function->m_qualname);
+#endif
+
         if (kw_size == 0) {
             PyErr_Format(PyExc_TypeError, "%s() takes 0 positional arguments but %zd was given", function_name,
                          args_size);
