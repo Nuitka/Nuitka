@@ -167,7 +167,7 @@ def generateConstantSysVersionInfoCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
     ) as value_name:
-        emit("""%s = PySys_GetObject((char *)"%s");""" % (value_name, "version_info"))
+        emit("""%s = Nuitka_SysGetObject("%s");""" % (value_name, "version_info"))
 
     getErrorExitCode(
         check_name=value_name, needs_check=False, emit=emit, context=context
@@ -184,7 +184,7 @@ def generateImportModuleNameHardCode(to_name, expression, emit, context):
     ) as value_name:
 
         if module_name == "sys":
-            emit("""%s = PySys_GetObject((char *)"%s");""" % (value_name, import_name))
+            emit("""%s = Nuitka_SysGetObject("%s");""" % (value_name, import_name))
         elif module_name in hard_modules:
             emitLineNumberUpdateCode(expression, emit, context)
 

@@ -596,9 +596,9 @@ int main(int argc, char **argv) {
      */
 #if SYSFLAG_NO_SITE == 0
 #if PYTHON_VERSION < 0x300
-    PyStructSequence_SET_ITEM(PySys_GetObject((char *)"flags"), 9, const_int_0);
+    PyStructSequence_SET_ITEM(Nuitka_SysGetObject("flags"), 9, const_int_0);
 #else
-    PyStructSequence_SetItem(PySys_GetObject("flags"), 6, const_int_0);
+    PyStructSequence_SetItem(Nuitka_SysGetObject("flags"), 6, const_int_0);
 #endif
 #endif
 
@@ -641,26 +641,26 @@ int main(int argc, char **argv) {
     {
         PyObject *nul_filename = Nuitka_String_FromString("NUL:");
 
-        if (PySys_GetObject((char *)"stdin") == NULL) {
+        if (Nuitka_SysGetObject("stdin") == NULL) {
             PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r", NULL);
 
             CHECK_OBJECT(stdin_file);
-            PySys_SetObject((char *)"stdin", stdin_file);
+            Nuitka_SysSetObject("stdin", stdin_file);
         }
 
-        if (PySys_GetObject((char *)"stdout") == NULL) {
+        if (Nuitka_SysGetObject("stdout") == NULL) {
             PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", NULL);
 
             CHECK_OBJECT(stdout_file);
-            PySys_SetObject((char *)"stdout", stdout_file);
+            Nuitka_SysSetObject("stdout", stdout_file);
         }
 
-        if (PySys_GetObject((char *)"stderr") == NULL) {
+        if (Nuitka_SysGetObject("stderr") == NULL) {
             PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", NULL);
 
             CHECK_OBJECT(stderr_file);
 
-            PySys_SetObject((char *)"stderr", stderr_file);
+            Nuitka_SysSetObject("stderr", stderr_file);
         }
 
         Py_DECREF(nul_filename);
@@ -687,7 +687,7 @@ int main(int argc, char **argv) {
             Py_Exit(1);
         }
 
-        PySys_SetObject((char *)"stdout", stdout_file);
+        Nuitka_SysSetObject("stdout", stdout_file);
     }
 #endif
 
@@ -712,7 +712,7 @@ int main(int argc, char **argv) {
             Py_Exit(1);
         }
 
-        PySys_SetObject((char *)"stderr", stderr_file);
+        Nuitka_SysSetObject("stderr", stderr_file);
     }
 #endif
 
