@@ -45,7 +45,8 @@ pytest; python_version == '2.7' or python_version >= '3.4'
 zstandard; python_version >= '3.5'
 
 # Plugins need that
-pyyaml == 5.4.1; python_version >= '2.7'
+pyyaml == 5.4.1; python_version == '2.7' or python_version >= '3.6'
+pyyaml == 5.3.1; python_version == '3.5'
 
 # Packaging
 wheel
