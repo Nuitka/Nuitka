@@ -208,6 +208,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         "xarray": "static",
         "gooey": ("languages", "images"),
         "jsonschema": "schemas",
+        "xmlschema": "schemas",
     }
 
     known_data_dir_structure = {
