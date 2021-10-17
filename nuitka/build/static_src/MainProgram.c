@@ -735,7 +735,7 @@ int main(int argc, char **argv) {
     /* Initialize warnings module. */
     _PyWarnings_Init();
 
-#if NO_PYTHON_WARNINGS && PYTHON_VERSION >= 0x342 && defined(_NUITKA_FULL_COMPAT)
+#if NO_PYTHON_WARNINGS && PYTHON_VERSION >= 0x342 && PYTHON_VERSION < 0x3a0 && defined(_NUITKA_FULL_COMPAT)
     // For full compatibility bump the warnings registry version,
     // otherwise modules "__warningsregistry__" will mismatch.
     PyObject *warnings_module = PyImport_ImportModule("warnings");
