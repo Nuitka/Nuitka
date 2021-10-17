@@ -1044,6 +1044,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "cytoolz._signatures"
         elif full_name == "exchangelib":
             yield "tzdata"
+        elif full_name == "curses":
+            yield "_curses"
 
     def getImportsByFullname(self, full_name, module_filename):
         """Recursively create a set of imports for a fullname.
