@@ -713,6 +713,11 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
 
 static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator, PyObject *value) {
     if (generator->m_status == status_Unused && value != NULL && value != Py_None) {
+        // Newer Python refuses to allow later usage.
+#if PYTHON_VERSION >= 0x3a0
+        generator->m_status = status_Finished;
+#endif
+
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't send non-None value to a just-started generator");
         return NULL;
     }
