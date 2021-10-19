@@ -94,6 +94,7 @@ extern _PyRuntimeState _PyRuntime;
 #endif
 
 #if PYTHON_VERSION >= 0x390
+#include <internal/pycore_ceval.h>
 #include <internal/pycore_interp.h>
 #include <internal/pycore_runtime.h>
 #endif
