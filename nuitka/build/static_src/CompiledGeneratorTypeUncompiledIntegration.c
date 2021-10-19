@@ -163,7 +163,13 @@ static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
     gen->gi_exc_state.previous_item = tstate->exc_info;
     tstate->exc_info = &gen->gi_exc_state;
 #endif
+
+#if PYTHON_VERSION < 0x390
     PyObject *result = PyEval_EvalFrameEx(f, 0);
+#else
+    PyObject *result = _PyEval_EvalFrame(tstate, f, 0);
+#endif
+
 #if PYTHON_VERSION >= 0x370
     tstate->exc_info = gen->gi_exc_state.previous_item;
     gen->gi_exc_state.previous_item = NULL;
@@ -402,7 +408,11 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyGenObject *gen, PyObject *arg, int e
     gen->gi_exc_state.previous_item = tstate->exc_info;
     tstate->exc_info = &gen->gi_exc_state;
 #endif
+#if PYTHON_VERSION < 0x390
     result = PyEval_EvalFrameEx(f, exc);
+#else
+    result = _PyEval_EvalFrame(tstate, f, exc);
+#endif
 #if PYTHON_VERSION >= 0x370
     tstate->exc_info = gen->gi_exc_state.previous_item;
     gen->gi_exc_state.previous_item = NULL;
