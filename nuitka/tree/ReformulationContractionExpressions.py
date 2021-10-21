@@ -77,7 +77,7 @@ from nuitka.nodes.YieldNodes import (
 from nuitka.PythonVersions import python_version
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
-from .ReformulationBooleanExpressions import buildAndNode
+from .ReformulationBooleanExpressions import makeAndNode
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
@@ -549,7 +549,7 @@ def _buildContractionBodyNode(
         if len(conditions) >= 1:
             loop_statements.append(
                 makeStatementConditional(
-                    condition=buildAndNode(values=conditions, source_ref=source_ref),
+                    condition=makeAndNode(values=conditions, source_ref=source_ref),
                     yes_branch=current_body,
                     no_branch=None,
                     source_ref=source_ref,

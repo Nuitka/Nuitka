@@ -177,6 +177,7 @@ from .ReformulationImportStatements import (
     pushFutureSpec,
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
+from .ReformulationMatchStatements import buildMatchNode
 from .ReformulationNamespacePackages import (
     createImporterCacheAssignment,
     createNamespacePackage,
@@ -730,6 +731,7 @@ setBuildingDispatchers(
         "FormattedValue": buildFormattedValueNode,
         "NamedExpr": buildNamedExprNode,
         "Slice": buildSliceNode,
+        "Match": buildMatchNode,
     },
     path_args2={
         "Constant": buildNamedConstantNode,  # Python3.8

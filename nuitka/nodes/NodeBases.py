@@ -346,6 +346,10 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
+    def isExpressionConstantBoolRef():
+        return False
+
+    @staticmethod
     def isExpressionOperationUnary():
         return False
 
