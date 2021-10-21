@@ -343,6 +343,10 @@ class ExpressionConstantNoneRef(ExpressionConstantUntrackedRefBase):
 
 
 class ExpressionConstantBoolRefBase(ExpressionConstantUntrackedRefBase):
+    @staticmethod
+    def isExpressionConstantBoolRef():
+        return True
+
     def computeExpressionBool(self, trace_collection):
         # Best case already.
         pass
