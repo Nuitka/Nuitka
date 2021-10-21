@@ -160,6 +160,22 @@ else:
 # Just to make this not Windows-specific.
 WindowsError = OSError
 
+import pkgutil
+
+if not hasattr(pkgutil, "ModuleInfo"):
+    # Python3.5 or lower do not return namedtuple, but it's nicer to read code with it.
+    from collections import namedtuple
+
+    ModuleInfo = namedtuple("ModuleInfo", "module_finder name ispkg")
+
+    def iter_modules(path=None, prefix=""):
+        for item in pkgutil.iter_modules(path, prefix):
+            yield ModuleInfo(*item)
+
+
+else:
+    iter_modules = pkgutil.iter_modules
+
 
 # For PyLint to be happy.
 assert long

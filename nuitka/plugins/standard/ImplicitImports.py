@@ -23,9 +23,9 @@ to add to this and submit patches to make it more complete.
 """
 
 import os
-import pkgutil
 import sys
 
+from nuitka.__past__ import iter_modules
 from nuitka.containers.oset import OrderedSet
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -894,7 +894,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "pendulum.locales":
             # May only need the one idiom folders if that's what's used, but right now we cannot tell.
             # This should become a plugin that allows control.
-            for idiom in pkgutil.iter_modules([module_filename]):
+            for idiom in iter_modules([module_filename]):
                 yield full_name.getChildNamed(idiom.name).getChildNamed("locale")
         # pendulum imports -- STOP --------------------------------------------
 
