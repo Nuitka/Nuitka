@@ -84,6 +84,19 @@ numpy.testing:
     def suppress_warnings(forwarding_rule="always"):
       yield
 
+    @contextmanager
+    def _assert_warns_context(warning_class, name=None):
+        yield
+
+    def assert_warns(warning_class, *args, **kwargs):
+      if not args:
+          return _assert_warns_context(warning_class)
+
+      func = args[0]
+      args = args[1:]
+      with _assert_warns_context(warning_class, name=func.__name__):
+          return func(*args, **kwargs)
+
 numpy._pytesttester:
   description:
     "remove numpy testing framework"
