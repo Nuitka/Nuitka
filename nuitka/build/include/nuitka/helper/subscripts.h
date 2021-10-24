@@ -201,6 +201,168 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
     return NULL;
 }
 
+NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT_CONST(PyObject *source, PyObject *const_subscript,
+                                                     Py_ssize_t int_subscript) {
+    CHECK_OBJECT(source);
+    CHECK_OBJECT(const_subscript);
+
+    PyTypeObject *type = Py_TYPE(source);
+    PyMappingMethods *mapping_methods = type->tp_as_mapping;
+
+    if (mapping_methods && mapping_methods->mp_subscript) {
+        if (PyList_CheckExact(source)) {
+            Py_ssize_t list_size = PyList_GET_SIZE(source);
+
+            if (int_subscript < 0) {
+                if (-int_subscript > list_size) {
+                    return false;
+                }
+
+                int_subscript += list_size;
+            } else {
+                if (int_subscript >= list_size) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+#if PYTHON_VERSION < 0x300
+        else if (PyString_CheckExact(source)) {
+            Py_ssize_t string_size = PyString_GET_SIZE(source);
+
+            if (int_subscript < 0) {
+                if (-int_subscript > string_size) {
+                    return false;
+                }
+
+                int_subscript += string_size;
+            } else {
+                if (int_subscript >= string_size) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+#else
+        else if (PyUnicode_CheckExact(source)) {
+            if (int_subscript < 0) {
+                int_subscript += PyUnicode_GET_LENGTH(source);
+            }
+
+            PyObject *result = type->tp_as_sequence->sq_item(source, int_subscript);
+
+            bool bool_result = !DROP_ERROR_OCCURRED();
+
+            Py_XDECREF(result);
+            return bool_result;
+        }
+#endif
+        else {
+            PyObject *result = mapping_methods->mp_subscript(source, const_subscript);
+
+            bool bool_result = !DROP_ERROR_OCCURRED();
+
+            Py_XDECREF(result);
+
+            return bool_result;
+        }
+    } else if (type->tp_as_sequence) {
+        PyObject *result = PySequence_GetItem(source, int_subscript);
+
+        bool bool_result = !DROP_ERROR_OCCURRED();
+
+        Py_XDECREF(result);
+        return bool_result;
+    } else {
+#if PYTHON_VERSION >= 0x370
+        if (PyType_Check(source)) {
+#if PYTHON_VERSION >= 0x390
+            if (source == (PyObject *)&PyType_Type) {
+                return true;
+            }
+#endif
+
+            PyObject *meth = LOOKUP_ATTRIBUTE(source, const_str_plain___class_getitem__);
+
+            if (meth) {
+                PyObject *subscript = PyLong_FromSsize_t(int_subscript);
+                PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(meth, subscript);
+                Py_DECREF(meth);
+                Py_DECREF(subscript);
+
+                bool bool_result = !DROP_ERROR_OCCURRED();
+
+                Py_XDECREF(result);
+                return bool_result;
+            }
+        }
+#endif
+
+        return false;
+    }
+
+    return false;
+}
+
+NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT(PyObject *source, PyObject *subscript) {
+    CHECK_OBJECT(source);
+    CHECK_OBJECT(subscript);
+
+    PyTypeObject *type = Py_TYPE(source);
+    PyMappingMethods *mapping = type->tp_as_mapping;
+
+    if (mapping != NULL && mapping->mp_subscript != NULL) {
+        PyObject *result = mapping->mp_subscript(source, subscript);
+        bool bool_result = !DROP_ERROR_OCCURRED();
+
+        Py_XDECREF(result);
+        return bool_result;
+    } else if (type->tp_as_sequence != NULL) {
+        if (PyIndex_Check(subscript)) {
+            Py_ssize_t index = PyNumber_AsSsize_t(subscript, NULL);
+
+            if (index == -1 && ERROR_OCCURRED()) {
+                return NULL;
+            }
+
+            PyObject *result = PySequence_GetItem(source, index);
+            bool bool_result = !DROP_ERROR_OCCURRED();
+
+            Py_XDECREF(result);
+            return bool_result;
+        } else if (type->tp_as_sequence->sq_item) {
+            return false;
+#if PYTHON_VERSION < 0x370
+        } else {
+            return false;
+#endif
+        }
+    }
+
+#if PYTHON_VERSION >= 0x370
+    if (PyType_Check(source)) {
+#if PYTHON_VERSION >= 0x390
+        if (source == (PyObject *)&PyType_Type) {
+            return true;
+        }
+#endif
+        PyObject *meth = LOOKUP_ATTRIBUTE(source, const_str_plain___class_getitem__);
+
+        if (meth) {
+            PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(meth, subscript);
+            bool bool_result = !DROP_ERROR_OCCURRED();
+
+            Py_XDECREF(result);
+            return bool_result;
+        }
+    }
+#endif
+
+    return false;
+}
+
 NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyObject *target, PyObject *subscript, Py_ssize_t int_subscript,
                                                      PyObject *value) {
     CHECK_OBJECT(value);
