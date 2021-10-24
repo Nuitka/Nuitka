@@ -190,6 +190,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         "lib2to3.pgen2": (
             KnownDataFileDesc(filename_pattern="../*.pickle", dest_path="lib2to3"),
         ),
+        "eel": (KnownDataFileDesc(filename_pattern="eel.js", dest_path=None),),
     }
 
     # data files to be copied are contained in subfolders named as the second item
