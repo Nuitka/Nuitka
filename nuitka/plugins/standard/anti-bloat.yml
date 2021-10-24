@@ -142,4 +142,4 @@ tensorflow.python.ops.distributions.distribution:
   change_function:
     "_copy_fn": "'(lambda fn: fn)'"
   replacements:
-    "class_attr_value.__doc__" : "class_attr_value___doc__"
+    "class_attr_value.__doc__ = _update_docstring" : "'class_attr_value___doc__ = _update_docstring'"
