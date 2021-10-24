@@ -20,7 +20,6 @@
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.Utils import getOS
 
 
 class GeventPlugin(NuitkaPluginBase):
@@ -50,10 +49,6 @@ class GeventPlugin(NuitkaPluginBase):
         source_lines.append("config.track_greenlet_tree = False")
         self.info("Greenlet tree tracking switched off")
         return "\n".join(source_lines)
-
-    def decideCompilation(self, module_name, source_ref):
-        if module_name.hasNamespace("gevent") and getOS() == "Windows":
-            return "bytecode"
 
 
 class GeventPluginDetector(NuitkaPluginBase):
@@ -85,4 +80,4 @@ class GeventPluginDetector(NuitkaPluginBase):
             None
         """
         if module.getFullName().hasNamespace("gevent"):
-            self.warnUnusedPlugin("gevent support.")
+            self.warnUnusedPlugin("Might be missing gevent support.")
