@@ -80,6 +80,8 @@ from .ComparisonCodes import (
     generateBuiltinIsinstanceCode,
     generateBuiltinIssubclassCode,
     generateComparisonExpressionCode,
+    generateMatchTypeCheckMappingCode,
+    generateMatchTypeCheckSequenceCode,
     generateTypeCheckCode,
 )
 from .ConditionalCodes import (
@@ -259,6 +261,7 @@ from .StringCodes import (
 from .SubscriptCodes import (
     generateAssignmentSubscriptCode,
     generateDelSubscriptCode,
+    generateSubscriptCheckCode,
     generateSubscriptLookupCode,
 )
 from .TryCodes import generateTryCode
@@ -557,6 +560,8 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_ISINSTANCE": generateBuiltinIsinstanceCode,
         "EXPRESSION_BUILTIN_ISSUBCLASS": generateBuiltinIssubclassCode,
         "EXPRESSION_TYPE_CHECK": generateTypeCheckCode,
+        "EXPRESSION_MATCH_TYPE_CHECK_SEQUENCE": generateMatchTypeCheckSequenceCode,
+        "EXPRESSION_MATCH_TYPE_CHECK_MAPPING": generateMatchTypeCheckMappingCode,
         "EXPRESSION_BUILTIN_DIR1": generateBuiltinDir1Code,
         "EXPRESSION_BUILTIN_VARS": generateBuiltinVarsCode,
         "EXPRESSION_BUILTIN_HASATTR": generateBuiltinHasattrCode,
@@ -702,6 +707,7 @@ setExpressionDispatchDict(
         # TODO: Rename to make more clear it is an outline
         "EXPRESSION_CLASS_BODY": generateFunctionOutlineCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP": generateSubscriptLookupCode,
+        "EXPRESSION_SUBSCRIPT_CHECK": generateSubscriptCheckCode,
         "EXPRESSION_SLICE_LOOKUP": generateSliceLookupCode,
         "EXPRESSION_SET_OPERATION_UPDATE": generateSetOperationUpdateCode,
         "EXPRESSION_SIDE_EFFECTS": generateSideEffectsCode,

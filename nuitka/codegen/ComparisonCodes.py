@@ -314,3 +314,53 @@ def generateTypeCheckCode(to_name, expression, emit, context):
     to_name.getCType().emitAssignmentCodeFromBoolCondition(
         to_name=to_name, condition="%s != 0" % res_name, emit=emit
     )
+
+
+def generateMatchTypeCheckMappingCode(to_name, expression, emit, context):
+    cls_name = context.allocateTempName("mapping_check_cls")
+
+    generateExpressionCode(
+        to_name=cls_name,
+        expression=expression.subnode_value,
+        emit=emit,
+        context=context,
+    )
+
+    res_name = context.getIntResName()
+
+    emit("%s = Py_TYPE(%s)->tp_flags & Py_TPFLAGS_MAPPING;" % (res_name, cls_name))
+
+    getReleaseCode(
+        release_name=cls_name,
+        emit=emit,
+        context=context,
+    )
+
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name=to_name, condition="%s" % res_name, emit=emit
+    )
+
+
+def generateMatchTypeCheckSequenceCode(to_name, expression, emit, context):
+    cls_name = context.allocateTempName("sequence_check_cls")
+
+    generateExpressionCode(
+        to_name=cls_name,
+        expression=expression.subnode_value,
+        emit=emit,
+        context=context,
+    )
+
+    res_name = context.getIntResName()
+
+    emit("%s = Py_TYPE(%s)->tp_flags & Py_TPFLAGS_SEQUENCE;" % (res_name, cls_name))
+
+    getReleaseCode(
+        release_name=cls_name,
+        emit=emit,
+        context=context,
+    )
+
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name=to_name, condition="%s" % res_name, emit=emit
+    )
