@@ -28,10 +28,22 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementAssignmentVariableName,
 )
-from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
+from nuitka.nodes.AttributeNodes import (
+    ExpressionAttributeCheck,
+    makeExpressionAttributeLookup,
+)
+from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.SubscriptNodes import (
+    ExpressionSubscriptCheck,
+    ExpressionSubscriptLookup,
+)
+from nuitka.nodes.TypeMatchNodes import (
+    ExpressionMatchTypeCheckMapping,
+    ExpressionMatchTypeCheckSequence,
+)
 from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
@@ -56,7 +68,7 @@ def _makeMatchComparison(left, right, source_ref):
 def buildMatchNode(provider, node, source_ref):
     """Python3.10 or higher, match statements."""
 
-    # Many details to work with, pylint: disable=too-many-branches,too-many-locals
+    # Many details to work with, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     temp_scope = provider.allocateTempScope("match_statement")
 
@@ -114,8 +126,21 @@ def buildMatchNode(provider, node, source_ref):
 
             assignments = []
 
+            kwd_attr = kwd_pattern = None
+
             for kwd_attr, kwd_pattern in zip(pattern.kwd_attrs, pattern.kwd_patterns):
                 assert type(kwd_attr) is str
+
+                # TODO: Maybe move this to first things, CPython checks first all.
+                conditions.append(
+                    ExpressionAttributeCheck(
+                        expression=ExpressionTempVariableRef(
+                            variable=tmp_subject, source_ref=source_ref
+                        ),
+                        attribute_name=kwd_attr,
+                        source_ref=source_ref,
+                    )
+                )
 
                 if kwd_pattern.__class__ is ast.MatchValue:
                     conditions.append(
@@ -169,6 +194,257 @@ def buildMatchNode(provider, node, source_ref):
                     )
                 else:
                     assert False, ast.dump(kwd_pattern)
+
+            del kwd_attr, kwd_pattern
+
+            branch_code = buildStatementsNode(provider, case.body, source_ref)
+            cases.append((prepare, conditions, assignments, branch_code))
+
+        elif pattern.__class__ is ast.MatchMapping:
+            prepare = None
+
+            conditions = [
+                ExpressionMatchTypeCheckMapping(
+                    value=ExpressionTempVariableRef(
+                        variable=tmp_subject, source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
+                )
+            ]
+
+            assignments = []
+
+            assert len(pattern.keys) == len(pattern.patterns), ast.dump(pattern)
+
+            key = kwd_pattern = None
+
+            for key, kwd_pattern in zip(pattern.keys, pattern.patterns):
+                conditions.append(
+                    ExpressionSubscriptCheck(
+                        expression=ExpressionTempVariableRef(
+                            variable=tmp_subject, source_ref=source_ref
+                        ),
+                        subscript=makeConstantRefNode(
+                            constant=key.value, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    )
+                )
+
+                if kwd_pattern.__class__ is ast.MatchValue:
+                    conditions.append(
+                        _makeMatchComparison(
+                            left=ExpressionSubscriptLookup(
+                                expression=ExpressionTempVariableRef(
+                                    variable=tmp_subject, source_ref=source_ref
+                                ),
+                                subscript=makeConstantRefNode(
+                                    constant=key.value, source_ref=source_ref
+                                ),
+                                source_ref=source_ref,
+                            ),
+                            right=buildNode(provider, kwd_pattern.value, source_ref),
+                            source_ref=source_ref,
+                        )
+                    )
+                elif kwd_pattern.__class__ is ast.MatchSingleton:
+                    conditions.append(
+                        _makeMatchComparison(
+                            left=ExpressionSubscriptLookup(
+                                expression=ExpressionTempVariableRef(
+                                    variable=tmp_subject, source_ref=source_ref
+                                ),
+                                subscript=makeConstantRefNode(
+                                    constant=key.value, source_ref=source_ref
+                                ),
+                                source_ref=source_ref,
+                            ),
+                            right=makeConstantRefNode(
+                                constant=kwd_pattern.value, source_ref=source_ref
+                            ),
+                            source_ref=source_ref,
+                        )
+                    )
+                elif kwd_pattern.__class__ is ast.MatchAs:
+                    variable_name = kwd_pattern.name
+
+                    assert "." not in variable_name, variable_name
+                    assert "!" not in variable_name, variable_name
+
+                    assignments.append(
+                        StatementAssignmentVariableName(
+                            provider=provider,
+                            variable_name=variable_name,
+                            source=ExpressionSubscriptLookup(
+                                expression=ExpressionTempVariableRef(
+                                    variable=tmp_subject, source_ref=source_ref
+                                ),
+                                subscript=makeConstantRefNode(
+                                    constant=key.value, source_ref=source_ref
+                                ),
+                                source_ref=source_ref,
+                            ),
+                            source_ref=source_ref,
+                        )
+                    )
+                else:
+                    assert False, ast.dump(kwd_pattern)
+
+            del key, pattern
+
+            branch_code = buildStatementsNode(provider, case.body, source_ref)
+            cases.append((prepare, conditions, assignments, branch_code))
+
+        elif pattern.__class__ is ast.MatchSequence:
+            prepare = None
+
+            conditions = [
+                ExpressionMatchTypeCheckSequence(
+                    value=ExpressionTempVariableRef(
+                        variable=tmp_subject, source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
+                )
+            ]
+
+            assignments = []
+
+            min_length = len(
+                tuple(
+                    seq_pattern
+                    for seq_pattern in pattern.patterns
+                    if seq_pattern.__class__ is not ast.MatchStar
+                )
+            )
+
+            if min_length:
+                exact = all(
+                    seq_pattern.__class__ is not ast.MatchStar
+                    for seq_pattern in pattern.patterns
+                )
+
+                # TODO: Could special case "1" with truth check.
+                conditions.append(
+                    makeComparisonExpression(
+                        left=ExpressionBuiltinLen(
+                            value=ExpressionTempVariableRef(
+                                variable=tmp_subject, source_ref=source_ref
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        right=makeConstantRefNode(
+                            constant=min_length, source_ref=source_ref
+                        ),
+                        comparator="Eq" if exact else "GtE",
+                        source_ref=source_ref,
+                    )
+                )
+
+            star_pos = None
+
+            count = seq_pattern = None
+
+            for count, seq_pattern in enumerate(pattern.patterns):
+                # offset from the start.
+                if star_pos is None:
+                    offset = count
+                else:
+                    # offset from the end.
+                    offset = -(len(pattern.patterns) - count)
+
+                if seq_pattern.__class__ is ast.MatchValue:
+                    conditions.append(
+                        _makeMatchComparison(
+                            left=ExpressionSubscriptLookup(
+                                expression=ExpressionTempVariableRef(
+                                    variable=tmp_subject, source_ref=source_ref
+                                ),
+                                subscript=makeConstantRefNode(
+                                    constant=offset, source_ref=source_ref
+                                ),
+                                source_ref=source_ref,
+                            ),
+                            right=buildNode(provider, seq_pattern.value, source_ref),
+                            source_ref=source_ref,
+                        )
+                    )
+                elif seq_pattern.__class__ is ast.MatchSingleton:
+                    conditions.append(
+                        _makeMatchComparison(
+                            left=ExpressionSubscriptLookup(
+                                expression=ExpressionTempVariableRef(
+                                    variable=tmp_subject, source_ref=source_ref
+                                ),
+                                subscript=makeConstantRefNode(
+                                    constant=offset, source_ref=source_ref
+                                ),
+                                source_ref=source_ref,
+                            ),
+                            right=makeConstantRefNode(
+                                constant=seq_pattern.value, source_ref=source_ref
+                            ),
+                            source_ref=source_ref,
+                        )
+                    )
+                elif seq_pattern.__class__ is ast.MatchAs:
+                    variable_name = seq_pattern.name
+
+                    assert "." not in variable_name, variable_name
+                    assert "!" not in variable_name, variable_name
+
+                    assignments.append(
+                        StatementAssignmentVariableName(
+                            provider=provider,
+                            variable_name=variable_name,
+                            source=ExpressionSubscriptLookup(
+                                expression=ExpressionTempVariableRef(
+                                    variable=tmp_subject, source_ref=source_ref
+                                ),
+                                subscript=makeConstantRefNode(
+                                    constant=offset, source_ref=source_ref
+                                ),
+                                source_ref=source_ref,
+                            ),
+                            source_ref=source_ref,
+                        )
+                    )
+                elif seq_pattern.__class__ is ast.MatchStar:
+                    variable_name = seq_pattern.name
+
+                    assert "." not in variable_name, variable_name
+                    assert "!" not in variable_name, variable_name
+
+                    star_pos = count
+
+                    # Last one
+                    if star_pos == len(pattern.patterns):
+                        slice_value = slice(count)
+                    else:
+                        slice_value = slice(
+                            count, -(len(pattern.patterns) - (count + 1))
+                        )
+
+                    assignments.append(
+                        StatementAssignmentVariableName(
+                            provider=provider,
+                            variable_name=variable_name,
+                            source=ExpressionSubscriptLookup(
+                                expression=ExpressionTempVariableRef(
+                                    variable=tmp_subject, source_ref=source_ref
+                                ),
+                                subscript=makeConstantRefNode(
+                                    constant=slice_value, source_ref=source_ref
+                                ),
+                                source_ref=source_ref,
+                            ),
+                            source_ref=source_ref,
+                        )
+                    )
+
+                else:
+                    assert False, ast.dump(seq_pattern)
+
+            del count, seq_pattern
 
             branch_code = buildStatementsNode(provider, case.body, source_ref)
             cases.append((prepare, conditions, assignments, branch_code))

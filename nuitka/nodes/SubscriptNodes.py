@@ -25,7 +25,11 @@ other nodes.
 """
 
 from .ExpressionBases import ExpressionChildrenHavingBase
-from .NodeBases import StatementChildrenHavingBase
+from .NodeBases import (
+    SideEffectsFromChildrenMixin,
+    StatementChildrenHavingBase,
+)
+from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
 
 class StatementAssignmentSubscript(StatementChildrenHavingBase):
@@ -113,3 +117,65 @@ class ExpressionSubscriptLookup(ExpressionChildrenHavingBase):
     @staticmethod
     def isKnownToBeIterable(count):
         return None
+
+
+def hasSubscript(value, subscript):
+    """Check if a value has a subscript."""
+
+    try:
+        value[subscript]
+    except Exception:  # Catch all the things, pylint: disable=broad-except
+        return False
+    else:
+        return True
+
+
+class ExpressionSubscriptCheck(
+    SideEffectsFromChildrenMixin, ExpressionChildrenHavingBase
+):
+    kind = "EXPRESSION_SUBSCRIPT_CHECK"
+
+    named_children = ("expression", "subscript")
+
+    def __init__(self, expression, subscript, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"expression": expression, "subscript": subscript},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        # We do at least for compile time constants optimization here, but more
+        # could be done, were we to consider shapes.
+        source = self.subnode_expression
+        subscript = self.subnode_subscript
+
+        if source.isCompileTimeConstant() and subscript.isCompileTimeConstant():
+            (
+                result,
+                tags,
+                change_desc,
+            ) = trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: hasSubscript(
+                    source.getCompileTimeConstant(), subscript.getCompileTimeConstant()
+                ),
+                description="Subscript check has been pre-computed.",
+            )
+
+            # If source has has side effects, they must be evaluated.
+            result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=source)
+
+            return result, tags, change_desc
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+    @staticmethod
+    def mayRaiseExceptionBool(exception_type):
+        return False
