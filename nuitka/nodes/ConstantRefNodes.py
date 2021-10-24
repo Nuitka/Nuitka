@@ -517,7 +517,14 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
 
         for key, value in iterItems(self.constant):
             pairs.append(
-                (key, makeConstantRefNode(constant=value, source_ref=self.source_ref))
+                (
+                    key,
+                    makeConstantRefNode(
+                        constant=value,
+                        user_provided=self.user_provided,
+                        source_ref=self.source_ref,
+                    ),
+                )
             )
 
         return pairs

@@ -877,7 +877,7 @@ int main(int argc, char **argv) {
         if (exit_code == STILL_ACTIVE) {
             bool done = checkSplashScreen();
 
-            // Stop checking.
+            // Stop checking splash screen, can increase timeout.
             if (done) {
                 wait_time = INFINITE;
             }
@@ -885,12 +885,12 @@ int main(int argc, char **argv) {
             continue;
         }
 #endif
-
         CloseHandle(handle_process);
 
         handle_process = 0;
     }
 
+    cleanupChildProcess();
 #else
     int exit_code;
 

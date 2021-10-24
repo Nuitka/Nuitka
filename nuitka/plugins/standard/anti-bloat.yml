@@ -135,3 +135,11 @@ scipy._lib._testutils:
     class PytestTester:
       def __init__(self, name):
         pass
+
+tensorflow.python.ops.distributions.distribution:
+  description:
+    "remove useless function copying"
+  change_function:
+    "_copy_fn": "'(lambda fn: fn)'"
+  replacements:
+    "class_attr_value.__doc__" : "class_attr_value___doc__"

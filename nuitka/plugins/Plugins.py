@@ -29,7 +29,6 @@ The base class in PluginBase will serve as documentation of available.
 
 import inspect
 import os
-import pkgutil
 import shutil
 from optparse import OptionConflictError, OptionGroup
 
@@ -37,6 +36,7 @@ import nuitka.plugins.commercial
 import nuitka.plugins.standard
 from nuitka import Options, OutputDirectories
 from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import iter_modules
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
@@ -137,11 +137,11 @@ def getPluginClass(plugin_name):
 
 
 def _loadPluginClassesFromPath(scan_path):
-    for loader, name, is_pkg in pkgutil.iter_modules(scan_path):
-        if is_pkg:
+    for item in iter_modules(scan_path):
+        if item.ispkg:
             continue
 
-        module_loader = loader.find_module(name)
+        module_loader = item.module_finder.find_module(item.name)
 
         # Ignore bytecode only left overs.
         try:
@@ -153,12 +153,12 @@ def _loadPluginClassesFromPath(scan_path):
             pass
 
         try:
-            plugin_module = module_loader.load_module(name)
+            plugin_module = module_loader.load_module(item.name)
         except Exception:
             if Options.is_nondebug:
                 plugins_logger.warning(
                     "Problem loading plugin %r (%s), ignored. Use --debug to make it visible."
-                    % (name, module_loader.get_filename())
+                    % (item.name, module_loader.get_filename())
                 )
                 continue
 
