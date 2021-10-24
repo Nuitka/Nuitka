@@ -201,17 +201,24 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         elif full_name == "gevent._waiter":
             yield "gevent.__waiter"
+            yield "gevent._gevent_c_waiter"
 
         elif full_name == "gevent._hub_local":
             yield "gevent.__hub_local"
             yield "gevent.__greenlet_primitives"
+            yield "gevent._gevent_c_hub_local"
+        elif full_name == "gevent._gevent_c_hub_local":
+            yield "gevent._gevent_c_greenlet_primitives"
 
         elif full_name == "gevent._hub_primitives":
             yield "gevent.__hub_primitives"
+            yield "gevent._gevent_cgreenlet"
+            yield "gevent._gevent_c_hub_primitives"
 
         elif full_name == "gevent.greenlet":
             yield "gevent._hub_local"
             yield "gevent._greenlet"
+            yield "gevent._gevent_c_ident"
 
         elif full_name == "gevent._greenlet":
             yield "gevent.__ident"
@@ -231,15 +238,19 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "gevent._semaphore":
             yield "gevent._abstract_linkable"
             yield "gevent.__semaphore"
+            yield "gevent._gevent_c_semaphore"
 
         elif full_name == "gevent._abstract_linkable":
             yield "gevent.__abstract_linkable"
+            yield "gevent._gevent_c_abstract_linkable"
 
         elif full_name == "gevent.local":
             yield "gevent._local"
+            yield "gevent._gevent_clocal"
 
         elif full_name == "gevent.event":
             yield "gevent._event"
+            yield "gevent._gevent_cevent"
 
         elif full_name == "gevent.queue":
             yield "gevent._queue"
