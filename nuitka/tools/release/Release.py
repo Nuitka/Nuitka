@@ -46,6 +46,7 @@ def checkAtHome(expected="Nuitka Staging"):
 
 
 def getBranchName():
+    # TODO: Switch to "git branch --show-current" once we know to have new git everywhere.
     branch_name = check_output("git symbolic-ref --short HEAD".split()).strip()
 
     if str is not bytes:
