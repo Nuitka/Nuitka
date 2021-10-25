@@ -35,8 +35,6 @@ it's from the standard library, one can abuse the attribute ``__file__`` of the
 
 """
 
-from __future__ import print_function
-
 import collections
 import hashlib
 import imp
@@ -49,7 +47,7 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.importing import StandardLibrary
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import recursion_logger
+from nuitka.Tracing import my_print, recursion_logger
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Importing import getSharedLibrarySuffixes
@@ -222,7 +220,7 @@ def findModule(importing, module_name, parent_package, level, warn):
     assert type(module_name) is ModuleName, module_name
 
     if _debug_module_finding:
-        print(
+        my_print(
             "findModule: Enter to search %r in package %r level %s."
             % (module_name, parent_package, level)
         )
@@ -264,7 +262,7 @@ def findModule(importing, module_name, parent_package, level, warn):
             pass
         else:
             if _debug_module_finding:
-                print(
+                my_print(
                     "findModule: Relative imported module '%s' as '%s' in filename '%s':"
                     % (module_name, full_name, module_filename)
                 )
@@ -280,7 +278,7 @@ def findModule(importing, module_name, parent_package, level, warn):
         # Built-in module names must not be searched any further.
         if module_name in sys.builtin_module_names:
             if _debug_module_finding:
-                print(
+                my_print(
                     "findModule: Absolute imported module '%s' in as built-in':"
                     % (module_name,)
                 )
@@ -293,7 +291,7 @@ def findModule(importing, module_name, parent_package, level, warn):
             pass
         else:
             if _debug_module_finding:
-                print(
+                my_print(
                     "findModule: Found absolute imported module '%s' in filename '%s':"
                     % (module_name, module_filename)
                 )
@@ -439,7 +437,7 @@ def _findModuleInPath2(package_name, module_name, search_path):
                 last_mtype = mtype
 
     if _debug_module_finding:
-        print("Candidates:", candidates)
+        my_print("Candidates:", candidates)
 
     if candidates:
         # Sort by priority, with entries from same path element coming first, then desired type.
@@ -548,7 +546,7 @@ def _findModuleInPath(module_name):
     package_name, module_name = module_name.splitModuleBasename()
 
     if _debug_module_finding:
-        print("_findModuleInPath: Enter", module_name, "in", package_name)
+        my_print("_findModuleInPath: Enter", module_name, "in", package_name)
 
     # The "site" module must be located based on PYTHONPATH before it was
     # executed, while we normally search in PYTHONPATH after it was executed,
@@ -566,7 +564,9 @@ def _findModuleInPath(module_name):
     search_path = getPackageSearchPath(package_name)
 
     if _debug_module_finding:
-        print("_findModuleInPath: Using search path", search_path, "for", package_name)
+        my_print(
+            "_findModuleInPath: Using search path", search_path, "for", package_name
+        )
 
     try:
         module_filename = _findModuleInPath2(
@@ -582,7 +582,7 @@ def _findModuleInPath(module_name):
         return None
 
     if _debug_module_finding:
-        print("_findModuleInPath: _findModuleInPath2 gave", module_filename)
+        my_print("_findModuleInPath: _findModuleInPath2 gave", module_filename)
 
     return module_filename
 
@@ -592,7 +592,7 @@ module_search_cache = {}
 
 def _findModule(module_name):
     if _debug_module_finding:
-        print("_findModule: Enter to search '%s'." % (module_name,))
+        my_print("_findModule: Enter to search '%s'." % (module_name,))
 
     assert module_name.getBasename(), module_name
 
@@ -602,7 +602,7 @@ def _findModule(module_name):
         result = module_search_cache[key]
 
         if _debug_module_finding:
-            print("_findModule: Cached result (see previous call).")
+            my_print("_findModule: Cached result (see previous call).")
 
         if result is ImportError:
             raise ImportError
@@ -614,7 +614,7 @@ def _findModule(module_name):
     except ImportError:
         new_module_name = Plugins.considerFailedImportReferrals(module_name)
 
-        if new_module_name is None:
+        if new_module_name is None or new_module_name == module_name:
             module_search_cache[key] = ImportError
             raise
 
