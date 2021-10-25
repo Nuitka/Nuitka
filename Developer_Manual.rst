@@ -112,11 +112,16 @@ Of course, all of this may be subject to change.
 Nuitka top level works like this:
 
 -  ``nuitka.tree.Building`` outputs node tree
+
 -  ``nuitka.optimization`` enhances it as best as it can
+
 -  ``nuitka.finalization`` prepares the tree for code generation
+
 -  ``nuitka.codegen.CodeGeneration`` orchestrates the creation of code
    snippets
+
 -  ``nuitka.codegen.*Codes`` knows how specific code kinds are created
+
 -  ``nuitka.MainControl`` keeps it all together
 
 This design is intended to last.
@@ -812,14 +817,14 @@ When adding a test suite, for a new version, proceed like this:
 .. code:: sh
 
    # Switch to a new branch.
-   git checkout CPython38
-   git branch CPython39
    git checkout CPython39
+   git branch CPython310
+   git checkout CPython310
 
    # Delete all but root commit
    git rebase -i root
    rm -rf test
-   cp ~/repos/Nuitka-references/final/Python-3.9.0/Lib/test test
+   cp ~/repos/Nuitka-references/final/Python-3.10.0/Lib/test test
    git add test
 
    # Update commit message to mention proper Python version.
@@ -829,7 +834,7 @@ When adding a test suite, for a new version, proceed like this:
    git push -u
 
    # Cherry pick the removal commits from previous branches.
-   git log origin/CPython38 --reverse --oneline | grep ' Removed' | cut -d' ' -f1 | xargs git cherry-pick
+   git log origin/CPython39 --reverse --oneline | grep ' Removed' | cut -d' ' -f1 | xargs git cherry-pick
    # While being prompted for merge conflicts with the deleted files:
    git status | sed -n 's/deleted by them://p' | xargs git rm --ignore-unmatch x ; git cherry-pick --continue
 
@@ -837,18 +842,18 @@ When adding a test suite, for a new version, proceed like this:
    git push
 
    # Cherry pick the first commit of run_all.py, the copy it from the last state, and amend the commits.
-   git log --reverse origin/CPython38 --oneline -- run_all.py | head -1 | cut -d' ' -f1 | xargs git cherry-pick
-   git checkout origin/CPython38 -- run_all.py
+   git log --reverse origin/CPython39 --oneline -- run_all.py | head -1 | cut -d' ' -f1 | xargs git cherry-pick
+   git checkout origin/CPython39 -- run_all.py
    git commit --amend run_all.py
 
    # Same for .gitignore
-   git log --reverse origin/CPython38 --oneline -- .gitignore | head -1 | cut -d' ' -f1 | xargs git cherry-pick
-   git checkout origin/CPython38 -- .gitignore
+   git log --reverse origin/CPython39 --oneline -- .gitignore | head -1 | cut -d' ' -f1 | xargs git cherry-pick
+   git checkout origin/CPython39 -- .gitignore
    git commit --amend .gitignore
 
    # Now cherry-pick all commits of test support, these disable network, audio, GUI, random filenames and more
    # and are crucial for determistic outputs and non-reliance on outside stuff.
-   git log --reverse origin/CPython38 --oneline -- tests/support/__init__.py | cut -d' ' -f1 | xargs git cherry-pick
+   git log --reverse origin/CPython39 --oneline -- test/support/__init__.py | tail -n +2 | cut -d' ' -f1 | xargs git cherry-pick
 
    git push
 
@@ -2590,8 +2595,11 @@ Complex Calls
 The call operator in Python allows to provide arguments in 4 forms.
 
 -  Positional (or normal) arguments
+
 -  Named (or keyword) arguments
+
 -  Star list arguments
+
 -  Star dictionary arguments
 
 The evaluation order is precisely that. An example would be:
