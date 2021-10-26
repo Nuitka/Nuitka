@@ -38,8 +38,10 @@ def unlikely_or_likely_from(value):
         return "likely"
 
 
-def getEnvironment(module_name):
-    if module_name not in environments:
+def getEnvironment(package_name, template_subdir, extensions):
+    key = package_name, template_subdir, extensions
+
+    if key not in environments:
         # Import dependencies, sadly we get to manage this ourselves.
         importFromInlineCopy("markupsafe", must_exist=True)
 
@@ -47,8 +49,8 @@ def getEnvironment(module_name):
         import jinja2
 
         env = jinja2.Environment(
-            loader=jinja2.PackageLoader(module_name, "templates"),
-            # extensions=["jinja2.ext.do"],
+            loader=jinja2.PackageLoader(package_name, template_subdir),
+            extensions=extensions,
             trim_blocks=True,
             lstrip_blocks=True,
         )
@@ -63,10 +65,16 @@ def getEnvironment(module_name):
 
         env.undefined = jinja2.StrictUndefined
 
-        environments[module_name] = env
+        environments[key] = env
 
-    return environments[module_name]
+    return environments[key]
 
 
-def getTemplate(module_name, template_name):
-    return getEnvironment(module_name).get_template(template_name)
+def getTemplate(
+    package_name, template_name, template_subdir="templates", extensions=()
+):
+    return getEnvironment(
+        package_name=package_name,
+        template_subdir=template_subdir,
+        extensions=extensions,
+    ).get_template(template_name)
