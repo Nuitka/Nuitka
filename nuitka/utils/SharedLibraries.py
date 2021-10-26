@@ -20,7 +20,6 @@
 """
 
 import os
-import subprocess
 import sys
 
 from nuitka import Options
@@ -29,8 +28,8 @@ from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
 from .Execution import (
+    executeProcess,
     executeToolChecked,
-    getNullInput,
     withEnvironmentVarOverriden,
 )
 from .FileOperations import withMadeWritableFileMode
@@ -404,14 +403,13 @@ def detectBinaryMinMacOS(binary_filename):
         str - minimum OS version that the binary will run on
 
     """
-    process = subprocess.Popen(
-        args=["otool", "-l", binary_filename],
-        stdin=getNullInput(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
 
-    stdout, _stderr = process.communicate()
+    stdout, _stderr, exit_code = executeProcess(["otool", "-l", binary_filename])
+
+    if exit_code != 0:
+        postprocessing_logger.sysexit(
+            "Unexpected failure to execute otool -l '%s'." % binary_filename
+        )
 
     lines = stdout.split(b"\n")
 

@@ -30,7 +30,6 @@ import marshal
 import os
 import pkgutil
 import shutil
-import subprocess
 import sys
 
 from nuitka import Options, SourceCodeReferences
@@ -53,7 +52,7 @@ from nuitka.Tracing import general, inclusion_logger, printError
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.Execution import getNullInput, withEnvironmentPathAdded
+from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
     copyFileWithPermissions,
@@ -261,19 +260,16 @@ print("\\n".join(sorted(
         os.write(tmp_file, command)
         os.close(tmp_file)
 
-        process = subprocess.Popen(
-            args=[sys.executable, "-s", "-S", "-v", tmp_filename],
-            stdin=getNullInput(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=dict(os.environ, PYTHONIOENCODING="utf_8"),
+        # TODO: Check exit code, should never fail.
+        _stdout, stderr, exit_code = executeProcess(
+            command=(sys.executable, "-s", "-S", "-v", tmp_filename),
+            env=dict(os.environ, PYTHONIOENCODING="utf-8"),
         )
-        _stdout, stderr = process.communicate()
     finally:
         os.unlink(tmp_filename)
 
     # Don't let errors here go unnoticed.
-    if process.returncode != 0:
+    if exit_code != 0:
         general.warning("There is a problem with detecting imports, CPython said:")
         for line in stderr.split(b"\n"):
             printError(line)
@@ -684,6 +680,7 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
                 "$ORIGIN", os.path.dirname(sys.executable)
             )
 
+    # TODO: Actually would be better to pass it as env to the created process instead.
     with withEnvironmentPathAdded(
         "LD_LIBRARY_PATH",
         *_getLdLibraryPath(
@@ -692,14 +689,8 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
             original_dir=original_dir,
         )
     ):
-        process = subprocess.Popen(
-            args=["ldd", dll_filename],
-            stdin=getNullInput(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-
-        stdout, stderr = process.communicate()
+        # TODO: Check exit code, should never fail.
+        stdout, stderr, _exit_code = executeProcess(command=("ldd", dll_filename))
 
     stderr = b"\n".join(
         line
@@ -765,20 +756,17 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
 def _detectBinaryPathDLLsMacOS(
     original_dir, binary_filename, package_name, keep_unresolved
 ):
+    # TODO: Actually would be better to pass it as env to the created process instead.
     with withEnvironmentPathAdded(
         "DYLD_LIBRARY_PATH",
         *_getLdLibraryPath(
             package_name=package_name, python_rpath=None, original_dir=original_dir
         )
     ):
-        process = subprocess.Popen(
-            args=["otool", "-L", binary_filename],
-            stdin=getNullInput(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+        # TODO: Check exit code, should never fail.
+        stdout, _stderr, _exit_code = executeProcess(
+            command=("otool", "-L", binary_filename)
         )
-
-    stdout, _stderr = process.communicate()
     system_paths = (
         "/usr/lib/",
         "/System/Library/Frameworks/",
@@ -840,18 +828,13 @@ def _resolveBinaryPathDLLsMacOS(original_dir, binary_filename, paths, keep_unres
 
 
 def _detectBinaryRPathsMacOS(original_dir, binary_filename):
-    result = set()
-
-    process = subprocess.Popen(
-        args=["otool", "-l", binary_filename],
-        stdin=getNullInput(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+    # TODO: Check exit code, should never fail.
+    stdout, _stderr, _exit_code = executeProcess(
+        command=("otool", "-l", binary_filename)
     )
-
-    stdout, _stderr = process.communicate()
-
     lines = stdout.split(b"\n")
+
+    result = set()
 
     for i, line in enumerate(lines):
         if line.endswith(b"cmd LC_RPATH"):
@@ -1466,7 +1449,7 @@ def copyDataFiles(dist_dir):
         filenames = getFileList(src)
 
         if not filenames:
-            inclusion_logger.warning("No files in directory" % src)
+            inclusion_logger.warning("No files in directory '%s.'" % src)
 
         for filename in filenames:
             relative_filename = relpath(filename, src)

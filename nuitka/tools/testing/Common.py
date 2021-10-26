@@ -204,10 +204,9 @@ def convertUsing2to3(path, force=False):
     command = [os.environ["PYTHON"], "-m", "py_compile", path]
 
     if not force:
-        with open(path) as source_file:
-            if "xrange" not in source_file.read():
-                if check_result(command, stderr=getNullOutput()):
-                    return path, False
+        if "xrange" not in getFileContents(path):
+            if check_result(command, stderr=getNullOutput()):
+                return path, False
 
     filename = os.path.basename(path)
 
@@ -247,10 +246,9 @@ def convertUsing2to3(path, force=False):
 
         check_output(command, stderr=getNullOutput())
 
-    with open(new_path) as result_file:
-        data = result_file.read()
+    data = getFileContents(new_path)
 
-    with open(new_path, "w") as result_file:
+    with openTextFile(new_path, "w") as result_file:
         result_file.write("__file__ = %r\n" % os.path.abspath(path))
         result_file.write(data)
 
@@ -778,6 +776,7 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
             assert m1
             assert m2
 
+            # Using items will unwanted usages, pylint: disable=consider-using-dict-items
             for key in m1:
                 if key not in m2:
                     print("*" * 80)
@@ -923,7 +922,7 @@ def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr, explain=
         # Avoid unraisable output.
         try:
             if number in tests_stderr:
-                sys.stderr = open(os.devnull, "wb")
+                sys.stderr = getNullOutput()
         except OSError:  # Windows
             if not checkReferenceCount(names[name], explain=explain):
                 result = False

@@ -212,8 +212,12 @@ def main():
                     ]
                 )
 
-                # get compiled pytest results
-                compiled_stdout, compiled_stderr = venv.runCommandWithOutput(
+                # get compiled pytest results, may fail some tests.
+                (
+                    compiled_stdout,
+                    compiled_stderr,
+                    _exit_code,
+                ) = venv.runCommandWithOutput(
                     commands=[
                         "cd %s" % package_dir,
                         "python -m pytest --disable-warnings",

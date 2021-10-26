@@ -39,6 +39,7 @@ from nuitka.Builtins import (
 from nuitka.codegen.Namify import namifyConstant
 from nuitka.containers.oset import OrderedSet
 from nuitka.PythonVersions import python_version
+from nuitka.utils.FileOperations import openTextFile
 
 
 class BuiltinAnonValue(object):
@@ -106,7 +107,7 @@ class ConstantStreamWriter(object):
         self.count = 0
 
         filename = os.path.join(OutputDirectories.getSourceDirectoryPath(), filename)
-        self.file = open(filename, "wb")
+        self.file = openTextFile(filename, "wb")
         if python_version < 0x300:
             self.pickle = pickle.Pickler(self.file, -1)
         else:

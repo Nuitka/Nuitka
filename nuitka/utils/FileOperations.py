@@ -448,7 +448,8 @@ def openTextFile(filename, mode, encoding=None):
 
         return codecs.open(filename, mode, encoding=encoding)
     else:
-        return open(filename, mode)
+        # Encoding was checked to be not needed.
+        return open(filename, mode)  # pylint: disable=unspecified-encoding
 
 
 def putTextFileContents(filename, contents, encoding=None):

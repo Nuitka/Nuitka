@@ -111,6 +111,9 @@ def main():
                     "runner",
                 )
 
+                # TODO: Is this something to be abstracted into a function.
+                # pylint: disable=consider-using-with
+
                 if os.path.exists(runner_binary):
                     # Need to call CPython binary for Windows.
                     process = subprocess.Popen(
@@ -180,6 +183,9 @@ def main():
                     "bin" if os.name != "nt" else "scripts",
                     "runner",
                 )
+
+                # TODO: Is this something to be abstracted into a function.
+                # pylint: disable=consider-using-with
 
                 if os.path.exists(runner_binary):
                     process = subprocess.Popen(

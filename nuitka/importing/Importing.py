@@ -485,6 +485,7 @@ def _unpackPathElement(path_entry):
 
             target_dir = os.path.join(getCacheDir(), "egg-content", checksum)
 
+            # Not all Python versions allow using with here, pylint: disable=consider-using-with
             zip_ref = zipfile.ZipFile(path_entry, "r")
             zip_ref.extractall(target_dir)
             zip_ref.close()
