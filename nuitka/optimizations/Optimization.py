@@ -217,7 +217,7 @@ last_total = 0
 
 
 def _restartProgress():
-    global pass_count, last_total  # Singleton, pylint: disable=global-statement
+    global pass_count  # Singleton, pylint: disable=global-statement
 
     closeProgressBar()
     pass_count += 1
@@ -356,8 +356,6 @@ def optimize(output_filename):
             and module.getCompilationMode() == "bytecode"
         ):
             demoteCompiledModuleToBytecode(module)
-
-    global pass_count  # Singleton, pylint: disable=global-statement
 
     # Second, "endless" pass.
     while not finished:
