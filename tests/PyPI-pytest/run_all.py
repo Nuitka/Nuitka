@@ -55,6 +55,7 @@ from nuitka.tools.testing.Common import (
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.AppDirs import getCacheDir
+from nuitka.utils.FileOperations import getFileContents
 
 
 def executeCommand(command):
@@ -96,8 +97,7 @@ def main():
     results = []
 
     # load json
-    with open("packages.json", "r") as f:
-        packages = json.load(f)
+    packages = json.load(getFileContents("packages.json"))
 
     for package_name, details in sorted(packages.items()):
         active = search_mode.consider(dirname=None, filename=package_name)
