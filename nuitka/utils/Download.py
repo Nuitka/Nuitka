@@ -107,6 +107,7 @@ Proceed and download? [Yes]/No """
         import zipfile
 
         try:
+            # Not all Python versions support using it as a context manager, pylint: disable=consider-using-with
             zip_file = zipfile.ZipFile(download_path)
 
             for zip_info in zip_file.infolist():

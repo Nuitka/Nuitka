@@ -74,7 +74,7 @@ class TensorflowPlugin(NuitkaPluginBase):
         if found_insert is True:
             self.info("Patched 'running-from-pip' path magic.")
         else:
-            self.sysexit("Did not find path magic code." % self.plugin_name)
+            self.sysexit("Did not find path magic code.")
 
         return "\n".join(source_lines)
 

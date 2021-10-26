@@ -308,6 +308,8 @@ def getSystemPrefixPath():
         ):
             candidate = os.path.join(sys_prefix, candidate)
             if os.path.exists(candidate):
+                # Cannot use FileOperations.getFileContents() here, because of circular dependency.
+                # pylint: disable=unspecified-encoding
                 with open(candidate) as f:
                     sys_prefix = f.read()
 

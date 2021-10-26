@@ -24,7 +24,12 @@ import shutil
 import sys
 
 from nuitka.utils.Execution import check_call, getNullInput
-from nuitka.utils.FileOperations import getFileContentByLine, listDir
+from nuitka.utils.FileOperations import (
+    getFileContentByLine,
+    getFileContents,
+    listDir,
+    openTextFile,
+)
 
 
 def _callDebchange(*args):
@@ -36,9 +41,9 @@ def _callDebchange(*args):
 
 
 def _discardDebianChangelogLastEntry():
-    with open("debian/changelog") as f:
-        changelog_lines = f.readlines()
-    with open("debian/changelog", "w") as output:
+    changelog_lines = getFileContents("debian/changelog").splitlines()
+
+    with openTextFile("debian/changelog", "w") as output:
         first = True
         for line in changelog_lines[1:]:
             if line.startswith("nuitka") and first:
@@ -60,12 +65,12 @@ def updateDebianChangelog(old_version, new_version, distribution):
 
         message = "New upstream pre-release."
 
-        with open("Changelog.rst") as f:
-            changelog = f.read()
+        changelog = getFileContents("Changelog.rst")
+
         if "(Draft)" not in changelog.splitlines()[1]:
             title = "Nuitka Release " + new_version[:-3] + " (Draft)"
 
-            with open("Changelog.rst", "w") as changelog_file:
+            with openTextFile("Changelog.rst", "w") as changelog_file:
                 marker = "#" * (len(title) + 2)
 
                 changelog_file.write(marker + "\n " + title + "\n" + marker + "\n\n")

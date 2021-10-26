@@ -22,17 +22,17 @@ We use depends.exe to investigate needed DLLs of Python DLLs.
 """
 
 import os
-import subprocess
 
 from nuitka.containers.oset import OrderedSet
 from nuitka.Options import assumeYesForDownloads
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Download import getCachedDownload
-from nuitka.utils.Execution import getNullInput
+from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import (
     deleteFile,
     getExternalUsePath,
     getFileContentByLine,
+    putTextFileContents,
     withFileLock,
 )
 from nuitka.utils.Utils import getArchitecture
@@ -142,23 +142,25 @@ def detectDLLsWithDependencyWalker(binary_filename, scan_dirs):
 
         # Note: Do this under lock to avoid forked processes to hold
         # a copy of the file handle on Windows.
-        with open(dwp_filename, "w") as dwp_file:
-            dwp_file.write(
-                """\
+        putTextFileContents(
+            dwp_filename,
+            contents="""\
 %(scan_dirs)s
 SxS
 """
-                % {
-                    "scan_dirs": "\n".join(
-                        "UserDir %s" % getExternalUsePath(dirname)
-                        for dirname in scan_dirs
-                    )
-                }
-            )
+            % {
+                "scan_dirs": "\n".join(
+                    "UserDir %s" % getExternalUsePath(dirname) for dirname in scan_dirs
+                )
+            },
+        )
 
     # Starting the process while locked, so file handles are not duplicated.
-    depends_exe_process = subprocess.Popen(
-        (
+    # TODO: At least exit code should be checked, output goes to a filename,
+    # but errors might be interesting potentially.
+
+    _stdout, _stderr, _exit_code = executeProcess(
+        command=(
             depends_exe,
             "-c",
             "-ot%s" % output_filename,
@@ -168,12 +170,8 @@ SxS
             "-ps1",
             binary_filename,
         ),
-        stdin=getNullInput(),
-        cwd=getExternalUsePath(os.getcwd()),
+        external_cwd=True,
     )
-
-    # TODO: Exit code should be checked.
-    depends_exe_process.wait()
 
     if not os.path.exists(output_filename):
         inclusion_logger.sysexit(

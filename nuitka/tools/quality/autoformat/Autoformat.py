@@ -45,6 +45,7 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
+    putTextFileContents,
     renameFile,
     withPreserveFileMode,
 )
@@ -76,8 +77,7 @@ def cleanupWindowsNewlines(filename):
 
 def _cleanupTrailingWhitespace(filename):
     """Remove trailing white spaces from a file."""
-    with open(filename, "r") as f:
-        source_lines = list(f)
+    source_lines = list(getFileContentByLine(filename))
 
     clean_lines = [line.rstrip().replace("\t", "    ") for line in source_lines]
 
@@ -85,8 +85,7 @@ def _cleanupTrailingWhitespace(filename):
         del clean_lines[-1]
 
     if clean_lines != source_lines:
-        with open(filename, "w") as out_file:
-            out_file.write("\n".join(clean_lines) + "\n")
+        putTextFileContents(filename, contents="\n".join(clean_lines) + "\n")
 
 
 def _getRequirementsContentsByLine():
@@ -240,8 +239,7 @@ def _cleanupPyLintComments(filename, abort):
     new_code = red.dumps()
 
     if new_code != old_code:
-        with open(filename, "w") as source_code:
-            source_code.write(red.dumps())
+        putTextFileContents(filename, contents=red.dumps())
 
 
 def _cleanupImportRelative(filename):
@@ -265,8 +263,7 @@ def _cleanupImportRelative(filename):
     updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
 
     if source_code != updated_code:
-        with open(filename, "w") as out_file:
-            out_file.write(updated_code)
+        putTextFileContents(filename, contents=updated_code)
 
 
 _binary_calls = {}
@@ -333,10 +330,9 @@ def _cleanupImportSortOrder(filename):
         parts = contents.splitlines()
 
         start_index = parts.index("# isort:start")
-        contents = "\n".join(parts[start_index + 1 :])
+        contents = "\n".join(parts[start_index + 1 :]) + "\n"
 
-        with open(filename, "w") as out_file:
-            out_file.write(contents)
+        putTextFileContents(filename, contents=contents)
 
     check_call(
         isort_call
@@ -360,8 +356,7 @@ def _cleanupImportSortOrder(filename):
 
         contents = "\n".join(parts[: start_index + 1]) + "\n" + contents
 
-        with open(filename, "w") as out_file:
-            out_file.write(contents)
+        putTextFileContents(filename, contents=contents)
 
 
 def _cleanupRstFmt(filename):

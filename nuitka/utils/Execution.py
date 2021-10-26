@@ -29,6 +29,7 @@ from nuitka.__past__ import WindowsError, subprocess
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
+from .FileOperations import getExternalUsePath
 from .Utils import getArchitecture, getOS, isWin32Windows
 
 
@@ -421,6 +422,7 @@ def getNullInput():
     try:
         return subprocess.NULLDEV
     except AttributeError:
+        # File is supposed to stay open, pylint: disable=consider-using-with
         subprocess.NULLDEV = open(os.devnull, "rb")
         return subprocess.NULLDEV
 
@@ -461,3 +463,28 @@ def executeToolChecked(logger, command, absence_message, stderr_filter=None):
         )
 
     return stdout
+
+
+def executeProcess(
+    command, env=None, needs_stdin=False, shell=False, external_cwd=False
+):
+    if not env:
+        env = os.environ
+
+    process = subprocess.Popen(
+        command,
+        stdin=subprocess.PIPE if needs_stdin else getNullInput(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=shell,
+        # On Windows, closing file descriptions is now working with capturing outputs.
+        close_fds=not isWin32Windows(),
+        env=env,
+        # For tools that want short paths to work.
+        cwd=getExternalUsePath(os.getcwd()) if external_cwd else None,
+    )
+
+    stdout, stderr = process.communicate()
+    exit_code = process.wait()
+
+    return stdout, stderr, exit_code

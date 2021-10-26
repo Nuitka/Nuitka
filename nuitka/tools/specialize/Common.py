@@ -22,6 +22,7 @@ import shutil
 
 from nuitka.tools.quality.autoformat.Autoformat import autoformat
 from nuitka.Tracing import my_print
+from nuitka.utils.FileOperations import openTextFile
 
 
 @contextlib.contextmanager
@@ -29,7 +30,7 @@ def withFileOpenedAndAutoformatted(filename):
     my_print("Creating %r ..." % filename)
 
     tmp_filename = filename + ".tmp"
-    with open(tmp_filename, "w") as output:
+    with openTextFile(tmp_filename, "w") as output:
         yield output
 
     autoformat(tmp_filename, None, True, effective_filename=filename, trace=False)
