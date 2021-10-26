@@ -27,7 +27,7 @@ import subprocess
 import sys
 
 from nuitka.tools.testing.Common import hasModule, my_print
-from nuitka.utils.Execution import check_output, getNullInput
+from nuitka.utils.Execution import check_output, getNullInput, getNullOutput
 
 pylint_version = None
 
@@ -43,10 +43,9 @@ def checkVersion():
         )
 
     if pylint_version is None:
-        with open(os.devnull, "w") as devnull:
-            pylint_version = check_output(
-                [os.environ["PYTHON"], "-m", "pylint", "--version"], stderr=devnull
-            )
+        pylint_version = check_output(
+            [os.environ["PYTHON"], "-m", "pylint", "--version"], stderr=getNullOutput()
+        )
 
         if str is not bytes:
             pylint_version = pylint_version.decode("utf8")
