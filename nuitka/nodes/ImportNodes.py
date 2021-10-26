@@ -163,6 +163,24 @@ def makeExpressionAbsoluteImportNode(module_name, source_ref):
     )
 
 
+def resolveModuleName(module_name):
+    # TODO: This is not handling decoding errors all that well.
+    if str is not unicode and type(module_name) is unicode:
+        module_name = str(module_name)
+
+    module_name = ModuleName(module_name)
+
+    # TODO: Allow this to be done by plugins. We compensate meta path based
+    # importer effects here.
+    if module_name.isBelowNamespace("bottle.ext"):
+        module_name = (
+            ModuleName("bottle_")
+            + module_name.splitPackageName()[1].splitPackageName()[1]
+        )
+
+    return module_name
+
+
 class ExpressionImportModuleFixed(ExpressionBase):
     """Hard coded import names, that we know to exist."
 
@@ -183,7 +201,7 @@ class ExpressionImportModuleFixed(ExpressionBase):
     def __init__(self, module_name, source_ref):
         ExpressionBase.__init__(self, source_ref=source_ref)
 
-        self.module_name = ModuleName(module_name)
+        self.module_name = resolveModuleName(module_name)
 
         self.recurse_attempted = False
         self.finding = None
@@ -841,7 +859,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                                     )
                                 )
         else:
-            module_name = ModuleName(module_name)
+            module_name = resolveModuleName(module_name)
 
             while True:
                 module_name = module_name.getPackageName()
@@ -893,8 +911,6 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 )
 
     def computeExpression(self, trace_collection):
-        # Many cases to deal with, pylint: disable=too-many-branches
-
         # TODO: In fact, if the module is not a package, we don't have to insist
         # on the "fromlist" that much, but normally it's not used for anything
         # but packages, so it will be rare.
@@ -918,9 +934,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
             imported_module_name = module_name.getCompileTimeConstant()
 
             if type(imported_module_name) in (str, unicode):
-                # TODO: This is not handling decoding errors all that well.
-                if str is not unicode and type(imported_module_name) is unicode:
-                    imported_module_name = str(imported_module_name)
+                imported_module_name = resolveModuleName(imported_module_name)
 
                 self._attemptRecursion(
                     trace_collection=trace_collection, module_name=imported_module_name
