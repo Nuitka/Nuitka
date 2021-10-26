@@ -254,12 +254,14 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         elif full_name == "gevent.queue":
             yield "gevent._queue"
+            yield "gevent._gevent_cqueue"
 
         elif full_name == "gevent.pool":
             yield "gevent._imap"
 
         elif full_name == "gevent._imap":
             yield "gevent.__imap"
+            yield "gevent._gevent_c_imap"
         # end of gevent imports ----------------------------------------------
 
         # start of tensorflow imports ----------------------------------------
