@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+
+""" Launcher for static Python code generation tool.
+
+"""
+
+import os
+import sys
+
+# Unchanged, running from checkout, use the parent directory, the nuitka
+# package ought to be there.
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
+
+# isort:start
+from nuitka.tools.specialize.SpecializePython import main
+
+main()
