@@ -41,7 +41,7 @@ from nuitka.PythonVersions import (
 from nuitka.Tracing import OurLogger, my_print
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.Execution import check_output, getNullInput
+from nuitka.utils.Execution import check_output, getNullInput, getNullOutput
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getExternalUsePath,
@@ -50,6 +50,7 @@ from nuitka.utils.FileOperations import (
     getFileList,
     isPathBelowOrSameAs,
     makePath,
+    openTextFile,
     removeDirectory,
 )
 from nuitka.utils.Utils import getOS
@@ -205,9 +206,8 @@ def convertUsing2to3(path, force=False):
     if not force:
         with open(path) as source_file:
             if "xrange" not in source_file.read():
-                with open(os.devnull, "w") as stderr:
-                    if check_result(command, stderr=stderr):
-                        return path, False
+                if check_result(command, stderr=getNullOutput()):
+                    return path, False
 
     filename = os.path.basename(path)
 
@@ -236,17 +236,16 @@ def convertUsing2to3(path, force=False):
 
     command += ("-w", "-n", "--no-diffs", new_path)
 
-    with open(os.devnull, "w") as devnull:
-        try:
-            check_output(command, stderr=devnull)
+    try:
+        check_output(command, stderr=getNullOutput())
 
-        except subprocess.CalledProcessError:
-            if os.name == "nt":
-                raise
+    except subprocess.CalledProcessError:
+        if os.name == "nt":
+            raise
 
-            command[0:3] = ["2to3"]
+        command[0:3] = ["2to3"]
 
-            check_output(command, stderr=devnull)
+        check_output(command, stderr=getNullOutput())
 
     with open(new_path) as result_file:
         data = result_file.read()
@@ -443,8 +442,7 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
 def checkSucceedsWithCPython(filename):
     command = [_python_executable, filename]
 
-    with open(os.devnull, "w") as devnull:
-        result = subprocess.call(command, stdout=devnull, stderr=subprocess.STDOUT)
+    result = subprocess.call(command, stdout=getNullOutput(), stderr=subprocess.STDOUT)
 
     return result == 0
 
@@ -608,12 +606,11 @@ def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
 
 
 def hasModule(module_name):
-    with open(os.devnull, "w") as devnull:
-        result = subprocess.call(
-            (os.environ["PYTHON"], "-c", "import %s" % module_name),
-            stdout=devnull,
-            stderr=subprocess.STDOUT,
-        )
+    result = subprocess.call(
+        (os.environ["PYTHON"], "-c", "import %s" % module_name),
+        stdout=getNullOutput(),
+        stderr=subprocess.STDOUT,
+    )
 
     return result == 0
 
@@ -1303,7 +1300,7 @@ def scanDirectoryForTestCases(dirname, template_context=None):
             code = template.render(name=template.name, **template_context)
 
             filename = filename[:-3]
-            with open(filename, "w") as output:
+            with openTextFile(filename, "w") as output:
                 output.write(
                     "'''Automatically generated test, not part of releases or git.\n\n'''\n"
                 )
@@ -1385,16 +1382,15 @@ def checkRequirements(filename):
         if line.startswith("# nuitka-skip-unless-"):
             if line[21:33] == "expression: ":
                 expression = line[33:]
-                with open(os.devnull, "w") as devnull:
-                    result = subprocess.call(
-                        (
-                            os.environ["PYTHON"],
-                            "-c",
-                            "import sys, os; sys.exit(not bool(%s))" % expression,
-                        ),
-                        stdout=devnull,
-                        stderr=subprocess.STDOUT,
-                    )
+                result = subprocess.call(
+                    (
+                        os.environ["PYTHON"],
+                        "-c",
+                        "import sys, os; sys.exit(not bool(%s))" % expression,
+                    ),
+                    stdout=getNullOutput(),
+                    stderr=subprocess.STDOUT,
+                )
                 if result != 0:
                     return (False, "Expression '%s' evaluated to false" % expression)
 
