@@ -39,6 +39,7 @@ from nuitka.utils.Execution import (
     check_call,
     check_output,
     getExecutablePath,
+    getNullOutput,
     withEnvironmentPathAdded,
 )
 from nuitka.utils.FileOperations import (
@@ -337,23 +338,22 @@ def _cleanupImportSortOrder(filename):
         with open(filename, "w") as out_file:
             out_file.write(contents)
 
-    with open(os.devnull, "w") as devnull:
-        check_call(
-            isort_call
-            + [
-                "-q",  # quiet, but stdout is still garbage
-                "--overwrite-in-place",  # avoid using another temp file, this is already on one.
-                "-ot",  # Order imports by type in addition to alphabetically
-                "-m3",  # "vert-hanging"
-                "-tc",  # Trailing commas
-                "-p",  # make sure nuitka is first party package in import sorting.
-                "nuitka",
-                "-o",
-                "SCons",
-                filename,
-            ],
-            stdout=devnull,
-        )
+    check_call(
+        isort_call
+        + [
+            "-q",  # quiet, but stdout is still garbage
+            "--overwrite-in-place",  # avoid using another temp file, this is already on one.
+            "-ot",  # Order imports by type in addition to alphabetically
+            "-m3",  # "vert-hanging"
+            "-tc",  # Trailing commas
+            "-p",  # make sure nuitka is first party package in import sorting.
+            "nuitka",
+            "-o",
+            "SCons",
+            filename,
+        ],
+        stdout=getNullOutput(),
+    )
 
     if start_index is not None:
         contents = getFileContents(filename)

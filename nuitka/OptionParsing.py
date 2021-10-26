@@ -50,7 +50,7 @@ parser = OptionParser(
         (
             getNuitkaVersion(),
             "Commercial: %s" % getCommercialVersion(),
-            "Python: " + sys.version.split("\n")[0],
+            "Python: " + sys.version.split("\n", 1)[0],
             "Executable: " + sys.executable,
             "OS: " + Utils.getOS(),
             "Arch: " + Utils.getArchitecture(),

@@ -23,7 +23,7 @@ import os
 import shutil
 import sys
 
-from nuitka.utils.Execution import check_call
+from nuitka.utils.Execution import check_call, getNullInput
 from nuitka.utils.FileOperations import getFileContentByLine, listDir
 
 
@@ -32,8 +32,7 @@ def _callDebchange(*args):
 
     os.environ["EDITOR"] = ""
 
-    with open(os.devnull, "r") as devnull:
-        check_call(args, stdin=devnull)
+    check_call(args, stdin=getNullInput())
 
 
 def _discardDebianChangelogLastEntry():

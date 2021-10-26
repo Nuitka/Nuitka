@@ -35,9 +35,14 @@ from nuitka.utils.Execution import (
     check_call,
     check_output,
     getExecutablePath,
+    getNullOutput,
     getPythonExePathWindows,
 )
-from nuitka.utils.FileOperations import withDirectoryChange
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    openTextFile,
+    withDirectoryChange,
+)
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import getOS, hasOnefileSupportedOS
 
@@ -461,7 +466,7 @@ def publishCoverageData():
 
         suffix = platform.uname()[0] + "." + platform.uname()[4]
 
-    with open("data.coverage", "w") as data_file:
+    with openTextFile("data.coverage", "w") as data_file:
         source_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
         with withDirectoryChange(source_dir):
@@ -479,8 +484,7 @@ def publishCoverageData():
     def makeCoverageRelative(filename):
         """Normalize coverage data."""
 
-        with open(filename) as input_file:
-            data = input_file.read()
+        data = getFileContents(filename)
 
         data = data.replace(
             (os.path.abspath(".") + os.path.sep).replace("\\", "\\\\"), ""
@@ -631,8 +635,7 @@ def main():
         my_print("Run '%s' in '%s'." % (" ".join(parts), os.getcwd()))
 
         if hide_output:
-            with open(os.devnull, "w") as devnull:
-                result = subprocess.call(parts, stdout=devnull)
+            result = subprocess.call(parts, stdout=getNullOutput())
         else:
             result = subprocess.call(parts)
 

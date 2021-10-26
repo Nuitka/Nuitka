@@ -90,7 +90,6 @@ def isDebianSuitableForStaticLinking():
 
 def _getSystemStaticLibPythonPath():
     # Return driven function with many cases, pylint: disable=too-many-branches,too-many-return-statements
-    global _static_lib_python_path  # singleton, pylint: disable=global-statement
 
     sys_prefix = getSystemPrefixPath()
     python_abi_version = python_version_str + getPythonABI()
