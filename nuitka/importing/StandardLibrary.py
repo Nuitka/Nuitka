@@ -29,7 +29,7 @@ module.
 import os
 
 from nuitka.Options import shallUseStaticLibPython
-from nuitka.utils.FileOperations import isPathBelow
+from nuitka.utils.FileOperations import getFileContents, isPathBelow
 from nuitka.utils.Utils import getOS
 
 
@@ -77,8 +77,11 @@ def getStandardLibraryPaths():
 
             assert search and lib_part
 
-            with open(orig_prefix_filename) as f:
-                stdlib_paths.add(os.path.normcase(os.path.join(f.read(), lib_part)))
+            stdlib_paths.add(
+                os.path.normcase(
+                    os.path.join(getFileContents(orig_prefix_filename), lib_part)
+                )
+            )
 
         # And yet another possibility, for macOS Homebrew created virtualenv
         # at least is a link ".Python", which points to the original install.

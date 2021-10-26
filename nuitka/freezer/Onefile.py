@@ -49,6 +49,8 @@ from nuitka.utils.FileOperations import (
     deleteFile,
     getFileContents,
     getFileList,
+    openTextFile,
+    putTextFileContents,
     removeDirectory,
 )
 from nuitka.utils.SharedLibraries import locateDLL
@@ -127,13 +129,13 @@ for onefile creation to work on Linux."""
 
     # This might be possible to avoid being done with --runtime-file.
     apprun_filename = os.path.join(dist_dir, "AppRun")
-    with open(apprun_filename, "w") as output_file:
-        output_file.write(
-            """\
+    putTextFileContents(
+        apprun_filename,
+        contents="""\
 #!/bin/bash
 exec -a $ARGV0 $APPDIR/%s \"$@\""""
-            % os.path.basename(binary_filename)
-        )
+        % os.path.basename(binary_filename),
+    )
 
     addFileExecutablePermission(apprun_filename)
 
@@ -146,20 +148,20 @@ exec -a $ARGV0 $APPDIR/%s \"$@\""""
 
     shutil.copyfile(icon_paths[0], getResultBasepath() + extension)
 
-    with open(getResultBasepath() + ".desktop", "w") as output_file:
-        output_file.write(
-            """\
+    putTextFileContents(
+        getResultBasepath() + ".desktop",
+        contents="""\
 [Desktop Entry]
 Name=%(binary_basename)s
 Exec=%(binary_filename)s
 Icon=%(binary_basename)s
 Type=Application
 Categories=Utility;"""
-            % {
-                "binary_basename": binary_basename,
-                "binary_filename": os.path.basename(binary_filename),
-            }
-        )
+        % {
+            "binary_basename": binary_basename,
+            "binary_filename": os.path.basename(binary_filename),
+        },
+    )
 
     postprocessing_logger.info(
         "Creating single file from dist folder, this may take a while."
@@ -168,10 +170,14 @@ Categories=Utility;"""
     stdout_filename = binary_filename + ".appimage.stdout.txt"
     stderr_filename = binary_filename + ".appimage.stderr.txt"
 
-    stdout_file = open(stdout_filename, "wb")
-    stderr_file = open(stderr_filename, "wb")
+    stdout_file = openTextFile(stdout_filename, "wb")
+    stderr_file = openTextFile(stderr_filename, "wb")
 
-    # Starting the process while locked, so file handles are not duplicated.
+    # Starting the process while locked, so file handles are not duplicated, we
+    # need fine grained control over process here, therefore we cannot use the
+    # Execution.executeProcess() function without making it too complex and not
+    # all Python versions allow using with, pylint: disable=consider-using-with
+    # pylint: disable
     appimagetool_process = subprocess.Popen(
         (
             _getAppImageToolPath(

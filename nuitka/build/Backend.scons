@@ -58,6 +58,7 @@ from nuitka.Tracing import (
     setQuiet,
 )
 from nuitka.utils.Execution import check_output
+from nuitka.utils.FileOperations import getFileContents
 from nuitka.utils.Utils import isDebianBasedLinux
 
 from .SconsCaching import enableCcache, enableClcache
@@ -841,15 +842,14 @@ if win_target:
             ]
         )
 
-        with open(os.path.join(python_prefix, "link.json")) as f:
-            linkData = json.load(f)
-            env.Append(LIBS=linkData["libraries"])
-            env.Append(LIBPATH=linkData["library_dirs"])
-            for define, value in linkData["macros"]:
-                if value:
-                    env.Append(CPPDEFINES=[define + "=" + value])
-                else:
-                    env.Append(CPPDEFINES=[define])
+        link_data = json.load(getFileContents(os.path.join(python_prefix, "link.json")))
+        env.Append(LIBS=link_data["libraries"])
+        env.Append(LIBPATH=link_data["library_dirs"])
+        for define, value in link_data["macros"]:
+            if value:
+                env.Append(CPPDEFINES=[define + "=" + value])
+            else:
+                env.Append(CPPDEFINES=[define])
     elif env.gcc_mode and static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
     else:

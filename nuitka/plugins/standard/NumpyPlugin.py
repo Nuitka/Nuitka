@@ -30,6 +30,7 @@ from nuitka.plugins.Plugins import getActiveQtPlugin, hasActivePlugin
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.utils import Execution
 from nuitka.utils.FileOperations import (
+    getFileContentByLine,
     getFileList,
     listDir,
     makePath,
@@ -286,13 +287,10 @@ print(repr("MATPLOTLIBDATA" in getsource(get_data_path)))
             makePath(os.path.dirname(target_filename))  # create intermediate folders
             shutil.copyfile(fullname, target_filename)
 
-        old_lines = (
-            open(matplotlib_info.matplotlibrc_filename).read().splitlines()
-        )  # old config file lines
         new_lines = []  # new config file lines
 
         found = False  # checks whether backend definition encountered
-        for line in old_lines:
+        for line in getFileContentByLine(matplotlib_info.matplotlibrc_filename):
             line = line.rstrip()
 
             # omit meaningless lines

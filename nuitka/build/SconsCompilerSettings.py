@@ -24,6 +24,7 @@ import re
 
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Download import getCachedDownload
+from nuitka.utils.FileOperations import openTextFile, putTextFileContents
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 from .DataComposerInterface import getConstantBlobFilename
@@ -293,9 +294,9 @@ def addConstantBlobFile(env, resource_desc, source_dir, mingw_mode, target_arch)
 
         constants_generated_filename = os.path.join(source_dir, "__constants_data.c")
 
-        with open(constants_generated_filename, "w") as output:
-            output.write(
-                """
+        putTextFileContents(
+            constants_generated_filename,
+            contents="""\
 #define INCBIN_PREFIX
 #define INCBIN_STYLE INCBIN_STYLE_SNAKE
 #define INCBIN_LOCAL
@@ -310,8 +311,8 @@ INCBIN(constant_bin, "__constants.bin");
 unsigned char const *getConstantsBlobData() {
     return constant_bin_data;
 }
-"""
-            )
+""",
+        )
 
     elif resource_mode == "linker":
         # Indicate "linker" resource mode.
@@ -340,7 +341,7 @@ unsigned char const *getConstantsBlobData() {
         constants_generated_filename = os.path.join(source_dir, "__constants_data.c")
 
         def writeConstantsDataSource():
-            with open(constants_generated_filename, "w") as output:
+            with openTextFile(constants_generated_filename, "w") as output:
                 if not env.c11_mode:
                     output.write('extern "C" {')
 

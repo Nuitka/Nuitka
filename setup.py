@@ -42,6 +42,8 @@ if os.name == "nt":
 # Detect the version of Nuitka from its source directly. Without calling it, we
 # don't mean to pollute with ".pyc" files and similar effects.
 def detectVersion():
+    # Encoding is not needed, pylint: disable=unspecified-encoding
+
     with open("nuitka/Version.py") as version_file:
         (version_line,) = [line for line in version_file if line.startswith("Nuitka V")]
 

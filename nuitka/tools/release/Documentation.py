@@ -25,7 +25,12 @@ import os
 import sys
 
 from nuitka.utils.Execution import check_call
-from nuitka.utils.FileOperations import getFileList
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    getFileList,
+    openTextFile,
+    putTextFileContents,
+)
 
 
 def optimize_pngs(pngList):
@@ -93,13 +98,16 @@ def makeManpages():
             "doc/nuitka-man-include.txt",
             "%s ./bin/nuitka" % python,
         ]
-        check_call(cmd, stdout=open("doc/nuitka%s.1" % suffix, "wb"))
+
+        with openTextFile("doc/nuitka%s.1" % suffix, "wb") as output:
+            check_call(cmd, stdout=output)
         cmd[-1] += "-run"
-        check_call(cmd, stdout=open("doc/nuitka%s-run.1" % suffix, "wb"))
+        with openTextFile("doc/nuitka%s-run.1" % suffix, "wb") as output:
+            check_call(cmd, stdout=output)
 
         for manpage in ("doc/nuitka%s.1" % suffix, "doc/nuitka%s-run.1" % suffix):
-            with open(manpage) as f:
-                manpage_contents = f.readlines()
+            manpage_contents = getFileContents(manpage).splitlines()
+
             new_contents = []
             mark = False
 
@@ -116,8 +124,9 @@ def makeManpages():
 
                 new_contents.append(line)
 
-            with open(manpage, "w") as f:
-                f.writelines(new_contents)
+            new_contents = "\n".join(new_contents)
+
+            putTextFileContents(manpage, contents=new_contents)
 
     makeManpage("python2", "")
     makeManpage("python3", "3")

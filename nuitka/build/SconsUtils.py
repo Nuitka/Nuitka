@@ -24,7 +24,6 @@ from __future__ import print_function
 import os
 import shutil
 import signal
-import subprocess
 import sys
 
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
@@ -32,8 +31,8 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     unicode,
 )
 from nuitka.Tracing import scons_details_logger, scons_logger
-from nuitka.utils.Execution import getNullInput
-from nuitka.utils.FileOperations import getFileContentByLine
+from nuitka.utils.Execution import executeProcess
+from nuitka.utils.FileOperations import getFileContentByLine, openTextFile
 
 
 def initScons():
@@ -256,7 +255,7 @@ def addToPATH(env, dirname, prefix):
 
 
 def writeSconsReport(source_dir, env, clang_mode, msvc_mode, clangcl_mode):
-    with open(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
+    with openTextFile(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
         # We are friends to get at this debug info, pylint: disable=protected-access
         for key, value in sorted(env._dict.items()):
             if type(value) is list and all(isinstance(v, basestring) for v in value):
@@ -271,6 +270,8 @@ def writeSconsReport(source_dir, env, clang_mode, msvc_mode, clangcl_mode):
             if key in ("MSVSSCONS", "BUILD_DIR", "IDLSUFFIXES", "DSUFFIXES"):
                 continue
 
+            # TODO: For these kinds of prints, maybe have our own method of doing them
+            # rather than print, or maybe just json or something similar.
             print(key + "=" + value, file=report_file)
 
         print("gcc_mode=%s" % env.gcc_mode, file=report_file)
@@ -320,12 +321,14 @@ def addClangClPathFromMSVC(env, target_arch):
 
     if os.path.exists(clang_dir):
         scons_details_logger.info(
-            "Adding MSVC directory %r for Clang to PATH." % clang_dir
+            "Adding MSVC directory '%s' for Clang to PATH." % clang_dir
         )
 
         addToPATH(env, clang_dir, prefix=True)
     else:
-        scons_details_logger.info("No Clang component for MSVC found." % clang_dir)
+        scons_details_logger.info(
+            "No Clang component for MSVC found at '%s'." % clang_dir
+        )
 
 
 def switchFromGccToGpp(gcc_version, the_compiler, the_cc_name, env):
@@ -449,7 +452,7 @@ def makeCLiteral(value):
 def createDefinitionsFile(source_dir, filename, definitions):
     build_definitions_filename = os.path.join(source_dir, filename)
 
-    with open(build_definitions_filename, "w") as f:
+    with openTextFile(build_definitions_filename, "w") as f:
         for key, value in sorted(definitions.items()):
             if type(value) is int:
                 f.write("#define %s %s\n" % (key, value))
@@ -477,18 +480,9 @@ def _getBinaryArch(binary, mingw_mode):
         command = ["objdump", "-f", binary]
 
         try:
-            proc = subprocess.Popen(
-                command,
-                stdin=getNullInput(),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                shell=False,
-            )
+            data, _err, rv = executeProcess(command)
         except OSError:
             return None
-
-        data, _err = proc.communicate()
-        rv = proc.wait()
 
         if rv != 0:
             return None
@@ -543,19 +537,13 @@ def getCompilerArch(mingw_mode, msvc_mode, the_cc_name, compiler_path):
         if "-cl" in the_cc_name:
             cmdline.append("--version")
 
-        proc = subprocess.Popen(
-            cmdline,
-            stdin=getNullInput(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=False,
+        # The cl.exe without further args will give error
+        stdout, stderr, _rv = executeProcess(
+            command=cmdline,
         )
 
-        # The cl.exe without further args will give error output indicating
-        # arch, while clang outputs in stdout.
-        stdout, stderr = proc.communicate()
-        _rv = proc.wait()
-
+        # The MSVC will output on error, while clang outputs in stdout and they
+        # use different names for arches.
         if b"x86" in stderr or b"i686" in stdout:
             _compiler_arch[compiler_path] = "pei-i386"
         elif b"x64" in stderr or b"x86_64" in stdout:

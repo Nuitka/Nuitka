@@ -22,11 +22,10 @@ same time and gives deterministic results.
 """
 
 import shutil
-import subprocess
 import sys
 
 from nuitka.Tracing import my_print
-from nuitka.utils.Execution import check_output
+from nuitka.utils.Execution import check_output, executeProcess
 from nuitka.utils.FileOperations import getFileContentByLine, withTemporaryFile
 from nuitka.utils.Utils import isWin32Windows
 
@@ -63,12 +62,7 @@ def runValgrind(descr, tool, args, include_startup, save_logfilename=None):
 
         command.extend(args)
 
-        process = subprocess.Popen(
-            args=command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-
-        _stdout_valgrind, stderr_valgrind = process.communicate()
-        exit_valgrind = process.returncode
+        _stdout_valgrind, stderr_valgrind, exit_valgrind = executeProcess(command)
 
         assert exit_valgrind == 0, stderr_valgrind
         if descr:

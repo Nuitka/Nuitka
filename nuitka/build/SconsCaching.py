@@ -290,7 +290,7 @@ def _getCcacheStatistics(ccache_logfile):
 
                     all_text = []
 
-                    for line2 in open(ccache_logfile):
+                    for line2 in getFileContentByLine(ccache_logfile):
                         match = re_anything.match(line2)
 
                         if match:
