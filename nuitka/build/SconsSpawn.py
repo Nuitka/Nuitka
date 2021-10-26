@@ -22,11 +22,11 @@ progress, and gives warnings about things taking very long.
 """
 
 import os
-import subprocess
 import sys
 import threading
 
 from nuitka.Tracing import my_print, scons_logger
+from nuitka.utils.Execution import executeProcess
 from nuitka.utils.Timing import TimerReport
 
 from .SconsCaching import runClCache
@@ -58,17 +58,10 @@ class SubprocessThread(threading.Thread):
         try:
             # execute the command, queue the result
             with self.timer_report:
-                proc = subprocess.Popen(
-                    self.cmdline,
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    shell=False,
-                    env=self.env,
+                self.data, self.err, self.exit_code = executeProcess(
+                    command=self.cmdline, env=self.env
                 )
 
-                self.data, self.err = proc.communicate()
-                self.exit_code = proc.wait()
         except Exception as e:  # will rethrow all, pylint: disable=broad-except
             self.exception = e
 
@@ -254,16 +247,12 @@ length parameter; this could be due to transposed parameters"""
 def subprocess_spawn(args):
     sh, _cmd, args, env = args
 
-    proc = subprocess.Popen(
-        [sh, "-c", " ".join(args)], env=env, close_fds=True, stderr=subprocess.PIPE
+    _stdout, stderr, exit_code = executeProcess(
+        command=[sh, "-c", " ".join(args)], env=env
     )
 
-    _stdout, stderr = proc.communicate()
-
-    stderr_lines = stderr.splitlines()
-
     ignore_next = False
-    for line in stderr_lines:
+    for line in stderr.splitlines():
         if ignore_next:
             ignore_next = False
             continue
@@ -277,7 +266,7 @@ def subprocess_spawn(args):
 
         my_print(line, style="yellow", file=sys.stderr)
 
-    return proc.wait()
+    return exit_code
 
 
 class SpawnThread(threading.Thread):

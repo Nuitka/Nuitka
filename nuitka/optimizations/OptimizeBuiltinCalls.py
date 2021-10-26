@@ -1060,6 +1060,8 @@ def open_extractor(node):
     def makeOpen0(source_ref):
         # pylint: disable=unused-argument
         try:
+            # Not giving arguments or context on purpose
+            # pylint: disable=consider-using-with,unspecified-encoding
             open()
         except Exception as e:  # We want to broad here, pylint: disable=broad-except
             return makeRaiseExceptionReplacementExpressionFromInstance(

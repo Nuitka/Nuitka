@@ -148,14 +148,17 @@ def getArchitecture():
 def getCoreCount():
     cpu_count = 0
 
-    # Try to sum up the CPU cores, if the kernel shows them.
-    try:
-        # Try to get the number of logical processors
-        with open("/proc/cpuinfo") as cpuinfo_file:
-            cpu_count = cpuinfo_file.read().count("processor\t:")
-    except IOError:
-        pass
+    if getOS() != "Windows":
+        # Try to sum up the CPU cores, if the kernel shows them, getting the number
+        # of logical processors
+        try:
+            # Encoding is not needed, pylint: disable=unspecified-encoding
+            with open("/proc/cpuinfo") as cpuinfo_file:
+                cpu_count = cpuinfo_file.read().count("processor\t:")
+        except IOError:
+            pass
 
+    # Multiprocessing knows the way.
     if not cpu_count:
         import multiprocessing
 

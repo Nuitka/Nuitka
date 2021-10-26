@@ -23,12 +23,11 @@
 from __future__ import print_function
 
 import os
-import subprocess
 import sys
 from contextlib import contextmanager
 
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
-from nuitka.utils.Execution import check_call
+from nuitka.utils.Execution import check_call, executeProcess
 from nuitka.utils.FileOperations import removeDirectory, withDirectoryChange
 
 from .Common import my_print
@@ -53,7 +52,7 @@ class Virtualenv(object):
 
     def runCommandWithOutput(self, commands, style=None):
         """
-        Returns the stdout,stderr from process.communicate()
+        Returns the stdout,stderr,exit_code from running command
         """
         if type(commands) in (str, unicode):
             commands = [commands]
@@ -64,19 +63,17 @@ class Virtualenv(object):
             else:
                 commands = [". bin/activate"] + commands
 
-            popen_arg = " && ".join(commands)
+            # Build shell command.
+            command = " && ".join(commands)
 
             if style is not None:
-                my_print("Executing: %s" % popen_arg, style=style)
+                my_print("Executing: %s" % command, style=style)
 
             # Use subprocess and also return outputs, stdout, stderr, result
-            process = subprocess.Popen(
-                args=popen_arg,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+            return executeProcess(
+                command=command,
                 shell=True,
             )
-            return process.communicate()
 
     def getVirtualenvDir(self):
         return self.env_dir

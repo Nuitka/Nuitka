@@ -41,6 +41,7 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     getFileContents,
     openTextFile,
+    putTextFileContents,
     withDirectoryChange,
 )
 from nuitka.utils.Timing import TimerReport
@@ -493,8 +494,7 @@ def publishCoverageData():
         if os.path.sep != "/":
             data.replace(os.path.sep, "/")
 
-        with open(filename, "w") as output_file:
-            output_file.write(data)
+        putTextFileContents(filename, contents=data)
 
     coverage_file = os.environ.get("COVERAGE_FILE", ".coverage")
 

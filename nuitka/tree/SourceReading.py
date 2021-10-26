@@ -116,7 +116,7 @@ def _detectEncoding2(source_file):
 def _readSourceCodeFromFilename2(source_filename):
     _installFutureFStrings()
 
-    # Detect the encoding.
+    # Detect the encoding, we do not know it, pylint: disable=unspecified-encoding
     with open(source_filename, "rU") as source_file:
         encoding = _detectEncoding2(source_file)
 

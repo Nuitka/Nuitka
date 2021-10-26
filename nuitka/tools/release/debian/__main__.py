@@ -17,6 +17,7 @@ from nuitka.tools.release.Debian import (
 )
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName, getBranchCategory
+from nuitka.utils.FileOperations import putTextFileContents
 from nuitka.Version import getNuitkaVersion
 
 
@@ -143,9 +144,9 @@ sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s.tgz \
 
     os.makedirs("conf")
 
-    with open("conf/distributions", "w") as output:
-        output.write(
-            """\
+    putTextFileContents(
+        "conf/distributions",
+        contents="""\
 Origin: Nuitka
 Label: Nuitka
 Codename: %(codename)s
@@ -154,8 +155,8 @@ Components: main
 Description: Apt repository for project Nuitka %(codename)s
 SignWith: D96ADCA1377F1CEB6B5103F11BFC33752912B99C
 """
-            % {"codename": codename}
-        )
+        % {"codename": codename},
+    )
 
     assert os.system("reprepro includedeb %s ../*.deb" % codename) == 0
 

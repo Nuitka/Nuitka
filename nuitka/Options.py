@@ -65,7 +65,7 @@ def parseArgs(will_reexec):
     if os.name == "nt":
         # Windows store Python's don't allow looking at the python, catch that.
         try:
-            with open(sys.executable):
+            with openTextFile(sys.executable, "rb"):
                 pass
         except OSError:
             Tracing.general.sysexit(
