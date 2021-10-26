@@ -66,10 +66,12 @@ class ExpressionBuiltinLocalsBase(ExpressionBase):
         del self.locals_scope
         del self.variable_traces
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         return False
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
     def getVariableTraces(self):

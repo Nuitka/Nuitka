@@ -59,10 +59,12 @@ class ExpressionMakeAsyncgenObject(ExpressionChildHavingBase):
         # TODO: Asyncgen body may know something too.
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         return False
 
     def getClosureVariableVersions(self):
