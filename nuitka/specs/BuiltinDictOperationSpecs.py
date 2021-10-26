@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -16,19 +15,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+"""Dictionary operation specs. """
 
-""" Launcher for static C code generation tool.
+from .BuiltinParameterSpecs import BuiltinParameterSpec
 
-"""
-
-import os
-import sys
-
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought to be there.
-sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
-
-# isort:start
-from nuitka.tools.specialize.SpecializeC import main
-
-main()
+dict_items_spec = BuiltinParameterSpec("dict.items", (), default_count=0)
+dict_iteritems_spec = BuiltinParameterSpec("dict.iteritems", (), default_count=0)
