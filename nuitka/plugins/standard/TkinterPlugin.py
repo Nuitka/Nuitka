@@ -31,7 +31,7 @@ def _isTkInterModule(module):
     return full_name in ("Tkinter", "tkinter", "PySimpleGUI", "PySimpleGUI27")
 
 
-class TkinterPlugin(NuitkaPluginBase):
+class NuitkaPluginTkinter(NuitkaPluginBase):
     """This class represents the main logic of the plugin.
 
     This is a plug-in to make programs work well in standalone mode which are using tkinter.
@@ -203,14 +203,14 @@ The Tcl library dir. See comments for Tk library dir.""",
         return ()
 
 
-class TkinterPluginDetector(NuitkaPluginBase):
+class NuitkaPluginDetectorTkinter(NuitkaPluginBase):
     """Used only if plugin is not activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    detector_for = TkinterPlugin
+    detector_for = NuitkaPluginTkinter
 
     @classmethod
     def isRelevant(cls):

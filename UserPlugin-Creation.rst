@@ -44,7 +44,7 @@ option named "trace" is active::
    from nuitka import Options
    from nuitka.plugins.PluginBase import NuitkaPluginBase
 
-   class MyPlugin(NuitkaPluginBase):
+   class NuitkaPluginMine(NuitkaPluginBase):
        # Derive from filename, but can and should also be explicit.
        plugin_name = __name__.split(".")[-1]
 
