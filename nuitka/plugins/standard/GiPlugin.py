@@ -29,7 +29,7 @@ def _isGiModule(module):
     return full_name == "gi"
 
 
-class GiPlugin(NuitkaPluginBase):
+class NuitkaPluginGi(NuitkaPluginBase):
     plugin_name = "gi"
     plugin_desc = "Support for GI dependencies"
 
@@ -76,14 +76,14 @@ if not os.environ.get("GI_TYPELIB_PATH="):
             )
 
 
-class GiPluginDetector(NuitkaPluginBase):
+class NuitkaPluginDetectorGi(NuitkaPluginBase):
     """Only used if plugin is NOT activated
 
     Notes:
          We are given the chance to issue a warning if we think we may be required.
     """
 
-    detector_for = GiPlugin
+    detector_for = NuitkaPluginGi
 
     @classmethod
     def isRelevant(cls):
