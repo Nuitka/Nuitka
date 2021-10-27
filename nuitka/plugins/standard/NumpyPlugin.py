@@ -97,7 +97,7 @@ def getNumpyCoreBinaries(module):
     return binaries
 
 
-class NumpyPlugin(NuitkaPluginBase):
+class NuitkaPluginNumpy(NuitkaPluginBase):
     """This class represents the main logic of the plugin.
 
     This is a plugin to ensure scripts using numpy, scipy, matplotlib, pandas,
@@ -442,14 +442,14 @@ os.environ["MATPLOTLIBDATA"] = os.path.join(__nuitka_binary_dir, "matplotlib", "
             )
 
 
-class NumpyPluginDetector(NuitkaPluginBase):
+class NuitkaPluginDetectorNumpy(NuitkaPluginBase):
     """Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    detector_for = NumpyPlugin
+    detector_for = NuitkaPluginNumpy
 
     @classmethod
     def isRelevant(cls):

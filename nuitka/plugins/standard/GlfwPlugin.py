@@ -27,7 +27,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 
 
-class GlfwPlugin(NuitkaPluginBase):
+class NuitkaPluginGlfw(NuitkaPluginBase):
     """This class represents the main logic of the glfw plugin.
 
     This is a plugin to ensure that glfw platform specific backends are loading
@@ -94,14 +94,14 @@ os.environ["PYGLFW_LIBRARY"] = os.path.join(__nuitka_binary_dir, "glfw", %r)
             )
 
 
-class GlfwPluginDetector(NuitkaPluginBase):
+class NuitkaPluginDetectorGlfw(NuitkaPluginBase):
     """Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    detector_for = GlfwPlugin
+    detector_for = NuitkaPluginGlfw
 
     @classmethod
     def isRelevant(cls):

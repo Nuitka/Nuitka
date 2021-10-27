@@ -21,7 +21,7 @@ from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
-class TensorflowPlugin(NuitkaPluginBase):
+class NuitkaPluginTensorflow(NuitkaPluginBase):
     """This class represents the main logic of the plugin.
 
     This is a plugin to ensure tensorflow scripts compile and work well in
@@ -99,14 +99,14 @@ class TensorflowPlugin(NuitkaPluginBase):
             return "bytecode"
 
 
-class TensorflowPluginDetector(NuitkaPluginBase):
+class NuitkaPluginDetectorTensorflow(NuitkaPluginBase):
     """Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    detector_for = TensorflowPlugin
+    detector_for = NuitkaPluginTensorflow
 
     @classmethod
     def isRelevant(cls):

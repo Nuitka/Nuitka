@@ -178,6 +178,15 @@ def _loadPluginClassesFromPath(scan_path):
 
         for detector in detectors:
             plugin_class = detector.detector_for
+
+            if detector.__name__.replace(
+                "NuitkaPluginDetector", ""
+            ) != plugin_class.__name__.replace("NuitkaPlugin", ""):
+                plugins_logger.warning(
+                    "Class names %r and %r do not match NuitkaPlugin* and NuitkaPluginDetector* naming convention."
+                    % (plugin_class.__name__, detector.__name__)
+                )
+
             assert detector.plugin_name is None, detector
             detector.plugin_name = plugin_class.plugin_name
 
