@@ -156,3 +156,10 @@ tensorflow.python.ops.distributions.distribution:
     "_copy_fn": "'(lambda fn: fn)'"
   replacements:
     "class_attr_value.__doc__ = _update_docstring" : "'class_attr_value___doc__ = _update_docstring'"
+
+gevent._util:
+  description:
+    "remove gevent testing framework"
+  change_function:
+    "prereleaser_middle": "'(lambda data: None)'"
+    "postreleaser_before": "'(lambda data: None)'"
