@@ -24,11 +24,12 @@ baron == 0.9 ; python_version >= '2.7'
 # API doc, doxygen helper for Python
 doxypypy == 0.8.8.6 ; python_version >= '2.7'
 
-# Code and test generation tools
-Jinja2 == 2.11.3 ; python_version == '2.7' or python_version >= '3.7'
+# Runtime code generation needs Jinja2 now
+Jinja2 == 2.11.3 ; python_version == '2.7'
+Jinja2 == 3.0.2 ; python_version >= '3.7'
 
 # For the progress bar to look nicely.
-tqdm == 4.60.0 ; python_version == '2.7' or python_version >= '3.4'
+tqdm == 4.62.3 ; python_version == '2.7' or python_version >= '3.4'
 
 # Codespell can be used as well, no need to fix version
 codespell ; python_version >= '2.7'
@@ -45,8 +46,10 @@ pytest; python_version == '2.7' or python_version >= '3.4'
 zstandard; python_version >= '3.5'
 
 # Plugins need that
-pyyaml == 5.4.1; python_version == '2.7' or python_version >= '3.6'
+pyyaml == 6.0; python_version >= '3.6'
+# Python3.5 was dropped sooner than Python2.
 pyyaml == 5.3.1; python_version == '3.5'
+pyyaml == 5.4.1; python_version == '2.7'
 
 # Packaging
 wheel
