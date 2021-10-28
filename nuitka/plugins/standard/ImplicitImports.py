@@ -1287,6 +1287,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                     xtwrapper_dll_path, os.path.basename(xtwrapper_dll_path), None
                 ),
             )
+        # TODO: Move this to the gi plugin.
         elif full_name == "gi._gi":
             gtk_dll_path = locateDLL("gtk-3")
 
@@ -1299,7 +1300,14 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                         gtk_dll_path, os.path.basename(gtk_dll_path), None
                     ),
                 )
-
+        elif full_name == "coincurve._libsecp256k1" and isWin32Windows():
+            return (
+                makeDllEntryPoint(
+                    os.path.join(module.getCompileTimeDirectory(), "libsecp256k1.dll"),
+                    os.path.join(full_name.getPackageName(), "libsecp256k1.dll"),
+                    full_name.getPackageName(),
+                ),
+            )
         # TODO: This should be its own plugin.
         elif (
             full_name in ("win32api", "pythoncom", "win32file", "win32com")

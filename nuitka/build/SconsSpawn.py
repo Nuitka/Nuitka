@@ -239,6 +239,15 @@ def isIgnoredError(line):
     if b"Error 1 (ignored)" in line:
         return True
 
+    # Trusty has buggy toolchain that does this with LTO.
+    if (
+        line
+        == b"""\
+bytearrayobject.o (symbol from plugin): warning: memset used with constant zero \
+length parameter; this could be due to transposed parameters"""
+    ):
+        return True
+
     return False
 
 
