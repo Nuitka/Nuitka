@@ -20,8 +20,6 @@
 """
 
 
-from __future__ import print_function
-
 import os
 import sys
 from contextlib import contextmanager
@@ -86,7 +84,7 @@ def withVirtualenv(env_name, base_dir=None, python=None, delete=True, style=None
     Activating for actual use will be your task.
     """
 
-    print("Creating virtualenv for quick test:")
+    my_print("Creating virtualenv for quick test:")
 
     if python is None:
         python = sys.executable

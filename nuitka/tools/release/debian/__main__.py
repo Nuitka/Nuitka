@@ -4,8 +4,6 @@
 
 """
 
-from __future__ import print_function
-
 import os
 import shutil
 from optparse import OptionParser
@@ -17,6 +15,7 @@ from nuitka.tools.release.Debian import (
 )
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName, getBranchCategory
+from nuitka.Tracing import my_print
 from nuitka.utils.FileOperations import putTextFileContents
 from nuitka.Version import getNuitkaVersion
 
@@ -102,7 +101,7 @@ Update the pbuilder chroot before building. Default %default.""",
     # warnings given. Nuitka is lintian clean and shall remain that way. For
     # hotfix releases, i.e. "stable" builds, we skip this test though.
     if category == "stable":
-        print("Skipped lintian checks for stable releases.")
+        my_print("Skipped lintian checks for stable releases.", style="blue")
     else:
         assert os.system("lintian --pedantic --allow-root dist/deb_dist/*.changes") == 0
 
@@ -160,7 +159,7 @@ SignWith: D96ADCA1377F1CEB6B5103F11BFC33752912B99C
 
     assert os.system("reprepro includedeb %s ../*.deb" % codename) == 0
 
-    print("Uploading...")
+    my_print("Uploading...", style="blue")
 
     # Create repo folder unless already done. This is needed for the first
     # build only.
@@ -180,4 +179,4 @@ SignWith: D96ADCA1377F1CEB6B5103F11BFC33752912B99C
         == 0
     )
 
-    print("Finished.")
+    my_print("Finished.", style="blue")

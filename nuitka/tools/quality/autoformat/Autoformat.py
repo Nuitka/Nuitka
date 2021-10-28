@@ -85,7 +85,7 @@ def _cleanupTrailingWhitespace(filename):
         del clean_lines[-1]
 
     if clean_lines != source_lines:
-        putTextFileContents(filename, contents="\n".join(clean_lines) + "\n")
+        putTextFileContents(filename, contents=clean_lines)
 
 
 def _getRequirementsContentsByLine():

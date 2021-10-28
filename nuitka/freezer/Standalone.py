@@ -22,8 +22,6 @@ macOS, Windows, and Linux. Patches for other platforms are
 very welcome.
 """
 
-from __future__ import print_function
-
 import hashlib
 import inspect
 import marshal
@@ -281,8 +279,6 @@ print("\\n".join(sorted(
 
     for line in stderr.replace(b"\r", b"").split(b"\n"):
         if line.startswith(b"import "):
-            # print(line)
-
             parts = line.split(b" # ", 2)
 
             module_name = parts[0].split(b" ", 2)[1]
@@ -787,7 +783,6 @@ def _detectBinaryPathDLLsMacOS(
             if filename.startswith(w):
                 break
         else:
-            # print("adding", filename)
             result.add(filename)
 
     resolved_result = _resolveBinaryPathDLLsMacOS(
