@@ -21,8 +21,6 @@
 
 """
 
-from __future__ import print_function
-
 import os
 import sys
 from optparse import OptionParser
@@ -30,6 +28,7 @@ from optparse import OptionParser
 from nuitka.freezer.Standalone import (
     detectBinaryPathDLLsWindowsDependencyWalker,
 )
+from nuitka.Tracing import my_print
 from nuitka.utils.SharedLibraries import getSxsFromDLL, getWindowsDLLVersion
 from nuitka.utils.Timing import TimerReport
 
@@ -43,15 +42,15 @@ def main():
         sys.exit("No DLLs given.")
 
     for filename in positional_args:
-        print("Filename:", filename)
-        print("Version Information:", getWindowsDLLVersion(filename))
+        my_print("Filename: %s" % filename)
+        my_print("Version Information: %s" % getWindowsDLLVersion(filename))
 
-        print("SXS information (manifests):")
+        my_print("SXS information (manifests):")
         sxs = getSxsFromDLL(filename=filename, with_data=True)
         if sxs:
-            print(sxs)
+            my_print(sxs)
 
-        print("DLLs recursively dependended (depends.exe):")
+        my_print("DLLs recursively dependended (depends.exe):")
 
         with TimerReport(
             message="Finding dependencies for %s took %%.2f seconds" % filename
@@ -67,9 +66,9 @@ def main():
             )
 
             for dll_filename in sorted(r):
-                print("  ", dll_filename)
+                my_print("   %s" % dll_filename)
 
-            print("Total: %d" % len(r))
+            my_print("Total: %d" % len(r))
 
 
 if __name__ == "__main__":

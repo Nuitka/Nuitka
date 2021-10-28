@@ -19,8 +19,6 @@
 
 """ Make PyPI upload of Nuitka, and check success of it. """
 
-from __future__ import print_function
-
 import os
 import shutil
 import sys
@@ -41,17 +39,17 @@ def main():
     assert branch_name == "master", branch_name
     assert "pre" not in nuitka_version and "rc" not in nuitka_version
 
-    my_print("Working on Nuitka %r." % nuitka_version)
+    my_print("Working on Nuitka %r." % nuitka_version, style="blue")
 
     shutil.rmtree("check_nuitka", ignore_errors=True)
     shutil.rmtree("dist", ignore_errors=True)
 
-    my_print("Creating documentation.")
+    my_print("Creating documentation.", style="blue")
     createReleaseDocumentation()
-    my_print("Creating source distribution.")
+    my_print("Creating source distribution.", style="blue")
     assert os.system("umask 0022 && chmod -R a+rX . && python setup.py sdist") == 0
 
-    my_print("Creating a virtualenv for quick test:")
+    my_print("Creating a virtualenv for quick test:", style="blue")
     with withVirtualenv("check_nuitka") as venv:
         my_print("Installing Nuitka into virtualenv:", style="blue")
         my_print("*" * 40, style="blue")
