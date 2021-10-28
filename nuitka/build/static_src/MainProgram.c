@@ -461,6 +461,13 @@ int main(int argc, char **argv) {
 #endif
 #if PYTHON_VERSION >= 0x370
     Py_UTF8Mode = SYSFLAG_UTF8;
+
+    if (Py_UTF8Mode) {
+        if (Py_FileSystemDefaultEncoding == NULL) {
+            Py_FileSystemDefaultEncoding = "utf-8";
+            Py_HasFileSystemDefaultEncoding = 1;
+        }
+    }
 #endif
 
 #ifdef NUITKA_PYTHON_STATIC
@@ -520,6 +527,24 @@ int main(int argc, char **argv) {
 
         PySys_ResetWarnOptions();
         PySys_AddWarnOption(ignore);
+    }
+#endif
+
+// Workaround older Python not handling stream setup on redirected files properly.
+#if PYTHON_VERSION >= 0x340 && PYTHON_VERSION < 0x380
+    {
+        char *encoding = NULL;
+
+        if (SYSFLAG_UTF8) {
+            encoding = "utf-8";
+        } else {
+            encoding = getenv("PYTHONIOENCODING");
+            if (encoding == NULL) {
+                encoding = "utf-8";
+            }
+        }
+
+        Py_SetStandardStreamEncoding(encoding, NULL);
     }
 #endif
 
