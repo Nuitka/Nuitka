@@ -25,17 +25,16 @@ Buildbot on a timer basis.
 """
 
 
-from __future__ import print_function
-
 import csv
 import sys
 
 from nuitka.__past__ import StringIO
+from nuitka.Tracing import my_print
 from nuitka.utils.Execution import check_output
 
 
 def main():
-    print("Querying openSUSE build service status of Nuitka packages.")
+    my_print("Querying openSUSE build service status of Nuitka packages.")
 
     osc_cmd = ["osc", "pr", "-c", "home:kayhayen"]
 
@@ -88,12 +87,14 @@ def main():
             problems.append((row2[0], title, status))
 
     if problems:
-        print("There are problems with:")
-        print("\n".join("%s: %s (%s)" % problem for problem in problems))
+        my_print("There are problems with:", style="yellow")
+        my_print(
+            "\n".join("%s: %s (%s)" % problem for problem in problems), style="yellow"
+        )
 
         sys.exit(1)
     else:
-        print("Looks good.")
+        my_print("Looks good.", style="blue")
         sys.exit(0)
 
 

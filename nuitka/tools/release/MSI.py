@@ -19,8 +19,6 @@
 
 """
 
-from __future__ import print_function
-
 import os
 import shutil
 import subprocess
@@ -30,6 +28,7 @@ from nuitka.PythonVersions import (
     getPartiallySupportedPythonVersions,
     getSupportedPythonVersions,
 )
+from nuitka.Tracing import my_print
 
 from .Release import checkBranchName
 
@@ -56,7 +55,7 @@ def createMSIPackage():
 
     branch_name = checkBranchName()
 
-    print("Building for branch '%s'." % branch_name)
+    my_print("Building for branch '%s'." % branch_name, style="blue")
 
     assert branch_name in ("master", "develop", "factory"), branch_name
 
@@ -88,6 +87,6 @@ def createMSIPackage():
 
     os.rename(os.path.join("dist", filename), result)
 
-    print("OK, created as dist/" + new_filename)
+    my_print("OK, created as dist/" + new_filename, style="blue")
 
     return result

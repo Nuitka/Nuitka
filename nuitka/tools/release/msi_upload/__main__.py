@@ -19,12 +19,11 @@
 
 """
 
-from __future__ import print_function
-
 import os
 import subprocess
 
 from nuitka.tools.release.MSI import createMSIPackage
+from nuitka.Tracing import my_print
 
 
 def main():
@@ -42,7 +41,7 @@ def main():
         == 0
     )
 
-    print("OK, uploaded", msi_filename)
+    my_print("OK, uploaded '%s'." % msi_filename, style="blue")
 
 
 if __name__ == "__main__":

@@ -19,11 +19,10 @@
 
 """
 
-from __future__ import print_function
-
 import os
 import sys
 
+from nuitka.Tracing import my_print
 from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import (
     getFileContents,
@@ -65,7 +64,7 @@ def makeLogoImages():
 def checkRstLint(document):
     import restructuredtext_lint  # pylint: disable=I0021,import-error
 
-    print("Checking %r for proper restructed text ..." % document)
+    my_print("Checking %r for proper restructed text ..." % document, style="blue")
     lint_results = restructuredtext_lint.lint_file(document, encoding="utf8")
 
     lint_error = False
@@ -74,13 +73,13 @@ def checkRstLint(document):
         if lint_result.message.startswith("Duplicate implicit target name:"):
             continue
 
-        print(lint_result)
+        my_print(lint_result, style="yellow")
         lint_error = True
 
     if lint_error:
         sys.exit("Error, no lint clean rest.")
 
-    print("OK.")
+    my_print("OK.", style="blue")
 
 
 def makeManpages():
@@ -123,8 +122,6 @@ def makeManpages():
                     line = r"\fB\-\-g\++\-only\fR" + "\n"
 
                 new_contents.append(line)
-
-            new_contents = "\n".join(new_contents)
 
             putTextFileContents(manpage, contents=new_contents)
 

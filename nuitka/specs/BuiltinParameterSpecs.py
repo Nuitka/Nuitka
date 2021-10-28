@@ -18,8 +18,6 @@
 """ Optimizations of built-ins to built-in calls.
 
 """
-from __future__ import print_function
-
 import math
 
 from nuitka.__past__ import builtins
