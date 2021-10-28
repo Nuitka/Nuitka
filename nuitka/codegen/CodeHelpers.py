@@ -37,15 +37,9 @@ from .Reports import onMissingHelper
 expression_dispatch_dict = {}
 
 
-def setExpressionDispatchDict(dispatch_dict):
-    # Using global here, as this is really a singleton, in the form of a module,
-    # and this is to break the cyclic dependency it has, pylint: disable=global-statement
-
-    # Please call us only once.
-    global expression_dispatch_dict
-
-    assert not expression_dispatch_dict
-    expression_dispatch_dict = dispatch_dict
+def addExpressionDispatchDict(dispatch_dict):
+    # We use this to break the cyclic dependency.
+    expression_dispatch_dict.update(dispatch_dict)
 
 
 def generateExpressionCode(to_name, expression, emit, context, allow_none=False):
