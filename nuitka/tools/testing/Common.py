@@ -17,8 +17,6 @@
 #
 """ Common test infrastructure functions. To be used by test runners. """
 
-from __future__ import print_function
-
 import ast
 import atexit
 import gc
@@ -728,7 +726,7 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
     # Clean start conditions.
     assert sys.exc_info() == (None, None, None), sys.exc_info()
 
-    print(checked_function.__name__ + ": ", end="")
+    my_print(checked_function.__name__ + ": ", end="")
     sys.stdout.flush()
 
     disablePrinting()
@@ -767,9 +765,11 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
     reenablePrinting()
 
     if result:
-        print("PASSED")
+        my_print("PASSED")
     else:
-        print("FAILED", ref_count1, ref_count2, "leaked", ref_count2 - ref_count1)
+        my_print(
+            "FAILED %d %d leaked %d" % (ref_count1, ref_count2, ref_count2 - ref_count1)
+        )
 
         if explain:
             print("REPORT of differences:")
@@ -779,18 +779,18 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
             # Using items will unwanted usages, pylint: disable=consider-using-dict-items
             for key in m1:
                 if key not in m2:
-                    print("*" * 80)
-                    print("extra:", m1[key], key)
+                    my_print("*" * 80)
+                    my_print("extra:", m1[key], key)
                 elif m1[key] != m2[key]:
-                    print("*" * 80)
-                    print(m1[key], "->", m2[key], key)
+                    my_print("*" * 80)
+                    my_print(m1[key], "->", m2[key], key)
                 else:
                     pass
 
             for key in m2:
                 if key not in m1:
-                    print("*" * 80)
-                    print("missing:", m2[key], key)
+                    my_print("*" * 80)
+                    my_print("missing:", m2[key], key)
 
                     # print m1[key]
 
@@ -973,13 +973,6 @@ def withPythonPathChange(python_path):
         else:
             old_path = None
             os.environ["PYTHONPATH"] = python_path
-
-    #     print(
-    #         "Effective PYTHONPATH in %s is %r" % (
-    #             sys.modules["__main__"],
-    #             os.environ.get("PYTHONPATH", "")
-    #         )
-    #     )
 
     yield
 

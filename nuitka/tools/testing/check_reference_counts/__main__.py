@@ -21,13 +21,12 @@
 
 """
 
-from __future__ import print_function
-
 import os
 import sys
 from optparse import OptionParser
 
 from nuitka.tools.testing.Common import checkReferenceCount, getTempDir
+from nuitka.Tracing import my_print
 from nuitka.utils.Execution import check_call
 from nuitka.utils.Importing import importFileAsModule
 
@@ -64,7 +63,7 @@ Try to explain the differences by comparing object counts.""",
 
     # First with pure Python.
     checked_module = importFileAsModule(options.checked_module)
-    print("Using", checked_module.main)
+    my_print("Using %s" % checked_module.main, style="blue")
     checkReferenceCount(checked_module.main, explain=options.explain)
 
     temp_dir = getTempDir()
@@ -81,7 +80,6 @@ Try to explain the differences by comparing object counts.""",
     if hasattr(sys, "gettotalrefcount"):
         command.append("--python-debug")
 
-    # print(command)
     check_call(command)
 
     module_name = os.path.basename(options.checked_module).split(".")[0]
@@ -89,7 +87,7 @@ Try to explain the differences by comparing object counts.""",
     sys.path.insert(0, temp_dir)
     checked_module = __import__(module_name)
 
-    print("Using", checked_module.main)
+    my_print("Using %s" % checked_module.main, style="blue")
     checkReferenceCount(checked_module.main)
 
 

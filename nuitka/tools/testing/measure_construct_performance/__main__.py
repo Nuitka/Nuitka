@@ -25,8 +25,6 @@ in comparisons.
 
 """
 
-from __future__ import print_function
-
 import hashlib
 import os
 import shutil
