@@ -41,10 +41,6 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 
 # isort:start
 
-import json
-import subprocess
-
-import SCons  # pylint: disable=I0021,import-error
 from SCons.Script import (  # pylint: disable=I0021,import-error
     ARGUMENTS,
     Environment,
@@ -58,7 +54,7 @@ from nuitka.Tracing import (
     setQuiet,
 )
 from nuitka.utils.Execution import check_output
-from nuitka.utils.FileOperations import getFileContents
+from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import isDebianBasedLinux
 
 from .SconsCaching import enableCcache, enableClcache
@@ -744,24 +740,20 @@ if static_libpython:
 
 
 def detectHostMultiarch():
-    pipe = SCons.Action._subproc(  # pylint: disable=protected-access
-        env,
-        "dpkg-architecture",
-        stdin="devnull",
-        stderr="devnull",
-        stdout=subprocess.PIPE,
-    )
+    stdout = check_output("dpkg-architecture")
 
-    for line in pipe.stdout:
+    for line in stdout.splitlines():
         line = line.strip()
 
-        if line.startswith("DEB_HOST_MULTIARCH="):
-            return line.split("=", 1)[1]
+        if line.startswith(b"DEB_HOST_MULTIARCH="):
+            return line.split("=", 1)[1].decode("utf8")
 
     return None
 
 
-if env.gcc_mode and "linux" in sys.platform:
+if env.gcc_mode and debian_python:
+    # TODO: Seems rather meaningless nowadays and hard codes this to not be
+    # self compiled or so.
     if python_version == (3, 3):
         host_multiarch = detectHostMultiarch()
 
@@ -842,7 +834,7 @@ if win_target:
             ]
         )
 
-        link_data = json.load(getFileContents(os.path.join(python_prefix, "link.json")))
+        link_data = loadJsonFromFilename(os.path.join(python_prefix, "link.json"))
         env.Append(LIBS=link_data["libraries"])
         env.Append(LIBPATH=link_data["library_dirs"])
         for define, value in link_data["macros"]:
