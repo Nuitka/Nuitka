@@ -26,6 +26,10 @@ branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
 
+from nuitka.nodes.AttributeNodesGenerated import (
+    attribute_classes,
+    attribute_typed_classes,
+)
 from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.CStrings import encodePythonStringToC
 
@@ -75,7 +79,7 @@ from .BuiltinCodes import (
 )
 from .CallCodes import generateCallCode, getCallsCode
 from .ClassCodes import generateBuiltinSuperCode, generateSelectMetaclassCode
-from .CodeHelpers import setExpressionDispatchDict, setStatementDispatchDict
+from .CodeHelpers import addExpressionDispatchDict, setStatementDispatchDict
 from .ComparisonCodes import (
     generateBuiltinIsinstanceCode,
     generateBuiltinIssubclassCode,
@@ -495,14 +499,10 @@ def generateHelpersCode():
     )
 
 
-setExpressionDispatchDict(
+addExpressionDispatchDict(
     {
         "EXPRESSION_ATTRIBUTE_CHECK": generateAttributeCheckCode,
         "EXPRESSION_ATTRIBUTE_LOOKUP": generateAttributeLookupCode,
-        "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_ITEMS": generateAttributeLookupCode,
-        "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_ITERITEMS": generateAttributeLookupCode,
-        "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_ITEMS": generateAttributeLookupCode,
-        "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_ITERITEMS": generateAttributeLookupCode,
         "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL": generateAttributeLookupSpecialCode,
         "EXPRESSION_BUILTIN_SLICE3": generateBuiltinSlice3Code,
         "EXPRESSION_BUILTIN_SLICE2": generateBuiltinSlice2Code,
@@ -733,6 +733,19 @@ setExpressionDispatchDict(
         "EXPRESSION_RAISE_EXCEPTION": generateRaiseExpressionCode,
         "EXPRESSION_NUITKA_LOADER_CREATION": generateNuitkaLoaderCreationCode,
     }
+)
+
+# Add code generation for the EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_* variety
+addExpressionDispatchDict(
+    dict((cls.kind, generateAttributeLookupCode) for cls in attribute_classes.values())
+)
+
+# Add code generation for the EXPRESSION_ATTRIBUTE_LOOKUP_DICT|LIST|STR_* variety
+addExpressionDispatchDict(
+    dict(
+        (cls.kind, generateAttributeLookupCode)
+        for cls in attribute_typed_classes.values()
+    )
 )
 
 setStatementDispatchDict(

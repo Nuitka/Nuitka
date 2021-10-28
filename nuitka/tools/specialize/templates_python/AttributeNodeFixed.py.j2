@@ -19,17 +19,20 @@
 {% if "tshape_dict" in shape_names %}
 {% set dict_shape = 1 %}
 {% set dict_operation_version_check = attribute_shape_versions.get((attribute_name, "tshape_dict")) %}
+{% set dict_operation_version_presence = attribute_shape_operations.get((attribute_name, "tshape_dict")) %}
 {% else %}
 {% set dict_shape = 0 %}
 {% endif %}
 
-class ExpressionAttributeLookupFixed{{attribute_name.title()}}(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value {{attribute_name.title()}} of an object.
+{% set attribute_name_class = attribute_name.replace("_", "").title() %}
+
+class ExpressionAttributeLookupFixed{{attribute_name_class}}(ExpressionAttributeLookupFixedBase):
+    """Looking up an attribute value {{attribute_name_class}} of an object.
 
     Typically code like: source.{{attribute_name}}
     """
 
-    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_{{attribute_name.upper()}}"
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_{{attribute_name_class.upper()}}"
     attribute_name = "{{attribute_name}}"
 
     def computeExpression(self, trace_collection):
@@ -41,7 +44,7 @@ class ExpressionAttributeLookupFixed{{attribute_name.title()}}(ExpressionAttribu
 {% else %}
         if subnode_expression.hasShapeDictionaryExact():
 {% endif %}
-            result = ExpressionAttributeLookupDict{{attribute_name.title()}}(
+            result = ExpressionAttributeLookupDict{{attribute_name_class}}(
                 expression=subnode_expression, source_ref=self.source_ref
             )
 
@@ -59,39 +62,34 @@ class ExpressionAttributeLookupFixed{{attribute_name.title()}}(ExpressionAttribu
             exception_type=exception_type, attribute_name="{{attribute_name}}"
         )
 
-attribute_classes["{{attribute_name}}"] = ExpressionAttributeLookupFixed{{attribute_name.title()}}
+attribute_classes["{{attribute_name}}"] = ExpressionAttributeLookupFixed{{attribute_name_class}}
 
 {% if "tshape_dict" in shape_names %}
 
+{% if dict_operation_version_presence %}
 from nuitka.specs.BuiltinDictOperationSpecs import dict_{{attribute_name}}_spec
+{% endif %}
 
-class ExpressionAttributeLookupDict{{attribute_name.title()}}(ExpressionAttributeLookupFixed{{attribute_name.title()}}):
-    """Attribute {{attribute_name.title()}} lookup on a dict.
+class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixed{{attribute_name_class}}):
+    """Attribute {{attribute_name_class}} lookup on a dict.
 
     Typically code like: some_dict.{{attribute_name}}
     """
 
-    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_{{attribute_name.upper()}}"
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_{{attribute_name_class.upper()}}"
     attribute_name = "{{attribute_name}}"
 
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
-
-    @staticmethod
-    def mayHaveSideEffects():
-        return False
-
+{% if dict_operation_version_presence %}
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        def wrapExpressionDictOperation{{attribute_name.title()}}(source_ref):
+        def wrapExpressionDictOperation{{attribute_name_class}}(source_ref):
 {% if python3_operation_name %}
             if str is bytes:
-                from .DictionaryNodes import ExpressionDictOperation{{attribute_name.title()}}
+                from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}
 
-                return ExpressionDictOperation{{attribute_name.title()}}(
+                return ExpressionDictOperation{{attribute_name_class}}(
                     dict_arg=self.subnode_expression, source_ref=source_ref
                 )
             else:
@@ -101,19 +99,24 @@ class ExpressionAttributeLookupDict{{attribute_name.title()}}(ExpressionAttribut
                     dict_arg=self.subnode_expression, source_ref=source_ref
                 )
 {% else %}
-            from .DictionaryNodes import ExpressionDictOperation{{attribute_name.title()}}
+            from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}
 
-            return ExpressionDictOperation{{attribute_name.title()}}(
+            return ExpressionDictOperation{{attribute_name_class}}(
                 dict_arg=self.subnode_expression, source_ref=source_ref
             )
 {% endif %}
 
         result = extractBuiltinArgs(
             node=call_node,
-            builtin_class=wrapExpressionDictOperation{{attribute_name.title()}},
+            builtin_class=wrapExpressionDictOperation{{attribute_name_class}},
             builtin_spec=dict_{{attribute_name}}_spec,
         )
 
         return result, "new_expression", "Call to '{{attribute_name}}' of dictionary recognized."
+{% else %}
+    # No computeExpressionCall as dict operation ExpressionDictOperation{{attribute_name_class}} is not yet implemented
+{% endif %}
+
+attribute_typed_classes["{{attribute_name}}"] = ExpressionAttributeLookupDict{{attribute_name_class}}
 
 {% endif %}
