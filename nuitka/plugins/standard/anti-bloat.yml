@@ -44,6 +44,31 @@ matplotlib:
   change_function:
     "_init_tests": "'None'"
     "test": "'None'"
+  control_tags:
+    - "allow_ipython"
+
+matplotlib.backend_bases:
+  description:
+    "remove IPython reference"
+  change_function:
+    "_fix_ipython_backend2gui": "'(lambda cls: None)'"
+  control_tags:
+    - "allow_ipython"
+
+matplotlib.pyplot:
+  description:
+    "remove IPython reference"
+  change_function:
+    "install_repl_displayhook": "'(lambda: None)'"
+    "uninstall_repl_displayhook": "'(lambda: None)'"
+  control_tags:
+    - "allow_ipython"
+
+PIL.ImageShow:
+  description:
+    "remove IPython reference"
+  replacements:
+    "from IPython.display import display as ipython_display" : "'raise ImportError'"
 
 pandas:
   description:
@@ -149,6 +174,7 @@ scipy._lib._testutils:
       def __init__(self, name):
         pass
 
+# TODO: Move required stuff like this to separate file and apply it always.
 tensorflow.python.ops.distributions.distribution:
   description:
     "remove useless function copying"
@@ -159,7 +185,7 @@ tensorflow.python.ops.distributions.distribution:
 
 gevent._util:
   description:
-    "remove gevent testing framework"
+    "remove gevent release framework"
   change_function:
     "prereleaser_middle": "'(lambda data: None)'"
     "postreleaser_before": "'(lambda data: None)'"
