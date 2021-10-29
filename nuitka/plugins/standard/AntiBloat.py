@@ -45,7 +45,11 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
     )
 
     def __init__(
-        self, noinclude_setuptools_mode, noinclude_pytest_mode, custom_choices
+        self,
+        noinclude_setuptools_mode,
+        noinclude_pytest_mode,
+        noinclude_ipython_mode,
+        custom_choices,
     ):
         self.config = parseYaml(
             pkgutil.get_data("nuitka.plugins.standard", "anti-bloat.yml")
@@ -53,11 +57,23 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
 
         self.handled_modules = OrderedDict()
 
+        # These should be checked, to allow disabling anti-bloat contents.
+        self.control_tags = set()
+
         if noinclude_setuptools_mode != "allow":
             self.handled_modules["setuptools"] = noinclude_setuptools_mode
+        else:
+            self.control_tags.add("allow_setuptools")
 
         if noinclude_pytest_mode != "allow":
             self.handled_modules["pytest"] = noinclude_pytest_mode
+        else:
+            self.control_tags.add("allow_pytest")
+
+        if noinclude_ipython_mode != "allow":
+            self.handled_modules["IPython"] = noinclude_ipython_mode
+        else:
+            self.control_tags.add("allow_ipython")
 
         for custom_choice in custom_choices:
             if ":" not in custom_choice:
@@ -101,6 +117,17 @@ dependencies, and should definitely be avoided.""",
         )
 
         group.add_option(
+            "--noinclude-IPython-mode",
+            action="store",
+            dest="noinclude_ipython_mode",
+            choices=("error", "warning", "nofollow", "allow"),
+            default="warning",
+            help="""\
+What to do if a IPython import is encountered. This can be big with
+dependencies, and should definitely be avoided.""",
+        )
+
+        group.add_option(
             "--noinclude-custom-mode",
             action="append",
             dest="custom_choices",
@@ -118,6 +145,11 @@ which can and should be a top level package and then one choice, "error",
 
         if not config:
             return source_code
+
+        # Allow disabling config for a module with matching control tags.
+        for control_tag in config.get("control_tags", ()):
+            if control_tag in self.control_tags:
+                return source_code
 
         description = config.get("description", "description not given")
 
