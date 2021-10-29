@@ -1379,6 +1379,19 @@ def _handleDataFile(dist_dir, tracer, included_datafile):
                     included_datafile.reason,
                 )
             )
+        elif included_datafile.kind == "data_blob":
+            dest_path = os.path.join(dist_dir, included_datafile.dest_path)
+            makePath(os.path.dirname(dest_path))
+
+            putTextFileContents(filename=dest_path, contents=included_datafile.data)
+
+            tracer.info(
+                "Included data file '%s' due to %s."
+                % (
+                    included_datafile.dest_path,
+                    included_datafile.reason,
+                )
+            )
         else:
             assert False, included_datafile
     else:

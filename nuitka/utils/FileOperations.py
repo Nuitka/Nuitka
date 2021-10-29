@@ -245,7 +245,7 @@ def getFileList(
     """Get all files below a given path.
 
     Args:
-        path: directory to create a recurseive listing from
+        path: directory to create a recursive listing from
         ignore_dirs: Don't descend into these directory, ignore them
         ignore_filenames: Ignore files named exactly like this
         ignore_suffixes: Don't return files with these suffixes
@@ -306,7 +306,7 @@ def getSubDirectories(path, ignore_dirs=()):
     """Get all directories below a given path.
 
     Args:
-        path: directory to create a recurseive listing from
+        path: directory to create a recursive listing from
 
     Returns:
         Sorted list of all directories below that directory,

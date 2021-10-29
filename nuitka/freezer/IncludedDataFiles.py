@@ -28,7 +28,7 @@ import os
 from nuitka.utils.FileOperations import isRelativePath
 
 IncludedDataFile = collections.namedtuple(
-    "IncludedDataFile", ("kind", "source_path", "dest_path", "reason")
+    "IncludedDataFile", ("kind", "source_path", "dest_path", "reason", "data")
 )
 
 
@@ -40,7 +40,11 @@ def makeIncludedEmptyDirectories(source_path, dest_paths, reason):
     assert dest_paths
 
     return IncludedDataFile(
-        kind="empty_dirs", source_path=source_path, dest_path=dest_paths, reason=reason
+        kind="empty_dirs",
+        source_path=source_path,
+        dest_path=dest_paths,
+        data=None,
+        reason=reason,
     )
 
 
@@ -48,7 +52,11 @@ def makeIncludedDataFile(source_path, dest_path, reason):
     assert isRelativePath(dest_path), dest_path
 
     return IncludedDataFile(
-        kind="data_file", source_path=source_path, dest_path=dest_path, reason=reason
+        kind="data_file",
+        source_path=source_path,
+        dest_path=dest_path,
+        data=None,
+        reason=reason,
     )
 
 
@@ -56,5 +64,21 @@ def makeIncludedDataDirectory(source_path, dest_path, reason):
     assert isRelativePath(dest_path), dest_path
 
     return IncludedDataFile(
-        kind="data_dir", source_path=source_path, dest_path=dest_path, reason=reason
+        kind="data_dir",
+        source_path=source_path,
+        dest_path=dest_path,
+        data=None,
+        reason=reason,
+    )
+
+
+def makeIncludedGeneratedDataFile(data, dest_path, reason):
+    assert isRelativePath(dest_path), dest_path
+
+    return IncludedDataFile(
+        kind="data_blob",
+        source_path=None,
+        dest_path=dest_path,
+        reason=reason,
+        data=data,
     )
