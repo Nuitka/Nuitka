@@ -50,7 +50,7 @@ def _discardDebianChangelogLastEntry():
                 first = False
 
             if not first:
-                output.write(line)
+                output.write(line + "\n")
 
 
 def updateDebianChangelog(old_version, new_version, distribution):
