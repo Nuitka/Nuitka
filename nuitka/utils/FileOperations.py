@@ -442,6 +442,24 @@ def getFileContents(filename, mode="r", encoding=None):
             return f.read()
 
 
+def getFileFirstLine(filename, mode="r", encoding=None):
+    """Get the contents of a file.
+
+    Args:
+        filename: str with the file to be read
+        mode: "r" for str, "rb" for bytes result
+        encoding: optional encoding to used when reading the file, e.g. "utf8"
+
+    Returns:
+        str or bytes - depending on mode.
+
+    """
+
+    with withFileLock("reading file %s" % filename):
+        with openTextFile(filename, mode, encoding=encoding) as f:
+            return f.readline()
+
+
 def openTextFile(filename, mode, encoding=None):
     if encoding is not None:
         import codecs

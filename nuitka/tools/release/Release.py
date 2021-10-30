@@ -22,7 +22,11 @@
 import os
 
 from nuitka.utils.Execution import check_output
-from nuitka.utils.FileOperations import getFileContents, openTextFile
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    getFileFirstLine,
+    openTextFile,
+)
 from nuitka.Version import getNuitkaVersion
 
 
@@ -32,10 +36,7 @@ def checkAtHome(expected="Nuitka Staging"):
     if os.path.isdir(".git"):
         git_dir = ".git"
     else:
-        line = openTextFile(".git", "r")
-
-        assert line.startswith("gitdir:")
-
+        line = getFileFirstLine(".git", "r").strip()
         git_dir = line[8:]
 
     git_description_filename = os.path.join(git_dir, "description")
@@ -92,7 +93,7 @@ def getBranchCategory(branch_name):
 def checkNuitkaChangelog():
     with openTextFile("Changelog.rst", "r") as f:
         # First line is an overline, check that.
-        first_line = f.readline()
+        first_line = f.readline().strip()
         assert first_line.startswith("###") and first_line.endswith("###")
 
         # Second line is the actual title.
