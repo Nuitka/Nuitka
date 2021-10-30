@@ -92,7 +92,7 @@ def _getPythonSconsExePathWindows():
 
     # Ordered in the list of preference.
     python_dir = Execution.getPythonInstallPathWindows(
-        supported=("3.5", "3.6", "3.7", "3.8", "3.9")
+        supported=("3.5", "3.6", "3.7", "3.8", "3.9", "3.10")
     )
 
     if python_dir is not None:
@@ -136,7 +136,7 @@ Anaconda Python.
 """
             )
 
-    for version_candidate in ("2.7", "2.6", "3.5", "3.6", "3.7", "3.8", "3.9"):
+    for version_candidate in ("2.7", "2.6", "3.5", "3.6", "3.7", "3.8", "3.9", "3.10"):
         candidate = Execution.getExecutablePath("python" + version_candidate)
 
         if candidate is not None:
