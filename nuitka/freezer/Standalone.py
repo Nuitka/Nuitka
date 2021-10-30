@@ -23,7 +23,6 @@ very welcome.
 """
 
 import hashlib
-import inspect
 import marshal
 import os
 import pkgutil
@@ -61,7 +60,6 @@ from nuitka.utils.FileOperations import (
     getFileList,
     getSubDirectories,
     haveSameFileContents,
-    isPathBelow,
     listDir,
     makePath,
     putTextFileContents,
@@ -1340,79 +1338,66 @@ different from
 
 def _handleDataFile(dist_dir, tracer, included_datafile):
     """Handle a data file."""
-    if isinstance(included_datafile, IncludedDataFile):
-        if included_datafile.kind == "empty_dirs":
-            tracer.info(
-                "Included empty directories '%s' due to %s."
-                % (
-                    ",".join(included_datafile.dest_path),
-                    included_datafile.reason,
-                )
+    if not isinstance(included_datafile, IncludedDataFile):
+        tracer.sysexit(
+            "Error, cannot only include 'IncludedDataFile' objects in plugins."
+        )
+
+    if included_datafile.kind == "empty_dirs":
+        tracer.info(
+            "Included empty directories '%s' due to %s."
+            % (
+                ",".join(included_datafile.dest_path),
+                included_datafile.reason,
             )
+        )
 
-            for sub_dir in included_datafile.dest_path:
-                makePath(os.path.join(dist_dir, sub_dir))
-        elif included_datafile.kind == "data_file":
-            dest_path = os.path.join(dist_dir, included_datafile.dest_path)
+        for sub_dir in included_datafile.dest_path:
+            makePath(os.path.join(dist_dir, sub_dir))
+    elif included_datafile.kind == "data_file":
+        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
 
-            tracer.info(
-                "Included data file '%s' due to %s."
-                % (
-                    included_datafile.dest_path,
-                    included_datafile.reason,
-                )
+        tracer.info(
+            "Included data file '%s' due to %s."
+            % (
+                included_datafile.dest_path,
+                included_datafile.reason,
             )
+        )
 
-            makePath(os.path.dirname(dest_path))
-            shutil.copyfile(included_datafile.source_path, dest_path)
-        elif included_datafile.kind == "data_dir":
-            dest_path = os.path.join(dist_dir, included_datafile.dest_path)
-            makePath(os.path.dirname(dest_path))
+        makePath(os.path.dirname(dest_path))
+        copyFileWithPermissions(
+            source_path=included_datafile.source_path, dest_path=dest_path
+        )
+    elif included_datafile.kind == "data_dir":
+        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
+        makePath(os.path.dirname(dest_path))
 
-            copied = copyTree(included_datafile.source_path, dest_path)
+        copied = copyTree(included_datafile.source_path, dest_path)
 
-            tracer.info(
-                "Included data dir %r with %d files due to %s."
-                % (
-                    included_datafile.dest_path,
-                    len(copied),
-                    included_datafile.reason,
-                )
+        tracer.info(
+            "Included data dir %r with %d files due to %s."
+            % (
+                included_datafile.dest_path,
+                len(copied),
+                included_datafile.reason,
             )
-        elif included_datafile.kind == "data_blob":
-            dest_path = os.path.join(dist_dir, included_datafile.dest_path)
-            makePath(os.path.dirname(dest_path))
+        )
+    elif included_datafile.kind == "data_blob":
+        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
+        makePath(os.path.dirname(dest_path))
 
-            putTextFileContents(filename=dest_path, contents=included_datafile.data)
+        putTextFileContents(filename=dest_path, contents=included_datafile.data)
 
-            tracer.info(
-                "Included data file '%s' due to %s."
-                % (
-                    included_datafile.dest_path,
-                    included_datafile.reason,
-                )
+        tracer.info(
+            "Included data file '%s' due to %s."
+            % (
+                included_datafile.dest_path,
+                included_datafile.reason,
             )
-        else:
-            assert False, included_datafile
+        )
     else:
-        # TODO: Goal is have this unused.
-        source_desc, target_filename = included_datafile
-
-        if not isPathBelow(dist_dir, target_filename):
-            target_filename = os.path.join(dist_dir, target_filename)
-
-        makePath(os.path.dirname(target_filename))
-
-        if inspect.isfunction(source_desc):
-            content = source_desc(target_filename)
-
-            if content is not None:  # support creation of empty directories
-                with open(
-                    target_filename, "wb" if type(content) is bytes else "w"
-                ) as output:
-                    output.write(content)
-        else:
-            copyFileWithPermissions(source_desc, target_filename)
+        assert False, included_datafile
 
 
 def copyDataFiles(dist_dir):
