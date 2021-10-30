@@ -29,6 +29,7 @@ from nuitka.freezer.IncludedDataFiles import (
     makeIncludedDataDirectory,
     makeIncludedDataFile,
     makeIncludedEmptyDirectories,
+    makeIncludedGeneratedDataFile,
 )
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import (
@@ -218,10 +219,20 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
 
     generated_data_files = {
         "Cryptodome.Util._raw_api": (
-            ("Cryptodome/Util", ".keep_dir.txt", _createEmptyDirText),
+            (
+                "Cryptodome/Util",
+                ".keep_dir.txt",
+                _createEmptyDirText,
+                "needs directory to exist",
+            ),
         ),
         "Crypto.Util._raw_api": (
-            ("Crypto/Util", ".keep_dir.txt", _createEmptyDirText),
+            (
+                "Crypto/Util",
+                ".keep_dir.txt",
+                _createEmptyDirText,
+                "needs directory to exist",
+            ),
         ),
     }
 
@@ -234,7 +245,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         return True
 
     def considerDataFiles(self, module):
-        # Many cases to deal with, pylint: disable=too-many-branches
+        # Many cases to deal with, pylint: disable=too-many-branches,too-many-locals
 
         module_name = module.getFullName()
         module_folder = module.getCompileTimeDirectory()
@@ -291,8 +302,14 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
             yield _getSubDirectoryFolders(module, empty_dirs)
 
         if module_name in self.generated_data_files:
-            for target_dir, filename, func in self.generated_data_files[module_name]:
+            for target_dir, filename, func, reason in self.generated_data_files[
+                module_name
+            ]:
                 if target_dir is None:
-                    target_dir = module_name.replace(".", os.path.sep)
+                    target_dir = module_name.asPath()
 
-                yield (func, os.path.normpath(os.path.join(target_dir, filename)))
+                dest_path = os.path.normpath(os.path.join(target_dir, filename))
+
+                yield makeIncludedGeneratedDataFile(
+                    data=func(dest_path), dest_path=dest_path, reason=reason
+                )
