@@ -465,8 +465,10 @@ def commentArgs():
 
     if shallMakeModule() and options.static_libpython == "yes":
         Tracing.options_logger.warning(
-            "In module mode, providing --static-libpython has no effect, it's not used."
+            "In module mode, providing '--static-libpython' has no effect, it's not used."
         )
+
+        options.static_libpython = "no"
 
     if not isPgoMode() and getPgoArgs():
         Tracing.optimization_logger.warning(
