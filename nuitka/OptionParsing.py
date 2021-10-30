@@ -1336,6 +1336,9 @@ def _getProjectOptions(logger, filename_arg, module_mode):
             elif command == "":
                 arg = re.sub(r"""^([\w-]*=)(['"])(.*)\2$""", r"\1\3", arg.lstrip())
 
+                if not arg:
+                    continue
+
                 yield _expandProjectArg(arg, filename_arg, for_eval=False)
             else:
                 assert False, (command, line)
