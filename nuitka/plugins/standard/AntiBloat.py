@@ -29,13 +29,12 @@ that to be done and causing massive degradations.
 """
 
 import ast
-import pkgutil
 
 from nuitka.containers.odict import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Yaml import parseYaml
+from nuitka.utils.Yaml import parsePackageYaml
 
 
 class NuitkaPluginAntiBloat(NuitkaPluginBase):
@@ -51,9 +50,7 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         noinclude_ipython_mode,
         custom_choices,
     ):
-        self.config = parseYaml(
-            pkgutil.get_data("nuitka.plugins.standard", "anti-bloat.yml")
-        )
+        self.config = parsePackageYaml(__package__, "anti-bloat.yml")
 
         self.handled_modules = OrderedDict()
 

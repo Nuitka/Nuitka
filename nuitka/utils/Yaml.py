@@ -20,7 +20,12 @@
 Because we want to work with Python2.6 or higher, we play a few tricks with
 what library to use for what Python. We have an inline copy of PyYAML that
 still does 2.6, on other Pythons, we expect the system to have it installed.
+
+Also we put loading for specific packages in here and a few helpers to work
+with these config files.
 """
+
+import pkgutil
 
 from .Importing import importFromInlineCopy
 
@@ -37,3 +42,7 @@ def parseYaml(data):
         yaml_load_function = yaml.load
 
     return yaml_load_function(data)
+
+
+def parsePackageYaml(package_name, filename):
+    return parseYaml(pkgutil.get_data(package_name, filename))
