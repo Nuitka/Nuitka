@@ -49,6 +49,7 @@ from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
     getSystemPrefixPath,
+    isAnacondaPython,
     isDebianPackagePython,
     isNuitkaPython,
     python_version,
@@ -465,6 +466,9 @@ def runSconsBackend(quiet):
 
     if isDebianPackagePython():
         options["debian_python"] = asBoolStr(True)
+
+    if isAnacondaPython():
+        options["anaconda_python"] = asBoolStr(True)
 
     if Options.isStandaloneMode():
         options["standalone_mode"] = asBoolStr(True)
