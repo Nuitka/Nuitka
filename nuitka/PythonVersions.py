@@ -159,6 +159,10 @@ def isDebianPackagePython():
             return True
 
 
+def isAnacondaPython():
+    return os.path.exists(os.path.join(sys.prefix, "conda-meta"))
+
+
 def isUninstalledPython():
     # Debian package.
     if isDebianPackagePython():
@@ -183,10 +187,7 @@ def isUninstalledPython():
         system_path = os.path.normcase(buf.value)
         return not getRunningPythonDLLPath().startswith(system_path)
 
-    return (
-        os.path.exists(os.path.join(sys.prefix, "conda-meta"))
-        or "WinPython" in sys.version
-    )
+    return isAnacondaPython() or "WinPython" in sys.version
 
 
 def getRunningPythonDLLPath():
