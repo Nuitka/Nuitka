@@ -136,7 +136,9 @@ def getPluginClass(plugin_name):
     return plugin_name2plugin_classes[plugin_name][0]
 
 
-def _loadPluginClassesFromPath(scan_path):
+def _loadPluginClassesFromPackage(scan_package):
+    scan_path = scan_package.__path__
+
     for item in iter_modules(scan_path):
         if item.ispkg:
             continue
@@ -163,6 +165,10 @@ def _loadPluginClassesFromPath(scan_path):
                 continue
 
             raise
+
+        # At least for Python2, this is not set properly, but we use it for package
+        # data loading.
+        plugin_module.__package__ = scan_package.__name__
 
         plugin_classes = set(
             obj
@@ -218,8 +224,8 @@ def loadStandardPluginClasses():
     Returns:
         None
     """
-    _loadPluginClassesFromPath(nuitka.plugins.standard.__path__)
-    _loadPluginClassesFromPath(nuitka.plugins.commercial.__path__)
+    _loadPluginClassesFromPackage(nuitka.plugins.standard)
+    _loadPluginClassesFromPackage(nuitka.plugins.commercial)
 
 
 class Plugins(object):
