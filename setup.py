@@ -304,6 +304,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         # We depend on CPython.
         "Programming Language :: Python :: Implementation :: CPython",
         # We generate C intermediate code and implement part of the
