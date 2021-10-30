@@ -26,6 +26,7 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import parseOptions
 from nuitka.PythonVersions import (
     getSupportedPythonVersions,
+    isAnacondaPython,
     isDebianPackagePython,
     isNuitkaPython,
     isUninstalledPython,
@@ -756,11 +757,7 @@ def _shallUseStaticLibPython():
 
         # For Anaconda default to trying static lib python library, which
         # normally is just not available or if it is even unusable.
-        if (
-            os.path.exists(os.path.join(sys.prefix, "conda-meta"))
-            and not isWin32Windows()
-            and not isMacOS()
-        ):
+        if isAnacondaPython() and not isMacOS():
             return True
 
     return options.static_libpython == "yes"
