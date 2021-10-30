@@ -533,7 +533,7 @@ int main(int argc, char **argv) {
 // Workaround older Python not handling stream setup on redirected files properly.
 #if PYTHON_VERSION >= 0x340 && PYTHON_VERSION < 0x380
     {
-        char *encoding = NULL;
+        char const *encoding = NULL;
 
         if (SYSFLAG_UTF8) {
             encoding = "utf-8";
