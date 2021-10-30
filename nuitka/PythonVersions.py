@@ -41,7 +41,7 @@ def getSupportedPythonVersions():
 def getPartiallySupportedPythonVersions():
     """Partially supported Python versions for Nuitka."""
 
-    return ()
+    return ("3.10",)
 
 
 def getSupportedPythonVersionStr():
