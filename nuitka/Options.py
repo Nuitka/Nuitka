@@ -734,6 +734,9 @@ _shall_use_static_lib_python = None
 
 
 def _shallUseStaticLibPython():
+    if shallMakeModule():
+        return False
+
     if options.static_libpython == "auto":
         # Nuitka-Python is good to to static linking.
         if isNuitkaPython():
@@ -766,7 +769,7 @@ def _shallUseStaticLibPython():
 
 
 def shallUseStaticLibPython():
-    """*bool* = "--static-libpython=yes|auto"
+    """*bool* = "--static-libpython=yes|auto" and not module mode
 
     Notes:
         Currently only Anaconda on non-Windows can do this and MSYS2.
