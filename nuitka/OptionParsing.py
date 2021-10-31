@@ -31,8 +31,13 @@ import re
 import sys
 from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
-from nuitka.utils import Utils
+from nuitka.PythonVersions import (
+    isAnacondaPython,
+    isDebianPackagePython,
+    isNuitkaPython,
+)
 from nuitka.utils.FileOperations import getFileContentByLine
+from nuitka.utils.Utils import getArchitecture, getLinuxDistribution, getOS
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
@@ -44,18 +49,36 @@ if not is_nuitka_run:
 else:
     usage = "usage: %prog [options] main_module.py"
 
+
+def _getPythonVendor():
+    if isAnacondaPython():
+        return "Anaconda Python"
+    elif getOS() == "Linux" and isDebianPackagePython():
+        return "Debian Python"
+    elif isNuitkaPython():
+        return "Nuitka Python"
+    else:
+        return "Unknown"
+
+
+def _getVersionInformationValues():
+    # TODO: Might be nice if we could delay version information computation
+    # until it's actually used.
+    yield getNuitkaVersion()
+    yield "Commercial: %s" % getCommercialVersion()
+    yield "Python: %s" % sys.version.split("\n", 1)[0]
+    yield "Variant: %s" % _getPythonVendor()
+    yield "Executable: %s" % sys.executable
+    yield "OS: %s" % getOS()
+    yield "Arch: %s" % getArchitecture()
+
+    if getOS() == "Linux":
+        yield "Distribution: %s %s" % getLinuxDistribution()
+
+
 parser = OptionParser(
     usage=usage,
-    version="\n".join(
-        (
-            getNuitkaVersion(),
-            "Commercial: %s" % getCommercialVersion(),
-            "Python: " + sys.version.split("\n", 1)[0],
-            "Executable: " + sys.executable,
-            "OS: " + Utils.getOS(),
-            "Arch: " + Utils.getArchitecture(),
-        )
-    ),
+    version="\n".join(_getVersionInformationValues()),
 )
 
 parser.add_option(
@@ -118,7 +141,7 @@ if os.name == "nt":
         help="""\
 Architecture of Python to use. One of "x86" or "x86_64".
 Defaults to what you run Nuitka with (currently "%s")."""
-        % (Utils.getArchitecture()),
+        % (getArchitecture()),
     )
 
 parser.add_option(
@@ -491,7 +514,7 @@ include path information that needs to exist though. Defaults to '%s' on this
 platform.
 """
     % "<program_name>"
-    + (".exe" if Utils.getOS() == "Windows" else ".bin"),
+    + (".exe" if getOS() == "Windows" else ".bin"),
 )
 
 output_group.add_option(
@@ -1245,12 +1268,22 @@ def _expandProjectArg(arg, filename_arg, for_eval):
             return value
 
     values = {
-        "OS": wrap(Utils.getOS()),
-        "Arch": wrap(Utils.getArchitecture()),
+        "OS": wrap(getOS()),
+        "Arch": wrap(getArchitecture()),
+        "Vendor": _getPythonVendor(),
         "Version": getNuitkaVersion(),
         "Commercial": getCommercialVersion(),
         "MAIN_DIRECTORY": wrap(os.path.dirname(filename_arg) or "."),
     }
+
+    if getOS() != "Linux":
+        dist_info = "N/A", "0"
+    else:
+        dist_info = getLinuxDistribution()
+
+    values["Linux_Distribution_Name"] = dist_info[0]
+    values["Linux_Distribution_Version"] = dist_info[1]
+
     arg = arg.format(**values)
 
     return arg
