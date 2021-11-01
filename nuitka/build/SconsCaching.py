@@ -139,7 +139,7 @@ def _injectCcache(
         # Make sure the
         # In case we are on Windows, make sure the Anaconda form runs outside of Anaconda
         # environment, by adding DLL folder to PATH.
-        assert getExecutablePath(os.path.basename(the_compiler), env=env) == cc_path
+        assert os.path.normpath(getExecutablePath(os.path.basename(the_compiler), env=env)) == os.path.normpath(cc_path)
 
         # We use absolute paths for CC, pass it like this, as ccache does not like absolute.
         env["CXX"] = env["CC"] = '"%s" "%s"' % (ccache_binary, cc_path)
