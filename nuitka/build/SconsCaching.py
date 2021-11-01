@@ -29,6 +29,7 @@ from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.FileOperations import (
+    areSamePaths,
     getExternalUsePath,
     getFileContentByLine,
     getFileContents,
@@ -139,7 +140,9 @@ def _injectCcache(
         # Make sure the
         # In case we are on Windows, make sure the Anaconda form runs outside of Anaconda
         # environment, by adding DLL folder to PATH.
-        assert os.path.normpath(getExecutablePath(os.path.basename(the_compiler), env=env)) == os.path.normpath(cc_path)
+        assert areSamePaths(
+            getExecutablePath(os.path.basename(the_compiler), env=env), cc_path
+        )
 
         # We use absolute paths for CC, pass it like this, as ccache does not like absolute.
         env["CXX"] = env["CC"] = '"%s" "%s"' % (ccache_binary, cc_path)
