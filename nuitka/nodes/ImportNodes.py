@@ -308,7 +308,8 @@ class ExpressionImportModuleFixed(ExpressionBase):
         if self.package_modules_desc is not None:
             for package_module_desc in self.package_modules_desc:
                 trace_collection.onUsedModule(
-                    package_module_desc[0], package_module_desc[1]
+                    module_name=package_module_desc[0],
+                    module_relpath=package_module_desc[1],
                 )
 
         # Nothing to do about it.
@@ -323,7 +324,43 @@ class ExpressionImportModuleFixed(ExpressionBase):
         )
 
 
-class ExpressionImportModuleHard(ExpressionBase):
+class ExpressionImportHardBase(ExpressionBase):
+    # Base classes can be abstract, pylint: disable=abstract-method
+    #
+    __slots__ = ("module_name", "finding", "module_filename")
+
+    def __init__(self, module_name, source_ref):
+        self.module_name = ModuleName(module_name)
+
+        self.finding = None
+        self.module_filename = None
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
+
+    def _attemptRecursion(self, trace_collection):
+        module_package, self.module_filename, self.finding = findModule(
+            importing=self,
+            module_name=self.module_name,
+            parent_package=None,
+            level=0,
+            warn=True,
+        )
+
+        # Expect to find them.
+        assert self.finding != "not-found"
+
+        if self.module_filename is not None:
+            imported_module = _considerImport(
+                trace_collection=trace_collection,
+                module_filename=self.module_filename,
+                module_package=module_package,
+            )
+
+            if imported_module is None:
+                self.module_filename = None
+
+
+class ExpressionImportModuleHard(ExpressionImportHardBase):
     """Hard coded import names, e.g. of "__future__"
 
     These are directly created for some Python mechanics, but also due to
@@ -332,15 +369,15 @@ class ExpressionImportModuleHard(ExpressionBase):
 
     kind = "EXPRESSION_IMPORT_MODULE_HARD"
 
-    __slots__ = ("module_name", "module")
+    __slots__ = ("module",)
 
     def __init__(self, module_name, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
-
-        self.module_name = module_name
+        ExpressionImportHardBase.__init__(
+            self, module_name=module_name, source_ref=source_ref
+        )
 
         if isHardModuleWithoutSideEffect(self.module_name):
-            self.module = __import__(module_name)
+            self.module = __import__(self.module_name)
         else:
             self.module = None
 
@@ -366,6 +403,16 @@ class ExpressionImportModuleHard(ExpressionBase):
             return tshape_module
 
     def computeExpressionRaw(self, trace_collection):
+        if self.finding is None:
+            self._attemptRecursion(trace_collection)
+
+        # Recursion for stdlib can be enabled, and some of
+        # these are even outside of that.
+        if self.module_filename is not None:
+            trace_collection.onUsedModule(
+                module_name=self.module_name, module_relpath=self.module_filename
+            )
+
         if self.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -488,7 +535,7 @@ class ExpressionImportModuleHard(ExpressionBase):
         return lookup_node, None, None
 
 
-class ExpressionImportModuleNameHard(ExpressionBase):
+class ExpressionImportModuleNameHard(ExpressionImportHardBase):
     """Hard coded import names, e.g. of "os.path.dirname"
 
     These are directly created for some Python mechanics.
@@ -496,12 +543,13 @@ class ExpressionImportModuleNameHard(ExpressionBase):
 
     kind = "EXPRESSION_IMPORT_MODULE_NAME_HARD"
 
-    __slots__ = "module_name", "import_name", "trust"
+    __slots__ = ("import_name", "trust", "finding", "module_filename")
 
     def __init__(self, module_name, import_name, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionImportHardBase.__init__(
+            self, module_name=module_name, source_ref=source_ref
+        )
 
-        self.module_name = module_name
         self.import_name = import_name
 
         self.trust = hard_modules_trust[self.module_name].get(self.import_name)
@@ -519,8 +567,17 @@ class ExpressionImportModuleNameHard(ExpressionBase):
         return self.import_name
 
     def computeExpressionRaw(self, trace_collection):
-        # As good as it gets, will exist, otherwise we do not get created.
+        if self.finding is None:
+            self._attemptRecursion(trace_collection)
 
+        # Recursion for stdlib can be enabled, and some of
+        # these are even outside of that.
+        if self.module_filename is not None:
+            trace_collection.onUsedModule(
+                module_name=self.module_name, module_relpath=self.module_filename
+            )
+
+        # As good as it gets, will exist, otherwise we do not get created.
         if self.mayHaveSideEffects():
             trace_collection.onExceptionRaiseExit(AttributeError)
 
@@ -900,14 +957,16 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
             for import_list_module_desc in self.import_list_modules_desc:
                 trace_collection.onUsedModule(
-                    import_list_module_desc[0], import_list_module_desc[1]
+                    module_name=import_list_module_desc[0],
+                    module_relpath=import_list_module_desc[1],
                 )
 
         # These are added in any case.
         if self.package_modules_desc is not None:
             for package_module_desc in self.package_modules_desc:
                 trace_collection.onUsedModule(
-                    package_module_desc[0], package_module_desc[1]
+                    module_name=package_module_desc[0],
+                    module_relpath=package_module_desc[1],
                 )
 
     def computeExpression(self, trace_collection):
