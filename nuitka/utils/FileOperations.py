@@ -725,7 +725,7 @@ def resolveShellPatternToFilenames(pattern):
         if python_version >= 0x350:
             result = glob.glob(pattern, recursive=True)
         else:
-            glob2 = importFromInlineCopy("glob2", must_exist=True)
+            glob2 = importFromInlineCopy("glob2", must_exist=False)
 
             if glob2 is None:
                 options_logger.sysexit(
