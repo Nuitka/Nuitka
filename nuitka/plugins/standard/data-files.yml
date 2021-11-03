@@ -133,3 +133,7 @@ jsonschema:
 xmlschema:
   dirs:
     - "schemas"
+
+openapi_spec_validator:
+  dirs:
+    - "resources/schemas"
