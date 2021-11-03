@@ -1365,6 +1365,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "telethon.tl.types",  # Not performance relevant and slow C compile
         "importlib_metadata",  # Not performance relevant and slow C compile
         "comtypes.gen",  # Not performance relevant and slow C compile
+        "site",  # Not performance relevant and problems with .pth files
     )
 
     def decideCompilation(self, module_name, source_ref):
