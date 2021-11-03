@@ -363,8 +363,8 @@ extern void checkModuleConstants___main__(void);
 #endif
 #endif
 
-#if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED || _NUITKA_PLUGIN_TRACEBACK_ENCRYPTION_ENABLED
 // Call this to initialize __main__ constants in non-standard processes.
+#ifdef _NUITKA_EXE
 extern void createMainModuleConstants(void);
 #endif
 
