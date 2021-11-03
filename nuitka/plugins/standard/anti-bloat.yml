@@ -189,3 +189,70 @@ gevent._util:
   change_function:
     "prereleaser_middle": "'(lambda data: None)'"
     "postreleaser_before": "'(lambda data: None)'"
+
+inspect:
+  description:
+    "remove module ability to run as a binary"
+  change_function:
+    "_main": "'(lambda: None)'"
+
+sysconfig:
+  description:
+    "remove module ability to run as a binary"
+  change_function:
+    "_main": "'(lambda: None)'"
+
+pyclbr:
+  description:
+    "remove module ability to run as a binary"
+  change_function:
+    "_main": "'(lambda: None)'"
+
+mimetypes:
+  description:
+    "remove module ability to run as a binary"
+  change_function:
+    "_main": "'(lambda: None)'"
+
+tarfile:
+  description:
+    "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+quopri:
+  description:
+    "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+zipfile:
+  description:
+    "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+gzip:
+  description:
+    "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+
+base64:
+  description:
+    "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+ast:
+  description:
+    "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+tokenize:
+  description:
+    "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
