@@ -457,7 +457,9 @@ class TraceCollectionBase(object):
         signalChange(tags, source_ref, message)
 
     def onUsedModule(self, module_name, module_relpath):
-        return self.parent.onUsedModule(module_name, module_relpath)
+        return self.parent.onUsedModule(
+            module_name=module_name, module_relpath=module_relpath
+        )
 
     def onUsedFunction(self, function_body):
         owning_module = function_body.getParentModule()
