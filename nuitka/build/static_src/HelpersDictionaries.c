@@ -609,3 +609,8 @@ PyObject *DICT_COPY(PyObject *value) {
     }
 #endif
 }
+
+void DICT_CLEAR(PyObject *dict) {
+    // TODO: Could inline this for enhanced optimization.
+    PyDict_Clear(dict);
+}

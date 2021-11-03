@@ -65,6 +65,9 @@ class ExpressionAttributeLookupFixedClear(ExpressionAttributeLookupFixedBase):
 attribute_classes["clear"] = ExpressionAttributeLookupFixedClear
 
 
+from nuitka.specs.BuiltinDictOperationSpecs import dict_clear_spec
+
+
 class ExpressionAttributeLookupDictClear(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedClear
 ):
@@ -79,7 +82,21 @@ class ExpressionAttributeLookupDictClear(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as dict operation ExpressionDictOperationClear is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionDictOperationClear(source_ref):
+            from .DictionaryNodes import ExpressionDictOperationClear
+
+            return ExpressionDictOperationClear(
+                dict_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationClear,
+            builtin_spec=dict_clear_spec,
+        )
+
+        return result, "new_expression", "Call to 'clear' of dictionary recognized."
 
 
 attribute_typed_classes["clear"] = ExpressionAttributeLookupDictClear

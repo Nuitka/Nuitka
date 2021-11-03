@@ -46,5 +46,6 @@ class DictMethodSpec(BuiltinParameterSpec):
 
 
 dict_copy_spec = DictMethodSpec("dict.copy", ())
+dict_clear_spec = DictMethodSpec("dict.clear", ())
 dict_items_spec = DictMethodSpec("dict.items", ())
 dict_iteritems_spec = DictMethodSpec("dict.iteritems")

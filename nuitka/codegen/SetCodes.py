@@ -24,6 +24,7 @@ added later on.
 from nuitka.PythonVersions import needsSetLiteralReverseInsertion
 
 from .CodeHelpers import (
+    assignConstantNoneResult,
     decideConversionCheckNeeded,
     generateChildExpressionsCode,
     generateExpressionCode,
@@ -165,15 +166,7 @@ def generateSetOperationUpdateCode(to_name, expression, emit, context):
         context=context,
     )
 
-    with withObjectCodeTemporaryAssignment(
-        to_name, "setupdate_result", expression, emit, context
-    ) as result_name:
-        emit("%s = Py_None;" % result_name)
-
-        # This conversion will not use it, and since it is borrowed, debug mode
-        # would otherwise complain.
-        if to_name.c_type == "nuitka_void":
-            result_name.maybe_unused = True
+    assignConstantNoneResult(to_name, emit, context)
 
 
 def generateBuiltinSetCode(to_name, expression, emit, context):

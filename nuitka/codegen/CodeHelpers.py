@@ -289,6 +289,19 @@ def withObjectCodeTemporaryAssignment(to_name, value_name, expression, emit, con
         getReleaseCode(value_name, emit, context)
 
 
+def assignConstantNoneResult(to_name, emit, context):
+    # TODO: This is also in SetCode, and should be common for statement only
+    # operations that return None in Python, but only in case of non-error
+    to_name.getCType().emitAssignmentCodeFromConstant(
+        to_name=to_name, constant=None, may_escape=False, emit=emit, context=context
+    )
+
+    # This assignment will not necessarily use it, and since it is borrowed,
+    # debug mode would otherwise complain.
+    if to_name.c_type == "nuitka_void":
+        to_name.maybe_unused = True
+
+
 class HelperCallHandle(object):
     def __init__(
         self,
