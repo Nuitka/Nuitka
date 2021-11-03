@@ -19,5 +19,32 @@
 
 from .BuiltinParameterSpecs import BuiltinParameterSpec
 
-dict_items_spec = BuiltinParameterSpec("dict.items", (), default_count=0)
-dict_iteritems_spec = BuiltinParameterSpec("dict.iteritems", (), default_count=0)
+
+class DictMethodSpec(BuiltinParameterSpec):
+    __slots__ = ()
+
+    def __init__(
+        self,
+        name,
+        arg_names=(),
+        default_count=0,
+        list_star_arg=None,
+        dict_star_arg=None,
+        pos_only_args=(),
+        kw_only_args=(),
+    ):
+        BuiltinParameterSpec.__init__(
+            self,
+            name="dict." + name,
+            arg_names=arg_names,
+            default_count=default_count,
+            list_star_arg=list_star_arg,
+            dict_star_arg=dict_star_arg,
+            pos_only_args=pos_only_args,
+            kw_only_args=kw_only_args,
+        )
+
+
+dict_copy_spec = DictMethodSpec("dict.copy", ())
+dict_items_spec = DictMethodSpec("dict.items", ())
+dict_iteritems_spec = DictMethodSpec("dict.iteritems")
