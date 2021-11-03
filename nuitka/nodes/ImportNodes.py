@@ -611,13 +611,17 @@ class ExpressionImportlibImportModuleRef(ExpressionImportModuleNameHard):
         return {}
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         result = extractBuiltinArgs(
             node=call_node,
             builtin_class=ExpressionImportlibImportModuleCall,
             builtin_spec=importlib_import_module_spec,
         )
 
-        return result, "new_expression", "Call to 'importlib.import_module' recognized."
+        return result, "new_expression", "Call of 'importlib.import_module' recognized."
 
 
 def _getImportNameAsStr(value):
