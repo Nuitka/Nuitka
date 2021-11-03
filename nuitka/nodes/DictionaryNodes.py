@@ -46,7 +46,7 @@ from .NodeMakingHelpers import (
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_dict, tshape_list
+from .shapes.BuiltinTypeShapes import tshape_dict, tshape_list, tshape_none
 from .shapes.StandardShapes import tshape_iterator
 from .TypeNodes import ExpressionBuiltinType1
 
@@ -510,6 +510,38 @@ class ExpressionDictOperationCopy(ExpressionChildHavingBase):
         return False
 
 
+class ExpressionDictOperationClear(ExpressionChildHavingBase):
+    kind = "EXPRESSION_DICT_OPERATION_CLEAR"
+
+    named_child = "dict_arg"
+
+    def __init__(self, dict_arg, source_ref):
+        assert dict_arg is not None
+
+        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
+
+    def computeExpression(self, trace_collection):
+        # Once we do dictionary tracing, we should tell it, we know its new value
+        # perfectly, and that we have no use for previous value.
+        # trace_collection.onDictionaryReplaceValueWithKnownValue(self.subnode_dict_arg, {})
+
+        return self, None, None
+
+    @staticmethod
+    def getTypeShape():
+        # TODO: This kind of operation ought to convert to a statement
+        # quickly.
+        return tshape_none
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return True
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+
 class ExpressionDictOperationItems(ExpressionChildHavingBase):
     kind = "EXPRESSION_DICT_OPERATION_ITEMS"
 
@@ -535,8 +567,6 @@ class ExpressionDictOperationItems(ExpressionChildHavingBase):
                 "new_expression",
                 "Compile time computed 'dict.items' on constant argument.",
             )
-
-        trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 

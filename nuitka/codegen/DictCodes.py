@@ -23,6 +23,7 @@ from nuitka import Options
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
+    assignConstantNoneResult,
     decideConversionCheckNeeded,
     generateChildExpressionsCode,
     generateExpressionCode,
@@ -30,7 +31,7 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
-from .PythonAPICodes import generateCAPIObjectCode
+from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 
 
 def generateBuiltinDictCode(to_name, expression, emit, context):
@@ -270,6 +271,22 @@ def generateDictOperationCopyCode(to_name, expression, emit, context):
         emit=emit,
         context=context,
     )
+
+
+def generateDictOperationClearCode(to_name, expression, emit, context):
+    generateCAPIObjectCode0(
+        to_name=None,
+        capi="DICT_CLEAR",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+    # None result if wanted.
+    assignConstantNoneResult(to_name, emit, context)
 
 
 def generateDictOperationItemsCode(to_name, expression, emit, context):
