@@ -141,7 +141,8 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
         return (
             new_node,
             "new_raise",
-            "Predicted call of constant value to exception raise.",
+            "Predicted call of constant %s value to exception raise."
+            % type(self.constant),
         )
 
     def getCompileTimeConstant(self):

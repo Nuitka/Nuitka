@@ -108,6 +108,7 @@ from .CoroutineCodes import (
 from .DictCodes import (
     generateBuiltinDictCode,
     generateDictionaryCreationCode,
+    generateDictOperationCopyCode,
     generateDictOperationGetCode,
     generateDictOperationInCode,
     generateDictOperationItemsCode,
@@ -640,6 +641,7 @@ addExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_GET": generateDictOperationGetCode,
         "EXPRESSION_DICT_OPERATION_IN": generateDictOperationInCode,
         "EXPRESSION_DICT_OPERATION_NOT_IN": generateDictOperationInCode,
+        "EXPRESSION_DICT_OPERATION_COPY": generateDictOperationCopyCode,
         "EXPRESSION_DICT_OPERATION_ITEMS": generateDictOperationItemsCode,
         "EXPRESSION_DICT_OPERATION_ITERITEMS": generateDictOperationIteritemsCode,
         "EXPRESSION_FUNCTION_CREATION": generateFunctionCreationCode,

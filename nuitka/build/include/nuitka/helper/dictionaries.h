@@ -364,4 +364,7 @@ extern PyObject *DICT_ITEMS(PyObject *dict);
 // Python3 dictionary items, Python2 iteritems returns dictionary items iterator
 extern PyObject *DICT_ITERITEMS(PyObject *dict);
 
+// Python dictionary copy, return a shallow copy of a dictionary.
+extern PyObject *DICT_COPY(PyObject *dict);
+
 #endif
