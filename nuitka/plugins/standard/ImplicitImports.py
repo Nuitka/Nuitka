@@ -1310,7 +1310,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             )
         # TODO: This should be its own plugin.
         elif (
-            full_name in ("win32api", "pythoncom", "win32file", "win32com")
+            full_name
+            in ("win32api", "pythoncom", "win32file", "win32com", "win32print")
             and isWin32Windows()
         ):
             result = []
