@@ -1353,7 +1353,13 @@ def _handleDataFile(dist_dir, tracer, included_datafile):
         )
 
         for sub_dir in included_datafile.dest_path:
-            makePath(os.path.join(dist_dir, sub_dir))
+            created_dir = os.path.join(dist_dir, sub_dir)
+
+            makePath(created_dir)
+            putTextFileContents(
+                filename=os.path.join(created_dir, ".keep_dir.txt"), contents=""
+            )
+
     elif included_datafile.kind == "data_file":
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
 

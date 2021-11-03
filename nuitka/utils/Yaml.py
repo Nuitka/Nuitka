@@ -30,6 +30,15 @@ import pkgutil
 from .Importing import importFromInlineCopy
 
 
+class Yaml(object):
+    def __init__(self, filename, data):
+        self.filename = filename
+        self.data = data
+
+    def get(self, name):
+        return self.data.get(name)
+
+
 def parseYaml(data):
     try:
         import yaml
@@ -45,4 +54,6 @@ def parseYaml(data):
 
 
 def parsePackageYaml(package_name, filename):
-    return parseYaml(pkgutil.get_data(package_name, filename))
+    return Yaml(
+        filename=filename, data=parseYaml(pkgutil.get_data(package_name, filename))
+    )
