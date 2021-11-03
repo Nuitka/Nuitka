@@ -367,4 +367,7 @@ extern PyObject *DICT_ITERITEMS(PyObject *dict);
 // Python dictionary copy, return a shallow copy of a dictionary.
 extern PyObject *DICT_COPY(PyObject *dict);
 
+// Python dictionary clear, empty a dictionary.
+extern void DICT_CLEAR(PyObject *dict);
+
 #endif

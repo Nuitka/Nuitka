@@ -21,6 +21,7 @@ Right now only the creation is done here. But more should be added later on.
 """
 
 from .CodeHelpers import (
+    assignConstantNoneResult,
     decideConversionCheckNeeded,
     generateChildExpressionsCode,
     generateExpressionCode,
@@ -143,17 +144,7 @@ def generateListOperationExtendCode(to_name, expression, emit, context):
         context=context,
     )
 
-    # TODO: This is also in SetCode, and should be common for statement only
-    # operations that return None in Python, but only in case of non-error
-    with withObjectCodeTemporaryAssignment(
-        to_name, "list_extend_result", expression, emit, context
-    ) as result_name:
-        emit("%s = Py_None;" % result_name)
-
-        # This conversion will not use it, and since it is borrowed, debug mode
-        # would otherwise complain.
-        if to_name.c_type == "nuitka_void":
-            result_name.maybe_unused = True
+    assignConstantNoneResult(to_name, emit, context)
 
 
 def generateListOperationPopCode(to_name, expression, emit, context):
