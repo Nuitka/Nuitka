@@ -70,12 +70,53 @@ jobs:
           python ./bin/check-nuitka-with-codespell
         if: matrix.python_version == '3.7'
 
-  mac:
-    runs-on: macos-latest
+  mac-python2:
+    runs-on: macos-10.15
     strategy:
       matrix:
         python_version:
             - '2.7'
+    name: macOS Python ${{ matrix.python_version }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Python ${{ matrix.python_version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Verbose installation output for Python
+        run: |
+          set -x
+          which python
+          otool -L $(which python)
+          otool -l $(which python)
+          ls -lR $(dirname $(dirname $(which python)))
+
+      - name: Install Nuitka dependencies
+        run: |
+          pip install -r requirements-devel.txt
+
+      - name: Install Nuitka
+        run:
+          pip install .
+
+      - name: Verbose scons output in compilation
+        run: |
+          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
+          python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
+
+      - name: Run Nuitka test suite
+        run: |
+          python -m nuitka --version
+          env | sort
+          python ./tests/run-tests --no-other-python --skip-all-cpython-tests
+
+  mac-python3:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        python_version:
             - '3.7'
             - '3.8'
             - '3.9'
