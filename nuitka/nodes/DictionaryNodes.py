@@ -467,6 +467,49 @@ class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
         return self, None, None
 
 
+class ExpressionDictOperationCopy(ExpressionChildHavingBase):
+    kind = "EXPRESSION_DICT_OPERATION_COPY"
+
+    named_child = "dict_arg"
+
+    def __init__(self, dict_arg, source_ref):
+        assert dict_arg is not None
+
+        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
+
+    def computeExpression(self, trace_collection):
+        dict_arg = self.subnode_dict_arg
+
+        if dict_arg.isCompileTimeConstant():
+            result = makeConstantReplacementNode(
+                constant=dict_arg.getCompileTimeConstant().copy(),
+                node=self,
+                user_provided=dict_arg.user_provided,
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Compile time computed 'dict.copy' on constant argument.",
+            )
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_dict
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return False
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+
 class ExpressionDictOperationItems(ExpressionChildHavingBase):
     kind = "EXPRESSION_DICT_OPERATION_ITEMS"
 
@@ -478,6 +521,21 @@ class ExpressionDictOperationItems(ExpressionChildHavingBase):
         ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
+        dict_arg = self.subnode_dict_arg
+
+        if dict_arg.isCompileTimeConstant():
+            result = makeConstantReplacementNode(
+                constant=dict_arg.getCompileTimeConstant().items(),
+                node=self,
+                user_provided=dict_arg.user_provided,
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Compile time computed 'dict.items' on constant argument.",
+            )
+
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

@@ -528,3 +528,84 @@ PyObject *DICT_ITERITEMS(PyObject *dict) {
     return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictItems_Type, true);
 #endif
 }
+
+PyObject *DICT_COPY(PyObject *value) {
+#if PYTHON_VERSION < 0x300
+    // For Python3, this can be done much faster in the same way as it is
+    // done in parameter parsing.
+
+    PyObject *result = _PyDict_NewPresized(((PyDictObject *)value)->ma_used);
+
+    for (Py_ssize_t i = 0; i <= ((PyDictObject *)value)->ma_mask; i++) {
+        PyDictEntry *entry = &((PyDictObject *)value)->ma_table[i];
+
+        if (entry->me_value != NULL) {
+            int res = PyDict_SetItem(result, entry->me_key, entry->me_value);
+
+            if (unlikely(res != 0)) {
+                return NULL;
+            }
+        }
+    }
+
+    return result;
+#else
+    /* Python 3 */
+    if (_PyDict_HasSplitTable((PyDictObject *)value)) {
+        PyDictObject *mp = (PyDictObject *)value;
+
+        PyObject **newvalues = PyMem_NEW(PyObject *, mp->ma_keys->dk_size);
+        assert(newvalues != NULL);
+
+        PyDictObject *result = PyObject_GC_New(PyDictObject, &PyDict_Type);
+        assert(result != NULL);
+
+        result->ma_values = newvalues;
+        result->ma_keys = mp->ma_keys;
+        result->ma_used = mp->ma_used;
+
+        mp->ma_keys->dk_refcnt += 1;
+
+        Nuitka_GC_Track(result);
+
+#if PYTHON_VERSION < 0x360
+        Py_ssize_t size = mp->ma_keys->dk_size;
+#else
+        Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
+#endif
+        for (Py_ssize_t i = 0; i < size; i++) {
+            if (mp->ma_values[i]) {
+                result->ma_values[i] = mp->ma_values[i];
+                Py_INCREF(result->ma_values[i]);
+            } else {
+                result->ma_values[i] = NULL;
+            }
+        }
+
+        return (PyObject *)result;
+    } else {
+        PyObject *result = _PyDict_NewPresized(((PyDictObject *)value)->ma_used);
+
+        PyDictObject *mp = (PyDictObject *)value;
+
+#if PYTHON_VERSION < 0x360
+        Py_ssize_t size = mp->ma_keys->dk_size;
+#else
+        Py_ssize_t size = mp->ma_keys->dk_nentries;
+#endif
+        for (Py_ssize_t i = 0; i < size; i++) {
+#if PYTHON_VERSION < 0x360
+            PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
+#else
+            PyDictKeyEntry *entry = &DK_ENTRIES(mp->ma_keys)[i];
+#endif
+
+            if (entry->me_value != NULL) {
+                PyDict_SetItem(result, entry->me_key, entry->me_value);
+            }
+        }
+
+        return result;
+    }
+#endif
+}

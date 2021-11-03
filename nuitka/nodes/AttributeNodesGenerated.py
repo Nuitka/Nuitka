@@ -123,6 +123,9 @@ class ExpressionAttributeLookupFixedCopy(ExpressionAttributeLookupFixedBase):
 attribute_classes["copy"] = ExpressionAttributeLookupFixedCopy
 
 
+from nuitka.specs.BuiltinDictOperationSpecs import dict_copy_spec
+
+
 class ExpressionAttributeLookupDictCopy(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedCopy
 ):
@@ -137,7 +140,21 @@ class ExpressionAttributeLookupDictCopy(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as dict operation ExpressionDictOperationCopy is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionDictOperationCopy(source_ref):
+            from .DictionaryNodes import ExpressionDictOperationCopy
+
+            return ExpressionDictOperationCopy(
+                dict_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationCopy,
+            builtin_spec=dict_copy_spec,
+        )
+
+        return result, "new_expression", "Call to 'copy' of dictionary recognized."
 
 
 attribute_typed_classes["copy"] = ExpressionAttributeLookupDictCopy
