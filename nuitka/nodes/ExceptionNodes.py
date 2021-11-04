@@ -233,6 +233,8 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
         return exception_type is BaseException
 
     def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
 
     def computeExpressionDrop(self, statement, trace_collection):
