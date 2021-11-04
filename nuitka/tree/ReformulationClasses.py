@@ -39,7 +39,7 @@ from nuitka.nodes.ContainerMakingNodes import (
     makeExpressionMakeTupleOrConstant,
 )
 from nuitka.nodes.DictionaryNodes import (
-    ExpressionDictOperationGet1,
+    ExpressionDictOperationGet2,
     ExpressionDictOperationIn,
 )
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinLocalsRef
@@ -297,7 +297,7 @@ def buildClassNode2(provider, node, source_ref):
                     ),
                     source_ref=source_ref,
                 ),
-                expression_yes=ExpressionDictOperationGet1(
+                expression_yes=ExpressionDictOperationGet2(
                     dict_arg=ExpressionTempVariableRef(
                         variable=tmp_class_dict, source_ref=source_ref
                     ),

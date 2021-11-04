@@ -19,6 +19,8 @@
 
 """
 
+from nuitka.__past__ import unicode
+
 from .Importing import importFromInlineCopy
 
 environments = {}
@@ -48,8 +50,13 @@ def getEnvironment(package_name, template_subdir, extensions):
         jinja2 = importFromInlineCopy("jinja2", must_exist=True)
         import jinja2
 
+        if package_name is not None:
+            loader = jinja2.PackageLoader(package_name, template_subdir)
+        else:
+            loader = jinja2.BaseLoader()
+
         env = jinja2.Environment(
-            loader=jinja2.PackageLoader(package_name, template_subdir),
+            loader=loader,
             extensions=extensions,
             trim_blocks=True,
             lstrip_blocks=True,
@@ -78,3 +85,19 @@ def getTemplate(
         template_subdir=template_subdir,
         extensions=extensions,
     ).get_template(template_name)
+
+
+def getTemplateFromString(template_str):
+    return getEnvironment(
+        package_name=None, template_subdir=None, extensions=()
+    ).from_string(template_str)
+
+
+def renderTemplateFromString(templat_str, **kwargs):
+    result = getTemplateFromString(templat_str).render(**kwargs)
+
+    if str is not unicode:
+        return result.encode("utf8")
+
+    else:
+        return result

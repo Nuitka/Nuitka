@@ -41,14 +41,15 @@ from .NodeBases import (
     StatementChildrenHavingBase,
 )
 from .NodeMakingHelpers import (
+    getComputationResult,
     makeConstantReplacementNode,
     makeRaiseExceptionExpressionFromTemplate,
+    makeRaiseExceptionReplacementExpression,
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects,
 )
 from .shapes.BuiltinTypeShapes import tshape_dict, tshape_list, tshape_none
 from .shapes.StandardShapes import tshape_iterator
-from .TypeNodes import ExpressionBuiltinType1
 
 
 def makeExpressionPairs(keys, values):
@@ -208,9 +209,7 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildHavingBase
                     exception_type="TypeError",
                     template="unhashable type: '%s'",
                     template_args=makeExpressionAttributeLookup(
-                        expression=ExpressionBuiltinType1(
-                            value=key.extractUnhashableNode(), source_ref=key.source_ref
-                        ),
+                        expression=key.extractUnhashableNodeType(),
                         attribute_name="__name__",
                         source_ref=key.source_ref,
                     ),
@@ -464,40 +463,33 @@ class ExpressionDictOperationItem(ExpressionChildrenHavingBase):
         )
 
     def computeExpression(self, trace_collection):
+        dict_arg = self.subnode_dict_arg
+        key = self.subnode_key
+
+        if dict_arg.isCompileTimeConstant() and key.isCompileTimeConstant():
+            return getComputationResult(
+                node=self,
+                computation=lambda: self.getCompileTimeConstant()[
+                    dict_arg.getCompileTimeConstant()[key.getCompileTimeConstant()]
+                ],
+                description="Dictionary item lookup with constant key.",
+                user_provided=dict_arg.user_provided,
+            )
+
+        # TODO: Only if the key is not hashable.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
 
-class ExpressionDictOperationGet1(ExpressionChildrenHavingBase):
+class ExpressionDictOperationGet2(ExpressionChildrenHavingBase):
     """This operation represents d.get(key) with no exception for missing key but None default."""
-
-    kind = "EXPRESSION_DICT_OPERATION_GET1"
-
-    named_children = ("dict_arg", "key")
-
-    def __init__(self, dict_arg, key, source_ref):
-        assert dict_arg is not None
-        assert key is not None
-
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"dict_arg": dict_arg, "key": key}, source_ref=source_ref
-        )
-
-    def computeExpression(self, trace_collection):
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        return self, None, None
-
-
-class ExpressionDictOperationGet2(
-    SideEffectsFromChildrenMixin, ExpressionChildrenHavingBase
-):
-    """This operation represents d.get(key) with no exception for missing key but default value."""
 
     kind = "EXPRESSION_DICT_OPERATION_GET2"
 
-    named_children = ("dict_arg", "key", "default")
+    named_children = ("dict_arg", "key")
+
+    __slots__ = ("known_hashable_key",)
 
     def __init__(self, dict_arg, key, source_ref):
         assert dict_arg is not None
@@ -507,10 +499,183 @@ class ExpressionDictOperationGet2(
             self, values={"dict_arg": dict_arg, "key": key}, source_ref=source_ref
         )
 
+        self.known_hashable_key = None
+
     def computeExpression(self, trace_collection):
-        trace_collection.onExceptionRaiseExit(BaseException)
+        dict_arg = self.subnode_dict_arg
+        key = self.subnode_key
+
+        if self.known_hashable_key is None:
+            self.known_hashable_key = self.subnode_key.isKnownToBeHashable()
+
+            if self.known_hashable_key is False:
+                trace_collection.onExceptionRaiseExit(BaseException)
+
+                return makeUnhashableExceptionReplacementExpression(
+                    node=self,
+                    key=key,
+                    operation="dict.get",
+                    side_effects=(dict_arg, key),
+                )
+
+        if dict_arg.isCompileTimeConstant() and key.isCompileTimeConstant():
+            result = wrapExpressionWithSideEffects(
+                new_node=makeConstantReplacementNode(
+                    constant=dict_arg.getCompileTimeConstant().get(
+                        key.getCompileTimeConstant()
+                    ),
+                    node=self,
+                    user_provided=dict_arg.user_provided,
+                ),
+                old_node=self,
+                side_effects=(dict_arg, key),
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Compile time computed 'dict.get' on constant argument.",
+            )
+
+        if self.known_hashable_key is None:
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        if self.known_hashable_key is None:
+            return True
+        else:
+            return self.subnode_dict_arg.mayRaiseException(
+                exception_type
+            ) or self.subnode_key.mayRaiseException(exception_type)
+
+    def mayHaveSideEffects(self):
+        if self.known_hashable_key is None:
+            return True
+        else:
+            return (
+                self.subnode_dict_arg.mayHaveSideEffects()
+                or self.subnode_key.mayHaveSideEffects()
+            )
+
+    def extractSideEffects(self):
+        if self.known_hashable_key is None:
+            return (self,)
+        else:
+            return (
+                self.subnode_dict_arg.extractSideEffects()
+                + self.subnode_key.extractSideEffects()
+            )
+
+
+class ExpressionDictOperationGet3(ExpressionChildrenHavingBase):
+    """This operation represents d.get(key, default) with no exception for missing key but default value."""
+
+    kind = "EXPRESSION_DICT_OPERATION_GET3"
+
+    named_children = ("dict_arg", "key", "default")
+
+    __slots__ = ("known_hashable_key",)
+
+    def __init__(self, dict_arg, key, default, source_ref):
+        assert dict_arg is not None
+        assert key is not None
+        assert default is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"dict_arg": dict_arg, "key": key, "default": default},
+            source_ref=source_ref,
+        )
+
+        self.known_hashable_key = None
+
+    def computeExpression(self, trace_collection):
+        dict_arg = self.subnode_dict_arg
+        key = self.subnode_key
+
+        if self.known_hashable_key is None:
+            self.known_hashable_key = key.isKnownToBeHashable()
+
+            if self.known_hashable_key is False:
+                trace_collection.onExceptionRaiseExit(BaseException)
+
+                return makeUnhashableExceptionReplacementExpression(
+                    node=self,
+                    key=key,
+                    operation="dict.get",
+                    side_effects=(dict_arg, key, self.subnode_default),
+                )
+
+        # TODO: With dictionary tracing, this could become more transparent.
+        if dict_arg.isCompileTimeConstant() and key.isCompileTimeConstant():
+            dict_value = dict_arg.getCompileTimeConstant()
+            key_value = key.getCompileTimeConstant()
+
+            if key_value in dict_value:
+                # Side effects of args must be retained, but it's not used.
+                result = wrapExpressionWithSideEffects(
+                    new_node=makeConstantReplacementNode(
+                        constant=dict_value[key_value],
+                        node=self,
+                        user_provided=dict_arg.user_provided,
+                    ),
+                    old_node=self,
+                    side_effects=(
+                        dict_arg,
+                        key,
+                        self.subnode_default,
+                    ),
+                )
+
+                description = "Compile time computed 'dict.get' on constant argument to not use default."
+            else:
+                # Side effects of dict and key must be retained, but it's not used.
+                result = wrapExpressionWithSideEffects(
+                    new_node=self.subnode_default,
+                    old_node=self,
+                    side_effects=(dict_arg, key),
+                )
+
+                description = "Compile time computed 'dict.get' on constant argument to use default."
+
+            return (result, "new_expression", description)
+
+        if self.known_hashable_key is None:
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        if self.known_hashable_key is None:
+            return True
+        else:
+            return (
+                self.subnode_dict_arg.mayRaiseException(exception_type)
+                or self.subnode_key.mayRaiseException(exception_type)
+                or self.subnode_default.mayRaiseException(exception_type)
+            )
+
+    def mayHaveSideEffects(self):
+        if self.known_hashable_key is None:
+            return True
+        else:
+            return (
+                self.subnode_dict_arg.mayHaveSideEffects()
+                or self.subnode_key.mayHaveSideEffects()
+                or self.subnode_default.mayHaveSideEffects()
+            )
+
+    def extractSideEffects(self):
+        if self.known_hashable_key is None:
+            return (self,)
+        else:
+            return (
+                self.subnode_dict_arg.extractSideEffects()
+                + self.subnode_key.extractSideEffects()
+                + self.subnode_defaults.extractSideEffects()
+            )
 
 
 class ExpressionDictOperationCopy(ExpressionChildHavingBase):
@@ -692,6 +857,29 @@ class StatementDictOperationUpdate(StatementChildrenHavingBase):
         return self, None, None
 
 
+def makeUnhashableExceptionReplacementExpression(node, key, side_effects, operation):
+    unhashable_type_name = (
+        key.extractUnhashableNodeType().getCompileTimeConstant().__name__
+    )
+    result = makeRaiseExceptionReplacementExpression(
+        expression=node,
+        exception_type="TypeError",
+        exception_value="unhashable type: '%s'" % unhashable_type_name,
+    )
+    result = wrapExpressionWithSideEffects(
+        side_effects=side_effects,
+        old_node=node,
+        new_node=result,
+    )
+
+    return (
+        result,
+        "new_raise",
+        "Dictionary operation '%s' with key of type '%s' that is known to not be hashable."
+        % (operation, unhashable_type_name),
+    )
+
+
 class ExpressionDictOperationInNotInUncertainBase(ExpressionChildrenHavingBase):
     # Follows the reversed nature of "in", with the dictionary on the right
     # side of things.
@@ -713,11 +901,17 @@ class ExpressionDictOperationInNotInUncertainBase(ExpressionChildrenHavingBase):
         if self.known_hashable_key is None:
             self.known_hashable_key = self.subnode_key.isKnownToBeHashable()
 
-            # TODO: Generate unhashable exception here.
             if self.known_hashable_key is False:
-                pass
+                trace_collection.onExceptionRaiseExit(BaseException)
 
-        if self.mayRaiseException(BaseException):
+                return makeUnhashableExceptionReplacementExpression(
+                    node=self,
+                    key=self.subnode_key,
+                    operation="in (dict)",
+                    side_effects=(self.subnode_key, self.subnode_dict_arg),
+                )
+
+        if self.known_hashable_key is None:
             trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

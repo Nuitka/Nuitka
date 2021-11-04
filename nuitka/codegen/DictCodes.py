@@ -21,6 +21,7 @@
 
 from nuitka import Options
 from nuitka.PythonVersions import python_version
+from nuitka.utils.Jinja2 import renderTemplateFromString
 
 from .CodeHelpers import (
     assignConstantNoneResult,
@@ -30,7 +31,7 @@ from .CodeHelpers import (
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 
 
@@ -260,7 +261,7 @@ def generateDictOperationItemCode(to_name, expression, emit, context):
         context.addCleanupTempName(value_name)
 
 
-def generateDictOperationGet1Code(to_name, expression, emit, context):
+def generateDictOperationGet2Code(to_name, expression, emit, context):
     dict_name, key_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
@@ -269,37 +270,65 @@ def generateDictOperationGet1Code(to_name, expression, emit, context):
         to_name, "dict_value", expression, emit, context
     ) as value_name:
         emit(
-            """\
+            renderTemplateFromString(
+                r"""\
+{% if expression.known_hashable_key %}
 %(value_name)s = DICT_GET_ITEM0(%(dict_name)s, %(key_name)s);
-
 if (%(value_name)s == NULL) {
+{% else %}
+%(value_name)s = DICT_GET_ITEM_WITH_HASH_ERROR0(%(dict_name)s, %(key_name)s);
+if (%(value_name)s == NULL && !ERROR_OCCURRED()) {
+{% endif %}
     %(value_name)s = Py_None;
 }
-"""
-            % {"value_name": value_name, "dict_name": dict_name, "key_name": key_name}
+
+""",
+                expression=expression,
+            )
+            % {
+                "value_name": value_name,
+                "dict_name": dict_name,
+                "key_name": key_name,
+            }
+        )
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=(dict_name, key_name),
+            needs_check=not expression.known_hashable_key,
+            emit=emit,
+            context=context,
         )
 
 
-def generateDictOperationGet2Code(to_name, expression, emit, context):
+def generateDictOperationGet3Code(to_name, expression, emit, context):
     dict_name, key_name, default_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
     # TODO: This code could actually make it dependent on default taking
-    # a reference or not, and then use DICT_GET_ITEM0 if not.
+    # a reference or not, and then use DICT_GET_ITEM0/DICT_GET_ITEM_WITH_HASH_ERROR0 if not.
 
     with withObjectCodeTemporaryAssignment(
         to_name, "dict_value", expression, emit, context
     ) as value_name:
         emit(
-            """\
+            renderTemplateFromString(
+                r"""\
+{% if expression.known_hashable_key %}
 %(value_name)s = DICT_GET_ITEM1(%(dict_name)s, %(key_name)s);
-
 if (%(value_name)s == NULL) {
+{% else %}
+%(value_name)s = DICT_GET_ITEM_WITH_HASH_ERROR1(%(dict_name)s, %(key_name)s);
+if (%(value_name)s == NULL && !ERROR_OCCURRED()) {
+{% endif %}
     %(value_name)s = %(default_name)s;
     Py_INCREF(%(value_name)s);
 }
-"""
+
+""",
+                expression=expression,
+            )
             % {
                 "value_name": value_name,
                 "dict_name": dict_name,
@@ -308,7 +337,13 @@ if (%(value_name)s == NULL) {
             }
         )
 
-        getReleaseCode(default_name, emit, context)
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=(dict_name, key_name, default_name),
+            needs_check=not expression.known_hashable_key,
+            emit=emit,
+            context=context,
+        )
 
         context.addCleanupTempName(value_name)
 
@@ -318,7 +353,7 @@ def generateDictOperationCopyCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="DICT_COPY",
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
-        may_raise=expression.mayRaiseException(BaseException),
+        may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -331,7 +366,7 @@ def generateDictOperationClearCode(to_name, expression, emit, context):
         to_name=None,
         capi="DICT_CLEAR",
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
-        may_raise=expression.mayRaiseException(BaseException),
+        may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
@@ -347,7 +382,7 @@ def generateDictOperationItemsCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="DICT_ITEMS",
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
-        may_raise=expression.mayRaiseException(BaseException),
+        may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
