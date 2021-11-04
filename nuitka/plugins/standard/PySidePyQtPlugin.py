@@ -22,22 +22,16 @@ own dependencies.
 """
 
 import os
-import shutil
 from abc import abstractmethod
 
 from nuitka.containers.oset import OrderedSet
 from nuitka.freezer.IncludedDataFiles import makeIncludedDataFile
+from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin
 from nuitka.PythonVersions import python_version
-from nuitka.utils.FileOperations import (
-    copyTree,
-    getFileList,
-    getSubDirectories,
-    makePath,
-    removeDirectory,
-)
+from nuitka.utils.FileOperations import getFileList, listDir
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import locateDLL
 from nuitka.utils.Utils import isWin32Windows
@@ -58,11 +52,15 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
     # For overload in the derived bindings plugin.
     binding_name = None
 
-    def __init__(self, qt_plugins):
-        self.webengine_done = False
+    def __init__(self, qt_plugins, no_qt_translations):
+        self.qt_plugins = OrderedSet(x.strip().lower() for x in qt_plugins.split(","))
+        self.no_qt_translations = no_qt_translations
+
+        self.webengine_done_binaries = False
+        self.webengine_done_data = False
         self.qt_plugins_dirs = None
 
-        self.qt_plugins = OrderedSet(x.strip().lower() for x in qt_plugins.split(","))
+        self.binding_package_name = ModuleName(self.binding_name)
 
         # Allow to specify none.
         if self.qt_plugins == set(["none"]):
@@ -98,9 +96,52 @@ by default only the sensible ones are included, but you can also put
 not exist, a list of all available will be given.""",
         )
 
+        group.add_option(
+            "--noinclude-qt-translations",
+            action="store",
+            dest="no_qt_translations",
+            default=False,
+            help="""\
+Include Qt translations with QtWebEngine if used. These can be a lot
+of files that you may not want to be included.""",
+        )
+
     @abstractmethod
-    def _getQmlTargetDir(self, target_plugin_dir):
-        """Where does the bindings package expect the QML files."""
+    def _getQmlTargetDir(self):
+        """Where does the Qt bindings package expect the QML files."""
+
+    @abstractmethod
+    def _getResourcesTargetDir(self):
+        """Where does the Qt bindings package expect the resources files."""
+
+    def _getTranslationsTargetDir(self, filename_relative):
+        """Where does the Qt bindings package expect the translation files."""
+        if "PySide" in self.binding_name:
+            return os.path.join(
+                self.binding_name,
+                "translations",
+            )
+        else:
+            if "qtwebengine_locales" in filename_relative:
+                return "qtwebengine_locales"
+            else:
+                return "translations"
+
+    def getQtWebEngineProcessDir(self, package_dir):
+        """Where to find the QtWebEngineProcess executable."""
+        if isWin32Windows():
+            if "PySide" in self.binding_name:
+                return package_dir
+            elif self.binding_name == "PyQt5":
+                return os.path.join(package_dir, "Qt5", "bin")
+            elif self.binding_name == "PyQt6":
+                # TODO: PyQt6 is maybe the same?
+                return os.path.join(package_dir, "Qt6", "bin")
+            else:
+                assert False
+        else:
+            # TODO verify this for non-Windows, esp. macOS
+            return os.path.join(package_dir, "Qt", "libexec")
 
     def getQtPluginsSelected(self):
         # Resolve "sensible on first use"
@@ -133,6 +174,11 @@ not exist, a list of all available will be given.""",
             assert self.qt_plugins
 
         return self.qt_plugins
+
+    def hasQtPluginSelected(self, plugin_name):
+        selected = self.getQtPluginsSelected()
+
+        return "all" in selected or plugin_name in selected
 
     def _getQtInformation(self):
         # This is generic, and therefore needs to apply this to a lot of strings.
@@ -224,6 +270,9 @@ import %(binding_name)s.QtCore
             self.qt_plugins_dirs.append(qt_info.guess_path2)
 
         # Avoid duplicates.
+        self.qt_plugins_dirs = [
+            os.path.normpath(dirname) for dirname in self.qt_plugins_dirs
+        ]
         self.qt_plugins_dirs = tuple(sorted(set(self.qt_plugins_dirs)))
 
         if not self.qt_plugins_dirs:
@@ -270,6 +319,7 @@ import %(binding_name)s.QtCore
             ".metainfo",
             ".mesh",
             ".frag",
+            "qmldir",
         )
 
         if dlls:
@@ -281,45 +331,29 @@ import %(binding_name)s.QtCore
 
         return getFileList(
             qml_plugin_dir,
-            ignore_filenames=("qmldir",),
             ignore_suffixes=ignore_suffixes,
             only_suffixes=only_suffixes,
         )
 
-    def copyQmlFiles(self, target_plugin_dir):
-        qml_plugin_dir = self._getQmlDirectory()
+    def _findQtPluginDLLs(self):
+        for qt_plugins_dir in self.getQtPluginDirs():
+            for filename in getFileList(qt_plugins_dir):
+                filename_relative = os.path.relpath(filename, start=qt_plugins_dir)
 
-        qml_target_dir = os.path.normpath(self._getQmlTargetDir(target_plugin_dir))
+                qt_plugin_name = filename_relative.split(os.path.sep, 1)[0]
 
-        self.info("Copying Qt plug-ins 'qml' to '%s'." % (qml_target_dir))
+                if not self.hasQtPluginSelected(qt_plugin_name):
+                    continue
 
-        copyTree(qml_plugin_dir, qml_target_dir)
-
-        # We try to filter here, for the DLLs.
-        return [
-            (
-                filename,
-                os.path.join(qml_target_dir, os.path.relpath(filename, qml_plugin_dir)),
-                self.binding_name,
-            )
-            for filename in self._getQmlFileList(dlls=True)
-        ]
-
-    def findDLLs(self, full_name, target_plugin_dir):
-        # TODO: Change this to modern DLL entry points.
-        return [
-            (
-                filename,
-                os.path.join(target_plugin_dir, os.path.relpath(filename, plugin_dir)),
-                full_name,
-            )
-            for plugin_dir in self.getQtPluginDirs()
-            for filename in getFileList(plugin_dir)
-            if not filename.endswith(".qml")
-            if os.path.exists(
-                os.path.join(target_plugin_dir, os.path.relpath(filename, plugin_dir))
-            )
-        ]
+                yield makeDllEntryPoint(
+                    source_path=filename,
+                    dest_path=os.path.join(
+                        self.binding_name,
+                        "qt-plugins",
+                        filename_relative,
+                    ),
+                    package_name=self.binding_package_name,
+                )
 
     def _getChildNamed(self, *child_names):
         for child_name in child_names:
@@ -548,28 +582,69 @@ if not path.startswith(__nuitka_binary_dir):
                 "Adding binary folder to runtime 'PATH' environment variable for proper loading.",
             )
 
-    # TODO: Make this work
-    def xconsiderDataFiles(self, module):
+    def considerDataFiles(self, module):
         full_name = module.getFullName()
 
         if full_name == self.binding_name and (
             "qml" in self.getQtPluginsSelected() or "all" in self.getQtPluginsSelected()
         ):
             qml_plugin_dir = self._getQmlDirectory()
-            qml_target_dir = os.path.normpath(self._getQmlTargetDir(self.binding_name))
+            qml_target_dir = self._getQmlTargetDir()
+
+            self.info("Including Qt plug-ins 'qml' below '%s'." % qml_target_dir)
 
             for filename in self._getQmlFileList(dlls=False):
-                yield makeIncludedDataFile(
-                    filename,
-                    os.path.join(
-                        qml_target_dir,
-                        os.path.relpath(os.path.relpath(filename, qml_plugin_dir)),
-                    ),
-                    "Qt QML datafile",
-                )
+                filename_relative = os.path.relpath(filename, qml_plugin_dir)
 
-    def considerExtraDlls(self, dist_dir, module):
-        # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+                yield makeIncludedDataFile(
+                    source_path=filename,
+                    dest_path=os.path.join(
+                        qml_target_dir,
+                        filename_relative,
+                    ),
+                    reason="Qt QML datafile",
+                )
+        elif (
+            full_name
+            in (
+                self.binding_name + ".QtWebEngine",
+                self.binding_name + ".QtWebEngineCore",
+                self.binding_name + ".QtWebEngineWidgets",
+            )
+            and not self.webengine_done_data
+        ):
+            self.webengine_done_data = True
+
+            for qt_plugin_dir in self.getQtPluginDirs():
+                plugin_parent = os.path.dirname(qt_plugin_dir)
+
+                resources_dir = os.path.join(plugin_parent, "resources")
+
+                if os.path.exists(resources_dir):
+                    for filename, filename_relative in listDir(resources_dir):
+                        yield makeIncludedDataFile(
+                            source_path=filename,
+                            dest_path=os.path.join(
+                                self._getResourcesTargetDir(), filename_relative
+                            ),
+                            reason="Qt resources",
+                        )
+
+            if not self.no_qt_translations:
+                translations_path = self._getTranslationsPath()
+
+                for filename in getFileList(translations_path):
+                    filename_relative = os.path.relpath(filename, translations_path)
+                    dest_path = self._getTranslationsTargetDir(filename_relative)
+
+                    yield makeIncludedDataFile(
+                        source_path=filename,
+                        dest_path=os.path.join(dest_path, filename_relative),
+                        reason="Qt translation",
+                    )
+
+    def getExtraDlls(self, module):
+        # pylint: disable=too-many-branches
         full_name = module.getFullName()
 
         if full_name == self.binding_name:
@@ -579,10 +654,10 @@ if not path.startswith(__nuitka_binary_dir):
                     % self.binding_name
                 )
 
-            target_plugin_dir = os.path.join(dist_dir, full_name.asPath(), "qt-plugins")
+            target_plugin_dir = os.path.join(full_name.asPath(), "qt-plugins")
 
             self.info(
-                "Copying Qt plug-ins '%s' to '%s'."
+                "Including Qt plug-ins '%s' below '%s'."
                 % (
                     ",".join(
                         sorted(x for x in self.getQtPluginsSelected() if x != "xml")
@@ -591,33 +666,9 @@ if not path.startswith(__nuitka_binary_dir):
                 )
             )
 
-            # TODO: Change this to filtering copyTree while it's doing it.
-            for plugin_dir in self.getQtPluginDirs():
-                copyTree(plugin_dir, target_plugin_dir)
-
-            if "all" not in self.getQtPluginsSelected():
-                for plugin_candidate in getSubDirectories(target_plugin_dir):
-                    if (
-                        os.path.basename(plugin_candidate)
-                        not in self.getQtPluginsSelected()
-                    ):
-                        removeDirectory(plugin_candidate, ignore_errors=False)
-
-                for plugin_candidate in self.getQtPluginsSelected():
-                    if plugin_candidate == "qml":
-                        continue
-
-                    if not os.path.isdir(
-                        os.path.join(target_plugin_dir, plugin_candidate)
-                    ):
-                        self.sysexit(
-                            "Error, no such Qt plugin family: %s" % plugin_candidate
-                        )
-
-            result = self.findDLLs(
-                full_name=full_name,
-                target_plugin_dir=target_plugin_dir,
-            )
+            # Yielding a generator might become OK too.
+            for r in self._findQtPluginDLLs():
+                yield r
 
             if isWin32Windows():
                 # Those 2 vars will be used later, just saving some resources
@@ -627,26 +678,42 @@ if not path.startswith(__nuitka_binary_dir):
                     [],
                 )
 
-                self.info("Copying OpenSSL DLLs to %r." % dist_dir)
+                self.info("Including OpenSSL DLLs.")
 
                 for filename in qt_bin_files:
                     basename = os.path.basename(filename).lower()
                     if basename in ("libeay32.dll", "ssleay32.dll"):
-                        shutil.copy(filename, os.path.join(dist_dir, basename))
+                        yield makeDllEntryPoint(
+                            source_path=filename,
+                            dest_path=basename,
+                            package_name=full_name,
+                        )
 
             if (
                 "qml" in self.getQtPluginsSelected()
                 or "all" in self.getQtPluginsSelected()
             ):
-                result += self.copyQmlFiles(
-                    target_plugin_dir=target_plugin_dir,
-                )
+                qml_plugin_dir = self._getQmlDirectory()
+                qml_target_dir = self._getQmlTargetDir()
+
+                for filename in self._getQmlFileList(dlls=True):
+                    filename_relative = os.path.relpath(filename, qml_plugin_dir)
+
+                    yield makeDllEntryPoint(
+                        source_path=filename,
+                        dest_path=os.path.join(
+                            qml_target_dir,
+                            filename_relative,
+                        ),
+                        package_name=full_name
+                        # reason="Qt QML plugin DLL",
+                    )
 
                 # Also copy required OpenGL DLLs on Windows
                 if isWin32Windows():
                     opengl_dlls = ("libegl.dll", "libglesv2.dll", "opengl32sw.dll")
 
-                    self.info("Copying OpenGL DLLs to %r." % dist_dir)
+                    self.info("Including OpenGL DLLs.")
 
                     for filename in qt_bin_files:
                         basename = os.path.basename(filename).lower()
@@ -654,22 +721,29 @@ if not path.startswith(__nuitka_binary_dir):
                         if basename in opengl_dlls or basename.startswith(
                             "d3dcompiler_"
                         ):
-                            shutil.copy(filename, os.path.join(dist_dir, basename))
+                            yield makeDllEntryPoint(
+                                source_path=filename,
+                                dest_path=basename,
+                                package_name=full_name,
+                            )
 
-            return result
         elif full_name == self.binding_name + ".QtNetwork":
             if not isWin32Windows():
                 dll_path = locateDLL("crypto")
-
                 if dll_path is not None:
-                    dist_dll_path = os.path.join(dist_dir, os.path.basename(dll_path))
-                    shutil.copy(dll_path, dist_dll_path)
+                    yield makeDllEntryPoint(
+                        source_path=dll_path,
+                        dest_path=os.path.basename(dll_path),
+                        package_name=full_name,
+                    )
 
                 dll_path = locateDLL("ssl")
                 if dll_path is not None:
-                    dist_dll_path = os.path.join(dist_dir, os.path.basename(dll_path))
-
-                    shutil.copy(dll_path, dist_dll_path)
+                    yield makeDllEntryPoint(
+                        source_path=dll_path,
+                        dest_path=os.path.basename(dll_path),
+                        package_name=full_name,
+                    )
         elif (
             full_name
             in (
@@ -677,41 +751,29 @@ if not path.startswith(__nuitka_binary_dir):
                 self.binding_name + ".QtWebEngineCore",
                 self.binding_name + ".QtWebEngineWidgets",
             )
-            and not self.webengine_done
+            and not self.webengine_done_binaries
         ):
-            self.webengine_done = True  # prevent multiple copies
-            self.info("Copying QtWebEngine components")
+            self.webengine_done_binaries = True  # prevent multiple copies
+            self.info("Copying QtWebEngine binaries.")
 
-            plugin_parent = os.path.dirname(self.getQtPluginDirs()[0])
-
-            if isWin32Windows():
-                bin_dir = plugin_parent
-            else:  # TODO verify this for non-Windows!
-                bin_dir = os.path.join(plugin_parent, "libexec")
-            target_bin_dir = os.path.join(dist_dir)
-            for f in os.listdir(bin_dir):
-                if f.startswith("QtWebEngineProcess"):
-                    shutil.copy(os.path.join(bin_dir, f), target_bin_dir)
-
-            resources_dir = os.path.join(plugin_parent, "resources")
-            target_resources_dir = os.path.join(dist_dir)
-            for f in os.listdir(resources_dir):
-                shutil.copy(os.path.join(resources_dir, f), target_resources_dir)
-
-            translations_path = self._getTranslationsPath()
-            pos = len(translations_path) + 1
-            translations_path = os.path.join(
-                dist_dir,
-                full_name.getTopLevelPackageName().asPath(),
-                "Qt",
-                "translations",
+            qt_web_engine_dir = self.getQtWebEngineProcessDir(
+                module.getCompileTimeDirectory()
             )
-            for f in getFileList(translations_path):
-                tar_f = os.path.join(translations_path, f[pos:])
-                makePath(os.path.dirname(tar_f))
-                shutil.copyfile(f, tar_f)
 
-        return ()
+            for filename, filename_relative in listDir(qt_web_engine_dir):
+                if filename_relative.startswith("QtWebEngineProcess"):
+                    yield makeDllEntryPoint(
+                        source_path=filename,
+                        dest_path=filename_relative,
+                        package_name=full_name,
+                    )
+
+                    break
+            else:
+                self.sysexit(
+                    "Error, cannot locate QtWebEngineProcess executable at '%s'."
+                    % qt_web_engine_dir
+                )
 
     def removeDllDependencies(self, dll_filename, dll_filenames):
         for value in self.getQtPluginDirs():
@@ -816,15 +878,21 @@ class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
 
     binding_name = "PyQt5"
 
-    def __init__(self, qt_plugins):
-        NuitkaPluginQtBindingsPluginBase.__init__(self, qt_plugins)
+    def __init__(self, qt_plugins, no_qt_translations):
+        NuitkaPluginQtBindingsPluginBase.__init__(
+            self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
+        )
 
     @classmethod
     def isRelevant(cls):
         return isStandaloneMode()
 
-    def _getQmlTargetDir(self, target_plugin_dir):
-        return os.path.join(target_plugin_dir, "..", "Qt", "qml")
+    def _getQmlTargetDir(self):
+        return os.path.join(self.binding_name, "qml")
+
+    def _getResourcesTargetDir(self):
+        # TODO: Probably needs to be different for macOS.
+        return "."
 
 
 class NuitkaPluginDetectorPyQt5QtPluginsPlugin(NuitkaPluginBase):
@@ -857,7 +925,7 @@ class NuitkaPluginPySide2Plugins(NuitkaPluginQtBindingsPluginBase):
 
     binding_name = "PySide2"
 
-    def __init__(self, qt_plugins):
+    def __init__(self, qt_plugins, no_qt_translations):
         if self._getNuitkaPatchLevel() < 1:
             self.warning(
                 """\
@@ -869,10 +937,17 @@ This PySide2 version only partially supported through workarounds, full support:
                     "Error, unpatched PySide2 is not supported before CPython <3.6."
                 )
 
-        NuitkaPluginQtBindingsPluginBase.__init__(self, qt_plugins)
+        NuitkaPluginQtBindingsPluginBase.__init__(
+            self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
+        )
 
-    def _getQmlTargetDir(self, target_plugin_dir):
-        return os.path.join(target_plugin_dir, "..", "qml")
+    def _getQmlTargetDir(self):
+        return os.path.join(self.binding_name, "qml")
+
+    @staticmethod
+    def _getResourcesTargetDir():
+        # TODO: Probably needs to be different for macOS.
+        return "."
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         # Enforce recursion in to multiprocessing for accelerated mode, which
@@ -1005,8 +1080,10 @@ class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
 
     binding_name = "PySide6"
 
-    def __init__(self, qt_plugins):
-        NuitkaPluginQtBindingsPluginBase.__init__(self, qt_plugins)
+    def __init__(self, qt_plugins, no_qt_translations):
+        NuitkaPluginQtBindingsPluginBase.__init__(
+            self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
+        )
 
         if self._getBindingVersion() < (6, 1, 2):
             self.warning(
@@ -1014,8 +1091,13 @@ class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
 Only PySide 6.1.2 or higher (or dev branch compiled), otherwise callbacks won't work."""
             )
 
-    def _getQmlTargetDir(self, target_plugin_dir):
-        return os.path.join(target_plugin_dir, "..", "qml")
+    def _getQmlTargetDir(self):
+        return os.path.join(self.binding_name, "qml")
+
+    @staticmethod
+    def _getResourcesTargetDir():
+        # TODO: Probably needs to be different for macOS.
+        return "."
 
 
 class NuitkaPluginDetectorPySide6Plugins(NuitkaPluginBase):

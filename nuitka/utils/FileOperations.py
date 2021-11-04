@@ -411,9 +411,9 @@ def removeDirectory(path, ignore_errors):
 
 
 @contextmanager
-def withTemporaryFile(suffix="", mode="w", delete=True):
+def withTemporaryFile(suffix="", mode="w", delete=True, temp_path=None):
     with tempfile.NamedTemporaryFile(
-        suffix=suffix, mode=mode, delete=delete
+        suffix=suffix, mode=mode, delete=delete, dir=temp_path
     ) as temp_file:
         yield temp_file
 
