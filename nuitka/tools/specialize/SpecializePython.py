@@ -43,15 +43,18 @@ attribute_shape_operations = {}
 # Version specific tests for attributes.
 attribute_shape_versions = {}
 
+# Argument count specific operation nodes if used.
+attribute_shape_variations = {}
+
 # Python2 dict methods:
 python2_dict_methods = (
-    "clear",
-    "copy",
+    "clear",  # has full dict coverage
+    "copy",  # has full dict coverage
     "fromkeys",
     "get",
     "has_key",
-    "items",
-    "iteritems",
+    "items",  # has full dict coverage
+    "iteritems",  # has full dict coverage
     "iterkeys",
     "itervalues",
     "keys",
@@ -90,6 +93,18 @@ for method_name in python2_dict_methods:
     if method_name not in python3_dict_methods:
         attribute_shape_versions[key] = "str is bytes"
 
+    spec = getattr(
+        nuitka.specs.BuiltinDictOperationSpecs, "dict_%s_spec" % method_name, None
+    )
+
+    if spec is not None and spec.getDefaultCount():
+        required = spec.getArgumentCount() - spec.getDefaultCount()
+
+        attribute_shape_variations[key] = tuple(
+            range(required, spec.getArgumentCount() + 1)
+        )
+
+
 # Python3 dict methods must be present already.
 for method_name in python3_dict_methods:
     assert "tshape_dict" in attribute_information.get(method_name, [])
@@ -99,7 +114,9 @@ def emitGenerationWarning(emit, template_name):
     emit(
         '''"""Specialized attribute nodes
 
-WARNING, this code is GENERATED. Modify the template %s instead!"""'''
+WARNING, this code is GENERATED. Modify the template %s instead!
+"""
+'''
         % template_name
     )
 

@@ -57,7 +57,7 @@ from nuitka.nodes.ContainerOperationNodes import (
     StatementListOperationAppend,
 )
 from nuitka.nodes.DictionaryNodes import (
-    ExpressionDictOperationGet,
+    ExpressionDictOperationGet1,
     ExpressionDictOperationIn,
     StatementDictOperationRemove,
     StatementDictOperationUpdate,
@@ -562,7 +562,7 @@ def buildClassNode3(provider, node, source_ref):
                         ),
                         source_ref=source_ref,
                     ),
-                    expression_yes=ExpressionDictOperationGet(
+                    expression_yes=ExpressionDictOperationGet1(
                         dict_arg=ExpressionTempVariableRef(
                             variable=tmp_class_decl_dict, source_ref=source_ref
                         ),
