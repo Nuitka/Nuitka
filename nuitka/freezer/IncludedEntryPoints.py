@@ -28,7 +28,7 @@ import os
 import shutil
 
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
-from nuitka.utils.FileOperations import makePath
+from nuitka.utils.FileOperations import isRelativePath, makePath
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -54,12 +54,12 @@ def makeExecutableEntryPoint(source_path, dest_path):
     return makeIncludedEntryPoint("executable", source_path, dest_path, None)
 
 
-# TODO: Get rid of makeDllEntryPointOld by doing this uniformly here.
-
-
 def makeDllEntryPoint(source_path, dest_path, package_name):
     assert type(dest_path) not in (tuple, list)
     assert type(source_path) not in (tuple, list)
+    assert isRelativePath(dest_path), dest_path
+
+    # TODO: Get rid of makeDllEntryPointOld by not this here but on usage.
 
     dest_path = os.path.join(getStandaloneDirectoryPath(), dest_path)
 
