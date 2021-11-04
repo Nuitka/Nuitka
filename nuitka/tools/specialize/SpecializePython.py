@@ -46,12 +46,15 @@ attribute_shape_versions = {}
 # Argument count specific operation nodes if used.
 attribute_shape_variations = {}
 
+# Argument names of an operation.
+attribute_shape_args = {}
+
 # Python2 dict methods:
 python2_dict_methods = (
     "clear",  # has full dict coverage
     "copy",  # has full dict coverage
     "fromkeys",
-    "get",
+    "get",  # has full dict coverage
     "has_key",
     "items",  # has full dict coverage
     "iteritems",  # has full dict coverage
@@ -97,12 +100,15 @@ for method_name in python2_dict_methods:
         nuitka.specs.BuiltinDictOperationSpecs, "dict_%s_spec" % method_name, None
     )
 
-    if spec is not None and spec.getDefaultCount():
-        required = spec.getArgumentCount() - spec.getDefaultCount()
+    if spec is not None:
+        if spec.getDefaultCount():
+            required = spec.getArgumentCount() - spec.getDefaultCount()
 
-        attribute_shape_variations[key] = tuple(
-            range(required, spec.getArgumentCount() + 1)
-        )
+            attribute_shape_variations[key] = tuple(
+                range(required, spec.getArgumentCount() + 1)
+            )
+
+        attribute_shape_args[key] = spec.getArgumentNames()
 
 
 # Python3 dict methods must be present already.
@@ -119,6 +125,21 @@ WARNING, this code is GENERATED. Modify the template %s instead!
 '''
         % template_name
     )
+
+
+def formatArgs(args, starting=True):
+    result = []
+    for arg in args:
+        result.append(arg)
+
+        if arg is not args[-1] or starting:
+            result.append(",")
+
+    return "".join(result)
+
+
+def formatCallArgs(args):
+    return ",".join("%s=%s" % (arg, arg) for arg in args)
 
 
 def makeAttributeNodes():
@@ -150,6 +171,8 @@ def makeAttributeNodes():
             # Some attributes lead to different operations for Python3.
             if attribute_name == "items":
                 python3_operation_name = "iteritems"
+            elif attribute_name == "keys":
+                python3_operation_name = "viewkeys"
             else:
                 python3_operation_name = None
 
@@ -159,6 +182,11 @@ def makeAttributeNodes():
                 shape_names=shape_names,
                 attribute_shape_versions=attribute_shape_versions,
                 attribute_shape_operations=attribute_shape_operations,
+                attribute_shape_variations=attribute_shape_variations,
+                attribute_shape_args=attribute_shape_args,
+                formatArgs=formatArgs,
+                formatCallArgs=formatCallArgs,
+                reversed=reversed,
                 name=template.name,
             )
 
