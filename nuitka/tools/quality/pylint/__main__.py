@@ -34,6 +34,10 @@ from nuitka.Tracing import my_print
 from nuitka.utils.FileOperations import resolveShellPatternToFilenames
 
 
+def isIgnoredFile(filename):
+    return filename.startswith("Mini")
+
+
 def main():
     setup(go_main=False)
 
@@ -115,11 +119,17 @@ Insist on PyLint to be installed. Default is %default.""",
 
         if options.diff:
             positional_args = [
-                filename for filename in getModifiedPaths() if isPythonFile(filename)
+                filename
+                for filename in getModifiedPaths()
+                if isPythonFile(filename)
+                if not isIgnoredFile(filename)
             ]
         elif options.unpushed:
             positional_args = [
-                filename for filename in getUnpushedPaths() if isPythonFile(filename)
+                filename
+                for filename in getUnpushedPaths()
+                if isPythonFile(filename)
+                if not isIgnoredFile(filename)
             ]
         else:
             positional_args = ["bin", "nuitka", "setup.py", "tests/*/run_all.py"]
