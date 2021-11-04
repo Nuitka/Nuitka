@@ -17,28 +17,16 @@
 #     limitations under the License.
 #
 
-""" Main program for PyLint checker tool.
+""" Main program for restlint checker tool.
 
 """
 
-import os
-import sys
 
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought be there.
-sys.path.insert(
-    0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-)
-
-from nuitka.tools.Basics import goHome  # isort:skip
-from nuitka.tools.release.Documentation import checkReleaseDocumentation  # isort:skip
+from nuitka.tools.Basics import goHome
+from nuitka.tools.release.Documentation import checkReleaseDocumentation
 
 
 def main():
     goHome()
 
     checkReleaseDocumentation()
-
-
-if __name__ == "__main__":
-    main()
