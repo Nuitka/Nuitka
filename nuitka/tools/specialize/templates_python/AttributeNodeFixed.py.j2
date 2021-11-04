@@ -20,6 +20,9 @@
 {% set dict_shape = 1 %}
 {% set dict_operation_version_check = attribute_shape_versions.get((attribute_name, "tshape_dict")) %}
 {% set dict_operation_version_presence = attribute_shape_operations.get((attribute_name, "tshape_dict")) %}
+{% set dict_operation_args = attribute_shape_args.get((attribute_name, "tshape_dict")) %}
+{% set dict_operation_variation = attribute_shape_variations.get((attribute_name, "tshape_dict")) %}
+
 {% else %}
 {% set dict_shape = 0 %}
 {% endif %}
@@ -84,7 +87,7 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
 
 {% if dict_operation_version_presence %}
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        def wrapExpressionDictOperation{{attribute_name_class}}(source_ref):
+        def wrapExpressionDictOperation{{attribute_name_class}}({{formatArgs(dict_operation_args)}} source_ref):
 {% if python3_operation_name %}
             if str is bytes:
                 from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}
@@ -99,12 +102,34 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
                     dict_arg=self.subnode_expression, source_ref=source_ref
                 )
 {% else %}
+{% if dict_operation_variation %}
+{% for count in reversed(dict_operation_variation[1:]) %}
+            {{"if" if count == dict_operation_variation[-1] else "elif"}} {{dict_operation_args[count-1]}} is not None:
+                from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}{{count+1}}
+
+                return ExpressionDictOperation{{attribute_name_class}}{{count+1}}(
+                    dict_arg=self.subnode_expression, {{formatCallArgs(dict_operation_args[:count])}}, source_ref=source_ref
+                )
+{% endfor %}
+            else:
+                from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}{{dict_operation_variation[0]+1}}
+
+                return ExpressionDictOperation{{attribute_name_class}}{{dict_operation_variation[0]+1}}(
+                    dict_arg=self.subnode_expression, {{formatCallArgs(dict_operation_args[:dict_operation_variation[0]])}}, source_ref=source_ref
+                )
+
+{% else %}
             from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}
 
             return ExpressionDictOperation{{attribute_name_class}}(
                 dict_arg=self.subnode_expression, source_ref=source_ref
             )
 {% endif %}
+{% endif %}
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
             node=call_node,

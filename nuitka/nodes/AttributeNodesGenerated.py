@@ -92,6 +92,10 @@ class ExpressionAttributeLookupDictClear(
                 dict_arg=self.subnode_expression, source_ref=source_ref
             )
 
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         result = extractBuiltinArgs(
             node=call_node,
             builtin_class=wrapExpressionDictOperationClear,
@@ -166,6 +170,10 @@ class ExpressionAttributeLookupDictCopy(
             return ExpressionDictOperationCopy(
                 dict_arg=self.subnode_expression, source_ref=source_ref
             )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
             node=call_node,
@@ -275,6 +283,9 @@ class ExpressionAttributeLookupFixedGet(ExpressionAttributeLookupFixedBase):
 attribute_classes["get"] = ExpressionAttributeLookupFixedGet
 
 
+from nuitka.specs.BuiltinDictOperationSpecs import dict_get_spec
+
+
 class ExpressionAttributeLookupDictGet(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedGet
 ):
@@ -289,7 +300,35 @@ class ExpressionAttributeLookupDictGet(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as dict operation ExpressionDictOperationGet is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionDictOperationGet(key, default, source_ref):
+            if default is not None:
+                from .DictionaryNodes import ExpressionDictOperationGet3
+
+                return ExpressionDictOperationGet3(
+                    dict_arg=self.subnode_expression,
+                    key=key,
+                    default=default,
+                    source_ref=source_ref,
+                )
+            else:
+                from .DictionaryNodes import ExpressionDictOperationGet2
+
+                return ExpressionDictOperationGet2(
+                    dict_arg=self.subnode_expression, key=key, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationGet,
+            builtin_spec=dict_get_spec,
+        )
+
+        return result, "new_expression", "Call to 'get' of dictionary recognized."
 
 
 attribute_typed_classes["get"] = ExpressionAttributeLookupDictGet
@@ -423,6 +462,10 @@ class ExpressionAttributeLookupDictItems(
                     dict_arg=self.subnode_expression, source_ref=source_ref
                 )
 
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         result = extractBuiltinArgs(
             node=call_node,
             builtin_class=wrapExpressionDictOperationItems,
@@ -497,6 +540,10 @@ class ExpressionAttributeLookupDictIteritems(
             return ExpressionDictOperationIteritems(
                 dict_arg=self.subnode_expression, source_ref=source_ref
             )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         result = extractBuiltinArgs(
             node=call_node,
