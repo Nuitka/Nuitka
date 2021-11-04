@@ -65,6 +65,11 @@ jobs:
           python ./bin/check-nuitka-with-restlint
         if: matrix.python_version == '3.7'
 
+      - name: YamlLint on Nuitka source code
+        run: |
+          python ./bin/check-nuitka-with-yamllint
+        if: matrix.python_version == '3.7'
+
       - name: Codespell on Nuitka source code
         run: |
           python ./bin/check-nuitka-with-codespell
