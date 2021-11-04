@@ -30,7 +30,7 @@ from .CodeHelpers import (
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 
 
@@ -237,7 +237,7 @@ def generateDictOperationUpdateCode(statement, emit, context):
         )
 
 
-def generateDictOperationGetCode(to_name, expression, emit, context):
+def generateDictOperationItemCode(to_name, expression, emit, context):
     dict_name, key_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
@@ -256,6 +256,59 @@ def generateDictOperationGetCode(to_name, expression, emit, context):
             emit=emit,
             context=context,
         )
+
+        context.addCleanupTempName(value_name)
+
+
+def generateDictOperationGet1Code(to_name, expression, emit, context):
+    dict_name, key_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "dict_value", expression, emit, context
+    ) as value_name:
+        emit(
+            """\
+%(value_name)s = DICT_GET_ITEM0(%(dict_name)s, %(key_name)s);
+
+if (%(value_name)s == NULL) {
+    %(value_name)s = Py_None;
+}
+"""
+            % {"value_name": value_name, "dict_name": dict_name, "key_name": key_name}
+        )
+
+
+def generateDictOperationGet2Code(to_name, expression, emit, context):
+    dict_name, key_name, default_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    # TODO: This code could actually make it dependent on default taking
+    # a reference or not, and then use DICT_GET_ITEM0 if not.
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "dict_value", expression, emit, context
+    ) as value_name:
+        emit(
+            """\
+%(value_name)s = DICT_GET_ITEM1(%(dict_name)s, %(key_name)s);
+
+if (%(value_name)s == NULL) {
+    %(value_name)s = %(default_name)s;
+    Py_INCREF(%(value_name)s);
+}
+"""
+            % {
+                "value_name": value_name,
+                "dict_name": dict_name,
+                "key_name": key_name,
+                "default_name": default_name,
+            }
+        )
+
+        getReleaseCode(default_name, emit, context)
 
         context.addCleanupTempName(value_name)
 

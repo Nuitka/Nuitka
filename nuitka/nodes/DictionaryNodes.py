@@ -448,10 +448,56 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
         return True
 
 
-class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
-    kind = "EXPRESSION_DICT_OPERATION_GET"
+class ExpressionDictOperationItem(ExpressionChildrenHavingBase):
+    """This operation represents d[key] with an exception for missing key."""
+
+    kind = "EXPRESSION_DICT_OPERATION_ITEM"
 
     named_children = ("dict_arg", "key")
+
+    def __init__(self, dict_arg, key, source_ref):
+        assert dict_arg is not None
+        assert key is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self, values={"dict_arg": dict_arg, "key": key}, source_ref=source_ref
+        )
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionDictOperationGet1(ExpressionChildrenHavingBase):
+    """This operation represents d.get(key) with no exception for missing key but None default."""
+
+    kind = "EXPRESSION_DICT_OPERATION_GET1"
+
+    named_children = ("dict_arg", "key")
+
+    def __init__(self, dict_arg, key, source_ref):
+        assert dict_arg is not None
+        assert key is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self, values={"dict_arg": dict_arg, "key": key}, source_ref=source_ref
+        )
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionDictOperationGet2(
+    SideEffectsFromChildrenMixin, ExpressionChildrenHavingBase
+):
+    """This operation represents d.get(key) with no exception for missing key but default value."""
+
+    kind = "EXPRESSION_DICT_OPERATION_GET2"
+
+    named_children = ("dict_arg", "key", "default")
 
     def __init__(self, dict_arg, key, source_ref):
         assert dict_arg is not None
