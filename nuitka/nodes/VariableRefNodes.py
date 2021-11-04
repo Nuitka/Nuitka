@@ -27,8 +27,8 @@ from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.PythonVersions import python_version
 
 from .DictionaryNodes import (
-    ExpressionDictOperationGet,
     ExpressionDictOperationIn,
+    ExpressionDictOperationItem,
     ExpressionDictOperationNotIn,
     StatementDictOperationRemove,
     StatementDictOperationSet,
@@ -338,7 +338,7 @@ Subscript del to dictionary lowered to dictionary del."""
 
         if self.variable_trace.hasShapeDictionaryExact():
             return trace_collection.computedExpressionResult(
-                expression=ExpressionDictOperationGet(
+                expression=ExpressionDictOperationItem(
                     dict_arg=self,
                     key=subscript,
                     source_ref=lookup_node.getSourceReference(),

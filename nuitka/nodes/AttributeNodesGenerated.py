@@ -17,7 +17,9 @@
 #
 """Specialized attribute nodes
 
-WARNING, this code is GENERATED. Modify the template AttributeNodeFixed.py.j2 instead!"""
+WARNING, this code is GENERATED. Modify the template AttributeNodeFixed.py.j2 instead!
+"""
+
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 
 from .AttributeLookupNodes import ExpressionAttributeLookupFixedBase
