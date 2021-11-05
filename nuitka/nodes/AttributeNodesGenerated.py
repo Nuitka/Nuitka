@@ -595,6 +595,9 @@ class ExpressionAttributeLookupFixedIterkeys(ExpressionAttributeLookupFixedBase)
 attribute_classes["iterkeys"] = ExpressionAttributeLookupFixedIterkeys
 
 
+from nuitka.specs.BuiltinDictOperationSpecs import dict_iterkeys_spec
+
+
 class ExpressionAttributeLookupDictIterkeys(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIterkeys
 ):
@@ -609,7 +612,25 @@ class ExpressionAttributeLookupDictIterkeys(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as dict operation ExpressionDictOperationIterkeys is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionDictOperationIterkeys(source_ref):
+            from .DictionaryNodes import ExpressionDictOperationIterkeys
+
+            return ExpressionDictOperationIterkeys(
+                dict_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationIterkeys,
+            builtin_spec=dict_iterkeys_spec,
+        )
+
+        return result, "new_expression", "Call to 'iterkeys' of dictionary recognized."
 
 
 attribute_typed_classes["iterkeys"] = ExpressionAttributeLookupDictIterkeys
@@ -653,6 +674,9 @@ class ExpressionAttributeLookupFixedItervalues(ExpressionAttributeLookupFixedBas
 attribute_classes["itervalues"] = ExpressionAttributeLookupFixedItervalues
 
 
+from nuitka.specs.BuiltinDictOperationSpecs import dict_itervalues_spec
+
+
 class ExpressionAttributeLookupDictItervalues(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedItervalues
 ):
@@ -667,7 +691,29 @@ class ExpressionAttributeLookupDictItervalues(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as dict operation ExpressionDictOperationItervalues is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionDictOperationItervalues(source_ref):
+            from .DictionaryNodes import ExpressionDictOperationItervalues
+
+            return ExpressionDictOperationItervalues(
+                dict_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationItervalues,
+            builtin_spec=dict_itervalues_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'itervalues' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes["itervalues"] = ExpressionAttributeLookupDictItervalues
@@ -711,6 +757,9 @@ class ExpressionAttributeLookupFixedKeys(ExpressionAttributeLookupFixedBase):
 attribute_classes["keys"] = ExpressionAttributeLookupFixedKeys
 
 
+from nuitka.specs.BuiltinDictOperationSpecs import dict_keys_spec
+
+
 class ExpressionAttributeLookupDictKeys(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedKeys
 ):
@@ -725,7 +774,32 @@ class ExpressionAttributeLookupDictKeys(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as dict operation ExpressionDictOperationKeys is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionDictOperationKeys(source_ref):
+            if str is bytes:
+                from .DictionaryNodes import ExpressionDictOperationKeys
+
+                return ExpressionDictOperationKeys(
+                    dict_arg=self.subnode_expression, source_ref=source_ref
+                )
+            else:
+                from .DictionaryNodes import ExpressionDictOperationIterkeys
+
+                return ExpressionDictOperationIterkeys(
+                    dict_arg=self.subnode_expression, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationKeys,
+            builtin_spec=dict_keys_spec,
+        )
+
+        return result, "new_expression", "Call to 'keys' of dictionary recognized."
 
 
 attribute_typed_classes["keys"] = ExpressionAttributeLookupDictKeys
@@ -1001,6 +1075,9 @@ class ExpressionAttributeLookupFixedValues(ExpressionAttributeLookupFixedBase):
 attribute_classes["values"] = ExpressionAttributeLookupFixedValues
 
 
+from nuitka.specs.BuiltinDictOperationSpecs import dict_values_spec
+
+
 class ExpressionAttributeLookupDictValues(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedValues
 ):
@@ -1015,7 +1092,32 @@ class ExpressionAttributeLookupDictValues(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as dict operation ExpressionDictOperationValues is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionDictOperationValues(source_ref):
+            if str is bytes:
+                from .DictionaryNodes import ExpressionDictOperationValues
+
+                return ExpressionDictOperationValues(
+                    dict_arg=self.subnode_expression, source_ref=source_ref
+                )
+            else:
+                from .DictionaryNodes import ExpressionDictOperationItervalues
+
+                return ExpressionDictOperationItervalues(
+                    dict_arg=self.subnode_expression, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationValues,
+            builtin_spec=dict_values_spec,
+        )
+
+        return result, "new_expression", "Call to 'values' of dictionary recognized."
 
 
 attribute_typed_classes["values"] = ExpressionAttributeLookupDictValues
@@ -1059,6 +1161,9 @@ class ExpressionAttributeLookupFixedViewitems(ExpressionAttributeLookupFixedBase
 attribute_classes["viewitems"] = ExpressionAttributeLookupFixedViewitems
 
 
+from nuitka.specs.BuiltinDictOperationSpecs import dict_viewitems_spec
+
+
 class ExpressionAttributeLookupDictViewitems(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedViewitems
 ):
@@ -1073,7 +1178,25 @@ class ExpressionAttributeLookupDictViewitems(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as dict operation ExpressionDictOperationViewitems is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionDictOperationViewitems(source_ref):
+            from .DictionaryNodes import ExpressionDictOperationViewitems
+
+            return ExpressionDictOperationViewitems(
+                dict_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationViewitems,
+            builtin_spec=dict_viewitems_spec,
+        )
+
+        return result, "new_expression", "Call to 'viewitems' of dictionary recognized."
 
 
 attribute_typed_classes["viewitems"] = ExpressionAttributeLookupDictViewitems
@@ -1117,6 +1240,9 @@ class ExpressionAttributeLookupFixedViewkeys(ExpressionAttributeLookupFixedBase)
 attribute_classes["viewkeys"] = ExpressionAttributeLookupFixedViewkeys
 
 
+from nuitka.specs.BuiltinDictOperationSpecs import dict_viewkeys_spec
+
+
 class ExpressionAttributeLookupDictViewkeys(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedViewkeys
 ):
@@ -1131,7 +1257,25 @@ class ExpressionAttributeLookupDictViewkeys(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as dict operation ExpressionDictOperationViewkeys is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionDictOperationViewkeys(source_ref):
+            from .DictionaryNodes import ExpressionDictOperationViewkeys
+
+            return ExpressionDictOperationViewkeys(
+                dict_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationViewkeys,
+            builtin_spec=dict_viewkeys_spec,
+        )
+
+        return result, "new_expression", "Call to 'viewkeys' of dictionary recognized."
 
 
 attribute_typed_classes["viewkeys"] = ExpressionAttributeLookupDictViewkeys
@@ -1175,6 +1319,9 @@ class ExpressionAttributeLookupFixedViewvalues(ExpressionAttributeLookupFixedBas
 attribute_classes["viewvalues"] = ExpressionAttributeLookupFixedViewvalues
 
 
+from nuitka.specs.BuiltinDictOperationSpecs import dict_viewvalues_spec
+
+
 class ExpressionAttributeLookupDictViewvalues(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedViewvalues
 ):
@@ -1189,7 +1336,29 @@ class ExpressionAttributeLookupDictViewvalues(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as dict operation ExpressionDictOperationViewvalues is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionDictOperationViewvalues(source_ref):
+            from .DictionaryNodes import ExpressionDictOperationViewvalues
+
+            return ExpressionDictOperationViewvalues(
+                dict_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationViewvalues,
+            builtin_spec=dict_viewvalues_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'viewvalues' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes["viewvalues"] = ExpressionAttributeLookupDictViewvalues

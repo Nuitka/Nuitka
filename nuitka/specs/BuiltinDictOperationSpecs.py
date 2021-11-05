@@ -47,6 +47,17 @@ class DictMethodSpec(BuiltinParameterSpecNoKeywords):
 
 dict_copy_spec = DictMethodSpec("copy")
 dict_clear_spec = DictMethodSpec("clear")
+
 dict_items_spec = DictMethodSpec("items")
 dict_iteritems_spec = DictMethodSpec("iteritems")
+dict_viewitems_spec = DictMethodSpec("viewitems")
+
+dict_keys_spec = DictMethodSpec("keys")
+dict_iterkeys_spec = DictMethodSpec("iterkeys")
+dict_viewkeys_spec = DictMethodSpec("viewkeys")
+
+dict_values_spec = DictMethodSpec("values")
+dict_itervalues_spec = DictMethodSpec("itervalues")
+dict_viewvalues_spec = DictMethodSpec("viewvalues")
+
 dict_get_spec = DictMethodSpec("get", arg_names=("key", "default"), default_count=1)

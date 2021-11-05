@@ -403,6 +403,97 @@ def generateDictOperationIteritemsCode(to_name, expression, emit, context):
     )
 
 
+def generateDictOperationViewitemsCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_VIEWITEMS",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationKeysCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_KEYS",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationIterkeysCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_ITERKEYS",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationViewkeysCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_VIEWKEYS",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationValuesCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_VALUES",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationItervaluesCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_ITERVALUES",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationViewvaluesCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_VIEWVALUES",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
 def generateDictOperationInCode(to_name, expression, emit, context):
     inverted = expression.isExpressionDictOperationNotIn()
 

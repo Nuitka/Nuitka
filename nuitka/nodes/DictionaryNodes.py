@@ -753,6 +753,202 @@ class ExpressionDictOperationClear(ExpressionChildHavingBase):
         return False
 
 
+class ExpressionDictOperationKeys(ExpressionChildHavingBase):
+    kind = "EXPRESSION_DICT_OPERATION_KEYS"
+
+    named_child = "dict_arg"
+
+    def __init__(self, dict_arg, source_ref):
+        assert dict_arg is not None
+
+        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
+
+    def computeExpression(self, trace_collection):
+        dict_arg = self.subnode_dict_arg
+
+        if dict_arg.isCompileTimeConstant():
+            result = makeConstantReplacementNode(
+                constant=dict_arg.getCompileTimeConstant().keys(),
+                node=self,
+                user_provided=dict_arg.user_provided,
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Compile time computed 'dict.keys' on constant argument.",
+            )
+
+        return self, None, None
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_list
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return False
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+
+class ExpressionDictOperationViewkeys(ExpressionChildHavingBase):
+    kind = "EXPRESSION_DICT_OPERATION_VIEWKEYS"
+
+    named_child = "dict_arg"
+
+    def __init__(self, dict_arg, source_ref):
+        assert dict_arg is not None
+
+        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    @staticmethod
+    def getTypeShape():
+        # TODO: Actually iterator that yields key values
+        return tshape_iterator
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return False
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+
+class ExpressionDictOperationIterkeys(ExpressionChildHavingBase):
+    kind = "EXPRESSION_DICT_OPERATION_ITERKEYS"
+
+    named_child = "dict_arg"
+
+    def __init__(self, dict_arg, source_ref):
+        assert dict_arg is not None
+
+        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_iterator
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return False
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+
+class ExpressionDictOperationValues(ExpressionChildHavingBase):
+    kind = "EXPRESSION_DICT_OPERATION_VALUES"
+
+    named_child = "dict_arg"
+
+    def __init__(self, dict_arg, source_ref):
+        assert dict_arg is not None
+
+        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
+
+    def computeExpression(self, trace_collection):
+        dict_arg = self.subnode_dict_arg
+
+        if dict_arg.isCompileTimeConstant():
+            result = makeConstantReplacementNode(
+                constant=dict_arg.getCompileTimeConstant().values(),
+                node=self,
+                user_provided=dict_arg.user_provided,
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Compile time computed 'dict.values' on constant argument.",
+            )
+
+        return self, None, None
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_list
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return False
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+
+class ExpressionDictOperationViewvalues(ExpressionChildHavingBase):
+    kind = "EXPRESSION_DICT_OPERATION_VIEWVALUES"
+
+    named_child = "dict_arg"
+
+    def __init__(self, dict_arg, source_ref):
+        assert dict_arg is not None
+
+        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    @staticmethod
+    def getTypeShape():
+        # TODO: Actually iterator that yields key values
+        return tshape_iterator
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return False
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+
+class ExpressionDictOperationItervalues(ExpressionChildHavingBase):
+    kind = "EXPRESSION_DICT_OPERATION_ITERVALUES"
+
+    named_child = "dict_arg"
+
+    def __init__(self, dict_arg, source_ref):
+        assert dict_arg is not None
+
+        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_iterator
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return False
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+
 class ExpressionDictOperationItems(ExpressionChildHavingBase):
     kind = "EXPRESSION_DICT_OPERATION_ITEMS"
 
@@ -813,6 +1009,35 @@ class ExpressionDictOperationIteritems(ExpressionChildHavingBase):
     def getTypeShape():
         # TODO: Actually iterator that yields 2 element tuples, add shapes
         # for that too.
+        return tshape_iterator
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return False
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+
+class ExpressionDictOperationViewitems(ExpressionChildHavingBase):
+    kind = "EXPRESSION_DICT_OPERATION_VIEWITEMS"
+
+    named_child = "dict_arg"
+
+    def __init__(self, dict_arg, source_ref):
+        assert dict_arg is not None
+
+        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    @staticmethod
+    def getTypeShape():
+        # TODO: Actually iterator that yields key values
         return tshape_iterator
 
     @staticmethod
