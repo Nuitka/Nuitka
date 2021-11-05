@@ -603,3 +603,9 @@ void CHECK_OBJECT_DEEP(PyObject *value) {
         }
     }
 }
+
+void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size) {
+    for (Py_ssize_t i = 0; i < size; i++) {
+        CHECK_OBJECT_DEEP(values[i]);
+    }
+}
