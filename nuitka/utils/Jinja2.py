@@ -52,6 +52,8 @@ def getEnvironment(package_name, template_subdir, extensions):
 
         if package_name is not None:
             loader = jinja2.PackageLoader(package_name, template_subdir)
+        elif template_subdir is not None:
+            loader = jinja2.FileSystemLoader(template_subdir)
         else:
             loader = jinja2.BaseLoader()
 
