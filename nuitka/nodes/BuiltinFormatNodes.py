@@ -168,4 +168,4 @@ Removed id taking for unused result.""",
         return self.subnode_value.mayHaveSideEffects()
 
     def extractSideEffects(self):
-        return (self.subnode_value,)
+        return self.subnode_value.extractSideEffects()

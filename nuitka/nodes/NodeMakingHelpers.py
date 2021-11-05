@@ -31,7 +31,7 @@ from nuitka.__past__ import GenericAlias
 from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import unusual_logger
+from nuitka.Tracing import my_print, unusual_logger
 
 
 def makeConstantReplacementNode(constant, node, user_provided):
@@ -340,14 +340,18 @@ def wrapExpressionWithSideEffects(side_effects, old_node, new_node):
     from .SideEffectNodes import ExpressionSideEffects
 
     if side_effects:
-        side_effects = sum(
-            (
-                side_effect.extractSideEffects()
-                for side_effect in side_effects
-                if side_effect.mayHaveSideEffects()
-            ),
-            (),
-        )
+        try:
+            side_effects = sum(
+                (
+                    side_effect.extractSideEffects()
+                    for side_effect in side_effects
+                    if side_effect.mayHaveSideEffects()
+                ),
+                (),
+            )
+        except AttributeError:
+            my_print("Problem with side effects:", side_effects)
+            raise
 
         if side_effects:
             new_node = ExpressionSideEffects(
