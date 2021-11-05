@@ -51,6 +51,7 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     removeDirectory,
 )
+from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.Utils import getOS
 
 from .SearchModes import (
@@ -1280,9 +1281,6 @@ def scanDirectoryForTestCases(dirname, template_context=None):
         or filename.endswith(".j2")
     ]
 
-    # Jinja2 environment is optional.
-    env = None
-
     for filename in sorted(filenames):
         if not decideFilenameVersionSkip(filename):
             continue
@@ -1291,17 +1289,9 @@ def scanDirectoryForTestCases(dirname, template_context=None):
             # Needs to be a dictionary with template arguments.
             assert template_context is not None
 
-            if env is None:
-                import jinja2
-
-                env = jinja2.Environment(
-                    loader=jinja2.FileSystemLoader("."),
-                    trim_blocks=True,
-                    lstrip_blocks=True,
-                )
-                env.undefined = jinja2.StrictUndefined
-
-            template = env.get_template(filename)
+            template = getTemplate(
+                package_name=None, template_name=filename, template_subdir=dirname
+            )
 
             code = template.render(name=template.name, **template_context)
 
