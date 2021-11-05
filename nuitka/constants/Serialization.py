@@ -24,11 +24,7 @@ import pickle
 import sys
 
 from nuitka import OutputDirectories
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    basestring,
-    to_byte,
-    xrange,
-)
+from nuitka.__past__ import basestring, to_byte, xrange
 from nuitka.Builtins import (
     builtin_anon_codes,
     builtin_anon_values,

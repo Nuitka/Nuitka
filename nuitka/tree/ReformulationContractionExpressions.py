@@ -22,7 +22,7 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.__past__ import intern  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import intern
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable,

@@ -27,13 +27,7 @@ from types import BuiltinFunctionType
 from nuitka.Builtins import builtin_type_names
 from nuitka.PythonVersions import python_version
 
-from .__past__ import (  # pylint: disable=I0021,redefined-builtin
-    GenericAlias,
-    iterItems,
-    long,
-    unicode,
-    xrange,
-)
+from .__past__ import GenericAlias, iterItems, long, unicode, xrange
 from .Builtins import (
     builtin_anon_names,
     builtin_anon_value_list,
