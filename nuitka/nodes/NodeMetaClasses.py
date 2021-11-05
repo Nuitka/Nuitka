@@ -24,7 +24,7 @@ of checks, and add methods automatically.
 
 from abc import ABCMeta
 
-from nuitka.__past__ import intern  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import intern
 from nuitka.Errors import NuitkaNodeDesignError
 
 

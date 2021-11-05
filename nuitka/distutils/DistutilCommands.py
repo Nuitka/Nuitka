@@ -144,10 +144,7 @@ class build(distutils.command.build.build):
 
         # Nuitka wants the main package by filename, probably we should stop
         # needing that.
-        from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-            Iterable,
-            unicode,
-        )
+        from nuitka.__past__ import Iterable, unicode
         from nuitka.importing.Importing import (
             findModule,
             setMainScriptDirectory,

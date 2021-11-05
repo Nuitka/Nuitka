@@ -26,7 +26,7 @@ abstract execution, and different from statements.
 from abc import abstractmethod
 
 from nuitka import Options
-from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import long
 from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.PythonVersions import python_version
 
@@ -151,7 +151,7 @@ class ExpressionBase(NodeBase):
         return None
 
     @staticmethod
-    def extractUnhashableNode():
+    def extractUnhashableNodeType():
         """Return the value that is not hashable, if isKnowtoBeHashable() returns False."""
 
         # Not available by default.

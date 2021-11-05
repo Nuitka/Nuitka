@@ -23,10 +23,7 @@ Mostly used on Windows, for dependency walker and ccache binaries.
 import os
 
 from nuitka import Tracing
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    raw_input,
-    urlretrieve,
-)
+from nuitka.__past__ import raw_input, urlretrieve
 from nuitka.utils import Utils
 
 from .AppDirs import getAppDir

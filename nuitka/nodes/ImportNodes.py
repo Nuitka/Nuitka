@@ -28,11 +28,7 @@ deeper that what it normally could. The import expression node can recurse.
 import os
 import sys
 
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    long,
-    unicode,
-    xrange,
-)
+from nuitka.__past__ import long, unicode, xrange
 from nuitka.codegen.Reports import onMissingTrust
 from nuitka.importing.IgnoreListing import getModuleIgnoreList
 from nuitka.importing.Importing import (
