@@ -21,7 +21,7 @@ For built-in name references, we check if it's one of the supported built-in
 types, and then specialize for the ones, where it makes sense.
 """
 
-from nuitka.__past__ import xrange  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import xrange
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,

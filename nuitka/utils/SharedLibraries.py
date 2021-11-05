@@ -23,7 +23,7 @@ import os
 import sys
 
 from nuitka import Options
-from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import unicode
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
