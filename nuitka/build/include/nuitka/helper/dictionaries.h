@@ -362,12 +362,31 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_
 }
 
 #if PYTHON_VERSION < 0x300
+// Python2 dictionary keys, return a list of keys
+extern PyObject *DICT_KEYS(PyObject *dict);
+// Python2 dictionary items, return a list of values
+extern PyObject *DICT_VALUES(PyObject *dict);
 // Python2 dictionary items, return a list of key/value tuples
 extern PyObject *DICT_ITEMS(PyObject *dict);
 #endif
 
+// Python3 dictionary keys, Python2 iterkeys returns dictionary keys iterator
+extern PyObject *DICT_ITERKEYS(PyObject *dict);
+
+// Python3 dictionary values, Python2 itervalues returns dictionary values iterator
+extern PyObject *DICT_ITERVALUES(PyObject *dict);
+
 // Python3 dictionary items, Python2 iteritems returns dictionary items iterator
 extern PyObject *DICT_ITERITEMS(PyObject *dict);
+
+// Python dictionary keys view
+extern PyObject *DICT_VIEWKEYS(PyObject *dict);
+
+// Python dictionary values view
+extern PyObject *DICT_VIEWVALUES(PyObject *dict);
+
+// Python dictionary items view
+extern PyObject *DICT_VIEWITEMS(PyObject *dict);
 
 // Python dictionary copy, return a shallow copy of a dictionary.
 extern PyObject *DICT_COPY(PyObject *dict);

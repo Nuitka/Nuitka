@@ -58,17 +58,17 @@ python2_dict_methods = (
     "has_key",
     "items",  # has full dict coverage
     "iteritems",  # has full dict coverage
-    "iterkeys",
-    "itervalues",
-    "keys",
+    "iterkeys",  # has full dict coverage
+    "itervalues",  # has full dict coverage
+    "keys",  # has full dict coverage
     "pop",
     "popitem",
     "setdefault",
     "update",
-    "values",
-    "viewitems",
-    "viewkeys",
-    "viewvalues",
+    "values",  # has full dict coverage
+    "viewitems",  # has full dict coverage
+    "viewkeys",  # has full dict coverage
+    "viewvalues",  # has full dict coverage
 )
 python3_dict_methods = (
     "clear",
@@ -172,7 +172,9 @@ def makeAttributeNodes():
             if attribute_name == "items":
                 python3_operation_name = "iteritems"
             elif attribute_name == "keys":
-                python3_operation_name = "viewkeys"
+                python3_operation_name = "iterkeys"
+            elif attribute_name == "values":
+                python3_operation_name = "itervalues"
             else:
                 python3_operation_name = None
 
