@@ -84,6 +84,7 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *arg
 #endif
 
 extern void CHECK_OBJECT_DEEP(PyObject *value);
+extern void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size);
 
 #include "nuitka/exceptions.h"
 
