@@ -663,6 +663,96 @@ retry:
 
     return result;
 }
+
+#if PYTHON_VERSION < 0x300
+PyObject *DICT_KEYS(PyObject *dict) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_Check(dict));
+
+    PyDictObject *mp = (PyDictObject *)dict;
+
+    PyObject *result;
+    Py_ssize_t size;
+
+    /* Preallocate the list of tuples, to avoid allocations during
+     * the loop over the items, which could trigger GC, which
+     * could resize the dict. :-(
+     */
+retry:
+    size = mp->ma_used;
+    result = PyList_New(size);
+    CHECK_OBJECT(result);
+
+    if (unlikely(size != mp->ma_used)) {
+        // Garbage collection can compatify dictionaries.
+        Py_DECREF(result);
+        goto retry;
+    }
+
+    // Nothing must cause any functions to be called
+    PyDictEntry *ep = mp->ma_table;
+    Py_ssize_t mask = mp->ma_mask;
+
+    for (Py_ssize_t i = 0, j = 0; i <= mask; i++) {
+        PyObject *value = ep[i].me_value;
+        if (value != NULL) {
+            PyObject *key = ep[i].me_key;
+            PyList_SET_ITEM0(result, j, key);
+
+            j++;
+        }
+    }
+
+    assert(PyList_GET_SIZE(result) == size);
+
+    return result;
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+PyObject *DICT_VALUES(PyObject *dict) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_Check(dict));
+
+    PyDictObject *mp = (PyDictObject *)dict;
+
+    PyObject *result;
+    Py_ssize_t size;
+
+    /* Preallocate the list of tuples, to avoid allocations during
+     * the loop over the items, which could trigger GC, which
+     * could resize the dict. :-(
+     */
+retry:
+    size = mp->ma_used;
+    result = PyList_New(size);
+    CHECK_OBJECT(result);
+
+    if (unlikely(size != mp->ma_used)) {
+        // Garbage collection can compatify dictionaries.
+        Py_DECREF(result);
+        goto retry;
+    }
+
+    // Nothing must cause any functions to be called
+    PyDictEntry *ep = mp->ma_table;
+    Py_ssize_t mask = mp->ma_mask;
+
+    for (Py_ssize_t i = 0, j = 0; i <= mask; i++) {
+        PyObject *value = ep[i].me_value;
+        if (value != NULL) {
+            PyList_SET_ITEM0(result, j, value);
+
+            j++;
+        }
+    }
+
+    assert(PyList_GET_SIZE(result) == size);
+
+    return result;
+}
+#endif
+
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -684,6 +774,8 @@ typedef struct {
 
 // Generic helper for various dictionary iterations, to be inlined.
 static inline PyObject *_MAKE_DICT_ITERATOR(PyDictObject *dict, PyTypeObject *type, bool is_iteritems) {
+    CHECK_OBJECT((PyObject *)dict);
+    assert(PyDict_CheckExact((PyObject *)dict));
 #if PYTHON_VERSION < 0x300
     dictiterobject *di = PyObject_GC_New(dictiterobject, type);
     CHECK_OBJECT(di);
@@ -715,16 +807,14 @@ static inline PyObject *_MAKE_DICT_ITERATOR(PyDictObject *dict, PyTypeObject *ty
 }
 
 PyObject *DICT_ITERITEMS(PyObject *dict) {
-    CHECK_OBJECT(dict);
-
 #if PYTHON_VERSION < 0x270
-    static PyTypeObject *dictiter_type = NULL;
+    static PyTypeObject *dictiteritems_type = NULL;
 
-    if (unlikely(dictiter_type)) {
-        dictiter_type = Py_TYPE(PyObject_GetIter(const_dict_empty));
+    if (unlikely(dictiteritems_type)) {
+        dictiteritems_type = Py_TYPE(PyObject_GetIter(PyObject_GetAttrString(const_dict_empty, "iteritems"));
     }
 
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictiter_type, true);
+    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictiteritems_type, true);
 #elif PYTHON_VERSION < 0x300
     return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictIterItem_Type, true);
 #else
@@ -732,7 +822,98 @@ PyObject *DICT_ITERITEMS(PyObject *dict) {
 #endif
 }
 
+PyObject *DICT_ITERKEYS(PyObject *dict) {
+#if PYTHON_VERSION < 0x270
+    static PyTypeObject *dictiter_type = NULL;
+
+    if (unlikely(dictiterkeys_type)) {
+        dictiterkeys_type = Py_TYPE(PyObject_GetIter(PyObject_GetAttrString(const_dict_empty, "iterkeys"));
+    }
+
+    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictiterkeys_type, false);
+#elif PYTHON_VERSION < 0x300
+    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictIterKey_Type, false);
+#else
+    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictKeys_Type, false);
+#endif
+}
+
+PyObject *DICT_ITERVALUES(PyObject *dict) {
+#if PYTHON_VERSION < 0x270
+    static PyTypeObject *dictitervalues_type = NULL;
+
+    if (unlikely(dictitervalues_type)) {
+        dictitervalues_type = Py_TYPE(PyObject_GetIter(PyObject_GetAttrString(const_dict_empty, "itervalues"));
+    }
+
+    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictitervalues_type, false);
+#elif PYTHON_VERSION < 0x300
+    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictIterValue_Type, false);
+#else
+    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictValues_Type, false);
+#endif
+}
+
+typedef struct {
+    PyObject_HEAD PyDictObject *dv_dict;
+} dictviewobject;
+
+static PyObject *_MAKE_DICT_VIEW(PyDictObject *dict, PyTypeObject *type) {
+    dictviewobject *dv = PyObject_GC_New(dictviewobject, type);
+
+    CHECK_OBJECT(dv);
+    Py_INCREF(dict);
+    dv->dv_dict = (PyDictObject *)dict;
+    Nuitka_GC_Track(dv);
+    return (PyObject *)dv;
+}
+
+PyObject *DICT_VIEWKEYS(PyObject *dict) {
+#if PYTHON_VERSION < 0x270
+    static PyTypeObject *dictkeysview_type = NULL;
+
+    if (unlikely(dictkeysiter_type)) {
+        dictkeysview_type = Py_TYPE(PyObject_GetIter(PyObject_GetAttrstring(const_dict_empty, "viewkeys")));
+    }
+
+    return _MAKE_DICT_VIEW((PyDictObject *)dict, dictkeysview_type);
+#else
+    return _MAKE_DICT_VIEW((PyDictObject *)dict, &PyDictKeys_Type);
+#endif
+}
+
+PyObject *DICT_VIEWVALUES(PyObject *dict) {
+#if PYTHON_VERSION < 0x270
+    static PyTypeObject *dictvaluesview_type = NULL;
+
+    if (unlikely(dictvaluesview_type)) {
+        dictvaluesview_type = Py_TYPE(PyObject_GetIter(PyObject_GetAttrstring(const_dict_empty, "viewvalues")));
+    }
+
+    return _MAKE_DICT_VIEW((PyDictObject *)dict, dictvaluesview_type);
+#else
+    return _MAKE_DICT_VIEW((PyDictObject *)dict, &PyDictValues_Type);
+#endif
+}
+
+PyObject *DICT_VIEWITEMS(PyObject *dict) {
+#if PYTHON_VERSION < 0x270
+    static PyTypeObject *dictvaluesview_type = NULL;
+
+    if (unlikely(dictvaluesview_type)) {
+        dictvaluesview_type = Py_TYPE(PyObject_GetIter(PyObject_GetAttrstring(const_dict_empty, "viewitems")));
+    }
+
+    return _MAKE_DICT_VIEW((PyDictObject *)dict, dictvaluesview_type);
+#else
+    return _MAKE_DICT_VIEW((PyDictObject *)dict, &PyDictItems_Type);
+#endif
+}
+
 PyObject *DICT_COPY(PyObject *value) {
+    CHECK_OBJECT(value);
+    assert(PyDict_CheckExact(value));
+
 #if PYTHON_VERSION < 0x300
     // For Python3, this can be done much faster in the same way as it is
     // done in parameter parsing.
@@ -814,6 +995,10 @@ PyObject *DICT_COPY(PyObject *value) {
 }
 
 void DICT_CLEAR(PyObject *dict) {
-    // TODO: Could inline this for enhanced optimization.
+    CHECK_OBJECT(dict);
+    assert(PyDict_CheckExact(dict));
+
+    // TODO: Could inline this for enhanced optimization, but it does
+    // some pretty sophisticated memory handling.
     PyDict_Clear(dict);
 }

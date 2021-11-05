@@ -850,7 +850,7 @@ def simpleFunction89():
 
 
 def anyArgs(*args, **kw):
-    pass
+    return kw.keys(), kw.values()
 
 
 def simpleFunction90():
