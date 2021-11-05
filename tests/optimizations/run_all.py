@@ -58,7 +58,7 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.TreeXML import toString
 
-python_version = setup()
+python_version = setup(suite="optimiations")
 
 search_mode = createSearchMode()
 

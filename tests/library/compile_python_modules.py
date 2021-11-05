@@ -54,7 +54,7 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
 
-python_version = setup(needs_io_encoding=True)
+python_version = setup(suite="python_modules", needs_io_encoding=True)
 python_vendor = getPythonVendor()
 python_arch = getPythonArch()
 
