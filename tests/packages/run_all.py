@@ -53,7 +53,7 @@ from nuitka.tools.testing.Common import (
 
 
 def main():
-    setup()
+    setup(suite="packages")
 
     search_mode = createSearchMode()
 

@@ -46,7 +46,7 @@ from nuitka.utils.FileOperations import copyTree, openTextFile
 
 
 def main():
-    setup()
+    setup(suite="test-runners")
 
     os.chdir("subject")
 

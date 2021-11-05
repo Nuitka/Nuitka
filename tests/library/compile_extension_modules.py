@@ -42,19 +42,20 @@ sys.path.insert(
 import shutil
 import tempfile
 
+from nuitka.freezer.RuntimeTracing import getRuntimeTraceOfLoadedFiles
 from nuitka.tools.testing.Common import (
     check_output,
     checkRuntimeLoadedFilesForOutsideAccesses,
     checkSucceedsWithCPython,
     compileLibraryTest,
     createSearchMode,
-    getRuntimeTraceOfLoadedFiles,
     my_print,
     setup,
     test_logger,
 )
+from nuitka.utils.FileOperations import openTextFile
 
-setup(needs_io_encoding=True)
+setup(suite="extension_modules", needs_io_encoding=True)
 search_mode = createSearchMode()
 
 tmp_dir = tempfile.gettempdir()
@@ -114,7 +115,7 @@ def action(stage_dir, root, path):
     module_name = module_name.split(".")[0]
     module_name = module_name.replace(os.path.sep, ".")
 
-    with open(filename, "w") as output:
+    with openTextFile(filename, "w") as output:
         output.write("import " + module_name + "\n")
         output.write("print('OK')")
 
