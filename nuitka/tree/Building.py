@@ -58,10 +58,7 @@ from nuitka import (
     OutputDirectories,
     SourceCodeReferences,
 )
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    long,
-    unicode,
-)
+from nuitka.__past__ import long, unicode
 from nuitka.Caching import (
     getCachedImportedModulesNames,
     hasCachedImportedModulesNames,

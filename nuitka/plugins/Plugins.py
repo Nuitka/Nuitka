@@ -35,8 +35,7 @@ from optparse import OptionConflictError, OptionGroup
 import nuitka.plugins.commercial
 import nuitka.plugins.standard
 from nuitka import Options, OutputDirectories
-from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
-from nuitka.__past__ import iter_modules
+from nuitka.__past__ import basestring, iter_modules
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet

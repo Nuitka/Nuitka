@@ -26,10 +26,7 @@ import shutil
 import signal
 import sys
 
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    basestring,
-    unicode,
-)
+from nuitka.__past__ import basestring, unicode
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import getFileContentByLine, openTextFile

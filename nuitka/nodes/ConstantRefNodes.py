@@ -22,13 +22,7 @@
 import sys
 
 from nuitka import Options
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    GenericAlias,
-    iterItems,
-    long,
-    unicode,
-    xrange,
-)
+from nuitka.__past__ import GenericAlias, iterItems, long, unicode, xrange
 from nuitka.Builtins import (
     builtin_anon_values,
     builtin_exception_values_list,
@@ -163,11 +157,11 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
         # This is expected to be overloaded by child classes.
         assert False, self
 
-    def extractUnhashableNode(self):
+    def extractUnhashableNodeType(self):
         value = getUnhashableConstant(self.constant)
 
         if value is not None:
-            return makeConstantRefNode(constant=value, source_ref=self.source_ref)
+            return makeConstantRefNode(constant=type(value), source_ref=self.source_ref)
 
     @staticmethod
     def isNumberConstant():

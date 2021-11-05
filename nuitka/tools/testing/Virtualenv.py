@@ -24,7 +24,7 @@ import os
 import sys
 from contextlib import contextmanager
 
-from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import unicode
 from nuitka.utils.Execution import check_call, executeProcess
 from nuitka.utils.FileOperations import removeDirectory, withDirectoryChange
 

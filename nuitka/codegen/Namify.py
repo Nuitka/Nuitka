@@ -30,12 +30,7 @@ import re
 import sys
 from types import BuiltinFunctionType
 
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    GenericAlias,
-    long,
-    unicode,
-    xrange,
-)
+from nuitka.__past__ import GenericAlias, long, unicode, xrange
 from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
 from nuitka.Tracing import general
 

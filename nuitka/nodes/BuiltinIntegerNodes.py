@@ -24,7 +24,7 @@ with one argument, use slots, "__int__" and "__long__", so what they do does
 largely depend on the arguments slot.
 """
 
-from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import long
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 

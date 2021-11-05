@@ -22,10 +22,7 @@
 import math
 from abc import abstractmethod
 
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    getMetaClassBase,
-    xrange,
-)
+from nuitka.__past__ import getMetaClassBase, xrange
 
 
 class IterationHandleBase(getMetaClassBase("IterationHandle")):
