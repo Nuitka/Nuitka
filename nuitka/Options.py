@@ -1084,13 +1084,18 @@ def shallCreateAppBundle():
 
 
 def getMacOSAppName():
-    """*str* name of the app to use"""
+    """*str* name of the app to use bundle"""
     return options.macos_app_name
 
 
 def getMacOSSignedAppName():
     """*str* name of the app to use during signing"""
     return options.macos_signed_app_name
+
+
+def getMacOSAppVersion():
+    """*str* version of the app to use for bundle"""
+    return options.macos_app_version
 
 
 _python_flags = None
