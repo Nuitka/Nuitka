@@ -37,7 +37,12 @@ from nuitka.PythonVersions import (
     isNuitkaPython,
 )
 from nuitka.utils.FileOperations import getFileContentByLine
-from nuitka.utils.Utils import getArchitecture, getLinuxDistribution, getOS, isMacOS
+from nuitka.utils.Utils import (
+    getArchitecture,
+    getLinuxDistribution,
+    getOS,
+    isMacOS,
+)
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
