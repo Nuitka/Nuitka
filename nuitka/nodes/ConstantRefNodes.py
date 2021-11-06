@@ -117,6 +117,8 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        trace_collection.onExceptionRaiseExit(TypeError)
+
         # The arguments don't matter. All constant values cannot be called, and
         # we just need to make and error out of that.
         new_node = wrapExpressionWithSideEffects(
@@ -129,8 +131,6 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
             old_node=call_node,
             side_effects=call_node.extractSideEffectsPreCall(),
         )
-
-        trace_collection.onExceptionRaiseExit(TypeError)
 
         return (
             new_node,

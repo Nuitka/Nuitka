@@ -53,6 +53,7 @@ from .ExpressionBases import (
     ExpressionBase,
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
+    ExpressionNoSideEffectsMixin,
 )
 from .FutureSpecs import fromFlags
 from .IndicatorMixins import (
@@ -562,7 +563,9 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
 
 class ExpressionFunctionBody(
-    MarkUnoptimizedFunctionIndicatorMixin, ExpressionFunctionEntryPointBase
+    ExpressionNoSideEffectsMixin,
+    MarkUnoptimizedFunctionIndicatorMixin,
+    ExpressionFunctionEntryPointBase,
 ):
     kind = "EXPRESSION_FUNCTION_BODY"
 
@@ -739,12 +742,8 @@ class ExpressionFunctionBody(
         # would require extra effort.
         return False
 
-    @staticmethod
-    def mayHaveSideEffects():
-        # The function definition has no side effects, calculating the defaults
-        # would be, but that is done outside of this.
-        return False
-
+    # TODO: This is an overload that contradicts no side effects, this might be
+    # used by outside code, not removed, but we should investigate this.
     def mayRaiseException(self, exception_type):
         body = self.subnode_body
 
@@ -1047,7 +1046,7 @@ error"""
         return self.variable_closure_traces
 
 
-class ExpressionFunctionRef(ExpressionBase):
+class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):
     kind = "EXPRESSION_FUNCTION_REF"
 
     __slots__ = "function_body", "code_name"
@@ -1091,15 +1090,6 @@ class ExpressionFunctionRef(ExpressionBase):
 
         # TODO: Function after collection may now know something.
         return self, None, None
-
-    @staticmethod
-    def mayHaveSideEffects():
-        # Using a function has no side effects, the use might, but this is not it.
-        return False
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
 
 
 class ExpressionFunctionCall(ExpressionChildrenHavingBase):
