@@ -32,7 +32,11 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
-from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
+from .PythonAPICodes import (
+    generateCAPIObjectCode,
+    generateCAPIObjectCode0,
+    makeArgDescFromExpression,
+)
 
 
 def generateBuiltinDictCode(to_name, expression, emit, context):
@@ -346,6 +350,32 @@ if (%(value_name)s == NULL && !ERROR_OCCURRED()) {
         )
 
         context.addCleanupTempName(value_name)
+
+
+def generateDictOperationSetdefault2Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_SETDEFAULT2",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=not expression.known_hashable_key,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationSetdefault3Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_SETDEFAULT3",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=not expression.known_hashable_key,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 def generateDictOperationCopyCode(to_name, expression, emit, context):

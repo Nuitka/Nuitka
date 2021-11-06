@@ -32,20 +32,28 @@ unhashable = []
 
 {% for dict_method_name in dict_method_names %}
 
-{% set operation_id = "check" + dict_method_name.title() %}
-
 {% if dict_method_name == "get" %}
 {% set method_arg_variants = ["1", "5", "[]", "unhashable", "1,7", "6,9"] %}
 {% elif dict_method_name == "has_key" %}
 {% set method_arg_variants = ["1", "5", "[]", "unhashable"] %}
+{% elif dict_method_name == "setdefault" %}
+{% set method_arg_variants = ["1", "5", "[]", "unhashable", "1,7", "unhashable,9"] %}
 {% else %}
 {% set method_arg_variants = [""] %}
+{% endif %}
+
+{% if dict_method_name in ("setdefault", "pop", "popitem", "update") %}
+{% set input_value = "dict(kwargs)" %}
+{% else %}
+{% set input_value = "kwargs" %}
 {% endif %}
 
 {% for method_args in method_arg_variants %}
 
 {% set left_1 = "{1:2, 2:3}" %}
 {% set left_2 = "{2:3, 3:4}" %}
+
+{% set operation_id = "check%s%s" % (dict_method_name.title(), (""if loop.index == 0 else loop.index)) %}
 
 def {{operation_id}}(cond, **kwargs):
     # First value, which we expect to be compile time computed.
