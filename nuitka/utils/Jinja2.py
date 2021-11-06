@@ -95,11 +95,20 @@ def getTemplateFromString(template_str):
     ).from_string(template_str)
 
 
-def renderTemplateFromString(templat_str, **kwargs):
-    result = getTemplateFromString(templat_str).render(**kwargs)
+_template_cache = {}
 
+
+def renderTemplateFromString(template_str, **kwargs):
+    # Avoid recreating templates, hoping to save some time.
+    if template_str not in _template_cache:
+        _template_cache[template_str] = getTemplateFromString(template_str)
+
+    result = _template_cache[template_str].render(**kwargs)
+
+    # Jinja produces unicode value, but our emission wants str, or else
+    # it messes up. TODO: We might switch to unicode one day or bytes
+    # for Python3 one day, but that seems to much work.
     if str is not unicode:
         return result.encode("utf8")
-
     else:
         return result
