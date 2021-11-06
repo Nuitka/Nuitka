@@ -131,7 +131,7 @@ Should scipy, sklearn or skimage when used be not included with numpy, Default i
 Should matplotlib not be be included with numpy, Default is %default.""",
         )
 
-    def considerExtraDlls(self, dist_dir, module):
+    def getExtraDlls(self, module):
         """Copy extra shared libraries or data for this installation.
 
         Args:
