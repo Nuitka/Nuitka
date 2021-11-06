@@ -220,10 +220,12 @@ class build(distutils.command.build.build):
 
             command.append(main_filename)
 
-            # Adding traces for clarity, TODO: color scheme used is not really clear.
-            my_print("Building: %s with %r" % (to_build, command), style="yellow")
+            # Adding traces for clarity
+            my_print(
+                "Building: '%s' with command %r" % (to_build, command), style="blue"
+            )
             check_call(command, cwd=build_lib)
-            my_print("Finished compilation of %s." % to_build, style="yellow")
+            my_print("Finished compilation of '%s'." % to_build, style="green")
 
             for root, _, filenames in os.walk(build_lib):
                 for filename in filenames:
