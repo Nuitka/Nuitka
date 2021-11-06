@@ -61,3 +61,5 @@ dict_itervalues_spec = DictMethodSpec("itervalues")
 dict_viewvalues_spec = DictMethodSpec("viewvalues")
 
 dict_get_spec = DictMethodSpec("get", arg_names=("key", "default"), default_count=1)
+
+dict_has_key_spec = DictMethodSpec("has_key", arg_names=("key",))

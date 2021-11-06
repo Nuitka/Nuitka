@@ -122,7 +122,7 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
             from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}
 
             return ExpressionDictOperation{{attribute_name_class}}(
-                dict_arg=self.subnode_expression, source_ref=source_ref
+                dict_arg=self.subnode_expression {{formatCallArgs(dict_operation_args, starting=False)}}, source_ref=source_ref
             )
 {% endif %}
 {% endif %}

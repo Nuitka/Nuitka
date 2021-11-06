@@ -55,7 +55,7 @@ python2_dict_methods = (
     "copy",  # has full dict coverage
     "fromkeys",
     "get",  # has full dict coverage
-    "has_key",
+    "has_key",  # has full dict coverage
     "items",  # has full dict coverage
     "iteritems",  # has full dict coverage
     "iterkeys",  # has full dict coverage
@@ -138,8 +138,13 @@ def formatArgs(args, starting=True):
     return "".join(result)
 
 
-def formatCallArgs(args):
-    return ",".join("%s=%s" % (arg, arg) for arg in args)
+def formatCallArgs(args, starting=True):
+    result = ",".join("%s=%s" % (arg, arg) for arg in args)
+
+    if not starting and result:
+        result = "," + result
+
+    return result
 
 
 def makeAttributeNodes():
