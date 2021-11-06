@@ -121,7 +121,7 @@ def generateChildExpressionsCode(expression, emit, context):
     for child_name, child_value in expression.getVisitableNodesNamed():
         if child_value is not None:
             # Allocate anyway, so names are aligned.
-            value_name = context.allocateTempName(child_name + "_name")
+            value_name = context.allocateTempName(child_name + "_value")
 
             generateExpressionCode(
                 to_name=value_name, expression=child_value, emit=emit, context=context
@@ -129,6 +129,7 @@ def generateChildExpressionsCode(expression, emit, context):
 
             value_names.append(value_name)
         else:
+            # Allocate anyway, so names are aligned.
             context.skipTempName(child_name + "_value")
 
             value_names.append(None)
