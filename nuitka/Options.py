@@ -372,6 +372,11 @@ standalone where there is a sane default used inside the dist folder."""
             "Error, static libpython is not found or not supported for this Python installation."
         )
 
+    if isStandaloneMode() and isMacOS() and sys.executable.startswith("/usr/bin/"):
+        Tracing.options_logger.sysexit(
+            "Error, Apple Python from macOS is not supported, use e.g. CPython instead."
+        )
+
     pgo_executable = getPgoExecutable()
     if pgo_executable and not isPathExecutable(pgo_executable):
         Tracing.options_logger.sysexit(
