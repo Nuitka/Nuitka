@@ -26,7 +26,21 @@ and then can use the same code.
 """
 
 from .CodeHelpers import generateExpressionCode
-from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
+from .ErrorCodes import (
+    getErrorExitBoolCode,
+    getErrorExitCode,
+    getReleaseCode,
+    getReleaseCodes,
+)
+
+
+def makeArgDescFromExpression(expression):
+    """Helper for providing arg_desc consistently for generateCAPIObject methods."""
+
+    return tuple(
+        (child_name + "_value", child_value)
+        for child_name, child_value in expression.getVisitableNodesNamed()
+    )
 
 
 def generateCAPIObjectCodeCommon(
@@ -159,9 +173,24 @@ def getCAPIObjectCode(
             if ref_count:
                 getReleaseCode(value_name, emit, context)
     else:
-        emit("%s(%s);" % (capi, ", ".join(str(arg_name) for arg_name in arg_names)))
+        if may_raise:
+            res_name = context.getIntResName()
 
-        getReleaseCodes(release_names, emit, context)
+            emit(
+                "%s = %s(%s);"
+                % (res_name, capi, ", ".join(str(arg_name) for arg_name in arg_names))
+            )
+
+            getErrorExitBoolCode(
+                condition="%s == -1" % res_name,
+                release_names=release_names,
+                emit=emit,
+                context=context,
+            )
+        else:
+            emit("%s(%s);" % (capi, ", ".join(str(arg_name) for arg_name in arg_names)))
+
+            getReleaseCodes(release_names, emit, context)
 
         assert not ref_count
 

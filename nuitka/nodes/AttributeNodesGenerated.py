@@ -980,6 +980,9 @@ class ExpressionAttributeLookupFixedSetdefault(ExpressionAttributeLookupFixedBas
 attribute_classes["setdefault"] = ExpressionAttributeLookupFixedSetdefault
 
 
+from nuitka.specs.BuiltinDictOperationSpecs import dict_setdefault_spec
+
+
 class ExpressionAttributeLookupDictSetdefault(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedSetdefault
 ):
@@ -994,7 +997,39 @@ class ExpressionAttributeLookupDictSetdefault(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as dict operation ExpressionDictOperationSetdefault is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionDictOperationSetdefault(key, default, source_ref):
+            if default is not None:
+                from .DictionaryNodes import ExpressionDictOperationSetdefault3
+
+                return ExpressionDictOperationSetdefault3(
+                    dict_arg=self.subnode_expression,
+                    key=key,
+                    default=default,
+                    source_ref=source_ref,
+                )
+            else:
+                from .DictionaryNodes import ExpressionDictOperationSetdefault2
+
+                return ExpressionDictOperationSetdefault2(
+                    dict_arg=self.subnode_expression, key=key, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationSetdefault,
+            builtin_spec=dict_setdefault_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'setdefault' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes["setdefault"] = ExpressionAttributeLookupDictSetdefault

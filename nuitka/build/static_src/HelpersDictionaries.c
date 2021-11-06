@@ -1002,3 +1002,53 @@ void DICT_CLEAR(PyObject *dict) {
     // some pretty sophisticated memory handling.
     PyDict_Clear(dict);
 }
+
+static PyObject *dict_builtin_setdefault = NULL;
+
+PyObject *DICT_SETDEFAULT2(PyObject *dict, PyObject *key) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_Check(dict));
+    CHECK_OBJECT(key);
+
+    // TODO: We would need to implement search and insert for dictionaries to
+    // make this fast.
+    if (unlikely(dict_builtin_setdefault == NULL)) {
+        dict_builtin_setdefault = PyObject_GetAttrString((PyObject *)&PyDict_Type, "setdefault");
+    }
+
+    PyObject *args[2] = {dict, key};
+
+    return CALL_FUNCTION_WITH_ARGS2(dict_builtin_setdefault, args);
+}
+
+PyObject *DICT_SETDEFAULT3(PyObject *dict, PyObject *key, PyObject *default_value) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_Check(dict));
+    CHECK_OBJECT(key);
+    CHECK_OBJECT(default_value);
+
+    // TODO: We would need to implement search and insert for dictionaries to
+    // make this fast.
+    if (unlikely(dict_builtin_setdefault == NULL)) {
+        dict_builtin_setdefault = PyObject_GetAttrString((PyObject *)&PyDict_Type, "setdefault");
+    }
+
+    PyObject *args[3] = {dict, key, default_value};
+
+    return CALL_FUNCTION_WITH_ARGS3(dict_builtin_setdefault, args);
+}
+
+    PyObject *value = DICT_GET_ITEM_WITH_HASH_ERROR1(dict, key);
+
+    if (value != NULL) {
+        return value;
+    }
+
+    // TODO: Once we generate stuff, this could be a variant if known to be hashable or not.
+    if (unlikely(ERROR_OCCURRED())) {
+        return NULL;
+    }
+
+    Py_INCREF(default_value);
+    return default_value;
+}
