@@ -30,6 +30,7 @@ from .NodeMakingHelpers import (
     wrapExpressionWithSideEffects,
 )
 from .shapes.BuiltinTypeShapes import tshape_bool, tshape_exception_class
+from .shapes.StandardShapes import tshape_unknown
 
 
 class ExpressionComparisonBase(ExpressionChildrenHavingBase):
@@ -103,7 +104,7 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
             self, left=left, right=right, source_ref=source_ref
         )
 
-        self.type_shape = None
+        self.type_shape = tshape_unknown
         self.escape_desc = None
 
     def getTypeShape(self):
