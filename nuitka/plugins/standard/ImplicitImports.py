@@ -1277,7 +1277,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         # Do nothing by default.
         return source_code
 
-    def considerExtraDlls(self, dist_dir, module):
+    def getExtraDlls(self, module):
         full_name = module.getFullName()
 
         if full_name == "uuid" and getOS() == "Linux":
