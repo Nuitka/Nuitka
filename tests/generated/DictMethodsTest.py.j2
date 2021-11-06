@@ -27,13 +27,17 @@ from __future__ import print_function
 def forgetType(value):
     return value
 
+# To trigger hashing errors
+unhashable = []
 
 {% for dict_method_name in dict_method_names %}
 
 {% set operation_id = "check" + dict_method_name.title() %}
 
 {% if dict_method_name == "get" %}
-{% set method_arg_variants = ["1", "5", "1,7", "6,9"] %}
+{% set method_arg_variants = ["1", "5", "[]", "unhashable", "1,7", "6,9"] %}
+{% elif dict_method_name == "has_key" %}
+{% set method_arg_variants = ["1", "5", "[]", "unhashable"] %}
 {% else %}
 {% set method_arg_variants = [""] %}
 {% endif %}

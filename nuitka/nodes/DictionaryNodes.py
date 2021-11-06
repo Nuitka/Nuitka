@@ -1142,7 +1142,7 @@ class ExpressionDictOperationInNotInUncertainBase(ExpressionChildrenHavingBase):
                     node=self,
                     key=self.subnode_key,
                     operation="in (dict)",
-                    side_effects=(self.subnode_key, self.subnode_dict_arg),
+                    side_effects=self.getVisitableNodes(),
                 )
 
         if self.known_hashable_key is None:
@@ -1168,10 +1168,15 @@ class ExpressionDictOperationInNotInUncertainBase(ExpressionChildrenHavingBase):
         if self.known_hashable_key is not True:
             return (self,)
         else:
-            return (
-                self.subnode_key.extractSideEffects()
-                + self.subnode_value.extractSideEffects()
-            )
+            # No side effects at all but from the children.
+            result = []
+
+            # The order of evaluation is different for "in" and "has_key", so we go
+            # through visitable nodes.
+            for child in self.getVisitableNodes():
+                result.extend(child.extractSideEffects())
+
+            return tuple(result)
 
 
 class ExpressionDictOperationIn(ExpressionDictOperationInNotInUncertainBase):
@@ -1180,3 +1185,10 @@ class ExpressionDictOperationIn(ExpressionDictOperationInNotInUncertainBase):
 
 class ExpressionDictOperationNotIn(ExpressionDictOperationInNotInUncertainBase):
     kind = "EXPRESSION_DICT_OPERATION_NOT_IN"
+
+
+class ExpressionDictOperationHaskey(ExpressionDictOperationIn):
+    kind = "EXPRESSION_DICT_OPERATION_HASKEY"
+
+    # Different order of arguments.
+    named_children = ("dict_arg", "key")

@@ -501,6 +501,10 @@ def generateDictOperationInCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
+    # Reverse child order.
+    if expression.isExpressionDictOperationHaskey():
+        dict_name, key_name = key_name, dict_name
+
     res_name = context.getIntResName()
 
     emit("%s = DICT_HAS_ITEM(%s, %s);" % (res_name, key_name, dict_name))

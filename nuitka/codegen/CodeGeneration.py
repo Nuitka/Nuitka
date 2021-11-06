@@ -651,6 +651,7 @@ addExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_ITEM": generateDictOperationItemCode,
         "EXPRESSION_DICT_OPERATION_GET2": generateDictOperationGet2Code,
         "EXPRESSION_DICT_OPERATION_GET3": generateDictOperationGet3Code,
+        "EXPRESSION_DICT_OPERATION_HASKEY": generateDictOperationInCode,
         "EXPRESSION_DICT_OPERATION_IN": generateDictOperationInCode,
         "EXPRESSION_DICT_OPERATION_NOT_IN": generateDictOperationInCode,
         "EXPRESSION_DICT_OPERATION_COPY": generateDictOperationCopyCode,
