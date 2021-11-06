@@ -68,14 +68,6 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
     def isKnownToBeHashable():
         return True
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
-
-    @staticmethod
-    def mayHaveSideEffects():
-        return False
-
     def getStrValue(self):
         return makeConstantRefNode(
             constant=str(self.getCompileTimeConstant()),

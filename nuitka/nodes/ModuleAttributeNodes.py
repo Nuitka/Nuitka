@@ -32,7 +32,7 @@ import os
 from nuitka import Options
 
 from .ConstantRefNodes import makeConstantRefNode
-from .ExpressionBases import ExpressionBase
+from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 
 
 class ExpressionModuleAttributeBase(ExpressionBase):
@@ -196,7 +196,7 @@ class ExpressionModuleAttributeSpecRef(ExpressionModuleAttributeBase):
         return self, None, None
 
 
-class ExpressionNuitkaLoaderCreation(ExpressionBase):
+class ExpressionNuitkaLoaderCreation(ExpressionNoSideEffectsMixin, ExpressionBase):
     __slots__ = ("provider",)
 
     kind = "EXPRESSION_NUITKA_LOADER_CREATION"
@@ -213,13 +213,3 @@ class ExpressionNuitkaLoaderCreation(ExpressionBase):
     def computeExpressionRaw(self, trace_collection):
         # Nothing can be done here.
         return self, None, None
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        # Never raises an exception.
-        return False
-
-    @staticmethod
-    def mayHaveSideEffects():
-        # No effect really by itself.
-        return False

@@ -219,11 +219,13 @@ class ExpressionImportModuleFixed(ExpressionBase):
     def getModuleName(self):
         return self.module_name
 
-    def mayHaveSideEffects(self):
+    @staticmethod
+    def mayHaveSideEffects():
         # TODO: For included modules, we might be able to tell, not not done now.
         return True
 
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         # TODO: For included modules, we might be able to tell, not not done now.
         return True
 
@@ -457,6 +459,7 @@ class ExpressionImportModuleHard(ExpressionImportHardBase):
                 and trust is not trust_undefined
             ):
                 # TODO: Unify with below branches.
+                trace_collection.onExceptionRaiseExit(ImportError)
 
                 new_node = makeRaiseExceptionReplacementExpression(
                     expression=lookup_node,
@@ -466,8 +469,6 @@ class ExpressionImportModuleHard(ExpressionImportHardBase):
                     ),
                 )
 
-                trace_collection.onExceptionRaiseExit(ImportError)
-
                 return (
                     new_node,
                     "new_raise",
@@ -476,14 +477,14 @@ class ExpressionImportModuleHard(ExpressionImportHardBase):
                 )
             else:
                 if trust is trust_undefined:
+                    trace_collection.onExceptionRaiseExit(ImportError)
+
                     onMissingTrust(
                         "Hard module %r attribute %r missing trust config for existing value.",
                         lookup_node.getSourceReference(),
                         self.module_name,
                         attribute_name,
                     )
-
-                    trace_collection.onExceptionRaiseExit(ImportError)
                 elif trust is trust_constant:
                     # Make sure it's actually there, and not becoming the getattr default by accident.
                     assert hasattr(self.module, attribute_name), self

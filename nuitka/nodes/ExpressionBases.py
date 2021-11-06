@@ -359,6 +359,9 @@ class ExpressionBase(NodeBase):
         has_len = shape.hasShapeSlotLen()
 
         if has_len is False:
+            # An exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="object of type '%s' has no len()",
                 operation="len",
@@ -400,6 +403,9 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotAbs() is False:
+            # Any exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="bad operand type for abs(): '%s'",
                 operation="abs",
@@ -421,6 +427,9 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotInt() is False:
+            # Any exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="int() argument must be a string or a number, not '%s'"
                 if python_version < 0x300
@@ -444,6 +453,9 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotLong() is False:
+            # Any exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="long() argument must be a string or a number, not '%s'",
                 operation="long",
@@ -465,6 +477,9 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotFloat() is False:
+            # Any exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "float() argument must be a string or a number"
                 if Options.is_fullcompat and python_version < 0x300
@@ -492,6 +507,9 @@ class ExpressionBase(NodeBase):
             and shape.hasShapeSlotInt() is False
             and shape.hasShapeSlotIter() is False
         ):
+            # An exception is raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "'%s' object is not iterable",
                 operation="bytes",
@@ -513,6 +531,9 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotComplex() is False:
+            # Any exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "complex() argument must be a string or a number"
                 if Options.is_fullcompat and python_version < 0x300
@@ -536,6 +557,9 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotIter() is False:
+            # An exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="'%s' object is not iterable",
                 operation="iter",
@@ -622,6 +646,9 @@ class ExpressionBase(NodeBase):
         assert shape is not None, self
 
         if shape.hasShapeSlotContains() is False:
+            # An exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="argument of type '%s' object is not iterable",
                 operation="in",
@@ -821,7 +848,38 @@ class ExpressionBase(NodeBase):
         return self.getTypeShape() is tshape_unicode
 
 
-class CompileTimeConstantExpressionBase(ExpressionBase):
+class ExpressionNoSideEffectsMixin(object):
+    __slots__ = ()
+
+    @staticmethod
+    def mayHaveSideEffects():
+        # Virtual method overload
+        return False
+
+    @staticmethod
+    def extractSideEffects():
+        # Virtual method overload, we said we have no effects.
+        return ()
+
+    def computeExpressionDrop(self, statement, trace_collection):
+        # Virtual method overload, pylint: disable=unused-argument
+        #
+        # We said we have no effects, so we can be removed.
+        return (
+            None,
+            "new_statements",
+            lambda: "Removed %s that never has an effect." % self.getDescription(),
+        )
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        # Virtual method overload, pylint: disable=unused-argument
+
+        # An exception would be considered a side effect too.
+        return False
+
+
+class CompileTimeConstantExpressionBase(ExpressionNoSideEffectsMixin, ExpressionBase):
     # TODO: Do this for all computations, do this in the base class of all
     # nodes.
     __slots__ = ("computed_attribute",)
@@ -864,22 +922,8 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
         return False
 
     @staticmethod
-    def mayHaveSideEffects():
-        # Virtual method overload
-        return False
-
-    @staticmethod
-    def extractSideEffects():
-        # Constants have no side effects
-        return ()
-
-    @staticmethod
     def mayHaveSideEffectsBool():
         # Virtual method overload
-        return False
-
-    @staticmethod
-    def mayRaiseException(exception_type):
         return False
 
     @staticmethod
