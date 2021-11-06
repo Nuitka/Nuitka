@@ -48,7 +48,12 @@ from .NodeMakingHelpers import (
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_dict, tshape_list, tshape_none
+from .shapes.BuiltinTypeShapes import (
+    tshape_bool,
+    tshape_dict,
+    tshape_list,
+    tshape_none,
+)
 from .shapes.StandardShapes import tshape_iterator
 
 
@@ -1122,6 +1127,10 @@ class ExpressionDictOperationInNotInUncertainBase(ExpressionChildrenHavingBase):
 
         self.known_hashable_key = None
 
+    @staticmethod
+    def getTypeShape():
+        return tshape_bool
+
     def computeExpression(self, trace_collection):
         if self.known_hashable_key is None:
             self.known_hashable_key = self.subnode_key.isKnownToBeHashable()
@@ -1147,6 +1156,10 @@ class ExpressionDictOperationInNotInUncertainBase(ExpressionChildrenHavingBase):
             or self.subnode_dict_arg.mayRaiseException(exception_type)
             or self.known_hashable_key is not True
         )
+
+    @staticmethod
+    def mayRaiseExceptionBool(exception_type):
+        return False
 
     def mayHaveSideEffects(self):
         return self.mayRaiseException(BaseException)
