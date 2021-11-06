@@ -143,6 +143,8 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
             )
 
         if first_statement.isStatementRaiseException():
+            # Exception exit was already annotated, need not repeat it.
+
             result = ExpressionRaiseException(
                 exception_type=first_statement.subnode_exception_type,
                 exception_value=first_statement.subnode_exception_value,
@@ -266,6 +268,8 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
             )
 
         if first_statement.isStatementRaiseException():
+            # Exception exit was already annotated, need not repeat it.
+
             result = ExpressionRaiseException(
                 exception_type=first_statement.subnode_exception_type,
                 exception_value=first_statement.subnode_exception_value,

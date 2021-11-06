@@ -33,7 +33,7 @@ from .DictionaryNodes import (
     StatementDictOperationRemove,
     StatementDictOperationSet,
 )
-from .ExpressionBases import ExpressionBase
+from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .ModuleAttributeNodes import (
     ExpressionModuleAttributeLoaderRef,
     ExpressionModuleAttributeNameRef,
@@ -144,6 +144,9 @@ class ExpressionVariableRefBase(ExpressionBase):
             has_len = shape.hasShapeSlotLen()
 
             if has_len is False:
+                # Any exception may be raised.
+                trace_collection.onExceptionRaiseExit(BaseException)
+
                 return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                     template="object of type '%s' has no len()",
                     operation="len",
@@ -638,7 +641,11 @@ def makeExpressionVariableRef(variable, locals_scope, source_ref):
         return ExpressionVariableRef(variable=variable, source_ref=source_ref)
 
 
-class ExpressionTempVariableRef(ExpressionVariableRefBase):
+# Note: Temporary variable references are to be guarantueed to not raise
+# therefore no side effects.
+class ExpressionTempVariableRef(
+    ExpressionNoSideEffectsMixin, ExpressionVariableRefBase
+):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
 
     def __init__(self, variable, source_ref):
@@ -728,16 +735,6 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return may_not_raise, (next_node, None, None)
-
-    @staticmethod
-    def mayHaveSideEffects():
-        # Can't happen with temporary variables, unless we used them wrongly.
-        return False
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        # Can't happen with temporary variables, unless we used them wrongly.
-        return False
 
     def mayRaiseExceptionImportName(self, exception_type, import_name):
         if self.variable_trace is not None and self.variable_trace.isAssignTrace():

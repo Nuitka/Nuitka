@@ -23,6 +23,7 @@ from .ExpressionBases import (
     ExpressionBase,
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
+    ExpressionNoSideEffectsMixin,
 )
 from .NodeBases import StatementBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
@@ -325,23 +326,13 @@ class ExpressionBuiltinMakeExceptionImportError(ExpressionChildrenHavingBase):
         return False
 
 
-class ExpressionCaughtMixin(object):
+class ExpressionCaughtMixin(ExpressionNoSideEffectsMixin):
     """Common things for all caught exception references."""
 
     __slots__ = ()
 
     def finalize(self):
         del self.parent
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        # Accessing the caught stuff has no side effect, pylint: disable=unused-argument
-        return False
-
-    @staticmethod
-    def mayHaveSideEffects():
-        # Referencing the caught stuff has no side effect
-        return False
 
 
 class ExpressionCaughtExceptionTypeRef(ExpressionCaughtMixin, ExpressionBase):

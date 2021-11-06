@@ -22,11 +22,16 @@ whose implementation lives here. The creation itself also lives here.
 
 """
 
-from .ExpressionBases import ExpressionChildHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionNoSideEffectsMixin,
+)
 from .FunctionNodes import ExpressionFunctionEntryPointBase
 
 
-class ExpressionMakeAsyncgenObject(ExpressionChildHavingBase):
+class ExpressionMakeAsyncgenObject(
+    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_MAKE_ASYNCGEN_OBJECT"
 
     named_child = "asyncgen_ref"
@@ -58,14 +63,6 @@ class ExpressionMakeAsyncgenObject(ExpressionChildHavingBase):
 
         # TODO: Asyncgen body may know something too.
         return self, None, None
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
-
-    @staticmethod
-    def mayHaveSideEffects():
-        return False
 
     def getClosureVariableVersions(self):
         return self.variable_closure_traces
