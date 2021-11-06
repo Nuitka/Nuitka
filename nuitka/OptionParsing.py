@@ -37,7 +37,7 @@ from nuitka.PythonVersions import (
     isNuitkaPython,
 )
 from nuitka.utils.FileOperations import getFileContentByLine
-from nuitka.utils.Utils import getArchitecture, getLinuxDistribution, getOS
+from nuitka.utils.Utils import getArchitecture, getLinuxDistribution, getOS, isMacOS
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
@@ -55,6 +55,8 @@ def _getPythonVendor():
         return "Anaconda Python"
     elif getOS() == "Linux" and isDebianPackagePython():
         return "Debian Python"
+    elif isMacOS() and sys.executable.startswith("/usr/bin/"):
+        return "Apple Python"
     elif isNuitkaPython():
         return "Nuitka Python"
     else:
