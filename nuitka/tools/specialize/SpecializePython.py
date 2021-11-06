@@ -63,7 +63,7 @@ python2_dict_methods = (
     "keys",  # has full dict coverage
     "pop",
     "popitem",
-    "setdefault",
+    "setdefault",  # has full dict coverage
     "update",
     "values",  # has full dict coverage
     "viewitems",  # has full dict coverage

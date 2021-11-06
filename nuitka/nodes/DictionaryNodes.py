@@ -452,6 +452,135 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
         return True
 
 
+class ExpressionDictOperationSetdefault2(ExpressionChildrenHavingBase):
+    """This operation represents d.setdefault(key), i.e. default None."""
+
+    kind = "EXPRESSION_DICT_OPERATION_SETDEFAULT2"
+
+    named_children = ("dict_arg", "key")
+
+    __slots__ = ("known_hashable_key",)
+
+    def __init__(self, dict_arg, key, source_ref):
+        assert dict_arg is not None
+        assert key is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"dict_arg": dict_arg, "key": key},
+            source_ref=source_ref,
+        )
+
+        self.known_hashable_key = None
+
+    def computeExpression(self, trace_collection):
+        dict_arg = self.subnode_dict_arg
+        key = self.subnode_key
+
+        if self.known_hashable_key is None:
+            self.known_hashable_key = key.isKnownToBeHashable()
+
+            if self.known_hashable_key is False:
+                trace_collection.onExceptionRaiseExit(BaseException)
+
+                return makeUnhashableExceptionReplacementExpression(
+                    node=self,
+                    key=key,
+                    operation="dict.setdefault",
+                    side_effects=(dict_arg, key),
+                )
+
+        # TODO: Check if dict_arg has key, and eliminate this node entirely
+        # if that's the case with hashing of the key as a remaining side effect
+        # though.
+
+        # TODO: Until we have proper dictionary tracing, do this.
+        trace_collection.removeKnowledge(self.subnode_dict_arg)
+
+        # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault3 in
+        # that case.
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        if self.known_hashable_key is None:
+            return True
+        else:
+            return self.subnode_dict_arg.mayRaiseException(
+                exception_type
+            ) or self.subnode_key.mayRaiseException(exception_type)
+
+    @staticmethod
+    def mayHaveSideEffects():
+        # A dictionary change is possible unless we know better and removed it.
+        return True
+
+
+class ExpressionDictOperationSetdefault3(ExpressionChildrenHavingBase):
+    """This operation represents d.setdefault(key, default)."""
+
+    kind = "EXPRESSION_DICT_OPERATION_SETDEFAULT3"
+
+    named_children = ("dict_arg", "key", "default")
+
+    __slots__ = ("known_hashable_key",)
+
+    def __init__(self, dict_arg, key, default, source_ref):
+        assert dict_arg is not None
+        assert key is not None
+        assert default is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"dict_arg": dict_arg, "key": key, "default": default},
+            source_ref=source_ref,
+        )
+
+        self.known_hashable_key = None
+
+    def computeExpression(self, trace_collection):
+        dict_arg = self.subnode_dict_arg
+        key = self.subnode_key
+
+        if self.known_hashable_key is None:
+            self.known_hashable_key = key.isKnownToBeHashable()
+
+            if self.known_hashable_key is False:
+                trace_collection.onExceptionRaiseExit(BaseException)
+
+                return makeUnhashableExceptionReplacementExpression(
+                    node=self,
+                    key=key,
+                    operation="dict.setdefault",
+                    side_effects=(dict_arg, key, self.subnode_default),
+                )
+
+        # TODO: Check if dict_arg has key, and eliminate this node entirely
+        # if that's the case with hashing of the key as a remaining side effect
+        # though.
+
+        # TODO: Until we have proper dictionary tracing, do this.
+        trace_collection.removeKnowledge(self.subnode_dict_arg)
+
+        # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault3 in
+        # that case.
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        if self.known_hashable_key is None:
+            return True
+        else:
+            return (
+                self.subnode_dict_arg.mayRaiseException(exception_type)
+                or self.subnode_key.mayRaiseException(exception_type)
+                or self.subnode_default.mayRaiseException(exception_type)
+            )
+
+    @staticmethod
+    def mayHaveSideEffects():
+        # A dictionary change is possible unless we know better and removed it.
+        return True
+
+
 class ExpressionDictOperationItem(ExpressionChildrenHavingBase):
     """This operation represents d[key] with an exception for missing key."""
 
