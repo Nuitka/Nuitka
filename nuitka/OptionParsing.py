@@ -1004,7 +1004,7 @@ windows_group.add_option(
     default=None,
     help="""\
 File version to use in Windows Version information. Must be a sequence of
-up to 4 numbers, nothing else allowed.
+up to 4 numbers, e.g. 1.0.0.0, only this format is allowed.
 One of file or product version is required, when a version resource needs to be
 added, e.g. to specify product name, or company name. Defaults to unused.""",
 )
@@ -1017,7 +1017,7 @@ windows_group.add_option(
     default=None,
     help="""\
 Product version to use in Windows Version information. Must be a sequence of
-up to 4 numbers, nothing else allowed.
+up to 4 numbers, e.g. 1.0.0.0, only this format is allowed.
 One of file or product version is required, when a version resource needs to be
 added, e.g. to specify product name, or company name. Defaults to unused.""",
 )
@@ -1136,6 +1136,18 @@ macos_group.add_option(
 Name of the product to use in macOS bundle information. Defaults to base
 filename of the binary.""",
 )
+
+windows_group.add_option(
+    "--macos-app-version",
+    action="store",
+    dest="macos_app_version",
+    metavar="MACOS_APP_VERSION",
+    default=None,
+    help="""\
+Product version to use in macOS bundle information. Defaults to 1.0 if
+not given.""",
+)
+
 
 parser.add_option_group(macos_group)
 
