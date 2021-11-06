@@ -222,17 +222,9 @@ class StatementExpressionOnly(StatementChildHavingBase):
     def computeStatement(self, trace_collection):
         expression = trace_collection.onExpression(expression=self.subnode_expression)
 
-        if expression.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-        result, change_tags, change_desc = expression.computeExpressionDrop(
+        return expression.computeExpressionDrop(
             statement=self, trace_collection=trace_collection
         )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
-        return self, None, None
 
     @staticmethod
     def getStatementNiceName():

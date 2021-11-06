@@ -35,6 +35,7 @@ from .ConstantRefNodes import (
 from .ExpressionBases import (
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
+    ExpressionNoSideEffectsMixin,
 )
 from .NodeBases import (
     SideEffectsFromChildrenMixin,
@@ -509,11 +510,6 @@ class ExpressionDictOperationSetdefault2(ExpressionChildrenHavingBase):
                 exception_type
             ) or self.subnode_key.mayRaiseException(exception_type)
 
-    @staticmethod
-    def mayHaveSideEffects():
-        # A dictionary change is possible unless we know better and removed it.
-        return True
-
 
 class ExpressionDictOperationSetdefault3(ExpressionChildrenHavingBase):
     """This operation represents d.setdefault(key, default)."""
@@ -574,11 +570,6 @@ class ExpressionDictOperationSetdefault3(ExpressionChildrenHavingBase):
                 or self.subnode_key.mayRaiseException(exception_type)
                 or self.subnode_default.mayRaiseException(exception_type)
             )
-
-    @staticmethod
-    def mayHaveSideEffects():
-        # A dictionary change is possible unless we know better and removed it.
-        return True
 
 
 class ExpressionDictOperationItem(ExpressionChildrenHavingBase):
@@ -812,7 +803,9 @@ class ExpressionDictOperationGet3(ExpressionChildrenHavingBase):
             )
 
 
-class ExpressionDictOperationCopy(ExpressionChildHavingBase):
+class ExpressionDictOperationCopy(
+    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_DICT_OPERATION_COPY"
 
     named_child = "dict_arg"
@@ -847,10 +840,6 @@ class ExpressionDictOperationCopy(ExpressionChildHavingBase):
         return tshape_dict
 
     @staticmethod
-    def mayHaveSideEffects():
-        return False
-
-    @staticmethod
     def mayRaiseException(exception_type):
         return False
 
@@ -879,15 +868,13 @@ class ExpressionDictOperationClear(ExpressionChildHavingBase):
         return tshape_none
 
     @staticmethod
-    def mayHaveSideEffects():
-        return True
-
-    @staticmethod
     def mayRaiseException(exception_type):
         return False
 
 
-class ExpressionDictOperationKeys(ExpressionChildHavingBase):
+class ExpressionDictOperationKeys(
+    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_DICT_OPERATION_KEYS"
 
     named_child = "dict_arg"
@@ -920,15 +907,13 @@ class ExpressionDictOperationKeys(ExpressionChildHavingBase):
         return tshape_list
 
     @staticmethod
-    def mayHaveSideEffects():
-        return False
-
-    @staticmethod
     def mayRaiseException(exception_type):
         return False
 
 
-class ExpressionDictOperationViewkeys(ExpressionChildHavingBase):
+class ExpressionDictOperationViewkeys(
+    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_DICT_OPERATION_VIEWKEYS"
 
     named_child = "dict_arg"
@@ -949,15 +934,13 @@ class ExpressionDictOperationViewkeys(ExpressionChildHavingBase):
         return tshape_iterator
 
     @staticmethod
-    def mayHaveSideEffects():
-        return False
-
-    @staticmethod
     def mayRaiseException(exception_type):
         return False
 
 
-class ExpressionDictOperationIterkeys(ExpressionChildHavingBase):
+class ExpressionDictOperationIterkeys(
+    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_DICT_OPERATION_ITERKEYS"
 
     named_child = "dict_arg"
@@ -977,15 +960,13 @@ class ExpressionDictOperationIterkeys(ExpressionChildHavingBase):
         return tshape_iterator
 
     @staticmethod
-    def mayHaveSideEffects():
-        return False
-
-    @staticmethod
     def mayRaiseException(exception_type):
         return False
 
 
-class ExpressionDictOperationValues(ExpressionChildHavingBase):
+class ExpressionDictOperationValues(
+    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_DICT_OPERATION_VALUES"
 
     named_child = "dict_arg"
@@ -1018,15 +999,13 @@ class ExpressionDictOperationValues(ExpressionChildHavingBase):
         return tshape_list
 
     @staticmethod
-    def mayHaveSideEffects():
-        return False
-
-    @staticmethod
     def mayRaiseException(exception_type):
         return False
 
 
-class ExpressionDictOperationViewvalues(ExpressionChildHavingBase):
+class ExpressionDictOperationViewvalues(
+    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_DICT_OPERATION_VIEWVALUES"
 
     named_child = "dict_arg"
@@ -1047,15 +1026,13 @@ class ExpressionDictOperationViewvalues(ExpressionChildHavingBase):
         return tshape_iterator
 
     @staticmethod
-    def mayHaveSideEffects():
-        return False
-
-    @staticmethod
     def mayRaiseException(exception_type):
         return False
 
 
-class ExpressionDictOperationItervalues(ExpressionChildHavingBase):
+class ExpressionDictOperationItervalues(
+    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_DICT_OPERATION_ITERVALUES"
 
     named_child = "dict_arg"
@@ -1075,15 +1052,13 @@ class ExpressionDictOperationItervalues(ExpressionChildHavingBase):
         return tshape_iterator
 
     @staticmethod
-    def mayHaveSideEffects():
-        return False
-
-    @staticmethod
     def mayRaiseException(exception_type):
         return False
 
 
-class ExpressionDictOperationItems(ExpressionChildHavingBase):
+class ExpressionDictOperationItems(
+    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_DICT_OPERATION_ITEMS"
 
     named_child = "dict_arg"
@@ -1116,15 +1091,13 @@ class ExpressionDictOperationItems(ExpressionChildHavingBase):
         return tshape_list
 
     @staticmethod
-    def mayHaveSideEffects():
-        return False
-
-    @staticmethod
     def mayRaiseException(exception_type):
         return False
 
 
-class ExpressionDictOperationIteritems(ExpressionChildHavingBase):
+class ExpressionDictOperationIteritems(
+    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_DICT_OPERATION_ITERITEMS"
 
     named_child = "dict_arg"
@@ -1146,15 +1119,13 @@ class ExpressionDictOperationIteritems(ExpressionChildHavingBase):
         return tshape_iterator
 
     @staticmethod
-    def mayHaveSideEffects():
-        return False
-
-    @staticmethod
     def mayRaiseException(exception_type):
         return False
 
 
-class ExpressionDictOperationViewitems(ExpressionChildHavingBase):
+class ExpressionDictOperationViewitems(
+    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_DICT_OPERATION_VIEWITEMS"
 
     named_child = "dict_arg"
@@ -1173,10 +1144,6 @@ class ExpressionDictOperationViewitems(ExpressionChildHavingBase):
     def getTypeShape():
         # TODO: Actually iterator that yields key values
         return tshape_iterator
-
-    @staticmethod
-    def mayHaveSideEffects():
-        return False
 
     @staticmethod
     def mayRaiseException(exception_type):

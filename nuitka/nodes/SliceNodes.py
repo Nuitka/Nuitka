@@ -276,6 +276,7 @@ class ExpressionBuiltinSliceMixin(SideEffectsFromChildrenMixin):
         # Definitely not iterable at all
         return False
 
+    # We use SideEffectsFromChildrenMixin for the other things.
     def mayHaveSideEffects(self):
         return self.mayRaiseException(BaseException)
 

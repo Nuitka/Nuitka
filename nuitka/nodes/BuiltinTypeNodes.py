@@ -350,14 +350,6 @@ class ExpressionConstantGenericAlias(CompileTimeConstantExpressionBase):
     def getDetails(self):
         return {"generic_alias": self.generic_alias}
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
-
-    @staticmethod
-    def mayHaveSideEffects():
-        return False
-
     def getCompileTimeConstant(self):
         return self.generic_alias
 
