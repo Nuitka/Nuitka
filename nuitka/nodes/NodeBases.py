@@ -1091,7 +1091,6 @@ class SideEffectsFromChildrenMixin(object):
 
     def extractSideEffects(self):
         # No side effects at all but from the children.
-
         result = []
 
         for child in self.getVisitableNodes():

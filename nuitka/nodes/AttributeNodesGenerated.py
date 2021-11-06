@@ -372,6 +372,9 @@ class ExpressionAttributeLookupFixedHaskey(ExpressionAttributeLookupFixedBase):
 attribute_classes["has_key"] = ExpressionAttributeLookupFixedHaskey
 
 
+from nuitka.specs.BuiltinDictOperationSpecs import dict_has_key_spec
+
+
 class ExpressionAttributeLookupDictHaskey(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedHaskey
 ):
@@ -386,7 +389,25 @@ class ExpressionAttributeLookupDictHaskey(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as dict operation ExpressionDictOperationHaskey is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionDictOperationHaskey(key, source_ref):
+            from .DictionaryNodes import ExpressionDictOperationHaskey
+
+            return ExpressionDictOperationHaskey(
+                dict_arg=self.subnode_expression, key=key, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationHaskey,
+            builtin_spec=dict_has_key_spec,
+        )
+
+        return result, "new_expression", "Call to 'has_key' of dictionary recognized."
 
 
 attribute_typed_classes["has_key"] = ExpressionAttributeLookupDictHaskey
