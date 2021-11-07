@@ -246,10 +246,6 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key) {
     PyDictEntry *entry = (dict_object->ma_lookup)(dict_object, key, hash);
 
     if (unlikely(entry == NULL || entry->me_value == NULL)) {
-        if (unlikely(ERROR_OCCURRED())) {
-            return NULL;
-        }
-
         SET_KEY_ERROR_EXCEPTION(key);
 
         return NULL;
@@ -355,10 +351,6 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyObject *dict, PyObject *key) {
     PyDictEntry *entry = (dict_object->ma_lookup)(dict_object, key, hash);
 
     if (unlikely(entry == NULL || entry->me_value == NULL)) {
-        if (unlikely(ERROR_OCCURRED())) {
-            return NULL;
-        }
-
         return NULL;
     }
 
@@ -457,10 +449,6 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyObject *dict, PyObject *key) {
     PyDictEntry *entry = (dict_object->ma_lookup)(dict_object, key, hash);
 
     if (unlikely(entry == NULL || entry->me_value == NULL)) {
-        if (unlikely(ERROR_OCCURRED())) {
-            return NULL;
-        }
-
         return NULL;
     }
 
@@ -558,10 +546,6 @@ int DICT_HAS_ITEM(PyObject *dict, PyObject *key) {
     PyDictEntry *entry = (dict_object->ma_lookup)(dict_object, key, hash);
 
     if (unlikely(entry == NULL || entry->me_value == NULL)) {
-        if (unlikely(ERROR_OCCURRED())) {
-            return -1;
-        }
-
         return 0;
     }
 
@@ -581,10 +565,6 @@ int DICT_HAS_ITEM(PyObject *dict, PyObject *key) {
     PyDictKeyEntry *entry = dict_object->ma_keys->dk_lookup(dict_object, key, hash, &value_addr);
 
     if (unlikely(entry == NULL || *value_addr == NULL)) {
-        if (unlikely(ERROR_OCCURRED())) {
-            return -1;
-        }
-
         return 0;
     }
 
