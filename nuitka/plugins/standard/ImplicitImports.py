@@ -911,8 +911,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield full_name.getChildNamed(idiom.name).getChildNamed("locale")
         # pendulum imports -- STOP --------------------------------------------
 
+        # TODO: Is this even true, or an artifact of how we handled requests.packages.urllib3 in the past.
         # urllib3 -------------------------------------------------------------
-        elif full_name in ("urllib3", "requests.packages", "requests_toolbelt._compat"):
+        elif full_name in ("urllib3", "requests_toolbelt._compat"):
             yield "urllib3"
             yield "urllib3._collections"
             yield "urllib3.connection"
@@ -1128,108 +1129,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             # create a flattened import set for full_name and yield from it
             for item in self.getImportsByFullname(full_name, module_filename):
                 yield item
-
-    module_aliases = {
-        "six.moves.builtins": "__builtin__" if python_version < 0x300 else "builtins",
-        "six.moves.configparser": "ConfigParser"
-        if python_version < 0x300
-        else "configparser",
-        "six.moves.copyreg": "copy_reg" if python_version < 0x300 else "copyreg",
-        "six.moves.dbm_gnu": "gdbm" if python_version < 0x300 else "dbm.gnu",
-        "six.moves._dummy_thread": "dummy_thread"
-        if python_version < 0x300
-        else "_dummy_thread",
-        "six.moves.http_cookiejar": "cookielib"
-        if python_version < 0x300
-        else "http.cookiejar",
-        "six.moves.http_cookies": "Cookie"
-        if python_version < 0x300
-        else "http.cookies",
-        "six.moves.html_entities": "htmlentitydefs"
-        if python_version < 0x300
-        else "html.entities",
-        "six.moves.html_parser": "HTMLParser"
-        if python_version < 0x300
-        else "html.parser",
-        "six.moves.http_client": "httplib" if python_version < 0x300 else "http.client",
-        "six.moves.email_mime_multipart": "email.MIMEMultipart"
-        if python_version < 0x300
-        else "email.mime.multipart",
-        "six.moves.email_mime_nonmultipart": "email.MIMENonMultipart"
-        if python_version < 0x300
-        else "email.mime.nonmultipart",
-        "six.moves.email_mime_text": "email.MIMEText"
-        if python_version < 0x300
-        else "email.mime.text",
-        "six.moves.email_mime_base": "email.MIMEBase"
-        if python_version < 0x300
-        else "email.mime.base",
-        "six.moves.BaseHTTPServer": "BaseHTTPServer"
-        if python_version < 0x300
-        else "http.server",
-        "six.moves.CGIHTTPServer": "CGIHTTPServer"
-        if python_version < 0x300
-        else "http.server",
-        "six.moves.SimpleHTTPServer": "SimpleHTTPServer"
-        if python_version < 0x300
-        else "http.server",
-        "six.moves.cPickle": "cPickle" if python_version < 0x300 else "pickle",
-        "six.moves.queue": "Queue" if python_version < 0x300 else "queue",
-        "six.moves.reprlib": "repr" if python_version < 0x300 else "reprlib",
-        "six.moves.socketserver": "SocketServer"
-        if python_version < 0x300
-        else "socketserver",
-        "six.moves._thread": "thread" if python_version < 0x300 else "_thread",
-        "six.moves.tkinter": "Tkinter" if python_version < 0x300 else "tkinter",
-        "six.moves.tkinter_dialog": "Dialog"
-        if python_version < 0x300
-        else "tkinter.dialog",
-        "six.moves.tkinter_filedialog": "FileDialog"
-        if python_version < 0x300
-        else "tkinter.filedialog",
-        "six.moves.tkinter_scrolledtext": "ScrolledText"
-        if python_version < 0x300
-        else "tkinter.scrolledtext",
-        "six.moves.tkinter_simpledialog": "SimpleDialog"
-        if python_version < 0x300
-        else "tkinter.simpledialog",
-        "six.moves.tkinter_tix": "Tix" if python_version < 0x300 else "tkinter.tix",
-        "six.moves.tkinter_ttk": "ttk" if python_version < 0x300 else "tkinter.ttk",
-        "six.moves.tkinter_constants": "Tkconstants"
-        if python_version < 0x300
-        else "tkinter.constants",
-        "six.moves.tkinter_dnd": "Tkdnd" if python_version < 0x300 else "tkinter.dnd",
-        "six.moves.tkinter_colorchooser": "tkColorChooser"
-        if python_version < 0x300
-        else "tkinter_colorchooser",
-        "six.moves.tkinter_commondialog": "tkCommonDialog"
-        if python_version < 0x300
-        else "tkinter_commondialog",
-        "six.moves.tkinter_tkfiledialog": "tkFileDialog"
-        if python_version < 0x300
-        else "tkinter.filedialog",
-        "six.moves.tkinter_font": "tkFont"
-        if python_version < 0x300
-        else "tkinter.font",
-        "six.moves.tkinter_messagebox": "tkMessageBox"
-        if python_version < 0x300
-        else "tkinter.messagebox",
-        "six.moves.tkinter_tksimpledialog": "tkSimpleDialog"
-        if python_version < 0x300
-        else "tkinter_tksimpledialog",
-        "six.moves.urllib_parse": None if python_version < 0x300 else "urllib.parse",
-        "six.moves.urllib_error": None if python_version < 0x300 else "urllib.error",
-        "six.moves.urllib_robotparser": "robotparser"
-        if python_version < 0x300
-        else "urllib.robotparser",
-        "six.moves.xmlrpc_client": "xmlrpclib"
-        if python_version < 0x300
-        else "xmlrpc.client",
-        "six.moves.xmlrpc_server": "SimpleXMLRPCServer"
-        if python_version < 0x300
-        else "xmlrpc.server",
-        "six.moves.winreg": "_winreg" if python_version < 0x300 else "winreg",
-    }
 
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "numexpr.cpuinfo":
