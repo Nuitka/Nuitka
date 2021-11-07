@@ -928,8 +928,6 @@ class StatementChildHavingBase(StatementBase):
     def __init__(self, value, source_ref):
         StatementBase.__init__(self, source_ref=source_ref)
 
-        assert type(self.named_child) is str and self.named_child
-
         if self.checker is not None:
             value = self.checker(value)  # False alarm, pylint: disable=not-callable
 

@@ -21,8 +21,8 @@
 
 from .ExpressionBases import (
     ExpressionBase,
-    ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
+    ExpressionChildTupleHavingBase,
     ExpressionNoSideEffectsMixin,
 )
 from .NodeBases import StatementBase, StatementChildrenHavingBase
@@ -260,7 +260,7 @@ Propagated implicit raise expression to raise statement.""",
         )
 
 
-class ExpressionBuiltinMakeException(ExpressionChildHavingBase):
+class ExpressionBuiltinMakeException(ExpressionChildTupleHavingBase):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION"
 
     named_child = "args"
@@ -268,7 +268,7 @@ class ExpressionBuiltinMakeException(ExpressionChildHavingBase):
     __slots__ = ("exception_name",)
 
     def __init__(self, exception_name, args, source_ref):
-        ExpressionChildHavingBase.__init__(
+        ExpressionChildTupleHavingBase.__init__(
             self, value=tuple(args), source_ref=source_ref
         )
 
