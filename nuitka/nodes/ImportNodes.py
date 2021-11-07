@@ -35,6 +35,7 @@ from nuitka.importing.Importing import (
     findModule,
     getModuleNameAndKindFromFilename,
 )
+from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.ModuleRegistry import getUncompiledModule
@@ -157,26 +158,6 @@ def makeExpressionAbsoluteImportNode(module_name, source_ref):
         level=makeConstantRefNode(0, source_ref, True),
         source_ref=source_ref,
     )
-
-
-def resolveModuleName(module_name):
-    # TODO: This is not handling decoding errors all that well.
-    if str is not unicode and type(module_name) is unicode:
-        module_name = str(module_name)
-
-    module_name = ModuleName(module_name)
-
-    # TODO: Allow this to be done by plugins. We compensate meta path based
-    # importer effects here.
-    if module_name.isBelowNamespace("bottle.ext"):
-        module_name = (
-            ModuleName("bottle_")
-            + module_name.splitPackageName()[1].splitPackageName()[1]
-        )
-    elif module_name.isBelowNamespace("requests.packages"):
-        return module_name.splitPackageName()[1].splitPackageName()[1]
-
-    return module_name
 
 
 class ExpressionImportModuleFixed(ExpressionBase):
