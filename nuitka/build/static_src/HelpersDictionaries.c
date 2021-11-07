@@ -1038,17 +1038,37 @@ PyObject *DICT_SETDEFAULT3(PyObject *dict, PyObject *key, PyObject *default_valu
     return CALL_FUNCTION_WITH_ARGS3(dict_builtin_setdefault, args);
 }
 
-    PyObject *value = DICT_GET_ITEM_WITH_HASH_ERROR1(dict, key);
+static PyObject *dict_builtin_pop = NULL;
 
-    if (value != NULL) {
-        return value;
+PyObject *DICT_POP2(PyObject *dict, PyObject *key) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_Check(dict));
+    CHECK_OBJECT(key);
+
+    // TODO: We would need to implement search and remove for dictionaries to
+    // make this fast.
+    if (unlikely(dict_builtin_pop == NULL)) {
+        dict_builtin_pop = PyObject_GetAttrString((PyObject *)&PyDict_Type, "pop");
     }
 
-    // TODO: Once we generate stuff, this could be a variant if known to be hashable or not.
-    if (unlikely(ERROR_OCCURRED())) {
-        return NULL;
+    PyObject *args[2] = {dict, key};
+
+    return CALL_FUNCTION_WITH_ARGS2(dict_builtin_pop, args);
+}
+
+PyObject *DICT_POP3(PyObject *dict, PyObject *key, PyObject *default_value) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_Check(dict));
+    CHECK_OBJECT(key);
+    CHECK_OBJECT(default_value);
+
+    // TODO: We would need to implement search and remove for dictionaries to
+    // make this fast.
+    if (unlikely(dict_builtin_pop == NULL)) {
+        dict_builtin_pop = PyObject_GetAttrString((PyObject *)&PyDict_Type, "pop");
     }
 
-    Py_INCREF(default_value);
-    return default_value;
+    PyObject *args[3] = {dict, key, default_value};
+
+    return CALL_FUNCTION_WITH_ARGS3(dict_builtin_pop, args);
 }

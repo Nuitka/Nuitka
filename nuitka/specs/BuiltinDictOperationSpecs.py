@@ -67,3 +67,5 @@ dict_has_key_spec = DictMethodSpec("has_key", arg_names=("key",))
 dict_setdefault_spec = DictMethodSpec(
     "setdefault", arg_names=("key", "default"), default_count=1
 )
+
+dict_pop_spec = DictMethodSpec("pop", arg_names=("key", "default"), default_count=1)

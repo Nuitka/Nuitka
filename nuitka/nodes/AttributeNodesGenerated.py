@@ -864,6 +864,9 @@ class ExpressionAttributeLookupFixedPop(ExpressionAttributeLookupFixedBase):
 attribute_classes["pop"] = ExpressionAttributeLookupFixedPop
 
 
+from nuitka.specs.BuiltinDictOperationSpecs import dict_pop_spec
+
+
 class ExpressionAttributeLookupDictPop(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedPop
 ):
@@ -878,7 +881,35 @@ class ExpressionAttributeLookupDictPop(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as dict operation ExpressionDictOperationPop is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionDictOperationPop(key, default, source_ref):
+            if default is not None:
+                from .DictionaryNodes import ExpressionDictOperationPop3
+
+                return ExpressionDictOperationPop3(
+                    dict_arg=self.subnode_expression,
+                    key=key,
+                    default=default,
+                    source_ref=source_ref,
+                )
+            else:
+                from .DictionaryNodes import ExpressionDictOperationPop2
+
+                return ExpressionDictOperationPop2(
+                    dict_arg=self.subnode_expression, key=key, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationPop,
+            builtin_spec=dict_pop_spec,
+        )
+
+        return result, "new_expression", "Call to 'pop' of dictionary recognized."
 
 
 attribute_typed_classes["pop"] = ExpressionAttributeLookupDictPop
