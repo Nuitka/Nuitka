@@ -35,6 +35,7 @@ from .ConstantRefNodes import (
 from .ExpressionBases import (
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
+    ExpressionChildTupleHavingBase,
     ExpressionNoSideEffectsMixin,
 )
 from .NodeBases import (
@@ -174,7 +175,7 @@ def makeExpressionMakeDictOrConstant(pairs, user_provided, source_ref):
     return result
 
 
-class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildHavingBase):
+class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildTupleHavingBase):
     kind = "EXPRESSION_MAKE_DICT"
 
     named_child = "pairs"
@@ -182,7 +183,7 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildHavingBase
     def __init__(self, pairs, source_ref):
         assert pairs
 
-        ExpressionChildHavingBase.__init__(
+        ExpressionChildTupleHavingBase.__init__(
             self, value=tuple(pairs), source_ref=source_ref
         )
 

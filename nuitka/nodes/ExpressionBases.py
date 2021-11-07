@@ -1190,24 +1190,162 @@ class ExpressionChildHavingBase(ExpressionBase):
     def __init__(self, value, source_ref):
         ExpressionBase.__init__(self, source_ref=source_ref)
 
-        assert type(self.named_child) is str and self.named_child
+        if self.checker is not None:
+            value = self.checker(value)  # False alarm, pylint: disable=not-callable
+
+        if value is not None:
+
+            value.parent = self
+
+        attr_name = "subnode_" + self.named_child
+        setattr(self, attr_name, value)
+
+    def finalize(self):
+        del self.parent
+
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        if value is not None:
+            value.finalize()
+
+    # TODO: De-duplicate this with multiple child variant.
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+        # First apply the sub-expression, as they it's evaluated before.
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        if value is not None:
+            expression = trace_collection.onExpression(expression=value)
+
+            if expression.willRaiseException(BaseException):
+                return (
+                    expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection=trace_collection)
+
+    def setChild(self, name, value):
+        """Set a child value.
+
+        Do not overload, provide self.checkers instead.
+        """
+        # Only accept legal child name
+        assert name == self.named_child, name
 
         if self.checker is not None:
             value = self.checker(value)  # False alarm, pylint: disable=not-callable
 
-        assert type(value) is not list, self.named_child
+        attr_name = "subnode_" + self.named_child
 
-        if type(value) is tuple:
-            assert None not in value, self.named_child
+        # Checks if it's a real change in debug mode.
+        if Options.is_debug:
+            # Determine old value, and inform it about losing its parent.
+            old_value = getattr(self, attr_name)
+            assert old_value is not value, value
 
-            for val in value:
-                val.parent = self
-        elif value is not None:
+        # Re-parent value to us.
+        if value is not None:
             value.parent = self
-        elif value is None:
-            pass
+
+        setattr(self, attr_name, value)
+
+    def clearChild(self, name):
+        # Only accept legal child name
+        assert name == self.named_child, name
+
+        if self.checker is not None:
+            self.checker(None)  # False alarm, pylint: disable=not-callable
+
+        attr_name = "subnode_" + name
+
+        # Determine old value, and inform it about losing its parent.
+        old_value = getattr(self, attr_name)
+        assert old_value is not None
+
+        setattr(self, attr_name, None)
+
+    def getChild(self, name):
+        # Only accept legal child name
+        assert name == self.named_child, name
+
+        attr_name = "subnode_" + name
+        return getattr(self, attr_name)
+
+    def getVisitableNodes(self):
+        # TODO:
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        # In this case, generator is not faster.
+        if value is None:
+            return ()
         else:
-            assert False, type(value)
+            return (value,)
+
+    def getVisitableNodesNamed(self):
+        """Named children items.
+
+        For generic code to use in outputs and code generation.
+        """
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        yield self.named_child, value
+
+    def replaceChild(self, old_node, new_node):
+        if new_node is not None and not isinstance(new_node, NodeBase):
+            raise AssertionError(
+                "Cannot replace with", new_node, "old", old_node, "in", self
+            )
+
+        # Find the replaced node, as an added difficulty, what might be
+        # happening, is that the old node is an element of a tuple, in which we
+        # may also remove that element, by setting it to None.
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        if old_node is value:
+            new_node.parent = self
+            setattr(self, attr_name, new_node)
+        else:
+            raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        # Make clones of child nodes too.
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        values = {self.named_child: value.makeClone()}
+        values.update(self.getDetails())
+
+        return values
+
+
+class ExpressionChildTupleHavingBase(ExpressionBase):
+    checker = None
+
+    def __init__(self, value, source_ref):
+        ExpressionBase.__init__(self, source_ref=source_ref)
+
+        if self.checker is not None:
+            value = self.checker(value)  # False alarm, pylint: disable=not-callable
+
+        assert type(value) is tuple, self.named_child
+        assert None not in value, self.named_child
+
+        for expression in value:
+            expression.parent = self
 
         attr_name = "subnode_" + self.named_child
         setattr(self, attr_name, value)
@@ -1265,62 +1403,33 @@ class ExpressionChildHavingBase(ExpressionBase):
 
         if self.checker is not None:
             value = self.checker(value)  # False alarm, pylint: disable=not-callable
+
         # Re-parent value to us.
-        if type(value) is tuple:
-            for val in value:
-                val.parent = self
-        elif value is not None:
-            value.parent = self
+        for val in value:
+            val.parent = self
 
         attr_name = "subnode_" + name
-
-        # TODO: This is not being done for any variant of this, this only checks if it's a real change,
-        # but that should only be done in debug mode maybe.
-
-        # Determine old value, and inform it about losing its parent.
-        old_value = getattr(self, attr_name)
-        assert old_value is not value, value
-
         setattr(self, attr_name, value)
 
     def clearChild(self, name):
-        # Only accept legal child name
-        assert name == self.named_child, name
-
-        if self.checker is not None:
-            self.checker(None)  # False alarm, pylint: disable=not-callable
-
-        attr_name = "subnode_" + name
-
-        # Determine old value, and inform it about losing its parent.
-        old_value = getattr(self, attr_name)
-        assert old_value is not None
-
-        setattr(self, attr_name, None)
+        # We do not do this for tuples, pylint: disable=unused-argument
+        assert False, self.named_child
 
     def getChild(self, name):
         # Only accept legal child names
+        assert name == self.named_child, name
+
         attr_name = "subnode_" + name
         return getattr(self, attr_name)
 
     def getVisitableNodes(self):
-        # TODO: Consider if a generator would be faster.
         attr_name = "subnode_" + self.named_child
-        value = getattr(self, attr_name)
-
-        if value is None:
-            return ()
-        elif type(value) is tuple:
-            return value
-        elif Options.is_nondebug or isinstance(value, NodeBase):
-            return (value,)
-        else:
-            raise AssertionError(self, "has illegal child", value, value.__class__)
+        return getattr(self, attr_name)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
+        """Named children items.
 
-        For use in debugging and XML output.
+        For generic code to use in outputs and code generation.
         """
         attr_name = "subnode_" + self.named_child
         value = getattr(self, attr_name)
@@ -1336,52 +1445,29 @@ class ExpressionChildHavingBase(ExpressionBase):
         # Find the replaced node, as an added difficulty, what might be
         # happening, is that the old node is an element of a tuple, in which we
         # may also remove that element, by setting it to None.
-        key = self.named_child
-        value = self.getChild(key)
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
 
-        if value is None:
-            pass
-        elif type(value) is tuple:
-            if old_node in value:
-                if new_node is not None:
-                    self.setChild(
-                        key,
-                        tuple(
-                            (val if val is not old_node else new_node) for val in value
-                        ),
-                    )
-                else:
-                    self.setChild(
-                        key, tuple(val for val in value if val is not old_node)
-                    )
+        if old_node not in value:
+            raise AssertionError("Didn't find child", old_node, "in", self)
 
-                return key
-        elif isinstance(value, NodeBase):
-            if old_node is value:
-                self.setChild(key, new_node)
-
-                return key
+        if new_node is not None:
+            new_value = tuple(
+                (val if val is not old_node else new_node) for val in value
+            )
         else:
-            assert False, (key, value, value.__class__)
+            new_value = tuple(val for val in value if val is not old_node)
 
-        raise AssertionError("Didn't find child", old_node, "in", self)
+        new_node.parent = self
+
+        setattr(self, attr_name, new_value)
 
     def getCloneArgs(self):
         # Make clones of child nodes too.
-        values = {}
-        key = self.named_child
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
 
-        value = self.getChild(key)
-
-        assert type(value) is not list, key
-
-        if value is None:
-            values[key] = None
-        elif type(value) is tuple:
-            values[key] = tuple(v.makeClone() for v in value)
-        else:
-            values[key] = value.makeClone()
-
+        values = {self.named_child: tuple(v.makeClone() for v in value)}
         values.update(self.getDetails())
 
         return values
