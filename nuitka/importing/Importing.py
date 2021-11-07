@@ -49,7 +49,7 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import my_print, recursion_logger
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.FileOperations import listDir
+from nuitka.utils.FileOperations import listDir, removeDirectory
 from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import getOS, isMacOS
@@ -485,10 +485,15 @@ def _unpackPathElement(path_entry):
 
             target_dir = os.path.join(getCacheDir(), "egg-content", checksum)
 
-            # Not all Python versions allow using with here, pylint: disable=consider-using-with
-            zip_ref = zipfile.ZipFile(path_entry, "r")
-            zip_ref.extractall(target_dir)
-            zip_ref.close()
+            if not os.path.exists(target_dir):
+                try:
+                    # Not all Python versions allow using with here, pylint: disable=consider-using-with
+                    zip_ref = zipfile.ZipFile(path_entry, "r")
+                    zip_ref.extractall(target_dir)
+                    zip_ref.close()
+                except BaseException:
+                    removeDirectory(target_dir, ignore_errors=True)
+                    raise
 
             _egg_files[path_entry] = target_dir
 
