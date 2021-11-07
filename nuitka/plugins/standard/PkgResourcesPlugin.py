@@ -165,13 +165,21 @@ sys.exit(%(module_name)s.%(main_name)s)
                     source_code = source_code.replace(match[0], "")
 
         if self.metadata:
-            for match in re.findall(
-                r"""\b((?:importlib_)?metadata\.version\(\s*['"](.*?)['"]\s*\))""",
+            for total, quote1, name, quote2 in re.findall(
+                r"""\b((?:importlib_)?metadata\.version\(\s*(['"]?)(.*?)(['"]?)\s*\))""",
                 source_code,
             ):
-                value = self.metadata.version(match[1])
-                value = repr(value)
+                value = None
 
-                source_code = source_code.replace(match[0], value)
+                if quote1 == quote2:
+                    if quote1:
+                        value = self.metadata.version(name)
+                        value = repr(value)
+                    else:
+                        if name == "__name__":
+                            value = repr(module_name.asString())
+
+                if value is not None:
+                    source_code = source_code.replace(total, value)
 
         return source_code
