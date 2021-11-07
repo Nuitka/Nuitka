@@ -378,6 +378,32 @@ def generateDictOperationSetdefault3Code(to_name, expression, emit, context):
     )
 
 
+def generateDictOperationPop2Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_POP2",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationPop3Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_POP3",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=not expression.known_hashable_key,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
 def generateDictOperationCopyCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
