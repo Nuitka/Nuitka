@@ -228,10 +228,11 @@ include_group.add_option(
     metavar="PACKAGE",
     default=[],
     help="""\
-Include a whole package. Give as a Python namespace, e.g. ``some_package.sub_package``
+Include a whole package. Give as a Python namespace, e.g. "some_package.sub_package"
 and Nuitka will then find it and include it and all the modules found below that
 disk location in the binary or extension module it creates, and make it available
-for import by the code. Default empty.""",
+for import by the code. To avoid unwanted sub packages, e.g. tests you can e.g. do
+this "--nofollow-import-to=*.tests". Default empty.""",
 )
 
 include_group.add_option(
@@ -241,7 +242,7 @@ include_group.add_option(
     metavar="MODULE",
     default=[],
     help="""\
-Include a single module. Give as a Python namespace, e.g. ``some_package.some_module``
+Include a single module. Give as a Python namespace, e.g. "some_package.some_module"
 and Nuitka will then find it and include it in the binary or extension module
 it creates, and make it available for import by the code. Default empty.""",
 )
