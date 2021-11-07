@@ -246,6 +246,11 @@ extern PyObject *DICT_SETDEFAULT3(PyObject *dict, PyObject *key, PyObject *defau
 // setdefault dict operation with no default (means None) provided, no ref returned
 extern PyObject *DICT_SETDEFAULT2(PyObject *dict, PyObject *key);
 
+// pop dict operation with default provided, ref returned
+extern PyObject *DICT_POP3(PyObject *dict, PyObject *key, PyObject *default_value);
+// pop dict operation with no default, gives KeyError, ref returned
+extern PyObject *DICT_POP2(PyObject *dict, PyObject *key);
+
 // Convert to dictionary, helper for built-in "dict" mainly.
 NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT(PyObject *seq_obj, PyObject *dict_obj) {
     PyObject *result = PyDict_New();

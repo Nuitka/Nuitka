@@ -453,6 +453,135 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
         return True
 
 
+class ExpressionDictOperationPop2(ExpressionChildrenHavingBase):
+    """This operation represents d.pop(key), i.e. default None."""
+
+    kind = "EXPRESSION_DICT_OPERATION_POP2"
+
+    named_children = ("dict_arg", "key")
+
+    __slots__ = ("known_hashable_key",)
+
+    def __init__(self, dict_arg, key, source_ref):
+        assert dict_arg is not None
+        assert key is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"dict_arg": dict_arg, "key": key},
+            source_ref=source_ref,
+        )
+
+        self.known_hashable_key = None
+
+    def computeExpression(self, trace_collection):
+        dict_arg = self.subnode_dict_arg
+        key = self.subnode_key
+
+        if self.known_hashable_key is None:
+            self.known_hashable_key = key.isKnownToBeHashable()
+
+            if self.known_hashable_key is False:
+                trace_collection.onExceptionRaiseExit(BaseException)
+
+                return makeUnhashableExceptionReplacementExpression(
+                    node=self,
+                    key=key,
+                    operation="dict.pop",
+                    side_effects=(dict_arg, key),
+                )
+
+        # TODO: Check if dict_arg has key.
+
+        # TODO: Until we have proper dictionary tracing, do this.
+        trace_collection.removeKnowledge(self.subnode_dict_arg)
+
+        # TODO: Until we can know KeyError won't happen, but then we should change into
+        # something else.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault3 in
+        # that case.
+        return self, None, None
+
+    # TODO: These turn this into dictionary item removals, as value is unused.
+    # def computeExpressionDrop(self, statement, trace_collection):
+
+    # TODO: Might raise KeyError depending on dictionary.
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return True
+
+        # if self.known_hashable_key is None:
+        #     return True
+        # else:
+        #     return self.subnode_dict_arg.mayRaiseException(
+        #         exception_type
+        #     ) or self.subnode_key.mayRaiseException(exception_type)
+
+
+class ExpressionDictOperationPop3(ExpressionChildrenHavingBase):
+    """This operation represents d.pop(key, default)."""
+
+    kind = "EXPRESSION_DICT_OPERATION_POP3"
+
+    named_children = ("dict_arg", "key", "default")
+
+    __slots__ = ("known_hashable_key",)
+
+    def __init__(self, dict_arg, key, default, source_ref):
+        assert dict_arg is not None
+        assert key is not None
+        assert default is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"dict_arg": dict_arg, "key": key, "default": default},
+            source_ref=source_ref,
+        )
+
+        self.known_hashable_key = None
+
+    def computeExpression(self, trace_collection):
+        dict_arg = self.subnode_dict_arg
+        key = self.subnode_key
+
+        if self.known_hashable_key is None:
+            self.known_hashable_key = key.isKnownToBeHashable()
+
+            if self.known_hashable_key is False:
+                trace_collection.onExceptionRaiseExit(BaseException)
+
+                return makeUnhashableExceptionReplacementExpression(
+                    node=self,
+                    key=key,
+                    operation="dict.pop",
+                    side_effects=(dict_arg, key, self.subnode_default),
+                )
+
+        # TODO: Check if dict_arg has key
+
+        # TODO: Until we have proper dictionary tracing, do this.
+        trace_collection.removeKnowledge(self.subnode_dict_arg)
+
+        # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault3 in
+        # that case.
+        return self, None, None
+
+    # TODO: These turn this into dictionary item removals, as value is unused.
+    # def computeExpressionDrop(self, statement, trace_collection):
+
+    def mayRaiseException(self, exception_type):
+        if self.known_hashable_key is None:
+            return True
+        else:
+            return (
+                self.subnode_dict_arg.mayRaiseException(exception_type)
+                or self.subnode_key.mayRaiseException(exception_type)
+                or self.subnode_default.mayRaiseException(exception_type)
+            )
+
+
 class ExpressionDictOperationSetdefault2(ExpressionChildrenHavingBase):
     """This operation represents d.setdefault(key), i.e. default None."""
 
