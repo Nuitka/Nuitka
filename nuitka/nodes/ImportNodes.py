@@ -173,6 +173,8 @@ def resolveModuleName(module_name):
             ModuleName("bottle_")
             + module_name.splitPackageName()[1].splitPackageName()[1]
         )
+    elif module_name.isBelowNamespace("requests.packages"):
+        return module_name.splitPackageName()[1].splitPackageName()[1]
 
     return module_name
 
