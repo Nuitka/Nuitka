@@ -30,7 +30,7 @@ from .ConstantRefNodes import (
     ExpressionConstantTupleEmptyRef,
     makeConstantRefNode,
 )
-from .ExpressionBases import ExpressionChildHavingBase
+from .ExpressionBases import ExpressionChildTupleHavingBase
 from .IterationHandles import ListAndTupleContainerMakingIterationHandle
 from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
@@ -42,7 +42,7 @@ from .shapes.BuiltinTypeShapes import tshape_list, tshape_set, tshape_tuple
 
 
 class ExpressionMakeSequenceBase(
-    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ExpressionChildTupleHavingBase
 ):
     __slots__ = ("sequence_kind",)
 
@@ -56,7 +56,7 @@ class ExpressionMakeSequenceBase(
 
         self.sequence_kind = sequence_kind.lower()
 
-        ExpressionChildHavingBase.__init__(
+        ExpressionChildTupleHavingBase.__init__(
             self, value=tuple(elements), source_ref=source_ref
         )
 

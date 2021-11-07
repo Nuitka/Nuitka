@@ -63,6 +63,14 @@ class NodeCheckMetaClass(ABCMeta):
             dictionary["__slots__"] = ()
 
         if "named_child" in dictionary:
+            named_child = dictionary["named_child"]
+            if type(named_child) is not str:
+                raise NuitkaNodeDesignError(
+                    name,
+                    "Class named_child attribute must be string not",
+                    type(named_child),
+                )
+
             dictionary["__slots__"] += (intern("subnode_" + dictionary["named_child"]),)
 
         if "named_children" in dictionary:
