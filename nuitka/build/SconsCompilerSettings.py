@@ -43,12 +43,12 @@ from .SconsUtils import (
 )
 
 
-def enableC11Settings(env, clangcl_mode, msvc_mode, clang_mode, gcc_version):
+def enableC11Settings(env, clangcl_mode, clang_mode, gcc_version):
     """Decide if C11 mode can be used and enable the C compile flags for it.
 
     Args:
+        env - scons environment with compiler information
         clangcl_mode - clangcl.exe is used
-        msvc_mode - bool MSVC is used
         clang_mode - bool clang is used
         gcc_mode - bool gcc is used
         gcc_version - bool version of gcc used if gcc_mode is true
@@ -59,7 +59,7 @@ def enableC11Settings(env, clangcl_mode, msvc_mode, clang_mode, gcc_version):
 
     if clangcl_mode:
         c11_mode = True
-    elif msvc_mode:
+    elif env.msvc_mode:
         c11_mode = False
 
         # TODO: Once it includes updated Windows SDK, we could use C11 mode with it.
@@ -74,7 +74,7 @@ def enableC11Settings(env, clangcl_mode, msvc_mode, clang_mode, gcc_version):
     if c11_mode:
         if env.gcc_mode:
             env.Append(CCFLAGS=["-std=c11"])
-        elif msvc_mode:
+        elif env.msvc_mode:
             env.Append(CCFLAGS=["/std:c11"])
 
     return c11_mode
@@ -84,7 +84,6 @@ def enableLtoSettings(
     env,
     lto_mode,
     pgo_mode,
-    msvc_mode,
     clang_mode,
     nuitka_python,
     debian_python,
@@ -103,7 +102,7 @@ def enableLtoSettings(
     elif pgo_mode != "no":
         lto_mode = True
         reason = "PGO implies LTO"
-    elif msvc_mode and not lto_mode and getMsvcVersion(env) >= 14:
+    elif env.msvc_mode and not lto_mode and getMsvcVersion(env) >= 14:
         lto_mode = True
         reason = "known to be supported"
     elif nuitka_python:
@@ -131,7 +130,7 @@ def enableLtoSettings(
             env.Append(LINKFLAGS=["-flto=%d" % job_count])
 
     # Tell compiler to use link time optimization for MSVC
-    if msvc_mode and lto_mode:
+    if env.msvc_mode and lto_mode:
         env.Append(CCFLAGS=["/GL"])
         env.Append(LINKFLAGS=["/LTCG"])
 
@@ -148,10 +147,10 @@ def getDownloadedGccPath(target_arch, assume_yes_for_downloads):
     # Large URLs, pylint: disable=line-too-long
 
     if target_arch == "x86_64":
-        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/10.2.0-11.0.0-8.0.0-r5/winlibs-x86_64-posix-seh-gcc-10.2.0-llvm-11.0.0-mingw-w64-8.0.0-r5.zip"
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.2.0-12.0.1-9.0.0-r1/winlibs-x86_64-posix-seh-gcc-11.2.0-llvm-12.0.1-mingw-w64-9.0.0-r1.zip"
         binary = r"mingw64\bin\gcc.exe"
     else:
-        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/10.2.0-11.0.0-8.0.0-r5/winlibs-i686-posix-dwarf-gcc-10.2.0-llvm-11.0.0-mingw-w64-8.0.0-r5.zip"
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.2.0-12.0.1-9.0.0-r1/winlibs-i686-posix-dwarf-gcc-11.2.0-llvm-12.0.1-mingw-w64-9.0.0-r1.zip"
         binary = r"mingw32\bin\gcc.exe"
 
     gcc_binary = getCachedDownload(
@@ -277,7 +276,7 @@ def decideConstantsBlobResourceMode(gcc_mode, clang_mode, lto_mode):
     return resource_mode, reason
 
 
-def addConstantBlobFile(env, resource_desc, source_dir, mingw_mode, target_arch):
+def addConstantBlobFile(env, resource_desc, source_dir, target_arch):
     resource_mode, reason = resource_desc
 
     constants_bin_filename = getConstantBlobFilename(source_dir)
@@ -325,11 +324,11 @@ unsigned char const *getConstantsBlobData() {
                 "-Wl,%s" % constants_bin_filename,
                 "-Wl,-b",
                 "-Wl,%s"
-                % getLinkerArch(target_arch=target_arch, mingw_mode=mingw_mode),
+                % getLinkerArch(target_arch=target_arch, mingw_mode=env.mingw_mode),
                 "-Wl,-defsym",
                 "-Wl,%sconstant_bin_data=_binary_%s___constants_bin_start"
                 % (
-                    "_" if mingw_mode else "",
+                    "_" if env.mingw_mode else "",
                     "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in source_dir),
                 ),
             ]
@@ -381,17 +380,17 @@ unsigned char constant_bin_data[] =\n{\n
         )
 
 
-def enableWindowsStackSize(env, msvc_mode, mingw_mode, target_arch):
+def enableWindowsStackSize(env, target_arch):
     # Stack size 4MB or 8MB, we might need more than the default 1MB.
     if target_arch == "x86_64":
         stack_size = 1024 * 1204 * 8
     else:
         stack_size = 1024 * 1204 * 4
 
-    if msvc_mode:
+    if env.msvc_mode:
         env.Append(LINKFLAGS=["/STACK:%d" % stack_size])
 
-    if mingw_mode:
+    if env.mingw_mode:
         env.Append(LINKFLAGS=["-Wl,--stack,%d" % stack_size])
 
 
@@ -456,3 +455,8 @@ def setupCCompiler(env):
     # Support for macOS standalone backporting.
     if isMacOS() and env.macos_minversion:
         setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_minversion)
+
+    # The 32 bits MinGW does not default for API level properly, so help it.
+    if env.mingw_mode:
+        # Windows XP
+        env.Append(CPPDEFINES=["_WIN32_WINNT=0x0501"])

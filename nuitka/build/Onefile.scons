@@ -251,25 +251,6 @@ gcc_version = None
 
 Environment.Detect = getEnhancedToolDetect()
 
-
-def getCompilerTools():
-    if mingw_mode:
-        # Force usage of MinGW, disable MSVC tools.
-        compiler_tools = ["mingw"]
-
-        import SCons.Tool.MSCommon.vc  # pylint: disable=I0021,import-error
-
-        SCons.Tool.MSCommon.vc.msvc_setup_env = lambda *args: None
-
-    else:
-        # Everything else should use default.
-        compiler_tools = ["default"]
-
-    printCompilerVersionOutput("Tools=", compiler_tools)
-
-    return compiler_tools
-
-
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
 env = createEnvironment(
@@ -332,8 +313,8 @@ env.gcc_mode = isGccName(env.the_cc_name) or clang_mode
 
 
 # Only use MSVC if not already clear, we are using MinGW.
-msvc_mode = win_target and not env.gcc_mode
-mingw_mode = win_target and env.gcc_mode
+env.msvc_mode = win_target and not env.gcc_mode
+env.mingw_mode = win_target and env.gcc_mode
 
 if env.gcc_mode and not clang_mode:
     gcc_version = myDetectVersion(env, the_compiler)
@@ -345,7 +326,6 @@ if the_compiler is None or getExecutablePath(the_compiler, env=env) is None:
 env.c11_mode = enableC11Settings(
     env=env,
     clangcl_mode=clangcl_mode,
-    msvc_mode=msvc_mode,
     clang_mode=clang_mode,
     gcc_version=gcc_version,
 )
@@ -356,7 +336,7 @@ if show_scons_mode:
     my_print("Scons: Compiler used", end=" ")
     my_print(getExecutablePath(the_compiler, env=env), end=" ")
 
-    if win_target and msvc_mode:
+    if win_target and env.msvc_mode:
         my_print("(MSVC %s)" % getMsvcVersionString(env))
 
     my_print()
@@ -372,7 +352,6 @@ lto_mode = enableLtoSettings(
     env=env,
     lto_mode=lto_mode,
     pgo_mode="no",  # TODO: Have this here too, decompression might benefit.
-    msvc_mode=msvc_mode,
     clang_mode=clang_mode,
     nuitka_python=False,
     debian_python=False,
@@ -394,7 +373,7 @@ version (>= 4.4)."""
         )
 
     # CondaCC or newer.
-    if mingw_mode and gcc_version < (5, 3):
+    if env.mingw_mode and gcc_version < (5, 3):
         sys.exit(
             """\
 The MinGW64 compiler %s (version %s) doesn't have the sufficient \
@@ -467,7 +446,7 @@ if env.gcc_mode and not clang_mode and gcc_version >= (8,):
             ]
         )
 
-if msvc_mode:
+if env.msvc_mode:
     # With Clang on Windows, there is also an linker to use.
     env.Append(
         CCFLAGS=[
@@ -480,12 +459,6 @@ if msvc_mode:
 
     # No incremental linking.
     env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
-
-# The MinGW64 does not default for API level properly, so help it.
-if mingw_mode:
-    # Windows XP
-    env.Append(CPPDEFINES=["_WIN32_WINNT=0x0501"])
-
 
 if debug_mode:
     if env.gcc_mode:
@@ -514,7 +487,7 @@ if debug_mode:
                     "-Wno-misleading-indentation"
                 ]
             )
-    elif msvc_mode:
+    elif env.msvc_mode:
         # Disable warnings that system headers already show.
         env.Append(
             CCFLAGS=[
@@ -552,7 +525,7 @@ if win_target:
         env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
 # For shell API usage to lookup app folders we need this.
-if msvc_mode:
+if env.msvc_mode:
     env.Append(LIBS=["Shell32"])
 
 # The static include files reside in Nuitka installation, which may be where
@@ -585,7 +558,7 @@ if debug_mode or unstripped_mode:
 
         if not clang_mode:
             env.Append(CCFLAGS=["-feliminate-unused-debug-types"])
-    elif msvc_mode:
+    elif env.msvc_mode:
         env.Append(CCFLAGS=["/Z7"])
 
         # Higher MSVC versions need this for parallel compilation
@@ -601,7 +574,7 @@ else:
 # When debugging, optimize less than when optimizing, when not remove
 # assertions.
 if debug_mode:
-    if env.gcc_mode or msvc_mode:
+    if env.gcc_mode or env.msvc_mode:
         env.Append(CCFLAGS=["-O2"])
 else:
     if env.gcc_mode:
@@ -611,7 +584,7 @@ else:
         # wrong due to additional code.
         # if not debug_mode:
         #     env.append(CCFLAGS = ["-Winline"])
-    elif msvc_mode:
+    elif env.msvc_mode:
         env.Append(
             CCFLAGS=[
                 "/Ox",  # Enable most speed optimization
@@ -623,7 +596,7 @@ else:
     env.Append(CPPDEFINES=["__NUITKA_NO_ASSERT__"])
 
 # Tell compiler to create a program.
-if msvc_mode:
+if env.msvc_mode:
     env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
 
 
@@ -751,7 +724,7 @@ if env.gcc_mode:
         assume_yes_for_downloads=assume_yes_for_downloads,
     )
 
-if msvc_mode:
+if env.msvc_mode:
     enableClcache(
         the_compiler=the_compiler,
         env=env,
@@ -785,7 +758,6 @@ writeSconsReport(
     source_dir=source_dir,
     env=env,
     clang_mode=clang_mode,
-    msvc_mode=msvc_mode,
     clangcl_mode=clangcl_mode,
 )
 
