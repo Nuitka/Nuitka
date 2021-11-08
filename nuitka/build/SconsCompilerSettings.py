@@ -224,7 +224,7 @@ def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_dow
             if isGccName(the_cc_name):
                 gcc_version = myDetectVersion(env, compiler_path)
 
-                min_version = (8,)
+                min_version = (11, 2)
                 if gcc_version is not None and gcc_version < min_version:
                     scons_logger.info(
                         "Too old gcc %r (%r < %r) ignored!"
