@@ -923,7 +923,17 @@ run is most meanigful, and eliminates usage spikes.
 
 .. code:: sh
 
-   for i in {1..100}; do BENCH=1 python tests/benchmarks/pystone.py ; done | sort -n -r | head -n 10
+   echo "Uncompiled Python2"
+   for i in {1..100}; do BENCH=1 python2 tests/benchmarks/pystone.py ; done | sort -n -r | head -n 1
+   python2 -m nuitka --lto=yes --pgo=yes tests/benchmarks/pystone.py
+   echo "Compiled Python2"
+   for i in {1..100}; do BENCH=1 ./pystone.bin ; done | sort -n -r | head -n 1
+
+   echo "Uncompiled Python3"
+   for i in {1..100}; do BENCH=1 python3 tests/benchmarks/pystone3.py ; done | sort -n -r | head -n 1
+   python3 -m nuitka --lto=yes --pgo=yes tests/benchmarks/pystone3.py
+   echo "Compiled Python3"
+   for i in {1..100}; do BENCH=1 ./pystone3.bin ; done | sort -n -r | head -n 1
 
 +-------------------+-------------------+----------------------+---------------------+
 | Python            | Uncompiled        | Compiled LTO         | Compiled PGO        |
