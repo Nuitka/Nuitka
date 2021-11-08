@@ -408,7 +408,7 @@ def runPgoBinary():
     Execution.call(
         [
             Options.getPgoExecutable()
-            or os.path.abspath(OutputDirectories.getResultFullpath(onefile=False))
+            or OutputDirectories.getResultRunFilename(onefile=False)
         ]
         + Options.getPgoArgs(),
         shell=False,
@@ -548,6 +548,9 @@ def runSconsBackend(quiet):
         SconsInterface.runScons(
             options=options, quiet=quiet, scons_filename="Backend.scons"
         )
+
+        # Need to makpe it usable.
+        executePostProcessing()
         runPgoBinary()
         options["pgo_mode"] = "use"
 

@@ -251,7 +251,7 @@ def addToPATH(env, dirname, prefix):
     setEnvironmentVariable(env, "PATH", os.pathsep.join(path_value))
 
 
-def writeSconsReport(source_dir, env, clang_mode, msvc_mode, clangcl_mode):
+def writeSconsReport(source_dir, env, clang_mode, clangcl_mode):
     with openTextFile(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
         # We are friends to get at this debug info, pylint: disable=protected-access
         for key, value in sorted(env._dict.items()):
@@ -273,7 +273,8 @@ def writeSconsReport(source_dir, env, clang_mode, msvc_mode, clangcl_mode):
 
         print("gcc_mode=%s" % env.gcc_mode, file=report_file)
         print("clang_mode=%s" % clang_mode, file=report_file)
-        print("msvc_mode=%s" % msvc_mode, file=report_file)
+        print("msvc_mode=%s" % env.msvc_mode, file=report_file)
+        print("mingw_mode=%s" % env.mingw_mode, file=report_file)
         print("clangcl_mode=%s" % clangcl_mode, file=report_file)
 
 
