@@ -21,6 +21,9 @@ polishing plugins and adding new features.
 -  Linux: Allow onefile program args with spaces passed via AppRun.
    Fixed in 0.6.16.3 already.
 
+-  Python2: Fix, the bytecode compilation didn't respect the
+   ``--python-flag=no_asserts`` mode.
+
 -  Windows: Fix, onefile binaries were not working after being signed.
    This now works.
 
@@ -36,9 +39,67 @@ polishing plugins and adding new features.
 -  Python3: Fix, locals dict codes were not properly checking errors
    that the mapping might raise when setting values.
 
+-  Fix, modules named ``entry`` were causing compile time errors in the
+   C stage.
+
+-  macOS: Never include files from OS private frameworks in standalone
+   mode.
+
+-  Fix, the python flag ``--python-flag=no_warning`` wasn't working on
+   all platforms.
+
+-  Compatibility: Fix, the main code of the ``site`` module wasn't
+   executing, so that its added builtins were not there. Of course, you
+   ought to use ``--python-flag=no_site`` to not have it in the normal
+   case.
+
+-  Python2: Added code path to handle edited standard library source
+   code which then has no valid bytecode file.
+
+-  Anaconda: In module mode, the CondaCC wasn't recognized as form of
+   gcc.
+
+-  Fix, bytecode modules could shadow compiled modules of the same name.
+
+-  Onefile: Fix, expansion of ``%PID%`` wasn't working properly on
+   non-Windows, making temp paths less unique. The time stamp is not
+   necessarily enough.
+
+-  Fix, multiprocessing error exits from slave processes were not
+   reporting tracebacks.
+
+-  Standalone: Added ``xcbglintegrations`` to the list of sensible Qt
+   plugins to include by default, otherwise rendering will be inferior.
+
+-  Standalone: Added ``platformthemes`` to the list of sensible Qt
+   plugins to include by default, otherwise file dialogs on non-Windows
+   would be inferior.
+
+-  Fix, created ``.pyi`` files were not ordered deterministically.
+
+-  Standalone: Added support for ``win32file``.
+
+-  Fix, namespace packages were not using runtime values for their
+   ``__path__`` value.
+
+-  Python3.7+: Fix, was leaking ``AttributeError`` exceptions during
+   name imports.
+
+-  Fix, standard library detection could fail for relative paths.
+
 **************
  New Features
 **************
+
+-  Added experimental support for C level PGO (Profile Guided
+   Optimization), which runs your program and then uses feedback from
+   the execution. At this time only gcc is supported, and only C
+   compiler is collecting feedback.
+
+-  macOS: Added experimental support for creating application bundles.
+   For these, icons can be specified and console can be disabled. But at
+   this time, onefile and accelerated mode are not yet usable with it,
+   only standalone mode works.
 
 -  Plugins: Add support for ``pkg_resources.require`` calls to be
    resolved at compile time. These are not working at runtime, but this
@@ -53,6 +114,26 @@ polishing plugins and adding new features.
    access to the Python installation, so this is best done in a
    virtualenv.
 
+-  Added support for ``multiprocessing.tracker`` and spawn mode for all
+   platforms. For non-default modes outside of Windows, you need to
+   ``--enable-plugin=multiprocessing`` to use these.
+
+-  Plugins: Allow multiple entry points to be provided by one or several
+   plugins for the same modules. These are now merged into one
+   automatically.
+
+-  Standalone: Fix for numpy not working when compiling with
+   ``--python-flag=no_docstrings``.
+
+-  Fix, method calls were not respecting descriptors provided by types
+   with non-generic attribute lookups.
+
+-  Windows: Add support for using self-built Python3 from the build
+   folder too.
+
+-  Added support for Nuitka-Python 2.7, which will be our faster Python
+   fork.
+
 **************
  Optimization
 **************
@@ -63,17 +144,74 @@ polishing plugins and adding new features.
 
 -  Faster attribute check code in case of non-present attributes
 
+-  Faster calls esp. with keyword arguments. Call with keywords no
+   longer create dictionaries if the call target supports that, and with
+   3.8 or higher, non-compiled code that allows vectorcall is taken
+   advantage of.
+
+-  Faster class creation that avoids creation of argument tuples and
+   dictionaries.
+
+-  Faster unbound method calls, unlike bound methods call these were not
+   optimized as well yet.
+
+-  Type shapes for star arguments are now known and used in
+   optimization.
+
+-  Python2: Faster old-style class creation.
+
+-  Python2: Added specialization for missing cases of ``str``
+   comparison, the best cases where both types are know were missing.
+
+-  Python3: Added specialization for ``bytes`` comparisons too.
+
+-  Added specialization for ``list`` comparisons too.
+
+-  Optimization: Faster deep copies of constants. This can speed up
+   constant calls with mutable types.
+
 -  Allow using static linking with Debian Python giving much better
    performance with the system Python.
 
 -  Demote to ``range`` when iterating over ``range`` calls.
 
+-  Enable LTO automatically for Debian Python.
+
+-  Enable LTO automatically for CondaCC on non-Windows.
+
 ****************
  Organisational
 ****************
 
+-  Added section in the user manual on how to deal with memory issues
+   and C compiler bugs.
+
+-  The ``--lto`` option was changed to require an argument, so that it
+   can also be enabled. The default is ``auto`` which is the old
+   behaviour where it's enabled if possible.
+
+-  Changed ``--no-progress`` to ``--no-progressbar`` in order to make it
+   more clear what it's about. Previously it was possible to relate it
+   to ``--show-progress``.
+
+-  No longer require specific versions in our ``requirements.txt`` and
+   relegate those to only bein ``requirements-devel.txt`` such that by
+   default Nuitka doesn't collide with user requirements on those same
+   packages which absolutely all the time don't really make a
+   difference.
+
+-  Added ability to check all unpushed changes with pylint with a new
+   ``--unpushed`` option.
+
 -  Revived support for vmprof based analysis of compiled programs, but
    it requires a fork of it now.
+
+-  Make Windows specific compiler options visible on all platforms.
+   There is no point in them being errors, instead warnings are given
+   when they are specified.
+
+-  Added project variable ``Commercial`` for use in Nuitka project
+   syntax.
 
 **********
  Cleanups
@@ -103,6 +241,14 @@ polishing plugins and adding new features.
    than unknown, allowing for many optimizations to still work on them.,
    esp. for immutable value
 
+-  Enhanced autoformat for rest documents, bullet list spacing is now
+   consistent and spelling of organisational is unified automatically.
+
+-  Moved icon conversion functionality to separate module, so it can be
+   reused for other platforms more easily.
+
+-  Consistent use of metavars for nicer help output.
+
 *******
  Tests
 *******
@@ -112,6 +258,15 @@ polishing plugins and adding new features.
 
 -  Use ``anti-bloat`` plugin in standalone tests of Pandas and Jinja2
    tests to reduce compile times.
+
+-  Enhanced checks for used files to use proper below path checks for
+   their ignoring.
+
+-  Remove reflected test, compiling Nuitka with Nuitka has gotten too
+   difficult.
+
+-  Verify constants integrity at program end in debug mode again, so we
+   catch corruption of them in tests.
 
 *********
  Summary
