@@ -509,7 +509,7 @@ version (>= 4.4)."""
     if gcc_version < (4, 5):
         env.Append(CCFLAGS=["-fno-strict-aliasing"])
 
-    # For LTO mode, the version requirement is even higher, so try that too.
+    # For LTO mode on non-Windows, the version requirement is even higher, so try that too.
     if lto_mode and gcc_version < (4, 6):
         scons_logger.warning(
             """\
