@@ -129,9 +129,9 @@ void patchInspectModule(void) {
         return;
 
 #if PYTHON_VERSION >= 0x300
-#ifdef _NUITKA_EXE
+#if defined(_NUITKA_EXE) && !defined(_NUITKA_STANDALONE)
     // May need to import the "site" module, because otherwise the patching can
-    // fail with it being unable to load it.
+    // fail with it being unable to load it (yet)
     if (Py_NoSiteFlag == 0) {
         PyObject *site_module = IMPORT_MODULE5(const_str_plain_site, Py_None, Py_None, const_tuple_empty, const_int_0);
 
