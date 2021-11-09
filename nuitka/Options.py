@@ -387,7 +387,7 @@ standalone where there is a sane default used inside the dist folder."""
 
 def commentArgs():
     """Comment on options, where we know something is not having the intended effect."""
-    # A ton of cases to consider, pylint: disable=too-many-branches
+    # A ton of cases to consider, pylint: disable=too-many-branches,too-many-statements
 
     # Inform the user about potential issues with the running version. e.g. unsupported
     # version.
@@ -509,6 +509,17 @@ def commentArgs():
             """Detected static libpython to exist, consider '--static-libpython=yes' for better performance, \
 but errors may happen."""
         )
+
+    if not shallExecuteImmediately():
+        if shallRunInDebugger():
+            Tracing.options_logger.warning(
+                "The '--debugger' option has no effect outside of '--debug' without '--run' option."
+            )
+
+        if not shallClearPythonPathEnvironment():
+            Tracing.options_logger.warning(
+                "The '--execute-with-pythonpath' option has no effect without '--run' option."
+            )
 
 
 def isVerbose():
