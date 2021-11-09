@@ -177,11 +177,10 @@ is optional.
 Moreover, if you want to execute with the right interpreter, in that
 case, be sure to execute ``<the_right_python> bin/nuitka`` and be good.
 
-   .. admonition:: Pick the right Interpreter
+.. admonition:: Pick the right Interpreter
 
-      If you encounter a ``SyntaxError`` you absolutely most certainly
-      have picked the wrong interpreter for the program you are
-      compiling.
+   If you encounter a ``SyntaxError`` you absolutely most certainly have
+   picked the wrong interpreter for the program you are compiling.
 
 Nuitka has a ``--help`` option to output what it can do:
 
@@ -238,19 +237,19 @@ Setup
 Install Python
 --------------
 
-   -  Download and install from https://www.python.org/downloads/windows
+-  Download and install from https://www.python.org/downloads/windows
 
-   -  Select one of ``Windows x86-64 web-based installer`` (64 bits
-      Python, recommended) or ``x86 executable`` (32 bits Python)
-      installer.
+-  Select one of ``Windows x86-64 web-based installer`` (64 bits Python,
+   recommended) or ``x86 executable`` (32 bits Python) installer.
 
-   -  Verify using command ``python --version``.
+-  Verify using command ``python --version``.
 
 Install Nuitka
 --------------
 
-   -  ``python -m pip install nuitka``
-   -  Verify using command ``python -m nuitka --version``
+-  ``python -m pip install nuitka``
+
+-  Verify using command ``python -m nuitka --version``
 
 Write some code and test
 ========================
@@ -258,21 +257,22 @@ Write some code and test
 Create a folder for the Python code
 -----------------------------------
 
-   -  mkdir HelloWorld
-   -  make a python file named **hello.py**
+-  mkdir HelloWorld
 
-   .. code:: python
+-  make a python file named **hello.py**
 
-      def talk(message):
-          return "Talk " + message
+.. code:: python
 
-
-      def main():
-          print(talk("Hello World"))
+   def talk(message):
+       return "Talk " + message
 
 
-      if __name__ == "__main__":
-          main()
+   def main():
+       print(talk("Hello World"))
+
+
+   if __name__ == "__main__":
+       main()
 
 Test your program
 -----------------
@@ -736,20 +736,21 @@ The comments must be a start of line, and indentation is to be used, to
 end a conditional block, much like in Python. There are currently no
 other keywords than the used ones demonstrated above.
 
-+------------------+--------------------------------------+--------------------------------+
-| Variable         | What this Expands to                 | Example                        |
-+==================+======================================+================================+
-| {OS}             | Name of the OS used                  | Linux, Windows, Darwin,        |
-|                  |                                      | FreeBSD, OpenBSD               |
-+------------------+--------------------------------------+--------------------------------+
-| {Version}        | Version of Nuitka                    | e.g. (0, 6, 16)                |
-+------------------+--------------------------------------+--------------------------------+
-| {Commercial}     | Version of Nuitka Commercial         | e.g. (0, 9, 4)                 |
-+------------------+--------------------------------------+--------------------------------+
-| {Arch}           | Architecture used                    | x86_64, arm64, etc.            |
-+------------------+--------------------------------------+--------------------------------+
-| {MAIN_DIRECTORY} | Directory of the compiled file       | some_dir/maybe_relative        |
-+------------------+--------------------------------------+--------------------------------+
++------------------+--------------------------------+------------------------------------------+
+| Variable         | What this Expands to           | Example                                  |
++==================+================================+==========================================+
+| {OS}             | Name of the OS used            | Linux, Windows, Darwin, FreeBSD, OpenBSD |
++------------------+--------------------------------+------------------------------------------+
+| {Version}        | Version of Nuitka              | e.g. (0, 6, 16)                          |
++------------------+--------------------------------+------------------------------------------+
+| {Commercial}     | Version of Nuitka Commercial   | e.g. (0, 9, 4)                           |
++------------------+--------------------------------+------------------------------------------+
+| {Arch}           | Architecture used              | x86_64, arm64, etc.                      |
++------------------+--------------------------------+------------------------------------------+
+| {MAIN_DIRECTORY} | Directory of the compiled file | some_dir/maybe_relative                  |
++------------------+--------------------------------+------------------------------------------+
+| {Flavor}         | Variant of Python              | e.g. Debian Python, Anaconda Python      |
++------------------+--------------------------------+------------------------------------------+
 
 Python command line flags
 =========================

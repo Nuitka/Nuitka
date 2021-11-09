@@ -22,11 +22,10 @@
 import os
 
 from nuitka.containers.oset import OrderedSet
+from nuitka.PythonFlavors import isDebianPackagePython, isNuitkaPython
 from nuitka.PythonVersions import (
     getPythonABI,
     getSystemPrefixPath,
-    isDebianPackagePython,
-    isNuitkaPython,
     python_version,
     python_version_str,
 )
