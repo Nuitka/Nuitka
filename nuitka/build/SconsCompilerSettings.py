@@ -23,7 +23,7 @@ import os
 import re
 
 from nuitka.Tracing import scons_details_logger, scons_logger
-from nuitka.utils.Download import getCachedDownload
+from nuitka.utils.Download import getCachedDownloadedMinGW64
 from nuitka.utils.FileOperations import openTextFile, putTextFileContents
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
@@ -143,30 +143,6 @@ def enableLtoSettings(
     return lto_mode
 
 
-def getDownloadedGccPath(target_arch, assume_yes_for_downloads):
-    # Large URLs, pylint: disable=line-too-long
-
-    if target_arch == "x86_64":
-        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.2.0-12.0.1-9.0.0-r1/winlibs-x86_64-posix-seh-gcc-11.2.0-llvm-12.0.1-mingw-w64-9.0.0-r1.zip"
-        binary = r"mingw64\bin\gcc.exe"
-    else:
-        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.2.0-12.0.1-9.0.0-r1/winlibs-i686-posix-dwarf-gcc-11.2.0-llvm-12.0.1-mingw-w64-9.0.0-r1.zip"
-        binary = r"mingw32\bin\gcc.exe"
-
-    gcc_binary = getCachedDownload(
-        url=url,
-        is_arch_specific=True,
-        specifity=url.rsplit("/", 2)[1],
-        binary=binary,
-        flatten=False,
-        message="Nuitka will use gcc from MinGW64 of winlibs to compile on Windows.",
-        reject="Only this specific gcc is supported with Nuitka.",
-        assume_yes_for_downloads=assume_yes_for_downloads,
-    )
-
-    return gcc_binary
-
-
 def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_downloads):
     """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
 
@@ -238,7 +214,7 @@ def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_dow
         if compiler_path is None and msvc_version is None:
             # This will succeed to find "gcc.exe" when conda install m2w64-gcc has
             # been done.
-            compiler_path = getDownloadedGccPath(
+            compiler_path = getCachedDownloadedMinGW64(
                 target_arch=target_arch,
                 assume_yes_for_downloads=assume_yes_for_downloads,
             )

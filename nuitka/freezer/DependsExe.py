@@ -51,7 +51,7 @@ def getDependsExePath():
 
     return getCachedDownload(
         url=depends_url,
-        is_arch_specific=True,
+        is_arch_specific=getArchitecture(),
         binary="depends.exe",
         flatten=True,
         specifity="",  # Note: If there ever was an update, put version here.

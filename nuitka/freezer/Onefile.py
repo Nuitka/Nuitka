@@ -99,7 +99,7 @@ def _getAppImageToolPath(for_operation, assume_yes_for_downloads):
 
     return getCachedDownload(
         url=appimagetool_url,
-        is_arch_specific=True,
+        is_arch_specific=getArchitecture(),
         binary=appimagetool_url.rsplit("/", 1)[1],
         flatten=True,
         specifity=appimagetool_url.rsplit("/", 2)[1],

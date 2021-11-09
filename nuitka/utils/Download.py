@@ -24,7 +24,6 @@ import os
 
 from nuitka import Tracing
 from nuitka.__past__ import raw_input, urlretrieve
-from nuitka.utils import Utils
 
 from .AppDirs import getAppDir
 from .FileOperations import addFileExecutablePermission, deleteFile, makePath
@@ -49,7 +48,7 @@ def getCachedDownload(
     )
 
     if is_arch_specific:
-        nuitka_app_dir = os.path.join(nuitka_app_dir, Utils.getArchitecture())
+        nuitka_app_dir = os.path.join(nuitka_app_dir, is_arch_specific)
 
     if specifity:
         nuitka_app_dir = os.path.join(nuitka_app_dir, specifity)
@@ -67,7 +66,7 @@ def getCachedDownload(
                 """\
 %s
 
-Is it OK to download and put it in %r.
+Is it OK to download and put it in '%s'.
 
 No installer needed, cached, one time question.
 
@@ -136,3 +135,27 @@ Proceed and download? [Yes]/No """
         exe_path = None
 
     return exe_path
+
+
+def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads):
+    # Large URLs, pylint: disable=line-too-long
+
+    if target_arch == "x86_64":
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.2.0-12.0.1-9.0.0-r1/winlibs-x86_64-posix-seh-gcc-11.2.0-llvm-12.0.1-mingw-w64-9.0.0-r1.zip"
+        binary = r"mingw64\bin\gcc.exe"
+    else:
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.2.0-12.0.1-9.0.0-r1/winlibs-i686-posix-dwarf-gcc-11.2.0-llvm-12.0.1-mingw-w64-9.0.0-r1.zip"
+        binary = r"mingw32\bin\gcc.exe"
+
+    gcc_binary = getCachedDownload(
+        url=url,
+        is_arch_specific=target_arch,
+        specifity=url.rsplit("/", 2)[1],
+        binary=binary,
+        flatten=False,
+        message="Nuitka will use gcc from MinGW64 of winlibs to compile on Windows.",
+        reject="Only this specific gcc is supported with Nuitka.",
+        assume_yes_for_downloads=assume_yes_for_downloads,
+    )
+
+    return gcc_binary
