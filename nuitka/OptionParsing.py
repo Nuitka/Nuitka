@@ -32,11 +32,15 @@ import sys
 from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
 from nuitka.PythonVersions import (
+    getSystemPrefixPath,
     isAnacondaPython,
     isDebianPackagePython,
     isNuitkaPython,
 )
-from nuitka.utils.FileOperations import getFileContentByLine
+from nuitka.utils.FileOperations import (
+    getFileContentByLine,
+    isPathBelowOrSameAs,
+)
 from nuitka.utils.Utils import (
     getArchitecture,
     getLinuxDistribution,
@@ -56,14 +60,20 @@ else:
 
 
 def _getPythonVendor():
-    if isAnacondaPython():
+    if isNuitkaPython():
+        return "Nuitka Python"
+    elif isAnacondaPython():
         return "Anaconda Python"
     elif getOS() == "Linux" and isDebianPackagePython():
         return "Debian Python"
-    elif isMacOS() and sys.executable.startswith("/usr/bin/"):
+    elif isMacOS() and isPathBelowOrSameAs(
+        path="/usr/bin/", filename=getSystemPrefixPath()
+    ):
         return "Apple Python"
-    elif isNuitkaPython():
-        return "Nuitka Python"
+    elif os.environ.get("PYENV_ROOT") and isPathBelowOrSameAs(
+        path=os.environ["PYENV_ROOT"], filename=getSystemPrefixPath()
+    ):
+        return "pyenv"
     else:
         return "Unknown"
 
