@@ -346,6 +346,13 @@ setup(
     description="""\
 Python compiler with full language support and CPython compatibility""",
     keywords="compiler,python,nuitka",
+    project_urls={
+        "Documentation": "https://nuitka.net/doc",
+        "Commercial": "https://nuitka.net/pages/commercial.htm",
+        "Donations": "https://nuitka.net/pages/donations.html",
+        "Twitter": "https://twitter.com/KayHayen",
+        "Source": "https://github.com/Nuitka/Nuitka",
+    },
     zip_safe=False,
     scripts=scripts,
     entry_points={

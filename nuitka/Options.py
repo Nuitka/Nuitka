@@ -465,8 +465,10 @@ def commentArgs():
 
     if shallMakeModule() and options.static_libpython == "yes":
         Tracing.options_logger.warning(
-            "In module mode, providing --static-libpython has no effect, it's not used."
+            "In module mode, providing '--static-libpython' has no effect, it's not used."
         )
+
+        options.static_libpython = "no"
 
     if not isPgoMode() and getPgoArgs():
         Tracing.optimization_logger.warning(
@@ -726,6 +728,9 @@ _shall_use_static_lib_python = None
 
 
 def _shallUseStaticLibPython():
+    if shallMakeModule():
+        return False
+
     if options.static_libpython == "auto":
         # Nuitka-Python is good to to static linking.
         if isNuitkaPython():
@@ -753,7 +758,7 @@ def _shallUseStaticLibPython():
 
 
 def shallUseStaticLibPython():
-    """*bool* = "--static-libpython=yes|auto"
+    """*bool* = "--static-libpython=yes|auto" and not module mode
 
     Notes:
         Currently only Anaconda on non-Windows can do this and MSYS2.
