@@ -1323,7 +1323,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             )
         # TODO: This should be its own plugin.
         elif (
-            full_name in ("win32api", "pythoncom", "win32file", "win32com")
+            full_name
+            in ("win32api", "pythoncom", "win32file", "win32com", "win32print")
             and isWin32Windows()
         ):
             result = []
@@ -1377,6 +1378,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "telethon.tl.types",  # Not performance relevant and slow C compile
         "importlib_metadata",  # Not performance relevant and slow C compile
         "comtypes.gen",  # Not performance relevant and slow C compile
+        "site",  # Not performance relevant and problems with .pth files
     )
 
     def decideCompilation(self, module_name, source_ref):
