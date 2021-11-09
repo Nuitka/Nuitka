@@ -3,6 +3,7 @@
 #########################
 
 .. image:: doc/images/Nuitka-Logo-Symbol.png
+   :alt: Nuitka Logo
 
 .. contents::
 
@@ -878,15 +879,24 @@ The logo was submitted by "dr. Equivalent". It's source is contained in
 
 -  Symbol only (symbol)
 
+.. code:: rest
+
    .. image:: doc/images/Nuitka-Logo-Symbol.png
+      :alt: Nuitka Logo
 
 -  Text next to symbol (horizontal)
 
+.. code:: rest
+
    .. image:: doc/images/Nuitka-Logo-Horizontal.png
+      :alt: Nuitka Logo
 
 -  Text beneath symbol (vertical)
 
+.. code:: rest
+
    .. image:: doc/images/Nuitka-Logo-Vertical.png
+      :alt: Nuitka Logo
 
 From these logos, PNG images, and "favicons", and are derived.
 
