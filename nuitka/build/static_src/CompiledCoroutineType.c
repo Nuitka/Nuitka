@@ -345,9 +345,9 @@ static void Nuitka_SetStopIterationValue(PyObject *value);
 //   value of exception_type may be NULL, and the actual exception will not necessarily
 //   be normalized.
 
-static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine, PyObject *value, bool closing,
-                                        PyObject *exception_type, PyObject *exception_value,
-                                        PyTracebackObject *exception_tb) {
+static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *coroutine, PyObject *value, bool closing,
+                                            PyObject *exception_type, PyObject *exception_value,
+                                            PyTracebackObject *exception_tb, PyObject **result) {
     CHECK_OBJECT(coroutine);
     assert(Nuitka_Coroutine_Check((PyObject *)coroutine));
     CHECK_OBJECT_X(exception_type);
@@ -374,13 +374,13 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
         // No exception if value is given.
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't send non-None value to a just-started coroutine");
-        return NULL;
+        return PYGEN_ERROR;
     }
 
     if (coroutine->m_status != status_Finished) {
         if (coroutine->m_running) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "coroutine already executing");
-            return NULL;
+            return PYGEN_ERROR;
         }
 
         PyThreadState *thread_state = PyThreadState_GET();
@@ -505,11 +505,8 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
             // given. TODO: Push this further down the user line, we might be able to avoid
             // it for some uses, e.g. quick iteration entirely.
             if (coroutine->m_returned) {
-                if (coroutine->m_returned != Py_None) {
-                    Nuitka_SetStopIterationValue(coroutine->m_returned);
-                }
+                *result = coroutine->m_returned;
 
-                Py_DECREF(coroutine->m_returned);
                 coroutine->m_returned = NULL;
 
 #if _DEBUG_COROUTINE
@@ -517,11 +514,14 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
                 PRINT_CURRENT_EXCEPTION();
                 PRINT_NEW_LINE();
 #endif
+                return PYGEN_RETURN;
             } else {
                 PyObject *error = GET_ERROR_OCCURRED();
 
                 if (error == NULL) {
-                    SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
+                    *result = NULL;
+
+                    return PYGEN_RETURN;
                 } else if (error == PyExc_StopIteration) {
                     PyObject *saved_exception_type, *saved_exception_value;
                     PyTracebackObject *saved_exception_tb;
@@ -552,11 +552,12 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
                     PRINT_NEW_LINE();
 #endif
                 }
-            }
 
-            return NULL;
+                return PYGEN_ERROR;
+            }
         } else {
-            return yielded;
+            *result = yielded;
+            return PYGEN_NEXT;
         }
     } else {
         // Release exception if any, we are finished with it and will raise another.
@@ -582,13 +583,44 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
                          "cannot reuse already awaited coroutine"
 #endif
             );
+
+            return PYGEN_ERROR;
         } else
 #endif
         {
+            *result = NULL;
+            return PYGEN_RETURN;
+        }
+    }
+}
+
+static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine, PyObject *value, bool closing,
+                                        PyObject *exception_type, PyObject *exception_value,
+                                        PyTracebackObject *exception_tb) {
+
+    PyObject *result;
+    PySendResult res =
+        _Nuitka_Coroutine_sendR(coroutine, value, closing, exception_type, exception_value, exception_tb, &result);
+
+    switch (res) {
+    case PYGEN_RETURN:
+        if (result == NULL) {
             SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
+        } else {
+            if (result != Py_None) {
+                Nuitka_SetStopIterationValue(result);
+            }
+
+            Py_DECREF(result);
         }
 
         return NULL;
+    case PYGEN_NEXT:
+        return result;
+    case PYGEN_ERROR:
+        return NULL;
+    default:
+        NUITKA_CANNOT_GET_HERE("invalid PYGEN_ result");
     }
 }
 
@@ -1009,6 +1041,13 @@ static PyObject *Nuitka_Coroutine_await(struct Nuitka_CoroutineObject *coroutine
     return (PyObject *)result;
 }
 
+#if PYTHON_VERSION >= 0x3a0
+static PySendResult _Nuitka_Coroutine_amsend(struct Nuitka_CoroutineObject *asyncgen, PyObject *arg,
+                                             PyObject **result) {
+    return _Nuitka_Coroutine_sendR(asyncgen, arg, false, NULL, NULL, NULL, result);
+}
+#endif
+
 static void Nuitka_Coroutine_tp_finalize(struct Nuitka_CoroutineObject *coroutine) {
     if (coroutine->m_status != status_Running) {
         return;
@@ -1120,6 +1159,11 @@ static PyAsyncMethods Nuitka_Coroutine_as_async = {
     (unaryfunc)Nuitka_Coroutine_await, /* am_await */
     0,                                 /* am_aiter */
     0                                  /* am_anext */
+#if PYTHON_VERSION >= 0x3a0
+    ,
+    (sendfunc)_Nuitka_Coroutine_amsend /* am_anext */
+#endif
+
 };
 
 PyTypeObject Nuitka_Coroutine_Type = {
