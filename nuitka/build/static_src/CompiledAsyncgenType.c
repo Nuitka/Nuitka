@@ -256,9 +256,9 @@ static PyObject *Nuitka_YieldFromAsyncgenInitial(struct Nuitka_AsyncgenObject *a
 
 static PyObject *Nuitka_AsyncgenValueWrapper_New(PyObject *value);
 
-static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, PyObject *value, bool closing,
-                                       PyObject *exception_type, PyObject *exception_value,
-                                       PyTracebackObject *exception_tb) {
+static PySendResult _Nuitka_Asyncgen_sendR(struct Nuitka_AsyncgenObject *asyncgen, PyObject *value, bool closing,
+                                           PyObject *exception_type, PyObject *exception_value,
+                                           PyTracebackObject *exception_tb, PyObject **result) {
     CHECK_OBJECT(asyncgen);
     assert(Nuitka_Asyncgen_Check((PyObject *)asyncgen));
     CHECK_OBJECT_X(value);
@@ -284,13 +284,13 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
         // No exception if value is given.
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't send non-None value to a just-started async generator");
-        return NULL;
+        return PYGEN_ERROR;
     }
 
     if (asyncgen->m_status != status_Finished) {
         if (asyncgen->m_running) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "async generator already executing");
-            return NULL;
+            return PYGEN_ERROR;
         }
 
         PyThreadState *thread_state = PyThreadState_GET();
@@ -437,9 +437,10 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
                 Py_XDECREF(saved_exception_tb);
 
                 RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+                return PYGEN_ERROR;
             }
 
-            return NULL;
+            return PYGEN_ERROR;
         } else {
             // For normal yield, wrap the result value before returning.
             if (asyncgen->m_yieldfrom == NULL) {
@@ -450,7 +451,8 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
                 assert(yielded != NULL);
             }
 
-            return yielded;
+            *result = yielded;
+            return PYGEN_NEXT;
         }
     } else {
         // Release exception if any, we are finished with it and will raise another.
@@ -458,9 +460,28 @@ static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, P
         Py_XDECREF(exception_value);
         Py_XDECREF(exception_tb);
 
-        SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopAsyncIteration);
+        return PYGEN_RETURN;
+    }
+}
 
+static PyObject *_Nuitka_Asyncgen_send(struct Nuitka_AsyncgenObject *asyncgen, PyObject *value, bool closing,
+                                       PyObject *exception_type, PyObject *exception_value,
+                                       PyTracebackObject *exception_tb) {
+
+    PyObject *result;
+    PySendResult res =
+        _Nuitka_Asyncgen_sendR(asyncgen, value, closing, exception_type, exception_value, exception_tb, &result);
+
+    switch (res) {
+    case PYGEN_RETURN:
+        SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopAsyncIteration);
         return NULL;
+    case PYGEN_NEXT:
+        return result;
+    case PYGEN_ERROR:
+        return NULL;
+    default:
+        NUITKA_CANNOT_GET_HERE("invalid PYGEN_ result");
     }
 }
 
@@ -855,6 +876,12 @@ static PyObject *Nuitka_Asyncgen_athrow(struct Nuitka_AsyncgenObject *asyncgen, 
     return Nuitka_AsyncgenAthrow_New(asyncgen, args);
 }
 
+#if PYTHON_VERSION >= 0x3a0
+static PySendResult _Nuitka_Asyncgen_amsend(struct Nuitka_AsyncgenObject *asyncgen, PyObject *arg, PyObject **result) {
+    return _Nuitka_Asyncgen_sendR(asyncgen, arg, false, NULL, NULL, NULL, result);
+}
+#endif
+
 static void Nuitka_Asyncgen_tp_finalize(struct Nuitka_AsyncgenObject *asyncgen) {
     if (asyncgen->m_status != status_Running) {
         return;
@@ -983,6 +1010,10 @@ static PyAsyncMethods Nuitka_Asyncgen_as_async = {
     0,                               /* am_await */
     PyObject_SelfIter,               /* am_aiter */
     (unaryfunc)Nuitka_Asyncgen_anext /* am_anext */
+#if PYTHON_VERSION >= 0x3a0
+    ,
+    (sendfunc)_Nuitka_Asyncgen_amsend /* am_anext */
+#endif
 };
 
 // TODO: Set "__doc__" automatically for method clones of compiled types from
