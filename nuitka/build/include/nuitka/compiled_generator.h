@@ -41,6 +41,15 @@ static const int status_Running = 1;
 static const int status_Finished = 2;
 #endif
 
+// We use this even before Python3.10
+#if PYTHON_VERSION < 0x3a0
+typedef enum {
+    PYGEN_RETURN = 0,
+    PYGEN_ERROR = -1,
+    PYGEN_NEXT = 1,
+} PySendResult;
+#endif
+
 // The Nuitka_GeneratorObject is the storage associated with a compiled
 // generator object instance of which there can be many for each code.
 struct Nuitka_GeneratorObject {
