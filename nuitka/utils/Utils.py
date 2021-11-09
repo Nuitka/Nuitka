@@ -25,8 +25,6 @@ import os
 import platform
 import sys
 
-from nuitka.PythonVersions import python_version
-
 
 def getOS():
     if os.name == "nt":
@@ -114,6 +112,11 @@ def isPosixWindows():
     return os.name == "posix" and getOS() == "Windows"
 
 
+def isLinux():
+    """The Linux OS."""
+    return getOS() == "Linux"
+
+
 def isMacOS():
     """The macOS platform."""
     return getOS() == "Darwin"
@@ -173,7 +176,7 @@ def encodeNonAscii(var_name):
     For Python3, unicode identifiers can be used, but these are not
     possible in C, so we need to replace them.
     """
-    if python_version < 0x300:
+    if str is bytes:
         return var_name
     else:
         # Using a escaping here, because that makes it safe in terms of not

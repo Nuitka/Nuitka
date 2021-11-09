@@ -31,21 +31,20 @@ import re
 import sys
 from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
-from nuitka.PythonVersions import (
-    getSystemPrefixPath,
+from nuitka.PythonFlavors import (
     isAnacondaPython,
+    isApplePython,
     isDebianPackagePython,
     isNuitkaPython,
+    isPyenvPython,
+    isWinPython,
 )
-from nuitka.utils.FileOperations import (
-    getFileContentByLine,
-    isPathBelowOrSameAs,
-)
+from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Utils import (
     getArchitecture,
     getLinuxDistribution,
     getOS,
-    isMacOS,
+    isLinux,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
@@ -59,20 +58,20 @@ else:
     usage = "usage: %prog [options] main_module.py"
 
 
-def _getPythonVendor():
+def _getPythonFlavor():
+    # return driven, pylint: disable=too-many-return-statements
+
     if isNuitkaPython():
         return "Nuitka Python"
     elif isAnacondaPython():
         return "Anaconda Python"
-    elif getOS() == "Linux" and isDebianPackagePython():
+    elif isWinPython():
+        return "WinPython"
+    elif isDebianPackagePython():
         return "Debian Python"
-    elif isMacOS() and isPathBelowOrSameAs(
-        path="/usr/bin/", filename=getSystemPrefixPath()
-    ):
+    elif isApplePython():
         return "Apple Python"
-    elif os.environ.get("PYENV_ROOT") and isPathBelowOrSameAs(
-        path=os.environ["PYENV_ROOT"], filename=getSystemPrefixPath()
-    ):
+    elif isPyenvPython():
         return "pyenv"
     else:
         return "Unknown"
@@ -84,12 +83,12 @@ def _getVersionInformationValues():
     yield getNuitkaVersion()
     yield "Commercial: %s" % getCommercialVersion()
     yield "Python: %s" % sys.version.split("\n", 1)[0]
-    yield "Variant: %s" % _getPythonVendor()
+    yield "Flavor: %s" % _getPythonFlavor()
     yield "Executable: %s" % sys.executable
     yield "OS: %s" % getOS()
     yield "Arch: %s" % getArchitecture()
 
-    if getOS() == "Linux":
+    if isLinux():
         yield "Distribution: %s %s" % getLinuxDistribution()
 
 
@@ -1300,9 +1299,9 @@ def _expandProjectArg(arg, filename_arg, for_eval):
     values = {
         "OS": wrap(getOS()),
         "Arch": wrap(getArchitecture()),
-        "Vendor": _getPythonVendor(),
+        "Flavor": wrap(_getPythonFlavor()),
         "Version": getNuitkaVersion(),
-        "Commercial": getCommercialVersion(),
+        "Commercial": wrap(getCommercialVersion()),
         "MAIN_DIRECTORY": wrap(os.path.dirname(filename_arg) or "."),
     }
 

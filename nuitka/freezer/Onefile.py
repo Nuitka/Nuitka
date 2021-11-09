@@ -58,6 +58,7 @@ from nuitka.utils.Utils import (
     getArchitecture,
     getOS,
     hasOnefileSupportedOS,
+    isLinux,
     isWin32Windows,
 )
 
@@ -69,7 +70,7 @@ def packDistFolderToOnefile(dist_dir, binary_filename):
 
     if getOS() == "Windows" or Options.isOnefileTempDirMode():
         packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir)
-    elif getOS() == "Linux":
+    elif isLinux():
         packDistFolderToOnefileLinux(onefile_output_filename, dist_dir, binary_filename)
     else:
         postprocessing_logger.sysexit(
@@ -441,7 +442,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
 
 
 def checkOnefileReadiness(assume_yes_for_downloads):
-    if getOS() == "Linux":
+    if isLinux():
         app_image_path = _getAppImageToolPath(
             for_operation=False, assume_yes_for_downloads=assume_yes_for_downloads
         )

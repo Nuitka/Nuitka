@@ -45,13 +45,17 @@ from nuitka.Progress import (
     reportProgressBar,
     setupProgressBar,
 )
+from nuitka.PythonFlavors import (
+    isAnacondaPython,
+    isApplePython,
+    isDebianPackagePython,
+    isNuitkaPython,
+    isPyenvPython,
+)
 from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
     getSystemPrefixPath,
-    isAnacondaPython,
-    isDebianPackagePython,
-    isNuitkaPython,
     python_version,
     python_version_str,
 )
@@ -469,6 +473,12 @@ def runSconsBackend(quiet):
 
     if isAnacondaPython():
         options["anaconda_python"] = asBoolStr(True)
+
+    if isApplePython():
+        options["apple_python"] = asBoolStr(True)
+
+    if isPyenvPython():
+        options["pyenv_python"] = asBoolStr(True)
 
     if Options.isStandaloneMode():
         options["standalone_mode"] = asBoolStr(True)

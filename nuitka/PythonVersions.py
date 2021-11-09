@@ -68,15 +68,6 @@ python_version_full_str = ".".join(str(s) for s in sys.version_info[0:3])
 python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
 
 
-def isNuitkaPython():
-    """Is this our own fork of CPython named Nuitka-Python."""
-
-    if python_version >= 0x300:
-        return sys.implementation.name == "nuitkapython"
-    else:
-        return sys.subversion[0] == "nuitkapython"
-
-
 def getErrorMessageExecWithNestedFunction():
     """Error message of the concrete Python in case an exec occurs in a
     function that takes a closure variable.
@@ -143,51 +134,6 @@ def needsDuplicateArgumentColOffset():
         return False
     else:
         return True
-
-
-def isDebianPackagePython():
-    """Is this Python from a debian package."""
-
-    if python_version < 0x300:
-        return hasattr(sys, "_multiarch")
-    else:
-        try:
-            from distutils.dir_util import _multiarch
-        except ImportError:
-            return False
-        else:
-            return True
-
-
-def isAnacondaPython():
-    return os.path.exists(os.path.join(sys.prefix, "conda-meta"))
-
-
-def isUninstalledPython():
-    # Debian package.
-    if isDebianPackagePython():
-        return False
-
-    if isStaticallyLinkedPython():
-        return True
-
-    if os.name == "nt":
-        import ctypes.wintypes
-
-        GetSystemDirectory = ctypes.windll.kernel32.GetSystemDirectoryW
-        GetSystemDirectory.argtypes = (ctypes.wintypes.LPWSTR, ctypes.wintypes.DWORD)
-        GetSystemDirectory.restype = ctypes.wintypes.DWORD
-
-        MAX_PATH = 4096
-        buf = ctypes.create_unicode_buffer(MAX_PATH)
-
-        res = GetSystemDirectory(buf, MAX_PATH)
-        assert res != 0
-
-        system_path = os.path.normcase(buf.value)
-        return not getRunningPythonDLLPath().startswith(system_path)
-
-    return isAnacondaPython() or "WinPython" in sys.version
 
 
 def getRunningPythonDLLPath():
