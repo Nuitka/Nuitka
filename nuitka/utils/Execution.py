@@ -26,9 +26,11 @@ import os
 from contextlib import contextmanager
 
 from nuitka.__past__ import WindowsError, subprocess
+from nuitka.Options import assumeYesForDownloads
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
+from .Download import getCachedDownloadedMinGW64
 from .FileOperations import getExternalUsePath
 from .Utils import getArchitecture, getOS, isWin32Windows
 
@@ -318,10 +320,22 @@ def wrapCommandForDebuggerForExec(*args):
     """
 
     gdb_path = getExecutablePath("gdb")
-    lldb_path = getExecutablePath("lldb")
 
-    if gdb_path is None and lldb_path is None:
-        general.sysexit("Error, no 'gdb' or 'lldb' binary found in path.")
+    # Windows extra ball, attempt the downloaded one.
+    if isWin32Windows():
+        mingw64_gcc_path = getCachedDownloadedMinGW64(
+            target_arch=getArchitecture(),
+            assume_yes_for_downloads=assumeYesForDownloads(),
+        )
+
+        with withEnvironmentPathAdded("PATH", os.path.dirname(mingw64_gcc_path)):
+            gdb_path = getExecutablePath("gdb")
+
+    if gdb_path is None:
+        lldb_path = getExecutablePath("lldb")
+
+        if lldb_path is None:
+            general.sysexit("Error, no 'gdb' or 'lldb' binary found in path.")
 
     if gdb_path is not None:
         args = (gdb_path, "gdb", "-ex=run", "-ex=where", "-ex=quit", "--args") + args
