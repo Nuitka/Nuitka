@@ -23,13 +23,15 @@ import sys
 
 from nuitka import Progress, Tracing
 from nuitka.containers.oset import OrderedSet
-from nuitka.OptionParsing import parseOptions
-from nuitka.PythonVersions import (
-    getSupportedPythonVersions,
+from nuitka.OptionParsing import isPyenvPython, parseOptions
+from nuitka.PythonFlavors import (
     isAnacondaPython,
     isDebianPackagePython,
     isNuitkaPython,
     isUninstalledPython,
+)
+from nuitka.PythonVersions import (
+    getSupportedPythonVersions,
     python_version,
     python_version_str,
 )
@@ -44,6 +46,7 @@ from nuitka.utils.Utils import (
     getCoreCount,
     getOS,
     hasOnefileSupportedOS,
+    isLinux,
     isMacOS,
     isWin32Windows,
 )
@@ -189,7 +192,7 @@ but not for module mode where filenames are mandatory, and not for
 standalone where there is a sane default used inside the dist folder."""
         )
 
-    if getOS() == "Linux":
+    if isLinux():
         if len(getIconPaths()) > 1:
             Tracing.options_logger.sysexit("Error, can only use one icon on Linux.")
 
@@ -750,6 +753,8 @@ _shall_use_static_lib_python = None
 
 
 def _shallUseStaticLibPython():
+    # return driven, pylint: disable=too-many-return-statements
+
     if shallMakeModule():
         return False
 
@@ -779,6 +784,9 @@ def _shallUseStaticLibPython():
         # For Anaconda default to trying static lib python library, which
         # normally is just not available or if it is even unusable.
         if isAnacondaPython() and not isMacOS():
+            return True
+
+        if isPyenvPython():
             return True
 
     return options.static_libpython == "yes"
@@ -998,7 +1006,7 @@ def getIconPaths():
     result = options.icon_path
 
     # Check if Linux icon requirement is met.
-    if getOS() == "Linux" and not result and isOnefileMode():
+    if isLinux() and not result and isOnefileMode():
         default_icons = (
             "/usr/share/pixmaps/python%s.xpm" % python_version_str,
             "/usr/share/pixmaps/python%s.xpm" % sys.version_info[0],

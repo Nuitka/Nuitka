@@ -150,9 +150,6 @@ nuitka_python = getArgumentBool("nuitka_python", False)
 # The Debian Python, for which we know that some optimization can be done.
 debian_python = getArgumentBool("debian_python", False)
 
-# The Anaconda Python, for which we know that some optimization can be done.
-anaconda_python = getArgumentBool("anaconda_python", False)
-
 # Python debug mode: reference count checking, assertions in CPython core.
 python_debug = getArgumentBool("python_debug", False)
 
@@ -377,6 +374,11 @@ env.debug_mode = debug_mode
 env.source_dir = source_dir
 env.low_memory = low_memory_mode
 env.macos_minversion = macos_minversion
+
+# Various flavors could influence builds.
+env.anaconda_python = getArgumentBool("anaconda_python", False)
+env.pyenv_python = getArgumentBool("pyenv_python", False)
+env.apple_python = getArgumentBool("pyenv_python", False)
 
 scons_logger.info("Backend C compiler: %s (%s)." % (the_compiler, env.the_cc_name))
 
@@ -817,7 +819,7 @@ if nuitka_python:
 if static_libpython:
     env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
 
-if static_libpython and not (anaconda_python and win_target):
+if static_libpython and not (env.anaconda_python and win_target):
     env.Append(CPPDEFINES=["_NUITKA_USE_UNEXPOSED_API"])
 
 if win_target:
