@@ -1491,8 +1491,8 @@ through a slot mechanism, which then can be overloaded.
    1.0 + float(something) // 4.140000000000001
 
 Here it is the case, that this is used by user code, but more often this
-is used internally. Not all types have all slots, e.g. `list` does not
-have ``__float__`` and therefore will refuse an addition to a `float`
+is used internally. Not all types have all slots, e.g. ``list`` does not
+have ``__float__`` and therefore will refuse an addition to a ``float``
 value, based on that.
 
 Another slot is working here, that we didn't mention yet, and that is
@@ -1504,7 +1504,7 @@ is why this fails to work:
 
    [] + ()
 
-As a deliberate choice, there is no `__list__` slot used. The Python
+As a deliberate choice, there is no ``__list__`` slot used. The Python
 designers are aiming at solving many things with slots, but they also
 accept limitations.
 
@@ -1595,7 +1595,7 @@ can be a whole lot more certain:
        )
 
 In this case, we are using a function that will produce a concrete value
-or the exception that the `computation` function raised. In this case,
+or the exception that the ``computation`` function raised. In this case,
 we can let the Python interpreter that runs Nuitka do all the hard work.
 This lives in ``CompileTimeConstantExpressionBase`` and is the base for
 all kinds of constant values, or even built-in references like the name
@@ -1684,7 +1684,7 @@ Built-in call optimization
 For calls to built-in names, there is typically a function in Python
 that delegates to the type constructor (e.g. when we talk about ``int``
 that just creates an object passing the arguments of the call) or its
-own special implementation as we saw with the `len`.
+own special implementation as we saw with the ``len``.
 
 For each built-in called, we have a specialized node, that presents to
 optimization the actions of the built-in. What are the impact, what are
@@ -2849,8 +2849,8 @@ In the optimization it is turned into
 
 .. note::
 
-   The `lambda` stands here for a reference to the function, rather than
-   a variable reference, this is the normal forward propagation of
+   The ``lambda`` stands here for a reference to the function, rather
+   than a variable reference, this is the normal forward propagation of
    values, and does not imply duplicating or moving any code at all.
 
 At this point, we still have not resolved the actual call arguments to

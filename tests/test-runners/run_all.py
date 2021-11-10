@@ -56,7 +56,7 @@ def main():
     command = [
         os.environ["PYTHON"],
         nuitka_main_path,
-        "--plugin-enable=pylint-warnings",
+        "--enable-plugin=pylint-warnings",
         "--output-dir=%s" % tmp_dir,
         "--follow-imports",
         "--include-package=package",

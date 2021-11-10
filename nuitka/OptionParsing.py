@@ -1184,8 +1184,8 @@ parser.add_option_group(linux_group)
 plugin_group = OptionGroup(parser, "Plugin control")
 
 plugin_group.add_option(
-    "--plugin-enable",
     "--enable-plugin",
+    "--plugin-enable",
     action="append",
     dest="plugins_enabled",
     metavar="PLUGIN_NAME",
@@ -1196,8 +1196,8 @@ full list and exit. Default empty.""",
 )
 
 plugin_group.add_option(
-    "--plugin-disable",
     "--disable-plugin",
+    "--plugin-disable",
     action="append",
     dest="plugins_disabled",
     metavar="PLUGIN_NAME",
@@ -1214,7 +1214,7 @@ plugin_group.add_option(
     default=True,
     help="""\
 Plugins can detect if they might be used, and the you can disable the warning
-via --plugin-disable=plugin-that-warned, or you can use this option to disable
+via "--disable-plugin=plugin-that-warned", or you can use this option to disable
 the mechanism entirely, which also speeds up compilation slightly of course as
 this detection code is run in vain once you are certain of which plug-ins to
 use. Defaults to off.""",
@@ -1266,7 +1266,7 @@ def _considerPluginOptions(logger):
             plugin_names = arg[16:]
             if "=" in plugin_names:
                 logger.sysexit(
-                    "Error, plugin options format changed. Use '--plugin-enable=%s --help' to know new options."
+                    "Error, plugin options format changed. Use '--enable-plugin=%s --help' to know new options."
                     % plugin_names.split("=", 1)[0]
                 )
 

@@ -458,10 +458,10 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         extra_options.append("--generate-c-only")
 
     for plugin_enabled in plugins_enabled:
-        extra_options.append("--plugin-enable=" + plugin_enabled)
+        extra_options.append("--enable-plugin=" + plugin_enabled)
 
     for plugin_disabled in plugins_disabled:
-        extra_options.append("--plugin-disable=" + plugin_disabled)
+        extra_options.append("--disable-plugin=" + plugin_disabled)
 
     for user_plugin in user_plugins:
         extra_options.append("--user-plugin=" + user_plugin)
