@@ -377,6 +377,10 @@ def _cleanupRstFmt(filename):
 
     updated_contents = contents.replace(b":\n\n.. code::\n", b"::\n")
 
+    # Enforce choice between "bash" and "sh" for code directive. Use bash as
+    # more people will know it.
+    updated_contents = updated_contents.replace(b".. code:: sh\n", b".. code:: bash\n")
+
     lines = []
     inside = False
     needs_empty = False
@@ -494,10 +498,10 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
     """Format source code with external tools
 
     Args:
-        filename: filename to work on
-        git_stage: indicate if this is to be done on staged content
-        abort: error exit in case a tool shows a problem
-        effective_filename: derive type of file from this name
+        filename: str - filename to work on
+        git_stage: bool - indicate if this is to be done on staged content
+        abort: bool - error exit in case a tool shows a problem
+        effective_filename: str - derive type of file from this name
 
     Notes:
         The effective filename can be used in case this is already a

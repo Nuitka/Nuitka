@@ -688,7 +688,7 @@ in the main file should prove to be very useful.
    the commandline, such that it becomes possible to do a complex
    project with only using
 
-   .. code:: sh
+   .. code:: bash
 
       python -m nuitka filename.py
 
@@ -5222,7 +5222,7 @@ a dedicated structure for that representing an in-lined function.
 -  Experimental support for building platform dependent wheel
    distribution.
 
-   .. code:: sh
+   .. code:: bash
 
       python setup.py --command-packages=nuitka.distutils clean -a bdist_nuitka
 
@@ -8999,7 +8999,7 @@ but should work now.
 
 -  Options passed to ``nuitka-python`` could get lost.
 
-   .. code:: sh
+   .. code:: bash
 
       nuitka-python program.py argument1 argument2 ...
 
@@ -9810,10 +9810,10 @@ attract a lot of attention hopefully.
 
 As for optimization, the focus for it has shifted to making exception
 handlers work optimal by default (publish the exception to
-sys.exc_info() and create traceback only when necessary) and be based on
-standard branches. Removing special handling of exception handlers, will
-be the next big step. This release includes some correctness fixes
-stemming from that work already.
+``sys.exc_info()`` and create traceback only when necessary) and be
+based on standard branches. Removing special handling of exception
+handlers, will be the next big step. This release includes some
+correctness fixes stemming from that work already.
 
 ######################
  Nuitka Release 0.4.7
@@ -10583,7 +10583,7 @@ form in Nuitka.
    In module mode, Nuitka will optimize it away, and nothing will happen
    on execution. This is because the command
 
-   .. code:: sh
+   .. code:: bash
 
       nuitka --execute module
 
@@ -10760,7 +10760,7 @@ expanded.
    directories with a "__main__.py" file inside. The resulting binary
    name was "__main__.exe" though, but now it is "directory.exe"
 
-   .. code:: sh
+   .. code:: bash
 
       # ls directory
       __main__.py
@@ -11218,8 +11218,8 @@ diagrams, `even if weak ones
    Also discussed in `Issue#53 <http://bugs.nuitka.net/issue53>`__
 
 -  For nested exceptions and interactions with generator objects, the
-   exceptions in "sys.exc_info()" were not always fully compatible. They
-   now are.
+   exceptions in ``sys.exc_info()`` were not always fully compatible.
+   They now are.
 
 -  The ``range`` builtin was not raising exceptions if given arguments
    appeared to not have side effects, but were still illegal, e.g.
@@ -16423,7 +16423,7 @@ release to 0.1, which corrects many of the small things:
 
 -  Reference leaks with exceptions are no more.
 
--  sys.exc_info() works now mostly as expected (it's not a stack of
+-  ``sys.exc_info()`` works now mostly as expected (it's not a stack of
    exceptions).
 
 -  More readable generated code, better organisation of C++ template
