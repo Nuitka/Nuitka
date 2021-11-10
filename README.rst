@@ -924,7 +924,7 @@ The results are the top value from this kind of output, running pystone
 1000 times and taking the minimal value. The idea is that the fastest
 run is most meanigful, and eliminates usage spikes.
 
-.. code:: sh
+.. code:: bash
 
    echo "Uncompiled Python2"
    for i in {1..100}; do BENCH=1 python2 tests/benchmarks/pystone.py ; done | sort -n -r | head -n 1
@@ -978,7 +978,7 @@ Best practices for reporting bugs:
    the underlying Python version. You can easily copy&paste this into
    your report.
 
-   .. code:: sh
+   .. code:: bash
 
       python -m nuitka --version
 
