@@ -2,6 +2,13 @@
  Nuitka Release 0.6.18 (Draft)
 ###############################
 
+**********
+ Cleanups
+**********
+
+-  In a change of mind ``--enable-plugin`` has become the only form to
+   enable a plugin used in documentation and tests.
+
 This release is not done yet.
 
 #######################
@@ -971,7 +978,7 @@ with lots of bug fixes and new features.
    feature is limited to Windows, where the need arose first, but it
    will be ported to other supported OSes eventually. These are most
    useful for programs run as ``--windows-disable-console`` or with
-   ``--plugin-enable=windows-service``.
+   ``--enable-plugin=windows-service``.
 
 -  Windows: Added option ``--windows-onefile-tempdir-spec`` to provide
    the temporary directory used with ``--windows-onefile-tempdir`` in
@@ -2586,7 +2593,7 @@ enhance the Python 3.8 compatibility.
 
 -  Pylint cleanup also foreign code like ``oset`` and ``odict``.
 
--  In preparation of deprecating the alternative, ``--plugin-enable``
+-  In preparation of deprecating the alternative, ``--enable-plugin``
    has become the only form used in documentation and tests.
 
 -  Avoid numeric pylint symbols more often.
@@ -4209,8 +4216,8 @@ generators.
    corrupt data. Fixed in 0.5.32.7 already.
 
 -  Python 3.4: Fix threaded imports by properly handling
-   ``_initializing`` in compiled modules ```spec`` attributes. Before it
-   happen that another thread attempts to use an unfinished module.
+   ``_initializing`` in compiled modules ``__spec__`` attributes. Before
+   it happen that another thread attempts to use an unfinished module.
    Fixed in 0.5.32.8 already.
 
 -  Fix, the options ``--include-module`` and ``--include-package`` were
@@ -4270,10 +4277,10 @@ generators.
    fast and they no longer use a full C stack of 2MB, but only 1K
    instead.
 
--  Conditional ``a if cond else b``, ``a and b```, ``a or b``
-   expressions of which the result value is are now transformed into
-   conditional statements allowing to apply further optimizations to the
-   right and left side expressions as well.
+-  Conditional ``a if cond else b``, ``a and b``, ``a or b`` expressions
+   of which the result value is are now transformed into conditional
+   statements allowing to apply further optimizations to the right and
+   left side expressions as well.
 
 -  Replace unused function creations with side effects from their
    default values with just those, removing more unused code.
@@ -4793,11 +4800,11 @@ accompanied with optimization changes towards value tracing.
 -  Added options ``--include-module`` to force inclusion of a single
    module in a compilation result.
 
--  The ```multiprocessing`` plug-in got adapted to Python 3.4 changes
-   and will now also work in accelerated mode on Windows.
+-  The ``multiprocessing`` plug-in got adapted to Python 3.4 changes and
+   will now also work in accelerated mode on Windows.
 
 -  It is now possible to specify the Qt plugin directories with e.g.
-   ``--plugin-enable-=qt_plugins=imageformats`` and have only those
+   ``--enable-plugin-=qt_plugins=imageformats`` and have only those
    included. This should avoid dependency creep for shared libraries.
 
 -  Plugins can now make the decision about recursing to a module or not.
@@ -5137,7 +5144,7 @@ a dedicated structure for that representing an in-lined function.
    arguments of a function call.
 
 -  Compatibility: Added support for proper operation of
-   ```pkgutil.get_data`` by implementing ``get_data`` in our meta path
+   ``pkgutil.get_data`` by implementing ``get_data`` in our meta path
    based loader.
 
 -  Compatibility: Added ``__spec__`` module attribute was previously
@@ -9143,7 +9150,7 @@ made to improve the compatibility.
    to fork binaries.
 
 -  Windows: The caching of Scons was not arch specific, and files could
-   be used again, even if changing the arch from ```x86`` to ``x86_64``
+   be used again, even if changing the arch from ``x86`` to ``x86_64``
    or back.
 
 -  Windows: On 32 bit Python it can happen that with large number of
@@ -10285,8 +10292,8 @@ recursion options, and so on. So it's mostly a consolidation release.
 -  Added ``LICENSE.txt`` file with Apache License 2.0 text to make it
    more immediately obvious which license Nuitka is under.
 
--  Added section about Nuitka license to the "`User Manual
-   <https://nuitka.net/doc/user-manual.html#license>`__".
+-  Added section about Nuitka license to the `User Manual
+   <https://nuitka.net/doc/user-manual.html#license>`__.
 
 -  Added `Nuitka Logo
    <https://nuitka.net/doc/images/Nuitka-Logo-Symbol.png>`__ to the
@@ -10294,9 +10301,9 @@ recursion options, and so on. So it's mostly a consolidation release.
 
 -  Use Nuitka Logo as the bitmap in the Windows installer.
 
--  Use Nuitka Logo in the documentation ("`User Manual
-   <https://nuitka.net/doc/user-manual.html>`__" and "`Developer Manual
-   <https://nuitka.net/doc/developer-manual.html>`__").
+-  Use Nuitka Logo in the documentation (`User Manual
+   <https://nuitka.net/doc/user-manual.html>`__ and `Developer Manual
+   <https://nuitka.net/doc/developer-manual.html>`__).
 
 -  Enhanced documentation to number page numbers starting after table of
    contents, removed header/footer from cover pages.
@@ -10517,8 +10524,8 @@ structure will hold.
    Support for Python3.3 was a higher priority, but the intention is to
    get it into shape for Europython still.
 
-   Added notes about it being disabled it in the "`User Manual
-   <https://nuitka.net/doc/user-manual.html>`__" documentation.
+   Added notes about it being disabled it in the `User Manual
+   <https://nuitka.net/doc/user-manual.html>`__ documentation.
 
 *********
  Summary
@@ -10648,7 +10655,7 @@ form in Nuitka.
 -  Accepting `Donations <https://nuitka.net/pages/donations.html>`__ via
    Paypal, please support funding travels, website, etc.
 
--  The "`User Manual <https://nuitka.net/doc/user-manual.html>`__" has
+-  The `User Manual <https://nuitka.net/doc/user-manual.html>`__ has
    been updated with new content. We now do support Visual Studio,
    documented the required LLVM version for clang, Win64 and modules may
    include modules too, etc. Lots of information was no longer accurate
@@ -10986,8 +10993,8 @@ expanded.
 
 -  Added "ownssh" as contributor.
 
--  Revamped the "`User Manual
-   <https://nuitka.net/doc/user-manual.html>`__" in terms of layout,
+-  Revamped the `User Manual
+   <https://nuitka.net/doc/user-manual.html>`__ in terms of layout,
    structure, and content.
 
 *********
@@ -11572,17 +11579,17 @@ the next big Python application can come.
    with standard C++ constructs. This is needed to support MSVC which
    doesn't have this.
 
--  Added examples for the typical use cases to the "`User Manual
-   <https://nuitka.net/doc/user-manual.html>`__".
+-  Added examples for the typical use cases to the `User Manual
+   <https://nuitka.net/doc/user-manual.html>`__.
 
 -  The "compare_with_cpython" script has gained an option to immediately
    remove the Nuitka outputs (build directory and binary) if successful.
    Also the temporary files are now put under "/var/tmp" if available.
 
--  Debian package improvements, registering with "doc-base" the "`User
-   Manual <https://nuitka.net/doc/user-manual.html>`__" so it is easier
-   to discover. Also suggest "mingw32" package which provides the cross
-   compiler to Windows.
+-  Debian package improvements, registering with ``doc-base`` the `User
+   Manual <https://nuitka.net/doc/user-manual.html>`__ so it is easier
+   to discover. Also suggest ``mingw32`` package which provides the
+   cross compiler to Windows.
 
 -  Partial support for MSVC (Visual Studio 2008 to be exact, the version
    that works with CPython2.6 and CPython2.7).
@@ -11752,9 +11759,9 @@ references, is the important and only progress towards type inference.
    more easily rendered these days.
 
 -  Removed the "misc/gist" git sub-module, which was previously used by
-   "misc/make-doc.py" to generate HTML from "`User Manual
-   <https://nuitka.net/doc/user-manual.html>`__" and "`Developer Manual
-   <https://nuitka.net/doc/developer-manual.html>`__".
+   "misc/make-doc.py" to generate HTML from `User Manual
+   <https://nuitka.net/doc/user-manual.html>`__ and `Developer Manual
+   <https://nuitka.net/doc/developer-manual.html>`__.
 
    These are now done with Nikola, which is much better at it and it
    integrates with the web site.
@@ -12806,8 +12813,8 @@ new release.
  Organisational
 ****************
 
--  Added more information to the "`Developer Manual
-   <https://nuitka.net/doc/developer-manual.html>`__", e.g. documenting
+-  Added more information to the `Developer Manual
+   <https://nuitka.net/doc/developer-manual.html>`__, e.g. documenting
    the tree changes for ``assert`` to become a conditional statement
    with a raise statement, etc.
 
@@ -13099,8 +13106,8 @@ entering the Debian repository.
  Organisational
 ****************
 
--  Added a "`Developer Manual
-   <https://nuitka.net/doc/developer-manual.html>`__" to the release.
+-  Added a `Developer Manual
+   <https://nuitka.net/doc/developer-manual.html>`__ to the release.
    It's incomplete, but it details some of the existing stuff, coding
    rules, plans for "type inference", etc.
 
@@ -13141,8 +13148,8 @@ entering the Debian repository.
    code won't be a problem when changing the license of all of Nuitka to
    that license.
 
--  Give contributors listed in the "`User Manual
-   <https://nuitka.net/doc/user-manual.html>`__" an exception to the GPL
+-  Give contributors listed in the `User Manual
+   <https://nuitka.net/doc/user-manual.html>`__ an exception to the GPL
    terms until Nuitka is licensed under "Apache License 2.0" as well.
 
 -  Added an ``--experimental`` option which can be used to control
@@ -13902,9 +13909,8 @@ meaningful benchmarks and resume work on optimization.
 
 This is to inform you about the new release of Nuitka many bug fixes,
 and substantial improvements especially in the organisational area.
-There is a new "`User Manual
-<https://nuitka.net/doc/user-manual.html>`__" (`PDF
-<https://nuitka.net/doc/user-manual.pdf>`__), with much improved
+There is a new `User Manual <https://nuitka.net/doc/user-manual.html>`__
+(`PDF <https://nuitka.net/doc/user-manual.pdf>`__), with much improved
 content, a ``sys.meta_path`` based import mechanism for ``--deep`` mode,
 git flow goodness.
 
@@ -14030,8 +14036,8 @@ were many of these.
 ****************
 
 -  Migrated the "README.txt" from org-mode to ReStructured Text, which
-   allows for a more readable document, and to generate a nice "`User
-   Manual <https://nuitka.net/doc/user-manual.html>`__" in PDF form.
+   allows for a more readable document, and to generate a nice `User
+   Manual <https://nuitka.net/doc/user-manual.html>`__ in PDF form.
 
 -  The amount of information in "README.txt" was increased, with many
    more subjects are now covered, e.g. "git flow" and how to join Nuitka

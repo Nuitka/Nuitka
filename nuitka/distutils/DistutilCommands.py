@@ -180,7 +180,7 @@ class build(distutils.command.build.build):
                 "-m",
                 "nuitka",
                 "--module",
-                "--plugin-enable=pylint-warnings",
+                "--enable-plugin=pylint-warnings",
                 "--output-dir=%s" % output_dir,
                 "--nofollow-import-to=*.tests",
                 "--show-modules",

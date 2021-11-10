@@ -11,7 +11,7 @@ Nuitka's own *standard* plugins are. There also is no difference with
 respect to what they can do. Both types are invoked via parameters in
 Nuitka's command line. The difference is the invocation format:
 
--  A standard plugin is invoked by ``--plugin-enable=<plugin_name>``.
+-  A standard plugin is invoked by ``--enable-plugin=<plugin_name>``.
    The string ``<plugin_name>`` is a unique identifier by which Nuitka
    identifies it. As soon as Nuitka has found the corresponding plugin,
    it will call its initialization method. Nuitka also has some standard

@@ -104,7 +104,7 @@ def action(stage_dir, root, path):
         "--output-dir",
         stage_dir,
         "--remove-output",
-        "--plugin-enable=pylint-warnings",
+        "--enable-plugin=pylint-warnings",
     ]
 
     filename = os.path.join(stage_dir, "importer.py")
