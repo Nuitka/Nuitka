@@ -52,19 +52,22 @@ Requirements
 
    Currently this means, you need to use one of these compilers:
 
-   -  The ``gcc`` compiler of at least version 5.1, or the ``g++``
-      compiler of at least version 4.4 as an alternative.
-
-   -  The ``clang`` compiler on macOS X and FreeBSD.
-
-   -  The MinGW64 C11 compiler on Windows, must be based on gcc 8 or
-      higher. It will be automatically downloaded if not found, which is
-      the recommended way of installing it.
+   -  The MinGW64 C11 compiler on Windows, must be based on gcc 11.2 or
+      higher. It will be *automatically* downloaded if no usable C
+      compiler is found, which is the recommended way of installing it,
+      as Nuitka will also upgrade it for you.
 
    -  Visual Studio 2019 or higher on Windows [#]_, older versions will
       work but only supported for commercial users. Configure to use the
       English language pack for best results (Nuitka filters away
-      garbage outputs, but only for that language).
+      garbage outputs, but only for English language). It will be used
+      by default if installed.
+
+   -  On all other platforms, the ``gcc`` compiler of at least version
+      5.1, and below that the ``g++`` compiler of at least version 4.4
+      as an alternative.
+
+   -  The ``clang`` compiler on macOS X and most FreeBSD architectures.
 
    -  On Windows the ``clang-cl`` compiler on Windows can be used if
       provided by the Visual Studio installer.
@@ -112,10 +115,6 @@ Requirements
       You need the standard Python implementation, called "CPython", to
       execute Nuitka, because it is closely tied to implementation
       details of it.
-
-      On Windows, for Python not installed system-wide and acceleration
-      mode, you need to copy the ``PythonXX.DLL`` alongside it,
-      something Nuitka does automatically.
 
    .. admonition:: It **cannot be** from Windows app store
 
