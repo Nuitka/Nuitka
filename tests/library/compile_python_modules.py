@@ -102,7 +102,7 @@ def action(stage_dir, _root, path):
         "--output-dir",
         stage_dir,
         "--remove-output",
-        "--plugin-enable=pylint-warnings",
+        "--enable-plugin=pylint-warnings",
     ]
 
     command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()

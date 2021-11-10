@@ -59,7 +59,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     certain situations.
 
     A plugin in general must be enabled to be used by Nuitka. This happens by
-    specifying "--plugin-enable" (standard plugins) or by "--user-plugin" (user
+    specifying "--enable-plugin" (standard plugins) or by "--user-plugin" (user
     plugins) in the Nuitka command line. However, some plugins are always enabled
     and invisible to the user.
 
@@ -577,7 +577,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             warned_unused_plugins.add(self.plugin_name)
 
             plugins_logger.warning(
-                "Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message)
+                "Use '--enable-plugin=%s' for: %s" % (self.plugin_name, message)
             )
 
     def onDataComposerResult(self, blob_filename):
