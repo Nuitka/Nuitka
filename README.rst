@@ -829,7 +829,10 @@ overhead, and this even happens to the DLL with itself, being slower,
 than a Python all contained in one binary.
 
 So if feasible, aim at static linking, which is currently only possible
-with Anaconda Python on non-Windows.
+with Anaconda Python on non-Windows. Note that to run on Anaconda, you
+*may* need to make the following installation::
+
+ conda install -c conda-forge libpython-static 
 
 Standalone executables and dependencies
 =======================================
