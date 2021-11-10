@@ -200,7 +200,7 @@ line.
 
 In order to set up hooks, you need to execute these commands:
 
-.. code:: sh
+.. code:: bash
 
    # Where python is the one you use with Nuitka, this then gets all
    # development requirements, can be full PATH.
@@ -449,7 +449,7 @@ block.
    To clone it to your local machine execute the following your git
    bash:
 
-      .. code:: sh
+      .. code:: bash
 
          git clone https://github.com/your-user-name/Nuitka.git
          cd Nuitka
@@ -457,7 +457,7 @@ block.
 
    -  Create a Branch
 
-      .. code:: sh
+      .. code:: bash
 
          git checkout develop
          git pull --rebase upstream
@@ -469,26 +469,26 @@ block.
 
    -  In case you have an existing branch rebase it to develop
 
-      .. code:: sh
+      .. code:: bash
 
          git fetch upstream
          git rebase upstream/develop
 
    Fix the merge conflicts if any, stash them and continue:
 
-         .. code:: sh
+         .. code:: bash
 
             git rebase --continue
 
       If anything goes wrong while rebasing:
 
-         .. code:: sh
+         .. code:: bash
 
             git rebase --abort
 
    -  Making changes
 
-      .. code:: sh
+      .. code:: bash
 
          git commit -a -m "Commit Message"
          git push -u origin # once, later always:
@@ -504,14 +504,14 @@ There is API documentation generated with ``doxygen``, available at
 To ensure meaningful ``doxygen`` output, the following guidelines must
 be observed when creating or updating Python source:
 
-Use of Standard Python ``"__doc__"`` Strings
-============================================
+Use of Standard Python ``__doc__`` Strings
+==========================================
 
 Every class and every method **must be documented** via the standard
 Python delimiters (``""" ... """``) in the usual way.
 
-Special ``doxygen`` Anatomy of ``"__doc__"``
-============================================
+Special ``doxygen`` Anatomy of ``__doc__``
+==========================================
 
 -  Immediately after the leading ``"""``, and after 1 space on the same
    line, enter a brief description or title of the class or method. This
@@ -536,7 +536,7 @@ Special ``doxygen`` Anatomy of ``"__doc__"``
          If you describe details for a class, you can do so **without**
          using this section header and all formatting will still work
          fine. If you however omit the ``Notes:`` for methods, then the
-         text will be interpreted **as code,** be shown in an ugly
+         text will be interpreted **as code**, be shown in an ugly
          monospaced font, and no automatic line breaks will occur in the
          browser.
 
@@ -598,7 +598,7 @@ similar way, but this is not a priority, and we are not there yet.
 
 So, we currently use ``PyLint`` with options defined in a script.
 
-.. code:: sh
+.. code:: bash
 
    ./bin/check-nuitka-with-pylint
 
@@ -616,7 +616,7 @@ Running all Tests
 
 The top level access to the tests is as simple as this:
 
-.. code:: sh
+.. code:: bash
 
    ./tests/run-tests
 
@@ -722,7 +722,7 @@ Basic Tests
 
 You can run the "basic" tests like this:
 
-.. code:: sh
+.. code:: bash
 
    ./tests/basics/run_all.py search
 
@@ -751,7 +751,7 @@ Using the ``global`` statement on a function argument is an example of
 this. These tests make sure that the errors of Nuitka and CPython are
 totally the same for this:
 
-.. code:: sh
+.. code:: bash
 
    ./tests/syntax/run_all.py search
 
@@ -762,7 +762,7 @@ Then there are small "programs" tests, that e.g. exercise many kinds of
 import tricks and are designed to reveal problems with inter-module
 behavior. These can be run like this:
 
-.. code:: sh
+.. code:: bash
 
    ./tests/programs/run_all.py search
 
@@ -773,7 +773,7 @@ There are tests, which are generated from Jinja2 templates. They aim at
 e.g. combining at types with operations, in-place or not, or large
 constants. These can be run like this:
 
-.. code:: sh
+.. code:: bash
 
    ./tests/generated/run_all.py search
 
@@ -786,7 +786,7 @@ parts are published as `Nuitka API <https://nuitka.net/apidoc>`__ and
 argumently in a relatively bad shape as we started generating those with
 Doxygen only relatively late.
 
-.. code:: sh
+.. code:: bash
 
    doxygen ./doc/Doxyfile
    xdg-open html
@@ -814,14 +814,14 @@ The CPython test suites are different branches of the same submodule.
 When you update your git checkout, they will frequently become detached.
 In this case, simply execute this command:
 
-.. code:: sh
+.. code:: bash
 
    git submodule foreach 'git fetch && git checkout $(basename $(pwd)) && \
    git reset --hard origin/$(basename $(pwd))'
 
 When adding a test suite, for a new version, proceed like this:
 
-.. code:: sh
+.. code:: bash
 
    # Switch to a new branch.
    git checkout CPython39
@@ -904,7 +904,7 @@ The exact ImageMagick commands are in
 ``nuitka/tools/release/Documentation``, but are not executed each time,
 the commands are also replicated here:
 
-.. code:: sh
+.. code:: bash
 
    convert -background none doc/Logo/Nuitka-Logo-Symbol.svg doc/images/Nuitka-Logo-Symbol.png
    convert -background none doc/Logo/Nuitka-Logo-Vertical.svg doc/images/Nuitka-Logo-Vertical.png
@@ -1996,11 +1996,10 @@ that does the unpacking and gives the errors that come from this:
        a, b = _1
        return _tmp(a, b, c)
 
-The ``".1"`` is the variable name used by CPython internally, and
-actually works if you use keyword arguments via star dictionary. So this
-is very compatible and actually the right kind of re-formulation, but it
-removes the need from the code that does parameter parsing to deal with
-these.
+The ``.1`` is the variable name used by CPython internally, and actually
+works if you use keyword arguments via star dictionary. So this is very
+compatible and actually the right kind of re-formulation, but it removes
+the need from the code that does parameter parsing to deal with these.
 
 Obviously, there is no frame for ``_tmp``, just one for ``function`` and
 we do not use local variables, but temporary functions.
@@ -4086,7 +4085,7 @@ Command Line
 
 Experimental features are enabled with the command line argument
 
-.. code:: sh
+.. code:: bash
 
    nuitka --experimental=jinja_generated_add ...
 

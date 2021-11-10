@@ -114,6 +114,7 @@ dill-compat
 
 -  Required by the *dill* module. Dill extends Python's pickle module
    for serializing and de-serializing objects.
+
 -  Options: none.
 
 eventlet
@@ -121,6 +122,7 @@ eventlet
 
 -  Required by the *eventlet* package. Eventlet is a concurrent
    networking library.
+
 -  Options: none.
 
 gevent
@@ -137,6 +139,7 @@ numpy
 
 -  Required for *numpy, scipy, pandas, matplotlib, xarray, sklearn,
    skimage*, and most other scientific packages.
+
 -  Options: "scipy", "matplotlib" if used. E.g. ``--plugin-enable=numpy
    --include-scipy --include-matplotlib``.
 
@@ -145,6 +148,7 @@ pmw-freezer
 
 -  Required by the *Pmw* package. Pmw is a toolkit for building
    high-level compound widgets.
+
 -  Options: none.
 
 pylint-warnings
@@ -152,12 +156,14 @@ pylint-warnings
 
 -  Support *PyLint* / *PyDev* linting source markers. Python static code
    analysis tools which help enforcing a coding standard.
+
 -  Options: none
 
 qt-plugins
 ==========
 
 -  Required by the *PyQt* and *PySide* GUI packages.
+
 -  Options: "sensible", "styles", "qml", "xml", "all", where "sensible"
    means the default minimum set of Qt features.
 
@@ -174,6 +180,7 @@ tk-inter
 ========
 
 -  Required by Python's Tk modules.
+
 -  Options: none.
 
 torch
