@@ -1033,15 +1033,19 @@ PyTypeObject Nuitka_Asyncgen_Type = {
     Nuitka_Asyncgen_methods,                                            /* tp_methods */
     Nuitka_Asyncgen_members,                                            /* tp_members */
     Nuitka_Asyncgen_getsetlist,                                         /* tp_getset */
-    0,                                                                  /* tp_base */
-    0,                                                                  /* tp_dict */
-    0,                                                                  /* tp_descr_get */
-    0,                                                                  /* tp_descr_set */
-    0,                                                                  /* tp_dictoffset */
-    0,                                                                  /* tp_init */
-    0,                                                                  /* tp_alloc */
-    0,                                                                  /* tp_new */
-    0,                                                                  /* tp_free */
+#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
+    &PyAsyncGen_Type, /* tp_base */
+#else
+    0, /* tp_base */
+#endif
+    0, /* tp_dict */
+    0, /* tp_descr_get */
+    0, /* tp_descr_set */
+    0, /* tp_dictoffset */
+    0, /* tp_init */
+    0, /* tp_alloc */
+    0, /* tp_new */
+    0, /* tp_free */
 };
 
 PyObject *Nuitka_Asyncgen_New(asyncgen_code code, PyObject *module, PyObject *name, PyObject *qualname,

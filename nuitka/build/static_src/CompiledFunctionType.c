@@ -505,23 +505,27 @@ PyTypeObject Nuitka_Function_Type = {
     Nuitka_Function_methods,                            /* tp_methods */
     0,                                                  /* tp_members */
     Nuitka_Function_getset,                             /* tp_getset */
-    0,                                                  /* tp_base */
-    0,                                                  /* tp_dict */
-    Nuitka_Function_descr_get,                          /* tp_descr_get */
-    0,                                                  /* tp_descr_set */
-    offsetof(struct Nuitka_FunctionObject, m_dict),     /* tp_dictoffset */
-    0,                                                  /* tp_init */
-    0,                                                  /* tp_alloc */
-    0,                                                  /* tp_new */
-    0,                                                  /* tp_free */
-    0,                                                  /* tp_is_gc */
-    0,                                                  /* tp_bases */
-    0,                                                  /* tp_mro */
-    0,                                                  /* tp_cache */
-    0,                                                  /* tp_subclasses */
-    0,                                                  /* tp_weaklist */
-    0,                                                  /* tp_del */
-    0                                                   /* tp_version_tag */
+#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
+    &PyFunction_Type, /* tp_base */
+#else
+    0,                                                    /* tp_base */
+#endif
+    0,                                              /* tp_dict */
+    Nuitka_Function_descr_get,                      /* tp_descr_get */
+    0,                                              /* tp_descr_set */
+    offsetof(struct Nuitka_FunctionObject, m_dict), /* tp_dictoffset */
+    0,                                              /* tp_init */
+    0,                                              /* tp_alloc */
+    0,                                              /* tp_new */
+    0,                                              /* tp_free */
+    0,                                              /* tp_is_gc */
+    0,                                              /* tp_bases */
+    0,                                              /* tp_mro */
+    0,                                              /* tp_cache */
+    0,                                              /* tp_subclasses */
+    0,                                              /* tp_weaklist */
+    0,                                              /* tp_del */
+    0                                               /* tp_version_tag */
 #if PYTHON_VERSION >= 0x340
     ,
     0 /* tp_finalizer */
@@ -529,8 +533,39 @@ PyTypeObject Nuitka_Function_Type = {
 };
 
 void _initCompiledFunctionType(void) {
-
     PyType_Ready(&Nuitka_Function_Type);
+
+    // Be a paranoid subtype of uncompiled function, we want nothing shared.
+    assert(Nuitka_Function_Type.tp_doc != PyFunction_Type.tp_doc);
+    assert(Nuitka_Function_Type.tp_traverse != PyFunction_Type.tp_traverse);
+    assert(Nuitka_Function_Type.tp_clear != PyFunction_Type.tp_clear || PyFunction_Type.tp_clear == NULL);
+    assert(Nuitka_Function_Type.tp_richcompare != PyFunction_Type.tp_richcompare ||
+           PyFunction_Type.tp_richcompare == NULL);
+    assert(Nuitka_Function_Type.tp_weaklistoffset != PyFunction_Type.tp_weaklistoffset);
+    assert(Nuitka_Function_Type.tp_iter != PyFunction_Type.tp_iter || PyFunction_Type.tp_iter == NULL);
+    assert(Nuitka_Function_Type.tp_iternext != PyFunction_Type.tp_iternext || PyFunction_Type.tp_iternext == NULL);
+    assert(Nuitka_Function_Type.tp_methods != PyFunction_Type.tp_methods);
+    assert(Nuitka_Function_Type.tp_members != PyFunction_Type.tp_members);
+    assert(Nuitka_Function_Type.tp_getset != PyFunction_Type.tp_getset);
+#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
+    assert(Nuitka_Function_Type.tp_base != PyFunction_Type.tp_base);
+#endif
+    assert(Nuitka_Function_Type.tp_dict != PyFunction_Type.tp_dict);
+    assert(Nuitka_Function_Type.tp_descr_get != PyFunction_Type.tp_descr_get);
+
+    assert(Nuitka_Function_Type.tp_descr_set != PyFunction_Type.tp_descr_set || PyFunction_Type.tp_descr_set == NULL);
+    assert(Nuitka_Function_Type.tp_dictoffset != PyFunction_Type.tp_dictoffset);
+    // TODO: These get changed and into the same thing, not sure what to compare against, project something
+    // assert(Nuitka_Function_Type.tp_init != PyFunction_Type.tp_init || PyFunction_Type.tp_init == NULL);
+    // assert(Nuitka_Function_Type.tp_alloc != PyFunction_Type.tp_alloc || PyFunction_Type.tp_alloc == NULL);
+    // assert(Nuitka_Function_Type.tp_new != PyFunction_Type.tp_new || PyFunction_Type.tp_new == NULL);
+    // assert(Nuitka_Function_Type.tp_free != PyFunction_Type.tp_free || PyFunction_Type.tp_free == NULL);
+    assert(Nuitka_Function_Type.tp_bases != PyFunction_Type.tp_bases);
+    assert(Nuitka_Function_Type.tp_mro != PyFunction_Type.tp_mro);
+    assert(Nuitka_Function_Type.tp_cache != PyFunction_Type.tp_cache || PyFunction_Type.tp_cache == NULL);
+    assert(Nuitka_Function_Type.tp_subclasses != PyFunction_Type.tp_subclasses || PyFunction_Type.tp_cache == NULL);
+    assert(Nuitka_Function_Type.tp_weaklist != PyFunction_Type.tp_weaklist);
+    assert(Nuitka_Function_Type.tp_del != PyFunction_Type.tp_del || PyFunction_Type.tp_del == NULL);
 
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
     // TODO: Move this to a __nuitka__ module maybe
