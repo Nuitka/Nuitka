@@ -28,7 +28,7 @@ This release is not done yet.
 #######################
 
 This release has a focus on performance improvements, while also
-polishing plugins and adding new features.
+polishing plugins and adding many new features.
 
 ***********
  Bug Fixes
@@ -37,23 +37,59 @@ polishing plugins and adding new features.
 -  Fix, plugins were not catching being used on packages not installed.
    Fixed in 0.6.16.2 already.
 
+-  macOS: Fixups for DLL dependency parsing. Fixed in 0.6.16.2 already.
+
 -  Linux: Allow onefile program args with spaces passed via AppRun.
    Fixed in 0.6.16.3 already.
 
+-  Windows: Avoid using less portable C function for ``%PID%``
+   formatting, which restores compilation on Windows 7 with old
+   toolchains. Fixed in 0.6.16.3 already.
+
+-  Standalone: Added support for ``fstrings`` package. Fixed in 0.6.16.3
+   already.
+
+-  Compatibility: Fix, need to import ``.pth`` files after ``site``
+   module, not before. This was causing crashes on CentOS7 with Python2.
+   Fixed in 0.6.16.3 already.
+
+-  Compatibility: Fix, when extension modules failed to load, in some
+   cases the ``ImportError`` was lost to a ``KeyError``. Fixed in
+   0.6.16.3 already.
+
+-  Fix, linker resource modes ``code`` and ``linker`` were not working
+   anymore, but are needed with LTO mode at least. Fixed in 0.6.16.3
+   already.
+
+-  Standalone: Bytecode modules with null bytes in standard library,
+   typically from disk corruption, were not handled properly. Fixed in
+   0.6.16.3 already.
+
+-  Fix, failed ``.throw()`` into generators could cause corruption.
+   Fixed in 0.6.16.4 already.
+
 -  Python2: Fix, the bytecode compilation didn't respect the
-   ``--python-flag=no_asserts`` mode.
+   ``--python-flag=no_asserts`` mode. Fixed in 0.6.16.4 already.
+
+-  Fix, calls were not annotating their arguments as escaped, causing
+   corruption of mutable in static optimization. Fixed in 0.6.16.5
+   already.
+
+-  Fix, some sequence objects, e.g. ``numpy.array`` actually implement
+   in-place add operations that need to be called. Fixed in 0.6.16.5
+   already.
 
 -  Windows: Fix, onefile binaries were not working after being signed.
    This now works.
 
--  Standalone: Added missing implicit dependency for sklearn.
+-  Standalone: Added missing implicit dependency for ``sklearn``.
 
 -  Compatibility: Modules giving ``SyntaxError`` from source were not
    properly handled, giving runtime ``ImportError``. Now they are giving
    ``SyntaxError``.
 
 -  Fix, the LTO mode has issues with ``incbin`` usage on older gcc, so
-   use ``linker`` mode when it is enabled and repaired it.
+   use ``linker`` mode when it is enabled.
 
 -  Python3: Fix, locals dict codes were not properly checking errors
    that the mapping might raise when setting values.
@@ -84,7 +120,7 @@ polishing plugins and adding new features.
    non-Windows, making temp paths less unique. The time stamp is not
    necessarily enough.
 
--  Fix, multiprocessing error exits from slave processes were not
+-  Fix, ``multiprocessing`` error exits from slave processes were not
    reporting tracebacks.
 
 -  Standalone: Added ``xcbglintegrations`` to the list of sensible Qt
@@ -113,7 +149,8 @@ polishing plugins and adding new features.
 -  Added experimental support for C level PGO (Profile Guided
    Optimization), which runs your program and then uses feedback from
    the execution. At this time only gcc is supported, and only C
-   compiler is collecting feedback.
+   compiler is collecting feedback. Check the User Manual for a table
+   with current results.
 
 -  macOS: Added experimental support for creating application bundles.
    For these, icons can be specified and console can be disabled. But at
@@ -125,13 +162,34 @@ polishing plugins and adding new features.
    avoids the issue very nicely.
 
 -  Plugins: Massive improvements to the ``anti-bloat`` plugin, it can
-   now make ``numpy``, ``scipy``, ``skimage``, and ``matplotlib`` use
-   much less packages and has better error handling.
+   now make ``numpy``, ``scipy``, ``skimage``, ``pywt``, and
+   ``matplotlib`` use much less packages and has better error handling.
+
+-  Plugins: Added ``anti-bloat`` ability ability to append code to a
+   module, which might get used in the future by other plugins that need
+   some sort of post load changes to be applied.
+
+-  Plugins: Added ability to replace code of functions at parse time,
+   and use this in ``anti-bloat`` plugin to replace functions that do
+   unnecessary stuff with variants that often just do nothing. This is
+   illustrated here.
+
+   .. code:: yaml
+
+      gevent._util:
+      description: "remove gevent release framework"
+      change_function:
+         "prereleaser_middle": "'(lambda data: None)'"
+         "postreleaser_before": "'(lambda data: None)'"
+
+   This example is removing ``gevent`` code that loads dependencies used
+   for their CI release process, that need not be part of normal
+   programs.
 
 -  Added ability to persist source code changes done by plugins in the
    Python installation. This is considered experimental and needs write
    access to the Python installation, so this is best done in a
-   virtualenv.
+   virtualenv and it may confuse plugins.
 
 -  Added support for ``multiprocessing.tracker`` and spawn mode for all
    platforms. For non-default modes outside of Windows, you need to
@@ -147,11 +205,14 @@ polishing plugins and adding new features.
 -  Fix, method calls were not respecting descriptors provided by types
    with non-generic attribute lookups.
 
--  Windows: Add support for using self-built Python3 from the build
+-  Windows: Add support for using self-compiled Python3 from the build
    folder too.
 
 -  Added support for Nuitka-Python 2.7, which will be our faster Python
    fork.
+
+-  Colorized output for error outputs encountered in Scons, these are
+   now yellow for better recognition.
 
 **************
  Optimization
@@ -161,8 +222,6 @@ polishing plugins and adding new features.
    been extended to 3.7 on Windows, but we won't be able to have it
    other platforms and not on earlier Python3 versions.
 
--  Faster attribute check code in case of non-present attributes
-
 -  Faster calls esp. with keyword arguments. Call with keywords no
    longer create dictionaries if the call target supports that, and with
    3.8 or higher, non-compiled code that allows vectorcall is taken
@@ -171,87 +230,125 @@ polishing plugins and adding new features.
 -  Faster class creation that avoids creation of argument tuples and
    dictionaries.
 
--  Faster unbound method calls, unlike bound methods call these were not
-   optimized as well yet.
+-  Faster attribute check code in case of non-present attributes.
+
+-  Faster unbound method calls, unlike bound methods calls these were
+   not optimized as well yet.
 
 -  Type shapes for star arguments are now known and used in
    optimization.
 
--  Python2: Faster old-style class creation.
+   .. code:: python
+
+      def f(*args, **kwargs):
+         type(args) # Statically known to be tuple
+         type(kwargs) # Statically known to be dict
+
+-  Python2: Faster old-style class creation. These are classes that do
+   not explicitly inherit from ``object``.
 
 -  Python2: Added specialization for missing cases of ``str``
-   comparison, the best cases where both types are know were missing.
+   comparison, the best cases where both types are know were missing due
+   to an oversight.
 
--  Python3: Added specialization for ``bytes`` comparisons too.
+-  Python3: Added specialization for ``bytes`` comparisons too. These
+   are naturally very much the same as ``str`` comparisons in Python2.
 
--  Added specialization for ``list`` comparisons too.
+-  Added specialization for ``list`` comparisons too. We had them for
+   ``tuples`` only so far.
+
+-  Faster method calls when called from Python core, our ``tp_call``
+   slot wasn't as good as it can be.
 
 -  Optimization: Faster deep copies of constants. This can speed up
-   constant calls with mutable types.
+   constant calls with mutable types. Before it was checking the type
+   too often to be fast.
 
 -  Allow using static linking with Debian Python giving much better
-   performance with the system Python.
+   performance with the system Python. This is actually a huge
+   improvement as it makes things much faster. So far it's only
+   automatically enabled for Python2, but it seems to work for Python3
+   on Debian too. Needs more tweaking in the future.
 
--  Demote to ``range`` when iterating over ``range`` calls.
+-  Optimization: Added ``functools`` module to the list of hard imports
+   in preparation of optimizing ``functools.partial`` to work better
+   with compiled functions.
 
--  Enable LTO automatically for Debian Python.
+-  Python2: Demote to ``xrange`` when iterating over ``range`` calls,
+   even for small ranges, they are always faster. Previously this was
+   only done for values with at least 256 values.
 
--  Enable LTO automatically for CondaCC on non-Windows.
+-  Enable LTO automatically for Debian Python, this also allows more
+   optimization.
+
+-  Enable LTO automatically for Anaconda with CondaCC on non-Windows,
+   also allowing more optimization.
 
 ****************
  Organisational
 ****************
 
--  Added section in the user manual on how to deal with memory issues
-   and C compiler bugs.
+-  Added section in the User Manual on how to deal with memory issues
+   and C compiler bugs. This is a frequent topic and should serve as a
+   pointer for this kind of issue.
 
 -  The ``--lto`` option was changed to require an argument, so that it
-   can also be enabled. The default is ``auto`` which is the old
+   can also be disabled. The default is ``auto`` which is the old
    behaviour where it's enabled if possible.
 
 -  Changed ``--no-progress`` to ``--no-progressbar`` in order to make it
    more clear what it's about. Previously it was possible to relate it
    to ``--show-progress``.
 
--  No longer require specific versions in our ``requirements.txt`` and
-   relegate those to only bein ``requirements-devel.txt`` such that by
-   default Nuitka doesn't collide with user requirements on those same
-   packages which absolutely all the time don't really make a
-   difference.
+-  No longer require specific versions of dependencies in our
+   ``requirements.txt`` and relegate those to only being in
+   ``requirements-devel.txt`` such that by default Nuitka doesn't
+   collide with user requirements on those same packages which
+   absolutely all the time don't really make a difference.
 
 -  Added ability to check all unpushed changes with pylint with a new
-   ``--unpushed`` option.
+   ``./bin/check-nuitka-with-pylint --unpushed`` option. Before it was
+   only possible to make the check (quickly) with ``--diff``, but that
+   stopped working after commits are made.
 
--  Revived support for vmprof based analysis of compiled programs, but
-   it requires a fork of it now.
+-  Revived support for ``vmprof`` based analysis of compiled programs,
+   but it requires a fork of it now.
 
 -  Make Windows specific compiler options visible on all platforms.
    There is no point in them being errors, instead warnings are given
-   when they are specified.
+   when they are specified on non-Windows.
 
 -  Added project variable ``Commercial`` for use in Nuitka project
    syntax.
+
+-  Consistent use of metavars for nicer help output should make it more
+   readable.
+
+-  Avoid ``ast`` tree dumps in case of ``KeyboardInterrupt`` exceptions,
+   they are just very noisy. Also not annotate where Nuitka was in
+   optimization when a plugin is asking to ``sysexit``.
 
 **********
  Cleanups
 **********
 
--  Encoding names for UTF8 were inconsistent in the source code, added
+-  Encoding names for UTF8 in calls to ``.encode()`` were used
+   inconsistent with and without dashes in the source code, added
    cleanup to autoformat that picks the one blessed.
 
 -  Cleanup taking of runtime traces of DLLs used in preparation for
-   using it in main code eventually.
+   using it in main code eventually, moving it to a dedicated module.
 
 -  Avoid special names for Nuitka options in test runner, this only adds
-   a level of confusion. Needs more work
+   a level of confusion. Needs more work in future release.
 
 -  Unify implementation to create modules into single function. We had 3
    forms, one in recursion, one for main module, and one for plugin
-   generated code.
+   generated code. This makes it much easier to understand and use in
+   plugins.
 
--  Further reduced code duplication between the scons files.
-
--  Faster method calls when called from Python core
+-  Further reduced code duplication between the two Scons files, but
+   more work will be needed there.
 
 -  Faster string comparisons for Python by specializing for the ``str``
    type as well.
@@ -266,17 +363,18 @@ polishing plugins and adding new features.
 -  Moved icon conversion functionality to separate module, so it can be
    reused for other platforms more easily.
 
--  Consistent use of metavars for nicer help output.
-
 *******
  Tests
 *******
 
 -  Removed ``reflected`` test, because of Nuitka special needs to
-   restart with variable Python flags.
+   restart with variable Python flags. This could be reverted though,
+   since Nuitka no longer needs anything outside inline copies, and
+   therefore no longer loads from site packages.
 
--  Use ``anti-bloat`` plugin in standalone tests of Pandas and Jinja2
-   tests to reduce compile times.
+-  Use ``anti-bloat`` plugin in standalone tests of Numpy, Pandas and
+   tests to reduce their compile times, these have become much more
+   managable now.
 
 -  Enhanced checks for used files to use proper below path checks for
    their ignoring.
@@ -291,7 +389,35 @@ polishing plugins and adding new features.
  Summary
 *********
 
-This release is not done yet.
+This release is one of the most important ones in a long time. The PGO
+and LTO, and static libpython work make a big different for performance
+of created binaries.
+
+The amount of optimization added is also huge, calls are much faster
+now, and object creations too. These avoiding to go through actual
+dictionaries and tuples in most cases when compiled code interacts gives
+very significant gains. This can be seen in the increase of pystone
+performance.
+
+The new type specializations allow many operations to be much faster.
+More work will follow in this area and important types, ``str`` and
+``int`` do not have specialized comparisons for Python3, holding it back
+somewhat to where our Python2 performance is for these things.
+
+For scalability, the ``anti-bloat`` work is extremely valuable, and this
+plugin should become active by default in the future, for now it must be
+strongly recommended. It needs more control over what parts you want to
+deactivate from it, in case of it causing problems, then we can and
+should do it.
+
+The support for macOS has been enhanced a lot, and will become perfect
+in the next release (currently develop). The bundle mode is needed for
+all kinds of GUI programs to not need a console. This platform is
+becoming as well supported as the others now.
+
+Generally this release marks a huge step forward. We hope to add Python
+level PGO in the coming releases, for type knowledge retrofitted without
+any annotations used. Benchmarks will become more fun clearly.
 
 #######################
  Nuitka Release 0.6.16
@@ -2029,11 +2155,11 @@ as many new optimization and bug fixes.
    simplify the node for single argument form to avoid checks if an
    argument was given.
 
--  Added iteration handles for xranges, and make them faster to create
-   by being tied to the node type, avoiding shared types, instead using
-   the mixin approach. This is in preparation to using them for standard
-   iterator tracing as well. So far they are only used for ``any`` and
-   ``all`` decision.
+-  Added iteration handles for ``xrange`` values, and make them faster
+   to create by being tied to the node type, avoiding shared types,
+   instead using the mixin approach. This is in preparation to using
+   them for standard iterator tracing as well. So far they are only used
+   for ``any`` and ``all`` decision.
 
 -  Added detection if a iterator next can raise, using existing iterator
    checking which allows to remove needless checks and exception traces.
@@ -3822,9 +3948,9 @@ new optimization work, and even more bug fixes.
    interpreter, aka ``--python-flag=utf8_mode`` was not preserved in the
    compiled binary in all cases.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Enabled C target type ``void`` which will catch creating unused stuff
    more immediately and give better code for expression only statements.
@@ -3957,9 +4083,9 @@ changed.
 -  Standalone: Include certificate file using by ``requests`` module in
    some cases as a data file.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Enabled C target type ``nuitka_bool`` for variables that are stored
    with boolean shape only, and generate C code for those
@@ -7981,9 +8107,9 @@ changed to become runtime dependent values.
 
       (lambda *args: args)(*args)  # was crashing Nuitka
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Focusing on compile time memory usage, cyclic dependencies of trace
    merges that prevented them from being released, even when replaced
@@ -8149,9 +8275,9 @@ the last release.
    must not be done though, ``__doc__`` can be any type in Python. This
    corrects `Issue#177 <http://bugs.nuitka.net/issue177>`__.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Variables that need not be shared, because the uses in closure taking
    functions were eliminated, no longer use cell objects.
@@ -8302,9 +8428,9 @@ now faster or got looked at and optimized.
 -  Generators could leak frames until program exit, these are now
    properly freed immediately.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Faster exception save and restore functions that might be in-lined by
    the backend C compiler.
@@ -8682,9 +8808,9 @@ lots of cleanups.
 
       {[]: None}  # This is now a TypeError
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Calls to the ``dict`` built-in with only keyword arguments are now
    optimized to mere dictionary creations. This is new for the case of
@@ -8830,9 +8956,9 @@ on all fronts.
    version check was always failing, because these report a shortened
    version number to Scons.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Local variables that must be assigned also have no side effects,
    making use of SSA. This allows for a host of optimization to be
@@ -8937,9 +9063,9 @@ but should work now.
    statements, tuples as ``yield from`` arguments, improved error
    messages, additional checks, and many more detail changes.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Using SSA knowledge, local variable assignments now no longer need to
    check if they need to release previous values, they know definitely
@@ -9117,9 +9243,9 @@ variables no longer trace their references to themselves.
 Otherwise, MinGW64 support has been added, and lots of bug fixes were
 made to improve the compatibility.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Using new variable registry, now properly detecting actual need for
    sharing variables. Optimization may discover that it is unnecessary
@@ -9232,9 +9358,9 @@ this is more of a service release.
 -  The ``-python-flag=-S`` mode now preserves ``PYTHONPATH`` and
    therefore became usable with virtualenv.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Line numbers of frames no longer get set unless an exception occurs,
    speeding up the normal path of execution.
@@ -9350,9 +9476,9 @@ development period, and therefore contains a huge jump ahead.
    doesn't affect the validity of other modules object files from caches
    anymore.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  C-ish code generation uses less C++ classes and generates more C-like
    code. Explicit temporary objects are now used for statement temporary
@@ -9614,9 +9740,9 @@ mode performs. Much of it was contributed via patches and bug reports.
 -  Memory usages are now traced with ``--show-progress`` allowing us to
    trace where things go wrong.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Standalone mode now includes standard library as bytecode by default.
    This is workaround scalability issues with many constants from many
@@ -9716,9 +9842,9 @@ the direction of actual SSA.
    binary, and as a replacement of ``strace`` on Linux when running the
    tests to check that nothing is loaded from the outside.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  When iterating over ``list``, ``set``, this is now automatically
    lowered to ``tuples`` avoiding the mutable container types.
@@ -9895,9 +10021,9 @@ cleanups, and some important performance improvements as well.
    often imports many useless things that often don't apply to target
    systems.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Faster frame stack handling for functions without ``try``/``except``
    (or ``try``/``finally`` in Python3). This gives a speed boost to
@@ -10127,9 +10253,9 @@ platforms, adding Gentoo, and self compiled Python to the mix.
 
 -  Windows: New options ``--mingw64`` to force compilation with MinGW.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Rich comparisons (``==``, ``<``, and the like) are now faster than
    ever before due to a full implementation of its own in Nuitka that
@@ -10380,9 +10506,9 @@ structure will hold.
    Threading appears to work just fine in the most cases. It's not as
    optimal as I wanted it to be, but that's going to change with time.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Previous corrections for ``==``, ``!=``, and ``<=``, caused a
    performance regression for these operations in case of handling
@@ -10608,6 +10734,8 @@ form in Nuitka.
 
    is behavioral more like
 
+   .. code:: bash
+
       python -c "import module"
 
    and that was a trap for new users.
@@ -10644,9 +10772,9 @@ form in Nuitka.
 -  Python3: Annotations of function worked only as long as their
    definition was not referring to local variables.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Calls with no positional arguments are now using the faster call
    methods.
@@ -10924,9 +11052,9 @@ expanded.
    This was already present for Python3.3, and it turns out that all of
    Python3 does it.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Constants are now much less often created with ``pickle`` module, but
    created directly.
@@ -11073,9 +11201,9 @@ for the optimization part there have been large amounts of changes.
 -  Assigning Python3 function annotations could cause a segmentation
    fault.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Improved propagation of exception raise statements, eliminating more
    code. They are now also propagated from all kinds of expressions.
@@ -11275,9 +11403,9 @@ diagrams, `even if weak ones
    was not enforced, it now is. This fixes a reference leak when raising
    exceptions, where building the exception was raising an exception.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Optimizing attribute access to compile time constants for the first
    time. The old registry had no actual user yet.
@@ -11564,9 +11692,9 @@ the next big Python application can come.
    modules. These exports cause MinGW and MSVC compilers to create
    export libraries.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  More efficient code for conditional expressions in conditions:
 
@@ -11921,8 +12049,9 @@ assignment could be.
 
    .. admonition:: Update
 
-      We have given up on this version of speedcenter meanwhile, and generate static
-      pages with graphs instead. We can this still speedcenter.
+      We have given up on this version of speedcenter meanwhile, and
+      generate static pages with graphs instead. We can this still
+      speedcenter.
 
 ***********
  New Tests
@@ -12024,9 +12153,9 @@ for Python2. For the common language subset, it's quite fine now.
 -  Python3 has gained support for recursive programs and stand alone
    extension modules, these are now both possible as well.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Avoid frame stack entries for functions that cannot raise exceptions,
    i.e. where they would not be used.
@@ -12220,9 +12349,9 @@ organisational improvements, that make the release complete.
    instead the code returned at run time. Fixed to raise a
    ``SyntaxError`` at compile time.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Avoid ``tuple`` objects to be created when catching multiple
    exception types, instead call exception match check function multiple
@@ -12502,9 +12631,9 @@ mostly, thanks for the patches from Pete Hunt.
    via ``--clang`` option. Currently this option is mainly intended to
    allow testing the "macOS X" support as good as possible under Linux.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Enhanced all optimization that previously worked on "constants" to
    work on "compile time constants" instead. A "compile time constant"
@@ -12773,9 +12902,9 @@ new release.
    to run one more basic test, ``GlobalStatement.py`` with Python3. The
    test ``ExecEval.py`` nearly works now.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  The no arguments ``range()`` call now optimized into the static
    CPython exception it raises.
@@ -12941,9 +13070,9 @@ much else.
 -  Compatibility Fix: When no defaults are given, CPython uses ``None``
    for ``func.func_defaults``, but Nuitka had been using ``None``.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  If the condition of assert statements can be predicted, these are now
    optimized in a static raise or removed.
@@ -13097,9 +13226,9 @@ entering the Debian repository.
    ``--recurse-to`` (confirm to recurse to those modules)
    ``--recurse-not-to`` (confirm to not recurse to those modules)
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  The optimization of constant conditional expressions was not done
    yet. Added this missing constant propagation case.
@@ -13358,9 +13487,9 @@ Debian repository. It's still not there, but it's making progress.
 -  Fix, the future spec was not properly preserving the future division
    flag.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  The optimization scales now much better, because per-module
    optimization only require the module to be reconsidered, but not all
@@ -13581,9 +13710,9 @@ with line numbers in the frame object.
    with ``valgrind``. It will give better information that way, without
    changing the code.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Implemented ``swapcontext`` alike (``swapFiber``) for x64 to achieve
    8 times speedup for Generators. It doesn't do useless syscalls to
@@ -13709,9 +13838,9 @@ compiled types by the ``inspect`` module.
    too. The inspect module will therefore return correct value for
    ``inspect.isgeneratorfunction()`` too.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Slice indexes that are ``None`` are now constant propagated as well.
 
@@ -13849,9 +13978,9 @@ bugs.
    enforced in a portable way. Now it is correct on "ARM" too. Fixed in
    0.3.12e already.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  The built-ins ``GeneratorExit`` and ``StopIteration`` are optimized
    to their Python C/API names where possible as well.
@@ -14132,9 +14261,9 @@ first, the result being that Nuitka now works on ARM Linux too.
    then. That is incompatible in case of exceptions, where partial
    outputs need to be done, and so that got fixed.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Function calls now each have a dedicated helper function, avoiding in
    some cases unnecessary work. We will may build further on this and
@@ -14277,9 +14406,9 @@ structural optimization enhancements.
    side effect on lookup, it was evident that the lookup was made twice.
    Correcting this also improves the performance for the normal case.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Statically raised as well as predicted exceptions are propagated
    upwards, leading to code and block removal where possible, while
@@ -14442,9 +14571,9 @@ detected and more thoroughly optimizing them.
    lead to assuming a tuple with only mutable elements to be not
    mutable, which is of course wrong.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 This time there are so many new optimization, it makes sense to group
 them by the subject.
@@ -14732,9 +14861,9 @@ which will have to continue for some time more.
 -  There was an ``assert False`` right after warning about not found
    modules in the ``--deep`` mode, which was of course unnecessary.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  When unpacking variables in assignments, the temporary variables are
    now held in a new temporary class that is designed for the task
@@ -14890,9 +15019,9 @@ more efficient at it.
 -  Exception tracebacks created inside ``with`` statements could contain
    duplicate lines, this was corrected.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Global variable assignments now also use ``assign0`` where no
    reference exists.
@@ -15059,9 +15188,9 @@ not a performance improvement at all.
    least creates smaller binaries and may provide more optimization in
    the future.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Exceptions raised by pre-computed built-ins, unpacking, etc. are now
    transformed to raising the exception statically.
@@ -15226,9 +15355,9 @@ resulted in important contributions.
    Previously I just didn't care, but we sort of approach end user
    usability with this.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Added optimization for the built-in ``range()`` which otherwise
    requires a module and ``builtin`` module lookup, then parameter
@@ -15466,9 +15595,9 @@ which end up giving us another boost for the "PyStone" benchmark.
    may still become predictable, right now it must be a real CPython
    constant string.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Added optimization for the built-ins ``ord()`` and ``chr()``, these
    require a module and built-in module lookup, then parameter parsing.
@@ -15636,9 +15765,9 @@ Others
 -  The pickling of some tuples showed that "cPickle" can have
    non-reproducible results, using "pickle" to stream constants now
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Access to instance attributes has become faster by writing specific
    code for the case. This is done in JIT way, attempting at run time to
@@ -15756,9 +15885,9 @@ are some bug fixes.
    behavior. Clearly a corner case, but one that works fully compatible
    now.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  The local and shared local variable C++ classes have a flag
    "free_value" to indicate if an "PY_DECREF" needs to be done when
@@ -15850,9 +15979,9 @@ only cleanups and optimization. Most go into the direction of more
 readable code, some aim at making the basic things faster, with good
 results as to performance as you can see below.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Constants in conditions of conditional expressions (``a if cond else
    d``), ``if``/``elif`` or ``while`` are now evaluated to ``true`` or
@@ -16250,9 +16379,9 @@ addressed.
 -  As I start to consider announcing Nuitka, I moved the version logic
    so that the version can now be queried with ``--version``.
 
-******************
- New Optimization
-******************
+**************
+ Optimization
+**************
 
 -  Name lookups for ``None``, ``True`` and ``False`` and now always
    detected as constants, eliminating many useless module variable
