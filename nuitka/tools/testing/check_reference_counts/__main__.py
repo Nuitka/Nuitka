@@ -73,8 +73,7 @@ Try to explain the differences by comparing object counts.""",
         "nuitka",
         "--module",
         options.checked_module,
-        "--output-dir",
-        temp_dir,
+        "--output-dir=%s" % temp_dir,
     ]
 
     if hasattr(sys, "gettotalrefcount"):
