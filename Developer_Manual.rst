@@ -7,7 +7,7 @@
 
 .. contents::
 
-The purpose of this developer manual is to present the current design of
+The purpose of this Developer Manual is to present the current design of
 Nuitka, the project rules, and the motivations for choices made. It is
 intended to be a guide to the source code, and to give explanations that
 don't fit into the source code in comments form.

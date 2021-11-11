@@ -39,6 +39,8 @@ from nuitka.utils.FileOperations import (
 
 replacements = [
     ("organizational", "organisational"),
+    ("developer manual", "Developer Manual"),
+    ("user manual", "User Manual"),
 ]
 
 

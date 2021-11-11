@@ -374,7 +374,7 @@ polishing plugins and adding many new features.
 
 -  Use ``anti-bloat`` plugin in standalone tests of Numpy, Pandas and
    tests to reduce their compile times, these have become much more
-   managable now.
+   manageable now.
 
 -  Enhanced checks for used files to use proper below path checks for
    their ignoring.
@@ -865,7 +865,7 @@ in the main file should prove to be very useful.
       # nuitka-project: --qt-datafile-pattern=*.svg
       # nuitka-project: --qt-datafile-pattern=*.png
 
-   Refer to the user manual for a table of directives and the variables
+   Refer to the User Manual for a table of directives and the variables
    allowed to be used.
 
 -  Added option to include whole data directory structures in
@@ -2682,7 +2682,7 @@ enhance the Python 3.8 compatibility.
  Organisational
 ****************
 
--  Updated developer manual with changes that happened, remvoing the
+-  Updated Developer Manual with changes that happened, remvoing the
    obsolete language choice section.
 
 -  Added 3.8 support mentions is even more places.
@@ -6210,7 +6210,7 @@ improvements, and many cleanups.
    also tags for speedcenter, indicating how well "develop" branch fares
    in comparison to master.
 
--  With a new tool, source code and developer manual contents can be
+-  With a new tool, source code and Developer Manual contents can be
    kept in sync, so that descriptions can be quoted there. Eventually a
    full Sphinx documentation might become available, but for now this
    makes it workable.
@@ -8984,7 +8984,7 @@ on all fronts.
 -  Made it more clear in the user documentation that the ``.exe`` suffix
    is used for all platforms, and why.
 
--  Generally updated information in user manual and developer manual
+-  Generally updated information in User Manual and Developer Manual
    about the optimization status.
 
 -  Using Nikola 7.1 with external filters instead of our own, outdated
@@ -11601,7 +11601,7 @@ almost purely optimization. This release contains already some of it,
 with frames being optimized away, with the assignment keepers from the
 ``or`` and ``and`` re-formulation being optimized away. This will be
 about achieving goals from the "ctypes" plan as discussed in the
-developer manual.
+Developer Manual.
 
 Also the performance page will be expanded with more benchmarks and
 diagrams as I go forward. I have finally given up on "codespeed", and do
