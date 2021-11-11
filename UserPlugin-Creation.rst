@@ -36,7 +36,9 @@ Nuitka's command line. The difference is the invocation format:
 
 This is a simple demo user plugin. It will display source code lines of
 the main program if they contain calls to the ``math`` module, if an
-option named "trace" is active::
+option named "trace" is active:
+
+.. code:: python
 
    import os
    import sys
@@ -78,9 +80,14 @@ option named "trace" is active::
                self.info("")
            return source_code
 
-Sample invocation line and output::
+Sample invocation line and output:
 
-   $ python -m nuitka --standalone --user-plugin=user_plugin.py=trace script.py
+.. code:: bash
+
+   python -m nuitka --standalone --user-plugin=user_plugin.py=trace script.py
+
+.. code::
+
    Nuitka:INFO: 'user_plugin.py' options: ['trace']
    Nuitka:INFO: 'trace' is set to True
    Nuitka:INFO:User plugin 'user_plugin.py' loaded.
