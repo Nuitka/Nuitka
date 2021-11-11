@@ -61,6 +61,7 @@ example, if you are using package *numpy* and forget to activate that
 plugin, then your compile will
 
 -  end with no error, but a warning about missing numpy support,
+
 -  not generate a working binary.
 
 Also:
@@ -93,8 +94,10 @@ and only used packages are included.
 Create a list of available optional |sps| giving their identifier
 together with a short description via ``--plugin-list``:
 
-          The following optional standard plugins are available in Nuitka
-   --------------------------------------------------------------------------------
+The following optional standard plugins are available in Nuitka:
+
+.. code::
+
    anti-bloat            Patch stupid imports out of widely used library modules source codes.
    data-files
    data-hiding           Commercial: Hide program constant Python data from offline inspection of created binaries.
@@ -122,6 +125,10 @@ together with a short description via ``--plugin-list``:
    torch                 Required by the torch / torchvision packages
    traceback-encryption  Commercial: Encrypt tracebacks (de-Jong-Stacks).
    windows-service       Commercial: Create Windows Service files
+
+.. note::
+
+   This list is continuously growing and most likely out of date.
 
 *****************************************
  Optional Standard Plugins Documentation
