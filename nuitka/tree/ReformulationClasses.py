@@ -17,8 +17,8 @@
 #
 """ Reformulation of Python2 class statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
@@ -75,7 +75,7 @@ from .TreeHelpers import (
 
 def buildClassNode2(provider, node, source_ref):
     # This function is the Python2 special case with special re-formulation as
-    # according to developer manual, and it's very detailed, pylint: disable=too-many-locals
+    # according to Developer Manual, and it's very detailed, pylint: disable=too-many-locals
     class_statement_nodes, class_doc = extractDocFromBody(node)
 
     function_body = ExpressionClassBody(
