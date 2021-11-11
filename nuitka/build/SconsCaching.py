@@ -160,7 +160,7 @@ def _injectCcache(
     else:
         if isWin32Windows():
             scons_logger.warning(
-                "Didn't find ccache for C level caching, follow Nuitka user manual description."
+                "Didn't find ccache for C level caching, follow Nuitka User Manual description."
             )
 
 

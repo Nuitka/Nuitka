@@ -17,8 +17,8 @@
 #
 """ Reformulation of Python3 class statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
@@ -134,7 +134,7 @@ def buildClassNode3(provider, node, source_ref):
     # pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
 
     # This function is the Python3 special case with special re-formulation as
-    # according to developer manual.
+    # according to Developer Manual.
     class_statement_nodes, class_doc = extractDocFromBody(node)
 
     # We need a scope for the temporary variables, and they might be closured.

@@ -17,8 +17,8 @@
 #
 """ Reformulation of for loop statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
@@ -54,7 +54,7 @@ from .TreeHelpers import (
 
 
 def _buildForLoopNode(provider, node, sync, source_ref):
-    # The for loop is re-formulated according to developer manual. An iterator
+    # The for loop is re-formulated according to Developer Manual. An iterator
     # is created, and looped until it gives StopIteration. The else block is
     # taken if a for loop exits normally, i.e. because of iterator
     # exhaustion. We do this by introducing an indicator variable.

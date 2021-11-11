@@ -17,8 +17,8 @@
 #
 """ Reformulation of contraction expressions.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
@@ -130,7 +130,7 @@ def _getStopIterationName(qual):
 
 def _buildPython2ListContraction(provider, node, source_ref):
     # The contraction nodes are reformulated to function bodies, with loops as
-    # described in the developer manual. They use a lot of temporary names,
+    # described in the Developer Manual. They use a lot of temporary names,
     # nested blocks, etc. and so a lot of variable names.
 
     # Note: The assign_provider is only to cover Python2 list contractions,
@@ -591,7 +591,7 @@ def _buildContractionBodyNode(
 
 def _buildContractionNode(provider, node, name, emit_class, start_value, source_ref):
     # The contraction nodes are reformulated to function bodies, with loops as
-    # described in the developer manual. They use a lot of temporary names,
+    # described in the Developer Manual. They use a lot of temporary names,
     # nested blocks, etc. and so a lot of variable names.
 
     function_body = ExpressionOutlineFunction(
