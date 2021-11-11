@@ -7,11 +7,6 @@
 
 .. contents::
 
-.. raw:: pdf
-
-   PageBreak oneColumn
-   SetPageCounter 1
-
 The purpose of this developer manual is to present the current design of
 Nuitka, the project rules, and the motivations for choices made. It is
 intended to be a guide to the source code, and to give explanations that
@@ -620,7 +615,9 @@ The top level access to the tests is as simple as this:
 
    ./tests/run-tests
 
-For fine grained control, it has the following options::
+For fine grained control, it has the following options:
+
+.. code::
 
    --skip-basic-tests    The basic tests, execute these to check if Nuitka is
                          healthy. Default is True.

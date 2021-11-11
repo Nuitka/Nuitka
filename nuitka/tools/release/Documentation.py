@@ -150,10 +150,23 @@ def createReleaseDocumentation():
         old_contents = getFileContents(document)
         new_contents = old_contents.replace(":\n\n.. code::\n", "::\n")
 
+        # Add page counter reset right after TOC for PDF.
+        new_contents = new_contents.replace(
+            ".. contents::",
+            """.. contents::
+
+.. raw:: pdf
+
+   PageBreak oneColumn
+   SetPageCounter 1
+
+""",
+        )
+
         try:
             if new_contents != old_contents:
                 putTextFileContents(filename=document, contents=new_contents)
-            createRstPDF(document, args)
+            createRstPDF(document=document, args=args)
         finally:
             if new_contents != old_contents:
                 putTextFileContents(filename=document, contents=old_contents)
