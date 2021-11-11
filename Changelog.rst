@@ -14340,12 +14340,16 @@ first, the result being that Nuitka now works on ARM Linux too.
 We only have "PyStone" now, and on a new machine, so the numbers cannot
 be compared to previous releases:
 
-python 2.6::
+python 2.6:
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.48
    This machine benchmarks at 104167 pystones/second
 
-Nuitka 0.3.11 (driven by python 2.6)::
+Nuitka 0.3.11 (driven by python 2.6):
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.19
    This machine benchmarks at 263158 pystones/second
@@ -14977,12 +14981,16 @@ which will have to continue for some time more.
  Numbers
 *********
 
-python 2.6::
+python 2.6:
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.65
    This machine benchmarks at 76923.1 pystones/second
 
-Nuitka 0.3.8 (driven by python 2.6)::
+Nuitka 0.3.8 (driven by python 2.6):
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.27
    This machine benchmarks at 185185 pystones/second
@@ -15117,12 +15125,16 @@ more efficient at it.
  Numbers
 *********
 
-python 2.6::
+python 2.6:
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.65
    This machine benchmarks at 76923.1 pystones/second
 
-Nuitka 0.3.7 (driven by python 2.6)::
+Nuitka 0.3.7 (driven by python 2.6):
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.28
    This machine benchmarks at 178571 pystones/second
@@ -15248,12 +15260,16 @@ not a performance improvement at all.
  Numbers
 *********
 
-python 2.6::
+python 2.6:
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.65
    This machine benchmarks at 76923.1 pystones/second
 
-Nuitka 0.3.6 (driven by python 2.6)::
+Nuitka 0.3.6 (driven by python 2.6):
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.31
    This machine benchmarks at 161290 pystones/second
@@ -15508,12 +15524,16 @@ resulted in important contributions.
  Numbers
 *********
 
-python 2.6::
+python 2.6:
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.65
    This machine benchmarks at 76923.1 pystones/second
 
-Nuitka 0.3.5 (driven by python 2.6)::
+Nuitka 0.3.5 (driven by python 2.6):
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.31
    This machine benchmarks at 161290 pystones/second
@@ -15683,12 +15703,16 @@ which end up giving us another boost for the "PyStone" benchmark.
  Numbers
 *********
 
-python 2.6::
+python 2.6:
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.65
    This machine benchmarks at 76923.1 pystones/second
 
-Nuitka 0.3.4::
+Nuitka 0.3.4:
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.34
    This machine benchmarks at 147059 pystones/second
@@ -15821,12 +15845,16 @@ Others
  Numbers
 *********
 
-python 2.6::
+python 2.6:
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.65
    This machine benchmarks at 76923.1 pystones/second
 
-Nuitka 0.3.3::
+Nuitka 0.3.3:
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.36
    This machine benchmarks at 138889 pystones/second
@@ -15956,12 +15984,16 @@ are some bug fixes.
  Numbers
 *********
 
-python 2.6::
+python 2.6:
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.65
    This machine benchmarks at 76923.1 pystones/second
 
-Nuitka 0.3.2::
+Nuitka 0.3.2:
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.39
    This machine benchmarks at 128205 pystones/second
@@ -16063,12 +16095,16 @@ results as to performance as you can see below.
  Numbers
 *********
 
-python 2.6::
+python 2.6:
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.65
    This machine benchmarks at 76923.1 pystones/second
 
-Nuitka 0.3.1::
+Nuitka 0.3.1:
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.41
    This machine benchmarks at 121951 pystones/second
@@ -16151,12 +16187,16 @@ important bottlenecks.
  Numbers
 *********
 
-python 2.6::
+python 2.6:
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.65
    This machine benchmarks at 76923.1 pystones/second
 
-Nuitka 0.3.0::
+Nuitka 0.3.0:
+
+.. code::
 
    Pystone(1.1) time for 50000 passes = 0.52
    This machine benchmarks at 96153.8 pystones/second

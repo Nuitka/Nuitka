@@ -146,7 +146,17 @@ def createReleaseDocumentation():
             args.append('--header="###Title### - ###Section###"')
             args.append('--footer="###Title### - page ###Page### - ###Section###"')
 
-        createRstPDF(document, args)
+        # Workaround for rst2pdf not support ..code:: without language.
+        old_contents = getFileContents(document)
+        new_contents = old_contents.replace(":\n\n.. code::\n", "::\n")
+
+        try:
+            if new_contents != old_contents:
+                putTextFileContents(filename=document, contents=new_contents)
+            createRstPDF(document, args)
+        finally:
+            if new_contents != old_contents:
+                putTextFileContents(filename=document, contents=old_contents)
 
     if os.name != "nt":
         makeManpages()
