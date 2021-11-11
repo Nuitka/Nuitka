@@ -2682,10 +2682,10 @@ enhance the Python 3.8 compatibility.
  Organisational
 ****************
 
--  Updated Developer Manual with changes that happened, remvoing the
+-  Updated Developer Manual with changes that happened, removing the
    obsolete language choice section.
 
--  Added 3.8 support mentions is even more places.
+-  Added 3.8 support mentions in even more places.
 
 -  The mailing list has been deleted. We now prefer Gitter chat and
    Github issues for discussions.
