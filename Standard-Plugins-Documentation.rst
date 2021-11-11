@@ -56,12 +56,14 @@ be controlled via *options* (see "Using Plugin Options").
 *******************
 
 Almost all |ops| are relevant for standalone mode only. Specifying all
-the right plugins is up to the user and critical for success: for
-example. if you are using package *numpy* and forget to activate that
+the right plugins is up to the user and critical for success: For
+example, if you are using package *numpy* and forget to activate that
 plugin, then your compile will
 
-   -  end with no error, but a warning about missing numpy support,
-   -  not generate a working binary.
+-  end with no error, but a warning about missing numpy support,
+-  not generate a working binary.
+
+Also:
 
 -  |ups| are able to programmatically enable |ops|, the **reverse is not
    possible**. The user must know the requirements of his script and
@@ -89,7 +91,7 @@ and only used packages are included.
 ***********************************
 
 Create a list of available optional |sps| giving their identifier
-together with a short description via ``--plugin-list``::
+together with a short description via ``--plugin-list``:
 
           The following optional standard plugins are available in Nuitka
    --------------------------------------------------------------------------------
