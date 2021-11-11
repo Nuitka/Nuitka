@@ -467,7 +467,7 @@ def putTextFileContents(filename, contents, encoding=None):
 
     def _writeContents(output_file):
         if isinstance(contents, basestring):
-            print(contents, file=output_file)
+            print(contents, file=output_file, end="")
         else:
             for line in contents:
                 print(line, file=output_file)
