@@ -7,11 +7,6 @@
 
 .. contents::
 
-.. raw:: pdf
-
-   PageBreak oneColumn
-   SetPageCounter 1
-
 **********
  Overview
 **********
