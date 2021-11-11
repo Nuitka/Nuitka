@@ -502,120 +502,6 @@ def displayRuntimeTraces(logger, path):
             os.system("strace -s4096 -e file %s" % path)
 
 
-def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
-    # A lot of special white listing is required.
-    # pylint: disable=too-many-branches
-
-    result = []
-
-    for loaded_filename in loaded_filenames:
-        loaded_filename = os.path.normpath(loaded_filename)
-        loaded_filename = os.path.normcase(loaded_filename)
-        loaded_basename = os.path.basename(loaded_filename)
-
-        ok = False
-        for entry in white_list:
-            if loaded_filename.startswith(entry):
-                ok = True
-
-            while entry:
-                old_entry = entry
-                entry = os.path.dirname(entry)
-
-                if old_entry == entry:
-                    break
-
-                if loaded_filename == entry:
-                    ok = True
-                    break
-        if ok:
-            continue
-
-        ignore = True
-        for ignored_dir in (
-            # System configuration is OK
-            "/etc",
-            "/usr/etc",
-            "/usr/local/etc",
-            # Runtime user state and kernel information is OK.
-            "/proc",
-            "/dev",
-            "/run",
-            "/sys",
-            "/tmp",
-            # Locals may of course be loaded.
-            "/usr/lib/locale",
-            "/usr/share/locale",
-            "/usr/share/X11/locale",
-            # Themes may of course be loaded.
-            "/usr/share/themes",
-            # Terminal info files are OK too.
-            "/lib/terminfo",
-        ):
-            if isPathBelowOrSameAs(ignored_dir, loaded_filename):
-                ignore = False
-                break
-        if not ignore:
-            continue
-
-        if "gtk" in loaded_filename and "/engines/" in loaded_filename:
-            continue
-
-        # System C libraries are to be expected.
-        if loaded_basename.startswith(
-            (
-                "ld-linux-x86-64.so",
-                "libc.so.",
-                "libpthread.so.",
-                "libm.so.",
-                "libdl.so.",
-                "libBrokenLocale.so.",
-                "libSegFault.so",
-                "libanl.so.",
-                "libcidn.so.",
-                "libcrypt.so.",
-                "libmemusage.so",
-                "libmvec.so.",
-                "libnsl.so.",
-                "libnss_compat.so.",
-                "libnss_db.so.",
-                "libnss_dns.so.",
-                "libnss_files.so.",
-                "libnss_hesiod.so.",
-                "libnss_nis.so.",
-                "libnss_nisplus.so.",
-                "libpcprofile.so",
-                "libresolv.so.",
-                "librt.so.",
-                "libthread_db-1.0.so",
-                "libthread_db.so.",
-                "libutil.so.",
-            )
-        ):
-            continue
-
-        # Taking these from system is harmless and desirable
-        if loaded_basename.startswith(("libz.so", "libgcc_s.so")):
-            continue
-
-        # TODO: Unclear, loading gconv from filesystem of installed system
-        # may be OK or not. I think it should be.
-        if loaded_basename == "gconv-modules.cache":
-            continue
-        if "/gconv/" in loaded_filename:
-            continue
-        if loaded_basename.startswith("libicu"):
-            continue
-
-        # GTK may access X files.
-        if loaded_basename == ".Xauthority":
-            continue
-
-        result.append(loaded_filename)
-
-    return result
-
-
 def hasModule(module_name):
     result = subprocess.call(
         (os.environ["PYTHON"], "-c", "import %s" % module_name),
@@ -1497,6 +1383,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             "/run",
             "/sys",
             "/tmp",
+            "/var",
             # Locals may of course be loaded.
             "/usr/lib/locale",
             "/usr/share/locale",

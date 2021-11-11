@@ -27,13 +27,13 @@ import pickle
 import re
 import subprocess
 import sys
-import tempfile
 import time
 
 from nuitka.PythonVersions import python_version
 from nuitka.tools.testing.Common import (
     addToPythonPath,
     executeAfterTimePassed,
+    getTempDir,
     getTestingCPythonOutputsCacheDir,
     killProcess,
     withPythonPathChange,
@@ -557,12 +557,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if output_dir:
             os.chdir(output_dir)
         else:
-            tmp_dir = tempfile.gettempdir()
-
-            # Try to avoid RAM disk /tmp and use the disk one instead.
-            if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
-                tmp_dir = "/var/tmp"
-
+            tmp_dir = getTempDir()
             os.chdir(tmp_dir)
 
         if trace_command:

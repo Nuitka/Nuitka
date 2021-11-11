@@ -25,12 +25,15 @@ Has many options, read --help output.
 import os
 import subprocess
 import sys
-import tempfile
 from optparse import OptionParser
 
 from nuitka.freezer.Onefile import checkOnefileReadiness
 from nuitka.tools.Basics import goHome
-from nuitka.tools.testing.Common import my_print, withExtendedExtraOptions
+from nuitka.tools.testing.Common import (
+    getTempDir,
+    my_print,
+    withExtendedExtraOptions,
+)
 from nuitka.utils.Execution import (
     check_call,
     check_output,
@@ -628,11 +631,7 @@ def main():
             yield "--mingw64"
 
         if where is not None:
-            tmp_dir = tempfile.gettempdir()
-
-            # Try to avoid RAM disk /tmp and use the disk one instead.
-            if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
-                tmp_dir = "/var/tmp"
+            tmp_dir = getTempDir()
 
             where = os.path.join(tmp_dir, name, where)
 
