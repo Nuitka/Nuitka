@@ -40,124 +40,150 @@ sys.path.insert(
 # isort:start
 
 import shutil
-import tempfile
 
 from nuitka.freezer.RuntimeTracing import getRuntimeTraceOfLoadedFiles
 from nuitka.tools.testing.Common import (
     check_output,
-    checkRuntimeLoadedFilesForOutsideAccesses,
+    checkLoadedFileAccesses,
     checkSucceedsWithCPython,
     compileLibraryTest,
     createSearchMode,
+    displayFileContents,
+    displayFolderContents,
+    displayRuntimeTraces,
+    getTempDir,
     my_print,
     setup,
     test_logger,
 )
 from nuitka.utils.FileOperations import openTextFile
 
-setup(suite="extension_modules", needs_io_encoding=True)
-search_mode = createSearchMode()
 
-tmp_dir = tempfile.gettempdir()
+def displayError(dirname, filename):
+    assert dirname is None
 
-# Try to avoid RAM disk /tmp and use the disk one instead.
-if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
-    tmp_dir = "/var/tmp"
+    dist_path = filename[:-3] + ".dist"
+    displayFolderContents("dist folder", dist_path)
 
-done = set()
-
-
-def decide(root, filename):
-    if os.path.sep + "Cython" + os.path.sep in root:
-        return False
-
-    if (
-        root.endswith(os.path.sep + "matplotlib")
-        or os.path.sep + "matplotlib" + os.path.sep in root
-    ):
-        return False
-
-    if filename.endswith("linux-gnu_d.so"):
-        return False
-
-    if root.endswith(os.path.sep + "msgpack"):
-        return False
-
-    first_part = filename.split(".")[0]
-    if first_part in done:
-        return False
-    done.add(first_part)
-
-    return filename.endswith((".so", ".pyd")) and not filename.startswith("libpython")
+    inclusion_log_path = filename[:-3] + ".py.inclusion.log"
+    displayFileContents("inclusion log", inclusion_log_path)
 
 
-current_dir = os.path.normpath(os.getcwd())
-current_dir = os.path.normcase(current_dir)
+def main():
+    setup(suite="extension_modules", needs_io_encoding=True)
+    search_mode = createSearchMode()
 
+    tmp_dir = getTempDir()
 
-def action(stage_dir, root, path):
-    command = [
-        sys.executable,
-        os.path.join("..", "..", "bin", "nuitka"),
-        "--stand",
-        "--run",
-        "--output-dir",
-        stage_dir,
-        "--remove-output",
-        "--enable-plugin=pylint-warnings",
-    ]
+    done = set()
 
-    filename = os.path.join(stage_dir, "importer.py")
+    def decide(root, filename):
+        if os.path.sep + "Cython" + os.path.sep in root:
+            return False
 
-    assert path.startswith(root)
+        if (
+            root.endswith(os.path.sep + "matplotlib")
+            or os.path.sep + "matplotlib" + os.path.sep in root
+        ):
+            return False
 
-    module_name = path[len(root) + 1 :]
-    module_name = module_name.split(".")[0]
-    module_name = module_name.replace(os.path.sep, ".")
+        if filename.endswith("linux-gnu_d.so"):
+            return False
 
-    with openTextFile(filename, "w") as output:
-        output.write("import " + module_name + "\n")
-        output.write("print('OK')")
+        if root.endswith(os.path.sep + "msgpack"):
+            return False
 
-    command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
+        first_part = filename.split(".")[0]
+        if first_part in done:
+            return False
+        done.add(first_part)
 
-    command.append(filename)
+        return filename.endswith((".so", ".pyd")) and not filename.startswith(
+            "libpython"
+        )
 
-    if checkSucceedsWithCPython(filename):
-        try:
-            output = check_output(command).splitlines()
-        except Exception:  # only trying to check for no exception, pylint: disable=try-except-raise
-            raise
+    current_dir = os.path.normpath(os.getcwd())
+    current_dir = os.path.normcase(current_dir)
+
+    def action(stage_dir, root, path):
+        command = [
+            sys.executable,
+            os.path.join("..", "..", "bin", "nuitka"),
+            "--stand",
+            "--run",
+            "--output-dir",
+            stage_dir,
+            "--remove-output",
+            "--enable-plugin=pylint-warnings",
+        ]
+
+        filename = os.path.join(stage_dir, "importer.py")
+
+        assert path.startswith(root)
+
+        module_name = path[len(root) + 1 :]
+        module_name = module_name.split(".")[0]
+        module_name = module_name.replace(os.path.sep, ".")
+
+        with openTextFile(filename, "w") as output:
+            output.write("import " + module_name + "\n")
+            output.write("print('OK')")
+
+        command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
+
+        command.append(filename)
+
+        if checkSucceedsWithCPython(filename):
+            try:
+                output = check_output(command).splitlines()
+            except Exception:  # only trying to check for no exception, pylint: disable=try-except-raise
+                raise
+            else:
+                assert os.path.exists(filename[:-3] + ".dist")
+
+                binary_filename = os.path.join(
+                    filename[:-3] + ".dist",
+                    "importer.exe" if os.name == "nt" else "importer",
+                )
+                loaded_filenames = getRuntimeTraceOfLoadedFiles(
+                    logger=test_logger,
+                    command=[binary_filename],
+                )
+
+                outside_accesses = checkLoadedFileAccesses(
+                    loaded_filenames=loaded_filenames, current_dir=os.getcwd()
+                )
+
+                if outside_accesses:
+                    displayError(None, filename)
+                    displayRuntimeTraces(test_logger, binary_filename)
+
+                    test_logger.warning(
+                        "Should not access these file(s): '%r'." % outside_accesses
+                    )
+
+                    search_mode.onErrorDetected(1)
+
+                if output[-1] != b"OK":
+                    sys.exit("FAIL")
+
+                my_print("OK")
+
+                assert not outside_accesses, outside_accesses
+
+                shutil.rmtree(filename[:-3] + ".dist")
         else:
-            assert os.path.exists(filename[:-3] + ".dist")
+            my_print("SKIP (does not work with CPython)")
 
-            loaded_filenames = getRuntimeTraceOfLoadedFiles(
-                logger=test_logger,
-                command=[os.path.join(filename[:-3] + ".dist", "importer.exe")],
-            )
+    compileLibraryTest(
+        search_mode=search_mode,
+        stage_dir=os.path.join(tmp_dir, "compile_extensions"),
+        decide=decide,
+        action=action,
+    )
 
-            outside_accesses = checkRuntimeLoadedFilesForOutsideAccesses(
-                loaded_filenames,
-                [filename[:-3] + ".dist", current_dir, os.path.expanduser("~/.config")],
-            )
-
-            if output[-1] != b"OK":
-                sys.exit("FAIL")
-
-            my_print("OK")
-
-            assert not outside_accesses, outside_accesses
-
-            shutil.rmtree(filename[:-3] + ".dist")
-    else:
-        my_print("SKIP (does not work with CPython)")
+    my_print("FINISHED, all extension modules compiled.")
 
 
-compileLibraryTest(
-    search_mode=search_mode,
-    stage_dir=os.path.join(tmp_dir, "compile_extensions"),
-    decide=decide,
-    action=action,
-)
-
-my_print("FINISHED, all extension modules compiled.")
+if __name__ == "__main__":
+    main()
