@@ -57,6 +57,7 @@ from nuitka.tools.testing.Common import (
     test_logger,
 )
 from nuitka.utils.FileOperations import openTextFile
+from nuitka.utils.ModuleNames import ModuleName
 
 
 def displayError(dirname, filename):
@@ -111,10 +112,8 @@ def main():
             os.path.join("..", "..", "bin", "nuitka"),
             "--stand",
             "--run",
-            "--output-dir",
-            stage_dir,
+            "--output-dir=%s" % stage_dir,
             "--remove-output",
-            "--enable-plugin=pylint-warnings",
         ]
 
         filename = os.path.join(stage_dir, "importer.py")
@@ -125,8 +124,21 @@ def main():
         module_name = module_name.split(".")[0]
         module_name = module_name.replace(os.path.sep, ".")
 
+        module_name = ModuleName(module_name)
+
         with openTextFile(filename, "w") as output:
-            output.write("import " + module_name + "\n")
+            plugin_names = set(["pylint-warnings", "anti-bloat"])
+            if module_name.hasNamespace("PySide2"):
+                plugin_names.add("pyside2")
+            if module_name.hasNamespace("PySide6"):
+                plugin_names.add("pyside2")
+            if module_name.hasNamespace("PyQt5"):
+                plugin_names.add("pyqt5")
+
+            for plugin_name in plugin_names:
+                output.write("# nuitka-project: --enable-plugin=%s\n" % plugin_name)
+
+            output.write("import " + module_name.asString() + "\n")
             output.write("print('OK')")
 
         command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
