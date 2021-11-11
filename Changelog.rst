@@ -9,6 +9,18 @@
 -  In a change of mind ``--enable-plugin`` has become the only form to
    enable a plugin used in documentation and tests.
 
+-  Avoid string comparison with ``nuitka.utils.getOS()`` and instead add
+   accessors that are more readable, e.g. ``nuitka.utils.isMacOS()`` and
+   put them to use where it makes sense.
+
+-  Replaced usages of string tests in list of python flags specified,
+   with functions that check for a specific name with a speaking
+   function name.
+
+*********
+ Summary
+*********
+
 This release is not done yet.
 
 #######################
@@ -9077,10 +9089,10 @@ but should work now.
 
 -  Major cleanup of Nuitka options.
 
-      -  Windows specific stuff is now in a dedicated option group. This
-         includes options for icon, disabling console, etc.
-      -  There is now a dedicated group for controlling backend compiler
-         choices and options.
+   -  Windows specific stuff is now in a dedicated option group. This
+      includes options for icon, disabling console, etc.
+   -  There is now a dedicated group for controlling backend compiler
+      choices and options.
 
 -  Also pickup ``g++44`` automatically, which makes using Nuitka on
    CentOS5 more automatic.
@@ -11909,8 +11921,8 @@ assignment could be.
 
    .. admonition:: Update
 
-      We have given up on speedcenter meanwhile, and generate static
-      pages with graphs instead.
+      We have given up on this version of speedcenter meanwhile, and generate static
+      pages with graphs instead. We can this still speedcenter.
 
 ***********
  New Tests
