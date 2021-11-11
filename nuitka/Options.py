@@ -15,7 +15,11 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Options module """
+""" Options module
+
+This exposes the choices made by the user. Defaults will be applied here, and
+some handling of defaults.
+"""
 
 import os
 import shlex
@@ -46,8 +50,11 @@ from nuitka.utils.Utils import (
     getCoreCount,
     getOS,
     hasOnefileSupportedOS,
+    hasStandaloneSupportedOS,
+    isFreeBSD,
     isLinux,
     isMacOS,
+    isOpenBSD,
     isWin32Windows,
 )
 
@@ -62,6 +69,10 @@ is_report_missing = None
 
 
 def parseArgs(will_reexec):
+    """Parse the command line arguments, with the knowledge if Nuitka will re-execute itself.
+
+    :meta private:
+    """
     # singleton with many cases checking the options right away.
     # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements
     global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat, is_report_missing
@@ -389,7 +400,11 @@ standalone where there is a sane default used inside the dist folder."""
 
 
 def commentArgs():
-    """Comment on options, where we know something is not having the intended effect."""
+    """Comment on options, where we know something is not having the intended effect.
+
+    :meta private:
+
+    """
     # A ton of cases to consider, pylint: disable=too-many-branches,too-many-statements
 
     # Inform the user about potential issues with the running version. e.g. unsupported
@@ -412,16 +427,18 @@ def commentArgs():
     else:
         if options.file_reference_mode != default_reference_mode:
             Tracing.options_logger.warning(
-                "Using non-default file reference mode %r rather than %r may cause runtime issues."
+                "Using non-default file reference mode '%s' rather than '%s' may cause runtime issues."
                 % (getFileReferenceMode(), default_reference_mode)
             )
         else:
             Tracing.options_logger.info(
-                "Using default file reference mode %r need not be specified."
+                "Using default file reference mode '%s' need not be specified."
                 % default_reference_mode
             )
 
+    # TODO: Not all of these are usable with MSYS2 really, split those off.
     if getOS() != "Windows":
+        # Too many Windows specific options clearly, pylint: disable=too-many-boolean-expressions
         if (
             getWindowsIconExecutablePath()
             or shallAskForWindowsAdminRights()
@@ -433,6 +450,7 @@ def commentArgs():
             or getForcedStderrPath()  # not yet for other platforms
             or getForcedStdoutPath()
             or getWindowsSplashScreen()
+            or getIntendedPythonArch()
         ):
             Tracing.options_logger.warning(
                 "Using Windows specific options has no effect on other platforms."
@@ -450,9 +468,10 @@ def commentArgs():
     else:
         standalone_mode = None
 
-    if standalone_mode and getOS() == "NetBSD":
+    if standalone_mode and not hasStandaloneSupportedOS():
         Tracing.options_logger.warning(
-            "Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported."
+            "Standalone mode on %s is not known to be supported, might fail to work."
+            % getOS()
         )
 
     if options.follow_all and standalone_mode:
@@ -526,42 +545,42 @@ but errors may happen."""
 
 
 def isVerbose():
-    """*bool* = "--verbose" """
+    """:returns: bool derived from ``--verbose``"""
     return options is not None and options.verbose
 
 
 def shallTraceExecution():
-    """*bool* = "--trace-execution" """
+    """:returns: bool derived from ``--trace-execution``"""
     return options.trace_execution
 
 
 def shallExecuteImmediately():
-    """*bool* = "--run" """
+    """:returns: bool derived from ``--run``"""
     return options.immediate_execution
 
 
 def shallRunInDebugger():
-    """*bool* = "--debug" """
+    """:returns: bool derived from ``--debug``"""
     return options.debugger
 
 
 def shallDumpBuiltTreeXML():
-    """*bool* = "--xml" """
+    """:returns: bool derived from ``--xml``"""
     return options.dump_xml
 
 
 def shallOnlyExecCCompilerCall():
-    """*bool* = "--recompile-c-only" """
+    """:returns: bool derived from ``--recompile-c-only``"""
     return options.recompile_c_only
 
 
 def shallNotDoExecCCompilerCall():
-    """*bool* = "--generate-c-only" """
+    """:returns: bool derived from ``--generate-c-only``"""
     return options.generate_c_only
 
 
 def getFileReferenceMode():
-    """*str*, one of "runtime", "original", "frozen", coming from "--file-reference-choice"
+    """*str*, one of "runtime", "original", "frozen", coming from ``--file-reference-choice``
 
     Notes:
         Defaults to runtime for modules and packages, as well as standalone binaries,
@@ -572,32 +591,32 @@ def getFileReferenceMode():
 
 
 def shallMakeModule():
-    """*bool* = "--module" """
+    """:returns: bool derived from ``--module``"""
     return not options.executable
 
 
 def shallCreatePyiFile():
-    """*bool* = **not** "--no-pyi-file" """
+    """*bool* = **not** ``--no-pyi-file``"""
     return options.pyi_file
 
 
 def isAllowedToReexecute():
-    """*bool* = **not** "--must-not-re-execute" """
+    """*bool* = **not** ``--must-not-re-execute``"""
     return options.allow_reexecute
 
 
 def shallFollowStandardLibrary():
-    """*bool* = "--follow-stdlib" """
+    """:returns: bool derived from ``--follow-stdlib``"""
     return options.recurse_stdlib
 
 
 def shallFollowNoImports():
-    """*bool* = "--nofollow-imports" """
+    """:returns: bool derived from ``--nofollow-imports``"""
     return options.follow_none
 
 
 def shallFollowAllImports():
-    """*bool* = "--follow-imports" """
+    """:returns: bool derived from ``--follow-imports``"""
     return options.is_standalone or options.follow_all
 
 
@@ -606,12 +625,12 @@ def _splitShellPattern(value):
 
 
 def getShallFollowInNoCase():
-    """*list*, items of "--nofollow-import-to=" """
+    """*list*, items of ``--nofollow-import-to=``"""
     return sum([_splitShellPattern(x) for x in options.follow_not_modules], [])
 
 
 def getShallFollowModules():
-    """*list*, items of "--follow-import-to=" """
+    """*list*, items of ``--follow-import-to=``"""
     return sum(
         [
             _splitShellPattern(x)
@@ -624,32 +643,32 @@ def getShallFollowModules():
 
 
 def getShallFollowExtra():
-    """*list*, items of "--include-plugin-directory=" """
+    """*list*, items of ``--include-plugin-directory=``"""
     return sum([_splitShellPattern(x) for x in options.recurse_extra], [])
 
 
 def getShallFollowExtraFilePatterns():
-    """*list*, items of "--include-plugin-files=" """
+    """*list*, items of ``--include-plugin-files=``"""
     return sum([_splitShellPattern(x) for x in options.recurse_extra_files], [])
 
 
 def getMustIncludeModules():
-    """*list*, items of "--include-module=" """
+    """*list*, items of ``--include-module=``"""
     return sum([_splitShellPattern(x) for x in options.include_modules], [])
 
 
 def getMustIncludePackages():
-    """*list*, items of "--include-package=" """
+    """*list*, items of ``--include-package=``"""
     return sum([_splitShellPattern(x) for x in options.include_packages], [])
 
 
 def getShallIncludePackageData():
-    """*list*, items of "--include-package-data=" """
+    """*list*, items of ``--include-package-data=``"""
     return sum([_splitShellPattern(x) for x in options.package_data], [])
 
 
 def getShallIncludeDataFiles():
-    """*list*, items of "--include-data-file=" """
+    """*list*, items of ``--include-data-file=``"""
     for data_file in options.data_files:
         if data_file.count("=") == 1:
             src, dest = data_file.split("=", 1)
@@ -664,7 +683,7 @@ def getShallIncludeDataFiles():
 
 
 def getShallIncludeDataDirs():
-    """*list*, items of "--include-data-dir=" """
+    """*list*, items of ``--include-data-dir=``"""
     for data_file in options.data_dirs:
         src, dest = data_file.split("=", 1)
 
@@ -672,42 +691,57 @@ def getShallIncludeDataDirs():
 
 
 def shallWarnImplicitRaises():
-    """*bool* = "--warn-implicit-exceptions" """
+    """:returns: bool derived from ``--warn-implicit-exceptions``"""
     return options.warn_implicit_exceptions
 
 
 def shallWarnUnusualCode():
-    """*bool* = "--warn-unusual-code" """
+    """:returns: bool derived from ``--warn-unusual-code``"""
     return options.warn_unusual_code
 
 
 def assumeYesForDownloads():
-    """*bool* = "--assume-yes-for-downloads" """
+    """:returns: bool derived from ``--assume-yes-for-downloads``"""
     return options is not None and options.assume_yes_for_downloads
 
 
 def _isDebug():
-    """*bool* = "--debug" or "--debugger" """
+    """:returns: bool derived from ``--debug`` or ``--debugger``"""
     return options is not None and (options.debug or options.debugger)
 
 
 def isPythonDebug():
-    """*bool* = "--python-debug" or "sys.flags.debug" """
+    """:returns: bool derived from ``--python-debug`` or ``sys.flags.debug``
+
+    Passed to Scons as ``python_debug`` so it can consider it when picking
+    link libraries to choose the correct variant. Also enables the define
+    ``Py_DEBUG`` for C headers. Reference counting checks and other debug
+    asserts of Python will happen in this mode.
+
+    """
     return options.python_debug or sys.flags.debug
 
 
 def isUnstripped():
-    """*bool* = "--unstripped" or "--profile" """
+    """:returns: bool derived from ``--unstripped`` or ``--profile``
+
+    A binary is called stripped when debug information is not present, an
+    unstripped when it is present. For profiling and debugging it will be
+    necessary, but it doesn*t enable debug checks like ``--debug`` does.
+
+    Passed to Scons as ``unstripped_mode`` to it can ask the linker to
+    include symbol information.
+    """
     return options.unstripped or options.profile
 
 
 def isProfile():
-    """*bool* = "--profile" """
+    """:returns: bool derived from ``--profile``"""
     return options.profile
 
 
 def shallCreateGraph():
-    """*bool* = "--graph" """
+    """:returns: bool derived from ``--graph``"""
     return options.graph
 
 
@@ -725,7 +759,7 @@ def getOutputPath(path):
 
 
 def getOutputDir():
-    """*str*, value of "--output-dir" or "." """
+    """*str*, value of ``--output-dir`` or "." """
     return options.output_dir if options.output_dir else "."
 
 
@@ -745,7 +779,7 @@ def shallOptimizeStringExec():
 
 
 def shallClearPythonPathEnvironment():
-    """*bool* = **not** "--execute-with-pythonpath" """
+    """*bool* = **not** ``--execute-with-pythonpath``"""
     return not options.keep_pythonpath
 
 
@@ -793,7 +827,7 @@ def _shallUseStaticLibPython():
 
 
 def shallUseStaticLibPython():
-    """*bool* = "--static-libpython=yes|auto" and not module mode
+    """:returns: bool derived from ``--static-libpython=yes|auto`` and not module mode
 
     Notes:
         Currently only Anaconda on non-Windows can do this and MSYS2.
@@ -828,12 +862,12 @@ def shallTreatUninstalledPython():
 
 
 def isShowScons():
-    """*bool* = "--show-scons" """
+    """:returns: bool derived from ``--show-scons``"""
     return options.show_scons
 
 
 def getJobLimit():
-    """*int*, value of "--jobs" / "-j" or number of CPU kernels"""
+    """*int*, value of ``--jobs`` / "-j" or number of CPU kernels"""
     if options.jobs is None:
         if options.low_memory:
             return 1
@@ -844,22 +878,23 @@ def getJobLimit():
 
 
 def getLtoMode():
-    """*bool* = "--lto" or "--pgo" """
+    """:returns: bool derived from ``--lto`` or ``--pgo``"""
     return options.lto
 
 
 def isClang():
-    """*bool* = "--clang" or enforced by platform, e.g. macOS or FreeBSD some targets."""
+    """:returns: bool derived from ``--clang`` or enforced by platform, e.g. macOS or FreeBSD some targets."""
 
     return (
         options.clang
-        or getOS() in ("Darwin", "OpenBSD")
-        or (getOS() == "FreeBSD" and getArchitecture() != "powerpc")
+        or isMacOS()
+        or isOpenBSD()
+        or (isFreeBSD() and getArchitecture() != "powerpc")
     )
 
 
 def isMingw64():
-    """*bool* = "--mingw64", available only on Windows, otherwise false"""
+    """:returns: bool derived from ``--mingw64``, available only on Windows, otherwise false"""
     if isWin32Windows():
         return options.mingw64
     else:
@@ -867,7 +902,7 @@ def isMingw64():
 
 
 def getMsvcVersion():
-    """*str*, value of "--msvc", available only on Windows, otherwise None"""
+    """*str*, value of ``--msvc``, available only on Windows, otherwise None"""
     if isWin32Windows():
         return options.msvc_version
     else:
@@ -875,12 +910,12 @@ def getMsvcVersion():
 
 
 def shallDisableConsoleWindow():
-    """*bool* = "--win-disable-console or --macos-disable-console" """
+    """:returns: bool derived from ``--win-disable-console or ``--macos-disable-console``"""
     return options.disable_console
 
 
 def _isFullCompat():
-    """*bool* = "--full-compat"
+    """:returns: bool derived from ``--full-compat``
 
     Notes:
         Code should should use "Options.is_fullcompat" instead, this
@@ -890,28 +925,32 @@ def _isFullCompat():
 
 
 def isShowProgress():
-    """*bool* = "--show-progress" """
+    """:returns: bool derived from ``--show-progress``"""
     return options is not None and options.show_progress
 
 
 def isShowMemory():
-    """*bool* = "--show-memory" """
+    """:returns: bool derived from ``--show-memory``"""
     return options is not None and options.show_memory
 
 
 def isShowInclusion():
-    """*bool* = "--show-modules" """
+    """:returns: bool derived from ``--show-modules``"""
     return options.show_inclusion
 
 
 def isRemoveBuildDir():
-    """*bool* = "--remove-output" """
+    """:returns: bool derived from ``--remove-output``"""
     return options.remove_build and not options.generate_c_only
 
 
 def getIntendedPythonArch():
-    """*str*, one of "x86", "x86_64" or None"""
-    return options.python_arch
+    """:returns: str, one of ``"x86"``, ``"x86_64"`` or ``None``
+
+    Notes: This is only available on Windows, on other platforms
+    it will be `None`
+    """
+    return options.python_arch if isWin32Windows() else None
 
 
 experimental = set()
@@ -941,7 +980,7 @@ def disableExperimental(indication):
 
 
 def getExperimentalIndications():
-    """*tuple*, items of "--experimental=" """
+    """*tuple*, items of ``--experimental=``"""
     if hasattr(options, "experimental"):
         return options.experimental
     else:
@@ -949,37 +988,43 @@ def getExperimentalIndications():
 
 
 def shallExplainImports():
-    """*bool* = "--explain-imports" """
+    """:returns: bool derived from ``--explain-imports``"""
     return options is not None and options.explain_imports
 
 
 def isStandaloneMode():
-    """*bool* = "--standalone" """
+    """:returns: bool derived from ``--standalone``"""
     return options.is_standalone
 
 
 def isOnefileMode():
-    """*bool* = "--onefile" """
+    """:returns: bool derived from ``--onefile``"""
     return options.is_onefile
 
 
 def isOnefileTempDirMode():
-    """*bool* = "--onefile-tempdir" """
-    return options.is_onefile_tempdir or getOS() != "Linux"
+    """:returns: bool derived from ``--onefile-tempdir`` and OS
+
+    Notes:
+        On all but Linux, using a bootstrap binary that does unpack is mandatory,
+        but on Linux, the AppImage tool is used by default, this enforces using
+        a bootstrap binary there too.
+    """
+    return not isLinux() or options.is_onefile_tempdir
 
 
 def isPgoMode():
-    """*bool* = "--pgo" """
+    """:returns: bool derived from ``--pgo``"""
     return options.is_pgo
 
 
 def getPgoArgs():
-    """*list* = "--pgo-args" """
+    """*list* = ``--pgo-args``"""
     return shlex.split(options.pgo_args)
 
 
 def getPgoExecutable():
-    """*str* = "--pgo-args" """
+    """*str* = ``--pgo-args``"""
 
     if options.pgo_executable and os.path.exists(options.pgo_executable):
         if not os.path.isabs(options.pgo_executable):
@@ -1001,7 +1046,7 @@ def getOnefileTempDirSpec(use_default):
 
 
 def getIconPaths():
-    """*list of str*, values of "--windows-icon-from-ico" and "--linux-onefile-icon"""
+    """*list of str*, values of ``--windows-icon-from-ico`` and ``--linux-onefile-icon``"""
 
     result = options.icon_path
 
@@ -1028,17 +1073,17 @@ Error, none of the default icons '%s' exist, making '--linux-onefile-icon' requi
 
 
 def getWindowsIconExecutablePath():
-    """*str* or *None* if not given, value of "--windows-icon-from-exe" """
+    """*str* or *None* if not given, value of ``--windows-icon-from-exe``"""
     return options.icon_exe_path
 
 
 def shallAskForWindowsAdminRights():
-    """*bool*, value of "--windows-uac-admin" or --windows-uac-uiaccess"""
+    """*bool*, value of ``--windows-uac-admin`` or ``--windows-uac-uiaccess"""
     return options.windows_uac_admin
 
 
 def shallAskForWindowsUIAccessRights():
-    """*bool*, value of "--windows-uac-uiaccess" """
+    """*bool*, value of ``--windows-uac-uiaccess``"""
     return options.windows_uac_uiaccess
 
 
@@ -1079,16 +1124,17 @@ def _parseWindowsVersionNumber(value):
 
 
 def getWindowsProductVersion():
-    """*tuple of 4 ints* or None --windows-product-version"""
+    """:returns: tuple of 4 ints or None, derived from ``--windows-product-version``"""
     return _parseWindowsVersionNumber(options.windows_product_version)
 
 
 def getWindowsFileVersion():
-    """*tuple of 4 ints* or None --windows-file-version"""
+    """:returns tuple of 4 ints or None, derived from ``--windows-file-version``"""
     return _parseWindowsVersionNumber(options.windows_file_version)
 
 
 def getWindowsSplashScreen():
+    """:returns: bool derived from ``--onefile-windows-splash-screen-image``"""
     return options.splash_screen_image
 
 
@@ -1125,8 +1171,8 @@ def getMacOSAppVersion():
 _python_flags = None
 
 
-def getPythonFlags():
-    """*list*, value of "--python-flag" """
+def _getPythonFlags():
+    """*list*, values of ``--python-flag``"""
     # singleton, pylint: disable=global-statement
     global _python_flags
 
@@ -1137,7 +1183,12 @@ def getPythonFlags():
             for part in parts.split(","):
                 if part in ("-S", "nosite", "no_site"):
                     _python_flags.add("no_site")
-                elif part in ("static_hashes", "norandomization", "no_randomization"):
+                elif part in (
+                    "-R",
+                    "static_hashes",
+                    "norandomization",
+                    "no_randomization",
+                ):
                     _python_flags.add("no_randomization")
                 elif part in ("-v", "trace_imports", "trace_import"):
                     _python_flags.add("trace_imports")
@@ -1161,31 +1212,43 @@ def getPythonFlags():
 def hasPythonFlagNoSite():
     """*bool* = "no_site" in python flags given"""
 
-    return "no_site" in getPythonFlags()
+    return "no_site" in _getPythonFlags()
 
 
 def hasPythonFlagNoAnnotations():
     """*bool* = "no_annotations" in python flags given"""
 
-    return "no_annotations" in getPythonFlags()
+    return "no_annotations" in _getPythonFlags()
 
 
 def hasPythonFlagNoAsserts():
     """*bool* = "no_asserts" in python flags given"""
 
-    return "no_asserts" in getPythonFlags()
+    return "no_asserts" in _getPythonFlags()
 
 
 def hasPythonFlagNoDocstrings():
     """*bool* = "no_docstrings" in python flags given"""
 
-    return "no_docstrings" in getPythonFlags()
+    return "no_docstrings" in _getPythonFlags()
 
 
 def hasPythonFlagNoWarnings():
     """*bool* = "no_docstrings" in python flags given"""
 
-    return "no_warnings" in getPythonFlags()
+    return "no_warnings" in _getPythonFlags()
+
+
+def hasPythonFlagTraceImports():
+    """*bool* = "trace_imports", "-v" in python flags given"""
+
+    return "trace_imports" in _getPythonFlags()
+
+
+def hasPythonFlagNoRandomization():
+    """*bool* = "no_randomization", "-R", "static_hashes" in python flags given"""
+
+    return "no_randomization" in _getPythonFlags()
 
 
 def shallFreezeAllStdlib():
@@ -1194,19 +1257,19 @@ def shallFreezeAllStdlib():
 
 
 def getWindowsDependencyTool():
-    """*str*, value of "--windows-dependency-tool=" """
+    """*str*, value of ``--windows-dependency-tool=``"""
     return options.dependency_tool
 
 
 def shallNotUseDependsExeCachedResults():
-    """*bool* = "--disable-dll-dependency-cache" or "--force-dll-dependency-cache-update" """
+    """:returns: bool derived from ``--disable-dll-dependency-cache`` or ``--force-dll-dependency-cache-update``"""
     return shallNotStoreDependsExeCachedResults() or getattr(
         options, "update_dependency_cache", False
     )
 
 
 def shallNotStoreDependsExeCachedResults():
-    """*bool* = "--disable-dll-dependency-cache" """
+    """:returns: bool derived from ``--disable-dll-dependency-cache``"""
     return getattr(options, "no_dependency_cache", False)
 
 
@@ -1261,7 +1324,7 @@ def getPluginsDisabled():
 
 
 def getUserPlugins():
-    """*tuple*, items user provided of "--user-plugin=" """
+    """*tuple*, items user provided of ``--user-plugin=``"""
     if not options:
         return ()
 
@@ -1269,12 +1332,12 @@ def getUserPlugins():
 
 
 def shallDetectMissingPlugins():
-    """*bool* = **not** "--plugin-no-detection" """
+    """*bool* = **not** ``--plugin-no-detection``"""
     return options is not None and options.detect_missing_plugins
 
 
 def getPythonPathForScons():
-    """*str*, value of "--python-for-scons" """
+    """*str*, value of ``--python-for-scons``"""
     return options.python_scons
 
 

@@ -452,7 +452,7 @@ def scanStandardLibraryPath(stdlib_dir):
             if import_path == "curses":
                 filenames.remove("has_key.py")
 
-        if Utils.getOS() == "NetBSD":
+        if Utils.isNetBSD():
             if import_path == "xml.sax":
                 filenames.remove("expatreader.py")
 

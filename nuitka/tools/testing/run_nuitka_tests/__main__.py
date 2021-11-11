@@ -45,7 +45,7 @@ from nuitka.utils.FileOperations import (
     withDirectoryChange,
 )
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import getOS, hasOnefileSupportedOS
+from nuitka.utils.Utils import hasOnefileSupportedOS, hasStandaloneSupportedOS
 
 
 def parseOptions():
@@ -118,7 +118,7 @@ constructs fully away. Default is %default.""",
         "--skip-standalone-tests",
         action="store_false",
         dest="standalone_tests",
-        default=getOS() != "NetBSD",
+        default=hasStandaloneSupportedOS(),
         help="""\
 The standalone tests, execute these to check if Nuitka standalone mode, e.g.
 not referring to outside, important 3rd library packages like PyQt fine.

@@ -529,10 +529,10 @@ def runSconsBackend(quiet):
     if int(os.environ.get("NUITKA_SITE_FLAG", Options.hasPythonFlagNoSite())):
         options["python_sysflag_no_site"] = asBoolStr(True)
 
-    if "trace_imports" in Options.getPythonFlags():
+    if Options.hasPythonFlagTraceImports():
         options["python_sysflag_verbose"] = asBoolStr(True)
 
-    if "no_randomization" in Options.getPythonFlags():
+    if Options.hasPythonFlagNoRandomization():
         options["python_sysflag_no_randomization"] = asBoolStr(True)
 
     if python_version < 0x300 and sys.flags.unicode:
