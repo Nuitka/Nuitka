@@ -375,11 +375,9 @@ def _cleanupRstFmt(filename):
     with open(filename, "rb") as f:
         contents = f.read()
 
-    updated_contents = contents.replace(b":\n\n.. code::\n", b"::\n")
-
     # Enforce choice between "bash" and "sh" for code directive. Use bash as
     # more people will know it.
-    updated_contents = updated_contents.replace(b".. code:: sh\n", b".. code:: bash\n")
+    updated_contents = contents.replace(b".. code:: sh\n", b".. code:: bash\n")
 
     lines = []
     inside = False
