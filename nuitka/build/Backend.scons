@@ -55,7 +55,7 @@ from nuitka.Tracing import (
 )
 from nuitka.utils.Execution import check_output
 from nuitka.utils.Json import loadJsonFromFilename
-from nuitka.utils.Utils import isDebianBasedLinux
+from nuitka.utils.Utils import isDebianBasedLinux, isNetBSD
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
@@ -933,7 +933,7 @@ elif not module_mode:
             env.Append(LINKFLAGS=["-export-dynamic"])
 
     # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
-    if "netbsd" in sys.platform:
+    if isNetBSD():
         env.Append(LINKFLAGS=["-rpath=" + python_lib_path])
 elif macosx_target and module_mode:
     env.Append(LINKFLAGS=["-undefined", "dynamic_lookup"])

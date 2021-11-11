@@ -122,6 +122,21 @@ def isMacOS():
     return getOS() == "Darwin"
 
 
+def isNetBSD():
+    """The NetBSD OS."""
+    return getOS() == "NetBSD"
+
+
+def isFreeBSD():
+    """The FreeBSD OS."""
+    return getOS() == "FreeBSD"
+
+
+def isOpenBSD():
+    """The FreeBSD OS."""
+    return getOS() == "OpenBSD"
+
+
 _is_alpine = None
 
 
@@ -191,6 +206,10 @@ def encodeNonAscii(var_name):
 
 def hasOnefileSupportedOS():
     return getOS() in ("Linux", "Windows", "Darwin", "FreeBSD")
+
+
+def hasStandaloneSupportedOS():
+    return getOS() in ("Linux", "Windows", "Darwin", "FreeBSD", "OpenBSD")
 
 
 def getUserName():
