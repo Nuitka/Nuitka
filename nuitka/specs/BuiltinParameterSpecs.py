@@ -36,6 +36,7 @@ class BuiltinParameterSpec(ParameterSpec):
         arg_names,
         default_count,
         list_star_arg=None,
+        is_list_star_arg_single=False,
         dict_star_arg=None,
         pos_only_args=(),
         kw_only_args=(),
@@ -45,6 +46,7 @@ class BuiltinParameterSpec(ParameterSpec):
             ps_name=name,
             ps_normal_args=arg_names,
             ps_list_star_arg=list_star_arg,
+            ps_is_list_star_arg_single=is_list_star_arg_single,
             ps_dict_star_arg=dict_star_arg,
             ps_default_count=default_count,
             ps_pos_only_args=pos_only_args,
@@ -305,7 +307,12 @@ else:
 
 builtin_len_spec = BuiltinParameterSpecNoKeywords("len", ("object",), default_count=0)
 builtin_dict_spec = BuiltinParameterSpec(
-    "dict", (), default_count=0, list_star_arg="list_args", dict_star_arg="dict_args"
+    "dict",
+    (),
+    default_count=0,
+    list_star_arg="list_args",
+    is_list_star_arg_single=True,
+    dict_star_arg="dict_args",
 )
 builtin_any_spec = BuiltinParameterSpecNoKeywords("any", ("object",), default_count=0)
 builtin_abs_spec = BuiltinParameterSpecNoKeywords("abs", ("object",), default_count=0)
@@ -623,6 +630,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
             args=builtin_spec.getArgumentNames(),
             kw_only_args=builtin_spec.getKwOnlyParameterNames(),
             star_list_arg=builtin_spec.getStarListArgumentName(),
+            star_list_single_arg=builtin_spec.isStarListSingleArg(),
             star_dict_arg=builtin_spec.getStarDictArgumentName(),
             num_defaults=builtin_spec.getDefaultCount(),
             num_posonly=builtin_spec.getPosOnlyParameterCount(),
