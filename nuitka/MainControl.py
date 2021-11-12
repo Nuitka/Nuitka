@@ -61,7 +61,7 @@ from nuitka.PythonVersions import (
 )
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
-from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
+from nuitka.utils import Execution, InstanceCounters, MemoryUsage
 from nuitka.utils.FileOperations import (
     deleteFile,
     getDirectoryRealPath,
@@ -72,6 +72,7 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
+from nuitka.utils.Utils import getArchitecture, getOS
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from . import ModuleRegistry, Options, OutputDirectories, TreeXML
@@ -448,7 +449,7 @@ def runSconsBackend(quiet):
         "experimental": ",".join(Options.getExperimentalIndications()),
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "python_version": python_version_str,
-        "target_arch": Utils.getArchitecture(),
+        "target_arch": getArchitecture(),
         "python_prefix": getDirectoryRealPath(getSystemPrefixPath()),
         "nuitka_src": SconsInterface.getSconsDataPath(),
         "module_count": "%d"
@@ -503,7 +504,7 @@ def runSconsBackend(quiet):
             len(ModuleRegistry.getUncompiledTechnicalModules())
         )
 
-    if Utils.getOS() == "Windows":
+    if getOS() == "Windows":
         options["noelf_mode"] = asBoolStr(True)
 
     if Options.isProfile():
