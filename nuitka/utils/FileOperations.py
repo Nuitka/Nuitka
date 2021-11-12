@@ -375,7 +375,10 @@ def hasFilenameExtension(path, extensions):
 
     extension = getFilenameExtension(path)
 
-    return extension in extensions
+    if isinstance(extensions, basestring):
+        return extension == extensions
+    else:
+        return extension in extensions
 
 
 def removeDirectory(path, ignore_errors):
