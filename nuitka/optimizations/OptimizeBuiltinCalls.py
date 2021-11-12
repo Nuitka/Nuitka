@@ -124,7 +124,6 @@ from nuitka.nodes.NodeMakingHelpers import (
     makeExpressionBuiltinLocals,
     makeRaiseExceptionReplacementExpression,
     makeRaiseExceptionReplacementExpressionFromInstance,
-    wrapExpressionWithSideEffects,
 )
 from nuitka.nodes.OperatorNodes import ExpressionOperationBinaryDivmod
 from nuitka.nodes.OperatorNodesUnary import (
@@ -309,28 +308,14 @@ def dict_extractor(node):
     # The "dict" built-in is a bit strange in that it accepts a position
     # parameter, or not, but won't have a default value.
     def wrapExpressionBuiltinDictCreation(positional_args, dict_star_arg, source_ref):
-        if len(positional_args) > 1:
-
-            result = makeRaiseExceptionReplacementExpressionFromInstance(
-                expression=node,
-                exception=TypeError(
-                    "dict expected at most 1 arguments, got %d" % (len(positional_args))
-                ),
-            )
-
-            result = wrapExpressionWithSideEffects(
-                side_effects=positional_args, old_node=node, new_node=result
-            )
-
-            if dict_star_arg:
-                result = wrapExpressionWithSideEffects(
-                    side_effects=dict_star_arg, old_node=node, new_node=result
-                )
-
-            return result
+        if positional_args:
+            # Only one allowed, the spec converted too many into an exception.
+            (pos_arg,) = positional_args
+        else:
+            pos_arg = None
 
         return ExpressionBuiltinDict(
-            pos_arg=positional_args[0] if positional_args else None,
+            pos_arg=pos_arg,
             pairs=dict_star_arg,
             source_ref=source_ref,
         )
