@@ -130,8 +130,10 @@ module_typing_trust = {
     "TYPE_CHECKING": trust_constant,
 }
 
+module_os_trust = {"name": trust_constant}
+
 hard_modules_trust = {
-    "os": {},
+    "os": module_os_trust,
     "sys": module_sys_trust,
     "types": {},
     "typing": module_typing_trust,
