@@ -277,7 +277,7 @@ class NodeBase(NodeMetaClassBase):
     def asXml(self):
         line = self.source_ref.getLineNumber()
 
-        result = TreeXML.Element("node", kind=self.__class__.__name__, line="%s" % line)
+        result = TreeXML.Element("node", kind=self.__class__.__name__, line=str(line))
 
         compat_line = self.getCompatibleSourceReference().getLineNumber()
 
