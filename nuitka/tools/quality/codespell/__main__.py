@@ -27,6 +27,7 @@ import sys
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
+from nuitka.tools.quality.autoformat.Autoformat import cleanupWindowsNewlines
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import withEnvironmentPathAdded
@@ -87,6 +88,7 @@ def runCodespell(filenames, verbose, write):
 
             if old_contents != contents:
                 putTextFileContents(filename, contents)
+                cleanupWindowsNewlines(filename)
 
     if verbose:
         if result != 0:
