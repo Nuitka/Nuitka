@@ -95,12 +95,17 @@ def getModuleCode(
     # TODO: Seems like a bug, classes could produce those.
     # assert not _cleanup, _cleanup
 
-    local_var_inits = context.variable_storage.makeCFunctionLevelDeclarations()
+    module_identifier = module.getCodeName()
 
     if module_body is not None and module_body.mayRaiseException(BaseException):
-        module_exit = template_module_exception_exit
+        module_exit = template_module_exception_exit % {
+            "module_identifier": module_identifier,
+            "is_top": 1 if module.isTopModule() else 0,
+        }
     else:
         module_exit = template_module_noexception_exit
+
+    local_var_inits = context.variable_storage.makeCFunctionLevelDeclarations()
 
     function_table_entries_decl = []
     for func_impl_identifier in context.getFunctionCreationInfos():
