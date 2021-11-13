@@ -405,7 +405,7 @@ def commentArgs():
     :meta private:
 
     """
-    # A ton of cases to consider, pylint: disable=too-many-branches,too-many-statements
+    # A ton of cases to consider, pylint: disable=too-many-branches
 
     # Inform the user about potential issues with the running version. e.g. unsupported
     # version.
@@ -475,18 +475,16 @@ def commentArgs():
         )
 
     if options.follow_all and standalone_mode:
-        if standalone_mode:
-            Tracing.options_logger.info(
-                "Following all imports is the default for %s mode and need not be specified."
-                % standalone_mode
-            )
+        Tracing.options_logger.info(
+            "Following all imports is the default for %s mode and need not be specified."
+            % standalone_mode
+        )
 
     if options.follow_none and standalone_mode:
-        if standalone_mode:
-            Tracing.options_logger.warning(
-                "Following no imports is unlikely to work for %s mode and should not be specified."
-                % standalone_mode
-            )
+        Tracing.options_logger.warning(
+            "Following no imports is unlikely to work for %s mode and should not be specified."
+            % standalone_mode
+        )
 
     if options.dependency_tool:
         Tracing.options_logger.warning(
@@ -607,7 +605,7 @@ def isAllowedToReexecute():
 
 def shallFollowStandardLibrary():
     """:returns: bool derived from ``--follow-stdlib``"""
-    return options.recurse_stdlib
+    return options.follow_stdlib
 
 
 def shallFollowNoImports():

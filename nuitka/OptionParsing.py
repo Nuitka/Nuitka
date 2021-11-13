@@ -308,7 +308,7 @@ follow_group = OptionGroup(parser, "Control the following into imported modules"
 follow_group.add_option(
     "--follow-stdlib",
     action="store_true",
-    dest="recurse_stdlib",
+    dest="follow_stdlib",
     default=False,
     help="""\
 Also descend into imported modules from standard library. This will increase
