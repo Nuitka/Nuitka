@@ -343,10 +343,11 @@ polishing plugins and adding many new features.
 -  Fix, plugins were not catching being used on packages not installed.
    Fixed in 0.6.16.2 already.
 
--  macOS: Fixups for DLL dependency parsing. Fixed in 0.6.16.2 already.
+-  macOS: Fix weaknesses in the ``otool`` parsing to determine DLL
+   dependency parsing. Fixed in 0.6.16.2 already.
 
--  Linux: Allow onefile program args with spaces passed via AppRun.
-   Fixed in 0.6.16.3 already.
+-  Linux: Allow onefile program args with spaces contained to be
+   properly passed. Fixed in 0.6.16.3 already.
 
 -  Windows: Avoid using less portable C function for ``%PID%``
    formatting, which restores compilation on Windows 7 with old
@@ -553,9 +554,8 @@ polishing plugins and adding many new features.
 -  Python2: Faster old-style class creation. These are classes that do
    not explicitly inherit from ``object``.
 
--  Python2: Added specialization for missing cases of ``str``
-   comparison, the best cases where both types are know were missing due
-   to an oversight.
+-  Python2: Faster string comparisons for Python by specializing for the
+   ``str`` type as well.
 
 -  Python3: Added specialization for ``bytes`` comparisons too. These
    are naturally very much the same as ``str`` comparisons in Python2.
@@ -655,9 +655,6 @@ polishing plugins and adding many new features.
 
 -  Further reduced code duplication between the two Scons files, but
    more work will be needed there.
-
--  Faster string comparisons for Python by specializing for the ``str``
-   type as well.
 
 -  Escaped variables are still known to be assigned/unassigned rather
    than unknown, allowing for many optimizations to still work on them.,
