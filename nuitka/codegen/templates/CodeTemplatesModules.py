@@ -412,7 +412,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         PyObject *value = (PyObject *)builtin_module;
 
         // Check if main module, not a dict then but the module itself.
-#if !defined(_NUITKA_EXE) || !%(is_main_module)s
+#if defined(_NUITKA_MODULE) || !%(is_main_module)s
         value = PyModule_GetDict(value);
 #endif
 
@@ -567,6 +567,16 @@ MOD_INIT_DECL(%(module_identifier)s) {
 
 template_module_exception_exit = """\
     module_exception_exit:
+
+#if defined(_NUITKA_MODULE) && %(is_top)d
+    {
+        PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
+
+        if (module_name != NULL) {
+            Nuitka_DelModule(module_name);
+        }
+    }
+#endif
     RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
     return NULL;
 }"""
