@@ -200,6 +200,23 @@ def main():
         else:
             return False
 
+    def hasArgValue(arg_option, default=None):
+        for arg in args:
+            if arg.startswith(arg_option + "="):
+                args.remove(arg)
+                return arg[len(arg_option) + 1 :]
+        return default
+
+    def hasArgValues(arg_option):
+        result = []
+
+        for arg in tuple(args):
+            if arg.startswith(arg_option + "="):
+                args.remove(arg)
+                result.append(arg[len(arg_option) + 1 :])
+
+        return result
+
     # For output keep it
     arguments = list(args)
 
@@ -209,7 +226,7 @@ def main():
     expect_success = hasArg("expect_success")
     expect_failure = hasArg("expect_failure")
     python_debug = hasArg("python_debug")
-    module_mode = hasArg("module_mode")
+    module_mode = hasArg("--module")
     two_step_execution = hasArg("two_step_execution")
     binary_python_path = hasArg("binary_python_path")
     keep_python_path = hasArg("keep_python_path")
@@ -237,6 +254,9 @@ def main():
     noverbose_log = hasArg("noverbose_log")
     noinclusion_log = hasArg("noinclusion_log")
     send_kill = hasArg("--send-ctrl-c")
+    output_dir = hasArgValue("--output-dir", None)
+    include_packages = hasArgValues("--include-package")
+    include_modules = hasArgValues("--include-module")
 
     plugins_enabled = []
     for count, arg in reversed(tuple(enumerate(args))):
@@ -347,6 +367,11 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         filename = os.path.abspath(filename)
 
     if module_mode:
+        module_name = os.path.basename(filename)
+
+        if module_name.endswith(".py"):
+            module_name = module_name[:-3]
+
         if no_warnings:
             cpython_cmd = [
                 os.environ["PYTHON"],
@@ -354,14 +379,14 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
                 "ignore",
                 "-c",
                 "import sys; sys.path.append(%s); import %s"
-                % (repr(os.path.dirname(filename)), os.path.basename(filename)),
+                % (repr(os.path.dirname(filename)), module_name),
             ]
         else:
             cpython_cmd = [
                 os.environ["PYTHON"],
                 "-c",
                 "import sys; sys.path.append(%s); import %s"
-                % (repr(os.path.dirname(filename)), os.path.basename(filename)),
+                % (repr(os.path.dirname(filename)), module_name),
             ]
 
     else:
@@ -472,6 +497,26 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     if not noinclusion_log:
         extra_options.append("--show-modules-output=%s.inclusion.log" % filename)
 
+    if output_dir is not None:
+        extra_options.append("--output-dir=%s" % output_dir)
+    else:
+        # TODO: The run-tests uses NUITKA_EXTRA_OPTIONS still.
+        for extra_option in extra_options:
+            dir_match = re.search(r"--output-dir=(.*?)(\s|$)", extra_option)
+
+            if dir_match:
+                output_dir = dir_match.group(1)
+                break
+        else:
+            # The default.
+            output_dir = "."
+
+    for include_package in include_packages:
+        extra_options.append("--include-package=%s" % include_package)
+
+    for include_module in include_modules:
+        extra_options.append("--include-module=%s" % include_module)
+
     # Now build the command to run Nuitka.
     if not two_step_execution:
         if module_mode:
@@ -499,23 +544,18 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if no_site:
             nuitka_cmd1.insert(len(nuitka_cmd1) - 1, "--python-flag=-S")
 
-    for extra_option in extra_options:
-        dir_match = re.search(r"--output-dir=(.*?)(\s|$)", extra_option)
-
-        if dir_match:
-            output_dir = dir_match.group(1)
-            break
-    else:
-        # The default.
-        output_dir = "."
-
     if module_mode:
+        module_name = os.path.basename(filename)
+
+        if module_name.endswith(".py"):
+            module_name = module_name[:-3]
+
         nuitka_cmd2 = [
             os.environ["PYTHON"],
             "-W",
             "ignore",
             "-c",
-            "import %s" % os.path.basename(filename),
+            "import %s" % module_name,
         ]
     else:
         exe_filename = os.path.basename(filename)
