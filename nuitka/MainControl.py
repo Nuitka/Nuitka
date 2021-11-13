@@ -624,7 +624,30 @@ def executeMain(binary_filename, clean_path):
 
 
 def executeModule(tree, clean_path):
-    python_command = "__import__('%s')" % tree.getName()
+
+    if python_version < 0x340:
+        python_command_template = """\
+import os, imp;\
+assert os.path.normcase(os.path.abspath(os.path.normpath(\
+imp.find_module('%(module_name)s')[1]))) == '%(expected_filename)s',\
+'Error, cannot launch extension module %(module_name)s, original package is in the way.'"""
+    else:
+        python_command_template = """\
+import os, importlib.util;\
+assert os.path.normcase(os.path.abspath(os.path.normpath(\
+importlib.util.find_spec('%(module_name)s').origin))) == '%(expected_filename)s',\
+'Error, cannot launch extension module %(module_name)s, original package is in the way.'"""
+
+    python_command_template += ";__import__('%(module_name)s')"
+
+    python_command = python_command_template % {
+        "module_name": tree.getName(),
+        "expected_filename": os.path.normcase(
+            os.path.abspath(
+                os.path.normpath(OutputDirectories.getResultFullpath(onefile=False))
+            )
+        ),
+    }
 
     if Options.shallRunInDebugger():
         args = Execution.wrapCommandForDebuggerForExec(
