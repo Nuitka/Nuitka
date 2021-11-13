@@ -70,6 +70,9 @@ class StatementTry(StatementChildrenHavingBase):
             source_ref=source_ref,
         )
 
+    def getDetailsForDisplay(self):
+        return {"aborting": self.isStatementAborting()}
+
     def computeStatement(self, trace_collection):
         # This node has many children to handle, pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
         tried = self.subnode_tried
