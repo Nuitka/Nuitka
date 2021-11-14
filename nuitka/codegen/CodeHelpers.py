@@ -144,7 +144,9 @@ def generateChildExpressionCode(expression, emit, context, child_name=None):
         child_name = expression.getChildName()
 
     # Allocate anyway, so names are aligned.
-    value_name = context.allocateTempName(child_name + "_name")
+    value_name = context.allocateTempName(
+        child_name + "_value",
+    )
 
     generateExpressionCode(
         to_name=value_name, expression=expression, emit=emit, context=context
