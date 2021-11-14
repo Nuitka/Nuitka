@@ -306,14 +306,22 @@ else:
     )
 
 builtin_len_spec = BuiltinParameterSpecNoKeywords("len", ("object",), default_count=0)
-builtin_dict_spec = BuiltinParameterSpec(
-    "dict",
-    (),
-    default_count=0,
-    list_star_arg="list_args",
-    is_list_star_arg_single=True,
-    dict_star_arg="dict_args",
-)
+
+
+class BuiltinParameterSpecSinglePosArgStarDictArgs(BuiltinParameterSpec):
+    def __init__(self, name):
+        BuiltinParameterSpec.__init__(
+            self,
+            name=name,
+            arg_names=(),
+            default_count=0,
+            list_star_arg="list_args",
+            is_list_star_arg_single=True,
+            dict_star_arg="kw_args",
+        )
+
+
+builtin_dict_spec = BuiltinParameterSpecSinglePosArgStarDictArgs("dict")
 builtin_any_spec = BuiltinParameterSpecNoKeywords("any", ("object",), default_count=0)
 builtin_abs_spec = BuiltinParameterSpecNoKeywords("abs", ("object",), default_count=0)
 builtin_all_spec = BuiltinParameterSpecNoKeywords("all", ("object",), default_count=0)
