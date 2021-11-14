@@ -1062,6 +1062,14 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "tzdata"
         elif full_name == "curses":
             yield "_curses"
+        elif full_name == "h5py.h5":
+            yield "h5py.defs"
+        elif full_name == "h5py.h5s":
+            yield "h5py.utils"
+        elif full_name == "h5py.h5p":
+            yield "h5py.h5ac"
+        elif full_name == "h5py.h5a":
+            yield "h5py._proxy"
 
     def getImportsByFullname(self, full_name, module_filename):
         """Recursively create a set of imports for a fullname.
