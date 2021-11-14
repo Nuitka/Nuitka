@@ -156,7 +156,7 @@ else:
     import subprocess
 
 # Just to make this not Windows-specific.
-WindowsError = OSError
+WindowsError = OSError  # pylint: disable=I0021,redefined-builtin
 
 import pkgutil
 
