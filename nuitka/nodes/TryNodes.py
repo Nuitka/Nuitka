@@ -49,6 +49,8 @@ class StatementTry(StatementChildrenHavingBase):
         "return_handler": checkStatementsSequenceOrNone,
     }
 
+    __slots__ = ("tried_may_raise",)
+
     def __init__(
         self,
         tried,
@@ -69,6 +71,8 @@ class StatementTry(StatementChildrenHavingBase):
             },
             source_ref=source_ref,
         )
+
+        self.tried_may_raise = None
 
     def getDetailsForDisplay(self):
         return {"aborting": self.isStatementAborting()}
@@ -114,9 +118,13 @@ class StatementTry(StatementChildrenHavingBase):
             return_collections = trace_collection.getFunctionReturnCollections()
             exception_collections = trace_collection.getExceptionRaiseCollections()
 
-        tried_may_raise = tried.mayRaiseException(BaseException)
+        # Not raising never turns into raising, but None (never calculated) and True
+        # may no longer be true.
+        if self.tried_may_raise is not False:
+            self.tried_may_raise = tried.mayRaiseException(BaseException)
+
         # Exception handling is useless if no exception is to be raised.
-        if not tried_may_raise:
+        if not self.tried_may_raise:
             if except_handler is not None:
                 except_handler.finalize()
 
@@ -131,7 +139,7 @@ class StatementTry(StatementChildrenHavingBase):
 
         # If tried may raise, even empty exception handler has a meaning to
         # ignore that exception.
-        if tried_may_raise:
+        if self.tried_may_raise:
             collection_exception_handling = TraceCollectionBranch(
                 parent=collection_start, name="except handler"
             )
@@ -243,7 +251,7 @@ class StatementTry(StatementChildrenHavingBase):
 
         # Merge exception handler only if it is used. Empty means it is not
         # aborting, as it swallows the exception.
-        if tried_may_raise and (
+        if self.tried_may_raise and (
             except_handler is None or not except_handler.isStatementAborting()
         ):
             trace_collection.mergeBranches(
@@ -253,7 +261,7 @@ class StatementTry(StatementChildrenHavingBase):
         # An empty exception handler means we have to swallow exception.
         if (
             (
-                not tried_may_raise
+                not self.tried_may_raise
                 or (
                     except_handler is not None
                     and except_handler.subnode_statements[
@@ -356,10 +364,11 @@ class StatementTry(StatementChildrenHavingBase):
         if self.subnode_tried.mayReturn():
             return True
 
-        except_handler = self.subnode_except_handler
+        if self.tried_may_raise is not False:
+            except_handler = self.subnode_except_handler
 
-        if except_handler is not None and except_handler.mayReturn():
-            return True
+            if except_handler is not None and except_handler.mayReturn():
+                return True
 
         break_handler = self.subnode_break_handler
 
@@ -384,10 +393,11 @@ class StatementTry(StatementChildrenHavingBase):
         if self.subnode_tried.mayBreak():
             return True
 
-        except_handler = self.subnode_except_handler
+        if self.tried_may_raise is not False:
+            except_handler = self.subnode_except_handler
 
-        if except_handler is not None and except_handler.mayBreak():
-            return True
+            if except_handler is not None and except_handler.mayBreak():
+                return True
 
         break_handler = self.subnode_break_handler
 
@@ -412,10 +422,11 @@ class StatementTry(StatementChildrenHavingBase):
         if self.subnode_tried.mayContinue():
             return True
 
-        except_handler = self.subnode_except_handler
+        if self.tried_may_raise is not False:
+            except_handler = self.subnode_except_handler
 
-        if except_handler is not None and except_handler.mayContinue():
-            return True
+            if except_handler is not None and except_handler.mayContinue():
+                return True
 
         break_handler = self.subnode_break_handler
 
@@ -435,10 +446,11 @@ class StatementTry(StatementChildrenHavingBase):
         return False
 
     def isStatementAborting(self):
-        except_handler = self.subnode_except_handler
+        if self.tried_may_raise is not False:
+            except_handler = self.subnode_except_handler
 
-        if except_handler is None or not except_handler.isStatementAborting():
-            return False
+            if except_handler is None or not except_handler.isStatementAborting():
+                return False
 
         break_handler = self.subnode_break_handler
 
@@ -458,9 +470,7 @@ class StatementTry(StatementChildrenHavingBase):
         return self.subnode_tried.isStatementAborting()
 
     def mayRaiseException(self, exception_type):
-        tried = self.subnode_tried
-
-        if tried.mayRaiseException(exception_type):
+        if self.tried_may_raise is not False:
             except_handler = self.subnode_except_handler
 
             if except_handler is not None and except_handler.mayRaiseException(
@@ -492,10 +502,11 @@ class StatementTry(StatementChildrenHavingBase):
         return False
 
     def needsFrame(self):
-        except_handler = self.subnode_except_handler
+        if self.tried_may_raise is not False:
+            except_handler = self.subnode_except_handler
 
-        if except_handler is not None and except_handler.needsFrame():
-            return True
+            if except_handler is not None and except_handler.needsFrame():
+                return True
 
         break_handler = self.subnode_break_handler
 
