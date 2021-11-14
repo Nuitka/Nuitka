@@ -25,7 +25,10 @@ binaries (needed for exec) and run them capturing outputs.
 import os
 from contextlib import contextmanager
 
-from nuitka.__past__ import WindowsError, subprocess
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    WindowsError,
+    subprocess,
+)
 from nuitka.Options import assumeYesForDownloads
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
