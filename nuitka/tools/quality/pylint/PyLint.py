@@ -148,10 +148,11 @@ def getOptions():
 --init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())
 --disable=I0011,I0012,no-init,bad-whitespace,bad-continuation,E1103,W0632,W1504,\
 C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,\
-deprecated-module, deprecated-method,assignment-from-none,ungrouped-imports,\
-no-else-return,c-extension-no-member,inconsistent-return-statements,\
-raise-missing-from,import-outside-toplevel,useless-object-inheritance,\
-useless-return,assignment-from-no-return,consider-using-f-string
+deprecated-module,deprecated-method,deprecated-argument,assignment-from-none,\
+ungrouped-imports,no-else-return,c-extension-no-member,\
+inconsistent-return-statements,raise-missing-from,import-outside-toplevel,\
+useless-object-inheritance,useless-return,assignment-from-no-return,\
+redundant-u-string-prefix,consider-using-f-string
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no

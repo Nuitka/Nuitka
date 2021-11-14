@@ -29,7 +29,7 @@ import os
 import re
 import sys
 
-from nuitka.__past__ import WindowsError
+from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
 
 
 def getSupportedPythonVersions():
