@@ -127,7 +127,7 @@ of files that you may not want to be included.""",
             else:
                 return "translations"
 
-    def getQtWebEngineProcessDir(self, package_dir):
+    def _getQtWebEngineProcessDir(self, package_dir):
         """Where to find the QtWebEngineProcess executable."""
         if isWin32Windows():
             if "PySide" in self.binding_name:
@@ -140,8 +140,8 @@ of files that you may not want to be included.""",
             else:
                 assert False
         else:
-            # TODO verify this for non-Windows, esp. macOS
-            return os.path.join(package_dir, "Qt", "libexec")
+            # TODO: Use this for Windows as well.
+            return self._getQtInformation().library_executables_path
 
     def getQtPluginsSelected(self):
         # Resolve "sensible on first use"
@@ -233,6 +233,13 @@ import %(binding_name)s.QtCore
                     applyBindingName(
                         """\
 %(binding_name)s.QtCore.QLibraryInfo.location(%(binding_name)s.QtCore.QLibraryInfo.TranslationsPath)"""
+                    ),
+                ),
+                (
+                    "library_executables_path",
+                    applyBindingName(
+                        """\
+%(binding_name)s.QtCore.QLibraryInfo.location(%(binding_name)s.QtCore.QLibraryInfo.LibraryExecutablesPath)"""
                     ),
                 ),
             ),
@@ -762,7 +769,7 @@ if not path.startswith(__nuitka_binary_dir):
             self.webengine_done_binaries = True  # prevent multiple copies
             self.info("Copying QtWebEngine binaries.")
 
-            qt_web_engine_dir = self.getQtWebEngineProcessDir(
+            qt_web_engine_dir = self._getQtWebEngineProcessDir(
                 module.getCompileTimeDirectory()
             )
 
