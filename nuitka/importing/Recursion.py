@@ -98,27 +98,30 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
     )
 
     if no_case:
-        return (False, "Module %s instructed by user to not recurse to." % reason)
+        return (False, "Module %s instructed by user to not follow to." % reason)
 
     any_case, reason = module_name.matchesToShellPatterns(
         patterns=Options.getShallFollowModules()
     )
 
     if any_case:
-        return (True, "Module %s instructed by user to recurse to." % reason)
+        return (True, "Module %s instructed by user to follow to." % reason)
 
     if Options.shallFollowNoImports():
-        return (False, "Requested to not recurse at all.")
+        return (False, "Instructed by user to not follow at all.")
 
     if StandardLibrary.isStandardLibraryPath(module_filename):
         return (
             Options.shallFollowStandardLibrary(),
-            "Requested to %srecurse to standard library."
+            "Instructed by user to %sfollow to standard library."
             % ("" if Options.shallFollowStandardLibrary() else "not "),
         )
 
     if Options.shallFollowAllImports():
-        return (True, "Requested to recurse to all non-standard library modules.")
+        return (
+            True,
+            "Instructed by user to follow to all non-standard library modules.",
+        )
 
     # Means, we were not given instructions how to handle things.
     if extra_recursion:
