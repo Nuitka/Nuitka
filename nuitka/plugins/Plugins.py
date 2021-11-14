@@ -876,6 +876,7 @@ def isObjectAUserPluginBaseClass(obj):
             obj is not NuitkaPluginBase
             and issubclass(obj, NuitkaPluginBase)
             and not inspect.isabstract(obj)
+            and not obj.__name__.endswith("PluginBase")
         )
     except TypeError:
         return False

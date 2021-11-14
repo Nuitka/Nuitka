@@ -22,10 +22,12 @@ own dependencies.
 """
 
 import os
-from abc import abstractmethod
 
 from nuitka.containers.oset import OrderedSet
-from nuitka.freezer.IncludedDataFiles import makeIncludedDataFile
+from nuitka.freezer.IncludedDataFiles import (
+    makeIncludedDataFile,
+    makeIncludedGeneratedDataFile,
+)
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -34,7 +36,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileList, listDir
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import locateDLL
-from nuitka.utils.Utils import isWin32Windows
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 # Use to detect the Qt plugin that is active and check for conflicts.
 _qt_binding_names = ("PySide", "PySide2", "PySide6", "PyQt4", "PyQt5", "PyQt6")
@@ -106,42 +108,24 @@ Include Qt translations with QtWebEngine if used. These can be a lot
 of files that you may not want to be included.""",
         )
 
-    @abstractmethod
     def _getQmlTargetDir(self):
         """Where does the Qt bindings package expect the QML files."""
+        return os.path.join(self.binding_name, "qml")
 
-    @abstractmethod
-    def _getResourcesTargetDir(self):
+    @staticmethod
+    def _getResourcesTargetDir():
         """Where does the Qt bindings package expect the resources files."""
+        return "Content/Resources" if isMacOS() else "resources"
 
-    def _getTranslationsTargetDir(self, filename_relative):
+    @staticmethod
+    def _getTranslationsTargetDir():
         """Where does the Qt bindings package expect the translation files."""
-        if "PySide" in self.binding_name:
-            return os.path.join(
-                self.binding_name,
-                "translations",
-            )
-        else:
-            if "qtwebengine_locales" in filename_relative:
-                return "qtwebengine_locales"
-            else:
-                return "translations"
+        return "Content/Resources" if isMacOS() else "translations"
 
-    def _getQtWebEngineProcessDir(self, package_dir):
-        """Where to find the QtWebEngineProcess executable."""
-        if isWin32Windows():
-            if "PySide" in self.binding_name:
-                return package_dir
-            elif self.binding_name == "PyQt5":
-                return os.path.join(package_dir, "Qt5", "bin")
-            elif self.binding_name == "PyQt6":
-                # TODO: PyQt6 is maybe the same?
-                return os.path.join(package_dir, "Qt6", "bin")
-            else:
-                assert False
-        else:
-            # TODO: Use this for Windows as well.
-            return self._getQtInformation().library_executables_path
+    @staticmethod
+    def _getWebEngineTargetDir():
+        """Where does the Qt bindings package expect the web process executable."""
+        return "Helpers" if isMacOS() else "."
 
     def getQtPluginsSelected(self):
         # Resolve "sensible on first use"
@@ -184,6 +168,20 @@ of files that you may not want to be included.""",
         # This is generic, and therefore needs to apply this to a lot of strings.
         def applyBindingName(template):
             return template % {"binding_name": self.binding_name}
+
+        def getLocationQueryCode(path_name):
+            if self.binding_name == "PyQt6":
+                template = """\
+%(binding_name)s.QtCore.QLibraryInfo.path(%(binding_name)s.QtCore.QLibraryInfo.LibraryPath.%(path_name)s)"""
+
+            else:
+                template = """\
+%(binding_name)s.QtCore.QLibraryInfo.location(%(binding_name)s.QtCore.QLibraryInfo.%(path_name)s)"""
+
+            return template % {
+                "binding_name": self.binding_name,
+                "path_name": path_name,
+            }
 
         setup_codes = applyBindingName(
             r"""
@@ -228,20 +226,12 @@ import %(binding_name)s.QtCore
                         "getattr(%(binding_name)s, '_nuitka_patch_level', 0)"
                     ),
                 ),
-                (
-                    "translations_path",
-                    applyBindingName(
-                        """\
-%(binding_name)s.QtCore.QLibraryInfo.location(%(binding_name)s.QtCore.QLibraryInfo.TranslationsPath)"""
-                    ),
-                ),
+                ("translations_path", getLocationQueryCode("TranslationsPath")),
                 (
                     "library_executables_path",
-                    applyBindingName(
-                        """\
-%(binding_name)s.QtCore.QLibraryInfo.location(%(binding_name)s.QtCore.QLibraryInfo.LibraryExecutablesPath)"""
-                    ),
+                    getLocationQueryCode("LibraryExecutablesPath"),
                 ),
+                ("data_path", getLocationQueryCode("DataPath")),
             ),
         )
 
@@ -261,6 +251,14 @@ import %(binding_name)s.QtCore
     def _getTranslationsPath(self):
         """Get the path to the Qt translations."""
         return self._getQtInformation().translations_path
+
+    def _getResourcesPath(self):
+        """Get the path to the Qt webengine resources."""
+        return os.path.join(self._getQtInformation().data_path, "resources")
+
+    def _getLibaryExecutablePath(self):
+        """Get the patch to Qt binaries."""
+        return self._getQtInformation().library_executables_path
 
     def getQtPluginDirs(self):
         if self.qt_plugins_dirs is not None:
@@ -552,12 +550,19 @@ os.environ["QML2_IMPORT_PATH"] = os.path.join(
                 "package_name": full_name
             }
 
-            return (
+            yield (
                 code,
                 """\
 Setting Qt library path to distribution folder. We need to avoid loading target
 system Qt plug-ins, which may be from another Qt version.""",
             )
+
+    def isQtWebEngineModule(self, full_name):
+        return full_name in (
+            self.binding_name + ".QtWebEngine",
+            self.binding_name + ".QtWebEngineCore",
+            self.binding_name + ".QtWebEngineWidgets",
+        )
 
     def createPreModuleLoadCode(self, module):
         """Method called when a module is being imported.
@@ -573,18 +578,18 @@ system Qt plug-ins, which may be from another Qt version.""",
         """
 
         # This isonly relevant on standalone mode for Windows
-        if not isWin32Windows() or not isStandaloneMode():
-            return None
+        if not isStandaloneMode():
+            return
 
         full_name = module.getFullName()
 
-        if full_name == self.binding_name:
+        if full_name == self.binding_name and isWin32Windows():
             code = """import os
 path = os.environ.get("PATH", "")
 if not path.startswith(__nuitka_binary_dir):
     os.environ["PATH"] = __nuitka_binary_dir + ";" + path
 """
-            return (
+            yield (
                 code,
                 "Adding binary folder to runtime 'PATH' environment variable for proper loading.",
             )
@@ -611,38 +616,37 @@ if not path.startswith(__nuitka_binary_dir):
                     ),
                     reason="Qt QML datafile",
                 )
-        elif (
-            full_name
-            in (
-                self.binding_name + ".QtWebEngine",
-                self.binding_name + ".QtWebEngineCore",
-                self.binding_name + ".QtWebEngineWidgets",
-            )
-            and not self.webengine_done_data
-        ):
+        elif self.isQtWebEngineModule(full_name) and not self.webengine_done_data:
             self.webengine_done_data = True
 
-            for qt_plugin_dir in self.getQtPluginDirs():
-                plugin_parent = os.path.dirname(qt_plugin_dir)
+            # TODO: This is probably wrong/not needed on macOS
+            if not isMacOS():
+                yield makeIncludedGeneratedDataFile(
+                    data="""\
+[Paths]
+Prefix = .
+""",
+                    dest_path="qt6.conf" if "6" in self.binding_name else "qt.conf",
+                    reason="QtWebEngine needs Qt configuration file",
+                )
 
-                resources_dir = os.path.join(plugin_parent, "resources")
+            resources_dir = self._getResourcesPath()
 
-                if os.path.exists(resources_dir):
-                    for filename, filename_relative in listDir(resources_dir):
-                        yield makeIncludedDataFile(
-                            source_path=filename,
-                            dest_path=os.path.join(
-                                self._getResourcesTargetDir(), filename_relative
-                            ),
-                            reason="Qt resources",
-                        )
+            for filename, filename_relative in listDir(resources_dir):
+                yield makeIncludedDataFile(
+                    source_path=filename,
+                    dest_path=os.path.join(
+                        self._getResourcesTargetDir(), filename_relative
+                    ),
+                    reason="Qt resources",
+                )
 
             if not self.no_qt_translations:
                 translations_path = self._getTranslationsPath()
 
                 for filename in getFileList(translations_path):
                     filename_relative = os.path.relpath(filename, translations_path)
-                    dest_path = self._getTranslationsTargetDir(filename_relative)
+                    dest_path = self._getTranslationsTargetDir()
 
                     yield makeIncludedDataFile(
                         source_path=filename,
@@ -751,27 +755,19 @@ if not path.startswith(__nuitka_binary_dir):
                         dest_path=os.path.basename(dll_path),
                         package_name=full_name,
                     )
-        elif (
-            full_name
-            in (
-                self.binding_name + ".QtWebEngine",
-                self.binding_name + ".QtWebEngineCore",
-                self.binding_name + ".QtWebEngineWidgets",
-            )
-            and not self.webengine_done_binaries
-        ):
+        elif self.isQtWebEngineModule(full_name) and not self.webengine_done_binaries:
             self.webengine_done_binaries = True  # prevent multiple copies
-            self.info("Copying QtWebEngine binaries.")
+            self.info("Including QtWebEngine executable.")
 
-            qt_web_engine_dir = self._getQtWebEngineProcessDir(
-                module.getCompileTimeDirectory()
-            )
+            qt_web_engine_dir = self._getLibaryExecutablePath()
 
             for filename, filename_relative in listDir(qt_web_engine_dir):
                 if filename_relative.startswith("QtWebEngineProcess"):
                     yield makeDllEntryPoint(
                         source_path=filename,
-                        dest_path=filename_relative,
+                        dest_path=os.path.join(
+                            self._getWebEngineTargetDir(), filename_relative
+                        ),
                         package_name=full_name,
                     )
 
@@ -894,13 +890,6 @@ class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
     def isRelevant(cls):
         return isStandaloneMode()
 
-    def _getQmlTargetDir(self):
-        return os.path.join(self.binding_name, "qml")
-
-    def _getResourcesTargetDir(self):
-        # TODO: Probably needs to be different for macOS.
-        return "."
-
 
 class NuitkaPluginDetectorPyQt5QtPluginsPlugin(NuitkaPluginBase):
     detector_for = NuitkaPluginPyQt5QtPluginsPlugin
@@ -948,14 +937,6 @@ This PySide2 version only partially supported through workarounds, full support:
             self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
         )
 
-    def _getQmlTargetDir(self):
-        return os.path.join(self.binding_name, "qml")
-
-    @staticmethod
-    def _getResourcesTargetDir():
-        # TODO: Probably needs to be different for macOS.
-        return "."
-
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         # Enforce recursion in to multiprocessing for accelerated mode, which
         # would normally avoid this.
@@ -977,8 +958,9 @@ This PySide2 version only partially supported through workarounds, full support:
         and therefore makes sure it's updated properly.
         """
 
-        result = NuitkaPluginQtBindingsPluginBase.createPostModuleLoadCode(self, module)
-        if result:
+        for result in NuitkaPluginQtBindingsPluginBase.createPostModuleLoadCode(
+            self, module
+        ):
             yield result
 
         if (
@@ -1098,13 +1080,22 @@ class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
 Only PySide 6.1.2 or higher (or dev branch compiled), otherwise callbacks won't work."""
             )
 
-    def _getQmlTargetDir(self):
-        return os.path.join(self.binding_name, "qml")
-
+    # TODO: PySide6 complains about this not being PySide6/resources, but won't work
+    # if it's there and not near main binary.
     @staticmethod
     def _getResourcesTargetDir():
-        # TODO: Probably needs to be different for macOS.
-        return "."
+        """Where does the Qt bindings package expect the resources files."""
+        return "Content/Resources" if isMacOS() else "."
+
+    # TODO: This is actually best, PySide2 ought to be made to use it
+    # too.
+    def _getTranslationsTargetDir(self):
+        """Where does the Qt bindings package expect the translation files."""
+        return (
+            "Content/Resources"
+            if isMacOS()
+            else os.path.join(self.binding_name, "translations")
+        )
 
 
 class NuitkaPluginDetectorPySide6Plugins(NuitkaPluginBase):
@@ -1113,3 +1104,42 @@ class NuitkaPluginDetectorPySide6Plugins(NuitkaPluginBase):
     def onModuleDiscovered(self, module):
         if module.getFullName() == NuitkaPluginPySide6Plugins.binding_name + ".QtCore":
             self.warnUnusedPlugin("Standalone mode support and Qt plugins.")
+
+
+class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
+    """This is for plugins of PyQt6.
+
+    When Qt loads an image, it may use a plug-in, which in turn used DLLs,
+    which for standalone mode, can cause issues of not having it.
+    """
+
+    plugin_name = "pyqt6"
+    plugin_desc = "Required by the PyQt6 package for standalone mode."
+
+    binding_name = "PyQt6"
+
+    def __init__(self, qt_plugins, no_qt_translations):
+        NuitkaPluginQtBindingsPluginBase.__init__(
+            self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
+        )
+
+        self.warning(
+            """\
+Support for PyQt6 is experimental, use PySide6 if you can."""
+        )
+
+    # TODO: PyQt6 has same issues as PySide6 here.
+    @staticmethod
+    def _getResourcesTargetDir():
+        """Where does the Qt bindings package expect the resources files."""
+        return "Content/Resources" if isMacOS() else "."
+
+    # TODO: This is actually best, PySide2 ought to be made to use it
+    # too.
+    def _getTranslationsTargetDir(self):
+        """Where does the Qt bindings package expect the translation files."""
+        return (
+            "Content/Resources"
+            if isMacOS()
+            else os.path.join(self.binding_name, "translations")
+        )
