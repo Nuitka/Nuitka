@@ -128,7 +128,7 @@ numpy.testing._private.pytesttester:
 
 numpy.core.overrides:
   # see #1189, apparently an upstream problem hard to grasp
-  description: "workaround for numpy and python flag 'no_docstrings'"
+  description: "workaround numpy issue with python flag 'no_docstrings' if used"
   replacements:
     "add_docstring(implementation, dispatcher.__doc__)": "'''add_docstring(implementation, dispatcher.__doc__ or '')'''"
 
@@ -225,3 +225,8 @@ tokenize:
   description: "remove module ability to run as a binary"
   change_function:
     "main": "'(lambda: None)'"
+
+h5py:
+  description: "remove h5py testing framework"
+  change_function:
+    "run_tests": "'(lambda args=\\'\\': None)'"
