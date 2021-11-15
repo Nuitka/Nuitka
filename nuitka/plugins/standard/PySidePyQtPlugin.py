@@ -488,7 +488,7 @@ import %(binding_name)s.QtCore
         if child_name in ("QtQuick", "QtQuickWidgets"):
             yield self._getChildNamed("QtQml")
 
-        if child_name in ("QtQuickWidgets", "QtQml"):
+        if child_name in ("QtQuickWidgets", "QtQml", "QtQuickControls2"):
             yield self._getChildNamed("QtQuick")
 
         if child_name == "Qt":

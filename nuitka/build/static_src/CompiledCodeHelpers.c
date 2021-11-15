@@ -1147,6 +1147,7 @@ extern "C"
 #include <floatingpoint.h>
 #endif
 
+#if !defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
 PyObject *original_isinstance = NULL;
 
 // Note: Installed and used by "InspectPatcher" as "instance" too.
@@ -1254,6 +1255,8 @@ int Nuitka_IsInstance(PyObject *inst, PyObject *cls) {
         return res;
     }
 }
+
+#endif
 
 #define ITERATOR_GENERIC 0
 #define ITERATOR_COMPILED_GENERATOR 1

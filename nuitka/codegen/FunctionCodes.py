@@ -779,10 +779,10 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
         context = PythonFunctionOutlineContext(parent=context, outline=expression)
 
     # Need to set return target, to assign to_name from.
-    old_return_release_mode = context.getReturnReleaseMode()
 
     return_target = context.allocateLabel("outline_result")
     old_return_target = context.setReturnTarget(return_target)
+    old_return_release_mode = context.setReturnReleaseMode(False)
 
     # TODO: Put the return value name as that to_name.c_type too.
 
