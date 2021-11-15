@@ -5,7 +5,7 @@ boto3:
 
 botocore:
   patterns:
-    - cacert.pem
+    - "cacert.pem"
   dirs:
     - "data"
 
@@ -137,3 +137,7 @@ xmlschema:
 openapi_spec_validator:
   dirs:
     - "resources/schemas"
+
+kivy:
+  dirs:
+    - "data"
