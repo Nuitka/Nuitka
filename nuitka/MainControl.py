@@ -553,7 +553,7 @@ def runSconsBackend(quiet):
 
     SconsInterface.setCommonOptions(options)
 
-    # For PGO, we have a 2 pass system. TODO: Make it more global for onefile
+    # For C level PGO, we have a 2 pass system. TODO: Make it more global for onefile
     # and standalone mode proper support, which might need data files to be
     # there, which currently are not yet there, so it won't run.
     if Options.isPgoMode():

@@ -474,4 +474,6 @@ NUITKA_MAY_BE_UNUSED static void forceGC() {
 // We provide the sys.version info shortcut as a global value here for ease of use.
 extern PyObject *Py_SysVersionInfo;
 
+#include "nuitka/pgo.h"
+
 #endif

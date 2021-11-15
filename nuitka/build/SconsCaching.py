@@ -74,9 +74,7 @@ def _getCcacheGuessedPaths(python_prefix):
         yield "/usr/local/opt/ccache"
 
 
-def _injectCcache(
-    the_compiler, cc_path, env, python_prefix, target_arch, assume_yes_for_downloads
-):
+def _injectCcache(env, cc_path, python_prefix, target_arch, assume_yes_for_downloads):
     ccache_binary = os.environ.get("NUITKA_CCACHE_BINARY")
 
     # If not provided, search it in PATH and guessed directories.
@@ -141,7 +139,7 @@ def _injectCcache(
         # In case we are on Windows, make sure the Anaconda form runs outside of Anaconda
         # environment, by adding DLL folder to PATH.
         assert areSamePaths(
-            getExecutablePath(os.path.basename(the_compiler), env=env), cc_path
+            getExecutablePath(os.path.basename(env.the_compiler), env=env), cc_path
         )
 
         # We use absolute paths for CC, pass it like this, as ccache does not like absolute.
@@ -165,7 +163,6 @@ def _injectCcache(
 
 
 def enableCcache(
-    the_compiler,
     env,
     source_dir,
     python_prefix,
@@ -189,7 +186,7 @@ def enableCcache(
         env["CCACHE_DIR"] = ccache_dir
 
     # First check if it's not already supposed to be a ccache, then do nothing.
-    cc_path = getExecutablePath(the_compiler, env=env)
+    cc_path = getExecutablePath(env.the_compiler, env=env)
 
     cc_is_link, cc_link_path = getLinkTarget(cc_path)
     if cc_is_link and os.path.basename(cc_link_path) == "ccache":
@@ -201,16 +198,15 @@ def enableCcache(
         return True
 
     return _injectCcache(
-        the_compiler=the_compiler,
-        cc_path=cc_path,
         env=env,
+        cc_path=cc_path,
         python_prefix=python_prefix,
         target_arch=target_arch,
         assume_yes_for_downloads=assume_yes_for_downloads,
     )
 
 
-def enableClcache(the_compiler, env, source_dir):
+def enableClcache(env, source_dir):
     importFromInlineCopy("atomicwrites", must_exist=True)
     importFromInlineCopy("clcache", must_exist=True)
 
@@ -218,7 +214,7 @@ def enableClcache(the_compiler, env, source_dir):
     # do it now, so it's not a race issue.
     import concurrent.futures.thread  # pylint: disable=I0021,unused-import,unused-variable
 
-    cl_binary = getExecutablePath(the_compiler, env)
+    cl_binary = getExecutablePath(env.the_compiler, env)
 
     # The compiler is passed via environment.
     setEnvironmentVariable(env, "CLCACHE_CL", cl_binary)

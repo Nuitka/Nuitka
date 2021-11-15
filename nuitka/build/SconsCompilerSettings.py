@@ -43,28 +43,25 @@ from .SconsUtils import (
 )
 
 
-def enableC11Settings(env, clangcl_mode, clang_mode, gcc_version):
+def enableC11Settings(env, gcc_version):
     """Decide if C11 mode can be used and enable the C compile flags for it.
 
     Args:
         env - scons environment with compiler information
-        clangcl_mode - clangcl.exe is used
-        clang_mode - bool clang is used
-        gcc_mode - bool gcc is used
         gcc_version - bool version of gcc used if gcc_mode is true
 
     Returns:
         bool - c11_mode flag
     """
 
-    if clangcl_mode:
+    if env.clangcl_mode:
         c11_mode = True
     elif env.msvc_mode:
         c11_mode = False
 
         # TODO: Once it includes updated Windows SDK, we could use C11 mode with it.
         # float(env.get("MSVS_VERSION", "0")) >= 14.2
-    elif clang_mode:
+    elif env.clang_mode:
         c11_mode = True
     elif env.gcc_mode and gcc_version >= (5,):
         c11_mode = True
@@ -84,7 +81,6 @@ def enableLtoSettings(
     env,
     lto_mode,
     pgo_mode,
-    clang_mode,
     nuitka_python,
     debian_python,
     job_count,
@@ -121,7 +117,7 @@ def enableLtoSettings(
     if env.gcc_mode and lto_mode:
         env.Append(CCFLAGS=["-flto"])
 
-        if clang_mode:
+        if env.clang_mode:
             env.Append(LINKFLAGS=["-flto"])
         else:
             env.Append(CCFLAGS=["-fuse-linker-plugin", "-fno-fat-lto-objects"])
@@ -140,7 +136,7 @@ def enableLtoSettings(
             % ("yes" if lto_mode else "no", reason)
         )
 
-    return lto_mode
+    env.lto_mode = lto_mode
 
 
 def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_downloads):
@@ -436,3 +432,42 @@ def setupCCompiler(env):
     if env.mingw_mode:
         # Windows XP
         env.Append(CPPDEFINES=["_WIN32_WINNT=0x0501"])
+
+    # Detect the gcc version
+    if env.gcc_mode and not env.clang_mode:
+        env.gcc_version = myDetectVersion(env, env.the_compiler)
+    else:
+        env.gcc_version = None
+
+
+def enablePgoSettings(env, pgo_mode):
+    if pgo_mode == "no":
+        env.progressbar_name = "Backend"
+    elif pgo_mode == "python":
+        env.progressbar_name = "Python Profile"
+        env.Append(CPPDEFINES=["_NUITKA_PGO_GENERATE"])
+    elif pgo_mode == "generate":
+        env.progressbar_name = "Profile"
+        env.Append(CPPDEFINES=["_NUITKA_PGO_GENERATE"])
+
+        if env.gcc_mode:
+            env.Append(CCFLAGS=["-fprofile-generate"])
+            env.Append(LINKFLAGS=["-fprofile-generate"])
+        else:
+            scons_logger.sysexit(
+                "Error, PGO not supported for '%s' compiler." % env.the_cc_name
+            )
+    elif pgo_mode == "use":
+        env.progressbar_name = "Backend"
+
+        env.Append(CPPDEFINES=["_NUITKA_PGO_USE"])
+
+        if env.gcc_mode:
+            env.Append(CCFLAGS=["-fprofile-use"])
+            env.Append(LINKFLAGS=["-fprofile-use"])
+        else:
+            scons_logger.sysexit(
+                "Error, PGO not supported for '%s' compiler." % env.the_cc_name
+            )
+    else:
+        assert False, env.pgo_mode
