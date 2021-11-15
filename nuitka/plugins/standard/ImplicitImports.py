@@ -34,20 +34,20 @@ from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import getPyWin32Dir, locateDLL
 from nuitka.utils.Utils import getOS, isLinux, isMacOS, isWin32Windows
+from nuitka.utils.Yaml import parsePackageYaml
 
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     plugin_name = "implicit-imports"
 
     def __init__(self):
-        NuitkaPluginBase.__init__(self)
+        self.config = parsePackageYaml(__package__, "implicit-imports.yml")
 
     @staticmethod
     def isAlwaysEnabled():
         return True
 
-    @staticmethod
-    def _getImportsByFullname(full_name, module_filename):
+    def _getImportsByFullname(self, full_name, module_filename):
         """Provides names of modules to imported implicitly.
 
         Notes:
@@ -57,23 +57,23 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         """
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
 
+        config = self.config.get(full_name)
+
+        # Checking for config, but also allowing fall through.
+        if config:
+            dependencies = config.get("depends")
+
+            if type(dependencies) is not list or not dependencies:
+                self.sysexit(
+                    "Error, requiring list below 'depends' entry for '%s' entry."
+                    % full_name
+                )
+
+            for dependency in dependencies:
+                yield dependency
+
         if full_name == "sip" and python_version < 0x300:
             yield "enum"
-
-        elif full_name == "lxml":
-            yield "lxml.builder"
-            yield "lxml.etree"
-            yield "lxml.objectify"
-            yield "lxml.sax"
-            yield "lxml._elementpath"
-
-        elif full_name == "lxml.etree":
-            yield "lxml._elementpath"
-
-        elif full_name == "lxml.html":
-            yield "lxml.html.clean"
-            yield "lxml.html.diff"
-            yield "lxml.etree"
 
         elif full_name == "gtk._gtk":
             yield "pangocairo"
