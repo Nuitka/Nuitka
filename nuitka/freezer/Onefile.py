@@ -94,7 +94,7 @@ def _getAppImageToolPath(for_operation, assume_yes_for_downloads):
         arch_name = "armhf"
 
     appimagetool_url = (
-        "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-%s.AppImage"
+        "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-%s.AppImage"
         % arch_name
     )
 
