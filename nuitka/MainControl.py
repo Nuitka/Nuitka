@@ -409,13 +409,15 @@ def makeSourceDirectory():
 
 
 def runPgoBinary():
-    # Exit code, we do not insist on anything.
+    pgo_executable = Options.getPgoExecutable() or os.path.join(
+        ".", OutputDirectories.getResultRunFilename(onefile=False)
+    )
+    if not os.path.isfile(pgo_executable):
+        general.sysexit("Error, failed to produce PGO binary '%s'" % pgo_executable)
+
+    # Note: For exit code, we do not insist on anything.
     Execution.call(
-        [
-            Options.getPgoExecutable()
-            or OutputDirectories.getResultRunFilename(onefile=False)
-        ]
-        + Options.getPgoArgs(),
+        [pgo_executable] + Options.getPgoArgs(),
         shell=False,
     )
 
