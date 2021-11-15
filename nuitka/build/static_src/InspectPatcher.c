@@ -230,6 +230,7 @@ types._GeneratorWrapper = GeneratorWrapperEnhanced\
 }
 #endif
 
+#if !defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
 extern int Nuitka_IsInstance(PyObject *inst, PyObject *cls);
 extern PyObject *original_isinstance;
 
@@ -251,8 +252,12 @@ static PyObject *_builtin_isinstance_replacement(PyObject *self, PyObject *args)
     return result;
 }
 
+#endif
+
+#if !defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
 static PyMethodDef _method_def_builtin_isinstance_replacement = {
     "isinstance", (PyCFunction)_builtin_isinstance_replacement, METH_VARARGS, NULL};
+#endif
 
 extern PyModuleObject *builtin_module;
 
@@ -266,6 +271,7 @@ void patchBuiltinModule() {
 #endif
     CHECK_OBJECT(builtin_module);
 
+#if !defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
     // Patch "inspect.isinstance" unless it is already patched.
     original_isinstance = PyObject_GetAttrString((PyObject *)builtin_module, "isinstance");
     CHECK_OBJECT(original_isinstance);
@@ -279,6 +285,7 @@ void patchBuiltinModule() {
     CHECK_OBJECT(builtin_isinstance_replacement);
 
     PyObject_SetAttrString((PyObject *)builtin_module, "isinstance", builtin_isinstance_replacement);
+#endif
 }
 
 static richcmpfunc original_PyType_tp_richcompare = NULL;
@@ -291,6 +298,14 @@ static PyObject *Nuitka_type_tp_richcompare(PyObject *a, PyObject *b, int op) {
             a = (PyObject *)&PyMethod_Type;
         } else if (a == (PyObject *)&Nuitka_Generator_Type) {
             a = (PyObject *)&PyGen_Type;
+#if PYTHON_VERSION >= 0x350
+        } else if (a == (PyObject *)&Nuitka_Coroutine_Type) {
+            a = (PyObject *)&PyCoro_Type;
+#endif
+#if PYTHON_VERSION >= 0x360
+        } else if (a == (PyObject *)&Nuitka_Asyncgen_Type) {
+            a = (PyObject *)&PyAsyncGen_Type;
+#endif
         }
 
         if (b == (PyObject *)&Nuitka_Function_Type) {
@@ -299,6 +314,14 @@ static PyObject *Nuitka_type_tp_richcompare(PyObject *a, PyObject *b, int op) {
             b = (PyObject *)&PyMethod_Type;
         } else if (b == (PyObject *)&Nuitka_Generator_Type) {
             b = (PyObject *)&PyGen_Type;
+#if PYTHON_VERSION >= 0x350
+        } else if (b == (PyObject *)&Nuitka_Coroutine_Type) {
+            b = (PyObject *)&PyCoro_Type;
+#endif
+#if PYTHON_VERSION >= 0x360
+        } else if (b == (PyObject *)&Nuitka_Asyncgen_Type) {
+            b = (PyObject *)&PyAsyncGen_Type;
+#endif
         }
     }
 

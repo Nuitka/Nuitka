@@ -131,6 +131,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "yaml"
         elif full_name == "apt_inst":
             yield "apt_pkg"
+        elif full_name == "_ruamel_yaml":
+            yield "ruamel.yaml.error"
 
         # start of engineio imports ------------------------------------------
         elif full_name == "engineio":
