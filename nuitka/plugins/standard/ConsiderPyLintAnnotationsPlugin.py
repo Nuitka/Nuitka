@@ -77,12 +77,17 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
         return False
 
 
-class NuitkaPluginDetectorPylintEclipseAnnotations(NuitkaPluginBase):
-    detector_for = NuitkaPluginPylintEclipseAnnotations
+# Disabled until it will be actually really useful, pylint: disable=using-constant-test
+if False:
 
-    def onModuleSourceCode(self, module_name, source_code):
-        if re.search(r"#\s*pylint:\s*disable=\s*(\w+)", source_code):
-            self.warnUnusedPlugin("Understand PyLint/PyDev annotations for warnings.")
+    class NuitkaPluginDetectorPylintEclipseAnnotations(NuitkaPluginBase):
+        detector_for = NuitkaPluginPylintEclipseAnnotations
 
-        # Do nothing to it.
-        return source_code
+        def onModuleSourceCode(self, module_name, source_code):
+            if re.search(r"#\s*pylint:\s*disable=\s*(\w+)", source_code):
+                self.warnUnusedPlugin(
+                    "Understand PyLint/PyDev annotations for warnings."
+                )
+
+            # Do nothing to it.
+            return source_code
