@@ -1080,6 +1080,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "kivy.graphics.compiler"
         elif full_name == "kivy.graphics.compiler":
             yield "kivy.graphics.shader"
+        elif full_name == "mercurial.encoding":
+            yield "mercurial.charencode"
+            yield "mercurial.cext.parsers"
 
     def getImportsByFullname(self, full_name, module_filename):
         """Recursively create a set of imports for a fullname.
