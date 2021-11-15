@@ -430,7 +430,7 @@ def _findModuleInPath2(package_name, module_name, search_path):
                 candidates.add(
                     ImportScanFinding(
                         found_in=entry,
-                        priority=priority_map[mtype],
+                        priority=4 + priority_map[mtype],
                         full_path=full_path,
                         search_order=count,
                     )

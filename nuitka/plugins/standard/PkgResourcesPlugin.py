@@ -63,6 +63,11 @@ class NuitkaPluginResources(NuitkaPluginBase):
     def onModuleSourceCode(self, module_name, source_code):
         # Many cases to deal with, pylint: disable=too-many-branches
 
+        # The importlib_resources backport has a problem with wanting source files
+        # to exist, that won't be the case with standalone.
+        if module_name == "importlib_resources._compat":
+            return source_code.replace("path.exists()", "True")
+
         # This one has strings with false matches, don't attempt those.
         if module_name == "setuptools.command.easy_install":
             return source_code

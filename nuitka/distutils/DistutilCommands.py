@@ -158,7 +158,7 @@ class build(distutils.command.build.build):
         os.chdir(build_lib)
 
         # Search in the build directory preferably.
-        setMainScriptDirectory(".")
+        setMainScriptDirectory(os.path.abspath(old_dir))
 
         to_builds = self._find_to_build()
         for to_build in to_builds:
@@ -235,9 +235,9 @@ class build(distutils.command.build.build):
                     if fullpath.lower().endswith((".py", ".pyw", ".pyc", ".pyo")):
                         os.unlink(fullpath)
 
-            os.chdir(old_dir)
+        self.build_lib = build_lib
 
-            self.build_lib = build_lib
+        os.chdir(old_dir)
 
 
 # Required by distutils, used as command name, pylint: disable=invalid-name

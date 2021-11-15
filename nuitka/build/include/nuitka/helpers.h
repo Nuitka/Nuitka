@@ -294,8 +294,10 @@ extern PyObject *BUILTIN_SUPER0(PyObject *type, PyObject *object);
 // For built-in built-in all() functionality.
 extern PyObject *BUILTIN_ALL(PyObject *value);
 
+#if !defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
 // The patched isinstance() functionality used for the built-in.
 extern int Nuitka_IsInstance(PyObject *inst, PyObject *cls);
+#endif
 
 // For built-in getattr() functionality.
 extern PyObject *BUILTIN_GETATTR(PyObject *object, PyObject *attribute, PyObject *default_value);
