@@ -339,10 +339,10 @@ def getWrappedSpawnFunction():
     return spawnCommand
 
 
-def enableSpawnMonitoring(env, win_target, module_mode, lto_mode, source_files):
+def enableSpawnMonitoring(env, win_target, module_mode, source_files):
     if win_target:
         env["SPAWN"] = getWindowsSpawnFunction(
-            module_mode=module_mode, lto_mode=lto_mode, source_files=source_files
+            module_mode=module_mode, lto_mode=env.lto_mode, source_files=source_files
         )
     else:
         env["SPAWN"] = getWrappedSpawnFunction()

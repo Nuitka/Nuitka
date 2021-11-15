@@ -251,7 +251,7 @@ def addToPATH(env, dirname, prefix):
     setEnvironmentVariable(env, "PATH", os.pathsep.join(path_value))
 
 
-def writeSconsReport(source_dir, env, clang_mode, clangcl_mode):
+def writeSconsReport(env, source_dir):
     with openTextFile(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
         # We are friends to get at this debug info, pylint: disable=protected-access
         for key, value in sorted(env._dict.items()):
@@ -272,10 +272,10 @@ def writeSconsReport(source_dir, env, clang_mode, clangcl_mode):
             print(key + "=" + value, file=report_file)
 
         print("gcc_mode=%s" % env.gcc_mode, file=report_file)
-        print("clang_mode=%s" % clang_mode, file=report_file)
+        print("clang_mode=%s" % env.clang_mode, file=report_file)
         print("msvc_mode=%s" % env.msvc_mode, file=report_file)
         print("mingw_mode=%s" % env.mingw_mode, file=report_file)
-        print("clangcl_mode=%s" % clangcl_mode, file=report_file)
+        print("clangcl_mode=%s" % env.clangcl_mode, file=report_file)
 
 
 scons_reports = {}
@@ -329,25 +329,23 @@ def addClangClPathFromMSVC(env, target_arch):
         )
 
 
-def switchFromGccToGpp(gcc_version, the_compiler, the_cc_name, env):
+def switchFromGccToGpp(env, gcc_version):
     if gcc_version is not None and gcc_version < (5,):
-        scons_logger.info("The provided gcc is too old, switching to g++ instead.")
+        scons_logger.info("The provided gcc is too old, switching to its g++ instead.")
 
         # Switch to g++ from gcc then if possible, when C11 mode is false.
         the_gpp_compiler = os.path.join(
-            os.path.dirname(the_compiler),
-            os.path.basename(the_compiler).replace("gcc", "g++"),
+            os.path.dirname(env.the_compiler),
+            os.path.basename(env.the_compiler).replace("gcc", "g++"),
         )
 
         if getExecutablePath(the_gpp_compiler, env=env):
-            the_compiler = the_gpp_compiler
-            the_cc_name = the_cc_name.replace("gcc", "g++")
+            env.the_compiler = the_gpp_compiler
+            env.the_cc_name = env.the_cc_name.replace("gcc", "g++")
         else:
             scons_logger.sysexit(
                 "Error, your gcc is too old for C11 support, and no related g++ to workaround that is found."
             )
-
-    return the_compiler, the_cc_name
 
 
 def isGccName(cc_name):
