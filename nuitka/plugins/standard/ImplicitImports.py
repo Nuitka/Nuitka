@@ -1070,6 +1070,16 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "h5py.h5ac"
         elif full_name == "h5py.h5a":
             yield "h5py._proxy"
+        elif full_name == "kivy._clock":
+            yield "kivy.weakmethod"
+        elif full_name == "kivy.graphics.instructions":
+            yield "kivy.graphics.buffer"
+            yield "kivy.graphics.vertex"
+            yield "kivy.graphics.vbo"
+        elif full_name == "kivy.graphics.vbo":
+            yield "kivy.graphics.compiler"
+        elif full_name == "kivy.graphics.compiler":
+            yield "kivy.graphics.shader"
 
     def getImportsByFullname(self, full_name, module_filename):
         """Recursively create a set of imports for a fullname.
