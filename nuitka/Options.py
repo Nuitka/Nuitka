@@ -164,7 +164,7 @@ makes no sense to include a Python runtime."""
         if bad:
             Tracing.options_logger.sysexit(
                 """\
-Error, '--follow-import-to' takes only module names, not directory path '%s'."""
+Error, '--follow-import-to' takes only module names or patterns, not directory path '%s'."""
                 % any_case_module
             )
 
@@ -182,7 +182,7 @@ Error, '--follow-import-to' takes only module names, not directory path '%s'."""
         if bad:
             Tracing.options_logger.sysexit(
                 """\
-Error, '--nofollow-import-to' takes only module names, not directory path '%s'."""
+Error, '--nofollow-import-to' takes only module names or patterns, not directory path '%s'."""
                 % no_case_module
             )
 
