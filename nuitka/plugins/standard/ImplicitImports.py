@@ -22,12 +22,14 @@ be told that. This encodes the knowledge we have for various modules. Feel free
 to add to this and submit patches to make it more complete.
 """
 
+import fnmatch
 import os
 import sys
 
 from nuitka.__past__ import iter_modules
 from nuitka.containers.oset import OrderedSet
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
+from nuitka.importing.Importing import findModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContentByLine
@@ -47,7 +49,55 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     def isAlwaysEnabled():
         return True
 
-    def _getImportsByFullname(self, full_name, module_filename):
+    def _resolveModulePattern(self, pattern):
+        parts = pattern.split(".")
+
+        current = None
+
+        for count, part in enumerate(parts):
+            if not part:
+                self.sysexit(
+                    "Error, invalid pattern with empty parts used '%s'." % pattern
+                )
+
+            if "." in part or "*" in part:
+                if current is None:
+                    self.sysexit(
+                        "Error, cannot use patter for first part '%s'." % pattern
+                    )
+
+                _package, module_filename, _finding = findModule(
+                    importing=None,
+                    module_name=ModuleName(current),
+                    parent_package=None,
+                    level=0,
+                    warn=False,
+                )
+
+                for sub_module in iter_modules([module_filename]):
+                    if not fnmatch.fnmatch(sub_module.name, part):
+                        continue
+
+                    if count == len(parts) - 1:
+                        yield current.getChildNamed(sub_module.name)
+                    else:
+                        child_name = current.getChildNamed(sub_module.name).asString()
+
+                        for value in self._resolveModulePattern(
+                            child_name + "." + ".".join(parts[count + 1 :])
+                        ):
+                            yield value
+
+                return
+            else:
+                if current is None:
+                    current = ModuleName(part)
+                else:
+                    current = current.getChildNamed(part)
+
+        yield current
+
+    def _getImportsByFullname(self, full_name):
         """Provides names of modules to imported implicitly.
 
         Notes:
@@ -70,7 +120,14 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 )
 
             for dependency in dependencies:
-                yield dependency
+                if dependency.startswith("."):
+                    dependency = full_name.getChildNamed(dependency[1:]).asString()
+
+                if "*" in dependency or "?" in dependency:
+                    for resolved in self._resolveModulePattern(dependency):
+                        yield resolved
+                else:
+                    yield dependency
 
         if full_name == "sip" and python_version < 0x300:
             yield "enum"
@@ -905,14 +962,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pkg_resources._vendor.packaging.specifiers"
             yield "pkg_resources._vendor.packaging.requirements"
 
-        # pendulum imports -- START -------------------------------------------
-        elif full_name == "pendulum.locales":
-            # May only need the one idiom folders if that's what's used, but right now we cannot tell.
-            # This should become a plugin that allows control.
-            for idiom in iter_modules([module_filename]):
-                yield full_name.getChildNamed(idiom.name).getChildNamed("locale")
-        # pendulum imports -- STOP --------------------------------------------
-
         # TODO: Is this even true, or an artifact of how we handled requests.packages.urllib3 in the past.
         # urllib3 -------------------------------------------------------------
         elif full_name in ("urllib3", "requests_toolbelt._compat"):
@@ -1084,7 +1133,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "mercurial.charencode"
             yield "mercurial.cext.parsers"
 
-    def getImportsByFullname(self, full_name, module_filename):
+    def getImportsByFullname(self, full_name):
         """Recursively create a set of imports for a fullname.
 
         Notes:
@@ -1093,15 +1142,15 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         """
         result = OrderedSet()
 
-        def checkImportsRecursive(module_name, module_filename):
-            for item in self._getImportsByFullname(module_name, module_filename):
+        def checkImportsRecursive(module_name):
+            for item in self._getImportsByFullname(module_name):
                 item = ModuleName(item)
 
                 if item not in result:
                     result.add(item)
-                    checkImportsRecursive(item, module_filename)
+                    checkImportsRecursive(item)
 
-        checkImportsRecursive(full_name, module_filename)
+        checkImportsRecursive(full_name)
 
         if full_name in result:
             result.remove(full_name)
@@ -1111,7 +1160,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     def getImplicitImports(self, module):
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches
         full_name = module.getFullName()
-        module_filename = module.getCompileTimeDirectory()
 
         if module.isPythonShlibModule():
             for used_module in module.getUsedModules():
@@ -1150,7 +1198,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         else:
             # create a flattened import set for full_name and yield from it
-            for item in self.getImportsByFullname(full_name, module_filename):
+            for item in self.getImportsByFullname(full_name):
                 yield item
 
     def onModuleSourceCode(self, module_name, source_code):
@@ -1269,6 +1317,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "telethon.tl.types",  # Not performance relevant and slow C compile
         "importlib_metadata",  # Not performance relevant and slow C compile
         "comtypes.gen",  # Not performance relevant and slow C compile
+        "phonenumbers.geodata",  # Not performance relevant and slow C compile
         "site",  # Not performance relevant and problems with .pth files
     )
 

@@ -2,18 +2,26 @@
 # TODO: Seems too much
 lxml:
   depends:
-    - "lxml.builder"
-    - "lxml.etree"
-    - "lxml.objectify"
-    - "lxml.sax"
-    - "lxml._elementpath"
+    - ".builder"
+    - ".etree"
+    - ".objectify"
+    - ".sax"
+    - "._elementpath"
 
 lxml.etree:
   depends:
-    - "lxml._elementpath"
+    - "._elementpath"
 
 lxml.html:
   depends:
-    - "lxml.html.clean"
-    - "lxml.html.diff"
-    - "lxml.etree"
+    - ".html.clean"
+    - ".html.diff"
+    - ".etree"
+
+pendulum.locales:
+  depends:
+    - ".*.locale"
+
+phonenumbers.data:
+  depends:
+    - ".region_*"
