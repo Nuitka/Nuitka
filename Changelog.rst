@@ -60,6 +60,30 @@
 -  Python2: Workaround for LTO error from older gcc. Fixed in 0.6.17.5
    already.
 
+-  Fix, could crash with generator expressions in finally blocks of
+   tried blocks that return. Fixed in 0.6.17.7 already.
+
+   .. code:: python
+
+      try:
+         return 9
+      finally:
+         "".join(x for x in b"some_iterable")
+
+-  Python3.5: Fix, comparisons with ``types.CoroutineType`` and
+   ``types.AsyncGeneratorType`` types didn't work yet. Fixed in 0.6.17.7
+   already.
+
+   .. code:: python
+
+      # These already worked:
+      assert isinstance(compiledCoroutine(), types.CoroutineType) is True
+      assert isinstance(compiledAsyncgen(), types.AsyncGeneratorType) is True
+
+      # These now work too:
+      assert type(compiledCoroutine()) == types.CoroutineType
+      assert type(compiledAsyncgen()) == types.AsyncGeneratorType
+
 -  Standalone: Properly detect usage of hard imports from standard
    library in ``--follow-stdlib`` mode.
 
@@ -69,7 +93,7 @@
    not working.
 
 -  Fix, need to prevent usage of static libpython in module mode or else
-   linker errors can happen.
+   linker errors can happen. Fixed in 0.6.17.6 already.
 
 -  MSYS2: Fix, need to normalize compiler paths before comparing.
 
@@ -83,13 +107,18 @@
    used, this should make it work on all supported platforms (of that
    Python).
 
--  Standalone: Added support for ``win32print``.
+-  Standalone: Added support for ``win32print``. Fixed in 0.6.17.6
+   already.
 
 -  Standalone: Added support for automatic inclusion of ``xmlschema``
    package datafiles.
 
 -  Standalone: Added support for automatic inclusion of ``eel`` package
    datafiles.
+
+-  Standalone: Added support for ``h5py`` package.
+
+-  Standalone: Added support for ``phonenumbers`` package.
 
 **************
  New Features
@@ -194,7 +223,28 @@
    modules of the standard library, these can be removed from the
    compilation and should lower dependencies detected.
 
--  Standalone: Added support for ``ruaemel.yaml``.
+-  Standalone: Added support for ``ruamel.yaml``. Fixed in 0.6.17.7
+   already.
+
+-  Distutils: Fix, when building more than one package, things could go
+   wrong. Fixed in 0.6.17.7 already.
+
+   .. admonition:: Status
+
+      The use of ``python setup.py bdist_nuitka`` over ``python setup.py
+      bdist_wheel`` is not documented sufficiently yet.
+
+-  Fix, for module mode filenames are used, and for packages, you can
+   specify a directory, however, a trailing slash was not working. Fixed
+   in 0.6.16.7 already.
+
+-  Compatibility: Fix, when locating modules, a package directory and an
+   extension module of the same name were not used according to
+   priority. Fixed in 0.6.16.7 already.
+
+-  Standalone: Added workaround ``importlib_resources`` insisting on
+   Python source files to exist to be able to load datafiles. Fixed in
+   0.6.16.7 already.
 
 -  Using static libpython with ``pyenv`` automatically. This should give
    smaller and faster results.
@@ -210,7 +260,7 @@
 -  Standalone: Do not load ``site`` module early anymore. This might
    have caused issues in some configurations, but really only would be
    needed for loading ``inspect`` which doesn`t depend on it in
-   standalone mode.
+   standalone mode. Fixed in 0.6.17.6 already.
 
 ****************
  Organisational
@@ -253,7 +303,8 @@
 -  Also compute named import lookup through variables, expanding their
    use to more cases.
 
--  Added project URLs for PyPI.
+-  Added project URLs for PyPI, so people looking at it from there have
+   some immediate places to checkout.
 
 **********
  Cleanups
