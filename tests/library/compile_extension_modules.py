@@ -138,8 +138,11 @@ def main():
             for plugin_name in plugin_names:
                 output.write("# nuitka-project: --enable-plugin=%s\n" % plugin_name)
 
+            # Make it an error to find unwanted bloat compiled in.
+            output.write("# nuitka-project: --noinclude-default-mode=error\n")
+
             output.write("import " + module_name.asString() + "\n")
-            output.write("print('OK')")
+            output.write("print('OK.')")
 
         command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
