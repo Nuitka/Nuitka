@@ -245,3 +245,10 @@ pandas._testing._io:
     "network": "'(lambda: None)'"
     "round_trip_pathlib": "'(lambda: None)'"
     "round_trip_localpath": "'(lambda: None)'"
+
+distributed.scheduler:
+  # TODO: We should replace this with a nuitkarize in Cython maybe.
+  description: "remove cython support"
+  replacements:
+    "from cython import compiled": "'raise ImportError'"
+    "if compiled:": "'if False:'"
