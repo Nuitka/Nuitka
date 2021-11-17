@@ -40,6 +40,10 @@ unhashable = []
 {% set method_arg_variants = ["1", "5", "[]", "unhashable", "1,7", "unhashable,9"] %}
 {% elif dict_method_name == "pop" %}
 {% set method_arg_variants = ["1", "5", "[]", "unhashable", "1,7", "unhashable,9"] %}
+{% elif dict_method_name == "pop" %}
+{% set method_arg_variants = ["1", "5", "[]", "unhashable", "1,7", "unhashable,9"] %}
+{% elif dict_method_name == "update" %}
+{% set method_arg_variants = ["", "1", "[]", "{a:unhashable}, b=1, c=2"] %}
 {% else %}
 {% set method_arg_variants = [""] %}
 {% endif %}

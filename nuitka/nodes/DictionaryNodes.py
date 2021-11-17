@@ -495,7 +495,7 @@ class ExpressionDictOperationPop2(ExpressionChildrenHavingBase):
         # TODO: Check if dict_arg has key.
 
         # TODO: Until we have proper dictionary tracing, do this.
-        trace_collection.removeKnowledge(self.subnode_dict_arg)
+        trace_collection.removeKnowledge(dict_arg)
 
         # TODO: Until we can know KeyError won't happen, but then we should change into
         # something else.
@@ -563,7 +563,7 @@ class ExpressionDictOperationPop3(ExpressionChildrenHavingBase):
         # TODO: Check if dict_arg has key
 
         # TODO: Until we have proper dictionary tracing, do this.
-        trace_collection.removeKnowledge(self.subnode_dict_arg)
+        trace_collection.removeKnowledge(dict_arg)
 
         # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault3 in
         # that case.
@@ -626,7 +626,7 @@ class ExpressionDictOperationSetdefault2(ExpressionChildrenHavingBase):
         # though.
 
         # TODO: Until we have proper dictionary tracing, do this.
-        trace_collection.removeKnowledge(self.subnode_dict_arg)
+        trace_collection.removeKnowledge(dict_arg)
 
         # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault3 in
         # that case.
@@ -685,7 +685,7 @@ class ExpressionDictOperationSetdefault3(ExpressionChildrenHavingBase):
         # though.
 
         # TODO: Until we have proper dictionary tracing, do this.
-        trace_collection.removeKnowledge(self.subnode_dict_arg)
+        trace_collection.removeKnowledge(dict_arg)
 
         # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault3 in
         # that case.
@@ -1278,6 +1278,100 @@ class ExpressionDictOperationViewitems(
     @staticmethod
     def mayRaiseException(exception_type):
         return False
+
+
+class ExpressionDictOperationUpdate2(ExpressionChildrenHavingBase):
+    """This operation represents d.update(iterable)."""
+
+    kind = "EXPRESSION_DICT_OPERATION_UPDATE2"
+
+    named_children = ("dict_arg", "iterable")
+
+    def __init__(self, dict_arg, iterable, source_ref):
+        assert dict_arg is not None
+        assert iterable is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"dict_arg": dict_arg, "iterable": iterable},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        # TODO: Until we have proper dictionary tracing, do this.
+        trace_collection.removeKnowledge(self.subnode_dict_arg)
+        # TODO: Using it might change it, unfortunately
+        trace_collection.removeKnowledge(self.iterable)
+
+        # TODO: Until we can know KeyError won't happen, but then we should change into
+        # something else.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: Check empty, and remove itself if that's the case.
+        return self, None, None
+
+    # TODO: Might raise non-iterable depending on value shape, or not hashable from content.
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return True
+
+
+class ExpressionDictOperationUpdate3(ExpressionChildrenHavingBase):
+    """This operation represents d.update(iterable)."""
+
+    kind = "EXPRESSION_DICT_OPERATION_UPDATE3"
+
+    named_children = ("dict_arg", "iterable", "pairs")
+
+    def __init__(self, dict_arg, iterable, pairs, source_ref):
+        assert dict_arg is not None
+
+        # Artefact of star argument parsing, should be resolved on the outside though.
+        if type(iterable) is tuple:
+            if not iterable:
+                iterable = None
+            else:
+                (iterable,) = iterable
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={
+                "dict_arg": dict_arg,
+                "iterable": iterable,
+                "pairs": tuple(
+                    ExpressionKeyValuePair(
+                        makeConstantRefNode(key, source_ref),
+                        value,
+                        value.getSourceReference(),
+                    )
+                    for key, value in pairs
+                ),
+            },
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        # TODO: Until we have proper dictionary tracing, do this.
+        trace_collection.removeKnowledge(self.subnode_dict_arg)
+        # TODO: Using it might change it, unfortunately
+        # TODO: When iterable is None, this should be specialized further.
+        if self.subnode_iterable is not None:
+            trace_collection.removeKnowledge(self.subnode_iterable)
+
+        for pair in self.subnode_pairs:
+            trace_collection.removeKnowledge(pair)
+
+        # TODO: Until we can know KeyError won't happen, but then we should change into
+        # something else.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: Check empty, and remove itself if that's the case.
+        return self, None, None
+
+    # TODO: Might raise non-iterable depending on value shape, or not hashable from content.
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return True
 
 
 class StatementDictOperationUpdate(StatementChildrenHavingBase):
