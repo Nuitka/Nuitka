@@ -48,8 +48,17 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         noinclude_setuptools_mode,
         noinclude_pytest_mode,
         noinclude_ipython_mode,
+        noinclude_default_mode,
         custom_choices,
     ):
+        # Default manually to default argument value:
+        if noinclude_setuptools_mode is None:
+            noinclude_setuptools_mode = noinclude_default_mode
+        if noinclude_pytest_mode is None:
+            noinclude_pytest_mode = noinclude_default_mode
+        if noinclude_ipython_mode is None:
+            noinclude_ipython_mode = noinclude_default_mode
+
         self.config = parsePackageYaml(__package__, "anti-bloat.yml")
 
         self.handled_modules = OrderedDict()
@@ -96,9 +105,9 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
             action="store",
             dest="noinclude_setuptools_mode",
             choices=("error", "warning", "nofollow", "allow"),
-            default="warning",
+            default=None,
             help="""\
-What to do if a setuptools import is encountered. This can be big with
+What to do if a setuptools import is encountered. This package can be big with
 dependencies, and should definitely be avoided.""",
         )
 
@@ -107,9 +116,9 @@ dependencies, and should definitely be avoided.""",
             action="store",
             dest="noinclude_pytest_mode",
             choices=("error", "warning", "nofollow", "allow"),
-            default="warning",
+            default=None,
             help="""\
-What to do if a pytest import is encountered. This can be big with
+What to do if a pytest import is encountered. This package can be big with
 dependencies, and should definitely be avoided.""",
         )
 
@@ -118,10 +127,21 @@ dependencies, and should definitely be avoided.""",
             action="store",
             dest="noinclude_ipython_mode",
             choices=("error", "warning", "nofollow", "allow"),
+            default=None,
+            help="""\
+What to do if a IPython import is encountered. This package can be big with
+dependencies, and should definitely be avoided.""",
+        )
+
+        group.add_option(
+            "--noinclude-default-mode",
+            action="store",
+            dest="noinclude_default_mode",
+            choices=("error", "warning", "nofollow", "allow"),
             default="warning",
             help="""\
-What to do if a IPython import is encountered. This can be big with
-dependencies, and should definitely be avoided.""",
+This actually provides the default "warning" value for above options, and
+can be used to turn all of these on.""",
         )
 
         group.add_option(
