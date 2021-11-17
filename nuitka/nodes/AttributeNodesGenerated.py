@@ -1104,6 +1104,9 @@ class ExpressionAttributeLookupFixedUpdate(ExpressionAttributeLookupFixedBase):
 attribute_classes["update"] = ExpressionAttributeLookupFixedUpdate
 
 
+from nuitka.specs.BuiltinDictOperationSpecs import dict_update_spec
+
+
 class ExpressionAttributeLookupDictUpdate(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedUpdate
 ):
@@ -1118,7 +1121,37 @@ class ExpressionAttributeLookupDictUpdate(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as dict operation ExpressionDictOperationUpdate is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionDictOperationUpdate(list_args, kw_args, source_ref):
+            if kw_args is not None:
+                from .DictionaryNodes import ExpressionDictOperationUpdate3
+
+                return ExpressionDictOperationUpdate3(
+                    dict_arg=self.subnode_expression,
+                    iterable=list_args,
+                    pairs=kw_args,
+                    source_ref=source_ref,
+                )
+            else:
+                from .DictionaryNodes import ExpressionDictOperationUpdate2
+
+                return ExpressionDictOperationUpdate2(
+                    dict_arg=self.subnode_expression,
+                    iterable=list_args,
+                    source_ref=source_ref,
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationUpdate,
+            builtin_spec=dict_update_spec,
+        )
+
+        return result, "new_expression", "Call to 'update' of dictionary recognized."
 
 
 attribute_typed_classes["update"] = ExpressionAttributeLookupDictUpdate

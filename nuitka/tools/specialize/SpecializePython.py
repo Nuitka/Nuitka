@@ -46,6 +46,9 @@ attribute_shape_versions = {}
 # Argument count specific operation nodes if used.
 attribute_shape_variations = {}
 
+# Arguments names differences in spec vs. node
+attribute_shape_node_arg_mapping = {}
+
 # Argument names of an operation.
 attribute_shape_args = {}
 
@@ -101,14 +104,28 @@ for method_name in python2_dict_methods:
     )
 
     if spec is not None:
-        if spec.getDefaultCount():
+        if spec.isStarListSingleArg():
+            attribute_shape_args[key] = (
+                spec.getStarListArgumentName(),
+                spec.getStarDictArgumentName(),
+            )
+
+            attribute_shape_variations[key] = tuple(range(required, required + 2))
+
+            attribute_shape_node_arg_mapping[key] = {
+                "list_args": "iterable",
+                "kw_args": "pairs",
+            }
+        elif spec.getDefaultCount():
             required = spec.getArgumentCount() - spec.getDefaultCount()
 
             attribute_shape_variations[key] = tuple(
                 range(required, spec.getArgumentCount() + 1)
             )
 
-        attribute_shape_args[key] = spec.getArgumentNames()
+            attribute_shape_args[key] = spec.getArgumentNames()
+        else:
+            attribute_shape_args[key] = spec.getArgumentNames()
 
 
 # Python3 dict methods must be present already.
@@ -129,17 +146,27 @@ WARNING, this code is GENERATED. Modify the template %s instead!
 
 def formatArgs(args, starting=True):
     result = []
-    for arg in args:
-        result.append(arg)
+    if args is not None:
+        for arg in args:
+            result.append(arg)
 
-        if arg is not args[-1] or starting:
-            result.append(",")
+            if arg is not args[-1] or starting:
+                result.append(",")
 
     return "".join(result)
 
 
-def formatCallArgs(args, starting=True):
-    result = ",".join("%s=%s" % (arg, arg) for arg in args)
+def formatCallArgs(dict_operation_node_arg_mapping, args, starting=True):
+    def mapName(arg):
+        if not dict_operation_node_arg_mapping:
+            return arg
+        else:
+            return dict_operation_node_arg_mapping.get(arg, arg)
+
+    if args is None:
+        result = ""
+    else:
+        result = ",".join("%s=%s" % (mapName(arg), arg) for arg in args)
 
     if not starting and result:
         result = "," + result
@@ -190,6 +217,7 @@ def makeAttributeNodes():
                 attribute_shape_versions=attribute_shape_versions,
                 attribute_shape_operations=attribute_shape_operations,
                 attribute_shape_variations=attribute_shape_variations,
+                attribute_shape_node_arg_mapping=attribute_shape_node_arg_mapping,
                 attribute_shape_args=attribute_shape_args,
                 formatArgs=formatArgs,
                 formatCallArgs=formatCallArgs,
