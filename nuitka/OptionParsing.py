@@ -1154,7 +1154,7 @@ Name of the product to use in macOS bundle information. Defaults to base
 filename of the binary.""",
 )
 
-windows_group.add_option(
+macos_group.add_option(
     "--macos-app-version",
     action="store",
     dest="macos_app_version",
