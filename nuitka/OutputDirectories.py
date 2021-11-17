@@ -135,3 +135,9 @@ def getResultRunFilename(onefile):
 
 def getTreeFilenameWithSuffix(module, suffix):
     return module.getOutputFilename() + suffix
+
+
+def getPgoRunExecutable():
+    return Options.getPgoExecutable() or os.path.join(
+        ".", getResultRunFilename(onefile=False)
+    )

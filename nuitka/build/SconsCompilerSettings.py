@@ -95,7 +95,7 @@ def enableLtoSettings(
     elif lto_mode == "yes":
         lto_mode = True
         reason = "enabled"
-    elif pgo_mode != "no":
+    elif pgo_mode in ("use", "generate"):
         lto_mode = True
         reason = "PGO implies LTO"
     elif env.msvc_mode and not lto_mode and getMsvcVersion(env) >= 14:
@@ -445,7 +445,7 @@ def enablePgoSettings(env, pgo_mode):
         env.progressbar_name = "Backend"
     elif pgo_mode == "python":
         env.progressbar_name = "Python Profile"
-        env.Append(CPPDEFINES=["_NUITKA_PGO_GENERATE"])
+        env.Append(CPPDEFINES=["_NUITKA_PGO_PYTHON"])
     elif pgo_mode == "generate":
         env.progressbar_name = "Profile"
         env.Append(CPPDEFINES=["_NUITKA_PGO_GENERATE"])

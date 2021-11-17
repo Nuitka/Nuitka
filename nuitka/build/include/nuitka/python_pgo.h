@@ -15,34 +15,39 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-#ifndef __NUITKA_PGO_H__
-#define __NUITKA_PGO_H__
+#ifndef __NUITKA_PYTHON_PGO_H__
+#define __NUITKA_PYTHON_PGO_H__
 
 // In Visual Code, evaluate the code for PGO so we see errors of it sooner.
 #ifdef __IDE_ONLY__
-#define _NUITKA_PGO_GENERATE
+#define _NUITKA_PGO_PYTHON 1
 #include "nuitka/prelude.h"
 #endif
 
-#if defined(_NUITKA_PGO_GENERATE)
+#if _NUITKA_PGO_PYTHON
 
 // Initialize PGO data collection.
-void initPgoOutput();
+extern void PGO_Initialize();
+
+// At end of program, write tables.
+extern void PGO_Finalize();
 
 // When a module is entered.
-void onModuleEntered(char const *module_name);
+extern void PGO_onModuleEntered(char const *module_name);
 // When a module is exit.
-void onModuleExit(char const *module_name, bool had_error);
+extern void PGO_onModuleExit(char const *module_name, bool had_error);
 
-void onProbePassed(char const *module_name, char const *probe_id, int probe_arg);
+extern void PGO_onProbePassed(char const *module_name, char const *probe_id, uint32_t probe_arg);
 
 #else
-#define initPgoOutput()
 
-#define onModuleEntered(module_name) ;
-#define onModuleExit(module_name, had_error) ;
+#define PGO_Initialize()
+#define PGO_Finalize()
 
-#define onProbePassed(module_name, probe_id, probe_arg) ;
+#define PGO_onModuleEntered(module_name) ;
+#define PGO_onModuleExit(module_name, had_error) ;
+
+#define PGO_onProbePassed(module_name, probe_id, probe_arg) ;
 
 #endif
 
