@@ -2070,3 +2070,7 @@ void _initSlotIternext() {
 #if _NUITKA_PROFILE
 #include "HelpersProfiling.c"
 #endif
+
+#if _NUITKA_PGO_PYTHON
+#include "HelpersPythonPgo.c"
+#endif

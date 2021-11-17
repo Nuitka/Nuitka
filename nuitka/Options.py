@@ -1013,7 +1013,21 @@ def isOnefileTempDirMode():
 
 def isPgoMode():
     """:returns: bool derived from ``--pgo``"""
-    return options.is_pgo
+    return options.is_c_pgo
+
+
+def isPythonPgoMode():
+    """:returns: bool derived from ``--pgo-python``"""
+    return options.is_python_pgo
+
+
+def getPythonPgoInput():
+    """:returns: str derived from ``--pgo-python-input``"""
+    return options.python_pgo_input
+
+
+def shallCreatePgoInput():
+    return isPythonPgoMode() and getPythonPgoInput() is None
 
 
 def getPgoArgs():

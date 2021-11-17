@@ -777,7 +777,13 @@ int main(int argc, char **argv) {
 #endif
 
 #if _NUITKA_PROFILE
+    // Profiling with "vmprof" if enabled.
     startProfiling();
+#endif
+
+#if _NUITKA_PGO_PYTHON
+    // Profiling with our own Python PGO if enabled.
+    PGO_Initialize();
 #endif
 
     /* Execute the main module unless plugins want to do something else. In case of
@@ -840,6 +846,11 @@ int main(int argc, char **argv) {
 
 #if _NUITKA_PROFILE
     stopProfiling();
+#endif
+
+#if _NUITKA_PGO_PYTHON
+    // Write out profiling with our own Python PGO if enabled.
+    PGO_Finalize();
 #endif
 
 #ifndef __NUITKA_NO_ASSERT__
