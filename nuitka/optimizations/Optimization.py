@@ -343,7 +343,7 @@ def makeOptimizationPass():
     return finished
 
 
-def optimize(output_filename):
+def optimizeModules(output_filename):
     Graphs.startGraph()
 
     finished = makeOptimizationPass()

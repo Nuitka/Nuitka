@@ -794,12 +794,29 @@ pgo_group = OptionGroup(parser, "PGO compilation choices")
 pgo_group.add_option(
     "--pgo",
     action="store_true",
-    dest="is_pgo",
+    dest="is_c_pgo",
     default=False,
     help="""\
-Enables profile guided optimization (PGO), by executing a dedicated build first for a profiling
-run, and then using the result to feedback into the C compilation. Note: This is highly
-experimental and not working with many modes of Nuitka yet. Defaults to off.""",
+Enables C level profile guided optimization (PGO), by executing a dedicated build first
+for a profiling run, and then using the result to feedback into the C compilation.
+Note: This is experimental and not working with standalone modes of Nuitka yet.
+Defaults to off.""",
+)
+
+pgo_group.add_option(
+    "--pgo-python",
+    action="store_true",
+    dest="is_python_pgo",
+    default=False,
+    help=SUPPRESS_HELP,
+)
+
+pgo_group.add_option(
+    "--pgo-python-input",
+    action="store",
+    dest="python_pgo_input",
+    default=None,
+    help=SUPPRESS_HELP,
 )
 
 pgo_group.add_option(

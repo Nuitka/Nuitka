@@ -38,7 +38,7 @@ from .FileOperations import getExternalUsePath
 from .Utils import getArchitecture, getOS, isWin32Windows
 
 
-def callExec(args):
+def callExecProcess(args):
     """Do exec in a portable way preserving exit code.
 
     On Windows, unfortunately there is no real exec, so we have to spawn
@@ -222,12 +222,8 @@ def check_call(*popenargs, **kwargs):
         )
 
 
-def call(*popenargs, **kwargs):
-    """Call a process and return result code.
-
-    Note: We use same name as in Python stdlib, violating our rules to
-    make it more recognizable what this does.
-    """
+def callProcess(*popenargs, **kwargs):
+    """Call a process and return result code."""
     subprocess.call(*popenargs, **kwargs)
 
 

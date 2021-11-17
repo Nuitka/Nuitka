@@ -285,6 +285,10 @@ static PyMethodDef _method_def_create_compiled_function = {
 
 // Internal entry point for module code.
 PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry) {
+    // Report entry to PGO.
+    PGO_onModuleEntered("%(module_identifier)s");
+
+    // Store the module for future use.
     module_%(module_identifier)s = module;
 
 #ifdef _NUITKA_MODULE
@@ -463,6 +467,9 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
     // Module code.
 %(module_code)s
 
+    // Report to PGO about leaving the module without error.
+    PGO_onModuleExit("%(module_identifier)s", false);
+
     return module_%(module_identifier)s;
 %(module_exit)s
 """
@@ -577,6 +584,8 @@ template_module_exception_exit = """\
         }
     }
 #endif
+    PGO_onModuleExit("%(module_identifier)s", false);
+
     RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
     return NULL;
 }"""
