@@ -106,6 +106,10 @@ def getUnpushedPaths():
         if str is not bytes:
             line = line.decode("utf8")
 
+        # Removed files appear too, but are useless to talk about.
+        if not os.path.exists(line):
+            continue
+
         result.add(line)
 
     return tuple(sorted(result))
