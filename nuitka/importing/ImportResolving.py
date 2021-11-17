@@ -133,15 +133,15 @@ def resolveModuleName(module_name):
     # importer effects here.
     if module_name.isBelowNamespace("bottle.ext"):
         # bottle.ext.something -> bottle_something
-        module_name = (
-            ModuleName("bottle_")
-            + module_name.splitPackageName()[1].splitPackageName()[1]
+        module_name = ModuleName(
+            "bottle_"
+            + module_name.splitPackageName()[1].splitPackageName()[1].asString()
         )
     elif module_name.isBelowNamespace("requests.packages"):
         # requests.packages.something -> something
         return module_name.splitPackageName()[1].splitPackageName()[1]
     elif module_name in _six_moves:
         # six moves replicated
-        return _six_moves[module_name]
+        return ModuleName(_six_moves[module_name])
     else:
         return module_name

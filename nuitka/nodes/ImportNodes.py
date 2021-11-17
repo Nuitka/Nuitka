@@ -1000,15 +1000,15 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                         return (
                             result,
                             "new_expression",
-                            "Lowered import of standard library module %r to hard import."
-                            % imported_module_name,
+                            "Lowered import of standard library module '%s' to hard import."
+                            % imported_module_name.asString(),
                         )
                     elif shallWarnUnusualCode():
                         unusual_logger.warning(
-                            "%s Standard library module %r used from outside path %r."
+                            "%s: Standard library module '%s' used from outside path %r."
                             % (
                                 self.source_ref.getAsString(),
-                                imported_module_name,
+                                imported_module_name.asString(),
                                 self.module_filename,
                             )
                         )
@@ -1022,8 +1022,8 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                         return (
                             result,
                             "new_expression",
-                            "Lowered import of built-in module %r to hard import."
-                            % imported_module_name,
+                            "Lowered import of built-in module '%s' to hard import."
+                            % imported_module_name.asString(),
                         )
 
                     self.type_shape = tshape_module_builtin
