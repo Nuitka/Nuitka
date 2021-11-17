@@ -29,11 +29,11 @@ from nuitka.utils.FileOperations import getFileList, hasFilenameExtension
 from nuitka.utils.Utils import getArchitecture, getOS, isMacOS, isWin32Windows
 
 
-class NuitkaPluginGevent(NuitkaPluginBase):
+class NuitkaPluginPywebview(NuitkaPluginBase):
     """This class represents the main logic of the plugin."""
 
-    plugin_name = "gevent"
-    plugin_desc = "Required by the webview (pywebview on PyPI)"
+    plugin_name = "pywebview"
+    plugin_desc = "Required by the webview package (pywebview on PyPI)"
 
     @staticmethod
     def isAlwaysEnabled():

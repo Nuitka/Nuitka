@@ -135,6 +135,21 @@ def getPluginClass(plugin_name):
     return plugin_name2plugin_classes[plugin_name][0]
 
 
+def _addPluginClass(plugin_class, detector):
+    plugin_name = plugin_class.plugin_name
+
+    if plugin_name in plugin_name2plugin_classes:
+        plugins_logger.sysexit(
+            "Error, plugins collide by name %s: %s <-> %s"
+            % (plugin_name, plugin_class, plugin_name2plugin_classes[plugin_name])
+        )
+
+    plugin_name2plugin_classes[plugin_name] = (
+        plugin_class,
+        detector,
+    )
+
+
 def _loadPluginClassesFromPackage(scan_package):
     scan_path = scan_package.__path__
 
@@ -181,6 +196,7 @@ def _loadPluginClassesFromPackage(scan_package):
             if hasattr(plugin_class, "detector_for")
         ]
 
+        # First the ones with detectors.
         for detector in detectors:
             plugin_class = detector.detector_for
 
@@ -204,13 +220,14 @@ def _loadPluginClassesFromPackage(scan_package):
             plugin_classes.remove(detector)
             plugin_classes.remove(plugin_class)
 
-            plugin_name2plugin_classes[plugin_class.plugin_name] = (
-                plugin_class,
-                detector,
+            _addPluginClass(
+                plugin_class=plugin_class,
+                detector=detector,
             )
 
+        # Remaining ones have no detector.
         for plugin_class in plugin_classes:
-            plugin_name2plugin_classes[plugin_class.plugin_name] = plugin_class, None
+            _addPluginClass(plugin_class=plugin_class, detector=None)
 
 
 def loadStandardPluginClasses():
