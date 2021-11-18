@@ -252,3 +252,10 @@ distributed.scheduler:
   replacements:
     "from cython import compiled": "'raise ImportError'"
     "if compiled:": "'if False:'"
+
+pywt._pytesttester:
+  description: "remove pywt testing framework"
+  module_code: |
+    class PytestTester:
+      def __init__(self, name):
+        pass
