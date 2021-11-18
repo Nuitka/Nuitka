@@ -24,7 +24,6 @@ scrapy:
 dask:
   patterns:
     - "dask.yaml"
-  dest_path: ""
 
 cairocffi:
   patterns:
