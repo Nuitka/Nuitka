@@ -380,6 +380,9 @@ def setCommonOptions(options):
 
         options["msvc_version"] = msvc_version
 
+    if Options.shallDisableCCacheUsage():
+        options["disable_ccache"] = asBoolStr(True)
+
     if Options.shallDisableConsoleWindow():
         options["disable_console"] = asBoolStr(True)
 
