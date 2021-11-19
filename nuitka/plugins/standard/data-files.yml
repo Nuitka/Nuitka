@@ -140,3 +140,7 @@ openapi_spec_validator:
 kivy:
   dirs:
     - "data"
+
+kivymd:
+  dirs:
+    - "fonts"
