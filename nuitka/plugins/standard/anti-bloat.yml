@@ -223,7 +223,7 @@ tokenize:
 h5py:
   description: "remove h5py testing framework"
   change_function:
-    "run_tests": "'(lambda args=\\'\\': None)'"
+    "run_tests": "'(lambda args=None: None)'"
 
 pandas:
   description: "remove pandas testing framework"
