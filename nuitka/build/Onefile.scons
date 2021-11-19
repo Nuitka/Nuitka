@@ -660,11 +660,6 @@ if win_target and env.gcc_mode and not env.clang_mode:
 if win_target:
     link_libraries.append("imagehlp")
 
-# Avoid IO for compilation as much as possible, this should make the
-# compilation more memory hungry, but also faster.
-if env.gcc_mode:
-    env.Append(CCFLAGS="-pipe")
-
 # Outside compiler settings are respected.
 if "CPPFLAGS" in os.environ:
     if show_scons_mode:
