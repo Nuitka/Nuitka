@@ -30,6 +30,7 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     putTextFileContents,
 )
+from nuitka.utils.Rest import createPDF
 
 
 def optimize_pngs(pngList):
@@ -129,47 +130,11 @@ def makeManpages():
     makeManpage("python3", "3")
 
 
-def createRstPDF(document, args):
-    check_call(["rst2pdf"] + args + [document])
-
-
 def createReleaseDocumentation():
     checkReleaseDocumentation()
 
     for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):
-        args = []
-
-        if document != "Changelog.rst":
-            args.append("-s")
-            args.append("doc/page-styles.txt")
-
-            args.append('--header="###Title### - ###Section###"')
-            args.append('--footer="###Title### - page ###Page### - ###Section###"')
-
-        # Workaround for rst2pdf not support ..code:: without language.
-        old_contents = getFileContents(document)
-        new_contents = old_contents.replace(".. code::\n", "::\n")
-
-        # Add page counter reset right after TOC for PDF.
-        new_contents = new_contents.replace(
-            ".. contents::",
-            """.. contents::
-
-.. raw:: pdf
-
-   PageBreak oneColumn
-   SetPageCounter 1
-
-""",
-        )
-
-        try:
-            if new_contents != old_contents:
-                putTextFileContents(filename=document, contents=new_contents)
-            createRstPDF(document=document, args=args)
-        finally:
-            if new_contents != old_contents:
-                putTextFileContents(filename=document, contents=old_contents)
+        createPDF(document)
 
     if os.name != "nt":
         makeManpages()
