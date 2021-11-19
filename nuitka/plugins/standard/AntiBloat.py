@@ -192,7 +192,7 @@ which can and should be a top level package and then one choice, "error",
                         exec(context_code, context)
                     except Exception as e:  # pylint: disable=broad-except
                         self.sysexit(
-                            "Error, cannot context code '%s' due to: %s"
+                            "Error, cannot execute context code '%s' due to: %s"
                             % (context_code, e)
                         )
 
@@ -253,7 +253,7 @@ which can and should be a top level package and then one choice, "error",
 
         return source_code
 
-    def onFunctionAssignmentParsed(self, module_name, function_body, assign_node):
+    def onFunctionBodyParsing(self, module_name, function_name, body):
         config = self.config.get(module_name)
 
         if not config:
@@ -267,8 +267,10 @@ which can and should be a top level package and then one choice, "error",
         # We trust the yaml files, pylint: disable=eval-used,exec-used
         context_ready = not bool(context_code)
 
-        for function_name, replace_code in config.get("change_function", {}).items():
-            if assign_node.getVariableName() != function_name:
+        for change_function_name, replace_code in config.get(
+            "change_function", {}
+        ).items():
+            if function_name != change_function_name:
                 continue
 
             if not context_ready:
@@ -285,19 +287,7 @@ which can and should be a top level package and then one choice, "error",
 
             # Single node is required, extrace the generated module body with
             # single expression only statement value.
-            (new_node,) = ast.parse(replacement).body
-            new_node = new_node.value
-
-            # Cyclic dependencies.
-            from nuitka.tree.Building import buildNode
-
-            replace_node = buildNode(
-                provider=function_body.getParentVariableProvider(),
-                node=new_node,
-                source_ref=assign_node.source_ref,
-            )
-
-            assign_node.setChild("source", replace_node)
+            body[:] = ast.parse(replacement).body[0].body
 
             self.info(
                 "Updated '%s' function '%s'." % (module_name.asString(), function_name)
