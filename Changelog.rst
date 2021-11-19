@@ -120,6 +120,16 @@
 
 -  Standalone: Added support for ``phonenumbers`` package.
 
+-  Standalone: Added support for ``feedparser`` package, this currently
+   depends on the ``anti-bloat`` plugin to be enabled, which will become
+   enabled by default in the future.
+
+-  Standalone: Added ``gi`` plugin for said package that copies
+   ``typelib`` files and sets the search path for them in standalone
+   mode.
+
+-  Standalone: Added necessary ``eel`` package datafile.
+
 **************
  New Features
 **************
@@ -158,24 +168,28 @@
 -  Allow enforcing usage of MSVC with ``--msvc=latest``. This allows you
    to prevent accidental usage of MinGW64.
 
+-  Plugins: The Qt binding plugins now resolve ``pyqtgraph`` selection
+   of binding by hard coding ``QT_LIB``. This will allow to resolve its
+   own dynamic imports depending on that variable at compile time. At
+   this time, the compile time analysis is not covering all cases yet,
+   but we hope to get there.
+
+-  macOS: Provide ``minOS`` for standalone builds, derived from the
+   Python used.
+
 **************
  Optimization
 **************
 
--  Added decicated attribute nodes for attribute values that match
-   dictionary operations. These will optimize into dedicate nodes for
+-  Added dedicated attribute nodes for attribute values that match names
+   of dictionary operations. These will optimize into dedicate nodes for
    methods of dictionaries should their expression have an exact
-   dictionary shape. These optimize calls on them statically into
+   dictionary shape. These then optimize calls on them statically into
    dictionary operations where they are present. This is currently done
-   for ``get``, ``items``, ``iteritems``, ``itervalues``, ``iterkeys``,
+   for all methods of both Python2 and Python3, namely ``get``,
+   ``items``, ``iteritems``, ``itervalues``, ``iterkeys``,
    ``viewvalues``, ``viewkeys``, ``pop``, ``setdefault``, ``has_key``,
-   ``clear``, ``copy``.
-
-   .. admonition:: Status
-
-      The list is still being worked on, ``update`` and ``fromkeys``
-      should follow too, covering all methods for both Python2 and
-      Python3.
+   ``clear``, ``copy``, ``ùpdate``.
 
    The new operation nodes also add compile time optimization for
    constant values where possible.
@@ -262,6 +276,20 @@
    needed for loading ``inspect`` which doesn`t depend on it in
    standalone mode. Fixed in 0.6.17.6 already.
 
+-  Added support for ``sys.version_info`` to be used as a compile time
+   constant. This should enable many checks to be done at compile time.
+
+-  Added hard import and static optimization for
+   ``typing.TYPE_CHECKING``.
+
+-  Also compute named import lookup through variables, expanding their
+   use to more cases.
+
+-  Also optimize compile time comparisons through variable names.
+
+-  Faster calls of uncompiled code with Python3.9 or higher avoiding DLL
+   call overhead.
+
 ****************
  Organisational
 ****************
@@ -273,9 +301,15 @@
 -  Reject standalone mode usage with Apple Python, works only with the
    other supported Pythons.
 
--  Move hosting of documentation to Sphinx, add Changelog there too.
-   This gives much more readable results than what we have done so far
-   with Nikola. More things will move there.
+-  UI: Added option ``--low-memory`` to allow the user to specify that
+   the compilation should attempt to use less memory where possible,
+   this increases compile times, but might enable compilation on some
+   weaker machines.
+
+-  Move hosting of documentation to Sphinx, added Changelog and some
+   early parts of API documentation there too. This gives much more
+   readable results than what we have done so far with Nikola. More
+   things will move there.
 
 -  User Manual: Added commands used to generate performance numbers for
    Python.
@@ -297,14 +331,13 @@
 
 -  Always enable the ``gevent`` plugin.
 
--  Added hard import and static optimization for
-   ``typing.TYPE_CHECKING``.
-
--  Also compute named import lookup through variables, expanding their
-   use to more cases.
-
 -  Added project URLs for PyPI, so people looking at it from there have
    some immediate places to checkout.
+
+-  Debian: Use common code for included PDF files, which have page
+   styles and automatic corrections for ``rst2pdf`` applied.
+
+-  Updated to latest ``black``, ``isort``, ``pylint`` versions.
 
 **********
  Cleanups
@@ -362,6 +395,10 @@
 -  Using own helper to update ``sys`` module attributes, to avoid errors
    from old C compilers, and also cleaning up using code to not have to
    cast on string constants.
+
+-  More consistent naming of plugin classes, and relationship of detect
+   classes names to detected plugins. The new consistency is now
+   enforced.
 
 *******
  Tests
