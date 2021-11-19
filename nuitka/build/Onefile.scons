@@ -174,6 +174,9 @@ python_prefix = getArgumentRequired("python_prefix")
 # Forced MSVC version (windows-only)
 msvc_version = getArgumentDefaulted("msvc_version", None)
 
+# Disable ccache usage if requested
+disable_ccache = getArgumentBool("disable_ccache", False)
+
 # Preprocessor defines from plugins
 cpp_defines = getArgumentList("cpp_defines", "")
 link_libraries = getArgumentList("link_libraries", "")
@@ -706,7 +709,7 @@ enableSpawnMonitoring(
 changeKeyboardInteruptToErrorExit()
 
 # Check if ccache is installed, and complain if it is not.
-if env.gcc_mode:
+if env.gcc_mode and not disable_ccache:
     enableCcache(
         env=env,
         source_dir=source_dir,
@@ -715,7 +718,7 @@ if env.gcc_mode:
         assume_yes_for_downloads=assume_yes_for_downloads,
     )
 
-if env.msvc_mode:
+if env.msvc_mode and not disable_ccache:
     enableClcache(
         env=env,
         source_dir=source_dir,

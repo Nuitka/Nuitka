@@ -900,11 +900,15 @@ def isMingw64():
 
 
 def getMsvcVersion():
-    """*str*, value of ``--msvc``, available only on Windows, otherwise None"""
+    """:returns: str derived from ``--msvc`` on Windows, otherwise None"""
     if isWin32Windows():
         return options.msvc_version
     else:
         return None
+
+
+def shallDisableCCacheUsage():
+    """:returns: bool derived from ``disable-ccache``"""
 
 
 def shallDisableConsoleWindow():
