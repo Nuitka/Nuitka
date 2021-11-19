@@ -44,11 +44,19 @@ class NuitkaPluginKivy(NuitkaPluginBase):
     def _getKivyInformation(self):
         setup_codes = r"""
 import kivy.core.image
+import kivy.core.text
+# Prevent Window from being created at compile time.
+kivy.core.core_select_lib=(lambda *args, **kwargs: None)
+import kivy.core.window
 """
         info = self.queryRuntimeInformationMultiple(
             info_name="kivy_info",
             setup_codes=setup_codes,
-            values=(("libs_loaded", "kivy.core.image.libs_loaded"),),
+            values=(
+                ("libs_loaded", "kivy.core.image.libs_loaded"),
+                ("window_impl", "kivy.core.window.window_impl"),
+                ("label_libs", "kivy.core.text.label_libs"),
+            ),
         )
 
         if info is None:
@@ -62,3 +70,13 @@ import kivy.core.image
         if full_name == "kivy.core.image":
             for module_name in self._getKivyInformation().libs_loaded:
                 yield full_name.getChildNamed(module_name)
+        elif full_name == "kivy.core.window":
+            # TODO: It seems only one is actually picked, so this could be made
+            # to also reflect decision making.
+            for _, module_name, _ in self._getKivyInformation().window_impl:
+                yield full_name.getChildNamed(module_name)
+        elif full_name == "kivy.core.text":
+            for _, module_name, _ in self._getKivyInformation().label_libs:
+                yield full_name.getChildNamed(module_name)
+        elif full_name == "kivy.core.window.window_sdl2":
+            yield "kivy.core.window._window_sdl2"
