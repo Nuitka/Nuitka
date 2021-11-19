@@ -575,6 +575,13 @@ Sometimes the C compilers will crash saying they cannot allocate memory
 or that some input was truncated, or similar error messages, clearly
 from it. There are several options you can explore here:
 
+Ask Nuitka to use less memory
+-----------------------------
+
+There is a dedicated option ``--low-memory`` which influces decisions of
+Nuitka, such that it avoids high usage of memory during compilation at
+the cost of increased compile time performance.
+
 Avoid 32 bit C compiler/assembler memory limits
 -----------------------------------------------
 
