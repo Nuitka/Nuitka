@@ -148,7 +148,7 @@ def createReleaseDocumentation():
 
         # Workaround for rst2pdf not support ..code:: without language.
         old_contents = getFileContents(document)
-        new_contents = old_contents.replace(":\n\n.. code::\n", "::\n")
+        new_contents = old_contents.replace(".. code::\n", "::\n")
 
         # Add page counter reset right after TOC for PDF.
         new_contents = new_contents.replace(
