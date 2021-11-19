@@ -668,7 +668,7 @@ except ImportError:
         ).key
 
     @staticmethod
-    def onFunctionAssignmentParsed(module_name, function_body, assign_node):
+    def onFunctionBodyParsing(module_name, function_name, body):
         pass
 
     @classmethod

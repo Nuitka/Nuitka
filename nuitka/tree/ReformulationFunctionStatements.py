@@ -135,6 +135,10 @@ def buildFunctionNode(provider, node, source_ref):
 
     assert getKind(node) == "FunctionDef"
 
+    Plugins.onFunctionBodyParsing(
+        provider=provider, function_name=node.name, body=node.body
+    )
+
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
     function_kind, flags = detectFunctionBodyKind(nodes=function_statement_nodes)
@@ -287,8 +291,6 @@ def buildFunctionNode(provider, node, source_ref):
     if python_version >= 0x340:
         function_body.qualname_setup = result.getVariableName()
 
-    Plugins.onFunctionAssignmentParsed(function_body=function_body, assign_node=result)
-
     return result
 
 
@@ -296,6 +298,10 @@ def buildAsyncFunctionNode(provider, node, source_ref):
     # We are creating a function here that creates coroutine objects, with
     # many details each, pylint: disable=too-many-locals
     assert getKind(node) == "AsyncFunctionDef"
+
+    Plugins.onFunctionBodyParsing(
+        provider=provider, function_name=node.name, body=node.body
+    )
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
@@ -423,8 +429,6 @@ def buildAsyncFunctionNode(provider, node, source_ref):
     # Share the non-local declarations. TODO: This may also apply to generators
     # and async generators.
     creator_function_body.non_local_declarations = function_body.non_local_declarations
-
-    Plugins.onFunctionAssignmentParsed(function_body=function_body, assign_node=result)
 
     return result
 

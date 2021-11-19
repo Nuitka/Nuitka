@@ -854,14 +854,14 @@ class Plugins(object):
         return name
 
     @classmethod
-    def onFunctionAssignmentParsed(cls, function_body, assign_node):
-        module_name = function_body.getParentModule().getFullName()
+    def onFunctionBodyParsing(cls, provider, function_name, body):
+        module_name = provider.getParentModule().getFullName()
 
         for plugin in getActivePlugins():
-            plugin.onFunctionAssignmentParsed(
+            plugin.onFunctionBodyParsing(
                 module_name=module_name,
-                function_body=function_body,
-                assign_node=assign_node,
+                function_name=function_name,
+                body=body,
             )
 
 

@@ -60,7 +60,7 @@ def extractDocFromBody(node):
     body = node.body
     doc = None
 
-    # Work around ast.get_docstring breakage.
+    # Work around "ast.get_docstring" breakage.
     if body and getKind(body[0]) == "Expr":
         if getKind(body[0].value) == "Str":  # python3.7 or earlier
             doc = body[0].value.s
@@ -342,7 +342,7 @@ def buildNode(provider, node, source_ref, allow_none=False):
         raise
     except:
         optimization_logger.warning(
-            "Problem at '%s' with %s." % (source_ref, ast.dump(node))
+            "Problem at '%s' with %s." % (source_ref.getAsString(), ast.dump(node))
         )
         raise
 
