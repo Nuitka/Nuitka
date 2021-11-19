@@ -259,3 +259,16 @@ pywt._pytesttester:
     class PytestTester:
       def __init__(self, name):
         pass
+
+feedparser.html:
+  context:
+    - "import inspect"
+    - "import textwrap"
+    - "import sgmllib"
+  change_function:
+    "goahead": "textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.goahead))"
+    "__parse_starttag": "textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.parse_starttag))"
+  replacements:
+    "def goahead(self, i):": "'def goahead(self, end):'"
+    "goahead.__code__ = sgmllib.SGMLParser.goahead.__code__": "'pass'"
+    "__parse_starttag.__code__ = sgmllib.SGMLParser.parse_starttag.__code__": "'pass'"
