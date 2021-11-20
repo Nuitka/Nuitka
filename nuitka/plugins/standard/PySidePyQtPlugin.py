@@ -28,7 +28,10 @@ from nuitka.freezer.IncludedDataFiles import (
     makeIncludedDataFile,
     makeIncludedGeneratedDataFile,
 )
-from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
+from nuitka.freezer.IncludedEntryPoints import (
+    makeDllEntryPoint,
+    makeExeEntryPoint,
+)
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin
@@ -112,15 +115,44 @@ of files that you may not want to be included.""",
         """Where does the Qt bindings package expect the QML files."""
         return os.path.join(self.binding_name, "qml")
 
-    @staticmethod
-    def _getResourcesTargetDir():
+    def _getResourcesTargetDir(self):
         """Where does the Qt bindings package expect the resources files."""
-        return "Content/Resources" if isMacOS() else "resources"
+        if isMacOS():
+            return "Content/Resources"
+        elif isWin32Windows():
+            if self.binding_name in ("PySide2", "PyQt5"):
+                return "resources"
+            else:
+                # While PyQt6/PySide6 complains about these, they are not working
+                # return os.path.join(self.binding_name, "resources")
+                return "."
+        else:
+            if self.binding_name in ("PySide2", "PySide6", "PyQt6"):
+                return "."
+            elif self.binding_name == "PyQt5":
+                return "resources"
+            else:
+                assert False
 
-    @staticmethod
-    def _getTranslationsTargetDir():
+    def _getTranslationsTargetDir(self):
         """Where does the Qt bindings package expect the translation files."""
-        return "Content/Resources" if isMacOS() else "translations"
+        if isMacOS():
+            return "Content/Resources"
+        elif isWin32Windows():
+            if self.binding_name in ("PySide2", "PyQt5"):
+                return "translations"
+            elif self.binding_name == "PyQt6":
+                # TODO: PyQt6 is complaining about not being in "translations", but ignores it there.
+                return "."
+            else:
+                return os.path.join(self.binding_name, "translations")
+        else:
+            if self.binding_name in ("PySide2", "PySide6", "PyQt6"):
+                return "."
+            elif self.binding_name == "PyQt5":
+                return "translations"
+            else:
+                assert False
 
     @staticmethod
     def _getWebEngineTargetDir():
@@ -680,7 +712,7 @@ Prefix = .
                 )
             )
 
-            # Yielding a generator might become OK too.
+            # TODO: Yielding a generator should become OK too.
             for r in self._findQtPluginDLLs():
                 yield r
 
@@ -766,7 +798,7 @@ Prefix = .
 
             for filename, filename_relative in listDir(qt_web_engine_dir):
                 if filename_relative.startswith("QtWebEngineProcess"):
-                    yield makeDllEntryPoint(
+                    yield makeExeEntryPoint(
                         source_path=filename,
                         dest_path=os.path.join(
                             self._getWebEngineTargetDir(), filename_relative
@@ -1083,23 +1115,6 @@ class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
 Only PySide 6.1.2 or higher (or dev branch compiled), otherwise callbacks won't work."""
             )
 
-    # TODO: PySide6 complains about this not being PySide6/resources, but won't work
-    # if it's there and not near main binary.
-    @staticmethod
-    def _getResourcesTargetDir():
-        """Where does the Qt bindings package expect the resources files."""
-        return "Content/Resources" if isMacOS() else "."
-
-    # TODO: This is actually best, PySide2 ought to be made to use it
-    # too.
-    def _getTranslationsTargetDir(self):
-        """Where does the Qt bindings package expect the translation files."""
-        return (
-            "Content/Resources"
-            if isMacOS()
-            else os.path.join(self.binding_name, "translations")
-        )
-
 
 class NuitkaPluginDetectorPySide6Plugins(NuitkaPluginBase):
     detector_for = NuitkaPluginPySide6Plugins
@@ -1129,20 +1144,4 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
         self.warning(
             """\
 Support for PyQt6 is experimental, use PySide6 if you can."""
-        )
-
-    # TODO: PyQt6 has same issues as PySide6 here.
-    @staticmethod
-    def _getResourcesTargetDir():
-        """Where does the Qt bindings package expect the resources files."""
-        return "Content/Resources" if isMacOS() else "."
-
-    # TODO: This is actually best, PySide2 ought to be made to use it
-    # too.
-    def _getTranslationsTargetDir(self):
-        """Where does the Qt bindings package expect the translation files."""
-        return (
-            "Content/Resources"
-            if isMacOS()
-            else os.path.join(self.binding_name, "translations")
         )
