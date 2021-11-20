@@ -423,7 +423,9 @@ def _cleanupClangFormat(filename):
     global warned_clang_format
 
     clang_format_path = (
-        getExecutablePath("clang-format-10")
+        getExecutablePath("clang-format-12")
+        or getExecutablePath("clang-format-11")
+        or getExecutablePath("clang-format-10")
         or getExecutablePath("clang-format-9")
         or getExecutablePath("clang-format-8")
         or getExecutablePath("clang-format-7")
