@@ -605,35 +605,37 @@ _linux_dll_ignore_list = (
     # and between Linux distros. It might or might not be a problem in the
     # future, but it should be enough for now.
     "ld-linux-x86-64.so",
-    "libc.so.",
-    "libpthread.so.",
-    "libm.so.",
-    "libdl.so.",
-    "libBrokenLocale.so.",
+    "libc.so",
+    "libpthread.so",
+    "libm.so",
+    "libdl.so",
+    "libBrokenLocale.so",
     "libSegFault.so",
-    "libanl.so.",
-    "libcidn.so.",
-    "libcrypt.so.",
+    "libanl.so",
+    "libcidn.so",
+    "libcrypt.so",
     "libmemusage.so",
-    "libmvec.so.",
-    "libnsl.so.",
-    "libnss_compat.so.",
-    "libnss_db.so.",
-    "libnss_dns.so.",
-    "libnss_files.so.",
-    "libnss_hesiod.so.",
-    "libnss_nis.so.",
-    "libnss_nisplus.so.",
+    "libmvec.so",
+    "libnsl.so",
+    "libnss3.so",
+    "libnssutils3.so",
+    "libnss_compat.so",
+    "libnss_db.so",
+    "libnss_dns.so",
+    "libnss_files.so",
+    "libnss_hesiod.so",
+    "libnss_nis.so",
+    "libnss_nisplus.so",
     "libpcprofile.so",
-    "libresolv.so.",
-    "librt.so.",
+    "libresolv.so",
+    "librt.so",
     "libthread_db-1.0.so",
-    "libthread_db.so.",
-    "libutil.so.",
+    "libthread_db.so",
+    "libutil.so",
     # The C++ standard library can also be ABI specific, and can cause system
     # libraries like MESA to not load any drivers, so we exclude it too, and
     # it can be assumed to be installed everywhere anyway.
-    "libstdc++.so.",
+    "libstdc++.so",
     # The DRM layer should also be taken from the OS in question and won't
     # allow loading native drivers otherwise.
     "libdrm.so",
@@ -730,7 +732,11 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
         filename = os.path.normpath(filename)
 
         # Do not include kernel DLLs on the ignore list.
-        if os.path.basename(filename).startswith(_linux_dll_ignore_list):
+        filename_base = os.path.basename(filename)
+        if any(
+            filename_base == entry or filename_base.startswith(entry + ".")
+            for entry in _linux_dll_ignore_list
+        ):
             continue
 
         result.add(filename)
