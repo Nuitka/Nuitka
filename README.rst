@@ -286,16 +286,14 @@ Build it using
 
 .. code:: bash
 
-   python -m nuitka --mingw64 hello.py
+   python -m nuitka hello.py
 
 .. note::
 
    This will prompt you to download a C caching tool (to speed up
    repeated compilation of generated C code) and a MinGW64 based C
-   compiler. Say yes to those.
-
-If you like to have full output from the C compilation add
-``--show-scons``, but that should only be useful if you have errors.
+   compiler unless you have a suitable MSVC installed. Say ``yes`` to
+   both those questions.
 
 Run it
 ------
@@ -410,9 +408,11 @@ also feasible, use Nuitka like this:
 
 .. note::
 
-   The recursion into the package directory needs to be provided
-   manually, otherwise, the package is empty. Data files located inside
-   the package will not be embedded yet.
+   The inclusion of the package contents needs to be provided manually,
+   otherwise, the package is empty. You can be more specific if you
+   want, and only include part of it. Data files located inside the
+   package will not be embedded by this process, you need to copy them
+   yourself with this approach.
 
 Use Case 4 - Program Distribution
 =================================
@@ -580,7 +580,7 @@ Ask Nuitka to use less memory
 
 There is a dedicated option ``--low-memory`` which influces decisions of
 Nuitka, such that it avoids high usage of memory during compilation at
-the cost of increased compile time performance.
+the cost of increased compile time.
 
 Avoid 32 bit C compiler/assembler memory limits
 -----------------------------------------------
