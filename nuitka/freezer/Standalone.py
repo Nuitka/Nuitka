@@ -725,6 +725,10 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
         if filename in ("not found", "ldd"):
             continue
 
+        # Normalize, sometimes the DLLs produce "something/../", this has
+        # been seen with Qt at least.
+        filename = os.path.normpath(filename)
+
         # Do not include kernel DLLs on the ignore list.
         if os.path.basename(filename).startswith(_linux_dll_ignore_list):
             continue
