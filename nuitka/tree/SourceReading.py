@@ -163,7 +163,7 @@ def readSourceCodeFromFilename(module_name, source_filename):
     else:
         source_code = _readSourceCodeFromFilename3(source_filename)
 
-    # Allow plug-ins to mess with source code. Test code calls this
+    # Allow plugins to mess with source code. Test code calls this
     # without a module and doesn't want changes from plugins.
     if module_name is not None:
         source_code_modified = Plugins.onModuleSourceCode(module_name, source_code)

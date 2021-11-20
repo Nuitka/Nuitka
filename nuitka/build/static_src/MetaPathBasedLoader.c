@@ -935,7 +935,7 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyObject *module, PyObject *module_nam
 
     if (entry != NULL || frozen_import) {
         // Execute the "preLoad" code produced for the module potentially. This
-        // is from plug-ins typically, that want to modify things for the the
+        // is from plugins typically, that want to modify things for the the
         // module before loading, to e.g. set a plug-in path, or do some monkey
         // patching in order to make things compatible.
         loadTriggeredModule(name, "-preLoad");
@@ -965,7 +965,7 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyObject *module, PyObject *module_nam
 
     if (result != NULL) {
         // Execute the "postLoad" code produced for the module potentially. This
-        // is from plug-ins typically, that want to modify the module immediately
+        // is from plugins typically, that want to modify the module immediately
         // after loading, to e.g. set a plug-in path, or do some monkey patching
         // in order to make things compatible.
         loadTriggeredModule(name, "-postLoad");

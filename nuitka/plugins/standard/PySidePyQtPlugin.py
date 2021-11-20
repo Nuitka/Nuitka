@@ -17,7 +17,7 @@
 #
 """ Standard plug-in to make PyQt and PySide work well in standalone mode.
 
-To run properly, these need the Qt plug-ins copied along, which have their
+To run properly, these need the Qt plugins copied along, which have their
 own dependencies.
 """
 
@@ -554,7 +554,7 @@ os.environ["QML2_IMPORT_PATH"] = os.path.join(
                 code,
                 """\
 Setting Qt library path to distribution folder. We need to avoid loading target
-system Qt plug-ins, which may be from another Qt version.""",
+system Qt plugins, which may be from another Qt version.""",
             )
 
     def isQtWebEngineModule(self, full_name):
@@ -603,7 +603,7 @@ if not path.startswith(__nuitka_binary_dir):
             qml_plugin_dir = self._getQmlDirectory()
             qml_target_dir = self._getQmlTargetDir()
 
-            self.info("Including Qt plug-ins 'qml' below '%s'." % qml_target_dir)
+            self.info("Including Qt plugins 'qml' below '%s'." % qml_target_dir)
 
             for filename in self._getQmlFileList(dlls=False):
                 filename_relative = os.path.relpath(filename, qml_plugin_dir)
@@ -668,7 +668,7 @@ Prefix = .
             target_plugin_dir = os.path.join(full_name.asPath(), "qt-plugins")
 
             self.info(
-                "Including Qt plug-ins '%s' below '%s'."
+                "Including Qt plugins '%s' below '%s'."
                 % (
                     ",".join(
                         sorted(x for x in self.getQtPluginsSelected() if x != "xml")

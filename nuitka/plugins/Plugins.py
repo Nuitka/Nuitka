@@ -19,7 +19,7 @@
 
 Plugins: Welcome to Nuitka! This is your shortest way to become part of it.
 
-This is to provide the base class for all plug-ins. Some of which are part of
+This is to provide the base class for all plugins. Some of which are part of
 proper Nuitka, and some of which are waiting to be created and submitted for
 inclusion by you.
 

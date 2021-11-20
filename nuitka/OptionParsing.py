@@ -1242,7 +1242,7 @@ plugin_group.add_option(
 Plugins can detect if they might be used, and the you can disable the warning
 via "--disable-plugin=plugin-that-warned", or you can use this option to disable
 the mechanism entirely, which also speeds up compilation slightly of course as
-this detection code is run in vain once you are certain of which plug-ins to
+this detection code is run in vain once you are certain of which plugins to
 use. Defaults to off.""",
 )
 
