@@ -648,12 +648,12 @@ def getShallFollowModules():
 
 def getShallFollowExtra():
     """*list*, items of ``--include-plugin-directory=``"""
-    return sum([_splitShellPattern(x) for x in options.recurse_extra], [])
+    return sum([_splitShellPattern(x) for x in options.include_extra], [])
 
 
 def getShallFollowExtraFilePatterns():
     """*list*, items of ``--include-plugin-files=``"""
-    return sum([_splitShellPattern(x) for x in options.recurse_extra_files], [])
+    return sum([_splitShellPattern(x) for x in options.include_extra_files], [])
 
 
 def getMustIncludeModules():
