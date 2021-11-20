@@ -43,7 +43,12 @@ from nuitka.Errors import NuitkaPluginError
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPointOld
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
-from nuitka.utils.FileOperations import makePath, putTextFileContents, relpath
+from nuitka.utils.FileOperations import (
+    addFileExecutablePermission,
+    makePath,
+    putTextFileContents,
+    relpath,
+)
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -410,6 +415,9 @@ class Plugins(object):
                     makePath(os.path.dirname(extra_dll.dest_path))
 
                     shutil.copyfile(extra_dll.source_path, extra_dll.dest_path)
+
+                    if extra_dll.executable:
+                        addFileExecutablePermission(extra_dll.dest_path)
 
                 result.append(extra_dll)
 

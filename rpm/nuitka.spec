@@ -53,6 +53,7 @@ BuildRequires:  python3-setuptools
 BuildRequires:  gcc-c++
 BuildRequires:  strace
 BuildRequires:  chrpath
+BuildRequires:  patchelf
 BuildRequires:  ccache
 BuildRequires:  gdb
 %if 0%{?fedora} < 28 && 0%{?rhel} < 8
@@ -76,6 +77,7 @@ Requires:       python3-MarkupSafe
 Requires:       gcc-c++
 Requires:       strace
 Requires:       chrpath
+Requires:       patchelf
 Requires:       ccache
 BuildArchitectures: noarch
 

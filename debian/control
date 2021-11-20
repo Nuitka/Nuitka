@@ -26,6 +26,7 @@ Build-Depends: debhelper (>= 9),
                ccache,
                strace,
                chrpath,
+               patchelf,
                gdb | lldb
 Vcs-Git: https://github.com/Nuitka/Nuitka.git
 Vcs-browser: https://github.com/Nuitka/Nuitka
@@ -43,13 +44,14 @@ Depends: gcc (>= 5.0) | g++ (>= 4.4) | clang (>= 3.0),
          python3-dev,
          zlib1g-dev,
          ccache,
+         chrpath,
+         patchelf,
          ${misc:Depends},
          ${python:Depends},
          ${python3:Depends}
 Recommends: python3-lxml,
             python3-tqdm,
             strace,
-            chrpath,
             libfuse2
 Description: Python compiler with full language support and CPython compatibility
  This Python compiler achieves full language compatibility and compiles Python

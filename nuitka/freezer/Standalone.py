@@ -74,8 +74,8 @@ from nuitka.utils.SharedLibraries import (
     getPyWin32Dir,
     getSharedLibraryRPATH,
     getWindowsDLLVersion,
-    removeSharedLibraryRPATH,
     removeSxsFromDLL,
+    setSharedLibraryRPATH,
 )
 from nuitka.utils.Signing import removeMacOSCodeSignature
 from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
@@ -1323,7 +1323,7 @@ different from
         if os.path.exists(candidate):
             removeMacOSCodeSignature(candidate)
 
-    # Remove rpath settings.
+    # Remove or update rpath settings.
     if Utils.getOS() in ("Linux", "Darwin"):
         # For Linux, the "rpath" of libraries may be an issue and must be
         # removed.
@@ -1333,10 +1333,15 @@ different from
             start = 1
 
         for standalone_entry_point in standalone_entry_points[start:]:
-            removeSharedLibraryRPATH(standalone_entry_point.dest_path)
+            count = relpath(
+                path=standalone_entry_point.dest_path, start=dist_dir
+            ).count(os.path.sep)
+
+            rpath = os.path.join("$ORIGIN", *([".."] * count))
+            setSharedLibraryRPATH(standalone_entry_point.dest_path, rpath)
 
         for _original_path, dll_filename in dll_map:
-            removeSharedLibraryRPATH(os.path.join(dist_dir, dll_filename))
+            setSharedLibraryRPATH(os.path.join(dist_dir, dll_filename), "$ORIGIN")
 
     if Utils.isWin32Windows():
         if python_version < 0x300:
@@ -1516,5 +1521,3 @@ def copyDataFiles(dist_dir):
                             inclusion_logger,
                             makeIncludedDataFile(pkg_filename, rel_path, file_reason),
                         )
-
-                # assert False, (module.getCompileTimeDirectory(), pkg_files)
