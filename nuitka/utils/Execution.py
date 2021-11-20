@@ -29,7 +29,6 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     WindowsError,
     subprocess,
 )
-from nuitka.Options import assumeYesForDownloads
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
@@ -322,6 +321,8 @@ def wrapCommandForDebuggerForExec(*args):
 
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows():
+        from nuitka.Options import assumeYesForDownloads
+
         mingw64_gcc_path = getCachedDownloadedMinGW64(
             target_arch=getArchitecture(),
             assume_yes_for_downloads=assumeYesForDownloads(),
@@ -466,10 +467,7 @@ def executeToolChecked(logger, command, absence_message, stderr_filter=None):
         stderr = stderr_filter(stderr)
 
     if result != 0:
-        logger.sysexit(
-            "Error, call to %r to change shared library paths failed: %s -> %s."
-            % (tool, command, stderr)
-        )
+        logger.sysexit("Error, call to %r failed: %s -> %s." % (tool, command, stderr))
     elif stderr:
         logger.sysexit(
             "Error, call to %r gave warnings: %s -> %s." % (tool, command, stderr)
