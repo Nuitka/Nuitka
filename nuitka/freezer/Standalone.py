@@ -1279,7 +1279,9 @@ different from
 
         target_path = os.path.join(dist_dir, dll_name)
 
-        shutil.copyfile(dll_filename, target_path)
+        # Sometimes DLL dependencies were copied there already.
+        if not os.path.exists(target_path):
+            shutil.copyfile(dll_filename, target_path)
 
         dll_map.append((dll_filename, dll_name))
 
