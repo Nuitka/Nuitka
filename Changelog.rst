@@ -5774,7 +5774,7 @@ a dedicated structure for that representing an in-lined function.
 -  By setting ``NUITKA_PACKAGE_packagename=/some/path`` the ``__path__``
    of packages can be extended automatically in order to allow and load
    uncompiled sources from another location. This can be e.g. a
-   ``tests`` sub-package or other plug-ins.
+   ``tests`` sub-package or other plugins.
 
 -  By default when creating a module, now also a ``module.pyi`` file is
    created that contains all imported modules. This should be deployed
@@ -7216,7 +7216,7 @@ Python variants like Anaconda under the Windows system.
    ``nuitka.utils.MemoryUsage`` as part of an effort to have more
    topical modules.
 
--  Plug-ins how have a dedicated module through which the core accesses
+-  Plugins how have a dedicated module through which the core accesses
    the API, which was partially cleaned up.
 
 -  No more "early" and "late" import detections for standalone mode. We
@@ -9123,7 +9123,7 @@ attacking long standing issues.
    default ability to copy the source code along in an upcoming release.
 
 -  Added experimental standalone mode support for PyQt5. At least
-   headless mode should be working, plug-ins (needed for anything
+   headless mode should be working, plugins (needed for anything
    graphical) are not yet copied and will need more work.
 
 *********

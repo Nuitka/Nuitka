@@ -18,7 +18,7 @@
 """
 Plugins: Welcome to Nuitka! This is your shortest way to become part of it.
 
-This is to provide the base class for all plug-ins. Some of which are part of
+This is to provide the base class for all plugins. Some of which are part of
 proper Nuitka, and some of which are waiting to be created and submitted for
 inclusion by you.
 
@@ -45,7 +45,7 @@ warned_unused_plugins = set()
 
 
 class NuitkaPluginBase(getMetaClassBase("Plugin")):
-    """Nuitka base class for all plug-ins.
+    """Nuitka base class for all plugins.
 
     Derive your plugin from "NuitkaPluginBase" please.
     For instructions, see https://github.com/Nuitka/Nuitka/blob/orsiris/UserPlugin-Creation.rst
