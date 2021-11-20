@@ -259,19 +259,19 @@ it creates, and make it available for import by the code. Default empty.""",
 include_group.add_option(
     "--include-plugin-directory",
     action="append",
-    dest="recurse_extra",
+    dest="include_extra",
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\
 Include the content of that directory, no matter if it's used by the given main
-program in a visible form. Overrides all other recursion options. Can be given
+program in a visible form. Overrides all other inclusion options. Can be given
 multiple times. Default empty.""",
 )
 
 include_group.add_option(
     "--include-plugin-files",
     action="append",
-    dest="recurse_extra_files",
+    dest="include_extra_files",
     metavar="PATTERN",
     default=[],
     help="""\
@@ -322,7 +322,7 @@ follow_group.add_option(
     default=False,
     help="""\
 When --nofollow-imports is used, do not descend into any imported modules at all,
-overrides all other recursion options. Defaults to off.""",
+overrides all other inclusion options. Defaults to off.""",
 )
 
 follow_group.add_option(
@@ -1281,7 +1281,7 @@ even with pure Python. Default False.""",
 
 
 def _considerPluginOptions(logger):
-    # Recursive dependency on plugins during parsing of command line.
+    # Cyclic dependency on plugins during parsing of command line.
     from nuitka.plugins.Plugins import (
         addPluginCommandLineOptions,
         addUserPluginCommandLineOptions,

@@ -1441,8 +1441,8 @@ Loop SSA
 ========
 
 For loops we have the addition difficulty that we need would need to
-look ahead what types a variable has at loop exit, but that is a
-recursive dependency.
+look ahead what types a variable has at loop exit, but that is a cyclic
+dependency.
 
 Our solution is to consider the variable types at loop entry. When these
 change, we drop all gained information from inside the loop. We may e.g.
