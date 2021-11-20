@@ -130,6 +130,8 @@
 
 -  Standalone: Added necessary ``eel`` package datafile.
 
+-  Standalone: Added support for ``QtWebEngine`` to all Qt bindings.
+
 **************
  New Features
 **************
@@ -176,6 +178,14 @@
 
 -  macOS: Provide ``minOS`` for standalone builds, derived from the
    Python used.
+
+-  UI: Added new option ``--disable-ccache`` to prevent Nuitka from
+   injecting ``ccache`` (Clang, gcc) and ``clcache`` (MSVC) for caching
+   the C results of the compilation.
+
+-  Plugins: Added experimental support for ``PyQt6``. While using
+   ``PySide6`` is very much recommended with Nuitka, this allows its
+   use.
 
 **************
  Optimization
