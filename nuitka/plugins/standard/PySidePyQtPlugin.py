@@ -142,14 +142,17 @@ of files that you may not want to be included.""",
                         "platforms",
                         "platformthemes",
                         "styles",
+                        # Wayland on Linux needs these
+                        "wayland-shell-integration",
+                        "wayland-decoration-client",
+                        "wayland-graphics-integration-client",
+                        "egldeviceintegrations",
+                        # OpenGL rendering, maybe should be something separate.
+                        "xcbglintegrations",
                     )
                     if self.hasPluginFamily(family)
                 )
             )
-
-            # OpenGL rendering, maybe should be something separate.
-            if self.hasPluginFamily("xcbglintegrations"):
-                self.qt_plugins.add("xcbglintegrations")
 
             self.qt_plugins.remove("sensible")
 
