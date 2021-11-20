@@ -39,6 +39,7 @@ from nuitka.PythonVersions import (
     python_version,
     python_version_str,
 )
+from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
     isPathExecutable,
     openTextFile,
@@ -389,6 +390,11 @@ standalone where there is a sane default used inside the dist folder."""
     if isStandaloneMode() and isMacOS() and sys.executable.startswith("/usr/bin/"):
         Tracing.options_logger.sysexit(
             "Error, Apple Python from macOS is not supported, use e.g. CPython instead."
+        )
+
+    if isStandaloneMode() and isLinux() and getExecutablePath("patchelf") is None:
+        Tracing.options_logger.sysexit(
+            "Error, standalone mode on Linux requires 'patchelf' to be installed. Use 'apt/dnf/yum install patchelf' first."
         )
 
     pgo_executable = getPgoExecutable()

@@ -295,6 +295,21 @@ libraries that need to be removed.""",
     )
 
 
+def _setSharedLibraryRPATHElf(filename, rpath):
+    # TODO: Might write something that makes a shell script replacement
+    # in case no rpath is present, or use patchelf, for now our use
+    # case seems to use rpaths for executables.
+
+    # patchelf --set-rpath "$ORIGIN/path/to/library" <executable>
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=["patchelf", "--set-rpath", rpath, filename],
+        absence_message="""\
+Error, needs 'patchelf' on your system, due to 'RPATH' settings that need to be
+set.""",
+    )
+
+
 def _filterInstallNameToolErrorOutput(stderr):
     stderr = b"\n".join(
         line
@@ -318,6 +333,15 @@ def _removeSharedLibraryRPATHDarwin(filename, rpath):
     )
 
 
+def _setSharedLibraryRPATHDarwin(filename, rpath):
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=["install_name_tool", "-add_rpath", rpath, filename],
+        absence_message=_installnametool_usage,
+        stderr_filter=_filterInstallNameToolErrorOutput,
+    )
+
+
 def removeSharedLibraryRPATH(filename):
     rpath = getSharedLibraryRPATH(filename)
 
@@ -332,6 +356,19 @@ def removeSharedLibraryRPATH(filename):
                 return _removeSharedLibraryRPATHDarwin(filename, rpath)
             else:
                 return _removeSharedLibraryRPATHElf(filename)
+
+
+def setSharedLibraryRPATH(filename, rpath):
+    if Options.isShowInclusion():
+        inclusion_logger.info(
+            "Setting 'RPATH' setting '%s' for '%s'." % (rpath, filename)
+        )
+
+    with withMadeWritableFileMode(filename):
+        if isMacOS():
+            return _setSharedLibraryRPATHDarwin(filename, rpath)
+        else:
+            return _setSharedLibraryRPATHElf(filename, rpath)
 
 
 def callInstallNameTool(filename, mapping, rpath):
