@@ -573,10 +573,7 @@ class TraceCollectionBase(object):
         return result
 
     def onVariableContentEscapes(self, variable):
-        if variable.isModuleVariable():
-            self.markActiveVariableAsUnknown(variable)
-        else:
-            self.markActiveVariableAsEscaped(variable)
+        self.markActiveVariableAsEscaped(variable)
 
     def onExpression(self, expression, allow_none=False):
         if expression is None and allow_none:
