@@ -65,7 +65,6 @@ from .SconsCompilerSettings import (
     enableC11Settings,
     enableExperimentalSettings,
     enableLtoSettings,
-    enablePgoSettings,
     enableWindowsStackSize,
     setupCCompiler,
 )
@@ -491,9 +490,6 @@ enableLtoSettings(
     debian_python=debian_python,
     job_count=job_count,
 )
-
-# PGO configuration
-enablePgoSettings(env, pgo_mode)
 
 # Support details for real gcc, not clang.
 if env.gcc_mode and not env.clang_mode:

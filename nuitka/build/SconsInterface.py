@@ -43,6 +43,7 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
 
 from .SconsCaching import checkCachingSuccess
+from .SconsUtils import flushSconsReports
 
 
 def getSconsDataPath():
@@ -293,6 +294,8 @@ def runScons(options, quiet, scons_filename):
         ):
             result = subprocess.call(scons_command, shell=False, cwd=source_dir)
 
+        flushSconsReports()
+
         if result == 0:
             checkCachingSuccess(source_dir or options["source_dir"])
 
@@ -325,6 +328,8 @@ def cleanSconsDirectory(source_dir):
         ".txt",
         ".const",
         ".gcda",
+        ".pgd",
+        ".pgc",
     )
 
     def check(path):

@@ -520,11 +520,6 @@ def commentArgs():
                 "Using PGO with module mode is not currently working. Expect errors."
             )
 
-        if getOS() == "Windows":
-            Tracing.optimization_logger.warning(
-                "Using PGO on Windows is not currently working. Expect errors."
-            )
-
     if (
         options.static_libpython == "auto"
         and not shallMakeModule()
