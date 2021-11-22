@@ -138,6 +138,9 @@ def enableLtoSettings(
 
     env.lto_mode = lto_mode
 
+    # PGO configuration
+    _enablePgoSettings(env, pgo_mode)
+
 
 def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_downloads):
     """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
@@ -440,7 +443,7 @@ def setupCCompiler(env):
         env.gcc_version = None
 
 
-def enablePgoSettings(env, pgo_mode):
+def _enablePgoSettings(env, pgo_mode):
     if pgo_mode == "no":
         env.progressbar_name = "Backend"
     elif pgo_mode == "python":
@@ -453,6 +456,14 @@ def enablePgoSettings(env, pgo_mode):
         if env.gcc_mode:
             env.Append(CCFLAGS=["-fprofile-generate"])
             env.Append(LINKFLAGS=["-fprofile-generate"])
+        elif env.msvc_mode:
+            env.Append(CCFLAGS=["/GL"])
+            env.Append(
+                LINKFLAGS=[
+                    "/LTCG",
+                    "/GENPROFILE:EXACT",
+                ]
+            )
         else:
             scons_logger.sysexit(
                 "Error, PGO not supported for '%s' compiler." % env.the_cc_name
@@ -465,9 +476,18 @@ def enablePgoSettings(env, pgo_mode):
         if env.gcc_mode:
             env.Append(CCFLAGS=["-fprofile-use"])
             env.Append(LINKFLAGS=["-fprofile-use"])
+        elif env.msvc_mode:
+            env.Append(CCFLAGS=["/GL"])
+            env.Append(
+                LINKFLAGS=[
+                    "/USEPROFILE",
+                ]
+            )
         else:
             scons_logger.sysexit(
                 "Error, PGO not supported for '%s' compiler." % env.the_cc_name
             )
     else:
         assert False, env.pgo_mode
+
+    env.pgo_mode = pgo_mode

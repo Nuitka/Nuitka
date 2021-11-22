@@ -219,8 +219,9 @@
    much faster results. It now yield faster binaries that MSVC 2019 with
    pystone.
 
--  Windows: Added support for PGO mode with MinGW64, allowing extra
-   speed boosts from the C compilation.
+-  Windows: Added support for C level PGO (Profile Guided Optimization)
+   with MSVC and MinGW64, allowing extra speed boosts from the C
+   compilation on Windows as well.
 
 -  Standalone: Better handling of ``requests.packages`` and
    ``six.moves``. The old handling could duplicate there code, this now

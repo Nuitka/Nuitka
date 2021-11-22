@@ -28,6 +28,7 @@ import os
 import sys
 
 from nuitka.build.DataComposerInterface import runDataComposer
+from nuitka.build.SconsUtils import getSconsReportValue
 from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.freezer.IncludedEntryPoints import (
     addIncludedEntryPoints,
@@ -83,7 +84,7 @@ from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
-from nuitka.utils.Utils import getArchitecture, getOS
+from nuitka.utils.Utils import getArchitecture, getOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from . import ModuleRegistry, Options, OutputDirectories, TreeXML
@@ -432,21 +433,67 @@ def _runPgoBinary():
     )
 
 
+def _wasMsvcMode():
+    if not isWin32Windows():
+        return False
+
+    return (
+        getSconsReportValue(
+            source_dir=OutputDirectories.getSourceDirectoryPath(), key="msvc_mode"
+        )
+        == "True"
+    )
+
+
+def _deleteMsvcPGOFiles(pgo_mode):
+    assert _wasMsvcMode()
+
+    msvc_pgc_filename = OutputDirectories.getResultBasepath(onefile=False) + "!1.pgc"
+    deleteFile(msvc_pgc_filename, must_exist=False)
+
+    if pgo_mode == "use":
+        msvc_pgd_filename = OutputDirectories.getResultBasepath(onefile=False) + ".pgd"
+        deleteFile(msvc_pgd_filename, must_exist=False)
+
+    return msvc_pgc_filename
+
+
 def _runCPgoBinary():
     # Note: For exit codes, we do not insist on anything yet, maybe we could point it out
     # or ask people to make scripts that buffer these kinds of errors, and take an error
     # instead as a serious failure.
-    _exit_code = _runPgoBinary()
 
-    # TODO: For other compilers, this will have to be different suffix, need to check all of them
-    constants_pgo_filename = os.path.join(
-        OutputDirectories.getSourceDirectoryPath(), "__constants.gcda"
+    general.info(
+        "Running created binary to produce C level PGO information:", style="blue"
     )
 
-    if not os.path.exists(constants_pgo_filename):
+    if _wasMsvcMode():
+        msvc_pgc_filename = _deleteMsvcPGOFiles(pgo_mode="generate")
+
+        with withEnvironmentVarOverriden(
+            "PATH",
+            getSconsReportValue(
+                source_dir=OutputDirectories.getSourceDirectoryPath(), key="PATH"
+            ),
+        ):
+            _exit_code = _runPgoBinary()
+
+        pgo_data_collected = os.path.exists(msvc_pgc_filename)
+    else:
+        _exit_code = _runPgoBinary()
+
+        gcc_constants_pgo_filename = os.path.join(
+            OutputDirectories.getSourceDirectoryPath(), "__constants.gcda"
+        )
+
+        pgo_data_collected = os.path.exists(gcc_constants_pgo_filename)
+
+    if not pgo_data_collected:
         general.sysexit(
             "Error, no PGO information produced, did the created binary run at all?"
         )
+
+    general.info("Successfully collected C level PGO information.", style="blue")
 
 
 def _runPythonPgoBinary():
@@ -622,12 +669,17 @@ def runSconsBackend(quiet):
             _runCPgoBinary()
             options["pgo_mode"] = "use"
 
-    return (
+    result = (
         SconsInterface.runScons(
             options=options, quiet=quiet, scons_filename="Backend.scons"
         ),
         options,
     )
+
+    if options.get("pgo_mode") == "use" and _wasMsvcMode():
+        _deleteMsvcPGOFiles(pgo_mode="use")
+
+    return result
 
 
 def writeSourceCode(filename, source_code):

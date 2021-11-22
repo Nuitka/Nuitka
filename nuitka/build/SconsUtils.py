@@ -277,12 +277,18 @@ def writeSconsReport(env, source_dir):
         print("mingw_mode=%s" % env.mingw_mode, file=report_file)
         print("clangcl_mode=%s" % env.clangcl_mode, file=report_file)
 
+        print("PATH=%s" % os.environ["PATH"], file=report_file)
 
-scons_reports = {}
+
+_scons_reports = {}
+
+
+def flushSconsReports():
+    _scons_reports.clear()
 
 
 def readSconsReport(source_dir):
-    if source_dir not in scons_reports:
+    if source_dir not in _scons_reports:
         scons_report = {}
 
         for line in getFileContentByLine(os.path.join(source_dir, "scons-report.txt")):
@@ -293,9 +299,9 @@ def readSconsReport(source_dir):
 
             scons_report[key] = value
 
-        scons_reports[source_dir] = scons_report
+        _scons_reports[source_dir] = scons_report
 
-    return scons_reports[source_dir]
+    return _scons_reports[source_dir]
 
 
 def getSconsReportValue(source_dir, key):
