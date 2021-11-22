@@ -37,7 +37,10 @@ from nuitka.Constants import (
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import optimization_logger
 
-from .ExpressionBases import CompileTimeConstantExpressionBase
+from .ExpressionBases import (
+    CompileTimeConstantExpressionBase,
+    ExpressionDictShapeExactMixin,
+)
 from .IterationHandles import (
     ConstantBytearrayIterationHandle,
     ConstantBytesIterationHandle,
@@ -59,7 +62,6 @@ from .shapes.BuiltinTypeShapes import (
     tshape_bytearray,
     tshape_bytes,
     tshape_complex,
-    tshape_dict,
     tshape_ellipsis,
     tshape_float,
     tshape_frozenset,
@@ -454,7 +456,9 @@ class ExpressionConstantEllipsisRef(ExpressionConstantUntrackedRefBase):
         return True
 
 
-class ExpressionConstantDictRef(ExpressionConstantRefBase):
+class ExpressionConstantDictRef(
+    ExpressionDictShapeExactMixin, ExpressionConstantRefBase
+):
     kind = "EXPRESSION_CONSTANT_DICT_REF"
 
     def __init__(self, constant, user_provided, source_ref):
@@ -464,14 +468,6 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
 
     @staticmethod
     def isExpressionConstantDictRef():
-        return True
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_dict
-
-    @staticmethod
-    def hasShapeDictionaryExact():
         return True
 
     @staticmethod

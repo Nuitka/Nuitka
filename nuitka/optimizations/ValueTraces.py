@@ -186,6 +186,18 @@ class ValueTraceBase(object):
     def getComparisonValue():
         return None
 
+    @staticmethod
+    def getAttributeNode():
+        return None
+
+    @staticmethod
+    def getAttributeNodeTrusted():
+        return None
+
+    @staticmethod
+    def getAttributeNodeVeryTrusted():
+        return None
+
 
 class ValueTraceUnassignedBase(ValueTraceBase):
     __slots__ = ()
@@ -330,6 +342,20 @@ class ValueTraceUnknown(ValueTraceBase):
     def mustNotHaveValue():
         return False
 
+    def getAttributeNode(self):
+        # TODO: Differentiate unknown with not previous node from ones with for performance and
+        # clarity.
+        if self.previous is not None:
+            return self.previous.getAttributeNodeVeryTrusted()
+
+    def getAttributeNodeTrusted(self):
+        if self.previous is not None:
+            return self.previous.getAttributeNodeVeryTrusted()
+
+    def getAttributeNodeVeryTrusted(self):
+        if self.previous is not None:
+            return self.previous.getAttributeNodeVeryTrusted()
+
 
 class ValueTraceEscaped(ValueTraceUnknown):
     __slots__ = ()
@@ -370,6 +396,15 @@ class ValueTraceEscaped(ValueTraceUnknown):
     @staticmethod
     def isEscapeOrUnknownTrace():
         return True
+
+    def getAttributeNode(self):
+        return self.previous.getAttributeNodeTrusted()
+
+    def getAttributeNodeTrusted(self):
+        return self.previous.getAttributeNodeTrusted()
+
+    def getAttributeNodeVeryTrusted(self):
+        return self.previous.getAttributeNodeVeryTrusted()
 
 
 class ValueTraceAssign(ValueTraceBase):
@@ -425,6 +460,25 @@ class ValueTraceAssign(ValueTraceBase):
 
     def getComparisonValue(self):
         return self.assign_node.subnode_source.getComparisonValue()
+
+    def getAttributeNode(self):
+        return self.assign_node.subnode_source
+
+    def getAttributeNodeTrusted(self):
+        source_node = self.assign_node.subnode_source
+
+        if source_node.hasShapeTrustedAttributes():
+            return source_node
+        else:
+            return None
+
+    def getAttributeNodeVeryTrusted(self):
+        source_node = self.assign_node.subnode_source
+
+        if source_node.isExpressionImportModuleHard():
+            return source_node
+        else:
+            return None
 
 
 class ValueTraceMergeBase(ValueTraceBase):

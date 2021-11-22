@@ -165,7 +165,7 @@ def makeExpressionAbsoluteImportNode(module_name, source_ref):
 class ExpressionImportModuleFixed(ExpressionBase):
     """Hard coded import names, that we know to exist."
 
-    These created as result of builtin imports and importlib.import_module calls
+    These created as result of builtin imports and "importlib.import_module" calls
     that were compile time resolved, and for known module names.
     """
 
@@ -515,6 +515,9 @@ class ExpressionImportModuleHard(ExpressionImportHardBase):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
+
+    def hasShapeTrustedAttributes(self):
+        return True
 
 
 class ExpressionImportModuleNameHard(ExpressionImportHardBase):

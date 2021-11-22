@@ -101,6 +101,10 @@ class ShapeBase(getMetaClassBase("Shape")):
     def hasShapeSlotHash():
         return None
 
+    @staticmethod
+    def hasShapeTrustedAttributes():
+        return None
+
     add_shapes = {}
 
     def getOperationBinaryAddShape(self, right_shape):

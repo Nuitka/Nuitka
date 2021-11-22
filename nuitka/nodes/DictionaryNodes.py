@@ -36,6 +36,7 @@ from .ExpressionBases import (
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
     ExpressionChildTupleHavingBase,
+    ExpressionDictShapeExactMixin,
     ExpressionNoSideEffectsMixin,
 )
 from .NodeBases import (
@@ -175,7 +176,11 @@ def makeExpressionMakeDictOrConstant(pairs, user_provided, source_ref):
     return result
 
 
-class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildTupleHavingBase):
+class ExpressionMakeDict(
+    ExpressionDictShapeExactMixin,
+    SideEffectsFromChildrenMixin,
+    ExpressionChildTupleHavingBase,
+):
     kind = "EXPRESSION_MAKE_DICT"
 
     named_child = "pairs"
@@ -186,14 +191,6 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildTupleHavin
         ExpressionChildTupleHavingBase.__init__(
             self, value=tuple(pairs), source_ref=source_ref
         )
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_dict
-
-    @staticmethod
-    def hasShapeDictionaryExact():
-        return True
 
     def computeExpression(self, trace_collection):
         pairs = self.subnode_pairs
