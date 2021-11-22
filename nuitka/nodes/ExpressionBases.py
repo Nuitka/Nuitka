@@ -834,6 +834,9 @@ class ExpressionBase(NodeBase):
         """
         return None
 
+    def hasShapeTrustedAttributes(self):
+        return self.getTypeShape().hasShapeTrustedAttributes()
+
     def hasShapeDictionaryExact(self):
         """Does a node have exactly a dictionary shape."""
 
@@ -1534,3 +1537,44 @@ class ExpressionBuiltinSingleArgBase(
             return self.computeBuiltinSpec(
                 trace_collection=trace_collection, given_values=(value,)
             )
+
+
+class ExpressionSpecificExactMixinBase(object):
+    """Mixin that provides all shapes exactly false overloads.
+
+    This is to be used as a base class for specific shape mixins,
+    such that they automatically provide false for all other exact
+    shape checks except the one they care about.
+    """
+
+    __slots__ = ()
+
+    @staticmethod
+    def hasShapeDictionaryExact():
+        return False
+
+    @staticmethod
+    def hasShapeStrExact():
+        return False
+
+    @staticmethod
+    def hasShapeUnicodeExact():
+        return False
+
+
+class ExpressionDictShapeExactMixin(ExpressionSpecificExactMixinBase):
+    """Mixin for nodes with exact dictionary shape."""
+
+    __slots__ = ()
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_dict
+
+    @staticmethod
+    def hasShapeDictionaryExact():
+        return True
+
+    @staticmethod
+    def hasShapeTrustedAttributes():
+        return True

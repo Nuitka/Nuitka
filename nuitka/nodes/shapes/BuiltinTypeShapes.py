@@ -365,6 +365,10 @@ class ShapeTypeNoneType(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     def hasShapeSlotHash():
         return True
 
+    @staticmethod
+    def hasShapeTrustedAttributes():
+        return True
+
     add_shapes = add_shapes_none
     sub_shapes = sub_shapes_none
     mult_shapes = mult_shapes_none
@@ -1048,6 +1052,10 @@ class ShapeTypeStr(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     def getShapeIter():
         return tshape_str_iterator
 
+    @staticmethod
+    def hasShapeTrustedAttributes():
+        return True
+
     add_shapes = add_shapes_str
     sub_shapes = sub_shapes_str
     mult_shapes = mult_shapes_str
@@ -1153,6 +1161,10 @@ if python_version < 0x300:
         def getShapeIter():
             return tshape_unicode_iterator
 
+        @staticmethod
+        def hasShapeTrustedAttributes():
+            return True
+
         add_shapes = add_shapes_unicode
         sub_shapes = sub_shapes_unicode
         mult_shapes = mult_shapes_unicode
@@ -1242,6 +1254,10 @@ if python_version < 0x300:
         def hasShapeSlotHash():
             return True
 
+        @staticmethod
+        def hasShapeTrustedAttributes():
+            return True
+
         # TODO: There seem to be missing a few here.
         add_shapes = add_shapes_strorunicode
         sub_shapes = sub_shapes_strorunicode
@@ -1302,6 +1318,10 @@ if python_version >= 0x300:
         @staticmethod
         def getShapeIter():
             return tshape_bytes_iterator
+
+        @staticmethod
+        def hasShapeTrustedAttributes():
+            return True
 
         add_shapes = add_shapes_bytes
         sub_shapes = sub_shapes_bytes
