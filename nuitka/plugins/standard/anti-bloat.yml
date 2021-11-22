@@ -175,6 +175,16 @@ sysconfig:
   change_function:
     "_main": "'(lambda: None)'"
 
+ensurepip:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_main": "'(lambda: None)'"
+
+ensurepip._uninstall:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_main": "'(lambda: None)'"
+
 pyclbr:
   description: "remove module ability to run as a binary"
   change_function:
@@ -204,11 +214,13 @@ gzip:
   description: "remove module ability to run as a binary"
   change_function:
     "main": "'(lambda: None)'"
+    "_test": "'(lambda: None)'"
 
 base64:
   description: "remove module ability to run as a binary"
   change_function:
     "main": "'(lambda: None)'"
+    "test": "'(lambda: None)'"
 
 ast:
   description: "remove module ability to run as a binary"
@@ -219,6 +231,176 @@ tokenize:
   description: "remove module ability to run as a binary"
   change_function:
     "main": "'(lambda: None)'"
+
+keyword:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+tabnanny:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+trace:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+uu:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+xmllib:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+mhlib:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+sgmllib:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+imghdr:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+audiodev:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+BaseHTTPServer:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+sndhdr:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+ftplib:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+mailcap:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+lib2to3.pgen2.literals:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+rexec:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+modulefinder:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+StringIO:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+fpformat:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+telnetlib:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+ctypes.util:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+formatter:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+pickletools:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+random:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+dis:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+threading:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+xml.sax.xmlreader.py:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+doctest:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+difflib:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+Cookie:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+locale:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+binhex:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+copy:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+pickle:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+Bastion:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
 
 h5py:
   description: "remove h5py testing framework"
