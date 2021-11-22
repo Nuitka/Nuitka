@@ -89,7 +89,7 @@ def runProcessMonitored(cmdline, env):
     return thread.getProcessResult()
 
 
-def _filterLinkOutput(module_mode, lto_mode, data, exit_code):
+def _filterMsvcLinkOutput(env, module_mode, data, exit_code):
     # Training newline in some cases, esp. LTO it seems.
     data = data.rstrip()
 
@@ -104,18 +104,22 @@ def _filterLinkOutput(module_mode, lto_mode, data, exit_code):
 
     # The linker will say generating code at the end, due to localization
     # we don't know.
-    if lto_mode and exit_code == 0:
+    if env.lto_mode and exit_code == 0:
         if len(data.split(b"\r\n")) == 2:
             data = b""
+
+    if env.pgo_mode == "use" and exit_code == 0:
+        # Very spammy, partially in native language for PGO link.
+        data = b""
 
     return data
 
 
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
-def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
+def getWindowsSpawnFunction(env, module_mode, source_files):
     def spawnWindowsCommand(
-        sh, escape, cmd, args, env
+        sh, escape, cmd, args, os_env
     ):  # pylint: disable=unused-argument
 
         # The "del" appears to not work reliably, but is used with large amounts of
@@ -140,17 +144,17 @@ def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
 
         # Special hook for clcache inline copy
         if cmd == "<clcache>":
-            data, err, rv = runClCache(args, env)
+            data, err, rv = runClCache(args, os_env)
         else:
-            data, err, rv, exception = runProcessMonitored(cmdline, env)
+            data, err, rv, exception = runProcessMonitored(cmdline, os_env)
 
             if exception:
                 closeSconsProgressBar()
                 raise exception
 
         if cmd == "link":
-            data = _filterLinkOutput(
-                module_mode=module_mode, lto_mode=lto_mode, data=data, exit_code=rv
+            data = _filterMsvcLinkOutput(
+                env=env, module_mode=module_mode, data=data, exit_code=rv
             )
 
         elif cmd in ("cl", "<clcache>"):
@@ -342,7 +346,7 @@ def getWrappedSpawnFunction():
 def enableSpawnMonitoring(env, win_target, module_mode, source_files):
     if win_target:
         env["SPAWN"] = getWindowsSpawnFunction(
-            module_mode=module_mode, lto_mode=env.lto_mode, source_files=source_files
+            env=env, module_mode=module_mode, source_files=source_files
         )
     else:
         env["SPAWN"] = getWrappedSpawnFunction()

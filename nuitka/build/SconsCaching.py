@@ -306,7 +306,7 @@ def _getCcacheStatistics(ccache_logfile):
 
 
 def checkCachingSuccess(source_dir):
-    ccache_logfile = getSconsReportValue(source_dir, "CCACHE_LOGFILE")
+    ccache_logfile = getSconsReportValue(source_dir=source_dir, key="CCACHE_LOGFILE")
 
     if ccache_logfile is not None:
         stats = _getCcacheStatistics(ccache_logfile)
@@ -335,7 +335,9 @@ def checkCachingSuccess(source_dir):
                 )
 
     if os.name == "nt":
-        clcache_stats_filename = getSconsReportValue(source_dir, "CLCACHE_STATS")
+        clcache_stats_filename = getSconsReportValue(
+            source_dir=source_dir, key="CLCACHE_STATS"
+        )
 
         if clcache_stats_filename is not None and os.path.exists(
             clcache_stats_filename
