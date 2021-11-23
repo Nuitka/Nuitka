@@ -136,9 +136,12 @@ addInlineCopy("yaml")
 # Scons really only, with historic naming and positioning. Needs to match the
 # "scons.py" in bin with respect to versions selection.
 addInlineCopy("bin")
-if sys.version_info < (2, 7) or sdist_mode:
+
+if os.name == "nt" or sdist_mode:
+    addInlineCopy("lib/scons-4.3.0")
+if (os.name != "nt" and sys.version_info < (2, 7)) or sdist_mode:
     addInlineCopy("lib/scons-2.3.2")
-if sys.version_info >= (2, 7) or sdist_mode:
+if (os.name != "nt" and sys.version_info >= (2, 7)) or sdist_mode:
     addInlineCopy("lib/scons-3.1.2")
 
 # Have different project names for MSI installers, so 32 and 64 bit versions do

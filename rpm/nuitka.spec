@@ -100,6 +100,9 @@ then
 fi
 python3=`which python3 2>/dev/null || true`
 
+# Only used on Windows:
+rm -rf nuitka/build/inline_copy/lib/scons-4*
+
 if [ "$python2_version" != "2.6" ]
 then
     # Remove files needed only for Python 2.6, they only cause errors during
@@ -108,7 +111,7 @@ then
 else
     # Remove files mot needed for Python 2.6, they only cause errors during
     # compilation with Python 2.6.
-    rm -rf nuitka/build/inline_copy/lib/scons-3*
+    rm -rf nuitka/build/inline_copy/lib/scons-3.1.2
     rm -rf nuitka/build/inline_copy/tqdm
 fi
 
