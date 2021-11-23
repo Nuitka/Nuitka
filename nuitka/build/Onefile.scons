@@ -274,11 +274,6 @@ if "CC" in os.environ:
 elif clangcl_mode:
     # If possible, add Clang directory from MSVC if available.
     addClangClPathFromMSVC(env=env, target_arch=target_arch)
-
-    env["CC"] = "clang-cl"
-    env["LINK"] = "lld-link"
-
-    env["CCVERSION"] = None
 elif clang_mode:
     # If requested by the user, use the clang compiler, overriding what was
     # said in environment.

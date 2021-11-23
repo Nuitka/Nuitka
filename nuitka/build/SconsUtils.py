@@ -323,16 +323,28 @@ def addClangClPathFromMSVC(env, target_arch):
     else:
         clang_dir = os.path.join(clang_dir, "bin")
 
-    if os.path.exists(clang_dir):
-        scons_details_logger.info(
-            "Adding MSVC directory '%s' for Clang to PATH." % clang_dir
+    if not os.path.exists(clang_dir):
+        scons_details_logger.sysexit(
+            "Visual Studio has no Clang component found at '%s'." % clang_dir
         )
 
-        addToPATH(env, clang_dir, prefix=True)
-    else:
-        scons_details_logger.info(
-            "No Clang component for MSVC found at '%s'." % clang_dir
+    scons_details_logger.info(
+        "Adding Visual Studio directory '%s' for Clang to PATH." % clang_dir
+    )
+
+    addToPATH(env, clang_dir, prefix=True)
+
+    clangcl_path = getExecutablePath("clang-cl", env=env)
+
+    if clangcl_path is None:
+        scons_details_logger.sysexit(
+            "Visual Studio has no Clang component found at '%s'." % clang_dir
         )
+
+    env["CC"] = "clang-cl"
+    env["LINK"] = "lld-link"
+
+    env["CCVERSION"] = None
 
 
 def switchFromGccToGpp(env, gcc_version):

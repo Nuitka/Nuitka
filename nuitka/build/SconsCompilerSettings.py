@@ -128,7 +128,9 @@ def enableLtoSettings(
     # Tell compiler to use link time optimization for MSVC
     if env.msvc_mode and lto_mode:
         env.Append(CCFLAGS=["/GL"])
-        env.Append(LINKFLAGS=["/LTCG"])
+
+        if not env.clangcl_mode:
+            env.Append(LINKFLAGS=["/LTCG"])
 
     if orig_lto_mode == "auto":
         scons_details_logger.info(
@@ -388,6 +390,8 @@ def enableExperimentalSettings(env, experimental_flags):
 
 
 def setupCCompiler(env):
+    # Many things to deal with, pylint: disable=too-many-branches
+
     if env.gcc_mode:
         # Support for gcc and clang, restricting visibility as much as possible.
         env.Append(CCFLAGS=["-fvisibility=hidden"])
@@ -442,6 +446,23 @@ def setupCCompiler(env):
     else:
         env.gcc_version = None
 
+    # Check if there is a WindowsSDK installed.
+    if env.msvc_mode or env.clangcl_mode:
+        if "WindowsSDKVersion" not in env:
+            if "WindowsSDKVersion" in os.environ:
+                windows_sdk_version = os.environ["WindowsSDKVersion"].rstrip("\\")
+            else:
+                windows_sdk_version = None
+        else:
+            windows_sdk_version = env["WindowsSDKVersion"]
+
+        scons_details_logger.info("Using Windows SDK %r." % windows_sdk_version)
+
+        if not windows_sdk_version:
+            scons_logger.sysexit(
+                "Error, the Windows SDK must be installed in Visual Studio."
+            )
+
 
 def _enablePgoSettings(env, pgo_mode):
     if pgo_mode == "no":
@@ -458,12 +479,10 @@ def _enablePgoSettings(env, pgo_mode):
             env.Append(LINKFLAGS=["-fprofile-generate"])
         elif env.msvc_mode:
             env.Append(CCFLAGS=["/GL"])
-            env.Append(
-                LINKFLAGS=[
-                    "/LTCG",
-                    "/GENPROFILE:EXACT",
-                ]
-            )
+            env.Append(LINKFLAGS=["/GENPROFILE:EXACT"])
+            if not env.clangcl_mode:
+                env.Append(LINKFLAGS=["/LTCG"])
+
         else:
             scons_logger.sysexit(
                 "Error, PGO not supported for '%s' compiler." % env.the_cc_name
