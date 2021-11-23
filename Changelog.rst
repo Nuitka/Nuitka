@@ -132,6 +132,12 @@
 
 -  Standalone: Added support for ``QtWebEngine`` to all Qt bindings.
 
+-  Python3: Fix, the ``all`` built-in was wrongly assuming that bytes
+   values could not be False, but in fact ``\0`` is actually false.
+
+-  Windows: The LTO was supposed to be automatically on with MSVC 14.2
+   or higher, but that was regressed and has been repaired.
+
 **************
  New Features
 **************
@@ -208,15 +214,15 @@
    missing unlike in generic ``in``/``not in`` nodes.
 
 -  Faster processing of expression only statement nodes. These are
-   nodes, where a value not computed, but not used, it still needs to be
-   accounted for though.
+   nodes, where a value that is computed, but not used, it still needs
+   to be accounted for though, representing the value release.
 
    .. code:: python
 
       something() # ignore return value, means statement only node
 
 -  Windows: Enabled LTO by default with MinGW64, which makes it produce
-   much faster results. It now yield faster binaries that MSVC 2019 with
+   much faster results. It now yield faster binaries than MSVC 2019 with
    pystone.
 
 -  Windows: Added support for C level PGO (Profile Guided Optimization)
@@ -304,6 +310,10 @@
 ****************
  Organisational
 ****************
+
+-  Windows: Added support for Visual Studio 2022 by updating the inline
+   copy of Scons used for Windows to version 4.3.0, on non Windows, the
+   other ones will keep being used.
 
 -  Windows: Requiring latest MinGW64 with version as released by
    winlibs, because this is known to allow LTO, where previous releases
