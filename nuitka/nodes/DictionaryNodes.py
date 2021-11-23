@@ -36,8 +36,12 @@ from .ExpressionBases import (
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
     ExpressionChildTupleHavingBase,
-    ExpressionDictShapeExactMixin,
     ExpressionNoSideEffectsMixin,
+)
+from .ExpressionShapeMixins import (
+    ExpressionBoolShapeExactMixin,
+    ExpressionDictShapeExactMixin,
+    ExpressionListShapeExactMixin,
 )
 from .NodeBases import (
     SideEffectsFromChildrenMixin,
@@ -51,12 +55,7 @@ from .NodeMakingHelpers import (
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import (
-    tshape_bool,
-    tshape_dict,
-    tshape_list,
-    tshape_none,
-)
+from .shapes.BuiltinTypeShapes import tshape_none
 from .shapes.StandardShapes import tshape_iterator
 
 
@@ -262,10 +261,6 @@ Created dictionary found to be constant.""",
             if pair.mayRaiseException(exception_type):
                 return True
 
-        return False
-
-    @staticmethod
-    def mayHaveSideEffectsBool():
         return False
 
     def isKnownToBeIterable(self, count):
@@ -931,7 +926,9 @@ class ExpressionDictOperationGet3(ExpressionChildrenHavingBase):
 
 
 class ExpressionDictOperationCopy(
-    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+    ExpressionDictShapeExactMixin,
+    ExpressionNoSideEffectsMixin,
+    ExpressionChildHavingBase,
 ):
     kind = "EXPRESSION_DICT_OPERATION_COPY"
 
@@ -961,14 +958,6 @@ class ExpressionDictOperationCopy(
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_dict
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
 
 
 class ExpressionDictOperationClear(ExpressionChildHavingBase):
@@ -1000,7 +989,9 @@ class ExpressionDictOperationClear(ExpressionChildHavingBase):
 
 
 class ExpressionDictOperationKeys(
-    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+    ExpressionListShapeExactMixin,
+    ExpressionNoSideEffectsMixin,
+    ExpressionChildHavingBase,
 ):
     kind = "EXPRESSION_DICT_OPERATION_KEYS"
 
@@ -1028,10 +1019,6 @@ class ExpressionDictOperationKeys(
             )
 
         return self, None, None
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_list
 
     @staticmethod
     def mayRaiseException(exception_type):
@@ -1092,7 +1079,9 @@ class ExpressionDictOperationIterkeys(
 
 
 class ExpressionDictOperationValues(
-    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+    ExpressionListShapeExactMixin,
+    ExpressionNoSideEffectsMixin,
+    ExpressionChildHavingBase,
 ):
     kind = "EXPRESSION_DICT_OPERATION_VALUES"
 
@@ -1120,10 +1109,6 @@ class ExpressionDictOperationValues(
             )
 
         return self, None, None
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_list
 
     @staticmethod
     def mayRaiseException(exception_type):
@@ -1184,7 +1169,9 @@ class ExpressionDictOperationItervalues(
 
 
 class ExpressionDictOperationItems(
-    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+    ExpressionListShapeExactMixin,
+    ExpressionNoSideEffectsMixin,
+    ExpressionChildHavingBase,
 ):
     kind = "EXPRESSION_DICT_OPERATION_ITEMS"
 
@@ -1212,10 +1199,6 @@ class ExpressionDictOperationItems(
             )
 
         return self, None, None
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_list
 
     @staticmethod
     def mayRaiseException(exception_type):
@@ -1427,7 +1410,9 @@ def makeUnhashableExceptionReplacementExpression(node, key, side_effects, operat
     )
 
 
-class ExpressionDictOperationInNotInUncertainBase(ExpressionChildrenHavingBase):
+class ExpressionDictOperationInNotInUncertainBase(
+    ExpressionBoolShapeExactMixin, ExpressionChildrenHavingBase
+):
     # Follows the reversed nature of "in", with the dictionary on the right
     # side of things.
     named_children = ("key", "dict_arg")
@@ -1443,10 +1428,6 @@ class ExpressionDictOperationInNotInUncertainBase(ExpressionChildrenHavingBase):
         )
 
         self.known_hashable_key = None
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_bool
 
     def computeExpression(self, trace_collection):
         if self.known_hashable_key is None:
@@ -1473,10 +1454,6 @@ class ExpressionDictOperationInNotInUncertainBase(ExpressionChildrenHavingBase):
             or self.subnode_dict_arg.mayRaiseException(exception_type)
             or self.known_hashable_key is not True
         )
-
-    @staticmethod
-    def mayRaiseExceptionBool(exception_type):
-        return False
 
     def mayHaveSideEffects(self):
         return self.mayRaiseException(BaseException)

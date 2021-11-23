@@ -354,3 +354,13 @@ def isCompileTimeConstantValue(value):
         return True
     else:
         return False
+
+
+# Shared empty values, it would cost time to create them locally.
+the_empty_dict = {}
+the_empty_list = []
+the_empty_set = set()
+the_empty_bytearray = bytearray()
+
+the_empty_tuple = ()
+the_empty_frozenset = frozenset()

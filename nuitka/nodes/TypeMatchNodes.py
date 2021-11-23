@@ -21,12 +21,14 @@ Not usable with older Python as it depends on type flags not present.
 """
 
 from .ExpressionBases import ExpressionChildHavingBase
+from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeBases import SideEffectsFromChildrenMixin
-from .shapes.BuiltinTypeShapes import tshape_bool
 
 
 class ExpressionMatchTypeCheckBase(
-    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
+    ExpressionBoolShapeExactMixin,
+    SideEffectsFromChildrenMixin,
+    ExpressionChildHavingBase,
 ):
     named_child = "value"
 
@@ -36,14 +38,6 @@ class ExpressionMatchTypeCheckBase(
             value=value,
             source_ref=source_ref,
         )
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_bool
-
-    @staticmethod
-    def mayRaiseExceptionBool(exception_type):
-        return False
 
 
 class ExpressionMatchTypeCheckSequence(ExpressionMatchTypeCheckBase):

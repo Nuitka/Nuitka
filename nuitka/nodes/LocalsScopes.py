@@ -147,6 +147,10 @@ class LocalsDictHandleBase(object):
     def getTypeShape():
         return tshape_dict
 
+    @staticmethod
+    def hasShapeDictionaryExact():
+        return True
+
     def getCodeName(self):
         return self.locals_name
 
@@ -370,6 +374,11 @@ class LocalsMappingHandle(LocalsDictHandle):
     def getTypeShape():
         # TODO: Make mapping available for this.
         return tshape_unknown
+
+    @staticmethod
+    def hasShapeDictionaryExact():
+        # TODO: Keep in sync with getTypeShape being calculated eventually.
+        return False
 
     @staticmethod
     def isClassScope():

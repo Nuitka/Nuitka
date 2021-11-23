@@ -18,7 +18,6 @@
 """ Eval/exec/execfile/compile built-in related codes. """
 
 from nuitka import Options
-from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
@@ -412,7 +411,7 @@ def generateLocalsDictSyncCode(statement, emit, context):
         _getStoreLocalsCode(
             locals_name=locals_name,
             variable_traces=statement.getPreviousVariablesTraces(),
-            is_dict=locals_arg.getTypeShape() is tshape_dict,
+            is_dict=locals_arg.hasShapeDictionaryExact(),
             emit=emit,
             context=context,
         )

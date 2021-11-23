@@ -185,10 +185,13 @@ class ExpressionVariableRefBase(ExpressionBase):
         if self.variable_trace is not None:
             attribute_node = self.variable_trace.getAttributeNode()
 
-            if (
-                attribute_node is not None
-                and attribute_node.isExpressionImportModuleHard()
-            ):
+            if attribute_node is not None:
+                # The variable itself is to be considered escaped no matter what, since
+                # we don't know exactly what the attribute is used for later on. We would
+                # have to attach the variable to the result created here in such a way,
+                # that e.g. calling it will make it escaped only.
+                trace_collection.markActiveVariableAsEscaped(self.variable)
+
                 return attribute_node.computeExpressionAttribute(
                     lookup_node=lookup_node,
                     attribute_name=attribute_name,
@@ -205,6 +208,19 @@ class ExpressionVariableRefBase(ExpressionBase):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
+
+    def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
+        return not self.isKnownToHaveAttribute(attribute_name)
+
+    def isKnownToHaveAttribute(self, attribute_name):
+        if self.variable_trace is not None:
+            attribute_node = self.variable_trace.getAttributeNode()
+
+            if attribute_node is not None:
+
+                return attribute_node.isKnownToHaveAttribute(attribute_name)
+
+        return None
 
     def computeExpressionImportName(self, import_node, import_name, trace_collection):
         # TODO: For include modules, something might be possible here.

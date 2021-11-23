@@ -32,26 +32,23 @@ from .ExpressionBases import (
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
 )
+from .ExpressionShapeMixins import ExpressionListShapeExactMixin
 from .IterationHandles import (
     IterationHandleRange1,
     IterationHandleRange2,
     IterationHandleRange3,
 )
 from .NodeMakingHelpers import makeConstantReplacementNode
-from .shapes.BuiltinTypeShapes import tshape_list, tshape_xrange
+from .shapes.BuiltinTypeShapes import tshape_xrange
 
 
-class ExpressionBuiltinRangeMixin(object):
+class ExpressionBuiltinRangeMixin(ExpressionListShapeExactMixin):
     """Mixin class for range nodes with 1/2/3 arguments."""
 
     # Mixins are required to slots
     __slots__ = ()
 
     builtin_spec = BuiltinParameterSpecs.builtin_range_spec
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_list
 
     def getTruthValue(self):
         length = self.getIterationLength()

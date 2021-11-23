@@ -35,7 +35,6 @@ from .ConditionalNodes import ExpressionConditional
 from .ConstantRefNodes import ExpressionConstantDictEmptyRef
 from .ExpressionBases import ExpressionBase, ExpressionChildHavingBase
 from .NodeBases import StatementBase, StatementChildHavingBase
-from .shapes.BuiltinTypeShapes import tshape_dict
 from .VariableRefNodes import ExpressionTempVariableRef
 
 
@@ -187,10 +186,7 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
     may_raise_access = python_version >= 0x300
 
     def mayRaiseException(self, exception_type):
-        if (
-            self.may_raise_access
-            and self.locals_scope.getTypeShape() is not tshape_dict
-        ):
+        if self.may_raise_access and self.locals_scope.hasShapeDictionaryExact():
             return True
 
         return self.subnode_fallback.mayRaiseException(exception_type)

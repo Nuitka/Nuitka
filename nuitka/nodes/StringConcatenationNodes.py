@@ -24,10 +24,12 @@ to this.
 """
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionChildTupleHavingBase
-from .shapes.BuiltinTypeShapes import tshape_str_or_unicode
+from .ExpressionShapeMixins import ExpressionStrOrUnicodeExactMixin
 
 
-class ExpressionStringConcatenation(ExpressionChildTupleHavingBase):
+class ExpressionStringConcatenation(
+    ExpressionStrOrUnicodeExactMixin, ExpressionChildTupleHavingBase
+):
     kind = "EXPRESSION_STRING_CONCATENATION"
 
     named_child = "values"
@@ -39,10 +41,6 @@ class ExpressionStringConcatenation(ExpressionChildTupleHavingBase):
             self, value=tuple(values), source_ref=source_ref
         )
 
-    @staticmethod
-    def getTypeShape():
-        return tshape_str_or_unicode
-
     def computeExpression(self, trace_collection):
         # TODO: Could remove itself if only one argument or merge arguments
         # of mergeable types.
@@ -53,7 +51,7 @@ class ExpressionStringConcatenation(ExpressionChildTupleHavingBase):
         values = self.subnode_values
 
         for count, value in enumerate(values):
-            if value.isCompileTimeConstant() and value.hasShapeUnicodeExact():
+            if value.isCompileTimeConstant() and value.hasShapeStrOrUnicodeExact():
                 if start is None:
                     start = count
             else:
@@ -91,7 +89,7 @@ class ExpressionStringConcatenation(ExpressionChildTupleHavingBase):
                     "Partially combined strings for concatenation",
                 )
 
-        if len(values) == 1 and values[0].hasShapeUnicodeExact():
+        if len(values) == 1 and values[0].hasShapeStrOrUnicodeExact():
             return (
                 values[0],
                 "new_constant",

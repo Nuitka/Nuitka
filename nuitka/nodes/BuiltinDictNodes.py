@@ -24,10 +24,8 @@ from nuitka.specs.BuiltinParameterSpecs import builtin_dict_spec
 from .BuiltinIteratorNodes import ExpressionBuiltinIter1
 from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import ExpressionKeyValuePair, makeExpressionMakeDict
-from .ExpressionBases import (
-    ExpressionChildrenHavingBase,
-    ExpressionDictShapeExactMixin,
-)
+from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionShapeMixins import ExpressionDictShapeExactMixin
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
 
