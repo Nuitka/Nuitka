@@ -98,7 +98,7 @@ def enableLtoSettings(
     elif pgo_mode in ("use", "generate"):
         lto_mode = True
         reason = "PGO implies LTO"
-    elif env.msvc_mode and not lto_mode and getMsvcVersion(env) >= 14:
+    elif env.msvc_mode and getMsvcVersion(env) >= 14:
         lto_mode = True
         reason = "known to be supported"
     elif nuitka_python:
