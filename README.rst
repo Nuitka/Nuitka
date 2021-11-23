@@ -52,7 +52,7 @@ Requirements
       compiler is found, which is the recommended way of installing it,
       as Nuitka will also upgrade it for you.
 
-   -  Visual Studio 2019 or higher on Windows [#]_, older versions will
+   -  Visual Studio 2022 or higher on Windows [#]_, older versions will
       work but only supported for commercial users. Configure to use the
       English language pack for best results (Nuitka filters away
       garbage outputs, but only for English language). It will be used
