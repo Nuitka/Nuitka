@@ -459,6 +459,10 @@ def _shouldNotFormatCode(filename):
     parts = os.path.abspath(filename).split(os.path.sep)
 
     if "inline_copy" in parts:
+        # Our Scons runner should be formatted.
+        if os.path.basename(filename) == "scons.py":
+            return False
+
         return True
     elif (
         "tests" in parts
