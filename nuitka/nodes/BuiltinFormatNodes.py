@@ -30,11 +30,11 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase,
 )
 from .ExpressionShapeMixins import (
-    ExpressionStrExactMixin,
+    ExpressionIntOrLongExactMixin,
     ExpressionStrOrUnicodeExactMixin,
+    ExpressionStrShapeExactMixin,
 )
 from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
-from .shapes.BuiltinTypeShapes import tshape_int_or_long
 
 
 class ExpressionBuiltinFormat(
@@ -87,32 +87,42 @@ Removed useless 'format' on '%s' value."""
         return self, None, None
 
 
-class ExpressionBuiltinAscii(ExpressionStrExactMixin, ExpressionBuiltinSingleArgBase):
+class ExpressionBuiltinAscii(
+    ExpressionStrShapeExactMixin, ExpressionBuiltinSingleArgBase
+):
     kind = "EXPRESSION_BUILTIN_ASCII"
 
     if python_version >= 0x300:
         builtin_spec = BuiltinParameterSpecs.builtin_ascii_spec
 
 
-class ExpressionBuiltinBin(ExpressionStrExactMixin, ExpressionBuiltinSingleArgBase):
+class ExpressionBuiltinBin(
+    ExpressionStrShapeExactMixin, ExpressionBuiltinSingleArgBase
+):
     kind = "EXPRESSION_BUILTIN_BIN"
 
     builtin_spec = BuiltinParameterSpecs.builtin_bin_spec
 
 
-class ExpressionBuiltinOct(ExpressionStrExactMixin, ExpressionBuiltinSingleArgBase):
+class ExpressionBuiltinOct(
+    ExpressionStrShapeExactMixin, ExpressionBuiltinSingleArgBase
+):
     kind = "EXPRESSION_BUILTIN_OCT"
 
     builtin_spec = BuiltinParameterSpecs.builtin_oct_spec
 
 
-class ExpressionBuiltinHex(ExpressionStrExactMixin, ExpressionBuiltinSingleArgBase):
+class ExpressionBuiltinHex(
+    ExpressionStrShapeExactMixin, ExpressionBuiltinSingleArgBase
+):
     kind = "EXPRESSION_BUILTIN_HEX"
 
     builtin_spec = BuiltinParameterSpecs.builtin_hex_spec
 
 
-class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
+class ExpressionBuiltinId(
+    ExpressionIntOrLongExactMixin, ExpressionBuiltinSingleArgBase
+):
     kind = "EXPRESSION_BUILTIN_ID"
 
     builtin_spec = BuiltinParameterSpecs.builtin_id_spec
@@ -128,10 +138,7 @@ class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
     def getIntValue(self):
         return self
 
-    @staticmethod
-    def getTypeShape():
-        return tshape_int_or_long
-
+    # TODO: Make use SideEffectsFromChildrenMixin in form of a SideEffectsFromChildMixin
     def computeExpressionDrop(self, statement, trace_collection):
         result = makeStatementExpressionOnlyReplacementNode(
             expression=self.subnode_value, node=self

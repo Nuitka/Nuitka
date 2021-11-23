@@ -42,6 +42,7 @@ from .ExpressionShapeMixins import (
     ExpressionBoolShapeExactMixin,
     ExpressionDictShapeExactMixin,
     ExpressionListShapeExactMixin,
+    ExpressionNoneShapeExactMixin,
 )
 from .NodeBases import (
     SideEffectsFromChildrenMixin,
@@ -55,7 +56,6 @@ from .NodeMakingHelpers import (
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_none
 from .shapes.StandardShapes import tshape_iterator
 
 
@@ -280,7 +280,7 @@ Created dictionary found to be constant.""",
         return 1
 
     def canPredictIterationValues(self):
-        # Dictionaries are fully predictable, pylint: disable=no-self-use
+        # Dictionaries are assumed to be fully predictable
 
         # TODO: For some things, that may not be true, when key collisions
         # happen for example. We will have to check that then.
@@ -960,7 +960,9 @@ class ExpressionDictOperationCopy(
         return self, None, None
 
 
-class ExpressionDictOperationClear(ExpressionChildHavingBase):
+class ExpressionDictOperationClear(
+    ExpressionNoneShapeExactMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_DICT_OPERATION_CLEAR"
 
     named_child = "dict_arg"
@@ -976,12 +978,6 @@ class ExpressionDictOperationClear(ExpressionChildHavingBase):
         # trace_collection.onDictionaryReplaceValueWithKnownValue(self.subnode_dict_arg, {})
 
         return self, None, None
-
-    @staticmethod
-    def getTypeShape():
-        # TODO: This kind of operation ought to convert to a statement
-        # quickly.
-        return tshape_none
 
     @staticmethod
     def mayRaiseException(exception_type):
@@ -1260,7 +1256,9 @@ class ExpressionDictOperationViewitems(
         return False
 
 
-class ExpressionDictOperationUpdate2(ExpressionChildrenHavingBase):
+class ExpressionDictOperationUpdate2(
+    ExpressionNoneShapeExactMixin, ExpressionChildrenHavingBase
+):
     """This operation represents d.update(iterable)."""
 
     kind = "EXPRESSION_DICT_OPERATION_UPDATE2"
@@ -1296,7 +1294,9 @@ class ExpressionDictOperationUpdate2(ExpressionChildrenHavingBase):
         return True
 
 
-class ExpressionDictOperationUpdate3(ExpressionChildrenHavingBase):
+class ExpressionDictOperationUpdate3(
+    ExpressionNoneShapeExactMixin, ExpressionChildrenHavingBase
+):
     """This operation represents d.update(iterable)."""
 
     kind = "EXPRESSION_DICT_OPERATION_UPDATE3"
