@@ -25,7 +25,7 @@ from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionChildHavingBase
 from .ExpressionShapeMixins import (
     ExpressionBoolShapeExactMixin,
-    ExpressionStrExactMixin,
+    ExpressionStrShapeExactMixin,
 )
 
 
@@ -73,7 +73,7 @@ class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
 
 
 class ExpressionOperationUnaryRepr(
-    ExpressionStrExactMixin, ExpressionOperationUnaryBase
+    ExpressionStrShapeExactMixin, ExpressionOperationUnaryBase
 ):
     """Python unary operator `x` and repr built-in."""
 

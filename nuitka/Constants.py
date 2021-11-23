@@ -364,3 +364,4 @@ the_empty_bytearray = bytearray()
 
 the_empty_tuple = ()
 the_empty_frozenset = frozenset()
+the_empty_slice = slice(None)

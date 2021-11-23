@@ -25,22 +25,18 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase,
     ExpressionSpecBasedComputationMixin,
 )
-from .shapes.BuiltinTypeShapes import tshape_complex
+from .ExpressionShapeMixins import ExpressionComplexShapeExactMixin
 
 
-class ExpressionBuiltinComplex1(ExpressionChildHavingBase):
+class ExpressionBuiltinComplex1(
+    ExpressionComplexShapeExactMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_BUILTIN_COMPLEX1"
 
     named_child = "value"
 
     def __init__(self, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
-
-    @staticmethod
-    def getTypeShape():
-        # Note: The complex built-in will convert overloads from __complex__
-        # slot and create a new one instead.
-        return tshape_complex
 
     def computeExpression(self, trace_collection):
         value = self.subnode_value
@@ -51,7 +47,9 @@ class ExpressionBuiltinComplex1(ExpressionChildHavingBase):
 
 
 class ExpressionBuiltinComplex2(
-    ExpressionSpecBasedComputationMixin, ExpressionChildrenHavingBase
+    ExpressionSpecBasedComputationMixin,
+    ExpressionComplexShapeExactMixin,
+    ExpressionChildrenHavingBase,
 ):
     kind = "EXPRESSION_BUILTIN_COMPLEX2"
 
@@ -70,7 +68,3 @@ class ExpressionBuiltinComplex2(
         return self.computeBuiltinSpec(
             trace_collection=trace_collection, given_values=given_values
         )
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_complex

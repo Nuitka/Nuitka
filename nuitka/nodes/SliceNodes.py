@@ -32,6 +32,7 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase,
     ExpressionSpecBasedComputationNoRaiseMixin,
 )
+from .ExpressionShapeMixins import ExpressionSliceShapeExactMixin
 from .NodeBases import (
     SideEffectsFromChildrenMixin,
     StatementChildrenHavingBase,
@@ -42,7 +43,6 @@ from .NodeMakingHelpers import (
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_slice
 
 
 class StatementAssignmentSlice(StatementChildrenHavingBase):
@@ -259,22 +259,13 @@ def makeExpressionBuiltinSlice(start, stop, step, source_ref):
     )
 
 
-class ExpressionBuiltinSliceMixin(SideEffectsFromChildrenMixin):
+class ExpressionBuiltinSliceMixin(
+    ExpressionSliceShapeExactMixin, SideEffectsFromChildrenMixin
+):
     # Mixins are required to slots
     __slots__ = ()
 
     builtin_spec = BuiltinParameterSpecs.builtin_slice_spec
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_slice
-
-    @staticmethod
-    def isKnownToBeIterable(count):
-        # Virtual method provided by mixin, pylint: disable=unused-argument
-
-        # Definitely not iterable at all
-        return False
 
     # We use SideEffectsFromChildrenMixin for the other things.
     def mayHaveSideEffects(self):
