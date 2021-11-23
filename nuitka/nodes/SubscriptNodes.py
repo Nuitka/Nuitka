@@ -25,6 +25,7 @@ other nodes.
 """
 
 from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeBases import (
     SideEffectsFromChildrenMixin,
     StatementChildrenHavingBase,
@@ -131,7 +132,9 @@ def hasSubscript(value, subscript):
 
 
 class ExpressionSubscriptCheck(
-    SideEffectsFromChildrenMixin, ExpressionChildrenHavingBase
+    ExpressionBoolShapeExactMixin,
+    SideEffectsFromChildrenMixin,
+    ExpressionChildrenHavingBase,
 ):
     kind = "EXPRESSION_SUBSCRIPT_CHECK"
 
@@ -163,7 +166,7 @@ class ExpressionSubscriptCheck(
                 description="Subscript check has been pre-computed.",
             )
 
-            # If source has has side effects, they must be evaluated.
+            # If source has side effects, they must be evaluated.
             result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=source)
 
             return result, tags, change_desc
@@ -174,8 +177,4 @@ class ExpressionSubscriptCheck(
 
     @staticmethod
     def mayRaiseException(exception_type):
-        return False
-
-    @staticmethod
-    def mayRaiseExceptionBool(exception_type):
         return False

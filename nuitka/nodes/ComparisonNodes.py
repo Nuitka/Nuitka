@@ -24,6 +24,7 @@ from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeRaiseExceptionReplacementExpressionFromInstance,
@@ -311,7 +312,9 @@ class ExpressionComparisonNeq(ExpressionComparisonRichBase):
         return left_shape.getComparisonNeqShape(right_shape)
 
 
-class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
+class ExpressionComparisonIsIsNotBase(
+    ExpressionBoolShapeExactMixin, ExpressionComparisonBase
+):
     __slots__ = ("match_value",)
 
     def __init__(self, left, right, source_ref):
@@ -328,17 +331,10 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
     def getDetails():
         return {}
 
-    @staticmethod
-    def getTypeShape():
-        return tshape_bool
-
     def mayRaiseException(self, exception_type):
         return self.subnode_left.mayRaiseException(
             exception_type
         ) or self.subnode_right.mayRaiseException(exception_type)
-
-    def mayRaiseExceptionBool(self, exception_type):
-        return False
 
     def computeExpression(self, trace_collection):
         left, right = self.getOperands()
@@ -440,7 +436,9 @@ class ExpressionComparisonIsNot(ExpressionComparisonIsIsNotBase):
         )
 
 
-class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
+class ExpressionComparisonExceptionMatchBase(
+    ExpressionBoolShapeExactMixin, ExpressionComparisonBase
+):
     def __init__(self, left, right, source_ref):
         ExpressionComparisonBase.__init__(
             self, left=left, right=right, source_ref=source_ref
@@ -449,10 +447,6 @@ class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
     @staticmethod
     def getDetails():
         return {}
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_bool
 
     def computeExpression(self, trace_collection):
         left = self.subnode_left
@@ -502,10 +496,6 @@ class ExpressionComparisonExceptionMatchBase(ExpressionComparisonBase):
 
         return True
 
-    @staticmethod
-    def mayRaiseExceptionBool(exception_type):
-        return False
-
 
 class ExpressionComparisonExceptionMatch(ExpressionComparisonExceptionMatchBase):
     kind = "EXPRESSION_COMPARISON_EXCEPTION_MATCH"
@@ -519,7 +509,9 @@ class ExpressionComparisonExceptionMismatch(ExpressionComparisonExceptionMatchBa
     comparator = "exception_mismatch"
 
 
-class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
+class ExpressionComparisonInNotInBase(
+    ExpressionBoolShapeExactMixin, ExpressionComparisonBase
+):
     def __init__(self, left, right, source_ref):
         ExpressionComparisonBase.__init__(
             self, left=left, right=right, source_ref=source_ref
@@ -530,10 +522,6 @@ class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
     @staticmethod
     def getDetails():
         return {}
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_bool
 
     def mayRaiseException(self, exception_type):
         left = self.subnode_left
@@ -547,10 +535,6 @@ class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
             return True
 
         return right.mayRaiseExceptionIn(exception_type, left)
-
-    @staticmethod
-    def mayRaiseExceptionBool(exception_type):
-        return False
 
     def computeExpression(self, trace_collection):
         return self.subnode_right.computeExpressionComparisonIn(

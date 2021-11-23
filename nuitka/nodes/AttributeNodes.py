@@ -39,7 +39,10 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase,
 )
 from .NodeBases import StatementChildHavingBase, StatementChildrenHavingBase
-from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+from .NodeMakingHelpers import (
+    makeCompileTimeConstantReplacementNode,
+    wrapExpressionWithNodeSideEffects,
+)
 
 
 class StatementAssignmentAttribute(StatementChildrenHavingBase):
@@ -281,6 +284,7 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
 
             attribute_name = attribute.getStringValue()
 
+            # TODO: Something needs to be done if it has no string value.
             if attribute_name is not None:
 
                 # If source or attribute have side effects, they must be
@@ -329,29 +333,24 @@ class ExpressionAttributeCheck(ExpressionChildHavingBase):
         return {"attribute_name": self.attribute_name}
 
     def computeExpression(self, trace_collection):
-        # We do at least for compile time constants optimization here, but more
-        # could be done, were we to know shapes.
         source = self.subnode_expression
 
-        if source.isCompileTimeConstant():
-            (
-                result,
-                tags,
-                change_desc,
-            ) = trace_collection.getCompileTimeComputationResult(
-                node=self,
-                computation=lambda: hasattr(
-                    source.getCompileTimeConstant(), self.attribute_name
-                ),
-                description="Attribute check has been pre-computed.",
+        # For things that know their attributes, we can statically optimize this
+        # into true or false, preserving side effects of course.
+        has_attribute = source.isKnownToHaveAttribute(self.attribute_name)
+        if has_attribute is not None:
+            result = makeCompileTimeConstantReplacementNode(
+                value=has_attribute, node=self, user_provided=False
             )
 
-            # If source has has side effects, they must be evaluated.
+            # If source has side effects, they must be evaluated.
             result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=source)
 
-            return result, tags, change_desc
+            return result, "new_constant", "Attribute check has been pre-computed."
 
-        trace_collection.onExceptionRaiseExit(BaseException)
+        # Attribute check is implemented by getting an attribute.
+        if source.mayRaiseExceptionAttributeLookup(BaseException, self.attribute_name):
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 

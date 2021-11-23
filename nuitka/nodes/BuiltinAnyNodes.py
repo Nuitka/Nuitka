@@ -22,15 +22,17 @@
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionBuiltinSingleArgBase
+from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithNodeSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_bool
 
 
-class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
+class ExpressionBuiltinAny(
+    ExpressionBoolShapeExactMixin, ExpressionBuiltinSingleArgBase
+):
     """Builtin Any Node class.
 
     Args:
@@ -113,11 +115,6 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
-
-    @staticmethod
-    def getTypeShape():
-        """returns type shape of the 'any' node"""
-        return tshape_bool
 
     def mayRaiseException(self, exception_type):
         """returns boolean True if exception is raised else False"""

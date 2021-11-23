@@ -152,7 +152,7 @@ class ExpressionBase(NodeBase):
 
     @staticmethod
     def extractUnhashableNodeType():
-        """Return the value that is not hashable, if isKnowtoBeHashable() returns False."""
+        """Return the value type that is not hashable, if isKnowtoBeHashable() returns False."""
 
         # Not available by default.
         return None
@@ -186,11 +186,11 @@ class ExpressionBase(NodeBase):
         # source.
         # trace_collection.onValueEscapeAttributeLookup(self, attribute_name)
 
+        if self.mayRaiseExceptionAttributeLookup(BaseException, attribute_name):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        if not self.isKnownToHaveAttribute(attribute_name):
-            trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
 
@@ -754,20 +754,6 @@ class ExpressionBase(NodeBase):
         return True
 
     @staticmethod
-    def mayRaiseExceptionAttributeCheck(exception_type, attribute_name):
-        """Unless we are told otherwise, everything may raise for attribute check."""
-        # Virtual method, pylint: disable=unused-argument
-
-        return True
-
-    @staticmethod
-    def mayRaiseExceptionAttributeCheckObject(exception_type, attribute):
-        """Unless we are told otherwise, everything may raise for attribute check."""
-        # Virtual method, pylint: disable=unused-argument
-
-        return True
-
-    @staticmethod
     def mayRaiseExceptionImportName(exception_type, import_name):
         """Unless we are told otherwise, everything may raise for name import."""
         # Virtual method, pylint: disable=unused-argument
@@ -850,6 +836,16 @@ class ExpressionBase(NodeBase):
         """Does an expression have exactly a unicode shape."""
         return self.getTypeShape() is tshape_unicode
 
+    if str is bytes:
+
+        def hasShapeStrOrUnicodeExact(self):
+            return self.getTypeShape() in (tshape_str, tshape_unicode)
+
+    else:
+
+        def hasShapeStrOrUnicodeExact(self):
+            return self.getTypeShape() is tshape_str
+
 
 class ExpressionNoSideEffectsMixin(object):
     __slots__ = ()
@@ -925,6 +921,11 @@ class CompileTimeConstantExpressionBase(ExpressionNoSideEffectsMixin, Expression
         return False
 
     @staticmethod
+    def hasShapeTrustedAttributes():
+        # All compile time constants must be fixed for attributes.
+        return True
+
+    @staticmethod
     def mayHaveSideEffectsBool():
         # Virtual method overload
         return False
@@ -940,11 +941,6 @@ class CompileTimeConstantExpressionBase(ExpressionNoSideEffectsMixin, Expression
     def mayRaiseExceptionAttributeLookupSpecial(self, exception_type, attribute_name):
         # We remember it from our computation.
         return not self.computed_attribute
-
-    @staticmethod
-    def mayRaiseExceptionAttributeCheck(exception_type, attribute_name):
-        # Checking attributes of compile time constants never raises.
-        return False
 
     def computeExpressionOperationNot(self, not_node, trace_collection):
         return trace_collection.getCompileTimeComputationResult(
@@ -1026,6 +1022,9 @@ Compile time constant bytes value pre-computed.""",
             )
 
         return self.computed_attribute
+
+    def getKnownAttributeValue(self, attribute_name):
+        return getattr(self.getCompileTimeConstant(), attribute_name)
 
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         value = self.getCompileTimeConstant()
@@ -1537,44 +1536,3 @@ class ExpressionBuiltinSingleArgBase(
             return self.computeBuiltinSpec(
                 trace_collection=trace_collection, given_values=(value,)
             )
-
-
-class ExpressionSpecificExactMixinBase(object):
-    """Mixin that provides all shapes exactly false overloads.
-
-    This is to be used as a base class for specific shape mixins,
-    such that they automatically provide false for all other exact
-    shape checks except the one they care about.
-    """
-
-    __slots__ = ()
-
-    @staticmethod
-    def hasShapeDictionaryExact():
-        return False
-
-    @staticmethod
-    def hasShapeStrExact():
-        return False
-
-    @staticmethod
-    def hasShapeUnicodeExact():
-        return False
-
-
-class ExpressionDictShapeExactMixin(ExpressionSpecificExactMixinBase):
-    """Mixin for nodes with exact dictionary shape."""
-
-    __slots__ = ()
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_dict
-
-    @staticmethod
-    def hasShapeDictionaryExact():
-        return True
-
-    @staticmethod
-    def hasShapeTrustedAttributes():
-        return True
