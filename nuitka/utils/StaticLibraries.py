@@ -29,6 +29,7 @@ from nuitka.PythonVersions import (
     python_version,
     python_version_str,
 )
+from nuitka.Tracing import general
 
 from .FileOperations import getFileContentByLine, getFileList
 from .Utils import getLinuxDistribution, isDebianBasedLinux, isWin32Windows
@@ -146,6 +147,12 @@ def _getSystemStaticLibPythonPath():
             candidate = None
 
         if candidate is not None and os.path.exists(candidate):
+            # Also check libz, can be missing
+            if not locateStaticLinkLibrary("z"):
+                general.warning(
+                    "Error, missing libz-dev installation needed for static lib-python."
+                )
+
             return candidate
 
         # This is not necessarily only for Python3 on Debian, but maybe others as well,
