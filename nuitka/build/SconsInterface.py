@@ -244,6 +244,11 @@ def _buildSconsCommand(quiet, options, scons_filename):
 
     # Option values to provide to scons. Find these in the caller.
     for key, value in options.items():
+        if value is None:
+            Tracing.scons_logger.sysexit(
+                "Error, failure to provide argument for '%s', please report bug." % key
+            )
+
         scons_command.append(key + "=" + encode(value))
 
     # Python2, make argument encoding recognizable.
