@@ -145,6 +145,7 @@ def checkReleaseDocumentation():
         entry
         for entry in getFileList(".")
         if entry.endswith(".rst") and not entry.startswith("web" + os.path.sep)
+        if "inline_copy" not in entry
     ]
 
     for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):
