@@ -368,9 +368,18 @@ def splitPath(path):
 def getFilenameExtension(path):
     """Get the filename extension.
 
+    Note: The extension is case normalized, i.e. it may actually be ".TXT"
+    rather than ".txt", use "changeFilenameExtension" if you want to replace
+    it with something else.
+
     Note: For checks on extension, use hasFilenameExtension instead.
     """
     return os.path.splitext(os.path.normcase(path))[1]
+
+
+def changeFilenameExtension(path, extension):
+    """Change the filename extension."""
+    return os.path.splitext(path)[0] + extension
 
 
 def hasFilenameExtension(path, extensions):
