@@ -835,6 +835,25 @@ class Plugins(object):
 
         return cls.extra_link_libraries
 
+    extra_link_directories = None
+
+    @classmethod
+    def getExtraLinkDirectories(cls):
+        if cls.extra_link_directories is None:
+            cls.extra_link_directories = OrderedSet()
+
+            for plugin in getActivePlugins():
+                value = plugin.getExtraLinkDirectories()
+
+                if value is not None:
+                    if isinstance(value, basestring):
+                        cls.extra_link_directories.add(value)
+                    else:
+                        for dir_name in value:
+                            cls.extra_link_directories.add(dir_name)
+
+        return cls.extra_link_directories
+
     @classmethod
     def onDataComposerResult(cls, blob_filename):
         for plugin in getActivePlugins():
