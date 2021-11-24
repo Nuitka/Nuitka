@@ -406,6 +406,10 @@ def setCommonOptions(options):
             for key, value in cpp_defines.items()
         )
 
+    link_dirs = Plugins.getExtraLinkDirectories()
+    if link_dirs:
+        options["link_dirs"] = ",".join(link_dirs)
+
     link_libraries = Plugins.getExtraLinkLibraries()
     if link_libraries:
         options["link_libraries"] = ",".join(link_libraries)

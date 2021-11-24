@@ -567,6 +567,21 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use
         return None
 
+    def getExtraLinkDirectories(self):
+        """Decide which link directories should be added.
+
+        Notes:
+            Directories provided multiple times, e.g. by multiple plugins are
+            only added once.
+
+        Returns:
+            None for no extra link directory, otherwise the name as a **str**
+            or an iterable of names of link directories.
+        """
+
+        # Virtual method, pylint: disable=no-self-use
+        return None
+
     def warnUnusedPlugin(self, message):
         """An inactive plugin may issue a warning if it believes this may be wrong.
 

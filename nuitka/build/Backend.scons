@@ -273,6 +273,7 @@ python_sysflag_no_randomization = getArgumentBool(
 
 # Preprocessor defines from plugins
 cpp_defines = getArgumentList("cpp_defines", "")
+link_dirs = getArgumentList("link_dirs", "")
 link_libraries = getArgumentList("link_libraries", "")
 
 # Mode to only output compiler information, for use in "nuitka --version"
@@ -1171,6 +1172,8 @@ if env.gcc_mode:
 
 # Plugin contributed C defines should be used too.
 env.Append(CPPDEFINES=cpp_defines)
+# Plugin contributed link dirs should be used too.
+env.Append(LIBPATH=link_dirs)
 # Plugin contributed link libraries should be used too.
 env.Append(LIBS=link_libraries)
 
