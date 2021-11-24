@@ -382,9 +382,20 @@ standalone where there is a sane default used inside the dist folder."""
                 % pattern
             )
 
-    if shallUseStaticLibPython() and getSystemStaticLibPythonPath() is None:
+    if options.static_libpython == "yes" and getSystemStaticLibPythonPath() is None:
         Tracing.options_logger.sysexit(
             "Error, static libpython is not found or not supported for this Python installation."
+        )
+
+    if (
+        not will_reexec
+        and shallUseStaticLibPython()
+        and getSystemStaticLibPythonPath() is None
+    ):
+        Tracing.options_logger.sysexit(
+            """Error, usable static libpython is not found for this Python installation. You \
+might be missing required '-dev' packages. Disable with --static-libpython=no" if you don't \
+want to install it."""
         )
 
     if isStandaloneMode() and isMacOS() and sys.executable.startswith("/usr/bin/"):
