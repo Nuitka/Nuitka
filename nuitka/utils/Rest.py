@@ -26,16 +26,22 @@ import os
 import tempfile
 
 from .Execution import check_call
-from .FileOperations import getFileContents, putTextFileContents
+from .FileOperations import (
+    changeFilenameExtension,
+    deleteFile,
+    getFileContents,
+    putTextFileContents,
+)
 
 
 def createPDF(document):
-    args = []
+    pdf_filename = changeFilenameExtension(document, ".pdf")
+    args = ["-o", pdf_filename]
 
     with tempfile.NamedTemporaryFile(delete=False) as style_file:
         style_filename = style_file.name
         style_file.write(
-            """
+            b"""
 "pageSetup" : {
    "firstTemplate": "coverPage"
 }
@@ -81,11 +87,16 @@ def createPDF(document):
 
     try:
         if new_contents != old_contents:
+            document += ".tmp"
             putTextFileContents(filename=document, contents=new_contents)
 
         check_call(["rst2pdf"] + args + [document])
     finally:
         if new_contents != old_contents:
-            putTextFileContents(filename=document, contents=old_contents)
+            deleteFile(document, must_exist=False)
 
-    os.unlink(style_filename)
+    deleteFile(style_filename, must_exist=True)
+
+    assert os.path.exists(pdf_filename)
+
+    return pdf_filename
