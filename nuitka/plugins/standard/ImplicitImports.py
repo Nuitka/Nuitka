@@ -1158,7 +1158,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         return result
 
     def getImplicitImports(self, module):
-        # Many variables, branches, due to the many cases, pylint: disable=too-many-branches
         full_name = module.getFullName()
 
         if module.isPythonShlibModule():
@@ -1173,29 +1172,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
                     for part in parts:
                         yield "pkg_resources._vendor." + part.strip("' ")
-
-        elif full_name == "OpenGL":
-            for line in getFileContentByLine(module.getCompileTimeFilename()):
-                if line.startswith("PlatformPlugin("):
-                    os_part, plugin_name_part = line[15:-1].split(",")
-                    os_part = os_part.strip("' ")
-                    plugin_name_part = plugin_name_part.strip(") '")
-                    plugin_name_part = plugin_name_part[: plugin_name_part.rfind(".")]
-                    if os_part == "nt":
-                        if getOS() == "Windows":
-                            yield plugin_name_part
-                    elif os_part.startswith("linux"):
-                        if isLinux():
-                            yield plugin_name_part
-                    elif os_part.startswith("darwin"):
-                        if isMacOS():
-                            yield plugin_name_part
-                    elif os_part.startswith(("posix", "osmesa", "egl")):
-                        if getOS() != "Windows":
-                            yield plugin_name_part
-                    else:
-                        assert False, os_part
-
         else:
             # create a flattened import set for full_name and yield from it
             for item in self.getImportsByFullname(full_name):
