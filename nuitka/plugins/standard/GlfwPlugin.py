@@ -24,7 +24,9 @@ import os
 from nuitka import Options
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Utils import getOS, isLinux, isMacOS
 
 
 class NuitkaPluginGlfw(NuitkaPluginBase):
@@ -54,6 +56,7 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def getImplicitImports(self, module):
+        # Dealing with OpenGL is a bit detailed, pylint: disable=too-many-branches
         if module.getFullName() == "OpenGL":
             opengl_infos = self.queryRuntimeInformationSingle(
                 setup_codes="import OpenGL.plugins",
@@ -63,6 +66,30 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
             # TODO: Filter by name.
             for _name, import_path in opengl_infos:
                 yield ModuleName(import_path).getPackageName()
+
+            for line in getFileContentByLine(module.getCompileTimeFilename()):
+                if line.startswith("PlatformPlugin("):
+                    os_part, plugin_name_part = line[15:-1].split(",")
+                    os_part = os_part.strip("' ")
+                    plugin_name_part = plugin_name_part.strip(") '")
+                    plugin_name_part = plugin_name_part[: plugin_name_part.rfind(".")]
+
+                    if os_part == "nt":
+                        if getOS() == "Windows":
+                            yield plugin_name_part
+                    elif os_part.startswith("linux"):
+                        if isLinux():
+                            yield plugin_name_part
+                    elif os_part.startswith("darwin"):
+                        if isMacOS():
+                            yield plugin_name_part
+                    elif os_part.startswith(("posix", "osmesa", "egl")):
+                        if getOS() != "Windows":
+                            yield plugin_name_part
+                    else:
+                        self.sysexit(
+                            "Undetected OS, please report bug for '%s'." % os_part
+                        )
 
     def _getDLLFilename(self):
         glfw_info = self.queryRuntimeInformationMultiple(
