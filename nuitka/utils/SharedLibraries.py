@@ -348,7 +348,7 @@ def removeSharedLibraryRPATH(filename):
     if rpath is not None:
         if Options.isShowInclusion():
             inclusion_logger.info(
-                "Removing 'RPATH' setting '%s' from '%s'." % (rpath, filename)
+                "Removing 'RPATH' value '%s' from '%s'." % (rpath, filename)
             )
 
         with withMadeWritableFileMode(filename):
@@ -361,7 +361,7 @@ def removeSharedLibraryRPATH(filename):
 def setSharedLibraryRPATH(filename, rpath):
     if Options.isShowInclusion():
         inclusion_logger.info(
-            "Setting 'RPATH' setting '%s' for '%s'." % (rpath, filename)
+            "Setting 'RPATH' value '%s' for '%s'." % (rpath, filename)
         )
 
     with withMadeWritableFileMode(filename):
