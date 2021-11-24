@@ -36,8 +36,13 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
 
     """
 
+    # TODO: Maybe rename to opengl
     plugin_name = "glfw"  # Nuitka knows us by this name
-    plugin_desc = "Required for glfw in standalone mode"
+    plugin_desc = "Required for OpenGL and glfw in standalone mode"
+
+    @staticmethod
+    def isAlwaysEnabled():
+        return True
 
     @classmethod
     def isRelevant(cls):
@@ -92,35 +97,3 @@ os.environ["PYGLFW_LIBRARY"] = os.path.join(__nuitka_binary_dir, "glfw", %r)
                 code,
                 "Setting 'PYGLFW_LIBRARY' environment variable for glfw to find platform DLL.",
             )
-
-
-class NuitkaPluginDetectorGlfw(NuitkaPluginBase):
-    """Only used if plugin is NOT activated.
-
-    Notes:
-        We are given the chance to issue a warning if we think we may be required.
-    """
-
-    detector_for = NuitkaPluginGlfw
-
-    @classmethod
-    def isRelevant(cls):
-        """Check whether plugin might be required.
-
-        Returns:
-            True if this is a standalone compilation.
-        """
-        return Options.isStandaloneMode()
-
-    def onModuleDiscovered(self, module):
-        """This method checks whether numpy is required.
-
-        Notes:
-            For this we check whether its first name part is numpy relevant.
-        Args:
-            module: the module object
-        Returns:
-            None
-        """
-        if module.getFullName() == "glfw":
-            self.warnUnusedPlugin("Missing glfw support.")
