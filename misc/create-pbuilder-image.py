@@ -17,6 +17,8 @@
 #     limitations under the License.
 #
 
+""" Small tool to creaet a pbuilder image for Nuitka private CI mainly. """
+
 import os
 import shutil
 import subprocess
@@ -37,18 +39,11 @@ stage = tempfile.mkdtemp()
 try:
     os.chdir(stage)
 
-    for line in subprocess.check_output(["apt-config", "dump"]).splitlines():
-        if line.startswith("Acquire::http::Proxy "):
-            mirror = line.split(" ", 1)[1][:-1].strip('"')
-            break
-    else:
-        sys.exit("Need acquire proxy, so we have hope it's apt-cacher using.")
-
     if debian == "debian":
-        mirror += "/ftp.us.debian.org/debian"
+        mirror = "https://ftp.us.debian.org/debian"
         components = "main"
     elif debian == "ubuntu":
-        mirror += "/archive.ubuntu.com/ubuntu"
+        mirror = "http://de.archive.ubuntu.com/ubuntu"
         components = "main,universe"
     else:
         assert False, debian
