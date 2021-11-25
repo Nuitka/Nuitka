@@ -67,12 +67,9 @@ from .SconsCompilerSettings import (
     enableLtoSettings,
     enableWindowsStackSize,
     setupCCompiler,
+    switchFromGccToGpp,
 )
-from .SconsHacks import (
-    getEnhancedToolDetect,
-    makeGccUseLinkerFile,
-    myDetectVersion,
-)
+from .SconsHacks import getEnhancedToolDetect, makeGccUseLinkerFile
 from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
 from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
@@ -96,7 +93,6 @@ from .SconsUtils import (
     scanSourceDir,
     setArguments,
     setupScons,
-    switchFromGccToGpp,
     writeSconsReport,
 )
 
@@ -324,9 +320,6 @@ if "CC" in os.environ:
     printCompilerVersionOutput("CC=%r" % os.environ["CC"])
 
 # Patch the compiler detection.
-
-gcc_version = None
-
 Environment.Detect = getEnhancedToolDetect()
 
 
@@ -397,41 +390,10 @@ env.msvc_mode = win_target and not env.gcc_mode
 env.mingw_mode = win_target and env.gcc_mode
 env.clangcl_mode = clangcl_mode
 
-scons_details_logger.info(
-    "Modes for this compiler are: %r"
-    % {
-        "gcc_mode": env.gcc_mode,
-        "clang_mode": env.clang_mode,
-        "clangcl_mode": env.clangcl_mode,
-        "mingw_mode": env.mingw_mode,
-        "msvc_mode": env.msvc_mode,
-    }
+# Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
+switchFromGccToGpp(
+    env=env,
 )
-
-if env.gcc_mode and not env.clang_mode:
-    gcc_version = myDetectVersion(env, env.the_compiler)
-
-    if gcc_version is None:
-        scons_logger.sysexit(
-            """\
-Error, failed to detect gcc version of backend compiler %r.
-"""
-            % env.the_compiler
-        )
-
-    if "++" in env.the_cc_name:
-        scons_logger.sysexit(
-            """\
-Error, compiler %s is apparently a C++ compiler, specify a C compiler instead.
-"""
-            % env.the_cc_name
-        )
-
-    # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
-    switchFromGccToGpp(
-        env=env,
-        gcc_version=gcc_version,
-    )
 
 if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
     raiseNoCompilerFoundErrorExit()
@@ -439,7 +401,6 @@ if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is N
 # Do we use C11 for source files, or pretend to be C++ as a workaround.
 env.c11_mode = enableC11Settings(
     env=env,
-    gcc_version=gcc_version,
 )
 
 scons_details_logger.info("Using C11 mode: %s" % env.c11_mode)
@@ -473,60 +434,12 @@ enableLtoSettings(
 
 # Support details for real gcc, not clang.
 if env.gcc_mode and not env.clang_mode:
-    # Enforce the minimum version, selecting a potentially existing g++-4.5
-    # binary if it's not high enough. This is esp. useful under Debian which
-    # allows all compiler to exist next to each other and where g++ might not be
-    # good enough, but g++-4.5 would be.
-    if gcc_version < (4, 4):
-        scons_logger.sysexit(
-            """\
-The gcc compiler %s (version %s) doesn't have the sufficient \
-version (>= 4.4)."""
-            % (env.the_compiler, gcc_version)
-        )
-
-    # Older g++ complains about aliasing with Py_True and Py_False, but we don't
-    # care.
-    if gcc_version < (4, 5):
-        env.Append(CCFLAGS=["-fno-strict-aliasing"])
-
-    # For LTO mode the version requirement is even higher, so try that too.
-    if env.lto_mode and gcc_version < (4, 6):
-        scons_logger.warning(
-            """\
-The gcc compiler %s (version %s) doesn't have the sufficient \
-version for lto mode (>= 4.6). Disabled."""
-            % (env["CXX"], env["CXXVERSION"])
-        )
-
-        env.lto_mode = False
-
-    # CondaCC or newer.
-    if env.mingw_mode and gcc_version < (5, 3):
-        scons_logger.sysexit(
-            """\
-The MinGW64 compiler %s (version %s) doesn't have the sufficient \
-version (>= 5.3)."""
-            % (env.the_compiler, gcc_version)
-        )
-
-    # For gcc 4.6 there are some new interesting functions.
-    if gcc_version >= (4, 6):
-        env.Append(CCFLAGS=["-fpartial-inlining"])
-
-        if env.debug_mode:
-            env.Append(CCFLAGS=["-Wunused-but-set-variable"])
-
     # Use link time optimizations so that gcc can help with optimization across
     # files, but unfortunately at this time it seriously slows down the compiled
     # code. This may be because it needs -O3 option to be effective.
     if static_libpython and not env.lto_mode:
         env.Append(CCFLAGS=["-fno-lto"])
         env.Append(LINKFLAGS=["-fno-lto"])
-
-    # Save some memory for gcc by not tracing macro code locations at all.
-    if gcc_version >= (5,) and not env.debug_mode and not env.clang_mode:
-        env.Append(CCFLAGS=["-ftrack-macro-expansion=0"])
 
     # We don't care about that.
     env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
@@ -544,13 +457,9 @@ if env.gcc_mode and env.lto_mode:
     else:
         env.Append(LINKFLAGS=["-O2" if env.lto_mode and not nuitka_python else "-O3"])
 
-    if not env.clang_mode:
-        env.Append(LINKFLAGS=["-fpartial-inlining", "-freorder-functions"])
-
-
 # Avoid them as appearing to be different files. TODO: Find out which
 # clang version has this, clang-8 does not.
-if env.gcc_mode and not env.clang_mode and gcc_version >= (8,):
+if env.gcc_mode and not env.clang_mode and env.gcc_version >= (8,):
     if source_dir != "." and not full_names:
         # TODO: This also lies for modules codes.
         env.Append(
@@ -615,14 +524,6 @@ if env.debug_mode:
             ]
         )
 
-        if not env.clang_mode and gcc_version >= (6,):
-            env.Append(
-                CCFLAGS=[
-                    # For large files, these can issue warnings about disabling
-                    # itself, while we do not need it
-                    "-Wno-misleading-indentation"
-                ]
-            )
     elif env.msvc_mode:
         # Disable warnings that system headers already show.
         env.Append(
@@ -944,7 +845,7 @@ else:
 # When debugging, optimize less than when optimizing, when not remove
 # assertions.
 if env.debug_mode:
-    if env.clang_mode or (env.gcc_mode and gcc_version >= (4, 8)):
+    if env.clang_mode or (env.gcc_mode and env.gcc_version >= (4, 8)):
         env.Append(CCFLAGS=["-Og"])
     elif env.gcc_mode:
         env.Append(CCFLAGS=["-O1"])

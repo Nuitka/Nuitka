@@ -62,8 +62,9 @@ from .SconsCompilerSettings import (
     enableExperimentalSettings,
     enableLtoSettings,
     setupCCompiler,
+    switchFromGccToGpp,
 )
-from .SconsHacks import getEnhancedToolDetect, myDetectVersion
+from .SconsHacks import getEnhancedToolDetect
 from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
 from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
@@ -248,11 +249,7 @@ if "CXX" in os.environ:
 
     printCompilerVersionOutput("CXX=%r" % os.environ["CXX"])
 
-
 # Patch the compiler detection.
-
-gcc_version = None
-
 Environment.Detect = getEnhancedToolDetect()
 
 # Create Scons environment, the main control tool. Don't include "mingw" on
@@ -299,7 +296,7 @@ env.source_dir = source_dir
 env.low_memory = False  # Never a concern in this case.
 env.macos_minversion = macos_minversion
 
-scons_logger.info("Backend C compiler: %s (%s)." % (env.the_compiler, env.the_cc_name))
+scons_logger.info("Onefile C compiler: %s (%s)." % (env.the_compiler, env.the_cc_name))
 
 # Requested or user provided, detect if it's clang even from environment
 if "clang" in env.the_cc_name and "-cl" not in env.the_cc_name:
@@ -316,8 +313,10 @@ env.msvc_mode = win_target and not env.gcc_mode
 env.mingw_mode = win_target and env.gcc_mode
 env.clangcl_mode = clangcl_mode
 
-if env.gcc_mode and not env.clang_mode:
-    gcc_version = myDetectVersion(env, env.the_compiler)
+# Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
+switchFromGccToGpp(
+    env=env,
+)
 
 if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
     raiseNoCompilerFoundErrorExit()
@@ -325,7 +324,6 @@ if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is N
 # Do we use C11 for source files, or pretend to be C++ as a workaround.
 env.c11_mode = enableC11Settings(
     env=env,
-    gcc_version=gcc_version,
 )
 
 scons_details_logger.info("Using C11 mode: %s" % env.c11_mode)
@@ -355,81 +353,9 @@ enableLtoSettings(
     job_count=job_count,
 )
 
-# Support details for real g++, not clang++.
-if env.gcc_mode and not env.clang_mode:
-    # Enforce the minimum version, selecting a potentially existing g++-4.5
-    # binary if it's not high enough. This is esp. useful under Debian which
-    # allows all compiler to exist next to each other and where g++ might not be
-    # good enough, but g++-4.5 would be.
-    if gcc_version < (4, 4):
-        sys.exit(
-            """\
-The gcc compiler %s (version %s) doesn't have the sufficient \
-version (>= 4.4)."""
-            % (env.the_compiler, gcc_version)
-        )
-
-    # CondaCC or newer.
-    if env.mingw_mode and gcc_version < (5, 3):
-        sys.exit(
-            """\
-The MinGW64 compiler %s (version %s) doesn't have the sufficient \
-version (>= 5.3)."""
-            % (env.the_compiler, gcc_version)
-        )
-
-    # Older g++ complains about aliasing with Py_True and Py_False, but we don't
-    # care.
-    if gcc_version < (4, 5):
-        env.Append(CCFLAGS=["-fno-strict-aliasing"])
-
-    # For LTO mode, the version requirement is even higher, so try that too.
-    if env.lto_mode and gcc_version < (4, 6):
-        sys.exit(
-            """\
-The gcc compiler %s (version %s) doesn't have the sufficient \
-version for lto mode (>= 4.6)."""
-            % (env["CXX"], env["CXXVERSION"])
-        )
-
-    # For gcc 4.6 there are some new interesting functions.
-    if gcc_version >= (4, 6):
-        env.Append(CCFLAGS=["-fpartial-inlining"])
-
-        if env.debug_mode:
-            env.Append(CCFLAGS=["-Wunused-but-set-variable"])
-
-    # Use link time optimizations so that gcc can help with optimization across
-    # files, but unfortunately at this time it seriously slows down the compiled
-    # code. This may be because it needs -O3 option to be effective.
-
-    if env.lto_mode and gcc_version >= (4, 6):
-        env.Append(CCFLAGS=["-flto"])
-        env.Append(LINKFLAGS=["-flto=%d" % job_count])
-
-        if env.debug_mode:
-            env.Append(LINKFLAGS=["-O2"])
-
-        env.Append(LINKFLAGS=["-O3", "-fpartial-inlining", "-freorder-functions"])
-
-    # Save some memory for gcc by not tracing macro code locations at all.
-    if gcc_version >= (5,) and not env.debug_mode and not env.clang_mode:
-        env.Append(CCFLAGS=["-ftrack-macro-expansion=0"])
-
-    # We don't care about that.
-    env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
-
-    # Give a warning if LTO mode was specified, but won't be used.
-    if env.lto_mode and gcc_version < (4, 6):
-        my_print("Warning, LTO mode specified, but not available.", file=sys.stderr)
-
-    # The var-tracking does not scale, disable it. Should we really need it, we
-    # can enable it. TODO: Does this cause a performance loss?
-    env.Append(CCFLAGS=["-fno-var-tracking"])
-
 # Avoid them as appearing to be different files. TODO: Find out which
 # clang version has this, clang-8 does not.
-if env.gcc_mode and not env.clang_mode and gcc_version >= (8,):
+if env.gcc_mode and not env.clang_mode and env.gcc_version >= (8,):
     if source_dir != "." and not full_names:
         # TODO: This also lies for modules codes.
         env.Append(
@@ -476,14 +402,6 @@ if debug_mode:
             ]
         )
 
-        if not env.clang_mode and gcc_version >= (6,):
-            env.Append(
-                CCFLAGS=[
-                    # For large files, these can issue warnings about disabling
-                    # itself, while we do not need it
-                    "-Wno-misleading-indentation"
-                ]
-            )
     elif env.msvc_mode:
         # Disable warnings that system headers already show.
         env.Append(
@@ -576,11 +494,6 @@ if debug_mode:
 else:
     if env.gcc_mode:
         env.Append(CCFLAGS=["-O3"])
-
-        # Check inlining of calls, except in debug mode, where it will all be
-        # wrong due to additional code.
-        # if not debug_mode:
-        #     env.append(CCFLAGS = ["-Winline"])
     elif env.msvc_mode:
         env.Append(
             CCFLAGS=[
