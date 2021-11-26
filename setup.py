@@ -130,8 +130,8 @@ if sys.version_info < (3,) or sdist_mode:
     addInlineCopy("yaml_27")
 if sys.version_info < (3, 6) or sdist_mode:
     addInlineCopy("yaml_35")
-
-addInlineCopy("yaml")
+if sys.version_info >= (3, 6) or sdist_mode:
+    addInlineCopy("yaml")
 
 # Scons really only, with historic naming and positioning. Needs to match the
 # "scons.py" in bin with respect to versions selection.
