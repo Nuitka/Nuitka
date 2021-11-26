@@ -16,7 +16,11 @@ from nuitka.tools.release.Debian import (
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName, getBranchCategory
 from nuitka.Tracing import my_print
-from nuitka.utils.FileOperations import putTextFileContents
+from nuitka.utils.Execution import check_call
+from nuitka.utils.FileOperations import (
+    putTextFileContents,
+    resolveShellPatternToFilenames,
+)
 from nuitka.Version import getNuitkaVersion
 
 
@@ -121,21 +125,31 @@ sudo /usr/sbin/pbuilder --update --basetgz  /var/cache/pbuilder/%s.tgz""" % (
 
         assert os.system(command) == 0, codename
 
+    (dsc_filename,) = resolveShellPatternToFilenames("dist/deb_dist/*.dsc")
     # Execute the package build in the pbuilder with tests.
     command = (
-        """\
-sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s.tgz \
---hookdir debian/pbuilder-hookdir --debemail "Kay Hayen <kay.hayen@gmail.com>" \
---buildresult package dist/deb_dist/*.dsc"""
-        % codename
+        "sudo",
+        "/usr/sbin/pbuilder",
+        "--build",
+        "--basetgz",
+        "/var/cache/pbuilder/%s.tgz" % codename,
+        "--hookdir",
+        "debian/pbuilder-hookdir",
+        "--debemail",
+        "Kay Hayen <kay.hayen@gmail.com>",
+        "--buildresult",
+        "package",
+        dsc_filename,
     )
 
-    assert os.system(command) == 0, codename
+    check_call(command, shell=False)
 
     # Cleanup the build directory, not needed anymore.
     shutil.rmtree("build", ignore_errors=True)
 
     # Now build the repository.
+    my_print("Building repository ...", style="blue")
+
     os.chdir("package")
 
     os.makedirs("repo")
@@ -157,9 +171,12 @@ SignWith: D96ADCA1377F1CEB6B5103F11BFC33752912B99C
         % {"codename": codename},
     )
 
-    assert os.system("reprepro includedeb %s ../*.deb" % codename) == 0
+    command = ["reprepro", "includedeb", codename]
+    command.extend(resolveShellPatternToFilenames("../*.deb"))
 
-    my_print("Uploading...", style="blue")
+    check_call(command, shell=False)
+
+    my_print("Uploading ...", style="blue")
 
     # Create repo folder unless already done. This is needed for the first
     # build only.
