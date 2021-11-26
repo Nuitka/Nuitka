@@ -84,7 +84,7 @@ def _cleanupTrailingWhitespace(filename):
     while clean_lines and clean_lines[-1] == "":
         del clean_lines[-1]
 
-    if clean_lines != source_lines or clean_lines[-1] != "":
+    if clean_lines != source_lines or (clean_lines and clean_lines[-1] != ""):
         putTextFileContents(filename, contents=clean_lines)
 
 
