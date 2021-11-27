@@ -142,22 +142,28 @@
  New Features
 **************
 
+-  Setuptools support. Documented ``bdist_nuitka`` and ``bdist_wheel``
+   integration and added support for Nuitka as a ``build`` package
+   backend in ``pyproject.toml`` files.
+
 -  Added experimental support for Python 3.10, there are however still
    important issues with compatibility with the CPython 3.9 test suite
    with at least asyncgen and coroutines.
 
 -  Windows: Added support for LTO with MinGW64 on Windows.
 
--  macOS: Can now provide the version for bundles.
+-  macOS: For app bundles, version information can be provided with the
+   new option ``--macos-app-version``.
 
 -  Added vendor detection of ``Anaconda``, ``pyenv``, ``Apple Python``,
-   and ``pyenv``.
+   and ``pyenv`` and output the result in version output.
 
 -  Plugins: Also handle usage of ``__name__`` for metadata version
-   resolution.
+   resolution of the ``pkg-resources`` standard plugin.
 
--  Plugins: Data files plugin now reads configuration from a Yaml file
-   that should be user editable.
+-  Plugins: The ``data-files`` standard plugin now reads configuration
+   from a Yaml file that ``data-files.yml`` making it more accessible
+   for contributions.
 
 -  Added new experimental flag for compiled types to inherit from
    uncompiled types. This should allow easier and more complete
@@ -174,7 +180,8 @@
       from a standard command prompt.
 
 -  Allow enforcing usage of MSVC with ``--msvc=latest``. This allows you
-   to prevent accidental usage of MinGW64.
+   to prevent accidental usage of MinGW64 on Windows, when MSVC is
+   intended, but achieves that without fixing the version to use.
 
 -  Plugins: The Qt binding plugins now resolve ``pyqtgraph`` selection
    of binding by hard coding ``QT_LIB``. This will allow to resolve its

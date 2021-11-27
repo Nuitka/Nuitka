@@ -507,8 +507,8 @@ Currently these expanded tokens are available:
    you want things to reside in a place you choose or abide your naming
    conventions.
 
-Use Case 5 - Setuptools Wheel
-=============================
+Use Case 5 - Setuptools Wheels
+==============================
 
 If you have a ``setup.py``, ``setup.cfg`` or ``pyproject.toml`` driven
 creation of wheels for your software in place, putting Nuitka to use is
