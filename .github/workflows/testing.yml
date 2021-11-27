@@ -75,6 +75,11 @@ jobs:
           python ./bin/check-nuitka-with-codespell
         if: matrix.python_version == '3.9'
 
+      - name: Autoformat check on Nuitka source code
+        run: |
+          python ./bin/autoformat-nuitka-source --check-only
+        if: matrix.python_version == '3.9'
+
   mac-python2:
     runs-on: macos-10.15
     strategy:
