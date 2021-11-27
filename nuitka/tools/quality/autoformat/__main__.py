@@ -27,7 +27,7 @@ from optparse import OptionParser
 from nuitka.tools.quality.autoformat.Autoformat import autoformat
 from nuitka.tools.quality.Git import getStagedFileChangeDesc
 from nuitka.tools.quality.ScanSources import scanTargets
-from nuitka.Tracing import my_print
+from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.FileOperations import resolveShellPatternToFilenames
 
 
@@ -48,6 +48,14 @@ def main():
         dest="from_commit",
         default=False,
         help="""From commit hook, do not descend into directories. Default is %default.""",
+    )
+
+    parser.add_option(
+        "--check-only",
+        action="store_true",
+        dest="check_only",
+        default=False,
+        help="""For CI testing, check if it's properly formatted. Default is %default.""",
     )
 
     options, positional_args = parser.parse_args()
@@ -79,8 +87,22 @@ def main():
         if not filenames:
             sys.exit("No files found.")
 
+        result = 0
+
         for filename in filenames:
-            autoformat(filename, git_stage=False)
+            if autoformat(filename, git_stage=False, check_only=options.check_only):
+                result += 1
+
+        if options.check_only and result > 0:
+            tools_logger.sysexit(
+                """Error, bin/autoformat-nuitka-source would make changes to %d files, \
+make sure to have commit hook installed."""
+                % result
+            )
+        elif result > 0:
+            tools_logger.info("autoformat: Changes to formatting of %d files" % result)
+        else:
+            tools_logger.info("autoformat: No files needed formatting changes.")
 
 
 if __name__ == "__main__":
