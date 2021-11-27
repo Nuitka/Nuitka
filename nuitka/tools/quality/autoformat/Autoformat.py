@@ -549,6 +549,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
             ".stylesheet",
             ".j2",
             ".gitignore",
+            ".gitattributes",
             ".json",
             ".spec",
             "-rpmlintrc",
