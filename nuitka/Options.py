@@ -1372,6 +1372,10 @@ def getPythonPathForScons():
 def shallCompileWithoutBuildDirectory():
     """*bool* currently hard coded, not when using debugger.
 
+    When this is used, compilation is executed in a fashion that it runs
+    inside the build folder, hiding it, attempting to make results more
+    reproducible across builds of different programs.
+
     TODO: Make this not hardcoded, but possible to disable via an
     options.
     """
