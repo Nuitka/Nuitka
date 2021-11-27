@@ -567,11 +567,15 @@ def copyTree(source_path, dest_path):
         This must be used over `shutil.copytree` which has troubles
         with existing directories.
     """
-
-    # False alarm on travis, pylint: disable=I0021,import-error,no-name-in-module
-    from distutils.dir_util import copy_tree
-
-    return copy_tree(source_path, dest_path)
+    try:
+        # Python 3.8+ has dirs_exist_ok
+        from shutil import copytree
+        return copytree(source_path, dest_path, dirs_exist_ok=True)
+    except TypeError:
+        # Remove once Nuitka only supports Python 3.8+
+        # False alarm on travis, pylint: disable=I0021,import-error,no-name-in-module
+        from distutils.dir_util import copy_tree
+        return copy_tree(source_path, dest_path)
 
 
 def copyFileWithPermissions(source_path, dest_path):
