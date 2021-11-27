@@ -245,6 +245,10 @@ length parameter; this could be due to transposed parameters"""
     ):
         return True
 
+    # The gcc LTO with debug information is deeply buggy with many messages:
+    if b"Dwarf Error:" in line:
+        return True
+
     return False
 
 
