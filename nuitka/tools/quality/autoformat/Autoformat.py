@@ -519,7 +519,9 @@ def _transferBOM(source_filename, target_filename):
                 f.write(source_code)
 
 
-def autoformat(filename, git_stage, effective_filename=None, trace=True):
+def autoformat(
+    filename, git_stage, check_only=False, effective_filename=None, trace=True
+):
     """Format source code with external tools
 
     Args:
@@ -536,7 +538,7 @@ def autoformat(filename, git_stage, effective_filename=None, trace=True):
         None
     """
 
-    # This does a lot of distinctions, pylint: disable=too-many-branches,too-many-statements
+    # This does a lot of distinctions, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if effective_filename is None:
         effective_filename = filename
@@ -633,16 +635,22 @@ def autoformat(filename, git_stage, effective_filename=None, trace=True):
 
         changed = False
         if old_code != getFileContents(tmp_filename, "rb"):
-            if trace:
-                my_print("Updated.")
 
-            with withPreserveFileMode(filename):
-                if git_stage:
-                    new_hash_value = putFileHashContent(tmp_filename)
-                    updateFileIndex(git_stage, new_hash_value)
-                    updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
-                else:
-                    renameFile(tmp_filename, filename)
+            if check_only:
+                my_print("FAIL.", style="red")
+            else:
+                if trace:
+                    my_print("Updated.")
+
+                with withPreserveFileMode(filename):
+                    if git_stage:
+                        new_hash_value = putFileHashContent(tmp_filename)
+                        updateFileIndex(git_stage, new_hash_value)
+                        updateWorkingFile(
+                            filename, git_stage["dst_hash"], new_hash_value
+                        )
+                    else:
+                        renameFile(tmp_filename, filename)
 
             changed = True
         else:
