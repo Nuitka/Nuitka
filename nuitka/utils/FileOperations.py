@@ -568,11 +568,11 @@ def copyTree(source_path, dest_path):
         with existing directories.
     """
     if python_version >= 0x380:
-        from shutil import copytree
         # Python 3.8+ has dirs_exist_ok
-        return copytree(source_path, dest_path, dirs_exist_ok=True)
+        return shutil.copytree(source_path, dest_path, dirs_exist_ok=True)
     else:
         from distutils.dir_util import copy_tree
+
         return copy_tree(source_path, dest_path)
 
 
