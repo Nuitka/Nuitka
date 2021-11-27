@@ -109,13 +109,15 @@ def addInlineCopy(name):
             "inline_copy/%s/*/*/*.py" % name,
             "inline_copy/%s/*/*/*/*.py" % name,
             "inline_copy/%s/*/*/*/*/*.py" % name,
+            "inline_copy/%s/LICENSE*",
+            "inline_copy/%s/*/LICENSE*",
+            "inline_copy/%s/READ*",
         )
     )
 
 
 addInlineCopy("appdirs")
 addInlineCopy("glob2")
-addInlineCopy("jinja2")
 addInlineCopy("markupsafe")
 addInlineCopy("tqdm")
 
@@ -128,10 +130,16 @@ if os.name == "nt" or sdist_mode:
 
 if sys.version_info < (3,) or sdist_mode:
     addInlineCopy("yaml_27")
-if sys.version_info < (3, 6) or sdist_mode:
+if (3,) < sys.version_info < (3, 6) or sdist_mode:
     addInlineCopy("yaml_35")
 if sys.version_info >= (3, 6) or sdist_mode:
     addInlineCopy("yaml")
+
+if sys.version_info < (3, 6) or sdist_mode:
+    addInlineCopy("jinja2_35")
+if sys.version_info >= (3, 6) or sdist_mode:
+    addInlineCopy("jinja2")
+
 
 # Scons really only, with historic naming and positioning. Needs to match the
 # "scons.py" in bin with respect to versions selection.
