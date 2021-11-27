@@ -15,6 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Nuitka python -m build integration """
+
 from setuptools.build_meta import _BuildMetaBackend, suppress_known_deprecation
 
 

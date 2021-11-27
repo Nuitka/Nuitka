@@ -258,7 +258,9 @@ def _executePylint(filenames, pylint_options, extra_options):
 
 def hasPyLintBugTrigger(filename):
     """Decide if a filename should be skipped."""
-    # Currently everything is good, but it's a useful hook, pylint: disable=unused-argument
+    # Currently everything is good, but it's a useful hook, pylint_: disable=unused-argument
+    if filename == "nuitka/distutils/Build.py":
+        return True
 
     return False
 
