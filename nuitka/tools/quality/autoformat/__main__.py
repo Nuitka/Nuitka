@@ -50,20 +50,12 @@ def main():
         help="""From commit hook, do not descend into directories. Default is %default.""",
     )
 
-    parser.add_option(
-        "--abort-on-parsing-error",
-        action="store_true",
-        dest="abort",
-        default=False,
-        help="""Stop if an error occurs, or continue. Default is %default.""",
-    )
-
     options, positional_args = parser.parse_args()
 
     if options.from_commit:
         assert not positional_args
         for desc in getStagedFileChangeDesc():
-            autoformat(desc["src_path"], git_stage=desc, abort=options.abort)
+            autoformat(desc["src_path"], git_stage=desc)
     else:
         if not positional_args:
             positional_args = ["bin", "nuitka", "setup.py", "tests/*/run_all.py"]
@@ -88,7 +80,7 @@ def main():
             sys.exit("No files found.")
 
         for filename in filenames:
-            autoformat(filename, git_stage=False, abort=options.abort)
+            autoformat(filename, git_stage=False)
 
 
 if __name__ == "__main__":

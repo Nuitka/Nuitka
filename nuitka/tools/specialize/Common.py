@@ -33,11 +33,18 @@ def withFileOpenedAndAutoformatted(filename):
     with openTextFile(tmp_filename, "w") as output:
         yield output
 
-    autoformat(tmp_filename, None, True, effective_filename=filename, trace=False)
+    autoformat(
+        filename=tmp_filename, git_stage=None, effective_filename=filename, trace=False
+    )
 
     # No idea why, but this helps.
     if os.name == "nt":
-        autoformat(tmp_filename, None, True, effective_filename=filename, trace=False)
+        autoformat(
+            filename=tmp_filename,
+            git_stage=None,
+            effective_filename=filename,
+            trace=False,
+        )
 
     shutil.copy(tmp_filename, filename)
     os.unlink(tmp_filename)

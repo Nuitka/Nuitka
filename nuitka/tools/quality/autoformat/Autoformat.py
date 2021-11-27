@@ -168,14 +168,12 @@ def _updateCommentNode(comment_node):
                 elif pylint_token == "E1102":
                     return "not-callable"
                 elif pylint_token == "E1133":
-                    return "  not-an-iterable"
+                    return " not-an-iterable"
                 elif pylint_token == "E1128":
                     return "assignment-from-none"
                 # Save line length for this until isort is better at long lines.
                 elif pylint_token == "useless-suppression":
                     return "I0021"
-                #                     elif pylint_token == "I0021":
-                #                        return "useless-suppression"
                 elif pylint_token == "R0911":
                     return "too-many-return-statements"
                 elif pylint_token == "R0201":
@@ -211,35 +209,58 @@ def _updateCommentNode(comment_node):
         comment_node.value = new_value
 
 
-def _cleanupPyLintComments(filename, abort):
-    from redbaron import (  # pylint: disable=I0021,import-error,no-name-in-module
-        RedBaron,
-    )
+def _cleanupPyLintComments(filename):
+    new_code = old_code = getFileContents(filename)
 
-    old_code = getFileContents(filename)
+    def replacer(part):
+        def renamer(pylint_token):
+            # pylint: disable=too-many-branches,too-many-return-statements
+            if pylint_token == "E0602":
+                return "undefined-variable"
+            elif pylint_token in ("E0401", "F0401"):
+                return "import-error"
+            elif pylint_token == "E1102":
+                return "not-callable"
+            elif pylint_token == "E1133":
+                return " not-an-iterable"
+            elif pylint_token == "E1128":
+                return "assignment-from-none"
+            # Save line length for this until isort is better at long lines.
+            elif pylint_token == "useless-suppression":
+                return "I0021"
+            elif pylint_token == "R0911":
+                return "too-many-return-statements"
+            elif pylint_token == "R0201":
+                return "no-self-use"
+            elif pylint_token == "R0902":
+                return "too-many-instance-attributes"
+            elif pylint_token == "R0912":
+                return "too-many-branches"
+            elif pylint_token == "R0914":
+                return "too-many-locals"
+            elif pylint_token == "R0915":
+                return "too-many-statements"
+            elif pylint_token == "W0123":
+                return "eval-used"
+            elif pylint_token == "W0603":
+                return "global-statement"
+            elif pylint_token == "W0613":
+                return "unused-argument"
+            elif pylint_token == "W0622":
+                return "redefined-builtin"
+            elif pylint_token == "W0703":
+                return "broad-except"
+            else:
+                return pylint_token
 
-    # Baron does assertions too, and all kinds of strange errors, pylint: disable=broad-except
+        return part.group(1) + ",".join(
+            sorted(set(renamer(token) for token in part.group(2).split(",") if token))
+        )
 
-    try:
-        red = RedBaron(old_code)
-    except Exception:
-        if abort:
-            raise
-
-        return
-
-    for node in red.find_all("CommentNode"):
-        try:
-            _updateCommentNode(node)
-        except Exception:
-            my_print("Problem with", node)
-            node.help(deep=True, with_formatting=True)
-            raise
-
-    new_code = red.dumps()
+    new_code = re.sub(r"(pylint\: disable=)(.*)", replacer, new_code, flags=re.M)
 
     if new_code != old_code:
-        putTextFileContents(filename, contents=red.dumps())
+        putTextFileContents(filename, new_code)
 
 
 def _cleanupImportRelative(filename):
@@ -498,7 +519,7 @@ def _transferBOM(source_filename, target_filename):
                 f.write(source_code)
 
 
-def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
+def autoformat(filename, git_stage, effective_filename=None, trace=True):
     """Format source code with external tools
 
     Args:
@@ -515,7 +536,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
         None
     """
 
-    # This does a lot of distinctions, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # This does a lot of distinctions, pylint: disable=too-many-branches,too-many-statements
 
     if effective_filename is None:
         effective_filename = filename
@@ -588,7 +609,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
 
             if not _shouldNotFormatCode(effective_filename):
                 _cleanupImportSortOrder(tmp_filename)
-                _cleanupPyLintComments(tmp_filename, abort)
+                _cleanupPyLintComments(tmp_filename)
 
                 black_call = _getPythonBinaryCall("black")
 
