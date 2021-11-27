@@ -507,6 +507,69 @@ Currently these expanded tokens are available:
    you want things to reside in a place you choose or abide your naming
    conventions.
 
+Use Case 5 - Setuptools Wheel
+=============================
+
+If you have a ``setup.py``, ``setup.cfg`` or ``pyproject.toml`` driven
+creation of wheels for your software in place, putting Nuitka to use is
+extremely easy.
+
+Lets start with the most common ``setuptools`` approach, you can -
+having Nuitka installed of course, simply execute the target
+``bdist_nuitka`` rather than the ``bdist_wheel``. It takes all the
+options and allows you to specify some more, that are specific to
+Nuitka.
+
+.. code:: python
+
+   # For setup.py
+   setup(
+      ...,
+      command_options={
+         'nuitka': {
+            # boolean option, e.g. if you cared for C commands
+            '--show-scons': True,
+            # options with values, e.g. enable a plugin of Nuitka
+            '--enable-plugin': 'anti-bloat',
+         }
+      },
+   )
+
+If for some reason, you cannot or do not what to change the target, you
+can add this to your ``setup.py``.
+
+.. code:: python
+
+   # For setup.py
+   setup(
+      ...,
+      build_with_nuitka=True
+   )
+
+.. note::
+
+   To temporarily disable the compilation, you could remove above line,
+   or edit the value to ``False`` by or take its value from an
+   environment variable if you so choose, e.g.
+   ``bool(os.environ.get("USE_NUITKA", "True"))``. This is up to you.
+
+Or you could put it in your ``setup.cfg``
+
+.. code:: toml
+
+   [metadata]
+   build_with_nuitka = True
+
+And last, but not least, Nuitka also supports the new ``build`` meta, so
+when you have a ``pyproject.toml`` already, simple replace or add this
+value:
+
+.. code:: toml
+
+   [build-system]
+   requires = ["setuptools>=42", "wheel", "nuitka"]
+   build-backend = "nuitka.distutils.Build"
+
 ********
  Tweaks
 ********
