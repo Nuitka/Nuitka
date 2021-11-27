@@ -58,7 +58,6 @@ def getSupportedPythonVersionStr():
 def _getPythonVersion():
     big, major, minor = sys.version_info[0:3]
 
-    # TODO: Give up on decimal versions already.
     return big * 256 + major * 16 + min(15, minor)
 
 
