@@ -829,6 +829,15 @@ pgo_group.add_option(
 )
 
 pgo_group.add_option(
+    "--pgo-python-policy-unused-module",
+    action="store",
+    dest="python_pgo_policy_unused_module",
+    choices=("include", "exclude", "bytecode"),
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
+pgo_group.add_option(
     "--pgo-args",
     action="store",
     dest="pgo_args",

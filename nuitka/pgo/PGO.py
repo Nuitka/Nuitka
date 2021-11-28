@@ -21,7 +21,12 @@ import os
 import struct
 
 from nuitka.__past__ import xrange
+
+# TODO: Decide compilation mode for everything not seen.
+from nuitka.Options import getPythonPgoUnseenModulePolicy
 from nuitka.Tracing import pgo_logger
+
+_pgo_active = False
 
 _pgo_strings = None
 
@@ -46,7 +51,7 @@ def readPGOInputFile(input_filename):
 
     # Using global here, as this is really a singleton, in the form of a module,
     # pylint: disable=global-statement
-    global _pgo_strings
+    global _pgo_strings, _pgo_active
 
     with open(input_filename, "rb") as input_file:
         header = input_file.read(7)
@@ -93,3 +98,51 @@ def readPGOInputFile(input_filename):
                 _module_exits[module_name] = had_error
             elif probe_name == "END":
                 break
+
+    _pgo_active = True
+
+
+def decideRecursionFromPGO(module_name, module_kind):
+    """Decide module inclusion based on PGO input.
+
+    At this point, PGO can decide the inclusion to not be done. It will
+    ask to include things it has seen at run time, and that won't be a
+    problem, but it will ask to exclude modules not seen entered at runtime,
+    the decision for bytecode is same as inclusion, but the demotion is done
+    later, after first compiling it. Caching might save compile time a second
+    time around once the cache is populated, but care must be taken for that
+    to not cause inclusions that are not used.
+    """
+
+    # Only if we had input of course.
+    if not _pgo_active:
+        return None
+
+    # At this time, we do not yet detect the loading of extension modules,
+    # but of course we could and should do that.
+    if module_kind == "shlib":
+        return None
+
+    if module_name in _module_entries:
+        return True
+
+    unseen_module_policy = getPythonPgoUnseenModulePolicy()
+
+    if unseen_module_policy == "exclude":
+        return False
+    else:
+        return True
+
+
+def decideCompilationFromPGO(module_name):
+    # Only if we had input of course.
+    if not _pgo_active:
+        return None
+
+    # TODO: Could become more complicated.
+    unseen_module_policy = getPythonPgoUnseenModulePolicy()
+
+    if module_name not in _module_entries and unseen_module_policy == "bytecode":
+        return "bytecode"
+    else:
+        return None

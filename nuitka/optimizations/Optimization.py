@@ -329,6 +329,7 @@ def makeOptimizationPass():
                 )
 
                 unused_function.trace_collection = None
+                unused_function.finalize()
 
             used_functions = tuple(
                 function

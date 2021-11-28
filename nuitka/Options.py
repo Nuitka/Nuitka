@@ -515,7 +515,11 @@ def commentArgs():
 
         options.static_libpython = "no"
 
-    if not isPgoMode() and getPgoArgs():
+    if (
+        not isPgoMode()
+        and not isPythonPgoMode()
+        and (getPgoArgs() or getPgoExecutable())
+    ):
         Tracing.optimization_logger.warning(
             "Providing PGO arguments without enabling PGO mode has no effect."
         )
@@ -1061,6 +1065,11 @@ def getPgoExecutable():
             )
 
     return options.pgo_executable
+
+
+def getPythonPgoUnseenModulePolicy():
+    """*str* = ``--python-pgo-unused-module-policy``"""
+    return options.python_pgo_policy_unused_module
 
 
 def getOnefileTempDirSpec(use_default):
