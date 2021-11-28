@@ -122,6 +122,7 @@ from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
 from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
 from nuitka.Options import shallWarnUnusualCode
+from nuitka.pgo.PGO import decideCompilationFromPGO
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import (
@@ -934,6 +935,8 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
 def decideCompilationMode(is_top, module_name, source_ref):
     result = Plugins.decideCompilation(module_name, source_ref)
 
+    # Cannot change mode of __main__ to bytecode, that is not going
+    # to work currently.
     if result == "bytecode" and is_top:
         plugins_logger.warning(
             """\
@@ -942,6 +945,14 @@ as bytecode, the extension module entry point is technically
 required to compiled."""
             % module_name
         )
+        result = "compiled"
+
+    # Plugins need to win over PGO, as they might know it better
+    if result is None:
+        result = decideCompilationFromPGO(module_name=module_name)
+
+    # Default if neither plugins nor PGO have expressed an opinion
+    if result is None:
         result = "compiled"
 
     return result

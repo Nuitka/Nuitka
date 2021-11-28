@@ -761,7 +761,7 @@ class Plugins(object):
                 assert value in ("compiled", "bytecode")
                 return value
 
-        return "compiled"
+        return None
 
     preprocessor_symbols = None
 

@@ -35,6 +35,29 @@ static char const **PGO_ProbeNameMappings = NULL;
 static int PGO_ProbeNameMappings_size = 0;
 static uint32_t PGO_ProbeNameMappings_used = 0;
 
+int PGO_getStringID(char const *str) {
+    for (int i = 0; i < PGO_ProbeNameMappings_used; i++) {
+        if (str == PGO_ProbeNameMappings[i]) {
+            return i;
+        }
+    }
+
+    if (PGO_ProbeNameMappings_used == PGO_ProbeNameMappings_size) {
+        PGO_ProbeNameMappings_size += 10000;
+        PGO_ProbeNameMappings = realloc(PGO_ProbeNameMappings, PGO_ProbeNameMappings_size);
+    }
+
+    PGO_ProbeNameMappings[PGO_ProbeNameMappings_used] = str;
+    PGO_ProbeNameMappings_used += 1;
+
+    return PGO_ProbeNameMappings_used - 1;
+}
+
+static void PGO_writeString(char const *value) {
+    uint32_t id = PGO_getStringID(value);
+    fwrite(&id, sizeof(id), 1, pgo_output);
+}
+
 void PGO_Initialize() {
     // We expect an environment variable to guide us to where the PGO information
     // shall be written to.
@@ -73,29 +96,6 @@ void PGO_Finalize() {
 
     fputs("YAK.PGO", pgo_output);
     fclose(pgo_output);
-}
-
-int PGO_getStringID(char const *str) {
-    for (int i = 0; i < PGO_ProbeNameMappings_used; i++) {
-        if (str == PGO_ProbeNameMappings[i]) {
-            return i;
-        }
-    }
-
-    if (PGO_ProbeNameMappings_used == PGO_ProbeNameMappings_size) {
-        PGO_ProbeNameMappings_size += 10000;
-        PGO_ProbeNameMappings = realloc(PGO_ProbeNameMappings, PGO_ProbeNameMappings_size);
-    }
-
-    PGO_ProbeNameMappings[PGO_ProbeNameMappings_used] = str;
-    PGO_ProbeNameMappings_used += 1;
-
-    return PGO_ProbeNameMappings_used - 1;
-}
-
-static void PGO_writeString(char const *value) {
-    uint32_t id = PGO_getStringID(value);
-    fwrite(&id, sizeof(id), 1, pgo_output);
 }
 
 void PGO_onProbePassed(char const *probe_str, char const *module_name, uint32_t probe_arg) {
