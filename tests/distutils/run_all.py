@@ -84,8 +84,14 @@ def main():
             my_print("Consider distutils example:", filename)
 
             py3_only_examples = ("example_3", "nested_namespaces")
-            if python_version < (3,) and filename in py3_only_examples:
+            if python_version < (3,) and (
+                filename in py3_only_examples or "_pyproject_" in filename
+            ):
                 reportSkip("Skipped, only relevant for Python3", ".", filename)
+                continue
+
+            if "_pyproject_" in filename:
+                reportSkip("Skipped, manual test for now", ".", filename)
                 continue
 
             case_dir = os.path.join(os.getcwd(), filename)
