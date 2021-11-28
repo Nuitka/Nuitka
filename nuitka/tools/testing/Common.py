@@ -1701,3 +1701,15 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         illegal_accesses.append(orig_loaded_filename)
 
     return illegal_accesses
+
+
+def getMainProgramFilename(filename):
+    for filename_main in os.listdir(filename):
+        if filename_main.endswith(("Main.py", "Main")):
+            return filename_main
+
+    test_logger.sysexit(
+        """\
+Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case."""
+        % (filename)
+    )
