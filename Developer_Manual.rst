@@ -2742,34 +2742,76 @@ Builtin ``zip`` for Python2
 .. code:: python
 
    def _zip(a, b, c):  # Potentially more arguments.
-       # First assign, to preserve order of execution,
-       # the arguments might be complex expressions.
-       tmp_arg1 = a
-       tmp_arg2 = b
-       tmp_arg3 = c
-       # more arguments here ...
+      # First assign, to preserve the order of execution, the arguments might be
+      # complex expressions with side effects.
+      tmp_arg1 = a
+      tmp_arg2 = b
+      tmp_arg3 = c
+      # could be more
+      ...
 
-       tmp_iter_1 = iter(tmp_arg1)
-       tmp_iter_2 = iter(tmp_arg2)
-       tmp_iter_3 = iter(tmp_arg3)
-       # more arguments here ...
+      # Creation of iterators goes first.
+      try:
+         tmp_iter_1 = iter(tmp_arg1)
+      except TypeError:
+         raise TypeError("zip argument #1 must support iteration")
+      try:
+         tmp_iter_2 = iter(tmp_arg2)
+      except TypeError:
+         raise TypeError("zip argument #2 must support iteration")
+      try:
+         tmp_iter_3 = iter(tmp_arg3)
+      except TypeError:
+         raise TypeError("zip argument #3 must support iteration")
 
-       # could be more
-       tmp_result = []
-       try:
-           while 1:
-               tmp_result.append(
-                   (
-                       next(tmp_iter_1),
-                       next(tmp_iter_2),
-                       next(tmp_iter_3),
-                       # more arguments here ...
-                   )
-               )
+      # could be more
+      ...
+
+      tmp_result = []
+      try:
+         while 1:
+            tmp_result.append(
+                  (
+                     next(tmp_iter_1),
+                     next(tmp_iter_2),
+                     next(tmp_iter_3),
+                     # more arguments here ...
+                  )
+            )
+      except StopIteration:
+         pass
+
+      return tmp_result
+
+Builtin ``zip`` for Python3
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: python
+
+   for x, y, z in zip(a, b, c):
+       ...
+
+.. code:: python
+
+   def _zip_gen_object(a, b, c, ...):
+       ...
+       # See Python2
+       ...
+
+      # could be more
+      ...
+      while 1:
+           yield (
+               next(tmp_iter_1),
+               next(tmp_iter_2),
+               next(tmp_iter_3),
+               ...
+           )
        except StopIteration:
-           pass
+           break
 
-       return tmp_result
+   for x, y, z in _zip_gen_object(a, b, c):
+       ...
 
 Builtin ``map`` for Python2
 ---------------------------
