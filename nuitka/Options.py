@@ -1115,7 +1115,7 @@ def getWindowsIconExecutablePath():
 
 
 def shallAskForWindowsAdminRights():
-    """*bool*, value of ``--windows-uac-admin`` or ``--windows-uac-uiaccess"""
+    """*bool*, value of ``--windows-uac-admin`` or ``--windows-uac-uiaccess``"""
     return options.windows_uac_admin
 
 
