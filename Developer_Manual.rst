@@ -4531,7 +4531,7 @@ potential expensive optimization on the module level.
 *************************
 
 This document is written in REST. That is an ASCII format which is
-readable as ASCII, but used to generate PDF or HTML documents.
+readable to human, but easily used to generate PDF or HTML documents.
 
 You will find the current source under:
 https://github.com/Nuitka/Nuitka/blob/develop/Developer_Manual.rst
