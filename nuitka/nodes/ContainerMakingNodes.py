@@ -39,7 +39,6 @@ from .ExpressionShapeMixins import (
 from .IterationHandles import ListAndTupleContainerMakingIterationHandle
 from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
-    getComputationResult,
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects,
 )
@@ -90,7 +89,7 @@ class ExpressionMakeSequenceBase(
         simulator = self.getSimulator()
         assert simulator is not None
 
-        return getComputationResult(
+        return trace_collection.getCompileTimeComputationResult(
             node=self,
             computation=lambda: simulator(
                 element.getCompileTimeConstant() for element in elements

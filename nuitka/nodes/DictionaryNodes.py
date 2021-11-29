@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Nodes that build dictionaries.
+""" Nodes that build and operate on dictionaries.
 
 The "pair" is a sub-structure of the dictionary, representing a key/value pair
 that is the child of the dictionary creation.
@@ -49,7 +49,6 @@ from .NodeBases import (
     StatementChildrenHavingBase,
 )
 from .NodeMakingHelpers import (
-    getComputationResult,
     makeConstantReplacementNode,
     makeRaiseExceptionExpressionFromTemplate,
     makeRaiseExceptionReplacementExpression,
@@ -714,13 +713,13 @@ class ExpressionDictOperationItem(ExpressionChildrenHavingBase):
         key = self.subnode_key
 
         if dict_arg.isCompileTimeConstant() and key.isCompileTimeConstant():
-            return getComputationResult(
+            return trace_collection.getCompileTimeComputationResult(
                 node=self,
                 computation=lambda: self.getCompileTimeConstant()[
                     dict_arg.getCompileTimeConstant()[key.getCompileTimeConstant()]
                 ],
-                description="Dictionary item lookup with constant key.",
                 user_provided=dict_arg.user_provided,
+                description="Dictionary item lookup with constant key.",
             )
 
         # TODO: Only if the key is not hashable.
