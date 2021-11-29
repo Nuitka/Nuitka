@@ -107,6 +107,7 @@ extern void stopProfiling(void);
 #include "nuitka/helper/dictionaries.h"
 #include "nuitka/helper/mappings.h"
 #include "nuitka/helper/sets.h"
+#include "nuitka/helper/strings.h"
 
 #include "nuitka/helper/raising.h"
 

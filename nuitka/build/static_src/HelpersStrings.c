@@ -577,3 +577,71 @@ bool UNICODE_APPEND(PyObject **p_left, PyObject *right) {
     return true;
 }
 #endif
+
+PyObject *UNICODE_JOIN(PyObject *str, PyObject *iterable) {
+    CHECK_OBJECT(str);
+    CHECK_OBJECT(iterable);
+    assert(PyUnicode_CheckExact(str));
+
+    return PyUnicode_Join(str, iterable);
+}
+
+PyObject *UNICODE_PARTITION(PyObject *str, PyObject *sep) {
+    CHECK_OBJECT(str);
+    CHECK_OBJECT(sep);
+    assert(PyUnicode_CheckExact(str));
+
+    return PyUnicode_Partition(str, sep);
+}
+
+PyObject *UNICODE_RPARTITION(PyObject *str, PyObject *sep) {
+    CHECK_OBJECT(str);
+    CHECK_OBJECT(sep);
+    assert(PyUnicode_CheckExact(str));
+
+    return PyUnicode_RPartition(str, sep);
+}
+
+#if PYTHON_VERSION < 0x300
+
+PyObject *STR_JOIN(PyObject *str, PyObject *iterable) {
+    CHECK_OBJECT(str);
+    CHECK_OBJECT(iterable);
+    assert(PyString_CheckExact(str));
+
+    return _PyString_Join(str, iterable);
+}
+
+static PyObject *str_builtin_partition = NULL;
+
+PyObject *STR_PARTITION(PyObject *str, PyObject *sep) {
+    CHECK_OBJECT(str);
+    CHECK_OBJECT(sep);
+    assert(PyString_CheckExact(str));
+
+    if (unlikely(str_builtin_partition == NULL)) {
+        str_builtin_partition = PyObject_GetAttrString((PyObject *)&PyString_Type, "partition");
+    }
+
+    PyObject *args[2] = {str, sep};
+
+    return CALL_FUNCTION_WITH_ARGS2(str_builtin_partition, args);
+}
+
+static PyObject *str_builtin_rpartition = NULL;
+
+PyObject *STR_RPARTITION(PyObject *str, PyObject *sep) {
+    CHECK_OBJECT(str);
+    CHECK_OBJECT(sep);
+    assert(PyString_CheckExact(str));
+
+    if (unlikely(str_builtin_rpartition == NULL)) {
+        str_builtin_rpartition = PyObject_GetAttrString((PyObject *)&PyString_Type, "rpartition");
+    }
+
+    PyObject *args[2] = {str, sep};
+
+    return CALL_FUNCTION_WITH_ARGS2(str_builtin_rpartition, args);
+}
+
+#endif
