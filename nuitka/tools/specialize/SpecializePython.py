@@ -29,6 +29,7 @@ import nuitka.codegen.ComparisonCodes
 import nuitka.codegen.HelperDefinitions
 import nuitka.codegen.Namify
 import nuitka.specs.BuiltinDictOperationSpecs
+import nuitka.specs.BuiltinStrOperationSpecs
 from nuitka.utils.Jinja2 import getTemplate
 
 from .Common import withFileOpenedAndAutoformatted, writeline
@@ -64,16 +65,18 @@ python2_dict_methods = (
     "iterkeys",  # has full dict coverage
     "itervalues",  # has full dict coverage
     "keys",  # has full dict coverage
-    "pop",
-    "popitem",
+    "pop",  # has full dict coverage
+    "popitem",  # has full dict coverage
     "setdefault",  # has full dict coverage
-    "update",
+    "update",  # has full dict coverage
     "values",  # has full dict coverage
     "viewitems",  # has full dict coverage
     "viewkeys",  # has full dict coverage
     "viewvalues",  # has full dict coverage
 )
+
 python3_dict_methods = (
+    # see Python2 methods, these are only less
     "clear",
     "copy",
     "fromkeys",
@@ -87,50 +90,198 @@ python3_dict_methods = (
     "values",
 )
 
-for method_name in python2_dict_methods:
-    attribute_information.setdefault(method_name, []).append("tshape_dict")
+python2_str_methods = (
+    "capitalize",
+    "center",
+    "count",
+    "decode",
+    "encode",
+    "endswith",
+    "expandtabs",
+    "find",
+    "format",
+    "index",
+    "isalnum",
+    "isalpha",
+    "isdigit",
+    "islower",
+    "isspace",
+    "istitle",
+    "isupper",
+    "join",
+    "ljust",
+    "lower",
+    "lstrip",
+    "partition",  # has full str coverage
+    "replace",
+    "rfind",
+    "rindex",
+    "rjust",
+    "rpartition",  # has full str coverage
+    "rsplit",
+    "rstrip",
+    "split",
+    "splitlines",
+    "startswith",
+    "strip",
+    "swapcase",
+    "title",
+    "translate",
+    "upper",
+    "zfill",
+)
 
-    key = method_name, "tshape_dict"
-    if hasattr(nuitka.specs.BuiltinDictOperationSpecs, "dict_%s_spec" % method_name):
-        attribute_shape_operations[key] = True
-    else:
-        attribute_shape_operations[key] = False
+python3_str_methods = (
+    "capitalize",
+    "casefold",
+    "center",
+    "count",
+    "encode",
+    "endswith",
+    "expandtabs",
+    "find",
+    "format",
+    "format_map",
+    "index",
+    "isalnum",
+    "isalpha",
+    "isascii",
+    "isdecimal",
+    "isdigit",
+    "isidentifier",
+    "islower",
+    "isnumeric",
+    "isprintable",
+    "isspace",
+    "istitle",
+    "isupper",
+    "join",
+    "ljust",
+    "lower",
+    "lstrip",
+    "maketrans",
+    "partition",  # has full str coverage
+    "removeprefix",
+    "removesuffix",
+    "replace",
+    "rfind",
+    "rindex",
+    "rjust",
+    "rpartition",  # has full str coverage
+    "rsplit",
+    "rstrip",
+    "split",
+    "splitlines",
+    "startswith",
+    "strip",
+    "swapcase",
+    "title",
+    "translate",
+    "upper",
+    "zfill",
+)
 
-    if method_name not in python3_dict_methods:
-        attribute_shape_versions[key] = "str is bytes"
 
-    spec = getattr(
-        nuitka.specs.BuiltinDictOperationSpecs, "dict_%s_spec" % method_name, None
-    )
+def processTypeShapeAttribute(
+    shape_name, spec_module, python2_methods, python3_methods
+):
+    # Many cases to consider, pylint: disable=too-many-branches
 
-    if spec is not None:
-        if spec.isStarListSingleArg():
-            attribute_shape_args[key] = (
-                spec.getStarListArgumentName(),
-                spec.getStarDictArgumentName(),
-            )
+    for method_name in python2_methods:
+        attribute_information.setdefault(method_name, set()).add(shape_name)
 
-            attribute_shape_variations[key] = tuple(range(required, required + 2))
+        spec_name = shape_name.split("_")[-1] + "_" + method_name + "_spec"
 
-            attribute_shape_node_arg_mapping[key] = {
-                "list_args": "iterable",
-                "kw_args": "pairs",
-            }
-        elif spec.getDefaultCount():
-            required = spec.getArgumentCount() - spec.getDefaultCount()
-
-            attribute_shape_variations[key] = tuple(
-                range(required, spec.getArgumentCount() + 1)
-            )
-
-            attribute_shape_args[key] = spec.getArgumentNames()
+        key = method_name, shape_name
+        if hasattr(spec_module, spec_name):
+            attribute_shape_operations[key] = True
         else:
-            attribute_shape_args[key] = spec.getArgumentNames()
+            attribute_shape_operations[key] = False
+
+        if method_name not in python3_methods:
+            attribute_shape_versions[key] = "str is bytes"
+
+        spec = getattr(spec_module, spec_name, None)
+
+        if spec is not None:
+            if spec.isStarListSingleArg():
+                attribute_shape_args[key] = (
+                    spec.getStarListArgumentName(),
+                    spec.getStarDictArgumentName(),
+                )
+
+                attribute_shape_variations[key] = tuple(range(required, required + 2))
+
+                attribute_shape_node_arg_mapping[key] = {
+                    "list_args": "iterable",
+                    "kw_args": "pairs",
+                }
+            elif spec.getDefaultCount():
+                required = spec.getArgumentCount() - spec.getDefaultCount()
+
+                attribute_shape_variations[key] = tuple(
+                    range(required, spec.getArgumentCount() + 1)
+                )
+
+                attribute_shape_args[key] = spec.getArgumentNames()
+            else:
+                attribute_shape_args[key] = spec.getArgumentNames()
+
+    for method_name in python3_methods:
+        attribute_information.setdefault(method_name, set()).add(shape_name)
+
+        spec_name = shape_name.split("_")[-1] + "_" + method_name + "_spec"
+
+        key = method_name, shape_name
+        if hasattr(spec_module, spec_name):
+            attribute_shape_operations[key] = True
+        else:
+            attribute_shape_operations[key] = False
+
+        if method_name not in python2_methods:
+            attribute_shape_versions[key] = "str is not bytes"
+
+        spec = getattr(spec_module, spec_name, None)
+
+        if spec is not None:
+            if spec.isStarListSingleArg():
+                attribute_shape_args[key] = (
+                    spec.getStarListArgumentName(),
+                    spec.getStarDictArgumentName(),
+                )
+
+                attribute_shape_variations[key] = tuple(range(required, required + 2))
+
+                attribute_shape_node_arg_mapping[key] = {
+                    "list_args": "iterable",
+                    "kw_args": "pairs",
+                }
+            elif spec.getDefaultCount():
+                required = spec.getArgumentCount() - spec.getDefaultCount()
+
+                attribute_shape_variations[key] = tuple(
+                    range(required, spec.getArgumentCount() + 1)
+                )
+
+                attribute_shape_args[key] = spec.getArgumentNames()
+            else:
+                attribute_shape_args[key] = spec.getArgumentNames()
 
 
-# Python3 dict methods must be present already.
-for method_name in python3_dict_methods:
-    assert "tshape_dict" in attribute_information.get(method_name, [])
+processTypeShapeAttribute(
+    "tshape_dict",
+    nuitka.specs.BuiltinDictOperationSpecs,
+    python2_dict_methods,
+    python3_dict_methods,
+)
+
+
+processTypeShapeAttribute(
+    "tshape_str",
+    nuitka.specs.BuiltinStrOperationSpecs,
+    python2_str_methods,
+    python3_str_methods,
+)
 
 
 def emitGenerationWarning(emit, template_name):
@@ -197,7 +348,7 @@ def makeAttributeNodes():
         emit("from .NodeBases import SideEffectsFromChildrenMixin")
 
         emit("attribute_classes = {}")
-        emit("attribute_typed_classes = {}")
+        emit("attribute_typed_classes = set()")
 
         for attribute_name, shape_names in sorted(attribute_information.items()):
             # Some attributes lead to different operations for Python3.

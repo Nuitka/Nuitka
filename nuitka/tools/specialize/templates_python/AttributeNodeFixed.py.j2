@@ -27,10 +27,22 @@
 {% set dict_shape = 0 %}
 {% endif %}
 
+{% if "tshape_str" in shape_names %}
+{% set str_shape = 1 %}
+{% set str_operation_version_check = attribute_shape_versions.get((attribute_name, "tshape_str")) %}
+{% set str_operation_version_presence = attribute_shape_operations.get((attribute_name, "tshape_str")) %}
+{% set str_operation_args = attribute_shape_args.get((attribute_name, "tshape_str")) %}
+{% set str_operation_variation = attribute_shape_variations.get((attribute_name, "tshape_str")) %}
+{% set str_operation_node_arg_mapping = attribute_shape_node_arg_mapping.get((attribute_name, "tshape_str")) %}
+{% else %}
+{% set str_shape = 0 %}
+{% endif %}
+
+
 {% set attribute_name_class = attribute_name.replace("_", "").title() %}
 
 class ExpressionAttributeLookupFixed{{attribute_name_class}}(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value {{attribute_name_class}} of an object.
+    """Looking up an attribute value '{{attribute_name}}' of an object.
 
     Typically code like: source.{{attribute_name}}
     """
@@ -52,6 +64,18 @@ class ExpressionAttributeLookupFixed{{attribute_name_class}}(ExpressionAttribute
             )
 
             return result, "new_expression", "Attribute lookup '{{attribute_name}}' on dict shape resolved."
+{% endif %}
+{% if str_shape %}
+{% if str_operation_version_check %}
+        if {{str_operation_version_check}} and subnode_expression.hasShapeStrExact():
+{% else %}
+        if subnode_expression.hasShapeStrExact():
+{% endif %}
+            result = ExpressionAttributeLookupStr{{attribute_name_class}}(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return result, "new_expression", "Attribute lookup '{{attribute_name}}' on str shape resolved."
 {% endif %}
 
         return subnode_expression.computeExpressionAttribute(
@@ -142,6 +166,85 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
     # No computeExpressionCall as dict operation ExpressionDictOperation{{attribute_name_class}} is not yet implemented
 {% endif %}
 
-attribute_typed_classes["{{attribute_name}}"] = ExpressionAttributeLookupDict{{attribute_name_class}}
+attribute_typed_classes.add(ExpressionAttributeLookupDict{{attribute_name_class}})
+
+{% endif %}
+
+{% if "tshape_str" in shape_names %}
+
+{% if str_operation_version_presence %}
+from nuitka.specs.BuiltinStrOperationSpecs import str_{{attribute_name}}_spec
+{% endif %}
+
+class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixed{{attribute_name_class}}):
+    """Attribute {{attribute_name_class}} lookup on a str.
+
+    Typically code like: some_str.{{attribute_name}}
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_{{attribute_name_class.upper()}}"
+    attribute_name = "{{attribute_name}}"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+{% if str_operation_version_presence %}
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperation{{attribute_name_class}}({{formatArgs(str_operation_args)}} source_ref):
+{% if python3_operation_name %}
+            if str is bytes:
+                from .StrNodes import ExpressionStrOperation{{attribute_name_class}}
+
+                return ExpressionStrOperation{{attribute_name_class}}(
+                    str_arg=self.subnode_expression, source_ref=source_ref
+                )
+            else:
+                from .StrNodes import ExpressionStrOperation{{python3_operation_name.title()}}
+
+                return ExpressionStrOperation{{python3_operation_name.title()}}(
+                    str_arg=self.subnode_expression, source_ref=source_ref
+                )
+{% else %}
+{% if str_operation_variation %}
+{% for count in reversed(str_operation_variation[1:]) %}
+            {{"if" if count == str_operation_variation[-1] else "elif"}} {{str_operation_args[count-1]}} is not None:
+                from .StrNodes import ExpressionStrOperation{{attribute_name_class}}{{count+1}}
+
+                return ExpressionStrOperation{{attribute_name_class}}{{count+1}}(
+                    str_arg=self.subnode_expression, {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:count])}}, source_ref=source_ref
+                )
+{% endfor %}
+            else:
+                from .StrNodes import ExpressionStrOperation{{attribute_name_class}}{{str_operation_variation[0]+1}}
+
+                return ExpressionStrOperation{{attribute_name_class}}{{str_operation_variation[0]+1}}(
+                    str_arg=self.subnode_expression, {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:str_operation_variation[0]])}}, source_ref=source_ref
+                )
+
+{% else %}
+            from .StrNodes import ExpressionStrOperation{{attribute_name_class}}
+
+            return ExpressionStrOperation{{attribute_name_class}}(
+                str_arg=self.subnode_expression {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args, starting=False)}}, source_ref=source_ref
+            )
+{% endif %}
+{% endif %}
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperation{{attribute_name_class}},
+            builtin_spec=str_{{attribute_name}}_spec,
+        )
+
+        return result, "new_expression", "Call to '{{attribute_name}}' of str recognized."
+{% else %}
+    # No computeExpressionCall as str operation ExpressionStrOperation{{attribute_name_class}} is not yet implemented
+{% endif %}
+
+attribute_typed_classes.add(ExpressionAttributeLookupStr{{attribute_name_class}})
 
 {% endif %}

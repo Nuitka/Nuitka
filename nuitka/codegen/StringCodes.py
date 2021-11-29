@@ -27,7 +27,7 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode
-from .PythonAPICodes import generateCAPIObjectCode
+from .PythonAPICodes import generateCAPIObjectCode, makeArgDescFromExpression
 from .TupleCodes import getTupleCreationCode
 
 
@@ -222,6 +222,45 @@ def generateBuiltinAsciiCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="PyObject_ASCII",
         arg_desc=(("ascii_arg", expression.subnode_value),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateStrOperationJoinCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="STR_JOIN" if str is bytes else "UNICODE_JOIN",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateStrOperationPartitionCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="STR_PARTITION" if str is bytes else "UNICODE_PARTITION",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateStrOperationRpartitionCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="STR_RPARTITION" if str is bytes else "UNICODE_RPARTITION",
+        arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),

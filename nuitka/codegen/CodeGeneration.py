@@ -278,6 +278,9 @@ from .StringCodes import (
     generateBuiltinStrCode,
     generateBuiltinUnicodeCode,
     generateStringContenationCode,
+    generateStrOperationJoinCode,
+    generateStrOperationPartitionCode,
+    generateStrOperationRpartitionCode,
 )
 from .SubscriptCodes import (
     generateAssignmentSubscriptCode,
@@ -677,6 +680,9 @@ addExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_POP3": generateDictOperationPop3Code,
         "EXPRESSION_DICT_OPERATION_UPDATE2": generateDictOperationUpdate2Code,
         "EXPRESSION_DICT_OPERATION_UPDATE3": generateDictOperationUpdate3Code,
+        "EXPRESSION_STR_OPERATION_JOIN": generateStrOperationJoinCode,
+        "EXPRESSION_STR_OPERATION_PARTITION": generateStrOperationPartitionCode,
+        "EXPRESSION_STR_OPERATION_RPARTITION": generateStrOperationRpartitionCode,
         "EXPRESSION_FUNCTION_CREATION": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
         "EXPRESSION_FUNCTION_ERROR_STR": generateFunctionErrorStrCode,
@@ -777,10 +783,7 @@ addExpressionDispatchDict(
 
 # Add code generation for the EXPRESSION_ATTRIBUTE_LOOKUP_DICT|LIST|STR_* variety
 addExpressionDispatchDict(
-    dict(
-        (cls.kind, generateAttributeLookupCode)
-        for cls in attribute_typed_classes.values()
-    )
+    dict((cls.kind, generateAttributeLookupCode) for cls in attribute_typed_classes)
 )
 
 setStatementDispatchDict(
