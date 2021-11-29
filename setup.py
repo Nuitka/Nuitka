@@ -272,6 +272,15 @@ if sys.version_info[0] == 2:
 else:
     binary_suffix = "%d" % sys.version_info[0]
 
+if os.name == "nt":
+    console_scripts = []
+else:
+    console_scripts = [
+        "nuitka%s = nuitka.__main__:main" % binary_suffix,
+        "nuitka%s-run = nuitka.__main__:main" % binary_suffix,
+    ]
+
+
 with open("README.rst", "rb") as input_file:
     long_description = input_file.read().decode("utf8")
 
@@ -381,9 +390,6 @@ Python compiler with full language support and CPython compatibility""",
         "distutils.setup_keywords": [
             "build_with_nuitka = nuitka.distutils.DistutilCommands:setupNuitkaDistutilsCommands"
         ],
-        "console_scripts": [
-            "nuitka%s = nuitka.__main__:main" % binary_suffix,
-            "nuitka%s-run = nuitka.__main__:main" % binary_suffix,
-        ],
+        "console_scripts": console_scripts,
     },
 )
