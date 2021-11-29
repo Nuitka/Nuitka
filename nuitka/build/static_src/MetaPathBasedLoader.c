@@ -745,6 +745,23 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
         return module;
     } else {
         def = PyModule_GetDef(module);
+
+        // Fixup __package__ after load. It seems some modules ignore _Py_PackageContext value.
+        // so we patch it up here if it's None, but a package was specified.
+        if (package != NULL) {
+            PyObject *package_name = LOOKUP_ATTRIBUTE(module, const_str_plain___package__);
+
+            if (package_name == Py_None) {
+                char package2[1024];
+                copyStringSafeN(package2, full_name, dot - full_name, sizeof(package2));
+
+                PyObject *package_name_obj = Nuitka_String_FromString(package2);
+                SET_ATTRIBUTE(module, const_str_plain___package__, package_name_obj);
+                Py_DECREF(package_name_obj);
+            }
+
+            Py_DECREF(package_name);
+        }
     }
 
     if (likely(def != NULL)) {
