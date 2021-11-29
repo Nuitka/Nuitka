@@ -32,7 +32,6 @@ from nuitka.PythonVersions import python_version
 
 from .NodeBases import ChildrenHavingMixin, NodeBase
 from .NodeMakingHelpers import (
-    getComputationResult,
     makeConstantReplacementNode,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithNodeSideEffects,
@@ -1070,8 +1069,7 @@ Compile time constant bytes value pre-computed.""",
         if lower is not None:
             if upper is not None:
                 if lower.isCompileTimeConstant() and upper.isCompileTimeConstant():
-
-                    return getComputationResult(
+                    return trace_collection.getCompileTimeComputationResult(
                         node=lookup_node,
                         computation=lambda: self.getCompileTimeConstant()[
                             lower.getCompileTimeConstant() : upper.getCompileTimeConstant()
@@ -1081,7 +1079,7 @@ Compile time constant bytes value pre-computed.""",
                     )
             else:
                 if lower.isCompileTimeConstant():
-                    return getComputationResult(
+                    return trace_collection.getCompileTimeComputationResult(
                         node=lookup_node,
                         computation=lambda: self.getCompileTimeConstant()[
                             lower.getCompileTimeConstant() :
@@ -1092,7 +1090,7 @@ Compile time constant bytes value pre-computed.""",
         else:
             if upper is not None:
                 if upper.isCompileTimeConstant():
-                    return getComputationResult(
+                    return trace_collection.getCompileTimeComputationResult(
                         node=lookup_node,
                         computation=lambda: self.getCompileTimeConstant()[
                             : upper.getCompileTimeConstant()
@@ -1101,22 +1099,21 @@ Compile time constant bytes value pre-computed.""",
                         user_provided=False,
                     )
             else:
-                return getComputationResult(
+                return trace_collection.getCompileTimeComputationResult(
                     node=lookup_node,
                     computation=lambda: self.getCompileTimeConstant()[:],
                     description="Slicing of constant with no indexes.",
                     user_provided=False,
                 )
 
-        # Any exception might be raised.
-        if lookup_node.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
+        # Any exception might be raised, although it's not likely.
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
 
     def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
         if value_node.isCompileTimeConstant():
-            return getComputationResult(
+            return trace_collection.getCompileTimeComputationResult(
                 node=in_node,
                 computation=lambda: in_node.getSimulator()(
                     value_node.getCompileTimeConstant(), self.getCompileTimeConstant()

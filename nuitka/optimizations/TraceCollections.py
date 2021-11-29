@@ -853,12 +853,14 @@ class TraceCollectionBase(object):
     def onLocalsDictEscaped(self, locals_scope):
         self.parent.onLocalsDictEscaped(locals_scope)
 
-    def getCompileTimeComputationResult(self, node, computation, description):
+    def getCompileTimeComputationResult(
+        self, node, computation, description, user_provided=False
+    ):
         new_node, change_tags, message = getComputationResult(
             node=node,
             computation=computation,
             description=description,
-            user_provided=False,
+            user_provided=user_provided,
         )
 
         if change_tags == "new_raise":
