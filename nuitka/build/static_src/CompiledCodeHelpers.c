@@ -820,11 +820,14 @@ void PRINT_REFCOUNT(PyObject *object) {
 }
 
 bool PRINT_STRING(char const *str) {
-    PyObject *tmp = PyUnicode_FromString(str);
-    bool res = PRINT_ITEM(tmp);
-    Py_DECREF(tmp);
-
-    return res;
+    if (str) {
+        PyObject *tmp = PyUnicode_FromString(str);
+        bool res = PRINT_ITEM(tmp);
+        Py_DECREF(tmp);
+        return res;
+    } else {
+        return PRINT_STRING("<nullstr>");
+    }
 }
 
 bool PRINT_FORMAT(char const *fmt, ...) {
