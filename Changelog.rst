@@ -250,6 +250,11 @@ New Features
    ``PySide2`` or ``PySide6`` is very much recommended with Nuitka, this
    allows its use.
 
+-  UI: Added option ``--low-memory`` to allow the user to specify that
+   the compilation should attempt to use less memory where possible,
+   this increases compile times, but might enable compilation on some
+   weaker machines.
+
 Optimization
 ============
 
@@ -267,7 +272,7 @@ Optimization
    used on constant values where possible.
 
 -  Also added dedicated attribute nodes for string operations. For
-   operations, currently only part o the methods are done. These are
+   operations, currently only part of the methods are done. These are
    currently only ``join``, ``strip``, ``lstrip``, ``rstrip``,
    ``partition``, ``rpartition``. Besides performance, this subset was
    enough to cover compile time evaluation of module name computation
@@ -340,9 +345,17 @@ Optimization
    ``typing.TYPE_CHECKING``.
 
 -  Also compute named import lookup through variables, expanding their
-   use to more cases.
+   use to more cases, e.g. like this:
 
--  Also optimize compile time comparisons through variable names.
+   .. code::
+
+      import sys
+      ...
+      if sys.version_info.major >= 3:
+         ...
+
+-  Also optimize compile time comparisons through variable names if
+   possible, i.e. the value cannot have changed.
 
 -  Faster calls of uncompiled code with Python3.9 or higher avoiding DLL
    call overhead.
@@ -350,21 +363,23 @@ Optimization
 Organisational
 ==============
 
+-  Commercial: There are ``Buy Now`` buttons available now for the
+   direct purchase of the `Nuitka Commercial </pages/commercial.html>`__
+   offering. Finally Credit Card, Google Pay, and Apple Pay are all
+   possible. This is using Stripe. Get in touch with me if you want to
+   use bank transfer, which is of course still best for me.
+
 -  Windows: Added support for Visual Studio 2022 by updating the inline
    copy of Scons used for Windows to version 4.3.0, on non Windows, the
    other ones will keep being used.
 
--  Windows: Requiring latest MinGW64 with version as released by
+-  Windows: Requiring latest MinGW64 with version 11.2 as released by
    winlibs, because this is known to allow LTO, where previous releases
    were missing needed binaries.
 
--  Reject standalone mode usage with Apple Python, works only with the
-   other supported Pythons.
-
--  UI: Added option ``--low-memory`` to allow the user to specify that
-   the compilation should attempt to use less memory where possible,
-   this increases compile times, but might enable compilation on some
-   weaker machines.
+-  Reject standalone mode usage with Apple Python, as it works only with
+   the other supported Pythons, avoiding pitfalls in attempting to
+   distribute it.
 
 -  Move hosting of documentation to Sphinx, added Changelog and some
    early parts of API documentation there too. This gives much more
@@ -381,15 +396,18 @@ Organisational
    some of the subpackages.
 
 -  Started using Jinja2 in code templates with a few types, adding basic
-   infrastructure to do that.
+   infrastructure to do that. This will be expanded in the future.
 
 -  Updated plugin documentation with more recent information.
 
--  Added Python flavor as detected to the ``--version`` output.
+-  Added Python flavor as detected to the ``--version`` output for
+   improved bug reports.
 
--  Linux: Added distribution name to ``--version`` output.
+-  Linux: Added distribution name to ``--version`` output for improved
+   bug reports.
 
--  Always enable the ``gevent`` plugin.
+-  Always enable the ``gevent`` plugin, we want to achieve this for all
+   plugins, and this is only a step in that direction.
 
 -  Added project URLs for PyPI, so people looking at it from there have
    some immediate places to checkout.
@@ -412,9 +430,10 @@ Cleanups
 
 -  Massive cleanups of all documentation in ReST format. Plenty of
    formatting errors were resolved. Many typos were identified and
-   globally fixed. Spellings e.g. of Developer Manual are now enforced.
-   Also missing or wrong quotes were turned to proper method. Also
-   enforce code language for shell scripts to be the same everywhere.
+   globally fixed. Spellings e.g. of "Developer Manual" are now enforced
+   with automatic replacements. Also missing or wrong quotes were turned
+   to proper methods. Also enforce code language for shell scripts to be
+   the same everywhere.
 
 -  Removed last usages of ``getPythonFlags()`` and made the function
    private, replacing their use with dedicated function to check for
@@ -433,46 +452,85 @@ Cleanups
 
 -  Remove code geared to using old PyLint and on Python2, we no longer
    use that. Also removed annotations only used for overriding Python2
-   builtins.
+   builtins from Nuitka code.
 
--  PDF specific changes are pushed into being applied only in the PDF
-   building step, avoiding errors for raw PDF directives.
+-  The PDF specific annotations were moved into being applied only in
+   the PDF building step, avoiding errors for raw PDF directives.
 
--  Apply Visual Code autoformat to our Yaml files.
+-  Apply Visual Code autoformat to our Yaml files. This is unfortunately
+   not and automatic formatting yet.
 
--  Introduce dedicated Json module, as we intend to expand its usage,
-   e.g. for caching.
+-  Introduce dedicated ``nuitka.utils.Json`` module, as we intend to
+   expand its usage, e.g. for caching.
 
--  Removed remaining usages of ``print`` function that should use
-   tracing.
+-  Replacing remaining usages of ``print`` functions with uses of
+   ``nuitka.Tracing`` instead.
 
 -  Massive cleanup of the ``gevent`` plugin, user proper method to
    execute code after module load, rather than source patching without
-   need. Plugin no longer messes with inclusions that standalone already
-   provides.
+   need. The plugin no longer messes with inclusions that other code
+   already provides for standalone.
 
 -  Using own helper to update ``sys`` module attributes, to avoid errors
    from old C compilers, and also cleaning up using code to not have to
    cast on string constants.
 
--  More consistent naming of plugin classes, and relationship of detect
-   classes names to detected plugins. The new consistency is now
-   enforced.
+-  More consistent naming of plugin classes, and enforce a relationship
+   of detector class names to the names of detected plugins. The new
+   naming consistency is now enforced.
 
 Tests
 =====
 
--  Added CPython 3.10 test suite.
+-  Added CPython 3.10 test suite, it needs more work though.
 
 -  Added generated test that exercises dictionary methods in multiple
    variations.
 
--  Test suite names were wrong in a few of them.
+-  Test suite names were specified wrongly in a few of them.
 
 Summary
 =======
 
-This release is not done yet.
+This release is again a huge step forward. It refines on PGO and LTO for
+C level to work with all relevant compilers. Internally Python level PGO
+is prepared, but only a future release will feature it. With that,
+scalability improvements as well as even more performance improvements
+will be unlocked.
+
+The amount of optimization added this time is even bigger, some of which
+unlocks static optimization of module imports, that previously would
+have to be considered implicit. This work will need one extra step,
+namely to also trace hard imports on the function level, then this will
+be an extremely powerful tool to solve these kinds of issues in the
+future.
+
+With the dictionary methods, and some string methods, also a whole new
+kind of optimization has been started. These will make working with
+``dict`` containers faster, but obviously a lot of ground is to cover
+there still, e.g. ``list`` values are a natural target not yet started.
+Future releases will progress here.
+
+Type specialization for Python3 has not progressed though, and will have
+to be featured in a future releases though.
+
+For scalability, the ``anti-bloat`` work has continued, and this should
+be the last release, where this is not on by default. Compiling without
+it is something that is immediately noticeable in exploding module
+amounts. It is very urgently recommended to enable it for your
+compilations.
+
+The support for macOS has been refined, with version information being
+possible to add, and adding information to the binary about which OSes
+are supported, as well as rejecting Apple Python, which is only a trap
+if you want to deploy to other OS versions. More work will be needed to
+support ``pyenv`` or even Homebrew there too, for now CPython is still
+the recommended platform to use.
+
+This release achieves major compatibility improvements. And of course,
+the experimental support for 3.10 is not the least. The next release
+will strive to complete the support for it fully, but this should be
+usable at least.
 
 ***********************
  Nuitka Release 0.6.17
