@@ -92,14 +92,16 @@ def getBranchCategory(branch_name):
 
 def checkNuitkaChangelog():
     with openTextFile("Changelog.rst", "r") as f:
-        # First line is an overline, check that.
-        first_line = f.readline().strip()
-        assert first_line.startswith("###") and first_line.endswith("###")
+        # First paragraph doesn't count
+        while True:
+            line = f.readline().strip()
+            if line.startswith("***") and line.endswith("***"):
+                break
 
         # Second line is the actual title.
-        second_line = f.readline()
+        line = f.readline()
 
-    if "(Draft)" in second_line:
+    if "(Draft)" in line:
         return "draft"
     else:
         return "final"
