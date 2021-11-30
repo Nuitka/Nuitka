@@ -69,3 +69,4 @@ doxygen-*
 .vscode/ipch
 .vscode/tags
 .vscode/.ropeproject
+Nuitka-*
