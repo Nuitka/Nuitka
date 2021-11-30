@@ -13,6 +13,10 @@ Nuitka blog.
 Bug Fixes
 =========
 
+-  Python3.6+: Fixes to asyncgen, need to raise ``StopAsyncInteration``
+   rather than ``StopIteration`` in some situations to be fully
+   compatible.
+
 -  Onefile: Fix, LTO mode was always enabled for onefile compilation,
    but not all compilers support it yet, e.g. MinGW64 did not. Fixed in
    0.6.17.1 already.
@@ -20,37 +24,39 @@ Bug Fixes
 -  Fix, ``type`` calls with 3 arguments didn't annotate their potential
    exception exit. Fixed in 0.6.17.2 already.
 
--  Fix, trusted module constants were not working properly. Fixed in
-   0.6.17.2 already.
+-  Fix, trusted module constants were not working properly in all cases.
+   Fixed in 0.6.17.2 already.
 
--  Fix, ``pkg-resources`` was compile time error exiting for unresolved
-   requirements in code, but these can of course still be optional.
-   Instead give only a warning, and runtime fail on these. Fixed in
-   0.6.17.2 already.
+-  Fix, ``pkg-resources`` exiting with error at compile time for
+   unresolved requirements in compiled code, but these can of course
+   still be optional, i.e. that code would never run. Instead give only
+   a warning, and runtime fail on these. Fixed in 0.6.17.2 already.
 
--  Standalone: Prevent inclusion of drm libraries on Linux, they should
-   come from the OS. Fixed in 0.6.17.2 already.
+-  Standalone: Prevent the inclusion of ``drm`` libraries on Linux, they
+   have to come from the target OS at runtime. Fixed in 0.6.17.2
+   already.
 
 -  Standalone: Added missing implicit dependency for ``ipcqueue``
    module. Fixed in 0.6.17.3 already.
 
--  Fix, webengine support for everything but PySide2 wasn't working
-   properly. Partially fixed in 0.6.17.3 already.
+-  Fix, Qt webengine support for everything but ``PySide2`` wasn't
+   working properly. Partially fixed in 0.6.17.3 already.
 
--  Windows: Fix, bootstrap splash screen code for Windows was included
-   in the release. Fixed in 0.6.17.3 already.
+-  Windows: Fix, bootstrap splash screen code for Windows was missing in
+   release packages. Fixed in 0.6.17.3 already.
 
--  Fix, could crash on implicit data directories not present. Fixed in
+-  Fix, could crash on known implicit data directories not present.
+   Fixed in 0.6.17.3 already.
+
+-  macOS: Disable download of ``ccache`` binary for M1 architecture and
+   systems before macOS 10.14 as it doesn't work on these. Fixed in
    0.6.17.3 already.
 
--  macOS: Disable download of ccache binary for M1 and pre-10.14
-   systems, doesn't work on these. Fixed in 0.6.17.3 already.
-
--  Standalone: The ``pendulum.locals`` handling was for Python 3.6 was
+-  Standalone: The ``pendulum.locals`` handling for Python 3.6 was
    regressed. Fixed in 0.6.17.4 already.
 
--  Onefile: Make sure child is cleaned up even after successful exit.
-   Fixed in 0.6.17.4 already.
+-  Onefile: Make sure the child process is cleaned up even after its
+   successful exit. Fixed in 0.6.17.4 already.
 
 -  Standalone: Added support for ``xmlschema``. Fixed in 0.6.17.4
    already.
@@ -61,11 +67,24 @@ Bug Fixes
 -  Standalone: Added support for ``coincurve`` module. Fixed in 0.6.17.5
    already.
 
--  Python3.4-7: Workaround for unset stream encoding (was ASCII), other
+-  Python3.4+: Up until Python3.7 inclusive, a workaround for stream
+   encoding (was ASCII), causing crashes on output of non-ASCII, other
    Python versions are not affected. Fixed in 0.6.17.5 already.
 
--  Python2: Workaround for LTO error from older gcc. Fixed in 0.6.17.5
+-  Python2: Workaround for LTO error messages from older gcc versions.
+   Fixed in 0.6.17.5 already.
+
+-  Standalone: Added support for ``win32print``. Fixed in 0.6.17.6
    already.
+
+-  Fix, need to prevent usage of static ``libpython`` in module mode or
+   else on some Python versions, linker errors can happen. Fixed in
+   0.6.17.6 already.
+
+-  Standalone: Do not load ``site`` module early anymore. This might
+   have caused issues in some configurations, but really only would be
+   needed for loading ``inspect`` which doesn`t depend on it in
+   standalone mode. Fixed in 0.6.17.6 already.
 
 -  Fix, could crash with generator expressions in finally blocks of
    tried blocks that return. Fixed in 0.6.17.7 already.
@@ -77,9 +96,9 @@ Bug Fixes
       finally:
          "".join(x for x in b"some_iterable")
 
--  Python3.5: Fix, comparisons with ``types.CoroutineType`` and
-   ``types.AsyncGeneratorType`` types didn't work yet. Fixed in 0.6.17.7
-   already.
+-  Python3.5+: Compatibility of comparisons with ``types.CoroutineType``
+   and ``types.AsyncGeneratorType`` types was not yet implemented. Fixed
+   in 0.6.17.7 already.
 
    .. code:: python
 
@@ -90,68 +109,6 @@ Bug Fixes
       # These now work too:
       assert type(compiledCoroutine()) == types.CoroutineType
       assert type(compiledAsyncgen()) == types.AsyncGeneratorType
-
--  Standalone: Properly detect usage of hard imports from standard
-   library in ``--follow-stdlib`` mode.
-
--  Standalone: Added data files for ``opensapi_spec_validator``.
-
--  Compatibility: Fix, comparison with coroutine and asyncgen types were
-   not working.
-
--  Fix, need to prevent usage of static libpython in module mode or else
-   linker errors can happen. Fixed in 0.6.17.6 already.
-
--  MSYS2: Fix, need to normalize compiler paths before comparing.
-
--  Anaconda: For accelerated binaries, the created CMD file wasn't
-   working.
-
--  Standalone: Added support for ``bottle.ext`` loading extensions to
-   solve at compile time.
-
--  macOS: Set minimum OS version derived from the Python executable
-   used, this should make it work on all supported platforms (of that
-   Python).
-
--  Standalone: Added support for ``win32print``. Fixed in 0.6.17.6
-   already.
-
--  Standalone: Added support for automatic inclusion of ``xmlschema``
-   package datafiles.
-
--  Standalone: Added support for automatic inclusion of ``eel`` package
-   datafiles.
-
--  Standalone: Added support for ``h5py`` package.
-
--  Standalone: Added support for ``phonenumbers`` package.
-
--  Standalone: Added support for ``feedparser`` package, this currently
-   depends on the ``anti-bloat`` plugin to be enabled, which will become
-   enabled by default in the future.
-
--  Standalone: Added ``gi`` plugin for said package that copies
-   ``typelib`` files and sets the search path for them in standalone
-   mode.
-
--  Standalone: Added necessary ``eel`` package datafile.
-
--  Standalone: Added support for ``QtWebEngine`` to all Qt bindings.
-
--  Python3: Fix, the ``all`` built-in was wrongly assuming that bytes
-   values could not be False, but in fact ``\0`` is actually false.
-
--  Windows: The LTO was supposed to be automatically on with MSVC 14.2
-   or higher, but that was regressed and has been repaired.
-
--  Standalone: Extension modules contained in packages, depending on
-   their mode of loading had the ``__package__`` value set to a wrong
-   value, which at least impacted new matplotlib detection of Qt
-   backend.
-
--  Windows: The ``python setup.py install`` was installing binaries for
-   no good reason.
 
 -  Standalone: Added support for ``ruamel.yaml``. Fixed in 0.6.17.7
    already.
@@ -171,37 +128,96 @@ Bug Fixes
    Python source files to exist to be able to load datafiles. Fixed in
    0.6.16.7 already.
 
+-  Standalone: Properly detect usage of hard imports from standard
+   library in ``--follow-stdlib`` mode.
+
+-  Standalone: Added data files for ``opensapi_spec_validator``.
+
+-  MSYS2: Fix, need to normalize compiler paths before comparing.
+
+-  Anaconda: For accelerated binaries, the created ``.cmd`` file wasn't
+   containing all needed environment.
+
+-  Standalone: Added support for ``bottle.ext`` loading extensions to
+   resolve at compile time.
+
+-  macOS: Set minimum OS version derived from the Python executable
+   used, this should make it work on all supported platforms (of that
+   Python).
+
+-  Standalone: Added support for automatic inclusion of ``xmlschema``
+   package datafiles.
+
+-  Standalone: Added support for automatic inclusion of ``eel`` package
+   datafiles.
+
+-  Standalone: Added support for ``h5py`` package.
+
+-  Standalone: Added support for ``phonenumbers`` package.
+
+-  Standalone: Added support for ``feedparser`` package, this currently
+   depends on the ``anti-bloat`` plugin to be enabled, which will become
+   enabled by default in the future.
+
+-  Standalone: Added ``gi`` plugin for said package that copies
+   ``typelib`` files and sets the search path for them in standalone
+   mode.
+
+-  Standalone: Added necessary datafiles for ``eel`` package.
+
+-  Standalone: Added support for ``QtWebEngine`` to all Qt bindings and
+   also make it work on Linux. Before only PySide2 on Windows was
+   supported.
+
+-  Python3: Fix, the ``all`` built-in was wrongly assuming that bytes
+   values could not be false, but in fact they are if they contain
+   ``\0`` which is actually false. The same does not happen for string
+   values, but that's a difference to be considered.
+
+-  Windows: The LTO was supposed to be used automatically on with MSVC
+   14.2 or higher, but that was regressed and has been repaired now.
+
+-  Standalone: Extension modules contained in packages, depending on
+   their mode of loading had the ``__package__`` value set to a wrong
+   value, which at least impacted new matplotlib detection of Qt
+   backend.
+
+-  Windows: The ``python setup.py install`` was installing binaries for
+   no good reason.
+
 New Features
 ============
 
 -  Setuptools support. Documented ``bdist_nuitka`` and ``bdist_wheel``
    integration and added support for Nuitka as a ``build`` package
-   backend in ``pyproject.toml`` files.
+   backend in ``pyproject.toml`` files. Using Nuitka to build your
+   wheels is supposed to be easy now.
 
 -  Added experimental support for Python 3.10, there are however still
    important issues with compatibility with the CPython 3.9 test suite
    with at least asyncgen and coroutines.
 
--  Windows: Added support for LTO with MinGW64 on Windows.
-
 -  macOS: For app bundles, version information can be provided with the
    new option ``--macos-app-version``.
 
--  Added vendor detection of ``Anaconda``, ``pyenv``, ``Apple Python``,
-   and ``pyenv`` and output the result in version output.
+-  Added Python vendor detection of ``Anaconda``, ``pyenv``, ``Apple
+   Python``, and ``pyenv`` and output the result in version output, this
+   should make it easiert to analyse reported issues.
 
--  Plugins: Also handle usage of ``__name__`` for metadata version
+-  Plugins: Also handle the usage of ``__name__`` for metadata version
    resolution of the ``pkg-resources`` standard plugin.
 
 -  Plugins: The ``data-files`` standard plugin now reads configuration
    from a Yaml file that ``data-files.yml`` making it more accessible
    for contributions.
 
--  Added new experimental flag for compiled types to inherit from
-   uncompiled types. This should allow easier and more complete
-   compatibility, making even code in extension modules that uses
-   ``PyObject_IsInstance`` work, providing support for packages like
-   ``pydanctic``.
+-  Windows: Allow enforcing usage of MSVC with ``--msvc=latest``. This
+   allows you to prevent accidental usage of MinGW64 on Windows, when
+   MSVC is intended, but achieves that without fixing the version to
+   use.
+
+-  Windows: Added support for LTO with MinGW64 on Windows, this was
+   previously limited to the MSVC compiler only.
 
 -  Windows: Added support for using ``--debugger`` with the downloaded
    MinGW64 provided ``gdb.exe``.
@@ -211,9 +227,11 @@ New Features
       It doesn`t work when executed from a Git bash prompt, but e.g.
       from a standard command prompt.
 
--  Allow enforcing usage of MSVC with ``--msvc=latest``. This allows you
-   to prevent accidental usage of MinGW64 on Windows, when MSVC is
-   intended, but achieves that without fixing the version to use.
+-  Added new experimental flag for compiled types to inherit from
+   uncompiled types. This should allow easier and more complete
+   compatibility, making even code in extension modules that uses
+   ``PyObject_IsInstance`` work, providing support for packages like
+   ``pydanctic``.
 
 -  Plugins: The Qt binding plugins now resolve ``pyqtgraph`` selection
    of binding by hard coding ``QT_LIB``. This will allow to resolve its
@@ -222,51 +240,51 @@ New Features
    but we hope to get there.
 
 -  macOS: Provide ``minOS`` for standalone builds, derived from the
-   Python used.
+   setting of the Python used to create it.
 
 -  UI: Added new option ``--disable-ccache`` to prevent Nuitka from
    injecting ``ccache`` (Clang, gcc) and ``clcache`` (MSVC) for caching
    the C results of the compilation.
 
 -  Plugins: Added experimental support for ``PyQt6``. While using
-   ``PySide6`` is very much recommended with Nuitka, this allows its
-   use.
+   ``PySide2`` or ``PySide6`` is very much recommended with Nuitka, this
+   allows its use.
 
 Optimization
 ============
 
 -  Added dedicated attribute nodes for attribute values that match names
-   of dictionary operations. These will optimize into dedicate nodes for
+   of dictionary operations. These are optimized into dedicate nodes for
    methods of dictionaries should their expression have an exact
-   dictionary shape. These then optimize calls on them statically into
-   dictionary operations where they are present. This is done for all
-   methods of both Python2 and Python3, namely ``get``, ``items``,
+   dictionary shape. These in turn optimize calls on them statically
+   into dictionary operations. This is done for all methods of ``dict``
+   for both Python2 and Python3, namely ``get``, ``items``,
    ``iteritems``, ``itervalues``, ``iterkeys``, ``viewvalues``,
    ``viewkeys``, ``pop``, ``setdefault``, ``has_key``, ``clear``,
    ``copy``, ``update``.
 
-   The new operation nodes also add compile time optimization for
-   constant values where possible.
+   The new operation nodes also add compile time optimization for being
+   used on constant values where possible.
 
--  Also added dedicated attribute nodes for string operations. This is
-   currently done for part of the methods only. These are currently only
-   ``join``, ``strip``, ``lstrip``, ``rstrip``, ``partition``,
-   ``rpartition``. Besides performance, this subset was enough to cover
-   compile time evaluation of module name computation for
-   ``importlib.import_module`` as done by SWIG bindings, allowing these
-   implicit dependencies to be discovered at compile time without any
-   help
+-  Also added dedicated attribute nodes for string operations. For
+   operations, currently only part o the methods are done. These are
+   currently only ``join``, ``strip``, ``lstrip``, ``rstrip``,
+   ``partition``, ``rpartition``. Besides performance, this subset was
+   enough to cover compile time evaluation of module name computation
+   for ``importlib.import_module`` as done by SWIG bindings, allowing
+   these implicit dependencies to be discovered at compile time without
+   any help, marking a significant improvement for standalone usage.
 
 -  Annotate type shape for dictionary ``in``/``not in`` nodes, this was
-   missing unlike in generic ``in``/``not in`` nodes.
+   missing unlike in the generic ``in``/``not in`` nodes.
 
--  Faster processing of expression only statement nodes. These are
-   nodes, where a value that is computed, but not used, it still needs
+-  Faster processing of "expression only" statement nodes. These are
+   nodes, where a value is computed, but then not used, it still needs
    to be accounted for though, representing the value release.
 
    .. code:: python
 
-      something() # ignore return value, means statement only node
+      something() # ignores return value, means statement only node
 
 -  Windows: Enabled LTO by default with MinGW64, which makes it produce
    much faster results. It now yield faster binaries than MSVC 2019 with
@@ -277,45 +295,43 @@ Optimization
    compilation on Windows as well.
 
 -  Standalone: Better handling of ``requests.packages`` and
-   ``six.moves``. The old handling could duplicate there code, this now
-   uses a new mechanism to resolve metapath based importer effects at
-   compile time.
+   ``six.moves``. The old handling could duplicate their code. Now uses
+   a new mechanism to resolve metapath based importer effects at compile
+   time.
 
 -  Avoid useless exception checks in our dictionary helpers, as these
    could only occur when working with dictionary overloads, which we
    know to not be the case.
 
--  For nodes, have dedicated child mixins for single value and tuples,
-   so that this common kind of node operates faster and doesn't have to
-   check at runtime what type it is.
+-  For nodes, have dedicated child mixin classes for nodes with a single
+   child value and for nodes with a tuple of children, so that these
+   common kind of nodes operate faster and don't have to check at
+   runtime what type they are during access.
 
 -  Actually make use of the egg cache. Nuitka was unpacking eggs in
    every compilation, but in wheel installs, these can be quite common
    and should be faster.
 
--  Star arguments annotated their type shape, but methods to check for
-   dictionary exactly were not affected by this preventing optimization
-   in some cases.
+-  Star arguments annotated their type shape, but the methods to check
+   for dictionary exactly were not affected by this preventing
+   optimization in some cases.
 
 -  Added ``anti-bloat`` configuration for main programs present in the
    modules of the standard library, these can be removed from the
    compilation and should lower dependencies detected.
 
 -  Using static libpython with ``pyenv`` automatically. This should give
-   smaller and faster results.
+   both smaller (standalone mode) and faster results as is the case when
+   using this feature..
 
 -  Plugins: Added improvements to the ``anti-bloat`` plugin for
    ``gevent`` to avoid including its testing framework.
 
--  Python3.9+: Faster calls of uncompiled functions from compiled code.
+-  Python3.9+: Faster calls into uncompiled functions from compiled code
+   using newly introduced API of that version.
 
 -  Statically optimize ``importlib.import_module`` calls with constant
-   args.
-
--  Standalone: Do not load ``site`` module early anymore. This might
-   have caused issues in some configurations, but really only would be
-   needed for loading ``inspect`` which doesn`t depend on it in
-   standalone mode. Fixed in 0.6.17.6 already.
+   args into fixed name imports.
 
 -  Added support for ``sys.version_info`` to be used as a compile time
    constant. This should enable many checks to be done at compile time.
