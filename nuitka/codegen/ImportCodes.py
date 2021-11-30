@@ -29,7 +29,7 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 
@@ -144,6 +144,26 @@ def generateImportModuleFixedCode(to_name, expression, emit, context):
         getErrorExitCode(
             check_name=value_name, needs_check=needs_check, emit=emit, context=context
         )
+
+        context.addCleanupTempName(value_name)
+
+        # IMPORT_MODULE1 doesn't give the child module if one is imported.
+        if "." in module_name:
+            getReleaseCode(value_name, emit, context)
+
+            emit(
+                """%s = Nuitka_GetModule(%s);"""
+                % (value_name, context.getConstantCode(module_name.asString()))
+            )
+
+            getErrorExitCode(
+                check_name=value_name,
+                needs_check=needs_check,
+                emit=emit,
+                context=context,
+            )
+
+            context.addCleanupTempName(value_name)
 
 
 def generateImportModuleHardCode(to_name, expression, emit, context):
