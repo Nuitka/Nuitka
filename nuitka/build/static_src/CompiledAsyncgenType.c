@@ -395,6 +395,7 @@ static PySendResult _Nuitka_Asyncgen_sendR(struct Nuitka_AsyncgenObject *asyncge
         if (yielded == NULL) {
 #if _DEBUG_ASYNCGEN
             PRINT_ASYNCGEN_STATUS("finishing from yield", asyncgen);
+            PRINT_CURRENT_EXCEPTION();
             PRINT_STRING("-> finishing sets status_Finished\n");
             PRINT_NEW_LINE();
 #endif
@@ -768,7 +769,7 @@ static PyObject *Nuitka_Asyncgen_throw(struct Nuitka_AsyncgenObject *asyncgen, P
 
     if (result == NULL) {
         if (GET_ERROR_OCCURRED() == NULL) {
-            SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
+            SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopAsyncIteration);
         }
     }
 
@@ -1440,8 +1441,26 @@ static PyObject *Nuitka_AsyncgenAsend_send(struct Nuitka_AsyncgenAsendObject *as
     // TODO: Who releases arg.
     // Py_INCREF(arg);
 
+#if _DEBUG_ASYNCGEN
+    PRINT_STRING("Deferring to _Nuitka_Asyncgen_send\n");
+    PRINT_NEW_LINE();
+#endif
+
     PyObject *result = _Nuitka_Asyncgen_send(asyncgen_asend->m_gen, arg, false, NULL, NULL, NULL);
+
+#if _DEBUG_ASYNCGEN
+    PRINT_STRING("Returned from _Nuitka_Asyncgen_send\n");
+    PRINT_COROUTINE_VALUE("result", result);
+    PRINT_CURRENT_EXCEPTION();
+#endif
+
     result = Nuitka_Asyncgen_unwrap_value(asyncgen_asend->m_gen, result);
+
+#if _DEBUG_ASYNCGEN
+    PRINT_COROUTINE_VALUE("result", result);
+    PRINT_CURRENT_EXCEPTION();
+    PRINT_NEW_LINE();
+#endif
 
     if (result == NULL) {
         asyncgen_asend->m_state = AWAITABLE_STATE_CLOSED;
@@ -1537,10 +1556,11 @@ static PyObject *_Nuitka_AsyncgenAsend_throw2(struct Nuitka_AsyncgenAsendObject 
     PyObject *result =
         _Nuitka_Asyncgen_throw2(asyncgen_asend->m_gen, false, exception_type, exception_value, exception_tb);
 
-    // TODO: This might not be all that necessary as this is not directly outside facing.
+    // TODO: This might not be all that necessary as this is not directly outside facing,
+    // but there were tests failing when this was not the specific value.
     if (result == NULL) {
         if (GET_ERROR_OCCURRED() == NULL) {
-            SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
+            SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopAsyncIteration);
         }
     }
 
