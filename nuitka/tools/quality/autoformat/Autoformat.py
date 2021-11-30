@@ -422,7 +422,7 @@ def _cleanupRstFmt(filename):
             inside = False
             lines.append(line)
 
-    updated_contents = b"\n".join(lines)
+    updated_contents = b"\n".join(lines) + b"\n"
 
     if updated_contents != contents:
         with open(filename, "wb") as out_file:
