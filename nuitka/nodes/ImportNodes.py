@@ -691,7 +691,7 @@ class ExpressionImportlibImportModuleCall(ExpressionChildrenHavingBase):
                     # not.
                     trace_collection.onExceptionRaiseExit(BaseException)
 
-                    result = ExpressionImportModuleFixed(
+                    result = makeExpressionImportModuleFixed(
                         module_name=resolved_module_name, source_ref=self.source_ref
                     )
 
@@ -1162,4 +1162,15 @@ class ExpressionImportName(ExpressionChildHavingBase):
     def mayRaiseException(self, exception_type):
         return self.subnode_module.mayRaiseExceptionImportName(
             exception_type=exception_type, import_name=self.import_name
+        )
+
+
+def makeExpressionImportModuleFixed(module_name, source_ref):
+    if module_name in hard_modules:
+        return ExpressionImportModuleHard(
+            module_name=module_name, source_ref=source_ref
+        )
+    else:
+        return ExpressionImportModuleFixed(
+            module_name=module_name, source_ref=source_ref
         )
