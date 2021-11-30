@@ -189,19 +189,19 @@ def processTypeShapeAttribute(
 
     for method_name in python2_methods:
         attribute_information.setdefault(method_name, set()).add(shape_name)
-
-        spec_name = shape_name.split("_")[-1] + "_" + method_name + "_spec"
-
         key = method_name, shape_name
-        if hasattr(spec_module, spec_name):
-            attribute_shape_operations[key] = True
-        else:
-            attribute_shape_operations[key] = False
 
         if method_name not in python3_methods:
             attribute_shape_versions[key] = "str is bytes"
 
-        spec = getattr(spec_module, spec_name, None)
+        spec = getattr(
+            spec_module, shape_name.split("_")[-1] + "_" + method_name + "_spec", None
+        )
+
+        if spec is not None:
+            attribute_shape_operations[key] = True
+        else:
+            attribute_shape_operations[key] = False
 
         if spec is not None:
             if spec.isStarListSingleArg():
@@ -230,18 +230,22 @@ def processTypeShapeAttribute(
     for method_name in python3_methods:
         attribute_information.setdefault(method_name, set()).add(shape_name)
 
-        spec_name = shape_name.split("_")[-1] + "_" + method_name + "_spec"
-
         key = method_name, shape_name
-        if hasattr(spec_module, spec_name):
+
+        spec = getattr(
+            spec_module, shape_name.split("_")[-1] + "_" + method_name + "_spec", None
+        )
+
+        if spec is not None:
             attribute_shape_operations[key] = True
+
+            assert spec.name.count(".") == 1, spec
+            assert spec.name.split(".", 1)[1] == method_name
         else:
             attribute_shape_operations[key] = False
 
         if method_name not in python2_methods:
             attribute_shape_versions[key] = "str is not bytes"
-
-        spec = getattr(spec_module, spec_name, None)
 
         if spec is not None:
             if spec.isStarListSingleArg():
@@ -307,12 +311,12 @@ def formatArgs(args, starting=True):
     return "".join(result)
 
 
-def formatCallArgs(dict_operation_node_arg_mapping, args, starting=True):
+def formatCallArgs(operation_node_arg_mapping, args, starting=True):
     def mapName(arg):
-        if not dict_operation_node_arg_mapping:
+        if not operation_node_arg_mapping:
             return arg
         else:
-            return dict_operation_node_arg_mapping.get(arg, arg)
+            return operation_node_arg_mapping.get(arg, arg)
 
     if args is None:
         result = ""
@@ -321,6 +325,8 @@ def formatCallArgs(dict_operation_node_arg_mapping, args, starting=True):
 
     if not starting and result:
         result = "," + result
+
+    # print("args", args, "->", result)
 
     return result
 

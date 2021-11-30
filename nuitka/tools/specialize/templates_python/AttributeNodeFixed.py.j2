@@ -132,14 +132,14 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
                 from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}{{count+1}}
 
                 return ExpressionDictOperation{{attribute_name_class}}{{count+1}}(
-                    dict_arg=self.subnode_expression, {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args[:count])}}, source_ref=source_ref
+                    dict_arg=self.subnode_expression {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args[:count], starting=False)}}, source_ref=source_ref
                 )
 {% endfor %}
             else:
                 from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}{{dict_operation_variation[0]+1}}
 
                 return ExpressionDictOperation{{attribute_name_class}}{{dict_operation_variation[0]+1}}(
-                    dict_arg=self.subnode_expression, {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args[:dict_operation_variation[0]])}}, source_ref=source_ref
+                    dict_arg=self.subnode_expression {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args[:dict_operation_variation[0]], starting=False)}}, source_ref=source_ref
                 )
 
 {% else %}
@@ -211,14 +211,14 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
                 from .StrNodes import ExpressionStrOperation{{attribute_name_class}}{{count+1}}
 
                 return ExpressionStrOperation{{attribute_name_class}}{{count+1}}(
-                    str_arg=self.subnode_expression, {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:count])}}, source_ref=source_ref
+                    str_arg=self.subnode_expression {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:count], starting=False)}}, source_ref=source_ref
                 )
 {% endfor %}
             else:
                 from .StrNodes import ExpressionStrOperation{{attribute_name_class}}{{str_operation_variation[0]+1}}
 
                 return ExpressionStrOperation{{attribute_name_class}}{{str_operation_variation[0]+1}}(
-                    str_arg=self.subnode_expression, {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:str_operation_variation[0]])}}, source_ref=source_ref
+                    str_arg=self.subnode_expression {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:str_operation_variation[0]], starting=False)}}, source_ref=source_ref
                 )
 
 {% else %}

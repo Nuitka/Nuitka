@@ -2453,6 +2453,9 @@ class ExpressionAttributeLookupFixedLstrip(ExpressionAttributeLookupFixedBase):
 attribute_classes["lstrip"] = ExpressionAttributeLookupFixedLstrip
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_lstrip_spec
+
+
 class ExpressionAttributeLookupStrLstrip(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedLstrip
 ):
@@ -2467,7 +2470,32 @@ class ExpressionAttributeLookupStrLstrip(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationLstrip is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationLstrip(chars, source_ref):
+            if chars is not None:
+                from .StrNodes import ExpressionStrOperationLstrip2
+
+                return ExpressionStrOperationLstrip2(
+                    str_arg=self.subnode_expression, chars=chars, source_ref=source_ref
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationLstrip1
+
+                return ExpressionStrOperationLstrip1(
+                    str_arg=self.subnode_expression, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationLstrip,
+            builtin_spec=str_lstrip_spec,
+        )
+
+        return result, "new_expression", "Call to 'lstrip' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrLstrip)
@@ -3280,6 +3308,9 @@ class ExpressionAttributeLookupFixedRstrip(ExpressionAttributeLookupFixedBase):
 attribute_classes["rstrip"] = ExpressionAttributeLookupFixedRstrip
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_rstrip_spec
+
+
 class ExpressionAttributeLookupStrRstrip(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedRstrip
 ):
@@ -3294,7 +3325,32 @@ class ExpressionAttributeLookupStrRstrip(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationRstrip is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationRstrip(chars, source_ref):
+            if chars is not None:
+                from .StrNodes import ExpressionStrOperationRstrip2
+
+                return ExpressionStrOperationRstrip2(
+                    str_arg=self.subnode_expression, chars=chars, source_ref=source_ref
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationRstrip1
+
+                return ExpressionStrOperationRstrip1(
+                    str_arg=self.subnode_expression, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationRstrip,
+            builtin_spec=str_rstrip_spec,
+        )
+
+        return result, "new_expression", "Call to 'rstrip' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrRstrip)
@@ -3605,6 +3661,9 @@ class ExpressionAttributeLookupFixedStrip(ExpressionAttributeLookupFixedBase):
 attribute_classes["strip"] = ExpressionAttributeLookupFixedStrip
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_strip_spec
+
+
 class ExpressionAttributeLookupStrStrip(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedStrip
 ):
@@ -3619,7 +3678,32 @@ class ExpressionAttributeLookupStrStrip(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationStrip is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationStrip(chars, source_ref):
+            if chars is not None:
+                from .StrNodes import ExpressionStrOperationStrip2
+
+                return ExpressionStrOperationStrip2(
+                    str_arg=self.subnode_expression, chars=chars, source_ref=source_ref
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationStrip1
+
+                return ExpressionStrOperationStrip1(
+                    str_arg=self.subnode_expression, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationStrip,
+            builtin_spec=str_strip_spec,
+        )
+
+        return result, "new_expression", "Call to 'strip' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrStrip)
