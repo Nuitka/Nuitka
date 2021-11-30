@@ -19,7 +19,12 @@
 
 """
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from abc import abstractmethod
+
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase,
+)
 from .ExpressionShapeMixins import (
     ExpressionStrShapeExactMixin,
     ExpressionTupleShapeExactMixin,
@@ -91,11 +96,9 @@ class ExpressionStrOperationPartition(
         if str_arg.isCompileTimeConstant() and sep.isCompileTimeConstant():
             return trace_collection.getCompileTimeComputationResult(
                 node=self,
-                computation=lambda: self.getCompileTimeConstant()[
-                    str_arg.getCompileTimeConstant().partition(
-                        sep.getCompileTimeConstant()
-                    )
-                ],
+                computation=lambda: str_arg.getCompileTimeConstant().partition(
+                    sep.getCompileTimeConstant()
+                ),
                 description="Str partition with constant values.",
                 user_provided=str_arg.user_provided,
             )
@@ -136,11 +139,9 @@ class ExpressionStrOperationRpartition(
         if str_arg.isCompileTimeConstant() and sep.isCompileTimeConstant():
             return trace_collection.getCompileTimeComputationResult(
                 node=self,
-                computation=lambda: self.getCompileTimeConstant()[
-                    str_arg.getCompileTimeConstant().rpartition(
-                        sep.getCompileTimeConstant()
-                    )
-                ],
+                computation=lambda: str_arg.getCompileTimeConstant().rpartition(
+                    sep.getCompileTimeConstant()
+                ),
                 description="Str rpartition with constant values.",
                 user_provided=str_arg.user_provided,
             )
@@ -153,3 +154,149 @@ class ExpressionStrOperationRpartition(
     @staticmethod
     def getIterationLength():
         return 3
+
+
+class ExpressionStrOperationStrip2Base(
+    ExpressionStrShapeExactMixin, ExpressionChildrenHavingBase
+):
+
+    named_children = ("str_arg", "chars")
+
+    @abstractmethod
+    def simulator(self, str_value, chars_value):
+        """Compile time simulation"""
+
+    def __init__(self, str_arg, chars, source_ref):
+        assert str_arg is not None
+        assert chars is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"str_arg": str_arg, "chars": chars},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        chars = self.subnode_chars
+
+        if str_arg.isCompileTimeConstant() and chars.isCompileTimeConstant():
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: self.simulator(
+                    str_value=str_arg.getCompileTimeConstant(),
+                    chars_value=chars.getCompileTimeConstant(),
+                ),
+                description="Str strip with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the sep is not a string
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        # TODO: Only if chars is not correct shape
+        return True
+
+
+class ExpressionStrOperationStrip2(ExpressionStrOperationStrip2Base):
+    """This operation represents s.strip(chars)."""
+
+    kind = "EXPRESSION_STR_OPERATION_STRIP2"
+
+    @staticmethod
+    def simulator(str_value, chars_value):
+        return str_value.strip(chars_value)
+
+
+class ExpressionStrOperationLstrip2(ExpressionStrOperationStrip2Base):
+    """This operation represents s.lstrip(chars)."""
+
+    kind = "EXPRESSION_STR_OPERATION_LSTRIP2"
+
+    @staticmethod
+    def simulator(str_value, chars_value):
+        return str_value.lstrip(chars_value)
+
+
+class ExpressionStrOperationRstrip2(ExpressionStrOperationStrip2Base):
+    """This operation represents s.rstrip(chars)."""
+
+    kind = "EXPRESSION_STR_OPERATION_RSTRIP2"
+
+    @staticmethod
+    def simulator(str_value, chars_value):
+        return str_value.rstrip(chars_value)
+
+
+class ExpressionStrOperationStrip1Base(
+    ExpressionStrShapeExactMixin, ExpressionChildHavingBase
+):
+    named_child = "str_arg"
+
+    @abstractmethod
+    def simulator(self, str_value):
+        """Compile time simulation."""
+
+    def __init__(self, str_arg, source_ref):
+        assert str_arg is not None
+
+        ExpressionChildHavingBase.__init__(
+            self,
+            value=str_arg,
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+
+        if str_arg.isCompileTimeConstant():
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: self.simulator(
+                    str_value=str_arg.getCompileTimeConstant(),
+                ),
+                description="Str strip with constant value.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the sep is not a string
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        # TODO: Only if chars is not correct shape
+        return True
+
+
+class ExpressionStrOperationStrip1(ExpressionStrOperationStrip1Base):
+    """This operation represents s.strip()."""
+
+    kind = "EXPRESSION_STR_OPERATION_STRIP1"
+
+    @staticmethod
+    def simulator(str_value):
+        return str_value.strip()
+
+
+class ExpressionStrOperationLstrip1(ExpressionStrOperationStrip1Base):
+    """This operation represents s.lstrip(chars)."""
+
+    kind = "EXPRESSION_STR_OPERATION_LSTRIP1"
+
+    @staticmethod
+    def simulator(str_value):
+        return str_value.lstrip()
+
+
+class ExpressionStrOperationRstrip1(ExpressionStrOperationStrip1Base):
+    """This operation represents s.rstrip()."""
+
+    kind = "EXPRESSION_STR_OPERATION_RSTRIP1"
+
+    @staticmethod
+    def simulator(str_value):
+        return str_value.rstrip()

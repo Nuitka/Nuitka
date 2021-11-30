@@ -230,36 +230,17 @@ def generateBuiltinAsciiCode(to_name, expression, emit, context):
     )
 
 
-def generateStrOperationJoinCode(to_name, expression, emit, context):
+def generateStrOperationCode(to_name, expression, emit, context):
+    api_name = expression.kind.rsplit("_")[-1]
+
+    if str is bytes:
+        api_name = "STR_" + api_name
+    else:
+        api_name = "UNICODE_" + api_name
+
     generateCAPIObjectCode(
         to_name=to_name,
-        capi="STR_JOIN" if str is bytes else "UNICODE_JOIN",
-        arg_desc=makeArgDescFromExpression(expression),
-        may_raise=expression.mayRaiseException(BaseException),
-        conversion_check=decideConversionCheckNeeded(to_name, expression),
-        source_ref=expression.getCompatibleSourceReference(),
-        emit=emit,
-        context=context,
-    )
-
-
-def generateStrOperationPartitionCode(to_name, expression, emit, context):
-    generateCAPIObjectCode(
-        to_name=to_name,
-        capi="STR_PARTITION" if str is bytes else "UNICODE_PARTITION",
-        arg_desc=makeArgDescFromExpression(expression),
-        may_raise=expression.mayRaiseException(BaseException),
-        conversion_check=decideConversionCheckNeeded(to_name, expression),
-        source_ref=expression.getCompatibleSourceReference(),
-        emit=emit,
-        context=context,
-    )
-
-
-def generateStrOperationRpartitionCode(to_name, expression, emit, context):
-    generateCAPIObjectCode(
-        to_name=to_name,
-        capi="STR_RPARTITION" if str is bytes else "UNICODE_RPARTITION",
+        capi=api_name,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

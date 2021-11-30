@@ -48,5 +48,8 @@ class StrMethodSpec(BuiltinParameterSpecNoKeywords):
 # str_upper_spec = StrMethodSpec("upper")
 
 str_join_spec = StrMethodSpec("join", arg_names=("iterable",))
-str_partition_spec = StrMethodSpec("rpartition", arg_names=("sep",))
+str_partition_spec = StrMethodSpec("partition", arg_names=("sep",))
 str_rpartition_spec = StrMethodSpec("rpartition", arg_names=("sep",))
+str_strip_spec = StrMethodSpec("strip", arg_names=("chars",), default_count=1)
+str_lstrip_spec = StrMethodSpec("lstrip", arg_names=("chars",), default_count=1)
+str_rstrip_spec = StrMethodSpec("rstrip", arg_names=("chars",), default_count=1)
