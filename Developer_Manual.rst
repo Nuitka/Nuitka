@@ -3100,6 +3100,53 @@ variable traces that they might be affected. It represents the bit of
 ``exec`` in Python2, that treats ``None`` as the locals argument as an
 indication to copy back.
 
+Optimizing Attribute Lookups into Method Calls for Built-ins types
+==================================================================
+
+The attribute lookup node ``ExpressionAttributeLookup`` represents
+looking up an attribute name, that is known to be a string. That's
+already a bit more special, than say what ``ExpressionBuiltinGetattr``
+does for ``getattr``, where it could be any object being looked up. From
+the Python syntax however, these are what gets created, as it's not
+allowed in any other way. So, this is where this starts.
+
+Then, when we are creating an attribute node with a *fixed* name, we
+dispatch it to generated node classes, e.g.
+``ExpressionAttributeLookupFixedAppend``. This will be the same, except
+that the attribute name is hardcoded.
+
+There are generated, such that they can have code that is special for
+``.append`` lookups. In their case, it makes sense to ask the source, if
+they are a ``list`` object exactly. It doesn't make sense to do this
+check for names that the ``list`` does not contain. So at that stage, we
+are saving both a bit of memory and time.
+
+Should this question succeed, i.e. the expression the attribute values
+is looked up upon, is known to be a ``list`` exactly, we persist this
+knowledge in the also generated nodes that represent ``list.append`` and
+just that. It is called ``ExpressionAttributeLookupListAppend`` and only
+represents the knowledge gained so far.
+
+We do not consider if ``ExpressionAttributeLookupFixedAppend`` is
+called, or not, passed as an argument, assigned somewhere, it doesn't
+matter yet, but for ``ExpressionAttributeLookupListAppend`` we know a
+hell of a lot more. We know its type, we know attributes for it, say
+``__name__``, as it is a compile time constant, therefore much
+optimization can follow for them, and code generation can specialize
+them too (not yet done).
+
+Should these nodes then, and say this happens later after some inlining
+happens be seen as called, we can then turn them into method call nodes,
+checking the arguments and such, this is then
+``ExpressionListOperationAppend`` and at this point, will raising errors
+with wrong argument counts.
+
+And then we have this ``ExpressionListOperationAppend`` which will
+influence the tracing of ``list`` contents, i.e. it will be able to tell
+the ``list`` in question is no more empty after this ``append``, and it
+will be able to at least predict the last element value, truth value of
+the list, etc.
+
 ******************************
  Plan to add "ctypes" support
 ******************************
