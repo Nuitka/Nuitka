@@ -76,6 +76,7 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     deleteFile,
     getDirectoryRealPath,
+    getExternalUsePath,
     makePath,
     putTextFileContents,
     removeDirectory,
@@ -428,7 +429,7 @@ def _runPgoBinary():
         general.sysexit("Error, failed to produce PGO binary '%s'" % pgo_executable)
 
     return callProcess(
-        [pgo_executable] + Options.getPgoArgs(),
+        [getExternalUsePath(pgo_executable)] + Options.getPgoArgs(),
         shell=False,
     )
 
