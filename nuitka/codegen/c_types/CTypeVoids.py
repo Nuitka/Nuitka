@@ -63,6 +63,20 @@ class CTypeVoid(CTypeNotReferenceCountedMixin, CTypeBase):
             emit("%s = NUITKA_VOID_OK;" % to_name)
 
     @classmethod
+    def emitAssignmentCodeFromConstant(
+        cls, to_name, constant, may_escape, emit, context
+    ):
+        # No context needed, pylint: disable=unused-argument
+
+        # Everything else expresses missed compiled time optimization.
+        assert constant is None
+
+        # The only possible value, and in this case never read, but the compiler hates
+        # it being defined which is hard for us to know ahead of time.
+        if Options.is_debug:
+            emit("%s = NUITKA_VOID_OK;" % to_name)
+
+    @classmethod
     def getInitValue(cls, init_from):
         assert False
 

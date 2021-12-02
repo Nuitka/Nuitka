@@ -23,11 +23,10 @@ has.
 """
 
 import os
-import subprocess
 import sys
 
 from nuitka.tools.testing.Common import hasModule, my_print
-from nuitka.utils.Execution import check_output, getNullInput
+from nuitka.utils.Execution import check_output, executeProcess, getNullOutput
 
 pylint_version = None
 
@@ -43,10 +42,9 @@ def checkVersion():
         )
 
     if pylint_version is None:
-        with open(os.devnull, "w") as devnull:
-            pylint_version = check_output(
-                [os.environ["PYTHON"], "-m", "pylint", "--version"], stderr=devnull
-            )
+        pylint_version = check_output(
+            [os.environ["PYTHON"], "-m", "pylint", "--version"], stderr=getNullOutput()
+        )
 
         if str is not bytes:
             pylint_version = pylint_version.decode("utf8")
@@ -138,6 +136,10 @@ def checkVersion():
 # We do this deliberately, to avoid importing modules we do not use in
 # all cases, e.g. Windows/macOS specific stuff.
 
+# consider-using-f-string
+# We need to be backward compatible for Python versions that do not have
+# it.
+
 
 def getOptions():
     checkVersion()
@@ -146,10 +148,11 @@ def getOptions():
 --init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())
 --disable=I0011,I0012,no-init,bad-whitespace,bad-continuation,E1103,W0632,W1504,\
 C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,\
-deprecated-module, deprecated-method,assignment-from-none,ungrouped-imports,\
-no-else-return,c-extension-no-member,inconsistent-return-statements,\
-raise-missing-from,import-outside-toplevel,useless-object-inheritance,\
-useless-return,assignment-from-no-return
+deprecated-module,deprecated-method,deprecated-argument,assignment-from-none,\
+ungrouped-imports,no-else-return,c-extension-no-member,\
+inconsistent-return-statements,raise-missing-from,import-outside-toplevel,\
+useless-object-inheritance,useless-return,assignment-from-no-return,\
+redundant-u-string-prefix,consider-using-f-string
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no
@@ -225,16 +228,7 @@ def _executePylint(filenames, pylint_options, extra_options):
         + filenames
     )
 
-    process = subprocess.Popen(
-        args=command,
-        stdin=getNullInput(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=False,
-    )
-
-    stdout, stderr = process.communicate()
-    exit_code = process.returncode
+    stdout, stderr, exit_code = executeProcess(command)
 
     if exit_code == -11:
         sys.exit("Error, segfault from pylint.")
@@ -263,18 +257,10 @@ def _executePylint(filenames, pylint_options, extra_options):
 
 
 def hasPyLintBugTrigger(filename):
-    # Stack overflow core dumps with 1.9.x unfortunately.
-    if pylint_version < "2.0.0":
-        if os.path.basename(filename) in (
-            "ReformulationContractionExpressions.py",
-            "TreeHelpers.py",
-        ):
-            return True
-
-    # Slot warning that is impossible to disable
-    if pylint_version < "2.0.0":
-        if os.path.basename(filename) in ("Variables.py",):
-            return True
+    """Decide if a filename should be skipped."""
+    # Currently everything is good, but it's a useful hook, pylint_: disable=unused-argument
+    if filename == "nuitka/distutils/Build.py":
+        return True
 
     return False
 
@@ -282,7 +268,7 @@ def hasPyLintBugTrigger(filename):
 def isSpecificPythonOnly(filename):
     """Decide if something is not used for this specific Python."""
 
-    # Currently everything is portable, but it's a good hook, pylint: disable=unused-argument
+    # Currently everything is portable, but it's a useful hook, pylint: disable=unused-argument
     return False
 
 

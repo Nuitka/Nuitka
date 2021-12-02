@@ -31,7 +31,7 @@ from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.Utils import isWin32Windows
 
 
-class ZmqPlugin(NuitkaPluginBase):
+class NuitkaPluginZmq(NuitkaPluginBase):
     """This class represents the main logic of the pyzmq plugin.
 
     This is a plugin to ensure that gldw platform specific backends are loading

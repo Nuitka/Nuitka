@@ -25,7 +25,7 @@ import re
 from nuitka import Options
 from nuitka.__past__ import StringIO
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.FileOperations import listDir
+from nuitka.utils.FileOperations import getFileContents, listDir
 
 # The main logic of this is from StackOverflow answer:
 # http://stackoverflow.com/questions/6772916/python-pmw-and-cx-freeze
@@ -150,8 +150,7 @@ Should 'Pmw.Color' not be included, Default is to include it.""",
             # Read the filename and modify it so that it can be bundled with the
             # other Pmw files.
             filename = "Pmw" + filename + ".py"
-            with open(os.path.join(srcdir, filename)) as f:
-                text = f.read()
+            text = getFileContents(os.path.join(srcdir, filename))
             text = re.sub(r"import Pmw\>", "", text)
             text = re.sub("INITOPT = Pmw.INITOPT", "", text)
             text = re.sub(r"\<Pmw\.", "", text)

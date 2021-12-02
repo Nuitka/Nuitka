@@ -329,6 +329,7 @@ def makeOptimizationPass():
                 )
 
                 unused_function.trace_collection = None
+                unused_function.finalize()
 
             used_functions = tuple(
                 function
@@ -343,7 +344,7 @@ def makeOptimizationPass():
     return finished
 
 
-def optimize(output_filename):
+def optimizeModules(output_filename):
     Graphs.startGraph()
 
     finished = makeOptimizationPass()

@@ -37,15 +37,9 @@ from .Reports import onMissingHelper
 expression_dispatch_dict = {}
 
 
-def setExpressionDispatchDict(dispatch_dict):
-    # Using global here, as this is really a singleton, in the form of a module,
-    # and this is to break the cyclic dependency it has, pylint: disable=global-statement
-
-    # Please call us only once.
-    global expression_dispatch_dict
-
-    assert not expression_dispatch_dict
-    expression_dispatch_dict = dispatch_dict
+def addExpressionDispatchDict(dispatch_dict):
+    # We use this to break the cyclic dependency.
+    expression_dispatch_dict.update(dispatch_dict)
 
 
 def generateExpressionCode(to_name, expression, emit, context, allow_none=False):
@@ -125,9 +119,32 @@ def generateChildExpressionsCode(expression, emit, context):
     value_names = []
 
     for child_name, child_value in expression.getVisitableNodesNamed():
-        if child_value is not None:
+        if type(child_value) is tuple:
+            child_names = []
+
+            for child_val in child_value:
+                if child_val.isExpressionKeyValuePair():
+                    child_names.append(
+                        tuple(
+                            generateChildExpressionsCode(
+                                expression=child_val, emit=emit, context=context
+                            )
+                        )
+                    )
+                else:
+                    generateExpressionCode(
+                        to_name=value_name,
+                        expression=child_val,
+                        emit=emit,
+                        context=context,
+                    )
+
+                    child_names.append(value_name)
+
+            value_names.append(tuple(child_names))
+        elif child_value is not None:
             # Allocate anyway, so names are aligned.
-            value_name = context.allocateTempName(child_name + "_name")
+            value_name = context.allocateTempName(child_name + "_value")
 
             generateExpressionCode(
                 to_name=value_name, expression=child_value, emit=emit, context=context
@@ -135,6 +152,7 @@ def generateChildExpressionsCode(expression, emit, context):
 
             value_names.append(value_name)
         else:
+            # Allocate anyway, so names are aligned.
             context.skipTempName(child_name + "_value")
 
             value_names.append(None)
@@ -149,7 +167,9 @@ def generateChildExpressionCode(expression, emit, context, child_name=None):
         child_name = expression.getChildName()
 
     # Allocate anyway, so names are aligned.
-    value_name = context.allocateTempName(child_name + "_name")
+    value_name = context.allocateTempName(
+        child_name + "_value",
+    )
 
     generateExpressionCode(
         to_name=value_name, expression=expression, emit=emit, context=context
@@ -293,6 +313,19 @@ def withObjectCodeTemporaryAssignment(to_name, value_name, expression, emit, con
         from .ErrorCodes import getReleaseCode
 
         getReleaseCode(value_name, emit, context)
+
+
+def assignConstantNoneResult(to_name, emit, context):
+    # TODO: This is also in SetCode, and should be common for statement only
+    # operations that return None in Python, but only in case of non-error
+    to_name.getCType().emitAssignmentCodeFromConstant(
+        to_name=to_name, constant=None, may_escape=False, emit=emit, context=context
+    )
+
+    # This assignment will not necessarily use it, and since it is borrowed,
+    # debug mode would otherwise complain.
+    if to_name.c_type == "nuitka_void":
+        to_name.maybe_unused = True
 
 
 class HelperCallHandle(object):

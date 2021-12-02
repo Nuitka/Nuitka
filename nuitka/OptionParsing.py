@@ -31,8 +31,21 @@ import re
 import sys
 from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
-from nuitka.utils import Utils
+from nuitka.PythonFlavors import (
+    isAnacondaPython,
+    isApplePython,
+    isDebianPackagePython,
+    isNuitkaPython,
+    isPyenvPython,
+    isWinPython,
+)
 from nuitka.utils.FileOperations import getFileContentByLine
+from nuitka.utils.Utils import (
+    getArchitecture,
+    getLinuxDistribution,
+    getOS,
+    isLinux,
+)
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
@@ -44,18 +57,44 @@ if not is_nuitka_run:
 else:
     usage = "usage: %prog [options] main_module.py"
 
+
+def _getPythonFlavor():
+    # return driven, pylint: disable=too-many-return-statements
+
+    if isNuitkaPython():
+        return "Nuitka Python"
+    elif isAnacondaPython():
+        return "Anaconda Python"
+    elif isWinPython():
+        return "WinPython"
+    elif isDebianPackagePython():
+        return "Debian Python"
+    elif isApplePython():
+        return "Apple Python"
+    elif isPyenvPython():
+        return "pyenv"
+    else:
+        return "Unknown"
+
+
+def _getVersionInformationValues():
+    # TODO: Might be nice if we could delay version information computation
+    # until it's actually used.
+    yield getNuitkaVersion()
+    yield "Commercial: %s" % getCommercialVersion()
+    yield "Python: %s" % sys.version.split("\n", 1)[0]
+    yield "Flavor: %s" % _getPythonFlavor()
+    yield "Executable: %s" % sys.executable
+    yield "OS: %s" % getOS()
+    yield "Arch: %s" % getArchitecture()
+
+    if isLinux():
+        yield "Distribution: %s %s" % getLinuxDistribution()
+
+
 parser = OptionParser(
     usage=usage,
-    version="\n".join(
-        (
-            getNuitkaVersion(),
-            "Commercial: %s" % getCommercialVersion(),
-            "Python: " + sys.version.split("\n")[0],
-            "Executable: " + sys.executable,
-            "OS: " + Utils.getOS(),
-            "Arch: " + Utils.getArchitecture(),
-        )
-    ),
+    version="\n".join(_getVersionInformationValues()),
 )
 
 parser.add_option(
@@ -118,7 +157,7 @@ if os.name == "nt":
         help="""\
 Architecture of Python to use. One of "x86" or "x86_64".
 Defaults to what you run Nuitka with (currently "%s")."""
-        % (Utils.getArchitecture()),
+        % (getArchitecture()),
     )
 
 parser.add_option(
@@ -198,10 +237,11 @@ include_group.add_option(
     metavar="PACKAGE",
     default=[],
     help="""\
-Include a whole package. Give as a Python namespace, e.g. ``some_package.sub_package``
+Include a whole package. Give as a Python namespace, e.g. "some_package.sub_package"
 and Nuitka will then find it and include it and all the modules found below that
 disk location in the binary or extension module it creates, and make it available
-for import by the code. Default empty.""",
+for import by the code. To avoid unwanted sub packages, e.g. tests you can e.g. do
+this "--nofollow-import-to=*.tests". Default empty.""",
 )
 
 include_group.add_option(
@@ -211,7 +251,7 @@ include_group.add_option(
     metavar="MODULE",
     default=[],
     help="""\
-Include a single module. Give as a Python namespace, e.g. ``some_package.some_module``
+Include a single module. Give as a Python namespace, e.g. "some_package.some_module"
 and Nuitka will then find it and include it in the binary or extension module
 it creates, and make it available for import by the code. Default empty.""",
 )
@@ -219,19 +259,19 @@ it creates, and make it available for import by the code. Default empty.""",
 include_group.add_option(
     "--include-plugin-directory",
     action="append",
-    dest="recurse_extra",
+    dest="include_extra",
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\
 Include the content of that directory, no matter if it's used by the given main
-program in a visible form. Overrides all other recursion options. Can be given
+program in a visible form. Overrides all other inclusion options. Can be given
 multiple times. Default empty.""",
 )
 
 include_group.add_option(
     "--include-plugin-files",
     action="append",
-    dest="recurse_extra_files",
+    dest="include_extra_files",
     metavar="PATTERN",
     default=[],
     help="""\
@@ -268,7 +308,7 @@ follow_group = OptionGroup(parser, "Control the following into imported modules"
 follow_group.add_option(
     "--follow-stdlib",
     action="store_true",
-    dest="recurse_stdlib",
+    dest="follow_stdlib",
     default=False,
     help="""\
 Also descend into imported modules from standard library. This will increase
@@ -282,7 +322,7 @@ follow_group.add_option(
     default=False,
     help="""\
 When --nofollow-imports is used, do not descend into any imported modules at all,
-overrides all other recursion options. Defaults to off.""",
+overrides all other inclusion options. Defaults to off.""",
 )
 
 follow_group.add_option(
@@ -491,7 +531,7 @@ include path information that needs to exist though. Defaults to '%s' on this
 platform.
 """
     % "<program_name>"
-    + (".exe" if Utils.getOS() == "Windows" else ".bin"),
+    + (".exe" if getOS() == "Windows" else ".bin"),
 )
 
 output_group.add_option(
@@ -625,6 +665,17 @@ debug_group.add_option(
     help=SUPPRESS_HELP,
 )
 
+debug_group.add_option(
+    "--low-memory",
+    action="store_true",
+    dest="low_memory",
+    default=False,
+    help="""\
+Attempt to use less memory, by forking less C compilation jobs and using
+options that use less memory. For use on embedded machines. Use this in
+case of out of memory problems. Defaults to off.""",
+)
+
 if os.name == "nt":
     debug_group.add_option(
         "--disable-dll-dependency-cache",
@@ -688,14 +739,15 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
 c_compiler_group.add_option(
     "--msvc",
     action="store",
-    dest="msvc",
+    dest="msvc_version",
     default=None,
     help="""\
 Enforce the use of specific MSVC version on Windows. Allowed values
-are e.g. 14.0, specify an illegal value for a list of installed compilers,
-beware that only latest MSVC is really supported.
+are e.g. "14.2" (MSVC 2019), specify an illegal value for a list of
+installed compilers, or use "latest". Notice that only latest
+MSVC is really supported, and you can use "latest" to enforce that.
 
-Defaults to the most recent version.""",
+Defaults to MSVC on Windows being used if installed, otherwise MinGW64.""",
 )
 
 c_compiler_group.add_option(
@@ -704,7 +756,7 @@ c_compiler_group.add_option(
     action="store",
     dest="jobs",
     metavar="N",
-    default=Utils.getCoreCount(),
+    default=None,
     help="""\
 Specify the allowed number of parallel C compiler jobs. Defaults to the
 system CPU count.""",
@@ -735,6 +787,15 @@ Use static link library of Python. Allowed values are "yes", "no",
 and "auto" (when it's known to work). Defaults to "auto".""",
 )
 
+c_compiler_group.add_option(
+    "--disable-ccache",
+    action="store_true",
+    dest="no_ccache",
+    default=False,
+    help="""\
+Do not attempt to use ccache (gcc, clang, etc.) or clcache (MSVC, clangcl).""",
+)
+
 parser.add_option_group(c_compiler_group)
 
 pgo_group = OptionGroup(parser, "PGO compilation choices")
@@ -742,12 +803,38 @@ pgo_group = OptionGroup(parser, "PGO compilation choices")
 pgo_group.add_option(
     "--pgo",
     action="store_true",
-    dest="is_pgo",
+    dest="is_c_pgo",
     default=False,
     help="""\
-Enables profile guided optimization (PGO), by executing a dedicated build first for a profiling
-run, and then using the result to feedback into the C compilation. Note: This is highly
-experimental and not working with many modes of Nuitka yet. Defaults to off.""",
+Enables C level profile guided optimization (PGO), by executing a dedicated build first
+for a profiling run, and then using the result to feedback into the C compilation.
+Note: This is experimental and not working with standalone modes of Nuitka yet.
+Defaults to off.""",
+)
+
+pgo_group.add_option(
+    "--pgo-python",
+    action="store_true",
+    dest="is_python_pgo",
+    default=False,
+    help=SUPPRESS_HELP,
+)
+
+pgo_group.add_option(
+    "--pgo-python-input",
+    action="store",
+    dest="python_pgo_input",
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
+pgo_group.add_option(
+    "--pgo-python-policy-unused-module",
+    action="store",
+    dest="python_pgo_policy_unused_module",
+    choices=("include", "exclude", "bytecode"),
+    default="include",
+    help=SUPPRESS_HELP,
 )
 
 pgo_group.add_option(
@@ -969,7 +1056,7 @@ windows_group.add_option(
     default=None,
     help="""\
 File version to use in Windows Version information. Must be a sequence of
-up to 4 numbers, nothing else allowed.
+up to 4 numbers, e.g. 1.0.0.0, only this format is allowed.
 One of file or product version is required, when a version resource needs to be
 added, e.g. to specify product name, or company name. Defaults to unused.""",
 )
@@ -982,7 +1069,7 @@ windows_group.add_option(
     default=None,
     help="""\
 Product version to use in Windows Version information. Must be a sequence of
-up to 4 numbers, nothing else allowed.
+up to 4 numbers, e.g. 1.0.0.0, only this format is allowed.
 One of file or product version is required, when a version resource needs to be
 added, e.g. to specify product name, or company name. Defaults to unused.""",
 )
@@ -1102,6 +1189,18 @@ Name of the product to use in macOS bundle information. Defaults to base
 filename of the binary.""",
 )
 
+macos_group.add_option(
+    "--macos-app-version",
+    action="store",
+    dest="macos_app_version",
+    metavar="MACOS_APP_VERSION",
+    default=None,
+    help="""\
+Product version to use in macOS bundle information. Defaults to 1.0 if
+not given.""",
+)
+
+
 parser.add_option_group(macos_group)
 
 linux_group = OptionGroup(parser, "Linux specific controls")
@@ -1120,8 +1219,8 @@ parser.add_option_group(linux_group)
 plugin_group = OptionGroup(parser, "Plugin control")
 
 plugin_group.add_option(
-    "--plugin-enable",
     "--enable-plugin",
+    "--plugin-enable",
     action="append",
     dest="plugins_enabled",
     metavar="PLUGIN_NAME",
@@ -1132,8 +1231,8 @@ full list and exit. Default empty.""",
 )
 
 plugin_group.add_option(
-    "--plugin-disable",
     "--disable-plugin",
+    "--plugin-disable",
     action="append",
     dest="plugins_disabled",
     metavar="PLUGIN_NAME",
@@ -1150,9 +1249,9 @@ plugin_group.add_option(
     default=True,
     help="""\
 Plugins can detect if they might be used, and the you can disable the warning
-via --plugin-disable=plugin-that-warned, or you can use this option to disable
+via "--disable-plugin=plugin-that-warned", or you can use this option to disable
 the mechanism entirely, which also speeds up compilation slightly of course as
-this detection code is run in vain once you are certain of which plug-ins to
+this detection code is run in vain once you are certain of which plugins to
 use. Defaults to off.""",
 )
 
@@ -1191,7 +1290,7 @@ even with pure Python. Default False.""",
 
 
 def _considerPluginOptions(logger):
-    # Recursive dependency on plugins during parsing of command line.
+    # Cyclic dependency on plugins during parsing of command line.
     from nuitka.plugins.Plugins import (
         addPluginCommandLineOptions,
         addUserPluginCommandLineOptions,
@@ -1202,7 +1301,7 @@ def _considerPluginOptions(logger):
             plugin_names = arg[16:]
             if "=" in plugin_names:
                 logger.sysexit(
-                    "Error, plugin options format changed. Use '--plugin-enable=%s --help' to know new options."
+                    "Error, plugin options format changed. Use '--enable-plugin=%s --help' to know new options."
                     % plugin_names.split("=", 1)[0]
                 )
 
@@ -1233,12 +1332,22 @@ def _expandProjectArg(arg, filename_arg, for_eval):
             return value
 
     values = {
-        "OS": wrap(Utils.getOS()),
-        "Arch": wrap(Utils.getArchitecture()),
+        "OS": wrap(getOS()),
+        "Arch": wrap(getArchitecture()),
+        "Flavor": wrap(_getPythonFlavor()),
         "Version": getNuitkaVersion(),
-        "Commercial": getCommercialVersion(),
+        "Commercial": wrap(getCommercialVersion()),
         "MAIN_DIRECTORY": wrap(os.path.dirname(filename_arg) or "."),
     }
+
+    if getOS() != "Linux":
+        dist_info = "N/A", "0"
+    else:
+        dist_info = getLinuxDistribution()
+
+    values["Linux_Distribution_Name"] = dist_info[0]
+    values["Linux_Distribution_Version"] = dist_info[1]
+
     arg = arg.format(**values)
 
     return arg
@@ -1323,6 +1432,9 @@ def _getProjectOptions(logger, filename_arg, module_mode):
                 cond_level = level
             elif command == "":
                 arg = re.sub(r"""^([\w-]*=)(['"])(.*)\2$""", r"\1\3", arg.lstrip())
+
+                if not arg:
+                    continue
 
                 yield _expandProjectArg(arg, filename_arg, for_eval=False)
             else:

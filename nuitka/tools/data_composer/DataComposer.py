@@ -25,7 +25,7 @@ import re
 import struct
 import sys
 
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import (
     BytesIO,
     GenericAlias,
     long,

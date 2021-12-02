@@ -26,11 +26,15 @@ The "dir()" call without arguments is reformulated to locals or globals calls.
 
 from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import ExpressionKeyValuePair, makeExpressionMakeDict
-from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
+from .ExpressionBases import (
+    ExpressionBase,
+    ExpressionBuiltinSingleArgBase,
+    ExpressionNoSideEffectsMixin,
+)
 from .VariableRefNodes import ExpressionTempVariableRef, ExpressionVariableRef
 
 
-class ExpressionBuiltinGlobals(ExpressionBase):
+class ExpressionBuiltinGlobals(ExpressionNoSideEffectsMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_GLOBALS"
 
     def __init__(self, source_ref):
@@ -42,16 +46,8 @@ class ExpressionBuiltinGlobals(ExpressionBase):
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
 
-    @staticmethod
-    def mayHaveSideEffects():
-        return False
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
-
-
-class ExpressionBuiltinLocalsBase(ExpressionBase):
+class ExpressionBuiltinLocalsBase(ExpressionNoSideEffectsMixin, ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
     __slots__ = ("variable_traces", "locals_scope")
@@ -65,12 +61,6 @@ class ExpressionBuiltinLocalsBase(ExpressionBase):
     def finalize(self):
         del self.locals_scope
         del self.variable_traces
-
-    def mayHaveSideEffects(self):
-        return False
-
-    def mayRaiseException(self, exception_type):
-        return False
 
     def getVariableTraces(self):
         return self.variable_traces

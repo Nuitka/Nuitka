@@ -27,14 +27,10 @@ it is really necessary.
 import hashlib
 import math
 import re
+import sys
 from types import BuiltinFunctionType
 
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    GenericAlias,
-    long,
-    unicode,
-    xrange,
-)
+from nuitka.__past__ import GenericAlias, long, unicode, xrange
 from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
 from nuitka.Tracing import general
 
@@ -185,8 +181,10 @@ def namifyConstant(constant):
             namifyConstant(constant.__origin__),
             namifyConstant(constant.__args__),
         )
+    elif constant is sys.version_info:
+        return "sys_version_info"
     else:
-        raise ExceptionCannotNamify("%r" % constant, constant_type)
+        raise ExceptionCannotNamify("%r" % (constant,), constant_type)
 
 
 _re_str_needs_no_digest = re.compile(r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S)

@@ -26,6 +26,10 @@ branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
 
+from nuitka.nodes.AttributeNodesGenerated import (
+    attribute_classes,
+    attribute_typed_classes,
+)
 from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.CStrings import encodePythonStringToC
 
@@ -75,11 +79,13 @@ from .BuiltinCodes import (
 )
 from .CallCodes import generateCallCode, getCallsCode
 from .ClassCodes import generateBuiltinSuperCode, generateSelectMetaclassCode
-from .CodeHelpers import setExpressionDispatchDict, setStatementDispatchDict
+from .CodeHelpers import addExpressionDispatchDict, setStatementDispatchDict
 from .ComparisonCodes import (
     generateBuiltinIsinstanceCode,
     generateBuiltinIssubclassCode,
     generateComparisonExpressionCode,
+    generateMatchTypeCheckMappingCode,
+    generateMatchTypeCheckSequenceCode,
     generateTypeCheckCode,
 )
 from .ConditionalCodes import (
@@ -102,12 +108,31 @@ from .CoroutineCodes import (
 from .DictCodes import (
     generateBuiltinDictCode,
     generateDictionaryCreationCode,
-    generateDictOperationGetCode,
+    generateDictOperationClearCode,
+    generateDictOperationCopyCode,
+    generateDictOperationGet2Code,
+    generateDictOperationGet3Code,
     generateDictOperationInCode,
+    generateDictOperationItemCode,
+    generateDictOperationItemsCode,
+    generateDictOperationIteritemsCode,
+    generateDictOperationIterkeysCode,
+    generateDictOperationItervaluesCode,
+    generateDictOperationKeysCode,
+    generateDictOperationPop2Code,
+    generateDictOperationPop3Code,
     generateDictOperationRemoveCode,
     generateDictOperationSetCode,
     generateDictOperationSetCodeKeyValue,
+    generateDictOperationSetdefault2Code,
+    generateDictOperationSetdefault3Code,
+    generateDictOperationUpdate2Code,
+    generateDictOperationUpdate3Code,
     generateDictOperationUpdateCode,
+    generateDictOperationValuesCode,
+    generateDictOperationViewitemsCode,
+    generateDictOperationViewkeysCode,
+    generateDictOperationViewvaluesCode,
 )
 from .EvalCodes import (
     generateBuiltinCompileCode,
@@ -156,6 +181,9 @@ from .GlobalsLocalsCodes import (
 from .IdCodes import generateBuiltinHashCode, generateBuiltinIdCode
 from .ImportCodes import (
     generateBuiltinImportCode,
+    generateConstantSysVersionInfoCode,
+    generateImportlibImportCallCode,
+    generateImportModuleFixedCode,
     generateImportModuleHardCode,
     generateImportModuleNameHardCode,
     generateImportNameCode,
@@ -250,10 +278,12 @@ from .StringCodes import (
     generateBuiltinStrCode,
     generateBuiltinUnicodeCode,
     generateStringContenationCode,
+    generateStrOperationCode,
 )
 from .SubscriptCodes import (
     generateAssignmentSubscriptCode,
     generateDelSubscriptCode,
+    generateSubscriptCheckCode,
     generateSubscriptLookupCode,
 )
 from .TryCodes import generateTryCode
@@ -487,7 +517,7 @@ def generateHelpersCode():
     )
 
 
-setExpressionDispatchDict(
+addExpressionDispatchDict(
     {
         "EXPRESSION_ATTRIBUTE_CHECK": generateAttributeCheckCode,
         "EXPRESSION_ATTRIBUTE_LOOKUP": generateAttributeLookupCode,
@@ -548,6 +578,8 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_ISINSTANCE": generateBuiltinIsinstanceCode,
         "EXPRESSION_BUILTIN_ISSUBCLASS": generateBuiltinIssubclassCode,
         "EXPRESSION_TYPE_CHECK": generateTypeCheckCode,
+        "EXPRESSION_MATCH_TYPE_CHECK_SEQUENCE": generateMatchTypeCheckSequenceCode,
+        "EXPRESSION_MATCH_TYPE_CHECK_MAPPING": generateMatchTypeCheckMappingCode,
         "EXPRESSION_BUILTIN_DIR1": generateBuiltinDir1Code,
         "EXPRESSION_BUILTIN_VARS": generateBuiltinVarsCode,
         "EXPRESSION_BUILTIN_HASATTR": generateBuiltinHasattrCode,
@@ -606,6 +638,7 @@ setExpressionDispatchDict(
         "EXPRESSION_CONSTANT_TYPE_SUBSCRIPTABLE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_BYTEARRAY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_GENERIC_ALIAS": generateConstantGenericAliasCode,
+        "EXPRESSION_CONSTANT_SYS_VERSION_INFO_REF": generateConstantSysVersionInfoCode,
         "EXPRESSION_CONDITIONAL": generateConditionalCode,
         "EXPRESSION_CONDITIONAL_OR": generateConditionalAndOrCode,
         "EXPRESSION_CONDITIONAL_AND": generateConditionalAndOrCode,
@@ -622,14 +655,46 @@ setExpressionDispatchDict(
         "EXPRESSION_COMPARISON_GTE": generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_EQ": generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_NEQ": generateComparisonExpressionCode,
-        "EXPRESSION_DICT_OPERATION_GET": generateDictOperationGetCode,
+        "EXPRESSION_DICT_OPERATION_ITEM": generateDictOperationItemCode,
+        "EXPRESSION_DICT_OPERATION_GET2": generateDictOperationGet2Code,
+        "EXPRESSION_DICT_OPERATION_GET3": generateDictOperationGet3Code,
+        "EXPRESSION_DICT_OPERATION_HASKEY": generateDictOperationInCode,
         "EXPRESSION_DICT_OPERATION_IN": generateDictOperationInCode,
         "EXPRESSION_DICT_OPERATION_NOT_IN": generateDictOperationInCode,
+        "EXPRESSION_DICT_OPERATION_COPY": generateDictOperationCopyCode,
+        "EXPRESSION_DICT_OPERATION_CLEAR": generateDictOperationClearCode,
+        "EXPRESSION_DICT_OPERATION_ITEMS": generateDictOperationItemsCode,
+        "EXPRESSION_DICT_OPERATION_ITERITEMS": generateDictOperationIteritemsCode,
+        "EXPRESSION_DICT_OPERATION_VIEWITEMS": generateDictOperationViewitemsCode,
+        "EXPRESSION_DICT_OPERATION_KEYS": generateDictOperationKeysCode,
+        "EXPRESSION_DICT_OPERATION_ITERKEYS": generateDictOperationIterkeysCode,
+        "EXPRESSION_DICT_OPERATION_VIEWKEYS": generateDictOperationViewkeysCode,
+        "EXPRESSION_DICT_OPERATION_VALUES": generateDictOperationValuesCode,
+        "EXPRESSION_DICT_OPERATION_ITERVALUES": generateDictOperationItervaluesCode,
+        "EXPRESSION_DICT_OPERATION_VIEWVALUES": generateDictOperationViewvaluesCode,
+        "EXPRESSION_DICT_OPERATION_SETDEFAULT2": generateDictOperationSetdefault2Code,
+        "EXPRESSION_DICT_OPERATION_SETDEFAULT3": generateDictOperationSetdefault3Code,
+        "EXPRESSION_DICT_OPERATION_POP2": generateDictOperationPop2Code,
+        "EXPRESSION_DICT_OPERATION_POP3": generateDictOperationPop3Code,
+        "EXPRESSION_DICT_OPERATION_UPDATE2": generateDictOperationUpdate2Code,
+        "EXPRESSION_DICT_OPERATION_UPDATE3": generateDictOperationUpdate3Code,
+        "EXPRESSION_STR_OPERATION_JOIN": generateStrOperationCode,
+        "EXPRESSION_STR_OPERATION_PARTITION": generateStrOperationCode,
+        "EXPRESSION_STR_OPERATION_RPARTITION": generateStrOperationCode,
+        "EXPRESSION_STR_OPERATION_STRIP1": generateStrOperationCode,
+        "EXPRESSION_STR_OPERATION_LSTRIP1": generateStrOperationCode,
+        "EXPRESSION_STR_OPERATION_RSTRIP1": generateStrOperationCode,
+        "EXPRESSION_STR_OPERATION_STRIP2": generateStrOperationCode,
+        "EXPRESSION_STR_OPERATION_LSTRIP2": generateStrOperationCode,
+        "EXPRESSION_STR_OPERATION_RSTRIP2": generateStrOperationCode,
         "EXPRESSION_FUNCTION_CREATION": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
         "EXPRESSION_FUNCTION_ERROR_STR": generateFunctionErrorStrCode,
+        "EXPRESSION_IMPORT_MODULE_FIXED": generateImportModuleFixedCode,
         "EXPRESSION_IMPORT_MODULE_HARD": generateImportModuleHardCode,
         "EXPRESSION_IMPORT_MODULE_NAME_HARD": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_IMPORT_MODULE_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_IMPORT_MODULE_CALL": generateImportlibImportCallCode,
         "EXPRESSION_IMPORT_NAME": generateImportNameCode,
         "EXPRESSION_LIST_OPERATION_EXTEND": generateListOperationExtendCode,
         "EXPRESSION_LIST_OPERATION_EXTEND_FOR_UNPACK": generateListOperationExtendCode,
@@ -687,6 +752,7 @@ setExpressionDispatchDict(
         # TODO: Rename to make more clear it is an outline
         "EXPRESSION_CLASS_BODY": generateFunctionOutlineCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP": generateSubscriptLookupCode,
+        "EXPRESSION_SUBSCRIPT_CHECK": generateSubscriptCheckCode,
         "EXPRESSION_SLICE_LOOKUP": generateSliceLookupCode,
         "EXPRESSION_SET_OPERATION_UPDATE": generateSetOperationUpdateCode,
         "EXPRESSION_SIDE_EFFECTS": generateSideEffectsCode,
@@ -712,6 +778,16 @@ setExpressionDispatchDict(
         "EXPRESSION_RAISE_EXCEPTION": generateRaiseExpressionCode,
         "EXPRESSION_NUITKA_LOADER_CREATION": generateNuitkaLoaderCreationCode,
     }
+)
+
+# Add code generation for the EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_* variety
+addExpressionDispatchDict(
+    dict((cls.kind, generateAttributeLookupCode) for cls in attribute_classes.values())
+)
+
+# Add code generation for the EXPRESSION_ATTRIBUTE_LOOKUP_DICT|LIST|STR_* variety
+addExpressionDispatchDict(
+    dict((cls.kind, generateAttributeLookupCode) for cls in attribute_typed_classes)
 )
 
 setStatementDispatchDict(

@@ -23,8 +23,8 @@ nodes that build tuples, lists, or sets.
 For Python3.5, unpacking can happen while creating sequences, these are
 being re-formulated to an internal function.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 

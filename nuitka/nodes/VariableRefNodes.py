@@ -27,13 +27,13 @@ from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.PythonVersions import python_version
 
 from .DictionaryNodes import (
-    ExpressionDictOperationGet,
     ExpressionDictOperationIn,
+    ExpressionDictOperationItem,
     ExpressionDictOperationNotIn,
     StatementDictOperationRemove,
     StatementDictOperationSet,
 )
-from .ExpressionBases import ExpressionBase
+from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .ModuleAttributeNodes import (
     ExpressionModuleAttributeLoaderRef,
     ExpressionModuleAttributeNameRef,
@@ -144,6 +144,9 @@ class ExpressionVariableRefBase(ExpressionBase):
             has_len = shape.hasShapeSlotLen()
 
             if has_len is False:
+                # Any exception may be raised.
+                trace_collection.onExceptionRaiseExit(BaseException)
+
                 return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                     template="object of type '%s' has no len()",
                     operation="len",
@@ -179,6 +182,22 @@ class ExpressionVariableRefBase(ExpressionBase):
         return len_node, None, None
 
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
+        if self.variable_trace is not None:
+            attribute_node = self.variable_trace.getAttributeNode()
+
+            if attribute_node is not None:
+                # The variable itself is to be considered escaped no matter what, since
+                # we don't know exactly what the attribute is used for later on. We would
+                # have to attach the variable to the result created here in such a way,
+                # that e.g. calling it will make it escaped only.
+                trace_collection.markActiveVariableAsEscaped(self.variable)
+
+                return attribute_node.computeExpressionAttribute(
+                    lookup_node=lookup_node,
+                    attribute_name=attribute_name,
+                    trace_collection=trace_collection,
+                )
+
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 
@@ -189,6 +208,27 @@ class ExpressionVariableRefBase(ExpressionBase):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
+
+    def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
+        return not self.isKnownToHaveAttribute(attribute_name)
+
+    def isKnownToHaveAttribute(self, attribute_name):
+        if self.variable_trace is not None:
+            attribute_node = self.variable_trace.getAttributeNode()
+
+            if attribute_node is not None:
+
+                return attribute_node.isKnownToHaveAttribute(attribute_name)
+
+        return None
+
+    def computeExpressionImportName(self, import_node, import_name, trace_collection):
+        # TODO: For include modules, something might be possible here.
+        return self.computeExpressionAttribute(
+            lookup_node=import_node,
+            attribute_name=import_name,
+            trace_collection=trace_collection,
+        )
 
     def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
         tags = None
@@ -319,7 +359,7 @@ Subscript del to dictionary lowered to dictionary del."""
 
         if self.variable_trace.hasShapeDictionaryExact():
             return trace_collection.computedExpressionResult(
-                expression=ExpressionDictOperationGet(
+                expression=ExpressionDictOperationItem(
                     dict_arg=self,
                     key=subscript,
                     source_ref=lookup_node.getSourceReference(),
@@ -561,10 +601,16 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
         return call_node, None, None
 
     def hasShapeDictionaryExact(self):
-        return self.variable_trace.hasShapeDictionaryExact()
+        return (
+            self.variable_trace is not None
+            and self.variable_trace.hasShapeDictionaryExact()
+        )
 
     def getTruthValue(self):
         return self.variable_trace.getTruthValue()
+
+    def getComparisonValue(self):
+        return self.variable_trace.getComparisonValue()
 
     @staticmethod
     def isKnownToBeIterable(count):
@@ -613,7 +659,11 @@ def makeExpressionVariableRef(variable, locals_scope, source_ref):
         return ExpressionVariableRef(variable=variable, source_ref=source_ref)
 
 
-class ExpressionTempVariableRef(ExpressionVariableRefBase):
+# Note: Temporary variable references are to be guarantueed to not raise
+# therefore no side effects.
+class ExpressionTempVariableRef(
+    ExpressionNoSideEffectsMixin, ExpressionVariableRefBase
+):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
 
     def __init__(self, variable, source_ref):
@@ -703,16 +753,6 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return may_not_raise, (next_node, None, None)
-
-    @staticmethod
-    def mayHaveSideEffects():
-        # Can't happen with temporary variables, unless we used them wrongly.
-        return False
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        # Can't happen with temporary variables, unless we used them wrongly.
-        return False
 
     def mayRaiseExceptionImportName(self, exception_type, import_name):
         if self.variable_trace is not None and self.variable_trace.isAssignTrace():

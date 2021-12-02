@@ -43,7 +43,7 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Images import convertImageToIconFormat
 from nuitka.utils.MacOSApp import createPlistInfoFile
 from nuitka.utils.SharedLibraries import callInstallNameTool
-from nuitka.utils.Utils import getOS, isWin32Windows
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 from nuitka.utils.WindowsResources import (
     RT_GROUP_ICON,
     RT_ICON,
@@ -336,7 +336,7 @@ def executePostProcessing():
     # On macOS, we update the executable path for searching the "libpython"
     # library.
     if (
-        getOS() == "Darwin"
+        isMacOS()
         and not Options.shallMakeModule()
         and not Options.shallUseStaticLibPython()
     ):
@@ -362,7 +362,7 @@ def executePostProcessing():
             rpath=python_lib_path,
         )
 
-    if getOS() == "Darwin" and Options.shallCreateAppBundle():
+    if isMacOS() and Options.shallCreateAppBundle():
         createPlistInfoFile(logger=postprocessing_logger, onefile=False)
 
     # Modules should not be executable, but Scons creates them like it, fix
@@ -388,6 +388,7 @@ def executePostProcessing():
 @echo off
 rem This script was created by Nuitka to execute '%(exe_filename)s' with Python DLL being found.
 set PATH=%(dll_directory)s;%%PATH%%
+set PYTHONHOME=%(dll_directory)s
 "%%~dp0.\\%(exe_filename)s"
 """ % {
             "dll_directory": dll_directory,

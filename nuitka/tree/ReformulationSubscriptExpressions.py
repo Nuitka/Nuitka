@@ -22,8 +22,8 @@ Python3 treats the later by making a slice object, Python2 tries to have
 special slice access, if available, or building a slice object only at the
 end.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 """
 
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef

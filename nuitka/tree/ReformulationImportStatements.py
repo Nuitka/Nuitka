@@ -17,8 +17,8 @@
 #
 """ Reformulation of import statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
@@ -292,7 +292,7 @@ def buildImportFromNode(provider, node, source_ref):
 
 
 def buildImportModulesNode(provider, node, source_ref):
-    # Import modules statement. As described in the developer manual, these
+    # Import modules statement. As described in the Developer Manual, these
     # statements can be treated as several ones.
 
     import_names = [

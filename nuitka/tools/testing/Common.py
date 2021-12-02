@@ -17,8 +17,6 @@
 #
 """ Common test infrastructure functions. To be used by test runners. """
 
-from __future__ import print_function
-
 import ast
 import atexit
 import gc
@@ -41,7 +39,7 @@ from nuitka.PythonVersions import (
 from nuitka.Tracing import OurLogger, my_print
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.Execution import check_output, getNullInput
+from nuitka.utils.Execution import check_output, getNullInput, getNullOutput
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getExternalUsePath,
@@ -50,8 +48,10 @@ from nuitka.utils.FileOperations import (
     getFileList,
     isPathBelowOrSameAs,
     makePath,
+    openTextFile,
     removeDirectory,
 )
+from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.Utils import getOS
 
 from .SearchModes import (
@@ -203,11 +203,9 @@ def convertUsing2to3(path, force=False):
     command = [os.environ["PYTHON"], "-m", "py_compile", path]
 
     if not force:
-        with open(path) as source_file:
-            if "xrange" not in source_file.read():
-                with open(os.devnull, "w") as stderr:
-                    if check_result(command, stderr=stderr):
-                        return path, False
+        if "xrange" not in getFileContents(path):
+            if check_result(command, stderr=getNullOutput()):
+                return path, False
 
     filename = os.path.basename(path)
 
@@ -236,22 +234,20 @@ def convertUsing2to3(path, force=False):
 
     command += ("-w", "-n", "--no-diffs", new_path)
 
-    with open(os.devnull, "w") as devnull:
-        try:
-            check_output(command, stderr=devnull)
+    try:
+        check_output(command, stderr=getNullOutput())
 
-        except subprocess.CalledProcessError:
-            if os.name == "nt":
-                raise
+    except subprocess.CalledProcessError:
+        if os.name == "nt":
+            raise
 
-            command[0:3] = ["2to3"]
+        command[0:3] = ["2to3"]
 
-            check_output(command, stderr=devnull)
+        check_output(command, stderr=getNullOutput())
 
-    with open(new_path) as result_file:
-        data = result_file.read()
+    data = getFileContents(new_path)
 
-    with open(new_path, "w") as result_file:
+    with openTextFile(new_path, "w") as result_file:
         result_file.write("__file__ = %r\n" % os.path.abspath(path))
         result_file.write(data)
 
@@ -328,12 +324,26 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("39.py") and _python_version < (3, 9):
         return False
 
+    # Skip tests that require Python 3.10 at least.
+    if filename.endswith("310.py") and _python_version < (3, 10):
+        return False
+
     return True
 
 
 def decideNeeds2to3(filename):
     return _python_version >= (3,) and not filename.endswith(
-        ("32.py", "33.py", "34.py", "35.py", "36.py", "37.py", "38.py", "39.py")
+        (
+            "32.py",
+            "33.py",
+            "34.py",
+            "35.py",
+            "36.py",
+            "37.py",
+            "38.py",
+            "39.py",
+            "310.py",
+        )
     )
 
 
@@ -443,8 +453,7 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
 def checkSucceedsWithCPython(filename):
     command = [_python_executable, filename]
 
-    with open(os.devnull, "w") as devnull:
-        result = subprocess.call(command, stdout=devnull, stderr=subprocess.STDOUT)
+    result = subprocess.call(command, stdout=getNullOutput(), stderr=subprocess.STDOUT)
 
     return result == 0
 
@@ -493,127 +502,12 @@ def displayRuntimeTraces(logger, path):
             os.system("strace -s4096 -e file %s" % path)
 
 
-def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
-    # A lot of special white listing is required.
-    # pylint: disable=too-many-branches
-
-    result = []
-
-    for loaded_filename in loaded_filenames:
-        loaded_filename = os.path.normpath(loaded_filename)
-        loaded_filename = os.path.normcase(loaded_filename)
-        loaded_basename = os.path.basename(loaded_filename)
-
-        ok = False
-        for entry in white_list:
-            if loaded_filename.startswith(entry):
-                ok = True
-
-            while entry:
-                old_entry = entry
-                entry = os.path.dirname(entry)
-
-                if old_entry == entry:
-                    break
-
-                if loaded_filename == entry:
-                    ok = True
-                    break
-        if ok:
-            continue
-
-        ignore = True
-        for ignored_dir in (
-            # System configuration is OK
-            "/etc",
-            "/usr/etc",
-            "/usr/local/etc",
-            # Runtime user state and kernel information is OK.
-            "/proc",
-            "/dev",
-            "/run",
-            "/sys",
-            "/tmp",
-            # Locals may of course be loaded.
-            "/usr/lib/locale",
-            "/usr/share/locale",
-            "/usr/share/X11/locale",
-            # Themes may of course be loaded.
-            "/usr/share/themes",
-            # Terminal info files are OK too.
-            "/lib/terminfo",
-        ):
-            if isPathBelowOrSameAs(ignored_dir, loaded_filename):
-                ignore = False
-                break
-        if not ignore:
-            continue
-
-        if "gtk" in loaded_filename and "/engines/" in loaded_filename:
-            continue
-
-        # System C libraries are to be expected.
-        if loaded_basename.startswith(
-            (
-                "ld-linux-x86-64.so",
-                "libc.so.",
-                "libpthread.so.",
-                "libm.so.",
-                "libdl.so.",
-                "libBrokenLocale.so.",
-                "libSegFault.so",
-                "libanl.so.",
-                "libcidn.so.",
-                "libcrypt.so.",
-                "libmemusage.so",
-                "libmvec.so.",
-                "libnsl.so.",
-                "libnss_compat.so.",
-                "libnss_db.so.",
-                "libnss_dns.so.",
-                "libnss_files.so.",
-                "libnss_hesiod.so.",
-                "libnss_nis.so.",
-                "libnss_nisplus.so.",
-                "libpcprofile.so",
-                "libresolv.so.",
-                "librt.so.",
-                "libthread_db-1.0.so",
-                "libthread_db.so.",
-                "libutil.so.",
-            )
-        ):
-            continue
-
-        # Taking these from system is harmless and desirable
-        if loaded_basename.startswith(("libz.so", "libgcc_s.so")):
-            continue
-
-        # TODO: Unclear, loading gconv from filesystem of installed system
-        # may be OK or not. I think it should be.
-        if loaded_basename == "gconv-modules.cache":
-            continue
-        if "/gconv/" in loaded_filename:
-            continue
-        if loaded_basename.startswith("libicu"):
-            continue
-
-        # GTK may access X files.
-        if loaded_basename == ".Xauthority":
-            continue
-
-        result.append(loaded_filename)
-
-    return result
-
-
 def hasModule(module_name):
-    with open(os.devnull, "w") as devnull:
-        result = subprocess.call(
-            (os.environ["PYTHON"], "-c", "import %s" % module_name),
-            stdout=devnull,
-            stderr=subprocess.STDOUT,
-        )
+    result = subprocess.call(
+        (os.environ["PYTHON"], "-c", "import %s" % module_name),
+        stdout=getNullOutput(),
+        stderr=subprocess.STDOUT,
+    )
 
     return result == 0
 
@@ -733,7 +627,7 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
     # Clean start conditions.
     assert sys.exc_info() == (None, None, None), sys.exc_info()
 
-    print(checked_function.__name__ + ": ", end="")
+    my_print(checked_function.__name__ + ": ", end="")
     sys.stdout.flush()
 
     disablePrinting()
@@ -772,29 +666,32 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
     reenablePrinting()
 
     if result:
-        print("PASSED")
+        my_print("PASSED")
     else:
-        print("FAILED", ref_count1, ref_count2, "leaked", ref_count2 - ref_count1)
+        my_print(
+            "FAILED %d %d leaked %d" % (ref_count1, ref_count2, ref_count2 - ref_count1)
+        )
 
         if explain:
             print("REPORT of differences:")
             assert m1
             assert m2
 
+            # Using items will unwanted usages, pylint: disable=consider-using-dict-items
             for key in m1:
                 if key not in m2:
-                    print("*" * 80)
-                    print("extra:", m1[key], key)
+                    my_print("*" * 80)
+                    my_print("extra:", m1[key], key)
                 elif m1[key] != m2[key]:
-                    print("*" * 80)
-                    print(m1[key], "->", m2[key], key)
+                    my_print("*" * 80)
+                    my_print(m1[key], "->", m2[key], key)
                 else:
                     pass
 
             for key in m2:
                 if key not in m1:
-                    print("*" * 80)
-                    print("missing:", m2[key], key)
+                    my_print("*" * 80)
+                    my_print("missing:", m2[key], key)
 
                     # print m1[key]
 
@@ -926,7 +823,7 @@ def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr, explain=
         # Avoid unraisable output.
         try:
             if number in tests_stderr:
-                sys.stderr = open(os.devnull, "wb")
+                sys.stderr = getNullOutput()
         except OSError:  # Windows
             if not checkReferenceCount(names[name], explain=explain):
                 result = False
@@ -977,13 +874,6 @@ def withPythonPathChange(python_path):
         else:
             old_path = None
             os.environ["PYTHONPATH"] = python_path
-
-    #     print(
-    #         "Effective PYTHONPATH in %s is %r" % (
-    #             sys.modules["__main__"],
-    #             os.environ.get("PYTHONPATH", "")
-    #         )
-    #     )
 
     yield
 
@@ -1277,9 +1167,6 @@ def scanDirectoryForTestCases(dirname, template_context=None):
         or filename.endswith(".j2")
     ]
 
-    # Jinja2 environment is optional.
-    env = None
-
     for filename in sorted(filenames):
         if not decideFilenameVersionSkip(filename):
             continue
@@ -1288,22 +1175,14 @@ def scanDirectoryForTestCases(dirname, template_context=None):
             # Needs to be a dictionary with template arguments.
             assert template_context is not None
 
-            if env is None:
-                import jinja2
-
-                env = jinja2.Environment(
-                    loader=jinja2.FileSystemLoader("."),
-                    trim_blocks=True,
-                    lstrip_blocks=True,
-                )
-                env.undefined = jinja2.StrictUndefined
-
-            template = env.get_template(filename)
+            template = getTemplate(
+                package_name=None, template_name=filename, template_subdir=dirname
+            )
 
             code = template.render(name=template.name, **template_context)
 
             filename = filename[:-3]
-            with open(filename, "w") as output:
+            with openTextFile(filename, "w") as output:
                 output.write(
                     "'''Automatically generated test, not part of releases or git.\n\n'''\n"
                 )
@@ -1385,16 +1264,15 @@ def checkRequirements(filename):
         if line.startswith("# nuitka-skip-unless-"):
             if line[21:33] == "expression: ":
                 expression = line[33:]
-                with open(os.devnull, "w") as devnull:
-                    result = subprocess.call(
-                        (
-                            os.environ["PYTHON"],
-                            "-c",
-                            "import sys, os; sys.exit(not bool(%s))" % expression,
-                        ),
-                        stdout=devnull,
-                        stderr=subprocess.STDOUT,
-                    )
+                result = subprocess.call(
+                    (
+                        os.environ["PYTHON"],
+                        "-c",
+                        "import sys, os; sys.exit(not bool(%s))" % expression,
+                    ),
+                    stdout=getNullOutput(),
+                    stderr=subprocess.STDOUT,
+                )
                 if result != 0:
                     return (False, "Expression '%s' evaluated to false" % expression)
 
@@ -1505,6 +1383,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             "/run",
             "/sys",
             "/tmp",
+            "/var",
             # Locals may of course be loaded.
             "/usr/lib/locale",
             "/usr/share/locale",
@@ -1822,3 +1701,15 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         illegal_accesses.append(orig_loaded_filename)
 
     return illegal_accesses
+
+
+def getMainProgramFilename(filename):
+    for filename_main in os.listdir(filename):
+        if filename_main.endswith(("Main.py", "Main")):
+            return filename_main
+
+    test_logger.sysexit(
+        """\
+Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case."""
+        % (filename)
+    )

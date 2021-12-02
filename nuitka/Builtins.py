@@ -184,6 +184,7 @@ def _getAnonBuiltins():
         # pylint: disable=I0021,no-name-in-module
         from types import ClassType, InstanceType, MethodType
 
+        # We can to be sure of the type here, so use open without encoding, pylint: disable=unspecified-encoding
         with open(sys.executable) as any_file:
             anon_names["file"] = type(any_file)
         anon_codes["file"] = "&PyFile_Type"

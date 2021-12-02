@@ -17,12 +17,12 @@
 #
 """ Reformulation of contraction expressions.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
-from nuitka.__past__ import intern  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import intern
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable,
@@ -77,7 +77,7 @@ from nuitka.nodes.YieldNodes import (
 from nuitka.PythonVersions import python_version
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
-from .ReformulationBooleanExpressions import buildAndNode
+from .ReformulationBooleanExpressions import makeAndNode
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
@@ -130,7 +130,7 @@ def _getStopIterationName(qual):
 
 def _buildPython2ListContraction(provider, node, source_ref):
     # The contraction nodes are reformulated to function bodies, with loops as
-    # described in the developer manual. They use a lot of temporary names,
+    # described in the Developer Manual. They use a lot of temporary names,
     # nested blocks, etc. and so a lot of variable names.
 
     # Note: The assign_provider is only to cover Python2 list contractions,
@@ -549,7 +549,7 @@ def _buildContractionBodyNode(
         if len(conditions) >= 1:
             loop_statements.append(
                 makeStatementConditional(
-                    condition=buildAndNode(values=conditions, source_ref=source_ref),
+                    condition=makeAndNode(values=conditions, source_ref=source_ref),
                     yes_branch=current_body,
                     no_branch=None,
                     source_ref=source_ref,
@@ -591,7 +591,7 @@ def _buildContractionBodyNode(
 
 def _buildContractionNode(provider, node, name, emit_class, start_value, source_ref):
     # The contraction nodes are reformulated to function bodies, with loops as
-    # described in the developer manual. They use a lot of temporary names,
+    # described in the Developer Manual. They use a lot of temporary names,
     # nested blocks, etc. and so a lot of variable names.
 
     function_body = ExpressionOutlineFunction(

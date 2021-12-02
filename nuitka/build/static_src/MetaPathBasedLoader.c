@@ -659,7 +659,7 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
     // structure internals of 3.8 or higher.
     static PyObject *dlopenflags_object = NULL;
     if (dlopenflags_object == NULL) {
-        dlopenflags_object = CALL_FUNCTION_NO_ARGS(PySys_GetObject((char *)"getdlopenflags"));
+        dlopenflags_object = CALL_FUNCTION_NO_ARGS(Nuitka_SysGetObject("getdlopenflags"));
     }
     int dlopenflags = PyInt_AsLong(dlopenflags_object);
 
@@ -745,6 +745,23 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
         return module;
     } else {
         def = PyModule_GetDef(module);
+
+        // Fixup __package__ after load. It seems some modules ignore _Py_PackageContext value.
+        // so we patch it up here if it's None, but a package was specified.
+        if (package != NULL) {
+            PyObject *package_name = LOOKUP_ATTRIBUTE(module, const_str_plain___package__);
+
+            if (package_name == Py_None) {
+                char package2[1024];
+                copyStringSafeN(package2, full_name, dot - full_name, sizeof(package2));
+
+                PyObject *package_name_obj = Nuitka_String_FromString(package2);
+                SET_ATTRIBUTE(module, const_str_plain___package__, package_name_obj);
+                Py_DECREF(package_name_obj);
+            }
+
+            Py_DECREF(package_name);
+        }
     }
 
     if (likely(def != NULL)) {
@@ -935,7 +952,7 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyObject *module, PyObject *module_nam
 
     if (entry != NULL || frozen_import) {
         // Execute the "preLoad" code produced for the module potentially. This
-        // is from plug-ins typically, that want to modify things for the the
+        // is from plugins typically, that want to modify things for the the
         // module before loading, to e.g. set a plug-in path, or do some monkey
         // patching in order to make things compatible.
         loadTriggeredModule(name, "-preLoad");
@@ -965,7 +982,7 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyObject *module, PyObject *module_nam
 
     if (result != NULL) {
         // Execute the "postLoad" code produced for the module potentially. This
-        // is from plug-ins typically, that want to modify the module immediately
+        // is from plugins typically, that want to modify the module immediately
         // after loading, to e.g. set a plug-in path, or do some monkey patching
         // in order to make things compatible.
         loadTriggeredModule(name, "-postLoad");
@@ -1002,13 +1019,7 @@ PyObject *IMPORT_EMBEDDED_MODULE(char const *name) {
 
 #if PYTHON_VERSION < 0x350
     if (unlikely(result == NULL)) {
-        PyObject *save_exception_type, *save_exception_value;
-        PyTracebackObject *save_exception_tb;
-        FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
-
-        PyObject_DelItem(PyImport_GetModuleDict(), module_name);
-
-        RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
+        Nuitka_DelModule(module_name);
     }
 #endif
 
@@ -1643,7 +1654,7 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 #endif
 
     // Register it as a meta path loader.
-    int res = PyList_Insert(PySys_GetObject((char *)"meta_path"),
+    int res = PyList_Insert(Nuitka_SysGetObject("meta_path"),
 #if PYTHON_VERSION < 0x300
                             0,
 #else

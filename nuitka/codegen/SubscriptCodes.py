@@ -29,7 +29,7 @@ from .CodeHelpers import (
     generateExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
 
 
 def _decideIntegerSubscript(subscript):
@@ -149,6 +149,41 @@ def generateSubscriptLookupCode(to_name, expression, emit, context):
                 emit=emit,
                 context=context,
             )
+
+
+def generateSubscriptCheckCode(to_name, expression, emit, context):
+    subscribed = expression.subnode_expression
+    subscript = expression.subnode_subscript
+
+    subscribed_name = generateChildExpressionCode(
+        expression=subscribed, emit=emit, context=context
+    )
+
+    subscript_name = generateChildExpressionCode(
+        expression=subscript, emit=emit, context=context
+    )
+
+    subscript_constant, integer_subscript = _decideIntegerSubscript(subscript)
+
+    res_name = context.getBoolResName()
+
+    if integer_subscript:
+        emit(
+            "%s = HAS_SUBSCRIPT_CONST(%s, %s, %s);"
+            % (res_name, subscribed_name, subscript_name, subscript_constant)
+        )
+    else:
+        emit(
+            "%s = HAS_SUBSCRIPT(%s, %s);" % (res_name, subscribed_name, subscript_name)
+        )
+
+    getReleaseCodes((subscript_name, subscribed_name), emit, context)
+
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name=to_name,
+        condition=res_name,
+        emit=emit,
+    )
 
 
 def _getIntegerSubscriptLookupCode(

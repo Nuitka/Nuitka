@@ -17,7 +17,7 @@
 #     limitations under the License.
 #
 
-""" Launcher for static code generation tool.
+""" Launcher for static C code generation tool.
 
 """
 
@@ -29,6 +29,6 @@ import sys
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
 # isort:start
-from nuitka.tools.specialize.__main__ import main
+from nuitka.tools.specialize.SpecializeC import main
 
 main()

@@ -35,6 +35,7 @@ import SCons.Tool.gcc  # pylint: disable=I0021,import-error
 from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
 from nuitka.Tracing import scons_details_logger
+from nuitka.utils.FileOperations import openTextFile
 
 from .SconsUtils import decodeData, getExecutablePath, isGccName
 
@@ -179,7 +180,7 @@ def makeGccUseLinkerFile(source_dir, source_files, env):
         "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
     )
 
-    with open(tmp_linker_filename, "w") as tmpfile:
+    with openTextFile(tmp_linker_filename, "w") as tmpfile:
         for filename in source_files:
             filename = ".".join(filename.split(".")[:-1]) + ".o"
 

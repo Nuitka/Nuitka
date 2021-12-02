@@ -17,8 +17,8 @@
 #
 """ Reformulation of assert statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
@@ -34,7 +34,7 @@ from .TreeHelpers import buildNode
 
 def buildAssertNode(provider, node, source_ref):
     # Build assert statements. These are re-formulated as described in the
-    # developer manual too. They end up as conditional statement with raises of
+    # Developer Manual too. They end up as conditional statement with raises of
     # AssertionError exceptions.
 
     # Underlying assumption:

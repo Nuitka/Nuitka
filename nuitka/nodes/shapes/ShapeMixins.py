@@ -56,6 +56,10 @@ class ShapeContainerMixin(object):
     def getOperationUnaryReprEscape():
         return ControlFlowDescriptionElementBasedEscape
 
+    @staticmethod
+    def hasShapeTrustedAttributes():
+        return True
+
 
 class ShapeContainerMutableMixin(ShapeContainerMixin):
     @staticmethod
@@ -165,6 +169,10 @@ class ShapeNumberMixin(object):
     @staticmethod
     def hasShapeModule():
         return False
+
+    @staticmethod
+    def hasShapeTrustedAttributes():
+        return True
 
     @staticmethod
     def getOperationUnaryReprEscape():

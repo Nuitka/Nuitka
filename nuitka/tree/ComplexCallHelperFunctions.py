@@ -25,7 +25,7 @@ from nuitka.nodes.AssignNodes import (
 )
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeCheck,
-    ExpressionAttributeLookup,
+    makeExpressionAttributeLookup,
 )
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
@@ -114,7 +114,7 @@ def orderArgs(*args):
 
 
 def _makeNameAttributeLookup(node, attribute_name="__name__"):
-    return ExpressionAttributeLookup(
+    return makeExpressionAttributeLookup(
         expression=node, attribute_name=attribute_name, source_ref=internal_source_ref
     )
 

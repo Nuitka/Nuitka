@@ -30,3 +30,5 @@ import numpy
 # nuitka-project: --noinclude-setuptools-mode=error
 # nuitka-project: --noinclude-pytest-mode=error
 # nuitka-project: --noinclude-custom-mode=numpy.distutils:error
+
+print("OK.")

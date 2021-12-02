@@ -39,7 +39,10 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase,
 )
 from .NodeBases import StatementChildHavingBase, StatementChildrenHavingBase
-from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+from .NodeMakingHelpers import (
+    makeCompileTimeConstantReplacementNode,
+    wrapExpressionWithNodeSideEffects,
+)
 
 
 class StatementAssignmentAttribute(StatementChildrenHavingBase):
@@ -140,47 +143,20 @@ class StatementDelAttribute(StatementChildHavingBase):
         return "attribute del statement"
 
 
-class ExpressionAttributeLookup(ExpressionChildHavingBase):
-    """Looking up an attribute of an object.
+from .AttributeLookupNodes import ExpressionAttributeLookup
+from .AttributeNodesGenerated import attribute_classes
 
-    Typically code like: source.attribute_name
-    """
 
-    kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
+def makeExpressionAttributeLookup(expression, attribute_name, source_ref):
+    attribute_class = attribute_classes.get(attribute_name)
 
-    named_child = "expression"
-    __slots__ = ("attribute_name",)
-
-    def __init__(self, expression, attribute_name, source_ref):
-        ExpressionChildHavingBase.__init__(
-            self, value=expression, source_ref=source_ref
+    if attribute_class is not None:
+        assert attribute_class.attribute_name == attribute_name
+        return attribute_class(expression=expression, source_ref=source_ref)
+    else:
+        return ExpressionAttributeLookup(
+            expression=expression, attribute_name=attribute_name, source_ref=source_ref
         )
-
-        self.attribute_name = attribute_name
-
-    def getAttributeName(self):
-        return self.attribute_name
-
-    def getDetails(self):
-        return {"attribute_name": self.attribute_name}
-
-    def computeExpression(self, trace_collection):
-        return self.subnode_expression.computeExpressionAttribute(
-            lookup_node=self,
-            attribute_name=self.attribute_name,
-            trace_collection=trace_collection,
-        )
-
-    def mayRaiseException(self, exception_type):
-        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
-            exception_type=exception_type, attribute_name=self.attribute_name
-        )
-
-    @staticmethod
-    def isKnownToBeIterable(count):
-        # TODO: Could be known. We would need for computeExpressionAttribute to
-        # either return a new node, or a decision maker.
-        return None
 
 
 class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
@@ -241,7 +217,7 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
                     side_effects = source.extractSideEffects()
 
                     if not side_effects:
-                        result = ExpressionAttributeLookup(
+                        result = makeExpressionAttributeLookup(
                             expression=source,
                             attribute_name=attribute_name,
                             source_ref=self.source_ref,
@@ -308,6 +284,7 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
 
             attribute_name = attribute.getStringValue()
 
+            # TODO: Something needs to be done if it has no string value.
             if attribute_name is not None:
 
                 # If source or attribute have side effects, they must be
@@ -356,29 +333,24 @@ class ExpressionAttributeCheck(ExpressionChildHavingBase):
         return {"attribute_name": self.attribute_name}
 
     def computeExpression(self, trace_collection):
-        # We do at least for compile time constants optimization here, but more
-        # could be done, were we to know shapes.
         source = self.subnode_expression
 
-        if source.isCompileTimeConstant():
-            (
-                result,
-                tags,
-                change_desc,
-            ) = trace_collection.getCompileTimeComputationResult(
-                node=self,
-                computation=lambda: hasattr(
-                    source.getCompileTimeConstant(), self.attribute_name
-                ),
-                description="Attribute check has been pre-computed.",
+        # For things that know their attributes, we can statically optimize this
+        # into true or false, preserving side effects of course.
+        has_attribute = source.isKnownToHaveAttribute(self.attribute_name)
+        if has_attribute is not None:
+            result = makeCompileTimeConstantReplacementNode(
+                value=has_attribute, node=self, user_provided=False
             )
 
-            # If source has has side effects, they must be evaluated.
+            # If source has side effects, they must be evaluated.
             result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=source)
 
-            return result, tags, change_desc
+            return result, "new_constant", "Attribute check has been pre-computed."
 
-        trace_collection.onExceptionRaiseExit(BaseException)
+        # Attribute check is implemented by getting an attribute.
+        if source.mayRaiseExceptionAttributeLookup(BaseException, self.attribute_name):
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 

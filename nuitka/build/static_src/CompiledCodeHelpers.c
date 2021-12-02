@@ -820,11 +820,14 @@ void PRINT_REFCOUNT(PyObject *object) {
 }
 
 bool PRINT_STRING(char const *str) {
-    PyObject *tmp = PyUnicode_FromString(str);
-    bool res = PRINT_ITEM(tmp);
-    Py_DECREF(tmp);
-
-    return res;
+    if (str) {
+        PyObject *tmp = PyUnicode_FromString(str);
+        bool res = PRINT_ITEM(tmp);
+        Py_DECREF(tmp);
+        return res;
+    } else {
+        return PRINT_STRING("<nullstr>");
+    }
 }
 
 bool PRINT_FORMAT(char const *fmt, ...) {
@@ -933,7 +936,7 @@ void PRINT_TRACEBACK(PyTracebackObject *traceback) {
 #endif
 
 PyObject *GET_STDOUT() {
-    PyObject *result = PySys_GetObject((char *)"stdout");
+    PyObject *result = Nuitka_SysGetObject("stdout");
 
     if (unlikely(result == NULL)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "lost sys.stdout");
@@ -944,7 +947,7 @@ PyObject *GET_STDOUT() {
 }
 
 PyObject *GET_STDERR() {
-    PyObject *result = PySys_GetObject((char *)"stderr");
+    PyObject *result = Nuitka_SysGetObject("stderr");
 
     if (unlikely(result == NULL)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "lost sys.stderr");
@@ -2069,4 +2072,8 @@ void _initSlotIternext() {
 
 #if _NUITKA_PROFILE
 #include "HelpersProfiling.c"
+#endif
+
+#if _NUITKA_PGO_PYTHON
+#include "HelpersPythonPgo.c"
 #endif

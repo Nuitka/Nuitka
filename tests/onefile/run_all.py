@@ -68,7 +68,7 @@ def displayError(dirname, filename):
 
 
 def main():
-    python_version = setup(needs_io_encoding=True)
+    python_version = setup(suite="onefile", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 

@@ -68,6 +68,10 @@ operations = (
     ("Subscript", "["),
 )
 
+from nuitka.tools.specialize.SpecializePython import (
+    python2_dict_methods as dict_method_names,
+)
+
 # For typical constant values to use in operation tests.
 candidates = (
     ("NoneType", "None", "None"),
@@ -95,7 +99,7 @@ def makeOperatorUsage(operator, left, right):
 
 
 def main():
-    python_version = setup(suite="basics", needs_io_encoding=True)
+    python_version = setup(suite="generated", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 
@@ -114,6 +118,7 @@ def main():
 
     template_context = {
         "operations": operations,
+        "dict_method_names": dict_method_names,
         "ioperations": tuple(
             operation
             for operation in operations
@@ -121,6 +126,7 @@ def main():
         ),
         "candidates": candidates,
         "makeOperatorUsage": makeOperatorUsage,
+        "len": len,
     }
 
     # Now run all the tests in this directory.

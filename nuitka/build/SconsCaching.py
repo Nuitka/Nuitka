@@ -29,6 +29,7 @@ from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.FileOperations import (
+    areSamePaths,
     getExternalUsePath,
     getFileContentByLine,
     getFileContents,
@@ -36,7 +37,7 @@ from nuitka.utils.FileOperations import (
     makePath,
 )
 from nuitka.utils.Importing import importFromInlineCopy
-from nuitka.utils.Utils import getOS, isWin32Windows
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 from .SconsUtils import (
     getExecutablePath,
@@ -68,14 +69,12 @@ def _getCcacheGuessedPaths(python_prefix):
             yield os.path.join(python_dir, "bin", "ccache.exe")
             yield os.path.join(python_dir, "scripts", "ccache.exe")
 
-    elif getOS() == "Darwin":
+    elif isMacOS():
         # For macOS, we might find Homebrew ccache installed but not in PATH.
         yield "/usr/local/opt/ccache"
 
 
-def _injectCcache(
-    the_compiler, cc_path, env, python_prefix, target_arch, assume_yes_for_downloads
-):
+def _injectCcache(env, cc_path, python_prefix, target_arch, assume_yes_for_downloads):
     ccache_binary = os.environ.get("NUITKA_CCACHE_BINARY")
 
     # If not provided, search it in PATH and guessed directories.
@@ -98,7 +97,7 @@ def _injectCcache(
                     break
 
         if ccache_binary is None:
-            if getOS() == "Windows" and isWin32Windows():
+            if isWin32Windows():
                 url = "https://github.com/ccache/ccache/releases/download/v3.7.12/ccache-3.7.12-windows-32.zip"
                 ccache_binary = getCachedDownload(
                     url=url,
@@ -110,7 +109,7 @@ def _injectCcache(
                     reject=None,
                     assume_yes_for_downloads=assume_yes_for_downloads,
                 )
-            elif getOS() == "Darwin":
+            elif isMacOS():
                 # TODO: Do not yet have M1 access to create one and 10.14 is minimum
                 # we managed to compile ccache for.
                 if target_arch != "arm64" and tuple(
@@ -139,7 +138,9 @@ def _injectCcache(
         # Make sure the
         # In case we are on Windows, make sure the Anaconda form runs outside of Anaconda
         # environment, by adding DLL folder to PATH.
-        assert os.path.normpath(getExecutablePath(os.path.basename(the_compiler), env=env)) == os.path.normpath(cc_path)
+        assert areSamePaths(
+            getExecutablePath(os.path.basename(env.the_compiler), env=env), cc_path
+        )
 
         # We use absolute paths for CC, pass it like this, as ccache does not like absolute.
         env["CXX"] = env["CC"] = '"%s" "%s"' % (ccache_binary, cc_path)
@@ -157,12 +158,11 @@ def _injectCcache(
     else:
         if isWin32Windows():
             scons_logger.warning(
-                "Didn't find ccache for C level caching, follow Nuitka user manual description."
+                "Didn't find ccache for C level caching, follow Nuitka User Manual description."
             )
 
 
 def enableCcache(
-    the_compiler,
     env,
     source_dir,
     python_prefix,
@@ -186,7 +186,7 @@ def enableCcache(
         env["CCACHE_DIR"] = ccache_dir
 
     # First check if it's not already supposed to be a ccache, then do nothing.
-    cc_path = getExecutablePath(the_compiler, env=env)
+    cc_path = getExecutablePath(env.the_compiler, env=env)
 
     cc_is_link, cc_link_path = getLinkTarget(cc_path)
     if cc_is_link and os.path.basename(cc_link_path) == "ccache":
@@ -198,16 +198,15 @@ def enableCcache(
         return True
 
     return _injectCcache(
-        the_compiler=the_compiler,
-        cc_path=cc_path,
         env=env,
+        cc_path=cc_path,
         python_prefix=python_prefix,
         target_arch=target_arch,
         assume_yes_for_downloads=assume_yes_for_downloads,
     )
 
 
-def enableClcache(the_compiler, env, source_dir):
+def enableClcache(env, source_dir):
     importFromInlineCopy("atomicwrites", must_exist=True)
     importFromInlineCopy("clcache", must_exist=True)
 
@@ -215,7 +214,7 @@ def enableClcache(the_compiler, env, source_dir):
     # do it now, so it's not a race issue.
     import concurrent.futures.thread  # pylint: disable=I0021,unused-import,unused-variable
 
-    cl_binary = getExecutablePath(the_compiler, env)
+    cl_binary = getExecutablePath(env.the_compiler, env)
 
     # The compiler is passed via environment.
     setEnvironmentVariable(env, "CLCACHE_CL", cl_binary)
@@ -290,7 +289,7 @@ def _getCcacheStatistics(ccache_logfile):
 
                     all_text = []
 
-                    for line2 in open(ccache_logfile):
+                    for line2 in getFileContentByLine(ccache_logfile):
                         match = re_anything.match(line2)
 
                         if match:
@@ -307,7 +306,7 @@ def _getCcacheStatistics(ccache_logfile):
 
 
 def checkCachingSuccess(source_dir):
-    ccache_logfile = getSconsReportValue(source_dir, "CCACHE_LOGFILE")
+    ccache_logfile = getSconsReportValue(source_dir=source_dir, key="CCACHE_LOGFILE")
 
     if ccache_logfile is not None:
         stats = _getCcacheStatistics(ccache_logfile)
@@ -336,7 +335,9 @@ def checkCachingSuccess(source_dir):
                 )
 
     if os.name == "nt":
-        clcache_stats_filename = getSconsReportValue(source_dir, "CLCACHE_STATS")
+        clcache_stats_filename = getSconsReportValue(
+            source_dir=source_dir, key="CLCACHE_STATS"
+        )
 
         if clcache_stats_filename is not None and os.path.exists(
             clcache_stats_filename

@@ -22,11 +22,16 @@ whose implementation lives here. The creation itself also lives here.
 
 """
 
-from .ExpressionBases import ExpressionChildHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionNoSideEffectsMixin,
+)
 from .FunctionNodes import ExpressionFunctionEntryPointBase
 
 
-class ExpressionMakeCoroutineObject(ExpressionChildHavingBase):
+class ExpressionMakeCoroutineObject(
+    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_MAKE_COROUTINE_OBJECT"
 
     named_child = "coroutine_ref"
@@ -58,14 +63,6 @@ class ExpressionMakeCoroutineObject(ExpressionChildHavingBase):
 
         # TODO: Coroutine body may know something too.
         return self, None, None
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
-
-    @staticmethod
-    def mayHaveSideEffects():
-        return False
 
     def getClosureVariableVersions(self):
         return self.variable_closure_traces

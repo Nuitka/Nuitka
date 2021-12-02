@@ -39,11 +39,13 @@ from nuitka.utils.Execution import (
     check_call,
     check_output,
     getExecutablePath,
+    getNullOutput,
     withEnvironmentPathAdded,
 )
 from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
+    putTextFileContents,
     renameFile,
     withPreserveFileMode,
 )
@@ -75,17 +77,15 @@ def cleanupWindowsNewlines(filename):
 
 def _cleanupTrailingWhitespace(filename):
     """Remove trailing white spaces from a file."""
-    with open(filename, "r") as f:
-        source_lines = list(f)
+    source_lines = list(getFileContentByLine(filename))
 
     clean_lines = [line.rstrip().replace("\t", "    ") for line in source_lines]
 
     while clean_lines and clean_lines[-1] == "":
         del clean_lines[-1]
 
-    if clean_lines != source_lines:
-        with open(filename, "w") as out_file:
-            out_file.write("\n".join(clean_lines) + "\n")
+    if clean_lines != source_lines or (clean_lines and clean_lines[-1] != ""):
+        putTextFileContents(filename, contents=clean_lines)
 
 
 def _getRequirementsContentsByLine():
@@ -168,14 +168,12 @@ def _updateCommentNode(comment_node):
                 elif pylint_token == "E1102":
                     return "not-callable"
                 elif pylint_token == "E1133":
-                    return "  not-an-iterable"
+                    return " not-an-iterable"
                 elif pylint_token == "E1128":
                     return "assignment-from-none"
                 # Save line length for this until isort is better at long lines.
                 elif pylint_token == "useless-suppression":
                     return "I0021"
-                #                     elif pylint_token == "I0021":
-                #                        return "useless-suppression"
                 elif pylint_token == "R0911":
                     return "too-many-return-statements"
                 elif pylint_token == "R0201":
@@ -211,36 +209,58 @@ def _updateCommentNode(comment_node):
         comment_node.value = new_value
 
 
-def _cleanupPyLintComments(filename, abort):
-    from redbaron import (  # pylint: disable=I0021,import-error,no-name-in-module
-        RedBaron,
-    )
+def _cleanupPyLintComments(filename):
+    new_code = old_code = getFileContents(filename)
 
-    old_code = getFileContents(filename)
+    def replacer(part):
+        def renamer(pylint_token):
+            # pylint: disable=too-many-branches,too-many-return-statements
+            if pylint_token == "E0602":
+                return "undefined-variable"
+            elif pylint_token in ("E0401", "F0401"):
+                return "import-error"
+            elif pylint_token == "E1102":
+                return "not-callable"
+            elif pylint_token == "E1133":
+                return " not-an-iterable"
+            elif pylint_token == "E1128":
+                return "assignment-from-none"
+            # Save line length for this until isort is better at long lines.
+            elif pylint_token == "useless-suppression":
+                return "I0021"
+            elif pylint_token == "R0911":
+                return "too-many-return-statements"
+            elif pylint_token == "R0201":
+                return "no-self-use"
+            elif pylint_token == "R0902":
+                return "too-many-instance-attributes"
+            elif pylint_token == "R0912":
+                return "too-many-branches"
+            elif pylint_token == "R0914":
+                return "too-many-locals"
+            elif pylint_token == "R0915":
+                return "too-many-statements"
+            elif pylint_token == "W0123":
+                return "eval-used"
+            elif pylint_token == "W0603":
+                return "global-statement"
+            elif pylint_token == "W0613":
+                return "unused-argument"
+            elif pylint_token == "W0622":
+                return "redefined-builtin"
+            elif pylint_token == "W0703":
+                return "broad-except"
+            else:
+                return pylint_token
 
-    # Baron does assertions too, and all kinds of strange errors, pylint: disable=broad-except
+        return part.group(1) + ",".join(
+            sorted(set(renamer(token) for token in part.group(2).split(",") if token))
+        )
 
-    try:
-        red = RedBaron(old_code)
-    except Exception:
-        if abort:
-            raise
-
-        return
-
-    for node in red.find_all("CommentNode"):
-        try:
-            _updateCommentNode(node)
-        except Exception:
-            my_print("Problem with", node)
-            node.help(deep=True, with_formatting=True)
-            raise
-
-    new_code = red.dumps()
+    new_code = re.sub(r"(pylint\: disable=)(.*)", replacer, new_code, flags=re.M)
 
     if new_code != old_code:
-        with open(filename, "w") as source_code:
-            source_code.write(red.dumps())
+        putTextFileContents(filename, new_code)
 
 
 def _cleanupImportRelative(filename):
@@ -264,8 +284,7 @@ def _cleanupImportRelative(filename):
     updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
 
     if source_code != updated_code:
-        with open(filename, "w") as out_file:
-            out_file.write(updated_code)
+        putTextFileContents(filename, contents=updated_code)
 
 
 _binary_calls = {}
@@ -332,36 +351,33 @@ def _cleanupImportSortOrder(filename):
         parts = contents.splitlines()
 
         start_index = parts.index("# isort:start")
-        contents = "\n".join(parts[start_index + 1 :])
+        contents = "\n".join(parts[start_index + 1 :]) + "\n"
 
-        with open(filename, "w") as out_file:
-            out_file.write(contents)
+        putTextFileContents(filename, contents=contents)
 
-    with open(os.devnull, "w") as devnull:
-        check_call(
-            isort_call
-            + [
-                "-q",  # quiet, but stdout is still garbage
-                "--overwrite-in-place",  # avoid using another temp file, this is already on one.
-                "-ot",  # Order imports by type in addition to alphabetically
-                "-m3",  # "vert-hanging"
-                "-tc",  # Trailing commas
-                "-p",  # make sure nuitka is first party package in import sorting.
-                "nuitka",
-                "-o",
-                "SCons",
-                filename,
-            ],
-            stdout=devnull,
-        )
+    check_call(
+        isort_call
+        + [
+            "-q",  # quiet, but stdout is still garbage
+            "--overwrite-in-place",  # avoid using another temp file, this is already on one.
+            "-ot",  # Order imports by type in addition to alphabetically
+            "-m3",  # "vert-hanging"
+            "-tc",  # Trailing commas
+            "-p",  # make sure nuitka is first party package in import sorting.
+            "nuitka",
+            "-o",
+            "SCons",
+            filename,
+        ],
+        stdout=getNullOutput(),
+    )
 
     if start_index is not None:
         contents = getFileContents(filename)
 
         contents = "\n".join(parts[: start_index + 1]) + "\n" + contents
 
-        with open(filename, "w") as out_file:
-            out_file.write(contents)
+        putTextFileContents(filename, contents=contents)
 
 
 def _cleanupRstFmt(filename):
@@ -380,7 +396,9 @@ def _cleanupRstFmt(filename):
     with open(filename, "rb") as f:
         contents = f.read()
 
-    updated_contents = contents.replace(b":\n\n.. code::\n", b"::\n")
+    # Enforce choice between "bash" and "sh" for code directive. Use bash as
+    # more people will know it.
+    updated_contents = contents.replace(b".. code:: sh\n", b".. code:: bash\n")
 
     lines = []
     inside = False
@@ -404,7 +422,7 @@ def _cleanupRstFmt(filename):
             inside = False
             lines.append(line)
 
-    updated_contents = b"\n".join(lines)
+    updated_contents = b"\n".join(lines) + b"\n"
 
     if updated_contents != contents:
         with open(filename, "wb") as out_file:
@@ -426,7 +444,9 @@ def _cleanupClangFormat(filename):
     global warned_clang_format
 
     clang_format_path = (
-        getExecutablePath("clang-format-10")
+        getExecutablePath("clang-format-12")
+        or getExecutablePath("clang-format-11")
+        or getExecutablePath("clang-format-10")
         or getExecutablePath("clang-format-9")
         or getExecutablePath("clang-format-8")
         or getExecutablePath("clang-format-7")
@@ -460,6 +480,10 @@ def _shouldNotFormatCode(filename):
     parts = os.path.abspath(filename).split(os.path.sep)
 
     if "inline_copy" in parts:
+        # Our Scons runner should be formatted.
+        if os.path.basename(filename) == "scons.py":
+            return False
+
         return True
     elif (
         "tests" in parts
@@ -495,14 +519,16 @@ def _transferBOM(source_filename, target_filename):
                 f.write(source_code)
 
 
-def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
+def autoformat(
+    filename, git_stage, check_only=False, effective_filename=None, trace=True
+):
     """Format source code with external tools
 
     Args:
-        filename: filename to work on
-        git_stage: indicate if this is to be done on staged content
-        abort: error exit in case a tool shows a problem
-        effective_filename: derive type of file from this name
+        filename: str - filename to work on
+        git_stage: bool - indicate if this is to be done on staged content
+        abort: bool - error exit in case a tool shows a problem
+        effective_filename: str - derive type of file from this name
 
     Notes:
         The effective filename can be used in case this is already a
@@ -546,6 +572,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
             ".stylesheet",
             ".j2",
             ".gitignore",
+            ".gitattributes",
             ".json",
             ".spec",
             "-rpmlintrc",
@@ -584,7 +611,7 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
 
             if not _shouldNotFormatCode(effective_filename):
                 _cleanupImportSortOrder(tmp_filename)
-                _cleanupPyLintComments(tmp_filename, abort)
+                _cleanupPyLintComments(tmp_filename)
 
                 black_call = _getPythonBinaryCall("black")
 
@@ -608,16 +635,22 @@ def autoformat(filename, git_stage, abort, effective_filename=None, trace=True):
 
         changed = False
         if old_code != getFileContents(tmp_filename, "rb"):
-            if trace:
-                my_print("Updated.")
 
-            with withPreserveFileMode(filename):
-                if git_stage:
-                    new_hash_value = putFileHashContent(tmp_filename)
-                    updateFileIndex(git_stage, new_hash_value)
-                    updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
-                else:
-                    renameFile(tmp_filename, filename)
+            if check_only:
+                my_print("FAIL.", style="red")
+            else:
+                if trace:
+                    my_print("Updated.")
+
+                with withPreserveFileMode(filename):
+                    if git_stage:
+                        new_hash_value = putFileHashContent(tmp_filename)
+                        updateFileIndex(git_stage, new_hash_value)
+                        updateWorkingFile(
+                            filename, git_stage["dst_hash"], new_hash_value
+                        )
+                    else:
+                        renameFile(tmp_filename, filename)
 
             changed = True
         else:

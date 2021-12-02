@@ -22,20 +22,18 @@
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionBuiltinSingleArgBase
+from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithNodeSideEffects,
 )
-from .shapes.BuiltinTypeShapes import (
-    tshape_bool,
-    tshape_bytes,
-    tshape_str,
-    tshape_unicode,
-)
+from .shapes.BuiltinTypeShapes import tshape_str, tshape_unicode
 
 
-class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
+class ExpressionBuiltinAll(
+    ExpressionBoolShapeExactMixin, ExpressionBuiltinSingleArgBase
+):
     """Builtin All Node class.
 
     Args:
@@ -54,6 +52,9 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
         value = self.subnode_value
         shape = value.getTypeShape()
         if shape.hasShapeSlotIter() is False:
+            # An exception is raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="'%s' object is not iterable",
                 operation="all",
@@ -61,7 +62,7 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
                 value_node=value,
             )
 
-        if shape in (tshape_str, tshape_bytes, tshape_unicode):
+        if shape in (tshape_str, tshape_unicode):
             return (
                 wrapExpressionWithNodeSideEffects(
                     new_node=makeConstantReplacementNode(
@@ -101,11 +102,6 @@ class ExpressionBuiltinAll(ExpressionBuiltinSingleArgBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
-
-    @staticmethod
-    def getTypeShape():
-        """returns type shape of the 'all' node"""
-        return tshape_bool
 
     def mayRaiseException(self, exception_type):
         """returns boolean True if try/except/finally is needed else False"""

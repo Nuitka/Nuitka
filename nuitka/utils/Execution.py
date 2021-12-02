@@ -25,14 +25,19 @@ binaries (needed for exec) and run them capturing outputs.
 import os
 from contextlib import contextmanager
 
-from nuitka.__past__ import WindowsError, subprocess
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    WindowsError,
+    subprocess,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
+from .Download import getCachedDownloadedMinGW64
+from .FileOperations import getExternalUsePath
 from .Utils import getArchitecture, getOS, isWin32Windows
 
 
-def callExec(args):
+def callExecProcess(args):
     """Do exec in a portable way preserving exit code.
 
     On Windows, unfortunately there is no real exec, so we have to spawn
@@ -216,12 +221,8 @@ def check_call(*popenargs, **kwargs):
         )
 
 
-def call(*popenargs, **kwargs):
-    """Call a process and return result code.
-
-    Note: We use same name as in Python stdlib, violating our rules to
-    make it more recognizable what this does.
-    """
+def callProcess(*popenargs, **kwargs):
+    """Call a process and return result code."""
     subprocess.call(*popenargs, **kwargs)
 
 
@@ -317,10 +318,24 @@ def wrapCommandForDebuggerForExec(*args):
     """
 
     gdb_path = getExecutablePath("gdb")
-    lldb_path = getExecutablePath("lldb")
 
-    if gdb_path is None and lldb_path is None:
-        general.sysexit("Error, no 'gdb' or 'lldb' binary found in path.")
+    # Windows extra ball, attempt the downloaded one.
+    if isWin32Windows():
+        from nuitka.Options import assumeYesForDownloads
+
+        mingw64_gcc_path = getCachedDownloadedMinGW64(
+            target_arch=getArchitecture(),
+            assume_yes_for_downloads=assumeYesForDownloads(),
+        )
+
+        with withEnvironmentPathAdded("PATH", os.path.dirname(mingw64_gcc_path)):
+            gdb_path = getExecutablePath("gdb")
+
+    if gdb_path is None:
+        lldb_path = getExecutablePath("lldb")
+
+        if lldb_path is None:
+            general.sysexit("Error, no 'gdb' or 'lldb' binary found in path.")
 
     if gdb_path is not None:
         args = (gdb_path, "gdb", "-ex=run", "-ex=where", "-ex=quit", "--args") + args
@@ -421,6 +436,7 @@ def getNullInput():
     try:
         return subprocess.NULLDEV
     except AttributeError:
+        # File is supposed to stay open, pylint: disable=consider-using-with
         subprocess.NULLDEV = open(os.devnull, "rb")
         return subprocess.NULLDEV
 
@@ -451,13 +467,35 @@ def executeToolChecked(logger, command, absence_message, stderr_filter=None):
         stderr = stderr_filter(stderr)
 
     if result != 0:
-        logger.sysexit(
-            "Error, call to %r to change shared library paths failed: %s -> %s."
-            % (tool, command, stderr)
-        )
+        logger.sysexit("Error, call to %r failed: %s -> %s." % (tool, command, stderr))
     elif stderr:
         logger.sysexit(
             "Error, call to %r gave warnings: %s -> %s." % (tool, command, stderr)
         )
 
     return stdout
+
+
+def executeProcess(
+    command, env=None, needs_stdin=False, shell=False, external_cwd=False
+):
+    if not env:
+        env = os.environ
+
+    process = subprocess.Popen(
+        command,
+        stdin=subprocess.PIPE if needs_stdin else getNullInput(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=shell,
+        # On Windows, closing file descriptions is now working with capturing outputs.
+        close_fds=not isWin32Windows(),
+        env=env,
+        # For tools that want short paths to work.
+        cwd=getExternalUsePath(os.getcwd()) if external_cwd else None,
+    )
+
+    stdout, stderr = process.communicate()
+    exit_code = process.wait()
+
+    return stdout, stderr, exit_code

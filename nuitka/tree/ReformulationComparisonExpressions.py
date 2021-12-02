@@ -17,8 +17,8 @@
 #
 """ Reformulation of comparison chain expressions.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
@@ -52,7 +52,7 @@ def buildComparisonNode(provider, node, source_ref):
 
     assert len(node.comparators) == len(node.ops)
 
-    # Comparisons are re-formulated as described in the developer manual. When
+    # Comparisons are re-formulated as described in the Developer Manual. When
     # having multiple comparators, things require assignment expressions and
     # references of them to work properly. Then they can become normal "and"
     # code.

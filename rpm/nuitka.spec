@@ -53,6 +53,7 @@ BuildRequires:  python3-setuptools
 BuildRequires:  gcc-c++
 BuildRequires:  strace
 BuildRequires:  chrpath
+BuildRequires:  patchelf
 BuildRequires:  ccache
 BuildRequires:  gdb
 %if 0%{?fedora} < 28 && 0%{?rhel} < 8
@@ -76,6 +77,7 @@ Requires:       python3-MarkupSafe
 Requires:       gcc-c++
 Requires:       strace
 Requires:       chrpath
+Requires:       patchelf
 Requires:       ccache
 BuildArchitectures: noarch
 
@@ -98,6 +100,9 @@ then
 fi
 python3=`which python3 2>/dev/null || true`
 
+# Only used on Windows:
+rm -rf nuitka/build/inline_copy/lib/scons-4*
+
 if [ "$python2_version" != "2.6" ]
 then
     # Remove files needed only for Python 2.6, they only cause errors during
@@ -106,7 +111,7 @@ then
 else
     # Remove files mot needed for Python 2.6, they only cause errors during
     # compilation with Python 2.6.
-    rm -rf nuitka/build/inline_copy/lib/scons-3*
+    rm -rf nuitka/build/inline_copy/lib/scons-3.1.2
     rm -rf nuitka/build/inline_copy/tqdm
 fi
 

@@ -7,11 +7,6 @@
 
 .. contents::
 
-.. raw:: pdf
-
-   PageBreak oneColumn
-   SetPageCounter 1
-
 **********
  Overview
 **********
@@ -52,19 +47,22 @@ Requirements
 
    Currently this means, you need to use one of these compilers:
 
-   -  The ``gcc`` compiler of at least version 5.1, or the ``g++``
-      compiler of at least version 4.4 as an alternative.
+   -  The MinGW64 C11 compiler on Windows, must be based on gcc 11.2 or
+      higher. It will be *automatically* downloaded if no usable C
+      compiler is found, which is the recommended way of installing it,
+      as Nuitka will also upgrade it for you.
 
-   -  The ``clang`` compiler on macOS X and FreeBSD.
-
-   -  The MinGW64 C11 compiler on Windows, must be based on gcc 8 or
-      higher. It will be automatically downloaded if not found, which is
-      the recommended way of installing it.
-
-   -  Visual Studio 2019 or higher on Windows [#]_, older versions will
+   -  Visual Studio 2022 or higher on Windows [#]_, older versions will
       work but only supported for commercial users. Configure to use the
       English language pack for best results (Nuitka filters away
-      garbage outputs, but only for that language).
+      garbage outputs, but only for English language). It will be used
+      by default if installed.
+
+   -  On all other platforms, the ``gcc`` compiler of at least version
+      5.1, and below that the ``g++`` compiler of at least version 4.4
+      as an alternative.
+
+   -  The ``clang`` compiler on macOS X and most FreeBSD architectures.
 
    -  On Windows the ``clang-cl`` compiler on Windows can be used if
       provided by the Visual Studio installer.
@@ -112,10 +110,6 @@ Requirements
       You need the standard Python implementation, called "CPython", to
       execute Nuitka, because it is closely tied to implementation
       details of it.
-
-      On Windows, for Python not installed system-wide and acceleration
-      mode, you need to copy the ``PythonXX.DLL`` alongside it,
-      something Nuitka does automatically.
 
    .. admonition:: It **cannot be** from Windows app store
 
@@ -178,11 +172,10 @@ is optional.
 Moreover, if you want to execute with the right interpreter, in that
 case, be sure to execute ``<the_right_python> bin/nuitka`` and be good.
 
-   .. admonition:: Pick the right Interpreter
+.. admonition:: Pick the right Interpreter
 
-      If you encounter a ``SyntaxError`` you absolutely most certainly
-      have picked the wrong interpreter for the program you are
-      compiling.
+   If you encounter a ``SyntaxError`` you absolutely most certainly have
+   picked the wrong interpreter for the program you are compiling.
 
 Nuitka has a ``--help`` option to output what it can do:
 
@@ -239,19 +232,19 @@ Setup
 Install Python
 --------------
 
-   -  Download and install from https://www.python.org/downloads/windows
+-  Download and install from https://www.python.org/downloads/windows
 
-   -  Select one of ``Windows x86-64 web-based installer`` (64 bits
-      Python, recommended) or ``x86 executable`` (32 bits Python)
-      installer.
+-  Select one of ``Windows x86-64 web-based installer`` (64 bits Python,
+   recommended) or ``x86 executable`` (32 bits Python) installer.
 
-   -  Verify using command ``python --version``.
+-  Verify using command ``python --version``.
 
 Install Nuitka
 --------------
 
-   -  ``python -m pip install nuitka``
-   -  Verify using command ``python -m nuitka --version``
+-  ``python -m pip install nuitka``
+
+-  Verify using command ``python -m nuitka --version``
 
 Write some code and test
 ========================
@@ -259,21 +252,22 @@ Write some code and test
 Create a folder for the Python code
 -----------------------------------
 
-   -  mkdir HelloWorld
-   -  make a python file named **hello.py**
+-  mkdir HelloWorld
 
-   .. code:: python
+-  make a python file named **hello.py**
 
-      def talk(message):
-          return "Talk " + message
+.. code:: python
 
-
-      def main():
-          print(talk("Hello World"))
+   def talk(message):
+       return "Talk " + message
 
 
-      if __name__ == "__main__":
-          main()
+   def main():
+       print(talk("Hello World"))
+
+
+   if __name__ == "__main__":
+       main()
 
 Test your program
 -----------------
@@ -292,16 +286,14 @@ Build it using
 
 .. code:: bash
 
-   python -m nuitka --mingw64 hello.py
+   python -m nuitka hello.py
 
 .. note::
 
    This will prompt you to download a C caching tool (to speed up
    repeated compilation of generated C code) and a MinGW64 based C
-   compiler. Say yes to those.
-
-If you like to have full output from the C compilation add
-``--show-scons``, but that should only be useful if you have errors.
+   compiler unless you have a suitable MSVC installed. Say ``yes`` to
+   both those questions.
 
 Run it
 ------
@@ -416,9 +408,11 @@ also feasible, use Nuitka like this:
 
 .. note::
 
-   The recursion into the package directory needs to be provided
-   manually, otherwise, the package is empty. Data files located inside
-   the package will not be embedded yet.
+   The inclusion of the package contents needs to be provided manually,
+   otherwise, the package is empty. You can be more specific if you
+   want, and only include part of it. Data files located inside the
+   package will not be embedded by this process, you need to copy them
+   yourself with this approach.
 
 Use Case 4 - Program Distribution
 =================================
@@ -513,6 +507,69 @@ Currently these expanded tokens are available:
    you want things to reside in a place you choose or abide your naming
    conventions.
 
+Use Case 5 - Setuptools Wheels
+==============================
+
+If you have a ``setup.py``, ``setup.cfg`` or ``pyproject.toml`` driven
+creation of wheels for your software in place, putting Nuitka to use is
+extremely easy.
+
+Lets start with the most common ``setuptools`` approach, you can -
+having Nuitka installed of course, simply execute the target
+``bdist_nuitka`` rather than the ``bdist_wheel``. It takes all the
+options and allows you to specify some more, that are specific to
+Nuitka.
+
+.. code:: python
+
+   # For setup.py
+   setup(
+      ...,
+      command_options={
+         'nuitka': {
+            # boolean option, e.g. if you cared for C commands
+            '--show-scons': True,
+            # options with values, e.g. enable a plugin of Nuitka
+            '--enable-plugin': 'anti-bloat',
+         }
+      },
+   )
+
+If for some reason, you cannot or do not what to change the target, you
+can add this to your ``setup.py``.
+
+.. code:: python
+
+   # For setup.py
+   setup(
+      ...,
+      build_with_nuitka=True
+   )
+
+.. note::
+
+   To temporarily disable the compilation, you could remove above line,
+   or edit the value to ``False`` by or take its value from an
+   environment variable if you so choose, e.g.
+   ``bool(os.environ.get("USE_NUITKA", "True"))``. This is up to you.
+
+Or you could put it in your ``setup.cfg``
+
+.. code:: toml
+
+   [metadata]
+   build_with_nuitka = True
+
+And last, but not least, Nuitka also supports the new ``build`` meta, so
+when you have a ``pyproject.toml`` already, simple replace or add this
+value:
+
+.. code:: toml
+
+   [build-system]
+   requires = ["setuptools>=42", "wheel", "nuitka"]
+   build-backend = "nuitka.distutils.Build"
+
 ********
  Tweaks
 ********
@@ -580,6 +637,13 @@ Memory issues and compiler bugs
 Sometimes the C compilers will crash saying they cannot allocate memory
 or that some input was truncated, or similar error messages, clearly
 from it. There are several options you can explore here:
+
+Ask Nuitka to use less memory
+-----------------------------
+
+There is a dedicated option ``--low-memory`` which influces decisions of
+Nuitka, such that it avoids high usage of memory during compilation at
+the cost of increased compile time.
 
 Avoid 32 bit C compiler/assembler memory limits
 -----------------------------------------------
@@ -737,20 +801,21 @@ The comments must be a start of line, and indentation is to be used, to
 end a conditional block, much like in Python. There are currently no
 other keywords than the used ones demonstrated above.
 
-+------------------+--------------------------------------+--------------------------------+
-| Variable         | What this Expands to                 | Example                        |
-+==================+======================================+================================+
-| {OS}             | Name of the OS used                  | Linux, Windows, Darwin,        |
-|                  |                                      | FreeBSD, OpenBSD               |
-+------------------+--------------------------------------+--------------------------------+
-| {Version}        | Version of Nuitka                    | e.g. (0, 6, 16)                |
-+------------------+--------------------------------------+--------------------------------+
-| {Commercial}     | Version of Nuitka Commercial         | e.g. (0, 9, 4)                 |
-+------------------+--------------------------------------+--------------------------------+
-| {Arch}           | Architecture used                    | x86_64, arm64, etc.            |
-+------------------+--------------------------------------+--------------------------------+
-| {MAIN_DIRECTORY} | Directory of the compiled file       | some_dir/maybe_relative        |
-+------------------+--------------------------------------+--------------------------------+
++------------------+--------------------------------+------------------------------------------+
+| Variable         | What this Expands to           | Example                                  |
++==================+================================+==========================================+
+| {OS}             | Name of the OS used            | Linux, Windows, Darwin, FreeBSD, OpenBSD |
++------------------+--------------------------------+------------------------------------------+
+| {Version}        | Version of Nuitka              | e.g. (0, 6, 16)                          |
++------------------+--------------------------------+------------------------------------------+
+| {Commercial}     | Version of Nuitka Commercial   | e.g. (0, 9, 4)                           |
++------------------+--------------------------------+------------------------------------------+
+| {Arch}           | Architecture used              | x86_64, arm64, etc.                      |
++------------------+--------------------------------+------------------------------------------+
+| {MAIN_DIRECTORY} | Directory of the compiled file | some_dir/maybe_relative                  |
++------------------+--------------------------------+------------------------------------------+
+| {Flavor}         | Variant of Python              | e.g. Debian Python, Anaconda Python      |
++------------------+--------------------------------+------------------------------------------+
 
 Python command line flags
 =========================
@@ -830,7 +895,14 @@ overhead, and this even happens to the DLL with itself, being slower,
 than a Python all contained in one binary.
 
 So if feasible, aim at static linking, which is currently only possible
-with Anaconda Python on non-Windows.
+with Anaconda Python on non-Windows, Debian Python2, self compiled
+Pythons (do not activate ``--enable-shared``, not needed), and installs
+created with ``pyenv``.
+
+.. note::
+
+   On Anaconda, you may need to execute ``conda install -c conda-forge
+   libpython-static``
 
 Standalone executables and dependencies
 =======================================
@@ -872,19 +944,19 @@ standalone compiled program.
 Depending on the used C compiler, you'll need the following redist
 versions:
 
-+------------------+-------------+-------------------------+
-| Visual C version | Redist Year | CPython                 |
-+==================+=============+=========================+
-| 14.2             | 2019        | 3.5, 3.6, 3.7, 3.8, 3.9 |
-+------------------+-------------+-------------------------+
-| 14.1             | 2017        | 3.5, 3.6, 3.7, 3.8      |
-+------------------+-------------+-------------------------+
-| 14.0             | 2015        | 3.5, 3.6, 3.7, 3.8      |
-+------------------+-------------+-------------------------+
-| 10.0             | 2010        | 3.3, 3.4                |
-+------------------+-------------+-------------------------+
-| 9.0              | 2008        | 2.6, 2.7                |
-+------------------+-------------+-------------------------+
++------------------+-------------+-------------------------------+
+| Visual C version | Redist Year | CPython                       |
++==================+=============+===============================+
+| 14.2             | 2019        | 3.5, 3.6, 3.7, 3.8, 3.9, 3.10 |
++------------------+-------------+-------------------------------+
+| 14.1             | 2017        | 3.5, 3.6, 3.7, 3.8            |
++------------------+-------------+-------------------------------+
+| 14.0             | 2015        | 3.5, 3.6, 3.7, 3.8            |
++------------------+-------------+-------------------------------+
+| 10.0             | 2010        | 3.3, 3.4                      |
++------------------+-------------+-------------------------------+
+| 9.0              | 2008        | 2.6, 2.7                      |
++------------------+-------------+-------------------------------+
 
 When using MingGW64, you'll need the following redist versions:
 
@@ -921,9 +993,19 @@ The results are the top value from this kind of output, running pystone
 1000 times and taking the minimal value. The idea is that the fastest
 run is most meanigful, and eliminates usage spikes.
 
-.. code:: sh
+.. code:: bash
 
-   for i in {1..100}; do BENCH=1 python tests/benchmarks/pystone.py ; done | sort -n -r | head -n 10
+   echo "Uncompiled Python2"
+   for i in {1..100}; do BENCH=1 python2 tests/benchmarks/pystone.py ; done | sort -n -r | head -n 1
+   python2 -m nuitka --lto=yes --pgo=yes tests/benchmarks/pystone.py
+   echo "Compiled Python2"
+   for i in {1..100}; do BENCH=1 ./pystone.bin ; done | sort -n -r | head -n 1
+
+   echo "Uncompiled Python3"
+   for i in {1..100}; do BENCH=1 python3 tests/benchmarks/pystone3.py ; done | sort -n -r | head -n 1
+   python3 -m nuitka --lto=yes --pgo=yes tests/benchmarks/pystone3.py
+   echo "Compiled Python3"
+   for i in {1..100}; do BENCH=1 ./pystone3.bin ; done | sort -n -r | head -n 1
 
 +-------------------+-------------------+----------------------+---------------------+
 | Python            | Uncompiled        | Compiled LTO         | Compiled PGO        |
@@ -965,7 +1047,7 @@ Best practices for reporting bugs:
    the underlying Python version. You can easily copy&paste this into
    your report.
 
-   .. code:: sh
+   .. code:: bash
 
       python -m nuitka --version
 
@@ -1472,142 +1554,12 @@ later, it will be non-trivial though to maintain the order of execution
 without temporary values introduced. The same thing is done for pure
 constants of these types, they change to ``tuple`` values when iterated.
 
-*********
- Credits
-*********
-
-Contributors to Nuitka
-======================
-
-Thanks go to these individuals for their much-valued contributions to
-Nuitka.
-
-The order is sorted by time.
-
--  Li Xuan Ji: Contributed patches for general portability issue and
-   enhancements to the environment variable settings.
-
--  Nicolas Dumazet: Found and fixed reference counting issues,
-   ``import`` packages work, improved some of the English and generally
-   made good code contributions all over the place, solved code
-   generation TODOs, did tree building cleanups, core stuff.
-
--  Khalid Abu Bakr: Submitted patches for his work to support MinGW and
-   Windows, debugged the issues, and helped me to get cross compile with
-   MinGW from Linux to Windows. This was quite difficult stuff.
-
--  Liu Zhenhai: Submitted patches for Windows support, making the inline
-   Scons copy actually work on Windows as well. Also reported import
-   related bugs, and generally helped me make the Windows port more
-   usable through his testing and information.
-
--  Christopher Tott: Submitted patches for Windows, and general as well
-   as structural cleanups.
-
--  Pete Hunt: Submitted patches for macOS X support.
-
--  "ownssh": Submitted patches for built-ins module guarding, and made
-   massive efforts to make high-quality bug reports. Also the initial
-   "standalone" mode implementation was created by him.
-
--  Juan Carlos Paco: Submitted cleanup patches, creator of the `Nuitka
-   GUI <https://github.com/juancarlospaco/nuitka-gui>`__, creator of the
-   `Ninja IDE plugin <https://github.com/juancarlospaco/nuitka-ninja>`__
-   for Nuitka.
-
--  "Dr. Equivalent": Submitted the Nuitka Logo.
-
--  Johan Holmberg: Submitted patch for Python3 support on macOS X.
-
--  Umbra: Submitted patches to make the Windows port more usable, adding
-   user provided application icons, as well as MSVC support for large
-   constants and console applications.
-
--  David Cortesi: Submitted patches and test cases to make macOS port
-   more usable, specifically for the Python3 standalone support of Qt.
-
--  Andrew Leech: Submitted github pull request to allow using "-m
-   nuitka" to call the compiler. Also pull request to improve
-   "bist_nuitka" and to do the registration.
-
--  Paweł K: Submitted github pull request to remove glibc from
-   standalone distribution, saving size and improving robustness
-   considering the various distributions.
-
--  Orsiris de Jong: Submitted github pull request to implement the
-   dependency walking with ``pefile`` under Windows. Also provided the
-   implementation of Dejong Stacks.
-
--  Jorj X. McKie: Submitted github pull requests with NumPy plugin to
-   retain its accelerating libraries, and Tkinter to include the TCL
-   distribution on Windows.
-
-Projects used by Nuitka
-=======================
-
--  The `CPython project <https://www.python.org>`__
-
-   Thanks for giving us CPython, which is the base of Nuitka. We are
-   nothing without it.
-
--  The `GCC project <https://gcc.gnu.org>`__
-
-   Thanks for not only the best compiler suite but also thanks for
-   making it easy supporting to get Nuitka off the ground. Your compiler
-   was the first usable for Nuitka and with very little effort.
-
--  The `Scons project <https://www.scons.org>`__
-
-   Thanks for tackling the difficult points and providing a Python
-   environment to make the build results. This is such a perfect fit to
-   Nuitka and a dependency that will likely remain.
-
--  The `valgrind project <https://valgrind.org>`__
-
-   Luckily we can use Valgrind to determine if something is an actual
-   improvement without the noise. And it's also helpful to determine
-   what's actually happening when comparing.
-
--  The `NeuroDebian project <https://neuro.debian.net>`__
-
-   Thanks for hosting the build infrastructure that the Debian and
-   sponsor Yaroslav Halchenko uses to provide packages for all Ubuntu
-   versions.
-
--  The `openSUSE Buildservice <https://openbuildservice.org>`__
-
-   Thanks for hosting this excellent service that allows us to provide
-   RPMs for a large variety of platforms and make them available
-   immediately nearly at release time.
-
--  The `MinGW64 project <https://mingw-w64.org>`__
-
-   Thanks for porting the gcc to Windows. This allowed portability of
-   Nuitka with relatively little effort.
-
--  The `Buildbot project <https://buildbot.net>`__
-
-   Thanks for creating an easy to deploy and use continuous integration
-   framework that also runs on Windows and is written and configured in
-   Python code. This allows running the Nuitka tests long before release
-   time.
-
--  The `isort project <https://timothycrosley.github.io/isort/>`__
-
-   Thanks for making nice import ordering so easy. This makes it so easy
-   to let your IDE do it and clean up afterward.
-
--  The `black project <https://github.com/ambv/black>`__
-
-   Thanks for making a fast and reliable way for automatically
-   formatting the Nuitka source code.
-
 *************************
  Updates for this Manual
 *************************
 
 This document is written in REST. That is an ASCII format which is
-readable as ASCII, but used to generate PDF or HTML documents.
+readable to human, but easily used to generate PDF or HTML documents.
 
 You will find the current version at:
 https://nuitka.net/doc/user-manual.html

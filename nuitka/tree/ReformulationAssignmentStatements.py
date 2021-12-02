@@ -17,8 +17,8 @@
 #
 """ Reformulation of assignment statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
@@ -30,9 +30,9 @@ from nuitka.nodes.AssignNodes import (
     StatementReleaseVariable,
 )
 from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeLookup,
     StatementAssignmentAttribute,
     StatementDelAttribute,
+    makeExpressionAttributeLookup,
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
@@ -775,7 +775,7 @@ def _buildInplaceAssignAttributeNode(
     # First assign the target value to a temporary variable.
     preserve_to_tmp = StatementAssignmentVariable(
         variable=tmp_variable,
-        source=ExpressionAttributeLookup(
+        source=makeExpressionAttributeLookup(
             expression=lookup_source.makeClone(),
             attribute_name=attribute_name,
             source_ref=source_ref,

@@ -22,15 +22,11 @@ macOS, Windows, and Linux. Patches for other platforms are
 very welcome.
 """
 
-from __future__ import print_function
-
 import hashlib
-import inspect
 import marshal
 import os
 import pkgutil
 import shutil
-import subprocess
 import sys
 
 from nuitka import Options, SourceCodeReferences
@@ -53,7 +49,7 @@ from nuitka.Tracing import general, inclusion_logger, printError
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.Execution import getNullInput, withEnvironmentPathAdded
+from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
     copyFileWithPermissions,
@@ -64,7 +60,6 @@ from nuitka.utils.FileOperations import (
     getFileList,
     getSubDirectories,
     haveSameFileContents,
-    isPathBelow,
     listDir,
     makePath,
     putTextFileContents,
@@ -79,8 +74,8 @@ from nuitka.utils.SharedLibraries import (
     getPyWin32Dir,
     getSharedLibraryRPATH,
     getWindowsDLLVersion,
-    removeSharedLibraryRPATH,
     removeSxsFromDLL,
+    setSharedLibraryRPATH,
 )
 from nuitka.utils.Signing import removeMacOSCodeSignature
 from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
@@ -261,19 +256,16 @@ print("\\n".join(sorted(
         os.write(tmp_file, command)
         os.close(tmp_file)
 
-        process = subprocess.Popen(
-            args=[sys.executable, "-s", "-S", "-v", tmp_filename],
-            stdin=getNullInput(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=dict(os.environ, PYTHONIOENCODING="utf_8"),
+        # TODO: Check exit code, should never fail.
+        _stdout, stderr, exit_code = executeProcess(
+            command=(sys.executable, "-s", "-S", "-v", tmp_filename),
+            env=dict(os.environ, PYTHONIOENCODING="utf-8"),
         )
-        _stdout, stderr = process.communicate()
     finally:
         os.unlink(tmp_filename)
 
     # Don't let errors here go unnoticed.
-    if process.returncode != 0:
+    if exit_code != 0:
         general.warning("There is a problem with detecting imports, CPython said:")
         for line in stderr.split(b"\n"):
             printError(line)
@@ -285,8 +277,6 @@ print("\\n".join(sorted(
 
     for line in stderr.replace(b"\r", b"").split(b"\n"):
         if line.startswith(b"import "):
-            # print(line)
-
             parts = line.split(b" # ", 2)
 
             module_name = parts[0].split(b" ", 2)[1]
@@ -462,7 +452,7 @@ def scanStandardLibraryPath(stdlib_dir):
             if import_path == "curses":
                 filenames.remove("has_key.py")
 
-        if Utils.getOS() == "NetBSD":
+        if Utils.isNetBSD():
             if import_path == "xml.sax":
                 filenames.remove("expatreader.py")
 
@@ -615,35 +605,37 @@ _linux_dll_ignore_list = (
     # and between Linux distros. It might or might not be a problem in the
     # future, but it should be enough for now.
     "ld-linux-x86-64.so",
-    "libc.so.",
-    "libpthread.so.",
-    "libm.so.",
-    "libdl.so.",
-    "libBrokenLocale.so.",
+    "libc.so",
+    "libpthread.so",
+    "libm.so",
+    "libdl.so",
+    "libBrokenLocale.so",
     "libSegFault.so",
-    "libanl.so.",
-    "libcidn.so.",
-    "libcrypt.so.",
+    "libanl.so",
+    "libcidn.so",
+    "libcrypt.so",
     "libmemusage.so",
-    "libmvec.so.",
-    "libnsl.so.",
-    "libnss_compat.so.",
-    "libnss_db.so.",
-    "libnss_dns.so.",
-    "libnss_files.so.",
-    "libnss_hesiod.so.",
-    "libnss_nis.so.",
-    "libnss_nisplus.so.",
+    "libmvec.so",
+    "libnsl.so",
+    "libnss3.so",
+    "libnssutils3.so",
+    "libnss_compat.so",
+    "libnss_db.so",
+    "libnss_dns.so",
+    "libnss_files.so",
+    "libnss_hesiod.so",
+    "libnss_nis.so",
+    "libnss_nisplus.so",
     "libpcprofile.so",
-    "libresolv.so.",
-    "librt.so.",
+    "libresolv.so",
+    "librt.so",
     "libthread_db-1.0.so",
-    "libthread_db.so.",
-    "libutil.so.",
+    "libthread_db.so",
+    "libutil.so",
     # The C++ standard library can also be ABI specific, and can cause system
     # libraries like MESA to not load any drivers, so we exclude it too, and
     # it can be assumed to be installed everywhere anyway.
-    "libstdc++.so.",
+    "libstdc++.so",
     # The DRM layer should also be taken from the OS in question and won't
     # allow loading native drivers otherwise.
     "libdrm.so",
@@ -684,6 +676,7 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
                 "$ORIGIN", os.path.dirname(sys.executable)
             )
 
+    # TODO: Actually would be better to pass it as env to the created process instead.
     with withEnvironmentPathAdded(
         "LD_LIBRARY_PATH",
         *_getLdLibraryPath(
@@ -692,14 +685,8 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
             original_dir=original_dir,
         )
     ):
-        process = subprocess.Popen(
-            args=["ldd", dll_filename],
-            stdin=getNullInput(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-
-        stdout, stderr = process.communicate()
+        # TODO: Check exit code, should never fail.
+        stdout, stderr, _exit_code = executeProcess(command=("ldd", dll_filename))
 
     stderr = b"\n".join(
         line
@@ -740,8 +727,16 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
         if filename in ("not found", "ldd"):
             continue
 
+        # Normalize, sometimes the DLLs produce "something/../", this has
+        # been seen with Qt at least.
+        filename = os.path.normpath(filename)
+
         # Do not include kernel DLLs on the ignore list.
-        if os.path.basename(filename).startswith(_linux_dll_ignore_list):
+        filename_base = os.path.basename(filename)
+        if any(
+            filename_base == entry or filename_base.startswith(entry + ".")
+            for entry in _linux_dll_ignore_list
+        ):
             continue
 
         result.add(filename)
@@ -765,20 +760,17 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
 def _detectBinaryPathDLLsMacOS(
     original_dir, binary_filename, package_name, keep_unresolved
 ):
+    # TODO: Actually would be better to pass it as env to the created process instead.
     with withEnvironmentPathAdded(
         "DYLD_LIBRARY_PATH",
         *_getLdLibraryPath(
             package_name=package_name, python_rpath=None, original_dir=original_dir
         )
     ):
-        process = subprocess.Popen(
-            args=["otool", "-L", binary_filename],
-            stdin=getNullInput(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+        # TODO: Check exit code, should never fail.
+        stdout, _stderr, _exit_code = executeProcess(
+            command=("otool", "-L", binary_filename)
         )
-
-    stdout, _stderr = process.communicate()
     system_paths = (
         "/usr/lib/",
         "/System/Library/Frameworks/",
@@ -799,7 +791,6 @@ def _detectBinaryPathDLLsMacOS(
             if filename.startswith(w):
                 break
         else:
-            # print("adding", filename)
             result.add(filename)
 
     resolved_result = _resolveBinaryPathDLLsMacOS(
@@ -840,21 +831,16 @@ def _resolveBinaryPathDLLsMacOS(original_dir, binary_filename, paths, keep_unres
 
 
 def _detectBinaryRPathsMacOS(original_dir, binary_filename):
-    result = set()
-
-    process = subprocess.Popen(
-        args=["otool", "-l", binary_filename],
-        stdin=getNullInput(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+    # TODO: Check exit code, should never fail.
+    stdout, _stderr, _exit_code = executeProcess(
+        command=("otool", "-l", binary_filename)
     )
-
-    stdout, _stderr = process.communicate()
-
     lines = stdout.split(b"\n")
 
-    for i, o in enumerate(lines):
-        if o.endswith(b"cmd LC_RPATH"):
+    result = set()
+
+    for i, line in enumerate(lines):
+        if line.endswith(b"cmd LC_RPATH"):
             line = lines[i + 2]
             if str is not bytes:
                 line = line.decode("utf8")
@@ -1072,7 +1058,7 @@ def detectBinaryDLLs(
                 use_cache=use_cache,
                 update_cache=update_cache,
             )
-    elif Utils.getOS() == "Darwin":
+    elif Utils.isMacOS():
         return _detectBinaryPathDLLsMacOS(
             original_dir=os.path.dirname(original_filename),
             binary_filename=original_filename,
@@ -1299,7 +1285,9 @@ different from
 
         target_path = os.path.join(dist_dir, dll_name)
 
-        shutil.copyfile(dll_filename, target_path)
+        # Sometimes DLL dependencies were copied there already.
+        if not os.path.exists(target_path):
+            shutil.copyfile(dll_filename, target_path)
 
         dll_map.append((dll_filename, dll_name))
 
@@ -1309,7 +1297,7 @@ different from
                 % (dll_filename, ", ".join(sources))
             )
 
-    if Utils.getOS() == "Darwin":
+    if Utils.isMacOS():
         # For macOS, the binary and the DLLs needs to be changed to reflect
         # the relative DLL location in the ".dist" folder.
         for standalone_entry_point in standalone_entry_points:
@@ -1335,20 +1323,25 @@ different from
         if os.path.exists(candidate):
             removeMacOSCodeSignature(candidate)
 
-    # Remove rpath settings.
+    # Remove or update rpath settings.
     if Utils.getOS() in ("Linux", "Darwin"):
         # For Linux, the "rpath" of libraries may be an issue and must be
         # removed.
-        if Utils.getOS() == "Darwin":
+        if Utils.isMacOS():
             start = 0
         else:
             start = 1
 
         for standalone_entry_point in standalone_entry_points[start:]:
-            removeSharedLibraryRPATH(standalone_entry_point.dest_path)
+            count = relpath(
+                path=standalone_entry_point.dest_path, start=dist_dir
+            ).count(os.path.sep)
+
+            rpath = os.path.join("$ORIGIN", *([".."] * count))
+            setSharedLibraryRPATH(standalone_entry_point.dest_path, rpath)
 
         for _original_path, dll_filename in dll_map:
-            removeSharedLibraryRPATH(os.path.join(dist_dir, dll_filename))
+            setSharedLibraryRPATH(os.path.join(dist_dir, dll_filename), "$ORIGIN")
 
     if Utils.isWin32Windows():
         if python_version < 0x300:
@@ -1362,66 +1355,72 @@ different from
 
 def _handleDataFile(dist_dir, tracer, included_datafile):
     """Handle a data file."""
-    if isinstance(included_datafile, IncludedDataFile):
-        if included_datafile.kind == "empty_dirs":
-            tracer.info(
-                "Included empty directories '%s' due to %s."
-                % (
-                    ",".join(included_datafile.dest_path),
-                    included_datafile.reason,
-                )
+    if not isinstance(included_datafile, IncludedDataFile):
+        tracer.sysexit(
+            "Error, cannot only include 'IncludedDataFile' objects in plugins."
+        )
+
+    if included_datafile.kind == "empty_dirs":
+        tracer.info(
+            "Included empty directories '%s' due to %s."
+            % (
+                ",".join(included_datafile.dest_path),
+                included_datafile.reason,
+            )
+        )
+
+        for sub_dir in included_datafile.dest_path:
+            created_dir = os.path.join(dist_dir, sub_dir)
+
+            makePath(created_dir)
+            putTextFileContents(
+                filename=os.path.join(created_dir, ".keep_dir.txt"), contents=""
             )
 
-            for sub_dir in included_datafile.dest_path:
-                makePath(os.path.join(dist_dir, sub_dir))
-        elif included_datafile.kind == "data_file":
-            dest_path = os.path.join(dist_dir, included_datafile.dest_path)
+    elif included_datafile.kind == "data_file":
+        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
 
-            tracer.info(
-                "Included data file '%s' due to %s."
-                % (
-                    included_datafile.dest_path,
-                    included_datafile.reason,
-                )
+        tracer.info(
+            "Included data file '%s' due to %s."
+            % (
+                included_datafile.dest_path,
+                included_datafile.reason,
             )
+        )
 
-            makePath(os.path.dirname(dest_path))
-            shutil.copyfile(included_datafile.source_path, dest_path)
-        elif included_datafile.kind == "data_dir":
-            dest_path = os.path.join(dist_dir, included_datafile.dest_path)
-            makePath(os.path.dirname(dest_path))
+        makePath(os.path.dirname(dest_path))
+        copyFileWithPermissions(
+            source_path=included_datafile.source_path, dest_path=dest_path
+        )
+    elif included_datafile.kind == "data_dir":
+        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
+        makePath(os.path.dirname(dest_path))
 
-            copied = copyTree(included_datafile.source_path, dest_path)
+        copied = copyTree(included_datafile.source_path, dest_path)
 
-            tracer.info(
-                "Included data dir %r with %d files due to %s."
-                % (
-                    included_datafile.dest_path,
-                    len(copied),
-                    included_datafile.reason,
-                )
+        tracer.info(
+            "Included data dir %r with %d files due to %s."
+            % (
+                included_datafile.dest_path,
+                len(copied),
+                included_datafile.reason,
             )
-        else:
-            assert False, included_datafile
+        )
+    elif included_datafile.kind == "data_blob":
+        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
+        makePath(os.path.dirname(dest_path))
+
+        putTextFileContents(filename=dest_path, contents=included_datafile.data)
+
+        tracer.info(
+            "Included data file '%s' due to %s."
+            % (
+                included_datafile.dest_path,
+                included_datafile.reason,
+            )
+        )
     else:
-        # TODO: Goal is have this unused.
-        source_desc, target_filename = included_datafile
-
-        if not isPathBelow(dist_dir, target_filename):
-            target_filename = os.path.join(dist_dir, target_filename)
-
-        makePath(os.path.dirname(target_filename))
-
-        if inspect.isfunction(source_desc):
-            content = source_desc(target_filename)
-
-            if content is not None:  # support creation of empty directories
-                with open(
-                    target_filename, "wb" if type(content) is bytes else "w"
-                ) as output:
-                    output.write(content)
-        else:
-            copyFileWithPermissions(source_desc, target_filename)
+        assert False, included_datafile
 
 
 def copyDataFiles(dist_dir):
@@ -1466,7 +1465,7 @@ def copyDataFiles(dist_dir):
         filenames = getFileList(src)
 
         if not filenames:
-            inclusion_logger.warning("No files in directory" % src)
+            inclusion_logger.warning("No files in directory '%s.'" % src)
 
         for filename in filenames:
             relative_filename = relpath(filename, src)
@@ -1522,5 +1521,3 @@ def copyDataFiles(dist_dir):
                             inclusion_logger,
                             makeIncludedDataFile(pkg_filename, rel_path, file_reason),
                         )
-
-                # assert False, (module.getCompileTimeDirectory(), pkg_files)

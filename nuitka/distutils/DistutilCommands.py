@@ -144,10 +144,7 @@ class build(distutils.command.build.build):
 
         # Nuitka wants the main package by filename, probably we should stop
         # needing that.
-        from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-            Iterable,
-            unicode,
-        )
+        from nuitka.__past__ import Iterable, unicode
         from nuitka.importing.Importing import (
             findModule,
             setMainScriptDirectory,
@@ -183,7 +180,7 @@ class build(distutils.command.build.build):
                 "-m",
                 "nuitka",
                 "--module",
-                "--plugin-enable=pylint-warnings",
+                "--enable-plugin=pylint-warnings",
                 "--output-dir=%s" % output_dir,
                 "--nofollow-import-to=*.tests",
                 "--show-modules",
@@ -223,10 +220,12 @@ class build(distutils.command.build.build):
 
             command.append(main_filename)
 
-            # Adding traces for clarity, TODO: color scheme used is not really clear.
-            my_print("Building: %s with %r" % (to_build, command), style="yellow")
+            # Adding traces for clarity
+            my_print(
+                "Building: '%s' with command %r" % (to_build, command), style="blue"
+            )
             check_call(command, cwd=build_lib)
-            my_print("Finished compilation of %s." % to_build, style="yellow")
+            my_print("Finished compilation of '%s'." % to_build, style="green")
 
             for root, _, filenames in os.walk(build_lib):
                 for filename in filenames:

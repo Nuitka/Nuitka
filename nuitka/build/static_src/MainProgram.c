@@ -533,7 +533,7 @@ int main(int argc, char **argv) {
 // Workaround older Python not handling stream setup on redirected files properly.
 #if PYTHON_VERSION >= 0x340 && PYTHON_VERSION < 0x380
     {
-        char *encoding = NULL;
+        char const *encoding = NULL;
 
         if (SYSFLAG_UTF8) {
             encoding = "utf-8";
@@ -607,11 +607,9 @@ int main(int argc, char **argv) {
     /* Complex call helpers need "__main__" constants, even if we only
      * go into "__parents__main__" module as a start point.
      */
-#if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED || _NUITKA_PLUGIN_TRACEBACK_ENCRYPTION_ENABLED
     NUITKA_PRINT_TIMING("main(): Calling createMainModuleConstants().");
     createMainModuleConstants();
     NUITKA_PRINT_TIMING("main(): Returned createMainModuleConstants().");
-#endif
 
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinOriginalValues().");
     _initBuiltinOriginalValues();
@@ -621,9 +619,9 @@ int main(int argc, char **argv) {
      */
 #if SYSFLAG_NO_SITE == 0
 #if PYTHON_VERSION < 0x300
-    PyStructSequence_SET_ITEM(PySys_GetObject((char *)"flags"), 9, const_int_0);
+    PyStructSequence_SET_ITEM(Nuitka_SysGetObject("flags"), 9, const_int_0);
 #else
-    PyStructSequence_SetItem(PySys_GetObject("flags"), 6, const_int_0);
+    PyStructSequence_SetItem(Nuitka_SysGetObject("flags"), 6, const_int_0);
 #endif
 #endif
 
@@ -666,26 +664,26 @@ int main(int argc, char **argv) {
     {
         PyObject *nul_filename = Nuitka_String_FromString("NUL:");
 
-        if (PySys_GetObject((char *)"stdin") == NULL) {
+        if (Nuitka_SysGetObject("stdin") == NULL) {
             PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r", NULL);
 
             CHECK_OBJECT(stdin_file);
-            PySys_SetObject((char *)"stdin", stdin_file);
+            Nuitka_SysSetObject("stdin", stdin_file);
         }
 
-        if (PySys_GetObject((char *)"stdout") == NULL) {
+        if (Nuitka_SysGetObject("stdout") == NULL) {
             PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", NULL);
 
             CHECK_OBJECT(stdout_file);
-            PySys_SetObject((char *)"stdout", stdout_file);
+            Nuitka_SysSetObject("stdout", stdout_file);
         }
 
-        if (PySys_GetObject((char *)"stderr") == NULL) {
+        if (Nuitka_SysGetObject("stderr") == NULL) {
             PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", NULL);
 
             CHECK_OBJECT(stderr_file);
 
-            PySys_SetObject((char *)"stderr", stderr_file);
+            Nuitka_SysSetObject("stderr", stderr_file);
         }
 
         Py_DECREF(nul_filename);
@@ -712,7 +710,7 @@ int main(int argc, char **argv) {
             Py_Exit(1);
         }
 
-        PySys_SetObject((char *)"stdout", stdout_file);
+        Nuitka_SysSetObject("stdout", stdout_file);
     }
 #endif
 
@@ -737,7 +735,7 @@ int main(int argc, char **argv) {
             Py_Exit(1);
         }
 
-        PySys_SetObject((char *)"stderr", stderr_file);
+        Nuitka_SysSetObject("stderr", stderr_file);
     }
 #endif
 
@@ -760,7 +758,7 @@ int main(int argc, char **argv) {
     /* Initialize warnings module. */
     _PyWarnings_Init();
 
-#if NO_PYTHON_WARNINGS && PYTHON_VERSION >= 0x342 && defined(_NUITKA_FULL_COMPAT)
+#if NO_PYTHON_WARNINGS && PYTHON_VERSION >= 0x342 && PYTHON_VERSION < 0x3a0 && defined(_NUITKA_FULL_COMPAT)
     // For full compatibility bump the warnings registry version,
     // otherwise modules "__warningsregistry__" will mismatch.
     PyObject *warnings_module = PyImport_ImportModule("warnings");
@@ -779,7 +777,13 @@ int main(int argc, char **argv) {
 #endif
 
 #if _NUITKA_PROFILE
+    // Profiling with "vmprof" if enabled.
     startProfiling();
+#endif
+
+#if _NUITKA_PGO_PYTHON
+    // Profiling with our own Python PGO if enabled.
+    PGO_Initialize();
 #endif
 
     /* Execute the main module unless plugins want to do something else. In case of
@@ -842,6 +846,11 @@ int main(int argc, char **argv) {
 
 #if _NUITKA_PROFILE
     stopProfiling();
+#endif
+
+#if _NUITKA_PGO_PYTHON
+    // Write out profiling with our own Python PGO if enabled.
+    PGO_Finalize();
 #endif
 
 #ifndef __NUITKA_NO_ASSERT__

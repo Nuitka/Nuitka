@@ -22,6 +22,11 @@
 import os
 
 from nuitka.utils.Execution import check_output
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    getFileFirstLine,
+    openTextFile,
+)
 from nuitka.Version import getNuitkaVersion
 
 
@@ -31,21 +36,17 @@ def checkAtHome(expected="Nuitka Staging"):
     if os.path.isdir(".git"):
         git_dir = ".git"
     else:
-        with open(".git") as f:
-            line = f.readline().strip()
-
-            assert line.startswith("gitdir:")
-
-            git_dir = line[8:]
+        line = getFileFirstLine(".git", "r").strip()
+        git_dir = line[8:]
 
     git_description_filename = os.path.join(git_dir, "description")
+    description = getFileContents(git_description_filename).strip()
 
-    with open(git_description_filename) as f:
-        description = f.read().strip()
-        assert description == expected, (expected, description)
+    assert description == expected, (expected, description)
 
 
 def getBranchName():
+    # TODO: Switch to "git branch --show-current" once we know to have new git everywhere.
     branch_name = check_output("git symbolic-ref --short HEAD".split()).strip()
 
     if str is not bytes:
@@ -90,11 +91,17 @@ def getBranchCategory(branch_name):
 
 
 def checkNuitkaChangelog():
-    with open("Changelog.rst") as f:
-        _first_line = f.readline()
-        second_line = f.readline()
+    with openTextFile("Changelog.rst", "r") as f:
+        # First paragraph doesn't count
+        while True:
+            line = f.readline().strip()
+            if line.startswith("***") and line.endswith("***"):
+                break
 
-    if "(Draft)" in second_line:
+        # Second line is the actual title.
+        line = f.readline()
+
+    if "(Draft)" in line:
         return "draft"
     else:
         return "final"

@@ -26,7 +26,11 @@ from nuitka.PythonVersions import python_version
 
 def formatOutput(e):
     if len(e.args) > 1:
-        reason, (filename, lineno, colno, message) = e.args
+        if python_version < 0x3A0:
+            reason, (filename, lineno, colno, message) = e.args
+        else:
+            # TODO: For Python3.10 there is more information here, use it probably end information.
+            reason, (filename, lineno, colno, message, _lineno2, _colno2) = e.args
 
         if message is None and colno is not None:
             colno = None
