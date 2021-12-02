@@ -833,7 +833,7 @@ pgo_group.add_option(
     action="store",
     dest="python_pgo_policy_unused_module",
     choices=("include", "exclude", "bytecode"),
-    default=None,
+    default="include",
     help=SUPPRESS_HELP,
 )
 

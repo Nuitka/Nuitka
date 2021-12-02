@@ -21,8 +21,6 @@ import os
 import struct
 
 from nuitka.__past__ import xrange
-
-# TODO: Decide compilation mode for everything not seen.
 from nuitka.Options import getPythonPgoUnseenModulePolicy
 from nuitka.Tracing import pgo_logger
 
@@ -102,7 +100,7 @@ def readPGOInputFile(input_filename):
     _pgo_active = True
 
 
-def decideRecursionFromPGO(module_name, module_kind):
+def decideInclusionFromPGO(module_name, module_kind):
     """Decide module inclusion based on PGO input.
 
     At this point, PGO can decide the inclusion to not be done. It will

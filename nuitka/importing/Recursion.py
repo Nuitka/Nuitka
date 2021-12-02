@@ -24,7 +24,7 @@ import os
 
 from nuitka import ModuleRegistry, Options
 from nuitka.importing import ImportCache, Importing, StandardLibrary
-from nuitka.pgo.PGO import decideRecursionFromPGO
+from nuitka.pgo.PGO import decideInclusionFromPGO
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import recursion_logger
@@ -101,7 +101,7 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
     is_stdlib = StandardLibrary.isStandardLibraryPath(module_filename)
 
     if not is_stdlib or Options.shallFollowStandardLibrary():
-        pgo_decision = decideRecursionFromPGO(
+        pgo_decision = decideInclusionFromPGO(
             module_name=module_name,
             module_kind=module_kind,
         )
