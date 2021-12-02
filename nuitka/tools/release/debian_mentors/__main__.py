@@ -4,14 +4,13 @@
 
 """
 
-from __future__ import print_function
-
 import os
 import shutil
 
 from nuitka.tools.release.Debian import cleanupTarfileForDebian, runPy2dsc
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName
+from nuitka.Tracing import my_print
 
 
 def main():
@@ -61,9 +60,9 @@ def main():
     # Cleanup the build directory, not needed anymore.
     shutil.rmtree("build", ignore_errors=True)
 
-    print("Uploading...")
+    my_print("Uploading...", style="blue")
     os.chdir("dist/deb_dist")
 
     assert os.system("dput mentors *.changes") == 0
 
-    print("Finished.")
+    my_print("Finished.", style="blue")

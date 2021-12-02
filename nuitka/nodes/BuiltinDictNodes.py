@@ -25,11 +25,13 @@ from .BuiltinIteratorNodes import ExpressionBuiltinIter1
 from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import ExpressionKeyValuePair, makeExpressionMakeDict
 from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionShapeMixins import ExpressionDictShapeExactMixin
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
-from .shapes.BuiltinTypeShapes import tshape_dict
 
 
-class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
+class ExpressionBuiltinDict(
+    ExpressionDictShapeExactMixin, ExpressionChildrenHavingBase
+):
     kind = "EXPRESSION_BUILTIN_DICT"
 
     named_children = ("pos_arg", "pairs")
@@ -53,14 +55,6 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             },
             source_ref=source_ref,
         )
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_dict
-
-    @staticmethod
-    def hasShapeDictionaryExact():
-        return True
 
     def hasOnlyConstantArguments(self):
         pos_arg = self.subnode_pos_arg

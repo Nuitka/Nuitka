@@ -26,10 +26,11 @@ Original author: Jesse Hallett <jesse@sitr.us>
 
 import os
 import re
-import subprocess
 
+from nuitka.__past__ import subprocess
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import check_call, check_output
+from nuitka.utils.FileOperations import openTextFile
 
 
 # Parse output from `git diff-index`
@@ -105,6 +106,10 @@ def getUnpushedPaths():
         if str is not bytes:
             line = line.decode("utf8")
 
+        # Removed files appear too, but are useless to talk about.
+        if not os.path.exists(line):
+            continue
+
         result.add(line)
 
     return tuple(sorted(result))
@@ -115,9 +120,10 @@ def getFileHashContent(object_hash):
 
 
 def putFileHashContent(filename):
-    new_hash = check_output(
-        ["git", "hash-object", "-w", "--stdin"], stdin=open(filename)
-    )
+    with openTextFile(filename, "r") as input_file:
+        new_hash = check_output(
+            ["git", "hash-object", "-w", "--stdin"], stdin=input_file
+        )
 
     if str is not bytes:
         new_hash = new_hash.decode("utf8")
@@ -158,6 +164,9 @@ def updateWorkingFile(path, orig_object_hash, new_object_hash):
     # Substitute object hashes in patch header with path to working tree file
     patch = b"\n".join(updateLine(line) for line in patch.splitlines()) + b"\n"
 
+    # Cannot use executeProcess, because we supply input, and we cannot
+    # use context managers, because not all Python versions have it that
+    # way, xpylintx: disable=consider-using-with
     apply_patch = subprocess.Popen(
         ["git", "apply", "-"],
         stdin=subprocess.PIPE,

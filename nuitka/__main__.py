@@ -79,61 +79,16 @@ def main():
 
     # In case we need to re-execute.
     if needs_reexec:
-        # TODO: If that's the only one, why do it at all..
         Options.parseArgs(will_reexec=True)
 
+        # TODO: If that's the only usage of Options, why do it at all, could start
+        # directly, and recognize the re-execution in the second run.
         if not Options.isAllowedToReexecute():
             sys.exit("Error, not allowed to re-execute, but that would be needed.")
 
-        our_filename = sys.modules[__name__].__file__
+        from nuitka.utils.ReExecute import reExecuteNuitka  # isort:skip
 
-        # Execute with full path as the process name, so it can find itself and its
-        # libraries.
-        args = [sys.executable, sys.executable]
-
-        from nuitka.PythonVersions import python_version
-
-        if python_version >= 0x370 and sys.flags.utf8_mode:
-            args += ["-X", "utf8"]
-
-        args += ["-S", our_filename]
-
-        os.environ["NUITKA_BINARY_NAME"] = sys.modules["__main__"].__file__
-        os.environ["NUITKA_PACKAGE_HOME"] = os.path.dirname(
-            os.path.abspath(sys.modules["nuitka"].__path__[0])
-        )
-
-        if Options.is_nuitka_run:
-            args.append("--run")
-
-        # Same arguments as before.
-        args += sys.argv[1:] + list(Options.getMainArgs())
-
-        os.environ["NUITKA_PYTHONPATH"] = repr(sys.path)
-
-        from nuitka.importing.PreloadedPackages import (
-            detectPreLoadedPackagePaths,
-            detectPthImportedPackages,
-        )
-
-        os.environ["NUITKA_NAMESPACES"] = repr(detectPreLoadedPackagePaths())
-
-        if "site" in sys.modules:
-            os.environ["NUITKA_SITE_FILENAME"] = sys.modules["site"].__file__
-
-            os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
-
-        os.environ["NUITKA_SITE_FLAG"] = (
-            str(sys.flags.no_site) if not Options.hasPythonFlagNoSite() else "1"
-        )
-
-        os.environ["PYTHONHASHSEED"] = "0"
-
-        os.environ["NUITKA_REEXECUTION"] = "1"
-
-        from nuitka.utils import Execution  # isort:skip
-
-        Execution.callExec(args)
+        reExecuteNuitka(pgo_filename=None)
 
     Options.parseArgs(will_reexec=False)
 

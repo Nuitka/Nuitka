@@ -156,3 +156,16 @@ PyObject *IMPORT_HARD_TYPES(void) {
 
     return module_types;
 }
+/* C helper for hard import of module "typing" import. */
+
+PyObject *IMPORT_HARD_TYPING(void) {
+    static PyObject *module_typing = NULL;
+
+    if (module_typing == NULL) {
+        module_typing = PyImport_ImportModule("typing");
+    }
+
+    CHECK_OBJECT(module_typing);
+
+    return module_typing;
+}

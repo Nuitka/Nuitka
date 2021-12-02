@@ -25,8 +25,6 @@ import os
 import platform
 import sys
 
-from nuitka.PythonVersions import python_version
-
 
 def getOS():
     if os.name == "nt":
@@ -43,7 +41,7 @@ def getOS():
         assert False, os.name
 
 
-_linux_distribution = None
+_linux_distribution_info = None
 
 
 def getLinuxDistribution():
@@ -53,43 +51,55 @@ def getLinuxDistribution():
     but in some cases it's hard to manage that.
     """
     # singleton, pylint: disable=global-statement
-    global _linux_distribution
+    global _linux_distribution_info
 
     if getOS() != "Linux":
-        return None
+        return None, None
 
-    if _linux_distribution is None:
+    if _linux_distribution_info is None:
         # pylint: disable=I0021,deprecated-method,no-member
         try:
-            result = platform.dist()[0].title()
+            result = platform.dist()[0]
+            version = platform.dist()[1]
         except AttributeError:
-            from .Execution import check_output
+            result = None
+            version = None
 
-            try:
-                result = check_output(["lsb_release", "-i", "-s"], shell=False).title()
-
-                if str is not bytes:
-                    result = result.decode("utf8")
-            except FileNotFoundError:
+            if os.path.exists("/etc/os-release"):
                 from .FileOperations import getFileContentByLine
 
                 for line in getFileContentByLine("/etc/os-release"):
                     if line.startswith("ID="):
                         result = line[3:]
-                        break
-                else:
-                    from nuitka.Tracing import general
+                    if line.startswith("VERSION="):
+                        version = line[8:]
 
-                    general.sysexit("Error, cannot detect Linux distribution.")
+            if result is None:
+                from .Execution import check_output
 
-        _linux_distribution = result.title()
+                try:
+                    result = check_output(["lsb_release", "-i", "-s"], shell=False)
 
-    return _linux_distribution
+                    if str is not bytes:
+                        result = result.decode("utf8")
+                except FileNotFoundError:
+                    pass
+
+            if result is None:
+                from nuitka.Tracing import general
+
+                general.sysexit("Error, cannot detect Linux distribution.")
+
+        _linux_distribution_info = result.title(), version
+
+    return _linux_distribution_info
 
 
 def isDebianBasedLinux():
     # TODO: What is with Mint, maybe others, this list should be expanded potentially.
-    return getLinuxDistribution() in ("Debian", "Ubuntu")
+    dist_name, _dist_version = getLinuxDistribution()
+
+    return dist_name in ("Debian", "Ubuntu")
 
 
 def isWin32Windows():
@@ -100,6 +110,31 @@ def isWin32Windows():
 def isPosixWindows():
     """The MSYS2 variant of Python does have posix only, not Win32."""
     return os.name == "posix" and getOS() == "Windows"
+
+
+def isLinux():
+    """The Linux OS."""
+    return getOS() == "Linux"
+
+
+def isMacOS():
+    """The macOS platform."""
+    return getOS() == "Darwin"
+
+
+def isNetBSD():
+    """The NetBSD OS."""
+    return getOS() == "NetBSD"
+
+
+def isFreeBSD():
+    """The FreeBSD OS."""
+    return getOS() == "FreeBSD"
+
+
+def isOpenBSD():
+    """The FreeBSD OS."""
+    return getOS() == "OpenBSD"
 
 
 _is_alpine = None
@@ -131,14 +166,17 @@ def getArchitecture():
 def getCoreCount():
     cpu_count = 0
 
-    # Try to sum up the CPU cores, if the kernel shows them.
-    try:
-        # Try to get the number of logical processors
-        with open("/proc/cpuinfo") as cpuinfo_file:
-            cpu_count = cpuinfo_file.read().count("processor\t:")
-    except IOError:
-        pass
+    if getOS() != "Windows":
+        # Try to sum up the CPU cores, if the kernel shows them, getting the number
+        # of logical processors
+        try:
+            # Encoding is not needed, pylint: disable=unspecified-encoding
+            with open("/proc/cpuinfo") as cpuinfo_file:
+                cpu_count = cpuinfo_file.read().count("processor\t:")
+        except IOError:
+            pass
 
+    # Multiprocessing knows the way.
     if not cpu_count:
         import multiprocessing
 
@@ -153,7 +191,7 @@ def encodeNonAscii(var_name):
     For Python3, unicode identifiers can be used, but these are not
     possible in C, so we need to replace them.
     """
-    if python_version < 0x300:
+    if str is bytes:
         return var_name
     else:
         # Using a escaping here, because that makes it safe in terms of not
@@ -168,6 +206,10 @@ def encodeNonAscii(var_name):
 
 def hasOnefileSupportedOS():
     return getOS() in ("Linux", "Windows", "Darwin", "FreeBSD")
+
+
+def hasStandaloneSupportedOS():
+    return getOS() in ("Linux", "Windows", "Darwin", "FreeBSD", "OpenBSD")
 
 
 def getUserName():

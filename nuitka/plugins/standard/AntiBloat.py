@@ -29,13 +29,12 @@ that to be done and causing massive degradations.
 """
 
 import ast
-import pkgutil
 
 from nuitka.containers.odict import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Yaml import parseYaml
+from nuitka.utils.Yaml import parsePackageYaml
 
 
 class NuitkaPluginAntiBloat(NuitkaPluginBase):
@@ -45,19 +44,42 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
     )
 
     def __init__(
-        self, noinclude_setuptools_mode, noinclude_pytest_mode, custom_choices
+        self,
+        noinclude_setuptools_mode,
+        noinclude_pytest_mode,
+        noinclude_ipython_mode,
+        noinclude_default_mode,
+        custom_choices,
     ):
-        self.config = parseYaml(
-            pkgutil.get_data("nuitka.plugins.standard", "anti-bloat.yml")
-        )
+        # Default manually to default argument value:
+        if noinclude_setuptools_mode is None:
+            noinclude_setuptools_mode = noinclude_default_mode
+        if noinclude_pytest_mode is None:
+            noinclude_pytest_mode = noinclude_default_mode
+        if noinclude_ipython_mode is None:
+            noinclude_ipython_mode = noinclude_default_mode
+
+        self.config = parsePackageYaml(__package__, "anti-bloat.yml")
 
         self.handled_modules = OrderedDict()
 
+        # These should be checked, to allow disabling anti-bloat contents.
+        self.control_tags = set()
+
         if noinclude_setuptools_mode != "allow":
             self.handled_modules["setuptools"] = noinclude_setuptools_mode
+        else:
+            self.control_tags.add("allow_setuptools")
 
         if noinclude_pytest_mode != "allow":
             self.handled_modules["pytest"] = noinclude_pytest_mode
+        else:
+            self.control_tags.add("allow_pytest")
+
+        if noinclude_ipython_mode != "allow":
+            self.handled_modules["IPython"] = noinclude_ipython_mode
+        else:
+            self.control_tags.add("allow_ipython")
 
         for custom_choice in custom_choices:
             if ":" not in custom_choice:
@@ -83,9 +105,9 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
             action="store",
             dest="noinclude_setuptools_mode",
             choices=("error", "warning", "nofollow", "allow"),
-            default="warning",
+            default=None,
             help="""\
-What to do if a setuptools import is encountered. This can be big with
+What to do if a setuptools import is encountered. This package can be big with
 dependencies, and should definitely be avoided.""",
         )
 
@@ -94,10 +116,32 @@ dependencies, and should definitely be avoided.""",
             action="store",
             dest="noinclude_pytest_mode",
             choices=("error", "warning", "nofollow", "allow"),
+            default=None,
+            help="""\
+What to do if a pytest import is encountered. This package can be big with
+dependencies, and should definitely be avoided.""",
+        )
+
+        group.add_option(
+            "--noinclude-IPython-mode",
+            action="store",
+            dest="noinclude_ipython_mode",
+            choices=("error", "warning", "nofollow", "allow"),
+            default=None,
+            help="""\
+What to do if a IPython import is encountered. This package can be big with
+dependencies, and should definitely be avoided.""",
+        )
+
+        group.add_option(
+            "--noinclude-default-mode",
+            action="store",
+            dest="noinclude_default_mode",
+            choices=("error", "warning", "nofollow", "allow"),
             default="warning",
             help="""\
-What to do if a pytest import is encountered. This can be big with
-dependencies, and should definitely be avoided.""",
+This actually provides the default "warning" value for above options, and
+can be used to turn all of these on.""",
         )
 
         group.add_option(
@@ -118,6 +162,11 @@ which can and should be a top level package and then one choice, "error",
 
         if not config:
             return source_code
+
+        # Allow disabling config for a module with matching control tags.
+        for control_tag in config.get("control_tags", ()):
+            if control_tag in self.control_tags:
+                return source_code
 
         description = config.get("description", "description not given")
 
@@ -143,7 +192,7 @@ which can and should be a top level package and then one choice, "error",
                         exec(context_code, context)
                     except Exception as e:  # pylint: disable=broad-except
                         self.sysexit(
-                            "Error, cannot context code '%s' due to: %s"
+                            "Error, cannot execute context code '%s' due to: %s"
                             % (context_code, e)
                         )
 
@@ -204,7 +253,7 @@ which can and should be a top level package and then one choice, "error",
 
         return source_code
 
-    def onFunctionAssignmentParsed(self, module_name, function_body, assign_node):
+    def onFunctionBodyParsing(self, module_name, function_name, body):
         config = self.config.get(module_name)
 
         if not config:
@@ -218,8 +267,10 @@ which can and should be a top level package and then one choice, "error",
         # We trust the yaml files, pylint: disable=eval-used,exec-used
         context_ready = not bool(context_code)
 
-        for function_name, replace_code in config.get("change_function", {}).items():
-            if assign_node.getVariableName() != function_name:
+        for change_function_name, replace_code in config.get(
+            "change_function", {}
+        ).items():
+            if function_name != change_function_name:
                 continue
 
             if not context_ready:
@@ -235,20 +286,13 @@ which can and should be a top level package and then one choice, "error",
                 )
 
             # Single node is required, extrace the generated module body with
-            # single expression only statement value.
-            (new_node,) = ast.parse(replacement).body
-            new_node = new_node.value
+            # single expression only statement value or a function body.
+            replacement = ast.parse(replacement).body[0]
 
-            # Cyclic dependencies.
-            from nuitka.tree.Building import buildNode
-
-            replace_node = buildNode(
-                provider=function_body.getParentVariableProvider(),
-                node=new_node,
-                source_ref=assign_node.source_ref,
-            )
-
-            assign_node.setChild("source", replace_node)
+            if type(replacement) is ast.Expr:
+                body[:] = [ast.Return(replacement.value)]
+            else:
+                body[:] = replacement.body
 
             self.info(
                 "Updated '%s' function '%s'." % (module_name.asString(), function_name)

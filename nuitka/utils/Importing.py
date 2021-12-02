@@ -195,17 +195,14 @@ def importFromInlineCopy(module_name, must_exist):
         )
     )
 
+    candidate_27 = folder_name + "_27"
+    candidate_35 = folder_name + "_35"
+
     # Use specific versions if needed.
-    if python_version < 0x300:
-        candidate = folder_name + "_27"
-
-        if os.path.exists(candidate):
-            folder_name = candidate
-    elif python_version < 0x360:
-        candidate = folder_name + "_35"
-
-        if os.path.exists(candidate):
-            folder_name = candidate
+    if python_version < 0x300 and os.path.exists(candidate_27):
+        folder_name = candidate_27
+    elif python_version < 0x360 and os.path.exists(candidate_35):
+        folder_name = candidate_35
 
     return importFromFolder(
         module_name=module_name,

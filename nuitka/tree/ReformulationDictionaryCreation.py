@@ -23,8 +23,8 @@ become nodes that build dictionaries.
 For Python3.5, unpacking can happen while creating dictionaries, these are
 being re-formulated to an internal function.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
@@ -32,7 +32,7 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable,
 )
-from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -161,7 +161,7 @@ def getDictUnpackingHelper():
                             ),
                             right=makeExpressionMakeTuple(
                                 elements=(
-                                    ExpressionAttributeLookup(
+                                    makeExpressionAttributeLookup(
                                         expression=ExpressionBuiltinType1(
                                             value=ExpressionTempVariableRef(
                                                 variable=tmp_item_variable,

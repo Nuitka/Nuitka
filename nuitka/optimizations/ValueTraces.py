@@ -182,6 +182,22 @@ class ValueTraceBase(object):
     def getTruthValue():
         return None
 
+    @staticmethod
+    def getComparisonValue():
+        return None
+
+    @staticmethod
+    def getAttributeNode():
+        return None
+
+    @staticmethod
+    def getAttributeNodeTrusted():
+        return None
+
+    @staticmethod
+    def getAttributeNodeVeryTrusted():
+        return None
+
 
 class ValueTraceUnassignedBase(ValueTraceBase):
     __slots__ = ()
@@ -268,11 +284,19 @@ class ValueTraceInitStarArgs(ValueTraceInit):
     def getTypeShape():
         return tshape_tuple
 
+    @staticmethod
+    def hasShapeDictionaryExact():
+        return False
+
 
 class ValueTraceInitStarDict(ValueTraceInit):
     @staticmethod
     def getTypeShape():
         return tshape_dict
+
+    @staticmethod
+    def hasShapeDictionaryExact():
+        return True
 
 
 class ValueTraceUnknown(ValueTraceBase):
@@ -318,6 +342,20 @@ class ValueTraceUnknown(ValueTraceBase):
     def mustNotHaveValue():
         return False
 
+    def getAttributeNode(self):
+        # TODO: Differentiate unknown with not previous node from ones with for performance and
+        # clarity.
+        if self.previous is not None:
+            return self.previous.getAttributeNodeVeryTrusted()
+
+    def getAttributeNodeTrusted(self):
+        if self.previous is not None:
+            return self.previous.getAttributeNodeVeryTrusted()
+
+    def getAttributeNodeVeryTrusted(self):
+        if self.previous is not None:
+            return self.previous.getAttributeNodeVeryTrusted()
+
 
 class ValueTraceEscaped(ValueTraceUnknown):
     __slots__ = ()
@@ -358,6 +396,15 @@ class ValueTraceEscaped(ValueTraceUnknown):
     @staticmethod
     def isEscapeOrUnknownTrace():
         return True
+
+    def getAttributeNode(self):
+        return self.previous.getAttributeNodeTrusted()
+
+    def getAttributeNodeTrusted(self):
+        return self.previous.getAttributeNodeTrusted()
+
+    def getAttributeNodeVeryTrusted(self):
+        return self.previous.getAttributeNodeVeryTrusted()
 
 
 class ValueTraceAssign(ValueTraceBase):
@@ -410,6 +457,28 @@ class ValueTraceAssign(ValueTraceBase):
 
     def getTruthValue(self):
         return self.assign_node.subnode_source.getTruthValue()
+
+    def getComparisonValue(self):
+        return self.assign_node.subnode_source.getComparisonValue()
+
+    def getAttributeNode(self):
+        return self.assign_node.subnode_source
+
+    def getAttributeNodeTrusted(self):
+        source_node = self.assign_node.subnode_source
+
+        if source_node.hasShapeTrustedAttributes():
+            return source_node
+        else:
+            return None
+
+    def getAttributeNodeVeryTrusted(self):
+        source_node = self.assign_node.subnode_source
+
+        if source_node.isExpressionImportModuleHard():
+            return source_node
+        else:
+            return None
 
 
 class ValueTraceMergeBase(ValueTraceBase):
@@ -523,6 +592,11 @@ class ValueTraceMerge(ValueTraceMergeBase):
         # Now all agreed and were not unknown, so we can conclude all false or all true.
         return any_true
 
+    def getComparisonValue(self):
+        # TODO: Support multiple values as candidates, e.g. both 1, 3 could be compared to 2, for
+        # now we are delaying that.
+        return None
+
 
 class ValueTraceLoopBase(ValueTraceMergeBase):
     __slots__ = ("loop_node", "type_shapes", "type_shape", "recursion")
@@ -605,6 +679,10 @@ class ValueTraceLoopComplete(ValueTraceLoopBase):
     def getTruthValue():
         return None
 
+    @staticmethod
+    def getComparisonValue():
+        return None
+
 
 class ValueTraceLoopIncomplete(ValueTraceLoopBase):
     __slots__ = ()
@@ -629,4 +707,8 @@ class ValueTraceLoopIncomplete(ValueTraceLoopBase):
 
     @staticmethod
     def getTruthValue():
+        return None
+
+    @staticmethod
+    def getComparisonValue():
         return None

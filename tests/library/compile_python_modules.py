@@ -41,7 +41,6 @@ sys.path.insert(
 # isort:start
 
 import subprocess
-import tempfile
 
 from nuitka.tools.testing.Common import (
     checkCompilesNotWithCPython,
@@ -49,22 +48,19 @@ from nuitka.tools.testing.Common import (
     createSearchMode,
     getPythonArch,
     getPythonVendor,
+    getTempDir,
     my_print,
     setup,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
 
-python_version = setup(needs_io_encoding=True)
+python_version = setup(suite="python_modules", needs_io_encoding=True)
 python_vendor = getPythonVendor()
 python_arch = getPythonArch()
 
 search_mode = createSearchMode()
 
-tmp_dir = tempfile.gettempdir()
-
-# Try to avoid RAM disk /tmp and use the disk one instead.
-if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
-    tmp_dir = "/var/tmp"
+tmp_dir = getTempDir()
 
 ignore_list = (
     "__phello__.foo.py",  # Triggers error for "." in module name
@@ -99,10 +95,10 @@ def action(stage_dir, _root, path):
         sys.executable,
         os.path.join("..", "..", "bin", "nuitka"),
         "--module",
-        "--output-dir",
-        stage_dir,
+        "--output-dir=%s" % stage_dir,
         "--remove-output",
-        "--plugin-enable=pylint-warnings",
+        "--quiet",
+        "--enable-plugin=pylint-warnings",
     ]
 
     command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
@@ -136,7 +132,7 @@ compileLibraryTest(
     stage_dir=os.path.join(
         tmp_dir,
         "compile_library_%s-%s-%s"
-        % (".".join(python_version), python_arch, python_vendor),
+        % (".".join(str(d) for d in python_version), python_arch, python_vendor),
     ),
     decide=decide,
     action=action,

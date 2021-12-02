@@ -697,7 +697,7 @@ static bool SET_INSTANCE(PyObject *target, PyObject *attr_name, PyObject *value)
 }
 #endif
 
-#if PYTHON_VERSION < 0x300 || _NUITKA_USE_UNEXPOSED_API
+#if PYTHON_VERSION < 0x300 || defined(_NUITKA_USE_UNEXPOSED_API)
 
 // Classes in Pyhon3 might share keys.
 #define CACHED_KEYS(type) (((PyHeapTypeObject *)type)->ht_cached_keys)
@@ -802,7 +802,7 @@ bool SET_ATTRIBUTE(PyObject *target, PyObject *attr_name, PyObject *value) {
 
     PyTypeObject *type = Py_TYPE(target);
 
-#if PYTHON_VERSION < 0x300 || _NUITKA_USE_UNEXPOSED_API
+#if PYTHON_VERSION < 0x300 || defined(_NUITKA_USE_UNEXPOSED_API)
     if (type->tp_setattro == PyObject_GenericSetAttr) {
         return SET_ATTRIBUTE_GENERIC(type, target, attr_name, value);
     } else

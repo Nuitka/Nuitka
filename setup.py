@@ -42,6 +42,8 @@ if os.name == "nt":
 # Detect the version of Nuitka from its source directly. Without calling it, we
 # don't mean to pollute with ".pyc" files and similar effects.
 def detectVersion():
+    # Encoding is not needed, pylint: disable=unspecified-encoding
+
     with open("nuitka/Version.py") as version_file:
         (version_line,) = [line for line in version_file if line.startswith("Nuitka V")]
 
@@ -107,13 +109,15 @@ def addInlineCopy(name):
             "inline_copy/%s/*/*/*.py" % name,
             "inline_copy/%s/*/*/*/*.py" % name,
             "inline_copy/%s/*/*/*/*/*.py" % name,
+            "inline_copy/%s/LICENSE*",
+            "inline_copy/%s/*/LICENSE*",
+            "inline_copy/%s/READ*",
         )
     )
 
 
 addInlineCopy("appdirs")
 addInlineCopy("glob2")
-addInlineCopy("jinja2")
 addInlineCopy("markupsafe")
 addInlineCopy("tqdm")
 
@@ -126,17 +130,26 @@ if os.name == "nt" or sdist_mode:
 
 if sys.version_info < (3,) or sdist_mode:
     addInlineCopy("yaml_27")
-if sys.version_info < (3, 6) or sdist_mode:
+if (3,) < sys.version_info < (3, 6) or sdist_mode:
     addInlineCopy("yaml_35")
+if sys.version_info >= (3, 6) or sdist_mode:
+    addInlineCopy("yaml")
 
-addInlineCopy("yaml")
+if sys.version_info < (3, 6) or sdist_mode:
+    addInlineCopy("jinja2_35")
+if sys.version_info >= (3, 6) or sdist_mode:
+    addInlineCopy("jinja2")
+
 
 # Scons really only, with historic naming and positioning. Needs to match the
 # "scons.py" in bin with respect to versions selection.
 addInlineCopy("bin")
-if sys.version_info < (2, 7) or sdist_mode:
+
+if os.name == "nt" or sdist_mode:
+    addInlineCopy("lib/scons-4.3.0")
+if (os.name != "nt" and sys.version_info < (2, 7)) or sdist_mode:
     addInlineCopy("lib/scons-2.3.2")
-if sys.version_info >= (2, 7) or sdist_mode:
+if (os.name != "nt" and sys.version_info >= (2, 7)) or sdist_mode:
     addInlineCopy("lib/scons-3.1.2")
 
 # Have different project names for MSI installers, so 32 and 64 bit versions do
@@ -253,11 +266,16 @@ except AttributeError:
 else:
     easy_install.get_script_args = get_script_args
 
+binary_suffix = "%d" % sys.version_info[0]
 
-if sys.version_info[0] == 2:
-    binary_suffix = ""
+if os.name == "nt":
+    console_scripts = []
 else:
-    binary_suffix = "%d" % sys.version_info[0]
+    console_scripts = [
+        "nuitka%s = nuitka.__main__:main" % binary_suffix,
+        "nuitka%s-run = nuitka.__main__:main" % binary_suffix,
+    ]
+
 
 with open("README.rst", "rb") as input_file:
     long_description = input_file.read().decode("utf8")
@@ -302,6 +320,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         # We depend on CPython.
         "Programming Language :: Python :: Implementation :: CPython",
         # We generate C intermediate code and implement part of the
@@ -348,7 +367,7 @@ Python compiler with full language support and CPython compatibility""",
     keywords="compiler,python,nuitka",
     project_urls={
         "Documentation": "https://nuitka.net/doc",
-        "Commercial": "https://nuitka.net/pages/commercial.htm",
+        "Commercial": "https://nuitka.net/pages/commercial.html",
         "Donations": "https://nuitka.net/pages/donations.html",
         "Twitter": "https://twitter.com/KayHayen",
         "Source": "https://github.com/Nuitka/Nuitka",
@@ -367,9 +386,6 @@ Python compiler with full language support and CPython compatibility""",
         "distutils.setup_keywords": [
             "build_with_nuitka = nuitka.distutils.DistutilCommands:setupNuitkaDistutilsCommands"
         ],
-        "console_scripts": [
-            "nuitka%s = nuitka.__main__:main" % binary_suffix,
-            "nuitka%s-run = nuitka.__main__:main" % binary_suffix,
-        ],
+        "console_scripts": console_scripts,
     },
 )

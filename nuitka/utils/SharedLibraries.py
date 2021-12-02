@@ -23,13 +23,17 @@ import os
 import sys
 
 from nuitka import Options
-from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import unicode
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
-from .Execution import executeToolChecked, withEnvironmentVarOverriden
+from .Execution import (
+    executeProcess,
+    executeToolChecked,
+    withEnvironmentVarOverriden,
+)
 from .FileOperations import withMadeWritableFileMode
-from .Utils import getOS, isAlpineLinux, isWin32Windows
+from .Utils import isAlpineLinux, isMacOS, isWin32Windows
 from .WindowsResources import (
     RT_MANIFEST,
     VsFixedFileInfoStructure,
@@ -60,7 +64,7 @@ def locateDLL(dll_name):
     if isWin32Windows():
         return os.path.normpath(dll_name)
 
-    if getOS() == "Darwin":
+    if isMacOS():
         return dll_name
 
     if os.path.sep in dll_name:
@@ -275,7 +279,7 @@ def _getSharedLibraryRPATHDarwin(filename):
 
 
 def getSharedLibraryRPATH(filename):
-    if getOS() == "Darwin":
+    if isMacOS():
         return _getSharedLibraryRPATHDarwin(filename)
     else:
         return _getSharedLibraryRPATHElf(filename)
@@ -288,6 +292,21 @@ def _removeSharedLibraryRPATHElf(filename):
         absence_message="""\
 Error, needs 'chrpath' on your system, due to 'RPATH' settings in used shared
 libraries that need to be removed.""",
+    )
+
+
+def _setSharedLibraryRPATHElf(filename, rpath):
+    # TODO: Might write something that makes a shell script replacement
+    # in case no rpath is present, or use patchelf, for now our use
+    # case seems to use rpaths for executables.
+
+    # patchelf --set-rpath "$ORIGIN/path/to/library" <executable>
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=["patchelf", "--set-rpath", rpath, filename],
+        absence_message="""\
+Error, needs 'patchelf' on your system, due to 'RPATH' settings that need to be
+set.""",
     )
 
 
@@ -314,20 +333,42 @@ def _removeSharedLibraryRPATHDarwin(filename, rpath):
     )
 
 
+def _setSharedLibraryRPATHDarwin(filename, rpath):
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=["install_name_tool", "-add_rpath", rpath, filename],
+        absence_message=_installnametool_usage,
+        stderr_filter=_filterInstallNameToolErrorOutput,
+    )
+
+
 def removeSharedLibraryRPATH(filename):
     rpath = getSharedLibraryRPATH(filename)
 
     if rpath is not None:
         if Options.isShowInclusion():
             inclusion_logger.info(
-                "Removing 'RPATH' setting '%s' from '%s'." % (rpath, filename)
+                "Removing 'RPATH' value '%s' from '%s'." % (rpath, filename)
             )
 
         with withMadeWritableFileMode(filename):
-            if getOS() == "Darwin":
+            if isMacOS():
                 return _removeSharedLibraryRPATHDarwin(filename, rpath)
             else:
                 return _removeSharedLibraryRPATHElf(filename)
+
+
+def setSharedLibraryRPATH(filename, rpath):
+    if Options.isShowInclusion():
+        inclusion_logger.info(
+            "Setting 'RPATH' value '%s' for '%s'." % (rpath, filename)
+        )
+
+    with withMadeWritableFileMode(filename):
+        if isMacOS():
+            return _setSharedLibraryRPATHDarwin(filename, rpath)
+        else:
+            return _setSharedLibraryRPATHElf(filename, rpath)
 
 
 def callInstallNameTool(filename, mapping, rpath):
@@ -387,3 +428,42 @@ def getPyWin32Dir():
 
         if os.path.isdir(candidate):
             return candidate
+
+
+def detectBinaryMinMacOS(binary_filename):
+    """Detect the minimum required macOS version of a binary.
+
+    Args:
+        binary_filename - path of the binary to check
+
+    Returns:
+        str - minimum OS version that the binary will run on
+
+    """
+
+    stdout, _stderr, exit_code = executeProcess(["otool", "-l", binary_filename])
+
+    if exit_code != 0:
+        postprocessing_logger.sysexit(
+            "Unexpected failure to execute otool -l '%s'." % binary_filename
+        )
+
+    lines = stdout.split(b"\n")
+
+    for i, line in enumerate(lines):
+        # Form one, used by CPython builds.
+        if line.endswith(b"cmd LC_VERSION_MIN_MACOSX"):
+            line = lines[i + 2]
+            if str is not bytes:
+                line = line.decode("utf8")
+
+            return line.split("version ", 1)[1]
+
+        # Form two, used by Apple Python builds.
+        elif line.strip().startswith(b"minos"):
+            if str is not bytes:
+                line = line.decode("utf8")
+
+            return line.split("minos ", 1)[1]
+
+    return None

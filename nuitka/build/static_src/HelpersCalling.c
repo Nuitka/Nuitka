@@ -49,8 +49,11 @@ PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count) {
             Py_INCREF(frame->f_localsplus[i]);
         }
 
+#if PYTHON_VERSION < 0x390
         PyObject *result = PyEval_EvalFrameEx(frame, 0);
-
+#else
+        PyObject *result = _PyEval_EvalFrame(tstate, frame, 0);
+#endif
         // Frame release protects against recursion as it may lead to variable
         // destruction.
         ++tstate->recursion_depth;

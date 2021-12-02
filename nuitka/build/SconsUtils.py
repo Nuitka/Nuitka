@@ -24,16 +24,12 @@ from __future__ import print_function
 import os
 import shutil
 import signal
-import subprocess
 import sys
 
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    basestring,
-    unicode,
-)
+from nuitka.__past__ import basestring, unicode
 from nuitka.Tracing import scons_details_logger, scons_logger
-from nuitka.utils.Execution import getNullInput
-from nuitka.utils.FileOperations import getFileContentByLine
+from nuitka.utils.Execution import executeProcess
+from nuitka.utils.FileOperations import getFileContentByLine, openTextFile
 
 
 def initScons():
@@ -133,6 +129,7 @@ def createEnvironment(mingw_mode, msvc_version, target_arch):
         os.name == "nt"
         and not mingw_mode
         and msvc_version is None
+        and msvc_version != "latest"
         and (
             getExecutablePath("cl", env=None) is not None
             or getExecutablePath("gcc", env=None) is not None
@@ -163,7 +160,8 @@ def createEnvironment(mingw_mode, msvc_version, target_arch):
         # Under windows, specify the target architecture is needed for Scons
         # to pick up MSVC.
         TARGET_ARCH=target_arch,
-        MSVC_VERSION=msvc_version,
+        # The MSVC version might be fixed by the user.
+        MSVC_VERSION=msvc_version if msvc_version != "latest" else None,
         **args
     )
 
@@ -253,8 +251,8 @@ def addToPATH(env, dirname, prefix):
     setEnvironmentVariable(env, "PATH", os.pathsep.join(path_value))
 
 
-def writeSconsReport(source_dir, env, gcc_mode, clang_mode, msvc_mode, clangcl_mode):
-    with open(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
+def writeSconsReport(env, source_dir):
+    with openTextFile(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
         # We are friends to get at this debug info, pylint: disable=protected-access
         for key, value in sorted(env._dict.items()):
             if type(value) is list and all(isinstance(v, basestring) for v in value):
@@ -269,19 +267,28 @@ def writeSconsReport(source_dir, env, gcc_mode, clang_mode, msvc_mode, clangcl_m
             if key in ("MSVSSCONS", "BUILD_DIR", "IDLSUFFIXES", "DSUFFIXES"):
                 continue
 
+            # TODO: For these kinds of prints, maybe have our own method of doing them
+            # rather than print, or maybe just json or something similar.
             print(key + "=" + value, file=report_file)
 
-        print("gcc_mode=%s" % gcc_mode, file=report_file)
-        print("clang_mode=%s" % clang_mode, file=report_file)
-        print("msvc_mode=%s" % msvc_mode, file=report_file)
-        print("clangcl_mode=%s" % clangcl_mode, file=report_file)
+        print("gcc_mode=%s" % env.gcc_mode, file=report_file)
+        print("clang_mode=%s" % env.clang_mode, file=report_file)
+        print("msvc_mode=%s" % env.msvc_mode, file=report_file)
+        print("mingw_mode=%s" % env.mingw_mode, file=report_file)
+        print("clangcl_mode=%s" % env.clangcl_mode, file=report_file)
+
+        print("PATH=%s" % os.environ["PATH"], file=report_file)
 
 
-scons_reports = {}
+_scons_reports = {}
+
+
+def flushSconsReports():
+    _scons_reports.clear()
 
 
 def readSconsReport(source_dir):
-    if source_dir not in scons_reports:
+    if source_dir not in _scons_reports:
         scons_report = {}
 
         for line in getFileContentByLine(os.path.join(source_dir, "scons-report.txt")):
@@ -292,9 +299,9 @@ def readSconsReport(source_dir):
 
             scons_report[key] = value
 
-        scons_reports[source_dir] = scons_report
+        _scons_reports[source_dir] = scons_report
 
-    return scons_reports[source_dir]
+    return _scons_reports[source_dir]
 
 
 def getSconsReportValue(source_dir, key):
@@ -316,35 +323,28 @@ def addClangClPathFromMSVC(env, target_arch):
     else:
         clang_dir = os.path.join(clang_dir, "bin")
 
-    if os.path.exists(clang_dir):
-        scons_details_logger.info(
-            "Adding MSVC directory %r for Clang to PATH." % clang_dir
+    if not os.path.exists(clang_dir):
+        scons_details_logger.sysexit(
+            "Visual Studio has no Clang component found at '%s'." % clang_dir
         )
 
-        addToPATH(env, clang_dir, prefix=True)
-    else:
-        scons_details_logger.info("No Clang component for MSVC found." % clang_dir)
+    scons_details_logger.info(
+        "Adding Visual Studio directory '%s' for Clang to PATH." % clang_dir
+    )
 
+    addToPATH(env, clang_dir, prefix=True)
 
-def switchFromGccToGpp(gcc_version, the_compiler, the_cc_name, env):
-    if gcc_version is not None and gcc_version < (5,):
-        scons_logger.info("The provided gcc is too old, switching to g++ instead.")
+    clangcl_path = getExecutablePath("clang-cl", env=env)
 
-        # Switch to g++ from gcc then if possible, when C11 mode is false.
-        the_gpp_compiler = os.path.join(
-            os.path.dirname(the_compiler),
-            os.path.basename(the_compiler).replace("gcc", "g++"),
+    if clangcl_path is None:
+        scons_details_logger.sysexit(
+            "Visual Studio has no Clang component found at '%s'." % clang_dir
         )
 
-        if getExecutablePath(the_gpp_compiler, env=env):
-            the_compiler = the_gpp_compiler
-            the_cc_name = the_cc_name.replace("gcc", "g++")
-        else:
-            scons_logger.sysexit(
-                "Error, your gcc is too old for C11 support, and no related g++ to workaround that is found."
-            )
+    env["CC"] = "clang-cl"
+    env["LINK"] = "lld-link"
 
-    return the_compiler, the_cc_name
+    env["CCVERSION"] = None
 
 
 def isGccName(cc_name):
@@ -401,7 +401,7 @@ def provideStaticSourceFile(sub_path, nuitka_src, source_dir, c11_mode):
     return target_filename
 
 
-def scanSourceDir(env, c11_mode, dirname, plugins):
+def scanSourceDir(env, dirname, plugins):
     if not os.path.exists(dirname):
         return
 
@@ -426,7 +426,7 @@ def scanSourceDir(env, c11_mode, dirname, plugins):
         target_file = filename
 
         # We pretend to use C++ if no C11 compiler is present.
-        if c11_mode:
+        if env.c11_mode:
             yield filename
         else:
             if filename.endswith(".c"):
@@ -447,7 +447,7 @@ def makeCLiteral(value):
 def createDefinitionsFile(source_dir, filename, definitions):
     build_definitions_filename = os.path.join(source_dir, filename)
 
-    with open(build_definitions_filename, "w") as f:
+    with openTextFile(build_definitions_filename, "w") as f:
         for key, value in sorted(definitions.items()):
             if type(value) is int:
                 f.write("#define %s %s\n" % (key, value))
@@ -475,18 +475,9 @@ def _getBinaryArch(binary, mingw_mode):
         command = ["objdump", "-f", binary]
 
         try:
-            proc = subprocess.Popen(
-                command,
-                stdin=getNullInput(),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                shell=False,
-            )
+            data, _err, rv = executeProcess(command)
         except OSError:
             return None
-
-        data, _err = proc.communicate()
-        rv = proc.wait()
 
         if rv != 0:
             return None
@@ -541,19 +532,13 @@ def getCompilerArch(mingw_mode, msvc_mode, the_cc_name, compiler_path):
         if "-cl" in the_cc_name:
             cmdline.append("--version")
 
-        proc = subprocess.Popen(
-            cmdline,
-            stdin=getNullInput(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=False,
+        # The cl.exe without further args will give error
+        stdout, stderr, _rv = executeProcess(
+            command=cmdline,
         )
 
-        # The cl.exe without further args will give error output indicating
-        # arch, while clang outputs in stdout.
-        stdout, stderr = proc.communicate()
-        _rv = proc.wait()
-
+        # The MSVC will output on error, while clang outputs in stdout and they
+        # use different names for arches.
         if b"x86" in stderr or b"i686" in stdout:
             _compiler_arch[compiler_path] = "pei-i386"
         elif b"x64" in stderr or b"x86_64" in stdout:

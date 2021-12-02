@@ -19,11 +19,9 @@
 
 """
 
-import collections
 import os
 
 from nuitka import Options
-from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
 from nuitka.containers.oset import OrderedSet
 from nuitka.freezer.IncludedDataFiles import (
     makeIncludedDataDirectory,
@@ -35,11 +33,7 @@ from nuitka.utils.FileOperations import (
     getFileList,
     resolveShellPatternToFilenames,
 )
-
-
-def _createEmptyDirText(filename):
-    # We create the same content all the time, pylint: disable=unused-argument
-    return ""
+from nuitka.utils.Yaml import parsePackageYaml
 
 
 def _getSubDirectoryFolders(module, subdirs):
@@ -50,7 +44,7 @@ def _getSubDirectoryFolders(module, subdirs):
         retrieved and returned shortened to begin with the string of subdir.
     Args:
         module: module object
-        subdirs: sub folder name(s) - str or None or tuple
+        subdirs: sub folder name(s) - tuple
     Returns:
         makeIncludedEmptyDirectories of found dirnames.
     """
@@ -58,12 +52,7 @@ def _getSubDirectoryFolders(module, subdirs):
     module_dir = module.getCompileTimeDirectory()
     file_list = []
 
-    if subdirs is None:
-        data_dirs = [module_dir]
-    elif isinstance(subdirs, basestring):
-        data_dirs = [os.path.join(module_dir, subdirs)]
-    else:
-        data_dirs = [os.path.join(module_dir, subdir) for subdir in subdirs]
+    data_dirs = [os.path.join(module_dir, subdir) for subdir in subdirs]
 
     # Gather the full file list, probably makes no sense to include bytecode files
     file_list = sum(
@@ -115,114 +104,8 @@ def _getSubDirectoryFolders(module, subdirs):
 class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     plugin_name = "data-files"
 
-    KnownDataFileDesc = collections.namedtuple(
-        "KnownDataFileDesc", ("dest_path", "filename_pattern")
-    )
-
-    known_data_files = {
-        # Key is the package name to trigger it
-        # Value is a tuple of 2 element tuples, thus trailing commas, where
-        # the target path can be specified (None is just default, i.e. the
-        # package directory) and the filename relative to the source package
-        # directory
-        "botocore": (KnownDataFileDesc(filename_pattern="cacert.pem", dest_path=None),),
-        "site": (
-            KnownDataFileDesc(filename_pattern="orig-prefix.txt", dest_path=None),
-        ),
-        "nose.core": (KnownDataFileDesc(filename_pattern="usage.txt", dest_path=None),),
-        "scrapy": (KnownDataFileDesc(filename_pattern="VERSION", dest_path=None),),
-        "dask": (KnownDataFileDesc(filename_pattern="dask.yaml", dest_path=""),),
-        "cairocffi": (KnownDataFileDesc(filename_pattern="VERSION", dest_path=None),),
-        "cairosvg": (KnownDataFileDesc(filename_pattern="VERSION", dest_path=None),),
-        "weasyprint": (KnownDataFileDesc(filename_pattern="VERSION", dest_path=None),),
-        "tinycss2": (KnownDataFileDesc(filename_pattern="VERSION", dest_path=None),),
-        "certifi": (KnownDataFileDesc(filename_pattern="cacert.pem", dest_path=None),),
-        "importlib_resources": (
-            KnownDataFileDesc(filename_pattern="version.txt", dest_path=None),
-        ),
-        "moto": (
-            KnownDataFileDesc(
-                filename_pattern="ec2/resources/instance_types.json", dest_path=None
-            ),
-            KnownDataFileDesc(
-                filename_pattern="ec2/resources/amis.json", dest_path=None
-            ),
-        ),
-        "skimage": (
-            # TODO: Probably should use *.ini with patterns being supported.
-            KnownDataFileDesc(
-                filename_pattern="io/_plugins/fits_plugin.ini", dest_path=None
-            ),
-            KnownDataFileDesc(
-                filename_pattern="io/_plugins/gdal_plugin.ini", dest_path=None
-            ),
-            KnownDataFileDesc(
-                filename_pattern="io/_plugins/gtk_plugin.ini", dest_path=None
-            ),
-            KnownDataFileDesc(
-                filename_pattern="io/_plugins/imageio_plugin.ini", dest_path=None
-            ),
-            KnownDataFileDesc(
-                filename_pattern="io/_plugins/imread_plugin.ini", dest_path=None
-            ),
-            KnownDataFileDesc(
-                filename_pattern="io/_plugins/matplotlib_plugin.ini", dest_path=None
-            ),
-            KnownDataFileDesc(
-                filename_pattern="io/_plugins/pil_plugin.ini", dest_path=None
-            ),
-            KnownDataFileDesc(
-                filename_pattern="io/_plugins/qt_plugin.ini", dest_path=None
-            ),
-            KnownDataFileDesc(
-                filename_pattern="io/_plugins/simpleitk_plugin.ini", dest_path=None
-            ),
-            KnownDataFileDesc(
-                filename_pattern="io/_plugins/tifffile_plugin.ini", dest_path=None
-            ),
-        ),
-        "skimage.feature._orb_descriptor_positions": (
-            KnownDataFileDesc(
-                filename_pattern="orb_descriptor_positions.txt", dest_path=None
-            ),
-        ),
-        "tzdata": (KnownDataFileDesc(filename_pattern="zones", dest_path=None),),
-        "lib2to3.pgen2": (
-            KnownDataFileDesc(filename_pattern="../*.pickle", dest_path="lib2to3"),
-        ),
-    }
-
-    # data files to be copied are contained in subfolders named as the second item
-    known_data_dirs = {
-        "botocore": "data",
-        "boto3": "data",
-        "sklearn.datasets": ("data", "descr"),
-        "osgeo": "data",
-        "pyphen": "dictionaries",
-        "pytz": "zoneinfo",
-        "pytzdata": "zoneinfo",
-        "tzdata": "zoneinfo",
-        "pywt": "data",
-        "skimage": "data",
-        "weasyprint": "css",
-        "xarray": "static",
-        "gooey": ("languages", "images"),
-        "jsonschema": "schemas",
-        "xmlschema": "schemas",
-    }
-
-    known_data_dir_structure = {
-        "pendulum": "locales",
-    }
-
-    generated_data_files = {
-        "Cryptodome.Util._raw_api": (
-            ("Cryptodome/Util", ".keep_dir.txt", _createEmptyDirText),
-        ),
-        "Crypto.Util._raw_api": (
-            ("Crypto/Util", ".keep_dir.txt", _createEmptyDirText),
-        ),
-    }
+    def __init__(self):
+        self.config = parsePackageYaml(__package__, "data-files.yml")
 
     @classmethod
     def isRelevant(cls):
@@ -238,60 +121,89 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         module_name = module.getFullName()
         module_folder = module.getCompileTimeDirectory()
 
-        if module_name in self.known_data_files:
-            for know_data_file_desc in self.known_data_files[module_name]:
-                target_dir = know_data_file_desc.dest_path
-                filename_pattern = know_data_file_desc.filename_pattern
+        config = self.config.get(module_name)
 
-                if target_dir is None:
-                    if (
-                        module.isCompiledPythonPackage()
-                        or module.isUncompiledPythonPackage()
-                    ):
-                        target_dir = module_name.asPath()
+        if config:
+            target_dir = config.get("dest_path")
+
+            # Default to near module or inside package folder.
+            if target_dir is None:
+                if (
+                    module.isCompiledPythonPackage()
+                    or module.isUncompiledPythonPackage()
+                ):
+                    target_dir = module_name.asPath()
+                else:
+                    package_name = module_name.getPackageName()
+
+                    if package_name is not None:
+                        target_dir = module_name.getPackageName().asPath()
                     else:
-                        package_name = module_name.getPackageName()
+                        target_dir = "."
 
-                        if package_name is not None:
-                            target_dir = module_name.getPackageName().asPath()
-                        else:
-                            target_dir = "."
-
-                source_path_pattern = os.path.join(module_folder, filename_pattern)
-
-                for filename in resolveShellPatternToFilenames(source_path_pattern):
-                    yield makeIncludedDataFile(
-                        source_path=filename,
-                        dest_path=os.path.normpath(
-                            os.path.join(target_dir, os.path.basename(filename))
-                        ),
-                        reason="package data for %r" % module_name.asString(),
+            patterns = config.get("patterns")
+            if patterns is not None:
+                if type(patterns) is not list or not patterns:
+                    self.sysexit(
+                        "Error, requiring list below 'pattern' entry for '%s' entry."
+                        % module_name
                     )
 
-        if module_name in self.known_data_dirs:
-            data_dirs = self.known_data_dirs[module_name]
+                # TODO: Pattern should be data file kind potentially.
+                for pattern in patterns:
+                    pattern = os.path.join(module_folder, pattern)
 
-            if type(data_dirs) is not tuple:
-                data_dirs = (data_dirs,)
+                    for filename in resolveShellPatternToFilenames(pattern):
+                        yield makeIncludedDataFile(
+                            source_path=filename,
+                            dest_path=os.path.normpath(
+                                os.path.join(target_dir, os.path.basename(filename))
+                            ),
+                            reason="package data for %r" % module_name.asString(),
+                        )
 
-            for data_dir in data_dirs:
-                source_path = os.path.join(module_folder, data_dir)
-
-                if os.path.isdir(source_path):
-                    yield makeIncludedDataDirectory(
-                        source_path=source_path,
-                        dest_path=os.path.join(module_name.asPath(), data_dir),
-                        reason="package data directory for %r" % module_name.asString(),
+            empty_dirs = config.get("empty_dirs")
+            if empty_dirs is not None:
+                if type(empty_dirs) is not list or not empty_dirs:
+                    self.sysexit(
+                        "Error, requiring list below 'empty_dirs' entry for '%s' entry."
+                        % module_name
                     )
 
-        if module_name in self.known_data_dir_structure:
-            empty_dirs = self.known_data_dir_structure[module_name]
+                yield makeIncludedEmptyDirectories(
+                    source_path=target_dir,
+                    dest_paths=tuple(
+                        os.path.join(target_dir, empty_dir) for empty_dir in empty_dirs
+                    ),
+                    reason="empty dir needed for %r" % module_name.asString(),
+                )
 
-            yield _getSubDirectoryFolders(module, empty_dirs)
+            empty_dir_structures = config.get("empty_dir_structures")
+            if empty_dir_structures is not None:
+                if type(empty_dir_structures) is not list or not empty_dir_structures:
+                    self.sysexit(
+                        "Error, requiring list below 'empty_dirs_structure' entry for '%s' entry."
+                        % module_name
+                    )
 
-        if module_name in self.generated_data_files:
-            for target_dir, filename, func in self.generated_data_files[module_name]:
-                if target_dir is None:
-                    target_dir = module_name.replace(".", os.path.sep)
+                # TODO: This ignored dest_path, which is unused, but not consistent.
+                yield _getSubDirectoryFolders(module, empty_dir_structures)
 
-                yield (func, os.path.normpath(os.path.join(target_dir, filename)))
+            dirs = config.get("dirs")
+            if dirs is not None:
+                if type(dirs) is not list or not dirs:
+                    self.sysexit(
+                        "Error, requiring list below 'empty_dirs_structure' entry for '%s' entry."
+                        % module_name
+                    )
+
+                for data_dir in dirs:
+                    source_path = os.path.join(module_folder, data_dir)
+
+                    if os.path.isdir(source_path):
+                        yield makeIncludedDataDirectory(
+                            source_path=source_path,
+                            dest_path=os.path.join(target_dir, data_dir),
+                            reason="package data directory for %r"
+                            % module_name.asString(),
+                        )

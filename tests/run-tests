@@ -37,5 +37,7 @@ sys.path.insert(
     )
 )
 
-from nuitka.tools.testing.run_nuitka_tests.__main__ import main # isort:skip
+# isort:start
+
+from nuitka.tools.testing.run_nuitka_tests.__main__ import main
 main()

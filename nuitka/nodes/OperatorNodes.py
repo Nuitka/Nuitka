@@ -38,6 +38,7 @@ from .shapes.BuiltinTypeShapes import tshape_bool, tshape_int_or_long
 from .shapes.StandardShapes import (
     ShapeLargeConstantValue,
     ShapeLargeConstantValuePredictable,
+    tshape_unknown,
     vshape_unknown,
 )
 
@@ -67,7 +68,9 @@ class ExpressionOperationBinaryBase(
             self, values={"left": left, "right": right}, source_ref=source_ref
         )
 
-        self.type_shape = None
+        # Question might be asked early on, later this is cached from last computation.
+        self.type_shape = tshape_unknown
+
         self.escape_desc = None
 
         self.inplace_suspect = False
@@ -106,12 +109,6 @@ class ExpressionOperationBinaryBase(
         )
 
     def getTypeShape(self):
-        # Question might be asked early on, later this is cached from last computation.
-        if self.type_shape is None:
-            self.type_shape, self.escape_desc = self._getOperationShape(
-                self.subnode_left.getTypeShape(), self.subnode_right.getTypeShape()
-            )
-
         return self.type_shape
 
     @abstractmethod

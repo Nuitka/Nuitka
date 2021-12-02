@@ -19,8 +19,6 @@
 
 """ Release tool to sync Developer Manual with code comments. """
 
-from __future__ import print_function
-
 import inspect
 import re
 import sys

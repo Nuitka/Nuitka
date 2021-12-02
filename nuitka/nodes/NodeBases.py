@@ -277,7 +277,7 @@ class NodeBase(NodeMetaClassBase):
     def asXml(self):
         line = self.source_ref.getLineNumber()
 
-        result = TreeXML.Element("node", kind=self.__class__.__name__, line="%s" % line)
+        result = TreeXML.Element("node", kind=self.__class__.__name__, line=str(line))
 
         compat_line = self.getCompatibleSourceReference().getLineNumber()
 
@@ -343,6 +343,10 @@ class NodeBase(NodeMetaClassBase):
 
     @staticmethod
     def isExpressionConstantRef():
+        return False
+
+    @staticmethod
+    def isExpressionConstantBoolRef():
         return False
 
     @staticmethod
@@ -924,8 +928,6 @@ class StatementChildHavingBase(StatementBase):
     def __init__(self, value, source_ref):
         StatementBase.__init__(self, source_ref=source_ref)
 
-        assert type(self.named_child) is str and self.named_child
-
         if self.checker is not None:
             value = self.checker(value)  # False alarm, pylint: disable=not-callable
 
@@ -1087,7 +1089,6 @@ class SideEffectsFromChildrenMixin(object):
 
     def extractSideEffects(self):
         # No side effects at all but from the children.
-
         result = []
 
         for child in self.getVisitableNodes():

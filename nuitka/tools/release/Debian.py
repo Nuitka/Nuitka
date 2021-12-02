@@ -23,8 +23,15 @@ import os
 import shutil
 import sys
 
-from nuitka.utils.Execution import check_call
-from nuitka.utils.FileOperations import getFileContentByLine, listDir
+from nuitka.utils.Execution import check_call, getNullInput
+from nuitka.utils.FileOperations import (
+    getFileContentByLine,
+    getFileContents,
+    listDir,
+    openTextFile,
+)
+
+from .Release import checkNuitkaChangelog
 
 
 def _callDebchange(*args):
@@ -32,21 +39,20 @@ def _callDebchange(*args):
 
     os.environ["EDITOR"] = ""
 
-    with open(os.devnull, "r") as devnull:
-        check_call(args, stdin=devnull)
+    check_call(args, stdin=getNullInput())
 
 
 def _discardDebianChangelogLastEntry():
-    with open("debian/changelog") as f:
-        changelog_lines = f.readlines()
-    with open("debian/changelog", "w") as output:
+    changelog_lines = getFileContents("debian/changelog").splitlines()
+
+    with openTextFile("debian/changelog", "w") as output:
         first = True
         for line in changelog_lines[1:]:
             if line.startswith("nuitka") and first:
                 first = False
 
             if not first:
-                output.write(line)
+                output.write(line + "\n")
 
 
 def updateDebianChangelog(old_version, new_version, distribution):
@@ -61,17 +67,31 @@ def updateDebianChangelog(old_version, new_version, distribution):
 
         message = "New upstream pre-release."
 
-        with open("Changelog.rst") as f:
-            changelog = f.read()
-        if "(Draft)" not in changelog.splitlines()[1]:
+        if checkNuitkaChangelog() != "draft":
+            changelog = getFileContents("Changelog.rst")
+
             title = "Nuitka Release " + new_version[:-3] + " (Draft)"
 
-            with open("Changelog.rst", "w") as changelog_file:
-                marker = "#" * (len(title) + 2)
+            found = False
+            with openTextFile("Changelog.rst", "w") as changelog_file:
+                for line in changelog.splitlines():
+                    if not found:
+                        if line.startswith("***") and line.endswith("***"):
+                            found = True
 
-                changelog_file.write(marker + "\n " + title + "\n" + marker + "\n\n")
-                changelog_file.write("This release is not done yet.\n\n")
-                changelog_file.write(changelog)
+                            marker = "*" * (len(title) + 2)
+
+                            changelog_file.write(
+                                marker + "\n " + title + "\n" + marker + "\n\n"
+                            )
+                            changelog_file.write("This release is not done yet.\n\n")
+                            changelog_file.write(line + "\n")
+
+                            continue
+
+                    changelog_file.write(line + "\n")
+
+            assert found
 
     else:
         if "rc" in old_version:

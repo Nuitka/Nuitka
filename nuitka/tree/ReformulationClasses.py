@@ -17,8 +17,8 @@
 #
 """ Reformulation of Python2 class statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
@@ -27,7 +27,7 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariableName,
     StatementReleaseVariable,
 )
-from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinAnonymousRef
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import ExpressionClassBody
@@ -39,7 +39,7 @@ from nuitka.nodes.ContainerMakingNodes import (
     makeExpressionMakeTupleOrConstant,
 )
 from nuitka.nodes.DictionaryNodes import (
-    ExpressionDictOperationGet,
+    ExpressionDictOperationGet2,
     ExpressionDictOperationIn,
 )
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinLocalsRef
@@ -75,7 +75,7 @@ from .TreeHelpers import (
 
 def buildClassNode2(provider, node, source_ref):
     # This function is the Python2 special case with special re-formulation as
-    # according to developer manual, and it's very detailed, pylint: disable=too-many-locals
+    # according to Developer Manual, and it's very detailed, pylint: disable=too-many-locals
     class_statement_nodes, class_doc = extractDocFromBody(node)
 
     function_body = ExpressionClassBody(
@@ -199,7 +199,7 @@ def buildClassNode2(provider, node, source_ref):
                 tried=StatementTry(
                     tried=makeStatementsSequenceFromStatement(
                         statement=StatementReturn(
-                            expression=ExpressionAttributeLookup(
+                            expression=makeExpressionAttributeLookup(
                                 expression=ExpressionTempVariableRef(
                                     variable=tmp_base, source_ref=source_ref
                                 ),
@@ -297,7 +297,7 @@ def buildClassNode2(provider, node, source_ref):
                     ),
                     source_ref=source_ref,
                 ),
-                expression_yes=ExpressionDictOperationGet(
+                expression_yes=ExpressionDictOperationGet2(
                     dict_arg=ExpressionTempVariableRef(
                         variable=tmp_class_dict, source_ref=source_ref
                     ),

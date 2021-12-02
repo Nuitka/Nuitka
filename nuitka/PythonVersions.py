@@ -23,11 +23,13 @@ should attempt to make run time detections.
 
 """
 
+import __future__
+
 import os
 import re
 import sys
 
-from nuitka.__past__ import WindowsError
+from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
 
 
 def getSupportedPythonVersions():
@@ -39,7 +41,7 @@ def getSupportedPythonVersions():
 def getPartiallySupportedPythonVersions():
     """Partially supported Python versions for Nuitka."""
 
-    return ()
+    return ("3.10",)
 
 
 def getSupportedPythonVersionStr():
@@ -56,7 +58,6 @@ def getSupportedPythonVersionStr():
 def _getPythonVersion():
     big, major, minor = sys.version_info[0:3]
 
-    # TODO: Give up on decimal versions already.
     return big * 256 + major * 16 + min(15, minor)
 
 
@@ -64,15 +65,6 @@ python_version = _getPythonVersion()
 
 python_version_full_str = ".".join(str(s) for s in sys.version_info[0:3])
 python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
-
-
-def isNuitkaPython():
-    """Is this our own fork of CPython named Nuitka-Python."""
-
-    if python_version >= 0x300:
-        return sys.implementation.name == "nuitkapython"
-    else:
-        return sys.subversion[0] == "nuitkapython"
 
 
 def getErrorMessageExecWithNestedFunction():
@@ -141,50 +133,6 @@ def needsDuplicateArgumentColOffset():
         return False
     else:
         return True
-
-
-def isDebianPackagePython():
-    """Is this Python from a debian package."""
-
-    if python_version < 0x300:
-        return hasattr(sys, "_multiarch")
-    else:
-        try:
-            from distutils.dir_util import _multiarch
-        except ImportError:
-            return False
-        else:
-            return True
-
-
-def isUninstalledPython():
-    # Debian package.
-    if isDebianPackagePython():
-        return False
-
-    if isStaticallyLinkedPython():
-        return True
-
-    if os.name == "nt":
-        import ctypes.wintypes
-
-        GetSystemDirectory = ctypes.windll.kernel32.GetSystemDirectoryW
-        GetSystemDirectory.argtypes = (ctypes.wintypes.LPWSTR, ctypes.wintypes.DWORD)
-        GetSystemDirectory.restype = ctypes.wintypes.DWORD
-
-        MAX_PATH = 4096
-        buf = ctypes.create_unicode_buffer(MAX_PATH)
-
-        res = GetSystemDirectory(buf, MAX_PATH)
-        assert res != 0
-
-        system_path = os.path.normcase(buf.value)
-        return not getRunningPythonDLLPath().startswith(system_path)
-
-    return (
-        os.path.exists(os.path.join(sys.prefix, "conda-meta"))
-        or "WinPython" in sys.version
-    )
 
 
 def getRunningPythonDLLPath():
@@ -306,6 +254,8 @@ def getSystemPrefixPath():
         ):
             candidate = os.path.join(sys_prefix, candidate)
             if os.path.exists(candidate):
+                # Cannot use FileOperations.getFileContents() here, because of circular dependency.
+                # pylint: disable=unspecified-encoding
                 with open(candidate) as f:
                     sys_prefix = f.read()
 
@@ -333,3 +283,35 @@ def getSystemPrefixPath():
         _the_sys_prefix = sys_prefix
 
     return _the_sys_prefix
+
+
+def getFutureModuleKeys():
+    result = [
+        "unicode_literals",
+        "absolute_import",
+        "division",
+        "print_function",
+        "generator_stop",
+        "nested_scopes",
+        "generators",
+        "with_statement",
+    ]
+
+    if hasattr(__future__, "barry_as_FLUFL"):
+        result.append("barry_as_FLUFL")
+    if hasattr(__future__, "annotations"):
+        result.append("annotations")
+
+    return result
+
+
+def getImportlibSubPackages():
+    result = []
+    if python_version >= 0x270:
+        import importlib
+        import pkgutil
+
+        for module_info in pkgutil.walk_packages(importlib.__path__):
+            result.append(module_info[1])
+
+    return result

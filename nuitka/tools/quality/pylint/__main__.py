@@ -21,8 +21,6 @@
 
 """
 
-from __future__ import print_function
-
 import sys
 from optparse import OptionParser
 
@@ -32,7 +30,12 @@ from nuitka.tools.quality.Git import getModifiedPaths, getUnpushedPaths
 from nuitka.tools.quality.pylint import PyLint
 from nuitka.tools.quality.ScanSources import isPythonFile, scanTargets
 from nuitka.tools.testing.Common import hasModule, setup
+from nuitka.Tracing import my_print
 from nuitka.utils.FileOperations import resolveShellPatternToFilenames
+
+
+def isIgnoredFile(filename):
+    return filename.startswith("Mini")
 
 
 def main():
@@ -102,7 +105,10 @@ Insist on PyLint to be installed. Default is %default.""",
     options, positional_args = parser.parse_args()
 
     if options.not_installed_is_no_error and not hasModule("pylint"):
-        print("PyLint is not installed for this interpreter version: SKIPPED")
+        my_print(
+            "PyLint is not installed for this interpreter version: SKIPPED",
+            style="yellow",
+        )
         sys.exit(0)
 
     if positional_args:
@@ -113,11 +119,17 @@ Insist on PyLint to be installed. Default is %default.""",
 
         if options.diff:
             positional_args = [
-                filename for filename in getModifiedPaths() if isPythonFile(filename)
+                filename
+                for filename in getModifiedPaths()
+                if isPythonFile(filename)
+                if not isIgnoredFile(filename)
             ]
         elif options.unpushed:
             positional_args = [
-                filename for filename in getUnpushedPaths() if isPythonFile(filename)
+                filename
+                for filename in getUnpushedPaths()
+                if isPythonFile(filename)
+                if not isIgnoredFile(filename)
             ]
         else:
             positional_args = ["bin", "nuitka", "setup.py", "tests/*/run_all.py"]
@@ -133,7 +145,7 @@ Insist on PyLint to be installed. Default is %default.""",
     if not positional_args:
         sys.exit("No files found.")
 
-    print("Working on:", positional_args)
+    my_print("Working on: %s" % " ".join(positional_args))
 
     ignore_list = []
 

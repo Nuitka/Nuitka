@@ -42,6 +42,7 @@ sys.path.insert(
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
+    getMainProgramFilename,
     my_print,
     reportSkip,
     setup,
@@ -49,23 +50,11 @@ from nuitka.tools.testing.Common import (
 )
 
 
-def getMainProgramFilename(filename):
-    for filename_main in os.listdir(filename):
-        if filename_main.endswith(("Main.py", "Main")):
-            return filename_main
-
-    sys.exit(
-        """\
-Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case."""
-        % (filename)
-    )
-
-
 def main():
     # Complex stuff, even more should become common code though.
     # pylint: disable=too-many-branches,too-many-statements
 
-    python_version = setup(needs_io_encoding=True)
+    python_version = setup(suite="programs", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 

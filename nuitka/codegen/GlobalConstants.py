@@ -85,6 +85,7 @@ def getConstantDefaultPopulation():
         "bytearray",
         "staticmethod",
         "classmethod",
+        "keys",
         # Arguments of __import__ built-in used in helper code.
         "name",
         "globals",

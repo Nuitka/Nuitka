@@ -73,6 +73,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModuleString(char const *module_
 
 // Add a module to the modules dictionary from name object
 NUITKA_MAY_BE_UNUSED static bool Nuitka_SetModule(PyObject *module_name, PyObject *module) {
+    CHECK_OBJECT(module_name);
     CHECK_OBJECT(module);
     assert(PyModule_Check(module));
 
@@ -84,6 +85,21 @@ NUITKA_MAY_BE_UNUSED static bool Nuitka_SetModuleString(char const *module_name,
     PyObject *module_name_object = Nuitka_String_FromString(module_name);
     bool result = Nuitka_SetModule(module_name_object, module);
     Py_DECREF(module_name_object);
+
+    return result;
+}
+
+// Remove a module to the modules dictionary from name object
+NUITKA_MAY_BE_UNUSED static bool Nuitka_DelModule(PyObject *module_name) {
+    CHECK_OBJECT(module_name);
+
+    PyObject *save_exception_type, *save_exception_value;
+    PyTracebackObject *save_exception_tb;
+    FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
+
+    bool result = DEL_SUBSCRIPT(PyImport_GetModuleDict(), module_name);
+
+    RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
 
     return result;
 }

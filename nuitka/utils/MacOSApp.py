@@ -22,6 +22,7 @@ import os
 import shutil
 
 from nuitka import Options, OutputDirectories
+from nuitka.containers.odict import OrderedDict
 
 from .FileOperations import makePath, openTextFile
 from .Images import convertImageToIconFormat
@@ -43,18 +44,20 @@ def createPlistInfoFile(logger, onefile):
     app_name = Options.getMacOSAppName() or os.path.basename(result_filename)
 
     signed_app_name = Options.getMacOSSignedAppName() or app_name
+    app_version = Options.getMacOSAppVersion() or "1.0"
 
     # TODO: We want an OrderedDict probably for stability.
-    infos = {
-        "CFBundleDisplayName": app_name,
-        "CFBundleName": app_name,
-        "CFBundleIdentifier": signed_app_name,
-        "CFBundleExecutable": app_name,
-        "CFBundleInfoDictionaryVersion": "6.0",
-        "CFBundlePackageType": "APPL",
-        # TODO: Make this an option too.
-        "CFBundleShortVersionString": "1.0.0",
-    }
+    infos = OrderedDict(
+        [
+            ("CFBundleDisplayName", app_name),
+            ("CFBundleName", app_name),
+            ("CFBundleIdentifier", signed_app_name),
+            ("CFBundleExecutable", app_name),
+            ("CFBundleInfoDictionaryVersion", "6.0"),
+            ("CFBundlePackageType", "APPL"),
+            ("CFBundleShortVersionString", app_version),
+        ]
+    )
 
     icon_paths = Options.getIconPaths()
 

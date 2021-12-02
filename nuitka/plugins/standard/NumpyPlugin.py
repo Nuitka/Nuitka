@@ -19,84 +19,57 @@
 """
 import os
 import re
-import shutil
 import sys
 from collections import namedtuple
 
 from nuitka import Options
+from nuitka.freezer.IncludedDataFiles import (
+    makeIncludedDataFile,
+    makeIncludedGeneratedDataFile,
+)
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin, hasActivePlugin
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.utils import Execution
 from nuitka.utils.FileOperations import (
+    getFileContentByLine,
     getFileList,
     listDir,
-    makePath,
-    putTextFileContents,
 )
 from nuitka.utils.Utils import getOS, isWin32Windows
 
+sklearn_mods = [
+    "sklearn.utils.sparsetools._graph_validation",
+    "sklearn.utils.sparsetools._graph_tools",
+    "sklearn.utils.lgamma",
+    "sklearn.utils.weight_vector",
+    "sklearn.utils._unittest_backport",
+    "sklearn.externals.joblib.externals.cloudpickle.dumps",
+    "sklearn.externals.joblib.externals.loky.backend.managers",
+]
 
-def getNumpyCoreBinaries(module):
-    """Return any binaries in numpy/core and/or numpy/.libs.
-
-    Notes:
-        This covers the special cases like MKL binaries.
-
-    Returns:
-        tuple of abspaths of binaries.
-    """
-    numpy_dir = module.getCompileTimeDirectory()
-    numpy_core_dir = os.path.join(numpy_dir, "core")
-    base_prefix = getSystemPrefixPath()
-
-    binaries = []
-
-    # first look in numpy/.libs for binaries
-    libdir = os.path.join(numpy_dir, ".libs" if getOS() != "Darwin" else ".dylibs")
-    suffix_start = len(libdir) + 1
-    if os.path.isdir(libdir):
-        dlls_pkg = os.listdir(libdir)
-        binaries += [[os.path.join(libdir, f), suffix_start] for f in dlls_pkg]
-
-    # then look for libraries in numpy.core package path
-    # should already return the MKL files in ordinary cases
-
-    re_anylib = re.compile(r"\w+\.(?:dll|so|dylib)", re.IGNORECASE)
-
-    dlls_pkg = [f for f in os.listdir(numpy_core_dir) if re_anylib.match(f)]
-    binaries += [[os.path.join(numpy_core_dir, f), suffix_start] for f in dlls_pkg]
-
-    # Also look for MKL libraries in folder "above" numpy.
-    # This should meet the layout of Anaconda installs.
-
-    if isWin32Windows():
-        lib_dir = os.path.join(base_prefix, "Library", "bin")
-        suffix_start = len(lib_dir) + 1
-    else:
-        lib_dir = os.path.join(base_prefix, "lib")
-        suffix_start = len(lib_dir) + 1
-
-    if not os.path.isdir(lib_dir):
-        return binaries
-
-    re_mkllib = re.compile(r"^(?:lib)?mkl\w+\.(?:dll|so|dylib)", re.IGNORECASE)
-
-    for f in os.listdir(lib_dir):
-        if isWin32Windows():
-            if not (f.startswith(("libi", "libm", "mkl")) and f.endswith(".dll")):
-                continue
-        else:
-            if not re_mkllib.match(f):
-                continue
-
-        binaries.append([os.path.join(lib_dir, f), suffix_start])
-
-    return binaries
+if isWin32Windows():
+    sklearn_mods.extend(
+        [
+            "sklearn.externals.joblib.externals.loky.backend.synchronize",
+            "sklearn.externals.joblib.externals.loky.backend._win_wait",
+            "sklearn.externals.joblib.externals.loky.backend._win_reduction",
+            "sklearn.externals.joblib.externals.loky.backend.popen_loky_win32",
+        ]
+    )
+else:
+    sklearn_mods.extend(
+        [
+            "sklearn.externals.joblib.externals.loky.backend.synchronize",
+            "sklearn.externals.joblib.externals.loky.backend.compat_posix",
+            "sklearn.externals.joblib.externals.loky.backend._posix_reduction",
+            "sklearn.externals.joblib.externals.loky.backend.popen_loky_posix",
+        ]
+    )
 
 
-class NumpyPlugin(NuitkaPluginBase):
+class NuitkaPluginNumpy(NuitkaPluginBase):
     """This class represents the main logic of the plugin.
 
     This is a plugin to ensure scripts using numpy, scipy, matplotlib, pandas,
@@ -112,16 +85,9 @@ class NumpyPlugin(NuitkaPluginBase):
     plugin_desc = "Required for numpy, scipy, pandas, matplotlib, etc."
 
     def __init__(self, include_matplotlib, include_scipy):
-        self.matplotlib = include_matplotlib
-        self.scipy = include_scipy
-
-        self.enabled_plugins = None  # list of active standard plugins
-        self.numpy_copied = False  # indicator: numpy files copied
-        self.scipy_copied = True  # indicator: scipy files copied
-        if self.scipy:
-            self.scipy_copied = False
-
-        self.mpl_data_copied = False  # indicator: matplotlib data copied
+        self.include_numpy = True  # For consistency
+        self.include_matplotlib = include_matplotlib
+        self.include_scipy = include_scipy
 
         # Information about matplotlib install.
         self.matplotlib_info = None
@@ -134,6 +100,16 @@ class NumpyPlugin(NuitkaPluginBase):
             True if this is a standalone compilation.
         """
         return Options.isStandaloneMode()
+
+    def reportFileCount(self, module_name, count):
+        if count:
+            msg = "Found %d %s DLLs from '%s' installation." % (
+                count,
+                "file" if count < 2 else "files",
+                module_name.asString(),
+            )
+
+            self.info(msg)
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -155,7 +131,7 @@ Should scipy, sklearn or skimage when used be not included with numpy, Default i
 Should matplotlib not be be included with numpy, Default is %default.""",
         )
 
-    def considerExtraDlls(self, dist_dir, module):
+    def getExtraDlls(self, module):
         """Copy extra shared libraries or data for this installation.
 
         Args:
@@ -166,51 +142,33 @@ Should matplotlib not be be included with numpy, Default is %default.""",
         """
         full_name = module.getFullName()
 
-        if not self.numpy_copied and full_name == "numpy":
-            self.numpy_copied = True
-            binaries = getNumpyCoreBinaries(module)
+        if self.include_numpy and full_name == "numpy":
+            numpy_binaries = tuple(
+                self._getNumpyCoreBinaries(numpy_dir=module.getCompileTimeDirectory())
+            )
 
-            for f in binaries:
-                bin_file, idx = f  # (filename, pos. prefix + 1)
-                back_end = bin_file[idx:]
-                tar_file = os.path.join(dist_dir, back_end)
-                makePath(  # create any missing intermediate folders
-                    os.path.dirname(tar_file)
+            for full_path, target_filename in numpy_binaries:
+                yield makeDllEntryPoint(
+                    source_path=full_path,
+                    dest_path=target_filename,
+                    package_name=full_name,
                 )
-                shutil.copyfile(bin_file, tar_file)
 
-            bin_total = len(binaries)  # anything there at all?
-            if bin_total > 0:
-                msg = "Copied %i %s from 'numpy' installation." % (
-                    bin_total,
-                    "file" if bin_total < 2 else "files",
+            self.reportFileCount(full_name, len(numpy_binaries))
+
+        if full_name == "scipy" and self.include_scipy and isWin32Windows():
+            scipy_binaries = tuple(
+                self._getScipyCoreBinaries(scipy_dir=module.getCompileTimeDirectory())
+            )
+
+            for source_path, target_filename in scipy_binaries:
+                yield makeDllEntryPoint(
+                    source_path=source_path,
+                    dest_path=target_filename,
+                    package_name=full_name,
                 )
-                self.info(msg)
 
-        if os.name == "nt" and not self.scipy_copied and full_name == "scipy":
-            # TODO: We are not getting called twice, are we?
-            assert not self.scipy_copied
-            self.scipy_copied = True
-
-            bin_total = 0
-            for entry_point in self._getScipyCoreBinaries(
-                scipy_dir=module.getCompileTimeDirectory()
-            ):
-                yield entry_point
-                bin_total += 1
-
-            if bin_total > 0:
-                msg = "Copied %i %s from 'scipy' installation." % (
-                    bin_total,
-                    "file" if bin_total < 2 else "files",
-                )
-                self.info(msg)
-
-        # TODO: Ouch, do not copy data files when asked to copy DLLs.
-        if self.matplotlib and full_name == "matplotlib" and not self.mpl_data_copied:
-            self.mpl_data_copied = True
-
-            self.copyMplDataFiles(dist_dir)
+            self.reportFileCount(full_name, len(scipy_binaries))
 
     def _getMatplotlibInfo(self):
         """Determine the filename of matplotlibrc and the default backend, etc.
@@ -264,58 +222,58 @@ print(repr("MATPLOTLIBDATA" in getsource(get_data_path)))
 
         return self.matplotlib_info
 
-    def copyMplDataFiles(self, dist_dir):
-        """Write matplotlib data files ('mpl-data')."""
+    @staticmethod
+    def _getNumpyCoreBinaries(numpy_dir):
+        """Return any binaries in numpy package.
 
-        matplotlib_info = self._getMatplotlibInfo()
+        Notes:
+            This covers the special cases like MKL binaries.
 
-        if not os.path.isdir(matplotlib_info.data_path):
-            self.sysexit(
-                "mpl-data missing, matplotlib installation appears to be broken"
-            )
+        Returns:
+            tuple of abspaths of binaries.
+        """
+        numpy_core_dir = os.path.join(numpy_dir, "core")
 
-        # Copy data files to dist folder
-        for fullname in getFileList(matplotlib_info.data_path):
-            filename = os.path.relpath(fullname, matplotlib_info.data_path)
+        # first look in numpy/.libs for binaries
+        libdir = os.path.join(numpy_dir, ".libs" if getOS() != "Darwin" else ".dylibs")
+        if os.path.isdir(libdir):
+            for full_path, filename in listDir(libdir):
+                yield full_path, filename
 
-            if filename.endswith("matplotlibrc"):  # handle config separately
+        # Then look for libraries in numpy.core package path
+        # should already return the MKL files in ordinary cases
+        re_anylib = re.compile(r"\w+\.(?:dll|so|dylib)", re.IGNORECASE)
+
+        for full_path, filename in listDir(numpy_core_dir):
+            if not re_anylib.match(filename):
                 continue
 
-            target_filename = os.path.join(dist_dir, "matplotlib", "mpl-data", filename)
+            yield full_path, filename
 
-            makePath(os.path.dirname(target_filename))  # create intermediate folders
-            shutil.copyfile(fullname, target_filename)
+        # Also look for MKL libraries in folder "above" numpy.
+        # This should meet the layout of Anaconda installs.
+        base_prefix = getSystemPrefixPath()
 
-        old_lines = (
-            open(matplotlib_info.matplotlibrc_filename).read().splitlines()
-        )  # old config file lines
-        new_lines = []  # new config file lines
+        if isWin32Windows():
+            lib_dir = os.path.join(base_prefix, "Library", "bin")
+        else:
+            lib_dir = os.path.join(base_prefix, "lib")
 
-        found = False  # checks whether backend definition encountered
-        for line in old_lines:
-            line = line.rstrip()
+        if os.path.isdir(lib_dir):
+            re_mkllib = re.compile(r"^(?:lib)?mkl\w+\.(?:dll|so|dylib)", re.IGNORECASE)
 
-            # omit meaningless lines
-            if line.startswith("#") and matplotlib_info.matplotlib_version < "3":
-                continue
+            for full_path, filename in listDir(lib_dir):
+                if isWin32Windows():
+                    if not (
+                        filename.startswith(("libi", "libm", "mkl"))
+                        and filename.endswith(".dll")
+                    ):
+                        continue
+                else:
+                    if not re_mkllib.match(filename):
+                        continue
 
-            new_lines.append(line)
-
-            if line.startswith(("backend ", "backend:")):
-                # old config file has a backend definition
-                found = True
-
-        if not found and matplotlib_info.matplotlib_version < "3":
-            # Set the backend, so even if it was run time determined, we now enforce it.
-            new_lines.append("backend: %s" % matplotlib_info.backend)
-
-        matplotlibrc_filename = os.path.join(
-            dist_dir, "matplotlib", "mpl-data", "matplotlibrc"
-        )
-
-        putTextFileContents(filename=matplotlibrc_filename, contents=new_lines)
-
-        self.info("Copied 'matplotlib/mpl-data'.")
+                yield full_path, filename
 
     @staticmethod
     def _getScipyCoreBinaries(scipy_dir):
@@ -327,71 +285,85 @@ print(repr("MATPLOTLIBDATA" in getsource(get_data_path)))
             if os.path.isdir(dll_dir_path):
                 for source_path, source_filename in listDir(dll_dir_path):
                     if source_filename.lower().endswith(".dll"):
-                        yield makeDllEntryPoint(
-                            source_path=source_path,
-                            dest_path=os.path.join(
-                                "scipy", dll_dir_name, source_filename
-                            ),
-                            package_name="scipy",
+                        yield source_path, os.path.join(
+                            "scipy", dll_dir_name, source_filename
                         )
 
+    def considerDataFiles(self, module):
+        if module.getFullName() == "matplotlib":
+            matplotlib_info = self._getMatplotlibInfo()
+
+            if not os.path.isdir(matplotlib_info.data_path):
+                self.sysexit(
+                    "mpl-data missing, matplotlib installation appears to be broken"
+                )
+
+            # Include the "mpl-data" files.
+            for fullname in getFileList(
+                matplotlib_info.data_path,
+                ignore_dirs=("sample_data",),
+                ignore_filenames=("matplotlibrc",),
+            ):
+                filename = os.path.relpath(fullname, matplotlib_info.data_path)
+
+                yield makeIncludedDataFile(
+                    source_path=fullname,
+                    dest_path=os.path.join("matplotlib", "mpl-data", filename),
+                    reason="package data for 'matplotlib",
+                )
+
+            # Handle the config file with an update.
+            new_lines = []  # new config file lines
+
+            found = False  # checks whether backend definition encountered
+            for line in getFileContentByLine(matplotlib_info.matplotlibrc_filename):
+                line = line.rstrip()
+
+                # omit meaningless lines
+                if line.startswith("#") and matplotlib_info.matplotlib_version < "3":
+                    continue
+
+                new_lines.append(line)
+
+                if line.startswith(("backend ", "backend:")):
+                    # old config file has a backend definition
+                    found = True
+
+            if not found and matplotlib_info.matplotlib_version < "3":
+                # Set the backend, so even if it was run time determined, we now enforce it.
+                new_lines.append("backend: %s" % matplotlib_info.backend)
+
+            yield makeIncludedGeneratedDataFile(
+                data=new_lines,
+                dest_path=os.path.join("matplotlib", "mpl-data", "matplotlibrc"),
+                reason="Updated matplotlib config file with backend to use.",
+            )
+
     def onModuleEncounter(self, module_filename, module_name, module_kind):
-        # pylint: disable=too-many-branches,too-many-return-statements
-        if not self.scipy and module_name.hasOneOfNamespaces(
+        # return driven, pylint: disable=too-many-return-statements
+        if not self.include_scipy and module_name.hasOneOfNamespaces(
             "scipy", "sklearn", "skimage"
         ):
             return False, "Omit unneeded components"
 
-        if not self.matplotlib and module_name.hasOneOfNamespaces(
+        if not self.include_matplotlib and module_name.hasOneOfNamespaces(
             "matplotlib", "skimage"
         ):
             return False, "Omit unneeded components"
 
-        if module_name == "scipy.sparse.csgraph._validation":
-            return True, "Replicate implicit import"
-
-        if self.matplotlib and module_name.hasNamespace("mpl_toolkits"):
+        if self.include_matplotlib and module_name.hasNamespace("mpl_toolkits"):
             return True, "Needed by matplotlib"
 
         if module_name in ("cv2", "cv2.cv2", "cv2.data"):
             return True, "Needed for OpenCV"
 
-        sklearn_mods = [
-            "sklearn.utils.sparsetools._graph_validation",
-            "sklearn.utils.sparsetools._graph_tools",
-            "sklearn.utils.lgamma",
-            "sklearn.utils.weight_vector",
-            "sklearn.utils._unittest_backport",
-            "sklearn.externals.joblib.externals.cloudpickle.dumps",
-            "sklearn.externals.joblib.externals.loky.backend.managers",
-        ]
-
-        if isWin32Windows():
-            sklearn_mods.extend(
-                [
-                    "sklearn.externals.joblib.externals.loky.backend.synchronize",
-                    "sklearn.externals.joblib.externals.loky.backend._win_wait",
-                    "sklearn.externals.joblib.externals.loky.backend._win_reduction",
-                    "sklearn.externals.joblib.externals.loky.backend.popen_loky_win32",
-                ]
-            )
-        else:
-            sklearn_mods.extend(
-                [
-                    "sklearn.externals.joblib.externals.loky.backend.synchronize",
-                    "sklearn.externals.joblib.externals.loky.backend.compat_posix",
-                    "sklearn.externals.joblib.externals.loky.backend._posix_reduction",
-                    "sklearn.externals.joblib.externals.loky.backend.popen_loky_posix",
-                ]
-            )
-
-        if self.scipy and module_name in sklearn_mods:
+        if self.include_scipy and module_name in sklearn_mods:
             return True, "Needed by sklearn"
 
         # some special handling for matplotlib:
         # depending on whether 'tk-inter' resp. 'qt-plugins' are enabled,
         # matplotlib backends are included.
-        if self.matplotlib:
+        if self.include_matplotlib:
             if hasActivePlugin("tk-inter"):
                 if module_name in (
                     "matplotlib.backends.backend_tk",
@@ -430,7 +402,7 @@ print(repr("MATPLOTLIBDATA" in getsource(get_data_path)))
 
         # Matplotlib might be off, or the version may not need the environment variable.
         if (
-            self.matplotlib
+            self.include_matplotlib
             and module.getFullName() == "matplotlib"
             and self._getMatplotlibInfo().needs_matplotlibdata_env
         ):
@@ -444,14 +416,14 @@ os.environ["MATPLOTLIBDATA"] = os.path.join(__nuitka_binary_dir, "matplotlib", "
             )
 
 
-class NumpyPluginDetector(NuitkaPluginBase):
+class NuitkaPluginDetectorNumpy(NuitkaPluginBase):
     """Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    detector_for = NumpyPlugin
+    detector_for = NuitkaPluginNumpy
 
     @classmethod
     def isRelevant(cls):

@@ -19,7 +19,7 @@
 
 Plugins: Welcome to Nuitka! This is your shortest way to become part of it.
 
-This is to provide the base class for all plug-ins. Some of which are part of
+This is to provide the base class for all plugins. Some of which are part of
 proper Nuitka, and some of which are waiting to be created and submitted for
 inclusion by you.
 
@@ -35,8 +35,7 @@ from optparse import OptionConflictError, OptionGroup
 import nuitka.plugins.commercial
 import nuitka.plugins.standard
 from nuitka import Options, OutputDirectories
-from nuitka.__past__ import basestring  # pylint: disable=I0021,redefined-builtin
-from nuitka.__past__ import iter_modules
+from nuitka.__past__ import basestring, iter_modules
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
@@ -44,7 +43,12 @@ from nuitka.Errors import NuitkaPluginError
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPointOld
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
-from nuitka.utils.FileOperations import makePath, putTextFileContents, relpath
+from nuitka.utils.FileOperations import (
+    addFileExecutablePermission,
+    makePath,
+    putTextFileContents,
+    relpath,
+)
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -136,7 +140,24 @@ def getPluginClass(plugin_name):
     return plugin_name2plugin_classes[plugin_name][0]
 
 
-def _loadPluginClassesFromPath(scan_path):
+def _addPluginClass(plugin_class, detector):
+    plugin_name = plugin_class.plugin_name
+
+    if plugin_name in plugin_name2plugin_classes:
+        plugins_logger.sysexit(
+            "Error, plugins collide by name %s: %s <-> %s"
+            % (plugin_name, plugin_class, plugin_name2plugin_classes[plugin_name])
+        )
+
+    plugin_name2plugin_classes[plugin_name] = (
+        plugin_class,
+        detector,
+    )
+
+
+def _loadPluginClassesFromPackage(scan_package):
+    scan_path = scan_package.__path__
+
     for item in iter_modules(scan_path):
         if item.ispkg:
             continue
@@ -164,6 +185,10 @@ def _loadPluginClassesFromPath(scan_path):
 
             raise
 
+        # At least for Python2, this is not set properly, but we use it for package
+        # data loading.
+        plugin_module.__package__ = scan_package.__name__
+
         plugin_classes = set(
             obj
             for obj in plugin_module.__dict__.values()
@@ -176,8 +201,18 @@ def _loadPluginClassesFromPath(scan_path):
             if hasattr(plugin_class, "detector_for")
         ]
 
+        # First the ones with detectors.
         for detector in detectors:
             plugin_class = detector.detector_for
+
+            if detector.__name__.replace(
+                "NuitkaPluginDetector", ""
+            ) != plugin_class.__name__.replace("NuitkaPlugin", ""):
+                plugins_logger.warning(
+                    "Class names %r and %r do not match NuitkaPlugin* and NuitkaPluginDetector* naming convention."
+                    % (plugin_class.__name__, detector.__name__)
+                )
+
             assert detector.plugin_name is None, detector
             detector.plugin_name = plugin_class.plugin_name
 
@@ -190,13 +225,14 @@ def _loadPluginClassesFromPath(scan_path):
             plugin_classes.remove(detector)
             plugin_classes.remove(plugin_class)
 
-            plugin_name2plugin_classes[plugin_class.plugin_name] = (
-                plugin_class,
-                detector,
+            _addPluginClass(
+                plugin_class=plugin_class,
+                detector=detector,
             )
 
+        # Remaining ones have no detector.
         for plugin_class in plugin_classes:
-            plugin_name2plugin_classes[plugin_class.plugin_name] = plugin_class, None
+            _addPluginClass(plugin_class=plugin_class, detector=None)
 
 
 def loadStandardPluginClasses():
@@ -209,8 +245,8 @@ def loadStandardPluginClasses():
     Returns:
         None
     """
-    _loadPluginClassesFromPath(nuitka.plugins.standard.__path__)
-    _loadPluginClassesFromPath(nuitka.plugins.commercial.__path__)
+    _loadPluginClassesFromPackage(nuitka.plugins.standard)
+    _loadPluginClassesFromPackage(nuitka.plugins.commercial)
 
 
 class Plugins(object):
@@ -379,6 +415,9 @@ class Plugins(object):
                     makePath(os.path.dirname(extra_dll.dest_path))
 
                     shutil.copyfile(extra_dll.source_path, extra_dll.dest_path)
+
+                    if extra_dll.executable:
+                        addFileExecutablePermission(extra_dll.dest_path)
 
                 result.append(extra_dll)
 
@@ -649,11 +688,24 @@ class Plugins(object):
 
     @staticmethod
     def onModuleInitialSet():
+        """The initial set of root modules is complete, plugins may add more."""
+
         from nuitka.ModuleRegistry import addRootModule
 
         for plugin in getActivePlugins():
             for module in plugin.onModuleInitialSet():
                 addRootModule(module)
+
+    @staticmethod
+    def onModuleCompleteSet():
+        """The final set of modules is determined, this is only for inspection, cannot change."""
+        from nuitka.ModuleRegistry import getDoneModules
+
+        # Make sure it's immutable.
+        module_set = tuple(getDoneModules())
+
+        for plugin in getActivePlugins():
+            plugin.onModuleCompleteSet(module_set)
 
     @staticmethod
     def considerFailedImportReferrals(module_name):
@@ -709,7 +761,7 @@ class Plugins(object):
                 assert value in ("compiled", "bytecode")
                 return value
 
-        return "compiled"
+        return None
 
     preprocessor_symbols = None
 
@@ -783,6 +835,25 @@ class Plugins(object):
 
         return cls.extra_link_libraries
 
+    extra_link_directories = None
+
+    @classmethod
+    def getExtraLinkDirectories(cls):
+        if cls.extra_link_directories is None:
+            cls.extra_link_directories = OrderedSet()
+
+            for plugin in getActivePlugins():
+                value = plugin.getExtraLinkDirectories()
+
+                if value is not None:
+                    if isinstance(value, basestring):
+                        cls.extra_link_directories.add(value)
+                    else:
+                        for dir_name in value:
+                            cls.extra_link_directories.add(dir_name)
+
+        return cls.extra_link_directories
+
     @classmethod
     def onDataComposerResult(cls, blob_filename):
         for plugin in getActivePlugins():
@@ -810,14 +881,14 @@ class Plugins(object):
         return name
 
     @classmethod
-    def onFunctionAssignmentParsed(cls, function_body, assign_node):
-        module_name = function_body.getParentModule().getFullName()
+    def onFunctionBodyParsing(cls, provider, function_name, body):
+        module_name = provider.getParentModule().getFullName()
 
         for plugin in getActivePlugins():
-            plugin.onFunctionAssignmentParsed(
+            plugin.onFunctionBodyParsing(
                 module_name=module_name,
-                function_body=function_body,
-                assign_node=assign_node,
+                function_name=function_name,
+                body=body,
             )
 
 
@@ -849,6 +920,7 @@ def isObjectAUserPluginBaseClass(obj):
             obj is not NuitkaPluginBase
             and issubclass(obj, NuitkaPluginBase)
             and not inspect.isabstract(obj)
+            and not obj.__name__.endswith("PluginBase")
         )
     except TypeError:
         return False

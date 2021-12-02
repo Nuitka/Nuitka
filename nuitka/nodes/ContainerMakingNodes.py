@@ -30,19 +30,22 @@ from .ConstantRefNodes import (
     ExpressionConstantTupleEmptyRef,
     makeConstantRefNode,
 )
-from .ExpressionBases import ExpressionChildHavingBase
+from .ExpressionBases import ExpressionChildTupleHavingBase
+from .ExpressionShapeMixins import (
+    ExpressionListShapeExactMixin,
+    ExpressionSetShapeExactMixin,
+    ExpressionTupleShapeExactMixin,
+)
 from .IterationHandles import ListAndTupleContainerMakingIterationHandle
 from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
-    getComputationResult,
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_list, tshape_set, tshape_tuple
 
 
 class ExpressionMakeSequenceBase(
-    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ExpressionChildTupleHavingBase
 ):
     __slots__ = ("sequence_kind",)
 
@@ -56,7 +59,7 @@ class ExpressionMakeSequenceBase(
 
         self.sequence_kind = sequence_kind.lower()
 
-        ExpressionChildHavingBase.__init__(
+        ExpressionChildTupleHavingBase.__init__(
             self, value=tuple(elements), source_ref=source_ref
         )
 
@@ -86,7 +89,7 @@ class ExpressionMakeSequenceBase(
         simulator = self.getSimulator()
         assert simulator is not None
 
-        return getComputationResult(
+        return trace_collection.getCompileTimeComputationResult(
             node=self,
             computation=lambda: simulator(
                 element.getCompileTimeConstant() for element in elements
@@ -94,10 +97,6 @@ class ExpressionMakeSequenceBase(
             description="%s with constant arguments." % simulator.__name__.title(),
             user_provided=True,
         )
-
-    @staticmethod
-    def mayHaveSideEffectsBool():
-        return False
 
     def isKnownToBeIterable(self, count):
         return count is None or count == len(self.subnode_elements)
@@ -182,17 +181,13 @@ def makeExpressionMakeTupleOrConstant(elements, user_provided, source_ref):
     return result
 
 
-class ExpressionMakeTuple(ExpressionMakeSequenceBase):
+class ExpressionMakeTuple(ExpressionTupleShapeExactMixin, ExpressionMakeSequenceBase):
     kind = "EXPRESSION_MAKE_TUPLE"
 
     def __init__(self, elements, source_ref):
         ExpressionMakeSequenceBase.__init__(
             self, sequence_kind="TUPLE", elements=elements, source_ref=source_ref
         )
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_tuple
 
     @staticmethod
     def getSimulator():
@@ -235,17 +230,13 @@ def makeExpressionMakeListOrConstant(elements, user_provided, source_ref):
     return result
 
 
-class ExpressionMakeList(ExpressionMakeSequenceBase):
+class ExpressionMakeList(ExpressionListShapeExactMixin, ExpressionMakeSequenceBase):
     kind = "EXPRESSION_MAKE_LIST"
 
     def __init__(self, elements, source_ref):
         ExpressionMakeSequenceBase.__init__(
             self, sequence_kind="LIST", elements=elements, source_ref=source_ref
         )
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_list
 
     @staticmethod
     def getSimulator():
@@ -270,17 +261,13 @@ Iteration over list lowered to iteration over tuple.""",
         )
 
 
-class ExpressionMakeSet(ExpressionMakeSequenceBase):
+class ExpressionMakeSet(ExpressionSetShapeExactMixin, ExpressionMakeSequenceBase):
     kind = "EXPRESSION_MAKE_SET"
 
     def __init__(self, elements, source_ref):
         ExpressionMakeSequenceBase.__init__(
             self, sequence_kind="SET", elements=elements, source_ref=source_ref
         )
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_set
 
     @staticmethod
     def getSimulator():

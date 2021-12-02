@@ -24,6 +24,7 @@ import os
 
 from nuitka import ModuleRegistry, Options
 from nuitka.importing import ImportCache, Importing, StandardLibrary
+from nuitka.pgo.PGO import decideInclusionFromPGO
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import recursion_logger
@@ -76,12 +77,14 @@ def recurseTo(
 
 def decideRecursion(module_filename, module_name, module_kind, extra_recursion=False):
     # Many branches, which make decisions immediately, by returning
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
     if module_name == "__main__":
-        return False, "Main program is not recursed to again."
+        return False, "Main program is not followed to a second time."
 
     plugin_decision = Plugins.onModuleEncounter(
-        module_filename, module_name, module_kind
+        module_filename=module_filename,
+        module_name=module_name,
+        module_kind=module_kind,
     )
 
     if plugin_decision is not None:
@@ -91,34 +94,50 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
         if Options.isStandaloneMode():
             return True, "Extension module needed for standalone mode."
         else:
-            return False, "Shared library cannot be inspected."
+            return False, "Extension module cannot be inspected."
+
+    # PGO decisions are not overruling plugins, but all command line options, they are
+    # supposed to be applied alrealdy.
+    is_stdlib = StandardLibrary.isStandardLibraryPath(module_filename)
+
+    if not is_stdlib or Options.shallFollowStandardLibrary():
+        pgo_decision = decideInclusionFromPGO(
+            module_name=module_name,
+            module_kind=module_kind,
+        )
+
+        if pgo_decision is not None:
+            return pgo_decision, "PGO based decision"
 
     no_case, reason = module_name.matchesToShellPatterns(
         patterns=Options.getShallFollowInNoCase()
     )
 
     if no_case:
-        return (False, "Module %s instructed by user to not recurse to." % reason)
+        return (False, "Module %s instructed by user to not follow to." % reason)
 
     any_case, reason = module_name.matchesToShellPatterns(
         patterns=Options.getShallFollowModules()
     )
 
     if any_case:
-        return (True, "Module %s instructed by user to recurse to." % reason)
+        return (True, "Module %s instructed by user to follow to." % reason)
 
     if Options.shallFollowNoImports():
-        return (False, "Requested to not recurse at all.")
+        return (False, "Instructed by user to not follow at all.")
 
-    if StandardLibrary.isStandardLibraryPath(module_filename):
+    if is_stdlib:
         return (
             Options.shallFollowStandardLibrary(),
-            "Requested to %srecurse to standard library."
+            "Instructed by user to %sfollow to standard library."
             % ("" if Options.shallFollowStandardLibrary() else "not "),
         )
 
     if Options.shallFollowAllImports():
-        return (True, "Requested to recurse to all non-standard library modules.")
+        return (
+            True,
+            "Instructed by user to follow to all non-standard library modules.",
+        )
 
     # Means, we were not given instructions how to handle things.
     if extra_recursion:

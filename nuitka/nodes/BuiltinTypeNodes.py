@@ -31,21 +31,23 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase,
     ExpressionSpecBasedComputationMixin,
 )
+from .ExpressionShapeMixins import (
+    ExpressionBoolShapeExactMixin,
+    ExpressionBytearrayShapeExactMixin,
+    ExpressionBytesShapeExactMixin,
+    ExpressionFrozensetShapeExactMixin,
+    ExpressionListShapeExactMixin,
+    ExpressionSetShapeExactMixin,
+    ExpressionTupleShapeExactMixin,
+)
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     wrapExpressionWithNodeSideEffects,
 )
 from .shapes.BuiltinTypeShapes import (
-    tshape_bool,
-    tshape_bytearray,
-    tshape_bytes,
     tshape_bytes_derived,
     tshape_float_derived,
-    tshape_frozenset,
-    tshape_list,
-    tshape_set,
     tshape_str_derived,
-    tshape_tuple,
     tshape_unicode_derived,
 )
 
@@ -85,44 +87,36 @@ class ExpressionBuiltinContainerBase(
             )
 
 
-class ExpressionBuiltinTuple(ExpressionBuiltinContainerBase):
+class ExpressionBuiltinTuple(
+    ExpressionTupleShapeExactMixin, ExpressionBuiltinContainerBase
+):
     kind = "EXPRESSION_BUILTIN_TUPLE"
 
     builtin_spec = BuiltinParameterSpecs.builtin_tuple_spec
 
-    @staticmethod
-    def getTypeShape():
-        return tshape_tuple
 
-
-class ExpressionBuiltinList(ExpressionBuiltinContainerBase):
+class ExpressionBuiltinList(
+    ExpressionListShapeExactMixin, ExpressionBuiltinContainerBase
+):
     kind = "EXPRESSION_BUILTIN_LIST"
 
     builtin_spec = BuiltinParameterSpecs.builtin_list_spec
 
-    @staticmethod
-    def getTypeShape():
-        return tshape_list
 
-
-class ExpressionBuiltinSet(ExpressionBuiltinContainerBase):
+class ExpressionBuiltinSet(
+    ExpressionSetShapeExactMixin, ExpressionBuiltinContainerBase
+):
     kind = "EXPRESSION_BUILTIN_SET"
 
     builtin_spec = BuiltinParameterSpecs.builtin_set_spec
 
-    @staticmethod
-    def getTypeShape():
-        return tshape_set
 
-
-class ExpressionBuiltinFrozenset(ExpressionBuiltinContainerBase):
+class ExpressionBuiltinFrozenset(
+    ExpressionFrozensetShapeExactMixin, ExpressionBuiltinContainerBase
+):
     kind = "EXPRESSION_BUILTIN_FROZENSET"
 
     builtin_spec = BuiltinParameterSpecs.builtin_frozenset_spec
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_frozenset
 
 
 class ExpressionBuiltinFloat(ExpressionChildHavingBase):
@@ -147,7 +141,7 @@ class ExpressionBuiltinFloat(ExpressionChildHavingBase):
         return self.subnode_value.mayRaiseExceptionFloat(exception_type)
 
 
-class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
+class ExpressionBuiltinBool(ExpressionBoolShapeExactMixin, ExpressionBuiltinTypeBase):
     kind = "EXPRESSION_BUILTIN_BOOL"
 
     builtin_spec = BuiltinParameterSpecs.builtin_bool_spec
@@ -172,11 +166,6 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
             )
 
         return ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
-
-    @staticmethod
-    def getTypeShape():
-        # Note: Not allowed to subclass bool.
-        return tshape_bool
 
 
 class ExpressionBuiltinUnicodeBase(
@@ -265,14 +254,12 @@ class ExpressionBuiltinStrP3(ExpressionBuiltinUnicodeBase):
         return tshape_str_derived
 
 
-class ExpressionBuiltinBytes3(ExpressionBuiltinUnicodeBase):
+class ExpressionBuiltinBytes3(
+    ExpressionBytesShapeExactMixin, ExpressionBuiltinUnicodeBase
+):
     kind = "EXPRESSION_BUILTIN_BYTES3"
 
     builtin_spec = BuiltinParameterSpecs.builtin_bytes_p3_spec
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_bytes
 
 
 class ExpressionBuiltinBytes1(ExpressionChildHavingBase):
@@ -297,7 +284,9 @@ class ExpressionBuiltinBytes1(ExpressionChildHavingBase):
         return self.subnode_value.mayRaiseExceptionBytes(exception_type)
 
 
-class ExpressionBuiltinBytearray1(ExpressionBuiltinTypeBase):
+class ExpressionBuiltinBytearray1(
+    ExpressionBytearrayShapeExactMixin, ExpressionBuiltinTypeBase
+):
     kind = "EXPRESSION_BUILTIN_BYTEARRAY1"
 
     builtin_spec = BuiltinParameterSpecs.builtin_bytearray_spec
@@ -305,12 +294,10 @@ class ExpressionBuiltinBytearray1(ExpressionBuiltinTypeBase):
     def __init__(self, value, source_ref):
         ExpressionBuiltinTypeBase.__init__(self, value=value, source_ref=source_ref)
 
-    @staticmethod
-    def getTypeShape():
-        return tshape_bytearray
 
-
-class ExpressionBuiltinBytearray3(ExpressionChildrenHavingBase):
+class ExpressionBuiltinBytearray3(
+    ExpressionBytearrayShapeExactMixin, ExpressionChildrenHavingBase
+):
     kind = "EXPRESSION_BUILTIN_BYTEARRAY3"
 
     named_children = ("string", "encoding", "errors")
@@ -329,10 +316,6 @@ class ExpressionBuiltinBytearray3(ExpressionChildrenHavingBase):
 
         return self, None, None
 
-    @staticmethod
-    def getTypeShape():
-        return tshape_bytearray
-
 
 class ExpressionConstantGenericAlias(CompileTimeConstantExpressionBase):
     kind = "EXPRESSION_CONSTANT_GENERIC_ALIAS"
@@ -349,14 +332,6 @@ class ExpressionConstantGenericAlias(CompileTimeConstantExpressionBase):
 
     def getDetails(self):
         return {"generic_alias": self.generic_alias}
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
-
-    @staticmethod
-    def mayHaveSideEffects():
-        return False
 
     def getCompileTimeConstant(self):
         return self.generic_alias

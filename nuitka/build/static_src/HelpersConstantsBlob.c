@@ -494,6 +494,8 @@ PyObject *_unpackSpecialValue(unsigned char special_index) {
         return PyObject_GetAttrString((PyObject *)builtin_module, "Ellipsis");
     case 1:
         return PyObject_GetAttrString((PyObject *)builtin_module, "NotImplemented");
+    case 2:
+        return Py_SysVersionInfo;
     default:
         PRINT_FORMAT("Missing special value for %d\n", (int)special_index);
         NUITKA_CANNOT_GET_HERE("Corrupt constants blob");

@@ -31,7 +31,7 @@ from nuitka.__past__ import GenericAlias
 from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import unusual_logger
+from nuitka.Tracing import my_print, unusual_logger
 
 
 def makeConstantReplacementNode(constant, node, user_provided):
@@ -196,17 +196,16 @@ def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
         )
 
         result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=value_node)
-
     else:
-        from .AttributeNodes import ExpressionAttributeLookup
+        from .AttributeNodes import makeExpressionAttributeLookup
         from .TypeNodes import ExpressionBuiltinType1
 
         source_ref = original_node.getSourceReference()
 
         result = makeRaiseExceptionExpressionFromTemplate(
             exception_type="TypeError",
-            template="object of type '%s' has no len()",
-            template_args=ExpressionAttributeLookup(
+            template=template,
+            template_args=makeExpressionAttributeLookup(
                 expression=ExpressionBuiltinType1(
                     value=value_node.makeClone(), source_ref=source_ref
                 ),
@@ -245,7 +244,7 @@ def makeCompileTimeConstantReplacementNode(value, node, user_provided):
             )
         else:
             return node
-    elif isinstance(value, GenericAlias):
+    elif GenericAlias is not None and isinstance(value, GenericAlias):
         from .BuiltinTypeNodes import ExpressionConstantGenericAlias
 
         return ExpressionConstantGenericAlias(
@@ -340,14 +339,18 @@ def wrapExpressionWithSideEffects(side_effects, old_node, new_node):
     from .SideEffectNodes import ExpressionSideEffects
 
     if side_effects:
-        side_effects = sum(
-            (
-                side_effect.extractSideEffects()
-                for side_effect in side_effects
-                if side_effect.mayHaveSideEffects()
-            ),
-            (),
-        )
+        try:
+            side_effects = sum(
+                (
+                    side_effect.extractSideEffects()
+                    for side_effect in side_effects
+                    if side_effect.mayHaveSideEffects()
+                ),
+                (),
+            )
+        except AttributeError:
+            my_print("Problem with side effects:", side_effects)
+            raise
 
         if side_effects:
             new_node = ExpressionSideEffects(

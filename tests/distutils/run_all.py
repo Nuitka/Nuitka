@@ -59,7 +59,7 @@ from nuitka.utils.FileOperations import removeDirectory
 def main():
     # Complex stuff, pylint: disable=too-many-locals,too-many-statements
 
-    python_version = setup(needs_io_encoding=True)
+    python_version = setup(suite="distutils", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 
@@ -84,8 +84,14 @@ def main():
             my_print("Consider distutils example:", filename)
 
             py3_only_examples = ("example_3", "nested_namespaces")
-            if python_version < (3,) and filename in py3_only_examples:
+            if python_version < (3,) and (
+                filename in py3_only_examples or "_pyproject_" in filename
+            ):
                 reportSkip("Skipped, only relevant for Python3", ".", filename)
+                continue
+
+            if "_pyproject_" in filename:
+                reportSkip("Skipped, manual test for now", ".", filename)
                 continue
 
             case_dir = os.path.join(os.getcwd(), filename)
@@ -110,6 +116,9 @@ def main():
                     "bin" if os.name != "nt" else "scripts",
                     "runner",
                 )
+
+                # TODO: Is this something to be abstracted into a function.
+                # pylint: disable=consider-using-with
 
                 if os.path.exists(runner_binary):
                     # Need to call CPython binary for Windows.
@@ -180,6 +189,9 @@ def main():
                     "bin" if os.name != "nt" else "scripts",
                     "runner",
                 )
+
+                # TODO: Is this something to be abstracted into a function.
+                # pylint: disable=consider-using-with
 
                 if os.path.exists(runner_binary):
                     process = subprocess.Popen(

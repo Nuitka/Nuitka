@@ -25,8 +25,6 @@ in comparisons.
 
 """
 
-from __future__ import print_function
-
 import hashlib
 import os
 import shutil
@@ -45,6 +43,11 @@ from nuitka.tools.testing.Common import (
 from nuitka.tools.testing.Constructs import generateConstructCases
 from nuitka.tools.testing.Valgrind import runValgrind
 from nuitka.utils.Execution import check_call
+from nuitka.utils.FileOperations import (
+    getFileContentByLine,
+    getFileContents,
+    putTextFileContents,
+)
 
 
 def main():
@@ -94,8 +97,10 @@ def main():
 
     my_print("PYTHON='%s'" % getPythonVersionString())
     my_print("PYTHON_BINARY='%s'" % os.environ["PYTHON"])
-    with open(test_case, "rb") as f:
-        my_print("TEST_CASE_HASH='%s'" % hashlib.md5(f.read()).hexdigest())
+    my_print(
+        "TEST_CASE_HASH='%s'"
+        % hashlib.md5(getFileContents(test_case, "rb")).hexdigest()
+    )
 
     needs_2to3 = decideNeeds2to3(test_case)
 
@@ -110,14 +115,10 @@ def main():
     test_case_1 = os.path.join(temp_dir, "Variant1_" + os.path.basename(test_case))
     test_case_2 = os.path.join(temp_dir, "Variant2_" + os.path.basename(test_case))
 
-    with open(test_case) as f:
-        case_1_source, case_2_source = generateConstructCases(f.read())
+    case_1_source, case_2_source = generateConstructCases(getFileContents(test_case))
 
-    with open(test_case_1, "w") as case_1_file:
-        case_1_file.write(case_1_source)
-
-    with open(test_case_2, "w") as case_2_file:
-        case_2_file.write(case_2_source)
+    putTextFileContents(test_case_1, case_1_source)
+    putTextFileContents(test_case_2, case_2_source)
 
     if needs_2to3:
         test_case_1, _needs_delete = convertUsing2to3(test_case_1)
@@ -215,18 +216,16 @@ def main():
 
             import difflib
 
-            with open(options.diff_filename, "w") as f:
-                with open(cpp_1) as cpp1:
-                    with open(cpp_2) as cpp2:
-                        f.write(
-                            difflib.HtmlDiff().make_table(
-                                cpp1.readlines(),
-                                cpp2.readlines(),
-                                "Construct",
-                                "Baseline",
-                                True,
-                            )
-                        )
+            putTextFileContents(
+                options.diff_filename,
+                difflib.HtmlDiff().make_table(
+                    getFileContentByLine(cpp_1),
+                    getFileContentByLine(cpp_2),
+                    "Construct",
+                    "Baseline",
+                    True,
+                ),
+            )
 
         nuitka_1 = runValgrind(
             "Nuitka construct",

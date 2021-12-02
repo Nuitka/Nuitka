@@ -22,11 +22,11 @@ progress, and gives warnings about things taking very long.
 """
 
 import os
-import subprocess
 import sys
 import threading
 
 from nuitka.Tracing import my_print, scons_logger
+from nuitka.utils.Execution import executeProcess
 from nuitka.utils.Timing import TimerReport
 
 from .SconsCaching import runClCache
@@ -58,17 +58,10 @@ class SubprocessThread(threading.Thread):
         try:
             # execute the command, queue the result
             with self.timer_report:
-                proc = subprocess.Popen(
-                    self.cmdline,
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    shell=False,
-                    env=self.env,
+                self.data, self.err, self.exit_code = executeProcess(
+                    command=self.cmdline, env=self.env
                 )
 
-                self.data, self.err = proc.communicate()
-                self.exit_code = proc.wait()
         except Exception as e:  # will rethrow all, pylint: disable=broad-except
             self.exception = e
 
@@ -96,7 +89,7 @@ def runProcessMonitored(cmdline, env):
     return thread.getProcessResult()
 
 
-def _filterLinkOutput(module_mode, lto_mode, data, exit_code):
+def _filterMsvcLinkOutput(env, module_mode, data, exit_code):
     # Training newline in some cases, esp. LTO it seems.
     data = data.rstrip()
 
@@ -111,18 +104,22 @@ def _filterLinkOutput(module_mode, lto_mode, data, exit_code):
 
     # The linker will say generating code at the end, due to localization
     # we don't know.
-    if lto_mode and exit_code == 0:
+    if env.lto_mode and exit_code == 0:
         if len(data.split(b"\r\n")) == 2:
             data = b""
+
+    if env.pgo_mode == "use" and exit_code == 0:
+        # Very spammy, partially in native language for PGO link.
+        data = b""
 
     return data
 
 
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
-def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
+def getWindowsSpawnFunction(env, module_mode, source_files):
     def spawnWindowsCommand(
-        sh, escape, cmd, args, env
+        sh, escape, cmd, args, os_env
     ):  # pylint: disable=unused-argument
 
         # The "del" appears to not work reliably, but is used with large amounts of
@@ -147,17 +144,17 @@ def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
 
         # Special hook for clcache inline copy
         if cmd == "<clcache>":
-            data, err, rv = runClCache(args, env)
+            data, err, rv = runClCache(args, os_env)
         else:
-            data, err, rv, exception = runProcessMonitored(cmdline, env)
+            data, err, rv, exception = runProcessMonitored(cmdline, os_env)
 
             if exception:
                 closeSconsProgressBar()
                 raise exception
 
         if cmd == "link":
-            data = _filterLinkOutput(
-                module_mode=module_mode, lto_mode=lto_mode, data=data, exit_code=rv
+            data = _filterMsvcLinkOutput(
+                env=env, module_mode=module_mode, data=data, exit_code=rv
             )
 
         elif cmd in ("cl", "<clcache>"):
@@ -248,22 +245,22 @@ length parameter; this could be due to transposed parameters"""
     ):
         return True
 
+    # The gcc LTO with debug information is deeply buggy with many messages:
+    if b"Dwarf Error:" in line:
+        return True
+
     return False
 
 
 def subprocess_spawn(args):
     sh, _cmd, args, env = args
 
-    proc = subprocess.Popen(
-        [sh, "-c", " ".join(args)], env=env, close_fds=True, stderr=subprocess.PIPE
+    _stdout, stderr, exit_code = executeProcess(
+        command=[sh, "-c", " ".join(args)], env=env
     )
 
-    _stdout, stderr = proc.communicate()
-
-    stderr_lines = stderr.splitlines()
-
     ignore_next = False
-    for line in stderr_lines:
+    for line in stderr.splitlines():
         if ignore_next:
             ignore_next = False
             continue
@@ -277,7 +274,7 @@ def subprocess_spawn(args):
 
         my_print(line, style="yellow", file=sys.stderr)
 
-    return proc.wait()
+    return exit_code
 
 
 class SpawnThread(threading.Thread):
@@ -350,10 +347,10 @@ def getWrappedSpawnFunction():
     return spawnCommand
 
 
-def enableSpawnMonitoring(env, win_target, module_mode, lto_mode, source_files):
+def enableSpawnMonitoring(env, win_target, module_mode, source_files):
     if win_target:
         env["SPAWN"] = getWindowsSpawnFunction(
-            module_mode=module_mode, lto_mode=lto_mode, source_files=source_files
+            env=env, module_mode=module_mode, source_files=source_files
         )
     else:
         env["SPAWN"] = getWrappedSpawnFunction()

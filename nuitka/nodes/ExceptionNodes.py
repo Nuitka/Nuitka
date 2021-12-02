@@ -21,8 +21,9 @@
 
 from .ExpressionBases import (
     ExpressionBase,
-    ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
+    ExpressionChildTupleHavingBase,
+    ExpressionNoSideEffectsMixin,
 )
 from .NodeBases import StatementBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
@@ -233,6 +234,8 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
         return exception_type is BaseException
 
     def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
 
     def computeExpressionDrop(self, statement, trace_collection):
@@ -257,7 +260,7 @@ Propagated implicit raise expression to raise statement.""",
         )
 
 
-class ExpressionBuiltinMakeException(ExpressionChildHavingBase):
+class ExpressionBuiltinMakeException(ExpressionChildTupleHavingBase):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION"
 
     named_child = "args"
@@ -265,7 +268,7 @@ class ExpressionBuiltinMakeException(ExpressionChildHavingBase):
     __slots__ = ("exception_name",)
 
     def __init__(self, exception_name, args, source_ref):
-        ExpressionChildHavingBase.__init__(
+        ExpressionChildTupleHavingBase.__init__(
             self, value=tuple(args), source_ref=source_ref
         )
 
@@ -323,23 +326,13 @@ class ExpressionBuiltinMakeExceptionImportError(ExpressionChildrenHavingBase):
         return False
 
 
-class ExpressionCaughtMixin(object):
+class ExpressionCaughtMixin(ExpressionNoSideEffectsMixin):
     """Common things for all caught exception references."""
 
     __slots__ = ()
 
     def finalize(self):
         del self.parent
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        # Accessing the caught stuff has no side effect, pylint: disable=unused-argument
-        return False
-
-    @staticmethod
-    def mayHaveSideEffects():
-        # Referencing the caught stuff has no side effect
-        return False
 
 
 class ExpressionCaughtExceptionTypeRef(ExpressionCaughtMixin, ExpressionBase):

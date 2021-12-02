@@ -58,10 +58,7 @@ from nuitka import (
     OutputDirectories,
     SourceCodeReferences,
 )
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    long,
-    unicode,
-)
+from nuitka.__past__ import long, unicode
 from nuitka.Caching import (
     getCachedImportedModulesNames,
     hasCachedImportedModulesNames,
@@ -74,8 +71,8 @@ from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
 from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
 from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeLookup,
     StatementAssignmentAttribute,
+    makeExpressionAttributeLookup,
 )
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinAscii,
@@ -125,6 +122,7 @@ from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
 from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
 from nuitka.Options import shallWarnUnusualCode
+from nuitka.pgo.PGO import decideCompilationFromPGO
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import (
@@ -177,6 +175,7 @@ from .ReformulationImportStatements import (
     pushFutureSpec,
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
+from .ReformulationMatchStatements import buildMatchNode
 from .ReformulationNamespacePackages import (
     createImporterCacheAssignment,
     createNamespacePackage,
@@ -513,7 +512,7 @@ def buildStatementLoopBreak(provider, node, source_ref):
 
 
 def buildAttributeNode(provider, node, source_ref):
-    return ExpressionAttributeLookup(
+    return makeExpressionAttributeLookup(
         expression=buildNode(provider, node.value, source_ref),
         attribute_name=mangleName(node.attr, provider),
         source_ref=source_ref,
@@ -730,6 +729,7 @@ setBuildingDispatchers(
         "FormattedValue": buildFormattedValueNode,
         "NamedExpr": buildNamedExprNode,
         "Slice": buildSliceNode,
+        "Match": buildMatchNode,
     },
     path_args2={
         "Constant": buildNamedConstantNode,  # Python3.8
@@ -935,6 +935,8 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
 def decideCompilationMode(is_top, module_name, source_ref):
     result = Plugins.decideCompilation(module_name, source_ref)
 
+    # Cannot change mode of __main__ to bytecode, that is not going
+    # to work currently.
     if result == "bytecode" and is_top:
         plugins_logger.warning(
             """\
@@ -943,6 +945,14 @@ as bytecode, the extension module entry point is technically
 required to compiled."""
             % module_name
         )
+        result = "compiled"
+
+    # Plugins need to win over PGO, as they might know it better
+    if result is None:
+        result = decideCompilationFromPGO(module_name=module_name)
+
+    # Default if neither plugins nor PGO have expressed an opinion
+    if result is None:
         result = "compiled"
 
     return result

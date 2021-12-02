@@ -1,0 +1,27 @@
+---
+# TODO: Seems too much
+lxml:
+  depends:
+    - ".builder"
+    - ".etree"
+    - ".objectify"
+    - ".sax"
+    - "._elementpath"
+
+lxml.etree:
+  depends:
+    - "._elementpath"
+
+lxml.html:
+  depends:
+    - ".html.clean"
+    - ".html.diff"
+    - ".etree"
+
+pendulum.locales:
+  depends:
+    - ".*.locale"
+
+phonenumbers.data:
+  depends:
+    - ".region_*"
