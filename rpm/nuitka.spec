@@ -170,9 +170,9 @@ then
 fi
 
 mkdir -p %{buildroot}%{_mandir}/man1
-gzip -c doc/nuitka.1 > %{buildroot}%{_mandir}/man1/nuitka.1.gz
+gzip -c doc/nuitka2.1 > %{buildroot}%{_mandir}/man1/nuitka.1.gz
 cp %{buildroot}%{_mandir}/man1/nuitka.1.gz %{buildroot}%{_mandir}/man1/nuitka3.1.gz
-gzip -c doc/nuitka-run.1 > %{buildroot}%{_mandir}/man1/nuitka-run.1.gz
+gzip -c doc/nuitka2-run.1 > %{buildroot}%{_mandir}/man1/nuitka-run.1.gz
 cp %{buildroot}%{_mandir}/man1/nuitka-run.1.gz %{buildroot}%{_mandir}/man1/nuitka3-run.1.gz
 
 %clean
