@@ -171,20 +171,31 @@ sys.exit(%(module_name)s.%(main_name)s)
 
         if self.metadata:
             for total, quote1, name, quote2 in re.findall(
-                r"""\b((?:importlib_)?metadata\.version\(\s*(['"]?)(.*?)(['"]?)\s*\))""",
+                r"""\b((?:importlib[_.])?metadata\.version\(\s*(['"]?)(.*?)(['"]?)\s*\))""",
                 source_code,
             ):
-                value = None
+                if name == "__name__":
+                    name = module_name.asString()
+                    quote1 = quote2 = "'"
 
                 if quote1 == quote2:
                     if quote1:
-                        value = self.metadata.version(name)
-                        value = repr(value)
-                    else:
-                        if name == "__name__":
-                            value = repr(module_name.asString())
+                        try:
+                            value = self.metadata.version(name)
+                        except self.metadata.PackageNotFoundError:
+                            self.warning(
+                                "Cannot find requirement '%s' for '%s', expect potential run time problem."
+                                % (name, module_name)
+                            )
 
-                if value is not None:
-                    source_code = source_code.replace(total, value)
+                            continue
+                        except Exception:  # catch all, pylint: disable=broad-except
+                            self.sysexit(
+                                "Error, failed to resolve '%s', probably a plugin parsing bug for '%s' code."
+                                % (name, module_name)
+                            )
+                        else:
+                            value = repr(value)
+                            source_code = source_code.replace(total, value)
 
         return source_code
