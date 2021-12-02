@@ -24,7 +24,7 @@ of checks, and add methods automatically.
 
 from abc import ABCMeta
 
-from nuitka.__past__ import intern  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import intern
 from nuitka.Errors import NuitkaNodeDesignError
 
 
@@ -63,6 +63,14 @@ class NodeCheckMetaClass(ABCMeta):
             dictionary["__slots__"] = ()
 
         if "named_child" in dictionary:
+            named_child = dictionary["named_child"]
+            if type(named_child) is not str:
+                raise NuitkaNodeDesignError(
+                    name,
+                    "Class named_child attribute must be string not",
+                    type(named_child),
+                )
+
             dictionary["__slots__"] += (intern("subnode_" + dictionary["named_child"]),)
 
         if "named_children" in dictionary:

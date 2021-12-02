@@ -29,7 +29,7 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 
@@ -126,11 +126,52 @@ def _getBuiltinImportCode(
     )
 
 
+def generateImportModuleFixedCode(to_name, expression, emit, context):
+    module_name = expression.getModuleName()
+    needs_check = expression.mayRaiseException(BaseException)
+
+    if needs_check:
+        emitLineNumberUpdateCode(expression, emit, context)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "imported_value", expression, emit, context
+    ) as value_name:
+        emit(
+            """%s = IMPORT_MODULE1(%s);"""
+            % (value_name, context.getConstantCode(module_name.asString()))
+        )
+
+        getErrorExitCode(
+            check_name=value_name, needs_check=needs_check, emit=emit, context=context
+        )
+
+        context.addCleanupTempName(value_name)
+
+        # IMPORT_MODULE1 doesn't give the child module if one is imported.
+        if "." in module_name:
+            getReleaseCode(value_name, emit, context)
+
+            emit(
+                """%s = Nuitka_GetModule(%s);"""
+                % (value_name, context.getConstantCode(module_name.asString()))
+            )
+
+            getErrorExitCode(
+                check_name=value_name,
+                needs_check=needs_check,
+                emit=emit,
+                context=context,
+            )
+
+            context.addCleanupTempName(value_name)
+
+
 def generateImportModuleHardCode(to_name, expression, emit, context):
     module_name = expression.getModuleName()
     needs_check = expression.mayRaiseException(BaseException)
 
-    emitLineNumberUpdateCode(expression, emit, context)
+    if needs_check:
+        emitLineNumberUpdateCode(expression, emit, context)
 
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
@@ -140,6 +181,17 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
         getErrorExitCode(
             check_name=value_name, needs_check=needs_check, emit=emit, context=context
         )
+
+
+def generateConstantSysVersionInfoCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "imported_value", expression, emit, context
+    ) as value_name:
+        emit("""%s = Nuitka_SysGetObject("%s");""" % (value_name, "version_info"))
+
+    getErrorExitCode(
+        check_name=value_name, needs_check=False, emit=emit, context=context
+    )
 
 
 def generateImportModuleNameHardCode(to_name, expression, emit, context):
@@ -152,7 +204,7 @@ def generateImportModuleNameHardCode(to_name, expression, emit, context):
     ) as value_name:
 
         if module_name == "sys":
-            emit("""%s = PySys_GetObject((char *)"%s");""" % (value_name, import_name))
+            emit("""%s = Nuitka_SysGetObject("%s");""" % (value_name, import_name))
         elif module_name in hard_modules:
             emitLineNumberUpdateCode(expression, emit, context)
 
@@ -173,6 +225,49 @@ def generateImportModuleNameHardCode(to_name, expression, emit, context):
             )
         else:
             assert False, module_name
+
+        getErrorExitCode(
+            check_name=value_name, needs_check=needs_check, emit=emit, context=context
+        )
+
+
+def generateImportlibImportCallCode(to_name, expression, emit, context):
+    needs_check = expression.mayRaiseException(BaseException)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "imported_module", expression, emit, context
+    ) as value_name:
+        import_name, package_name = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+        emitLineNumberUpdateCode(expression, emit, context)
+
+        # TODO: The import name wouldn't have to be an object really, could do with a
+        # C string only.
+        emit(
+            """\
+{
+    PyObject *hard_module = IMPORT_HARD_IMPORTLIB();
+    PyObject *import_module_func = LOOKUP_ATTRIBUTE(hard_module, %(import_name)s);
+    %(to_name)s = %(call_code)s;
+    Py_DECREF(import_module_func);
+}
+"""
+            % {
+                "to_name": value_name,
+                "import_name": context.getConstantCode("import_module"),
+                "call_code": (
+                    "CALL_FUNCTION_WITH_SINGLE_ARG(import_module_func, %s)"
+                    % import_name
+                )
+                if package_name is None
+                else (
+                    "CALL_FUNCTION_WITH_ARG2(import_module_func, %s, %s)"
+                    % (import_name, package_name)
+                ),
+            }
+        )
 
         getErrorExitCode(
             check_name=value_name, needs_check=needs_check, emit=emit, context=context

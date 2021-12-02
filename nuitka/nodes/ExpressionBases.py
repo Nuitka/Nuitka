@@ -26,13 +26,12 @@ abstract execution, and different from statements.
 from abc import abstractmethod
 
 from nuitka import Options
-from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import long
 from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.PythonVersions import python_version
 
 from .NodeBases import ChildrenHavingMixin, NodeBase
 from .NodeMakingHelpers import (
-    getComputationResult,
     makeConstantReplacementNode,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithNodeSideEffects,
@@ -66,6 +65,12 @@ class ExpressionBase(NodeBase):
     @staticmethod
     def getTruthValue():
         """Return known truth value. The "None" value indicates unknown."""
+
+        return None
+
+    @staticmethod
+    def getComparisonValue():
+        """Return known value used for compile time comparison. The "None" value indicates unknown."""
 
         return None
 
@@ -145,8 +150,8 @@ class ExpressionBase(NodeBase):
         return None
 
     @staticmethod
-    def extractUnhashableNode():
-        """Return the value that is not hashable, if isKnowtoBeHashable() returns False."""
+    def extractUnhashableNodeType():
+        """Return the value type that is not hashable, if isKnowtoBeHashable() returns False."""
 
         # Not available by default.
         return None
@@ -180,11 +185,11 @@ class ExpressionBase(NodeBase):
         # source.
         # trace_collection.onValueEscapeAttributeLookup(self, attribute_name)
 
+        if self.mayRaiseExceptionAttributeLookup(BaseException, attribute_name):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        if not self.isKnownToHaveAttribute(attribute_name):
-            trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
 
@@ -353,6 +358,9 @@ class ExpressionBase(NodeBase):
         has_len = shape.hasShapeSlotLen()
 
         if has_len is False:
+            # An exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="object of type '%s' has no len()",
                 operation="len",
@@ -394,6 +402,9 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotAbs() is False:
+            # Any exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="bad operand type for abs(): '%s'",
                 operation="abs",
@@ -415,6 +426,9 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotInt() is False:
+            # Any exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="int() argument must be a string or a number, not '%s'"
                 if python_version < 0x300
@@ -438,6 +452,9 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotLong() is False:
+            # Any exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="long() argument must be a string or a number, not '%s'",
                 operation="long",
@@ -459,6 +476,9 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotFloat() is False:
+            # Any exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "float() argument must be a string or a number"
                 if Options.is_fullcompat and python_version < 0x300
@@ -486,6 +506,9 @@ class ExpressionBase(NodeBase):
             and shape.hasShapeSlotInt() is False
             and shape.hasShapeSlotIter() is False
         ):
+            # An exception is raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "'%s' object is not iterable",
                 operation="bytes",
@@ -507,6 +530,9 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotComplex() is False:
+            # Any exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "complex() argument must be a string or a number"
                 if Options.is_fullcompat and python_version < 0x300
@@ -530,6 +556,9 @@ class ExpressionBase(NodeBase):
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotIter() is False:
+            # An exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="'%s' object is not iterable",
                 operation="iter",
@@ -616,6 +645,9 @@ class ExpressionBase(NodeBase):
         assert shape is not None, self
 
         if shape.hasShapeSlotContains() is False:
+            # An exception may be raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="argument of type '%s' object is not iterable",
                 operation="in",
@@ -721,20 +753,6 @@ class ExpressionBase(NodeBase):
         return True
 
     @staticmethod
-    def mayRaiseExceptionAttributeCheck(exception_type, attribute_name):
-        """Unless we are told otherwise, everything may raise for attribute check."""
-        # Virtual method, pylint: disable=unused-argument
-
-        return True
-
-    @staticmethod
-    def mayRaiseExceptionAttributeCheckObject(exception_type, attribute):
-        """Unless we are told otherwise, everything may raise for attribute check."""
-        # Virtual method, pylint: disable=unused-argument
-
-        return True
-
-    @staticmethod
     def mayRaiseExceptionImportName(exception_type, import_name):
         """Unless we are told otherwise, everything may raise for name import."""
         # Virtual method, pylint: disable=unused-argument
@@ -801,6 +819,9 @@ class ExpressionBase(NodeBase):
         """
         return None
 
+    def hasShapeTrustedAttributes(self):
+        return self.getTypeShape().hasShapeTrustedAttributes()
+
     def hasShapeDictionaryExact(self):
         """Does a node have exactly a dictionary shape."""
 
@@ -814,8 +835,49 @@ class ExpressionBase(NodeBase):
         """Does an expression have exactly a unicode shape."""
         return self.getTypeShape() is tshape_unicode
 
+    if str is bytes:
 
-class CompileTimeConstantExpressionBase(ExpressionBase):
+        def hasShapeStrOrUnicodeExact(self):
+            return self.getTypeShape() in (tshape_str, tshape_unicode)
+
+    else:
+
+        def hasShapeStrOrUnicodeExact(self):
+            return self.getTypeShape() is tshape_str
+
+
+class ExpressionNoSideEffectsMixin(object):
+    __slots__ = ()
+
+    @staticmethod
+    def mayHaveSideEffects():
+        # Virtual method overload
+        return False
+
+    @staticmethod
+    def extractSideEffects():
+        # Virtual method overload, we said we have no effects.
+        return ()
+
+    def computeExpressionDrop(self, statement, trace_collection):
+        # Virtual method overload, pylint: disable=unused-argument
+        #
+        # We said we have no effects, so we can be removed.
+        return (
+            None,
+            "new_statements",
+            lambda: "Removed %s that never has an effect." % self.getDescription(),
+        )
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        # Virtual method overload, pylint: disable=unused-argument
+
+        # An exception would be considered a side effect too.
+        return False
+
+
+class CompileTimeConstantExpressionBase(ExpressionNoSideEffectsMixin, ExpressionBase):
     # TODO: Do this for all computations, do this in the base class of all
     # nodes.
     __slots__ = ("computed_attribute",)
@@ -838,6 +900,9 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
     def getTruthValue(self):
         return bool(self.getCompileTimeConstant())
 
+    def getComparisonValue(self):
+        return self.getCompileTimeConstant()
+
     @abstractmethod
     def getCompileTimeConstant(self):
         """Return compile time constant.
@@ -855,22 +920,13 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
         return False
 
     @staticmethod
-    def mayHaveSideEffects():
-        # Virtual method overload
-        return False
-
-    @staticmethod
-    def extractSideEffects():
-        # Constants have no side effects
-        return ()
+    def hasShapeTrustedAttributes():
+        # All compile time constants must be fixed for attributes.
+        return True
 
     @staticmethod
     def mayHaveSideEffectsBool():
         # Virtual method overload
-        return False
-
-    @staticmethod
-    def mayRaiseException(exception_type):
         return False
 
     @staticmethod
@@ -884,11 +940,6 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
     def mayRaiseExceptionAttributeLookupSpecial(self, exception_type, attribute_name):
         # We remember it from our computation.
         return not self.computed_attribute
-
-    @staticmethod
-    def mayRaiseExceptionAttributeCheck(exception_type, attribute_name):
-        # Checking attributes of compile time constants never raises.
-        return False
 
     def computeExpressionOperationNot(self, not_node, trace_collection):
         return trace_collection.getCompileTimeComputationResult(
@@ -971,6 +1022,9 @@ Compile time constant bytes value pre-computed.""",
 
         return self.computed_attribute
 
+    def getKnownAttributeValue(self, attribute_name):
+        return getattr(self.getCompileTimeConstant(), attribute_name)
+
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         value = self.getCompileTimeConstant()
 
@@ -1015,8 +1069,7 @@ Compile time constant bytes value pre-computed.""",
         if lower is not None:
             if upper is not None:
                 if lower.isCompileTimeConstant() and upper.isCompileTimeConstant():
-
-                    return getComputationResult(
+                    return trace_collection.getCompileTimeComputationResult(
                         node=lookup_node,
                         computation=lambda: self.getCompileTimeConstant()[
                             lower.getCompileTimeConstant() : upper.getCompileTimeConstant()
@@ -1026,7 +1079,7 @@ Compile time constant bytes value pre-computed.""",
                     )
             else:
                 if lower.isCompileTimeConstant():
-                    return getComputationResult(
+                    return trace_collection.getCompileTimeComputationResult(
                         node=lookup_node,
                         computation=lambda: self.getCompileTimeConstant()[
                             lower.getCompileTimeConstant() :
@@ -1037,7 +1090,7 @@ Compile time constant bytes value pre-computed.""",
         else:
             if upper is not None:
                 if upper.isCompileTimeConstant():
-                    return getComputationResult(
+                    return trace_collection.getCompileTimeComputationResult(
                         node=lookup_node,
                         computation=lambda: self.getCompileTimeConstant()[
                             : upper.getCompileTimeConstant()
@@ -1046,22 +1099,21 @@ Compile time constant bytes value pre-computed.""",
                         user_provided=False,
                     )
             else:
-                return getComputationResult(
+                return trace_collection.getCompileTimeComputationResult(
                     node=lookup_node,
                     computation=lambda: self.getCompileTimeConstant()[:],
                     description="Slicing of constant with no indexes.",
                     user_provided=False,
                 )
 
-        # Any exception might be raised.
-        if lookup_node.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
+        # Any exception might be raised, although it's not likely.
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
 
     def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
         if value_node.isCompileTimeConstant():
-            return getComputationResult(
+            return trace_collection.getCompileTimeComputationResult(
                 node=in_node,
                 computation=lambda: in_node.getSimulator()(
                     value_node.getCompileTimeConstant(), self.getCompileTimeConstant()
@@ -1137,24 +1189,162 @@ class ExpressionChildHavingBase(ExpressionBase):
     def __init__(self, value, source_ref):
         ExpressionBase.__init__(self, source_ref=source_ref)
 
-        assert type(self.named_child) is str and self.named_child
+        if self.checker is not None:
+            value = self.checker(value)  # False alarm, pylint: disable=not-callable
+
+        if value is not None:
+
+            value.parent = self
+
+        attr_name = "subnode_" + self.named_child
+        setattr(self, attr_name, value)
+
+    def finalize(self):
+        del self.parent
+
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        if value is not None:
+            value.finalize()
+
+    # TODO: De-duplicate this with multiple child variant.
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+        # First apply the sub-expression, as they it's evaluated before.
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        if value is not None:
+            expression = trace_collection.onExpression(expression=value)
+
+            if expression.willRaiseException(BaseException):
+                return (
+                    expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection=trace_collection)
+
+    def setChild(self, name, value):
+        """Set a child value.
+
+        Do not overload, provide self.checkers instead.
+        """
+        # Only accept legal child name
+        assert name == self.named_child, name
 
         if self.checker is not None:
             value = self.checker(value)  # False alarm, pylint: disable=not-callable
 
-        assert type(value) is not list, self.named_child
+        attr_name = "subnode_" + self.named_child
 
-        if type(value) is tuple:
-            assert None not in value, self.named_child
+        # Checks if it's a real change in debug mode.
+        if Options.is_debug:
+            # Determine old value, and inform it about losing its parent.
+            old_value = getattr(self, attr_name)
+            assert old_value is not value, value
 
-            for val in value:
-                val.parent = self
-        elif value is not None:
+        # Re-parent value to us.
+        if value is not None:
             value.parent = self
-        elif value is None:
-            pass
+
+        setattr(self, attr_name, value)
+
+    def clearChild(self, name):
+        # Only accept legal child name
+        assert name == self.named_child, name
+
+        if self.checker is not None:
+            self.checker(None)  # False alarm, pylint: disable=not-callable
+
+        attr_name = "subnode_" + name
+
+        # Determine old value, and inform it about losing its parent.
+        old_value = getattr(self, attr_name)
+        assert old_value is not None
+
+        setattr(self, attr_name, None)
+
+    def getChild(self, name):
+        # Only accept legal child name
+        assert name == self.named_child, name
+
+        attr_name = "subnode_" + name
+        return getattr(self, attr_name)
+
+    def getVisitableNodes(self):
+        # TODO:
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        # In this case, generator is not faster.
+        if value is None:
+            return ()
         else:
-            assert False, type(value)
+            return (value,)
+
+    def getVisitableNodesNamed(self):
+        """Named children items.
+
+        For generic code to use in outputs and code generation.
+        """
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        yield self.named_child, value
+
+    def replaceChild(self, old_node, new_node):
+        if new_node is not None and not isinstance(new_node, NodeBase):
+            raise AssertionError(
+                "Cannot replace with", new_node, "old", old_node, "in", self
+            )
+
+        # Find the replaced node, as an added difficulty, what might be
+        # happening, is that the old node is an element of a tuple, in which we
+        # may also remove that element, by setting it to None.
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        if old_node is value:
+            new_node.parent = self
+            setattr(self, attr_name, new_node)
+        else:
+            raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        # Make clones of child nodes too.
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        values = {self.named_child: value.makeClone()}
+        values.update(self.getDetails())
+
+        return values
+
+
+class ExpressionChildTupleHavingBase(ExpressionBase):
+    checker = None
+
+    def __init__(self, value, source_ref):
+        ExpressionBase.__init__(self, source_ref=source_ref)
+
+        if self.checker is not None:
+            value = self.checker(value)  # False alarm, pylint: disable=not-callable
+
+        assert type(value) is tuple, self.named_child
+        assert None not in value, self.named_child
+
+        for expression in value:
+            expression.parent = self
 
         attr_name = "subnode_" + self.named_child
         setattr(self, attr_name, value)
@@ -1212,62 +1402,33 @@ class ExpressionChildHavingBase(ExpressionBase):
 
         if self.checker is not None:
             value = self.checker(value)  # False alarm, pylint: disable=not-callable
+
         # Re-parent value to us.
-        if type(value) is tuple:
-            for val in value:
-                val.parent = self
-        elif value is not None:
-            value.parent = self
+        for val in value:
+            val.parent = self
 
         attr_name = "subnode_" + name
-
-        # TODO: This is not being done for any variant of this, this only checks if it's a real change,
-        # but that should only be done in debug mode maybe.
-
-        # Determine old value, and inform it about losing its parent.
-        old_value = getattr(self, attr_name)
-        assert old_value is not value, value
-
         setattr(self, attr_name, value)
 
     def clearChild(self, name):
-        # Only accept legal child name
-        assert name == self.named_child, name
-
-        if self.checker is not None:
-            self.checker(None)  # False alarm, pylint: disable=not-callable
-
-        attr_name = "subnode_" + name
-
-        # Determine old value, and inform it about losing its parent.
-        old_value = getattr(self, attr_name)
-        assert old_value is not None
-
-        setattr(self, attr_name, None)
+        # We do not do this for tuples, pylint: disable=unused-argument
+        assert False, self.named_child
 
     def getChild(self, name):
         # Only accept legal child names
+        assert name == self.named_child, name
+
         attr_name = "subnode_" + name
         return getattr(self, attr_name)
 
     def getVisitableNodes(self):
-        # TODO: Consider if a generator would be faster.
         attr_name = "subnode_" + self.named_child
-        value = getattr(self, attr_name)
-
-        if value is None:
-            return ()
-        elif type(value) is tuple:
-            return value
-        elif Options.is_nondebug or isinstance(value, NodeBase):
-            return (value,)
-        else:
-            raise AssertionError(self, "has illegal child", value, value.__class__)
+        return getattr(self, attr_name)
 
     def getVisitableNodesNamed(self):
-        """Named children dictionary.
+        """Named children items.
 
-        For use in debugging and XML output.
+        For generic code to use in outputs and code generation.
         """
         attr_name = "subnode_" + self.named_child
         value = getattr(self, attr_name)
@@ -1283,52 +1444,29 @@ class ExpressionChildHavingBase(ExpressionBase):
         # Find the replaced node, as an added difficulty, what might be
         # happening, is that the old node is an element of a tuple, in which we
         # may also remove that element, by setting it to None.
-        key = self.named_child
-        value = self.getChild(key)
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
 
-        if value is None:
-            pass
-        elif type(value) is tuple:
-            if old_node in value:
-                if new_node is not None:
-                    self.setChild(
-                        key,
-                        tuple(
-                            (val if val is not old_node else new_node) for val in value
-                        ),
-                    )
-                else:
-                    self.setChild(
-                        key, tuple(val for val in value if val is not old_node)
-                    )
+        if old_node not in value:
+            raise AssertionError("Didn't find child", old_node, "in", self)
 
-                return key
-        elif isinstance(value, NodeBase):
-            if old_node is value:
-                self.setChild(key, new_node)
-
-                return key
+        if new_node is not None:
+            new_value = tuple(
+                (val if val is not old_node else new_node) for val in value
+            )
         else:
-            assert False, (key, value, value.__class__)
+            new_value = tuple(val for val in value if val is not old_node)
 
-        raise AssertionError("Didn't find child", old_node, "in", self)
+        new_node.parent = self
+
+        setattr(self, attr_name, new_value)
 
     def getCloneArgs(self):
         # Make clones of child nodes too.
-        values = {}
-        key = self.named_child
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
 
-        value = self.getChild(key)
-
-        assert type(value) is not list, key
-
-        if value is None:
-            values[key] = None
-        elif type(value) is tuple:
-            values[key] = tuple(v.makeClone() for v in value)
-        else:
-            values[key] = value.makeClone()
-
+        values = {self.named_child: tuple(v.makeClone() for v in value)}
         values.update(self.getDetails())
 
         return values

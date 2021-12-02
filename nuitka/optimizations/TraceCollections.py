@@ -457,7 +457,9 @@ class TraceCollectionBase(object):
         signalChange(tags, source_ref, message)
 
     def onUsedModule(self, module_name, module_relpath):
-        return self.parent.onUsedModule(module_name, module_relpath)
+        return self.parent.onUsedModule(
+            module_name=module_name, module_relpath=module_relpath
+        )
 
     def onUsedFunction(self, function_body):
         owning_module = function_body.getParentModule()
@@ -571,10 +573,7 @@ class TraceCollectionBase(object):
         return result
 
     def onVariableContentEscapes(self, variable):
-        if variable.isModuleVariable():
-            self.markActiveVariableAsUnknown(variable)
-        else:
-            self.markActiveVariableAsEscaped(variable)
+        self.markActiveVariableAsEscaped(variable)
 
     def onExpression(self, expression, allow_none=False):
         if expression is None and allow_none:
@@ -854,12 +853,14 @@ class TraceCollectionBase(object):
     def onLocalsDictEscaped(self, locals_scope):
         self.parent.onLocalsDictEscaped(locals_scope)
 
-    def getCompileTimeComputationResult(self, node, computation, description):
+    def getCompileTimeComputationResult(
+        self, node, computation, description, user_provided=False
+    ):
         new_node, change_tags, message = getComputationResult(
             node=node,
             computation=computation,
             description=description,
-            user_provided=False,
+            user_provided=user_provided,
         )
 
         if change_tags == "new_raise":

@@ -21,17 +21,17 @@ For built-in name references, we check if it's one of the supported built-in
 types, and then specialize for the ones, where it makes sense.
 """
 
-from nuitka.__past__ import xrange  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import xrange
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementDelVariable,
 )
 from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeLookup,
     ExpressionBuiltinGetattr,
     ExpressionBuiltinHasattr,
     ExpressionBuiltinSetattr,
+    makeExpressionAttributeLookup,
 )
 from nuitka.nodes.BuiltinAllNodes import ExpressionBuiltinAll
 from nuitka.nodes.BuiltinAnyNodes import ExpressionBuiltinAny
@@ -124,7 +124,6 @@ from nuitka.nodes.NodeMakingHelpers import (
     makeExpressionBuiltinLocals,
     makeRaiseExceptionReplacementExpression,
     makeRaiseExceptionReplacementExpressionFromInstance,
-    wrapExpressionWithSideEffects,
 )
 from nuitka.nodes.OperatorNodes import ExpressionOperationBinaryDivmod
 from nuitka.nodes.OperatorNodesUnary import (
@@ -168,7 +167,7 @@ def dir_extractor(node):
         )
 
         result = makeCallNode(
-            ExpressionAttributeLookup(
+            makeExpressionAttributeLookup(
                 expression=source, attribute_name="keys", source_ref=source_ref
             ),
             source_ref,
@@ -309,28 +308,14 @@ def dict_extractor(node):
     # The "dict" built-in is a bit strange in that it accepts a position
     # parameter, or not, but won't have a default value.
     def wrapExpressionBuiltinDictCreation(positional_args, dict_star_arg, source_ref):
-        if len(positional_args) > 1:
-
-            result = makeRaiseExceptionReplacementExpressionFromInstance(
-                expression=node,
-                exception=TypeError(
-                    "dict expected at most 1 arguments, got %d" % (len(positional_args))
-                ),
-            )
-
-            result = wrapExpressionWithSideEffects(
-                side_effects=positional_args, old_node=node, new_node=result
-            )
-
-            if dict_star_arg:
-                result = wrapExpressionWithSideEffects(
-                    side_effects=dict_star_arg, old_node=node, new_node=result
-                )
-
-            return result
+        if positional_args:
+            # Only one allowed, the spec converted too many into an exception.
+            (pos_arg,) = positional_args
+        else:
+            pos_arg = None
 
         return ExpressionBuiltinDict(
-            pos_arg=positional_args[0] if positional_args else None,
+            pos_arg=pos_arg,
             pairs=dict_star_arg,
             source_ref=source_ref,
         )
@@ -771,7 +756,7 @@ if python_version < 0x300:
                     makeStatementReturn(
                         expression=ExpressionBuiltinExecfile(
                             source_code=makeCallNode(
-                                ExpressionAttributeLookup(
+                                makeExpressionAttributeLookup(
                                     expression=ExpressionBuiltinOpen(
                                         filename=filename,
                                         mode=makeConstantRefNode(
@@ -887,7 +872,7 @@ def eval_extractor(node):
         string_fixup = StatementAssignmentVariable(
             variable=source_variable,
             source=makeExpressionCall(
-                called=ExpressionAttributeLookup(
+                called=makeExpressionAttributeLookup(
                     expression=ExpressionTempVariableRef(
                         variable=source_variable, source_ref=source_ref
                     ),
@@ -1060,6 +1045,8 @@ def open_extractor(node):
     def makeOpen0(source_ref):
         # pylint: disable=unused-argument
         try:
+            # Not giving arguments or context on purpose
+            # pylint: disable=consider-using-with,unspecified-encoding
             open()
         except Exception as e:  # We want to broad here, pylint: disable=broad-except
             return makeRaiseExceptionReplacementExpressionFromInstance(

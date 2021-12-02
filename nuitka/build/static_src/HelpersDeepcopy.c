@@ -38,7 +38,7 @@ typedef PyObject *(*copy_func)(PyObject *);
 static PyObject *DEEP_COPY_ITEM(PyObject *value, PyTypeObject **type, copy_func *copy_function);
 
 PyObject *DEEP_COPY_DICT(PyObject *value) {
-#if PYTHON_VERSION < 0x330
+#if PYTHON_VERSION < 0x300
     // For Python3, this can be done much faster in the same way as it is
     // done in parameter parsing.
 
@@ -63,7 +63,7 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
 
     return result;
 #else
-    /* Python 3.3 or higher */
+    /* Python 3 */
     if (_PyDict_HasSplitTable((PyDictObject *)value)) {
         PyDictObject *mp = (PyDictObject *)value;
 
@@ -601,5 +601,11 @@ void CHECK_OBJECT_DEEP(PyObject *value) {
             CHECK_OBJECT_DEEP(dict_key);
             CHECK_OBJECT_DEEP(dict_value);
         }
+    }
+}
+
+void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size) {
+    for (Py_ssize_t i = 0; i < size; i++) {
+        CHECK_OBJECT_DEEP(values[i]);
     }
 }

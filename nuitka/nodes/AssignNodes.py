@@ -636,9 +636,6 @@ class StatementDelVariable(StatementBase):
 
         return self, None, None
 
-    def mayHaveSideEffects(self):
-        return True
-
     def mayRaiseException(self, exception_type):
         if self.tolerant:
             return False
@@ -722,8 +719,8 @@ class StatementReleaseVariable(StatementBase):
                 return (
                     None,
                     "new_statements",
-                    "Original parameter variable value %s is not released."
-                    % (self.variable.getDescription()),
+                    "Original parameter variable value of '%s' is not released."
+                    % self.variable.getDescription(),
                 )
 
         self.variable_trace = trace_collection.getVariableCurrentTrace(self.variable)
@@ -745,9 +742,11 @@ class StatementReleaseVariable(StatementBase):
 
         return self, None, None
 
-    def mayHaveSideEffects(self):
-        # May execute __del__ code, it would be sweet to be able to predict
-        # that another reference will still be active for a value though.
+    @staticmethod
+    def mayHaveSideEffects():
+        # TODO: May execute "__del__" code, it would be sweet to be able to predict
+        # if another reference will still be active for a value though, or if there
+        # is such a code for the type shape.
         return True
 
     def mayRaiseException(self, exception_type):

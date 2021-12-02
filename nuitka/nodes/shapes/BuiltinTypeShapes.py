@@ -365,6 +365,10 @@ class ShapeTypeNoneType(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     def hasShapeSlotHash():
         return True
 
+    @staticmethod
+    def hasShapeTrustedAttributes():
+        return True
+
     add_shapes = add_shapes_none
     sub_shapes = sub_shapes_none
     mult_shapes = mult_shapes_none
@@ -760,6 +764,42 @@ class ShapeTypeTuple(ShapeContainerMixin, ShapeNotNumberMixin, ShapeBase):
 tshape_tuple = ShapeTypeTuple()
 
 
+class ShapeTypeNamedTuple(ShapeContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    @staticmethod
+    def getTypeName():
+        return "namedtuple"
+
+    helper_code = "NAMEDTUPLE"
+
+    @staticmethod
+    def getShapeIter():
+        return tshape_tuple_iterator
+
+    # TODO: Unsupported operation would be different, account for that.
+    add_shapes = add_shapes_tuple
+    sub_shapes = sub_shapes_tuple
+    mult_shapes = mult_shapes_tuple
+    floordiv_shapes = floordiv_shapes_tuple
+    truediv_shapes = truediv_shapes_tuple
+    olddiv_shapes = olddiv_shapes_tuple
+    mod_shapes = mod_shapes_tuple
+    divmod_shapes = divmod_shapes_tuple
+    pow_shapes = pow_shapes_tuple
+    bitor_shapes = bitor_shapes_tuple
+    bitand_shapes = bitand_shapes_tuple
+    bitxor_shapes = bitxor_shapes_tuple
+    lshift_shapes = lshift_shapes_tuple
+    rshift_shapes = rshift_shapes_tuple
+    matmult_shapes = matmult_shapes_tuple
+
+    def getComparisonLtShape(self, right_shape):
+        # Need to consider value shape for this.
+        return operation_result_unknown
+
+
+tshape_namedtuple = ShapeTypeNamedTuple()
+
+
 class TypeShapeTupleIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = iter(tshape_tuple.typical_value)
 
@@ -1012,6 +1052,10 @@ class ShapeTypeStr(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     def getShapeIter():
         return tshape_str_iterator
 
+    @staticmethod
+    def hasShapeTrustedAttributes():
+        return True
+
     add_shapes = add_shapes_str
     sub_shapes = sub_shapes_str
     mult_shapes = mult_shapes_str
@@ -1117,6 +1161,10 @@ if python_version < 0x300:
         def getShapeIter():
             return tshape_unicode_iterator
 
+        @staticmethod
+        def hasShapeTrustedAttributes():
+            return True
+
         add_shapes = add_shapes_unicode
         sub_shapes = sub_shapes_unicode
         mult_shapes = mult_shapes_unicode
@@ -1206,6 +1254,10 @@ if python_version < 0x300:
         def hasShapeSlotHash():
             return True
 
+        @staticmethod
+        def hasShapeTrustedAttributes():
+            return True
+
         # TODO: There seem to be missing a few here.
         add_shapes = add_shapes_strorunicode
         sub_shapes = sub_shapes_strorunicode
@@ -1266,6 +1318,10 @@ if python_version >= 0x300:
         @staticmethod
         def getShapeIter():
             return tshape_bytes_iterator
+
+        @staticmethod
+        def hasShapeTrustedAttributes():
+            return True
 
         add_shapes = add_shapes_bytes
         sub_shapes = sub_shapes_bytes

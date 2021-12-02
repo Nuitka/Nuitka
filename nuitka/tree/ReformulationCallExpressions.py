@@ -17,8 +17,8 @@
 #
 """ Reformulation of call expressions.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
@@ -235,7 +235,7 @@ def _makeCallNode(
         return result
     else:
         # Dispatch to complex helper function for each case. These do
-        # re-formulation of complex calls according to developer manual.
+        # re-formulation of complex calls according to Developer Manual.
 
         key = (
             bool(positional_args),

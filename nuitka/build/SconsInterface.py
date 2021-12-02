@@ -29,7 +29,7 @@ import subprocess
 import sys
 
 from nuitka import Options, Tracing
-from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import unicode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Execution, Utils
@@ -40,8 +40,10 @@ from nuitka.utils.FileOperations import (
     hasFilenameExtension,
     listDir,
 )
+from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
 
 from .SconsCaching import checkCachingSuccess
+from .SconsUtils import flushSconsReports
 
 
 def getSconsDataPath():
@@ -91,7 +93,7 @@ def _getPythonSconsExePathWindows():
 
     # Ordered in the list of preference.
     python_dir = Execution.getPythonInstallPathWindows(
-        supported=("3.5", "3.6", "3.7", "3.8", "3.9")
+        supported=("3.5", "3.6", "3.7", "3.8", "3.9", "3.10")
     )
 
     if python_dir is not None:
@@ -135,7 +137,7 @@ Anaconda Python.
 """
             )
 
-    for version_candidate in ("2.7", "2.6", "3.5", "3.6", "3.7", "3.8", "3.9"):
+    for version_candidate in ("2.7", "2.6", "3.5", "3.6", "3.7", "3.8", "3.9", "3.10"):
         candidate = Execution.getExecutablePath("python" + version_candidate)
 
         if candidate is not None:
@@ -242,6 +244,11 @@ def _buildSconsCommand(quiet, options, scons_filename):
 
     # Option values to provide to scons. Find these in the caller.
     for key, value in options.items():
+        if value is None:
+            Tracing.scons_logger.sysexit(
+                "Error, failure to provide argument for '%s', please report bug." % key
+            )
+
         scons_command.append(key + "=" + encode(value))
 
     # Python2, make argument encoding recognizable.
@@ -292,6 +299,8 @@ def runScons(options, quiet, scons_filename):
         ):
             result = subprocess.call(scons_command, shell=False, cwd=source_dir)
 
+        flushSconsReports()
+
         if result == 0:
             checkCachingSuccess(source_dir or options["source_dir"])
 
@@ -324,6 +333,8 @@ def cleanSconsDirectory(source_dir):
         ".txt",
         ".const",
         ".gcda",
+        ".pgd",
+        ".pgc",
     )
 
     def check(path):
@@ -350,6 +361,7 @@ def cleanSconsDirectory(source_dir):
 def setCommonOptions(options):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
+    # pylint: disable=too-many-branches
 
     if Options.shallRunInDebugger():
         options["full_names"] = "true"
@@ -373,10 +385,13 @@ def setCommonOptions(options):
         msvc_version = Options.getMsvcVersion()
 
         msvc_version = msvc_version.replace("exp", "Exp")
-        if "." not in msvc_version:
+        if "." not in msvc_version and msvc_version != "latest":
             msvc_version += ".0"
 
         options["msvc_version"] = msvc_version
+
+    if Options.shallDisableCCacheUsage():
+        options["disable_ccache"] = asBoolStr(True)
 
     if Options.shallDisableConsoleWindow():
         options["disable_console"] = asBoolStr(True)
@@ -391,6 +406,25 @@ def setCommonOptions(options):
             for key, value in cpp_defines.items()
         )
 
+    link_dirs = Plugins.getExtraLinkDirectories()
+    if link_dirs:
+        options["link_dirs"] = ",".join(link_dirs)
+
     link_libraries = Plugins.getExtraLinkLibraries()
     if link_libraries:
         options["link_libraries"] = ",".join(link_libraries)
+
+    if Utils.isMacOS() and Options.isStandaloneMode():
+        macos_minversion = os.environ.get("MACOSX_DEPLOYMENT_TARGET")
+        if macos_minversion is None:
+            macos_minversion = detectBinaryMinMacOS(sys.executable)
+
+            if macos_minversion is None:
+                Tracing.general.warning(
+                    "Could not detect minimum macOS version for %r." % sys.executable
+                )
+
+                # Default, but not a good idea.
+                macos_minversion = "10.9"
+
+        options["macos_minversion"] = macos_minversion

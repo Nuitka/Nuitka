@@ -21,21 +21,19 @@
 
 """
 
-from __future__ import print_function
-
 import hashlib
 import os
 import pickle
 import re
 import subprocess
 import sys
-import tempfile
 import time
 
 from nuitka.PythonVersions import python_version
 from nuitka.tools.testing.Common import (
     addToPythonPath,
     executeAfterTimePassed,
+    getTempDir,
     getTestingCPythonOutputsCacheDir,
     killProcess,
     withPythonPathChange,
@@ -44,6 +42,7 @@ from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import (
     check_output,
+    executeProcess,
     wrapCommandForDebuggerForSubprocess,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
@@ -94,6 +93,7 @@ def _getCPythonResults(cpython_cmd, send_kill):
         stop_watch.start()
 
         with withPythonPathChange(os.getcwd()):
+            # want fine grained control, pylint: disable=consider-using-with
             process = subprocess.Popen(
                 args=cpython_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
@@ -200,6 +200,23 @@ def main():
         else:
             return False
 
+    def hasArgValue(arg_option, default=None):
+        for arg in args:
+            if arg.startswith(arg_option + "="):
+                args.remove(arg)
+                return arg[len(arg_option) + 1 :]
+        return default
+
+    def hasArgValues(arg_option):
+        result = []
+
+        for arg in tuple(args):
+            if arg.startswith(arg_option + "="):
+                args.remove(arg)
+                result.append(arg[len(arg_option) + 1 :])
+
+        return result
+
     # For output keep it
     arguments = list(args)
 
@@ -209,7 +226,7 @@ def main():
     expect_success = hasArg("expect_success")
     expect_failure = hasArg("expect_failure")
     python_debug = hasArg("python_debug")
-    module_mode = hasArg("module_mode")
+    module_mode = hasArg("--module")
     two_step_execution = hasArg("two_step_execution")
     binary_python_path = hasArg("binary_python_path")
     keep_python_path = hasArg("keep_python_path")
@@ -237,6 +254,9 @@ def main():
     noverbose_log = hasArg("noverbose_log")
     noinclusion_log = hasArg("noinclusion_log")
     send_kill = hasArg("--send-ctrl-c")
+    output_dir = hasArgValue("--output-dir", None)
+    include_packages = hasArgValues("--include-package")
+    include_modules = hasArgValues("--include-module")
 
     plugins_enabled = []
     for count, arg in reversed(tuple(enumerate(args))):
@@ -347,6 +367,11 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         filename = os.path.abspath(filename)
 
     if module_mode:
+        module_name = os.path.basename(filename)
+
+        if module_name.endswith(".py"):
+            module_name = module_name[:-3]
+
         if no_warnings:
             cpython_cmd = [
                 os.environ["PYTHON"],
@@ -354,14 +379,14 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
                 "ignore",
                 "-c",
                 "import sys; sys.path.append(%s); import %s"
-                % (repr(os.path.dirname(filename)), os.path.basename(filename)),
+                % (repr(os.path.dirname(filename)), module_name),
             ]
         else:
             cpython_cmd = [
                 os.environ["PYTHON"],
                 "-c",
                 "import sys; sys.path.append(%s); import %s"
-                % (repr(os.path.dirname(filename)), os.path.basename(filename)),
+                % (repr(os.path.dirname(filename)), module_name),
             ]
 
     else:
@@ -458,10 +483,10 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         extra_options.append("--generate-c-only")
 
     for plugin_enabled in plugins_enabled:
-        extra_options.append("--plugin-enable=" + plugin_enabled)
+        extra_options.append("--enable-plugin=" + plugin_enabled)
 
     for plugin_disabled in plugins_disabled:
-        extra_options.append("--plugin-disable=" + plugin_disabled)
+        extra_options.append("--disable-plugin=" + plugin_disabled)
 
     for user_plugin in user_plugins:
         extra_options.append("--user-plugin=" + user_plugin)
@@ -471,6 +496,26 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     if not noinclusion_log:
         extra_options.append("--show-modules-output=%s.inclusion.log" % filename)
+
+    if output_dir is not None:
+        extra_options.append("--output-dir=%s" % output_dir)
+    else:
+        # TODO: The run-tests uses NUITKA_EXTRA_OPTIONS still.
+        for extra_option in extra_options:
+            dir_match = re.search(r"--output-dir=(.*?)(\s|$)", extra_option)
+
+            if dir_match:
+                output_dir = dir_match.group(1)
+                break
+        else:
+            # The default.
+            output_dir = "."
+
+    for include_package in include_packages:
+        extra_options.append("--include-package=%s" % include_package)
+
+    for include_module in include_modules:
+        extra_options.append("--include-module=%s" % include_module)
 
     # Now build the command to run Nuitka.
     if not two_step_execution:
@@ -499,23 +544,18 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if no_site:
             nuitka_cmd1.insert(len(nuitka_cmd1) - 1, "--python-flag=-S")
 
-    for extra_option in extra_options:
-        dir_match = re.search(r"--output-dir=(.*?)(\s|$)", extra_option)
-
-        if dir_match:
-            output_dir = dir_match.group(1)
-            break
-    else:
-        # The default.
-        output_dir = "."
-
     if module_mode:
+        module_name = os.path.basename(filename)
+
+        if module_name.endswith(".py"):
+            module_name = module_name[:-3]
+
         nuitka_cmd2 = [
             os.environ["PYTHON"],
             "-W",
             "ignore",
             "-c",
-            "import %s" % os.path.basename(filename),
+            "import %s" % module_name,
         ]
     else:
         exe_filename = os.path.basename(filename)
@@ -557,12 +597,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if output_dir:
             os.chdir(output_dir)
         else:
-            tmp_dir = tempfile.gettempdir()
-
-            # Try to avoid RAM disk /tmp and use the disk one instead.
-            if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
-                tmp_dir = "/var/tmp"
-
+            tmp_dir = getTempDir()
             os.chdir(tmp_dir)
 
         if trace_command:
@@ -600,12 +635,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
         for _i in range(5):
             with withPythonPathChange(nuitka_package_dir):
-                process = subprocess.Popen(
-                    args=nuitka_cmd1, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                stdout_nuitka1, stderr_nuitka1, exit_nuitka1 = executeProcess(
+                    nuitka_cmd1
                 )
-
-            stdout_nuitka1, stderr_nuitka1 = process.communicate()
-            exit_nuitka1 = process.returncode
 
             if exit_nuitka1 != 0:
                 if (
@@ -634,11 +666,14 @@ Stderr was:
                     if trace_command:
                         my_print("Nuitka command 2:", nuitka_cmd2)
 
+                    # Need full manual control, and not all Python versions allow using
+                    # context manager here, pylint: disable=consider-using-with
                     process = subprocess.Popen(
                         args=nuitka_cmd2, stdout=subprocess.PIPE, stderr=subprocess.PIPE
                     )
 
                     if send_kill:
+                        # Lambda is used immediately in same loop, pylint: disable=cell-var-from-loop
                         executeAfterTimePassed(
                             1.0,
                             lambda: killProcess("Nuitka compiled program", process.pid),
@@ -653,10 +688,7 @@ Stderr was:
                     if exit_nuitka in (-11, -6) and sys.platform != "nt":
                         nuitka_cmd2 = wrapCommandForDebuggerForSubprocess(*nuitka_cmd2)
 
-                        process = subprocess.Popen(
-                            args=nuitka_cmd2, stdin=subprocess.PIPE
-                        )
-                        process.communicate()
+                        executeProcess(nuitka_cmd2)
                 else:
                     exit_nuitka = exit_nuitka1
                     stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
@@ -760,9 +792,7 @@ Stderr was:
             nuitka_cmd.insert(len(nuitka_cmd) - 1, "--debugger")
 
             with withPythonPathChange(nuitka_package_dir):
-                process = subprocess.Popen(args=nuitka_cmd, stdin=subprocess.PIPE)
-
-            process.communicate()
+                executeProcess(command=nuitka_cmd, needs_stdin=True)
 
         exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
 

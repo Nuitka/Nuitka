@@ -58,6 +58,7 @@ class ParameterSpec(object):
         "normal_args",
         "normal_variables",
         "list_star_arg",
+        "is_list_star_arg_single",
         "dict_star_arg",
         "list_star_variable",
         "dict_star_variable",
@@ -78,6 +79,7 @@ class ParameterSpec(object):
         ps_list_star_arg,
         ps_dict_star_arg,
         ps_default_count,
+        ps_is_list_star_arg_single=False,
     ):
         if type(ps_normal_args) is str:
             if ps_normal_args == "":
@@ -106,7 +108,10 @@ class ParameterSpec(object):
             ps_dict_star_arg is None or type(ps_dict_star_arg) is str
         ), ps_dict_star_arg
 
+        assert type(ps_is_list_star_arg_single) is bool, ps_is_list_star_arg_single
+
         self.list_star_arg = ps_list_star_arg if ps_list_star_arg else None
+        self.is_list_star_arg_single = ps_is_list_star_arg_single
         self.dict_star_arg = ps_dict_star_arg if ps_dict_star_arg else None
 
         self.list_star_variable = None
@@ -256,6 +261,9 @@ class ParameterSpec(object):
     def getStarListArgumentName(self):
         return self.list_star_arg
 
+    def isStarListSingleArg(self):
+        return self.is_list_star_arg_single
+
     def getListStarArgVariable(self):
         return self.list_star_variable
 
@@ -296,6 +304,7 @@ def matchCall(
     args,
     kw_only_args,
     star_list_arg,
+    star_list_single_arg,
     star_dict_arg,
     num_defaults,
     num_posonly,
@@ -410,7 +419,17 @@ def matchCall(
 
     if star_list_arg:
         if num_pos > num_args:
-            assign(star_list_arg, positional[-(num_pos - num_args) :])
+            value = positional[-(num_pos - num_args) :]
+            assign(star_list_arg, value)
+
+            if star_list_single_arg:
+                if len(value) > 1:
+                    raise TooManyArguments(
+                        TypeError(
+                            "%s expected at most 1 arguments, got %d"
+                            % (func_name, len(value))
+                        )
+                    )
         else:
             assign(star_list_arg, ())
     elif 0 < num_args < num_total:

@@ -17,8 +17,8 @@
 #
 """ Reformulation of Python3 class statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
@@ -29,8 +29,8 @@ from nuitka.nodes.AssignNodes import (
 )
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeCheck,
-    ExpressionAttributeLookup,
     ExpressionBuiltinGetattr,
+    makeExpressionAttributeLookup,
 )
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
@@ -57,7 +57,7 @@ from nuitka.nodes.ContainerOperationNodes import (
     StatementListOperationAppend,
 )
 from nuitka.nodes.DictionaryNodes import (
-    ExpressionDictOperationGet,
+    ExpressionDictOperationGet2,
     ExpressionDictOperationIn,
     StatementDictOperationRemove,
     StatementDictOperationUpdate,
@@ -134,7 +134,7 @@ def buildClassNode3(provider, node, source_ref):
     # pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
 
     # This function is the Python3 special case with special re-formulation as
-    # according to developer manual.
+    # according to Developer Manual.
     class_statement_nodes, class_doc = extractDocFromBody(node)
 
     # We need a scope for the temporary variables, and they might be closured.
@@ -477,7 +477,7 @@ def buildClassNode3(provider, node, source_ref):
     call_prepare = StatementAssignmentVariable(
         variable=tmp_prepared,
         source=makeExpressionCall(
-            called=ExpressionAttributeLookup(
+            called=makeExpressionAttributeLookup(
                 expression=ExpressionTempVariableRef(
                     variable=tmp_metaclass, source_ref=source_ref
                 ),
@@ -529,7 +529,7 @@ def buildClassNode3(provider, node, source_ref):
                             ),
                             source_ref=source_ref,
                         ),
-                        ExpressionAttributeLookup(
+                        makeExpressionAttributeLookup(
                             expression=ExpressionBuiltinType1(
                                 value=ExpressionTempVariableRef(
                                     variable=tmp_prepared, source_ref=source_ref
@@ -562,7 +562,7 @@ def buildClassNode3(provider, node, source_ref):
                         ),
                         source_ref=source_ref,
                     ),
-                    expression_yes=ExpressionDictOperationGet(
+                    expression_yes=ExpressionDictOperationGet2(
                         dict_arg=ExpressionTempVariableRef(
                             variable=tmp_class_decl_dict, source_ref=source_ref
                         ),
@@ -691,7 +691,7 @@ def getClassBasesMroConversionHelper():
                     variable=tmp_result_variable, source_ref=internal_source_ref
                 ),
                 value=makeExpressionCall(
-                    called=ExpressionAttributeLookup(
+                    called=makeExpressionAttributeLookup(
                         expression=ExpressionTempVariableRef(
                             variable=tmp_item_variable, source_ref=internal_source_ref
                         ),

@@ -28,6 +28,7 @@ import os
 import sys
 
 from nuitka.build.DataComposerInterface import runDataComposer
+from nuitka.build.SconsUtils import getSconsReportValue
 from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.freezer.IncludedEntryPoints import (
     addIncludedEntryPoints,
@@ -37,7 +38,11 @@ from nuitka.freezer.IncludedEntryPoints import (
 )
 from nuitka.freezer.Standalone import copyDataFiles
 from nuitka.importing import Importing, Recursion
-from nuitka.Options import hasPythonFlagNoAsserts, hasPythonFlagNoWarnings
+from nuitka.Options import (
+    getPythonPgoInput,
+    hasPythonFlagNoAsserts,
+    hasPythonFlagNoWarnings,
+)
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import executePostProcessing
 from nuitka.Progress import (
@@ -45,28 +50,42 @@ from nuitka.Progress import (
     reportProgressBar,
     setupProgressBar,
 )
+from nuitka.PythonFlavors import (
+    isAnacondaPython,
+    isApplePython,
+    isDebianPackagePython,
+    isNuitkaPython,
+    isPyenvPython,
+)
 from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
     getSystemPrefixPath,
-    isDebianPackagePython,
-    isNuitkaPython,
     python_version,
     python_version_str,
 )
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
-from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
+from nuitka.utils import InstanceCounters, MemoryUsage
+from nuitka.utils.Execution import (
+    callExecProcess,
+    callProcess,
+    withEnvironmentVarOverriden,
+    wrapCommandForDebuggerForExec,
+)
 from nuitka.utils.FileOperations import (
     deleteFile,
     getDirectoryRealPath,
+    getExternalUsePath,
     makePath,
     putTextFileContents,
     removeDirectory,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.ReExecute import reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
+from nuitka.utils.Utils import getArchitecture, getOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from . import ModuleRegistry, Options, OutputDirectories, TreeXML
@@ -75,7 +94,8 @@ from .codegen import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
 from .freezer.Onefile import packDistFolderToOnefile
 from .freezer.Standalone import copyUsedDLLs
-from .optimizations import Optimization
+from .optimizations.Optimization import optimizeModules
+from .pgo.PGO import readPGOInputFile
 from .tree import Building
 
 
@@ -170,7 +190,10 @@ def _createNodeTree(filename):
     Plugins.onModuleInitialSet()
 
     # Then optimize the tree and potentially recursed modules.
-    Optimization.optimize(main_module.getOutputFilename())
+    optimizeModules(main_module.getOutputFilename())
+
+    # Allow plugins to comment on final module set.
+    Plugins.onModuleCompleteSet()
 
     if Options.isExperimental("check_xml_persistence"):
         for module in ModuleRegistry.getRootModules():
@@ -399,26 +422,97 @@ def makeSourceDirectory():
     )
 
 
-def runPgoBinary():
-    # Exit code, we do not insist on anything.
-    Execution.call(
-        [
-            Options.getPgoExecutable()
-            or os.path.abspath(OutputDirectories.getResultFullpath(onefile=False))
-        ]
-        + Options.getPgoArgs(),
+def _runPgoBinary():
+    pgo_executable = OutputDirectories.getPgoRunExecutable()
+
+    if not os.path.isfile(pgo_executable):
+        general.sysexit("Error, failed to produce PGO binary '%s'" % pgo_executable)
+
+    return callProcess(
+        [getExternalUsePath(pgo_executable)] + Options.getPgoArgs(),
         shell=False,
     )
 
-    # TODO: For other compilers, this will have to be different suffix, maybe check all of them
-    constants_pgo_filename = os.path.join(
-        OutputDirectories.getSourceDirectoryPath(), "__constants.gcda"
+
+def _wasMsvcMode():
+    if not isWin32Windows():
+        return False
+
+    return (
+        getSconsReportValue(
+            source_dir=OutputDirectories.getSourceDirectoryPath(), key="msvc_mode"
+        )
+        == "True"
     )
 
-    if not os.path.exists(constants_pgo_filename):
+
+def _deleteMsvcPGOFiles(pgo_mode):
+    assert _wasMsvcMode()
+
+    msvc_pgc_filename = OutputDirectories.getResultBasepath(onefile=False) + "!1.pgc"
+    deleteFile(msvc_pgc_filename, must_exist=False)
+
+    if pgo_mode == "use":
+        msvc_pgd_filename = OutputDirectories.getResultBasepath(onefile=False) + ".pgd"
+        deleteFile(msvc_pgd_filename, must_exist=False)
+
+    return msvc_pgc_filename
+
+
+def _runCPgoBinary():
+    # Note: For exit codes, we do not insist on anything yet, maybe we could point it out
+    # or ask people to make scripts that buffer these kinds of errors, and take an error
+    # instead as a serious failure.
+
+    general.info(
+        "Running created binary to produce C level PGO information:", style="blue"
+    )
+
+    if _wasMsvcMode():
+        msvc_pgc_filename = _deleteMsvcPGOFiles(pgo_mode="generate")
+
+        with withEnvironmentVarOverriden(
+            "PATH",
+            getSconsReportValue(
+                source_dir=OutputDirectories.getSourceDirectoryPath(), key="PATH"
+            ),
+        ):
+            _exit_code = _runPgoBinary()
+
+        pgo_data_collected = os.path.exists(msvc_pgc_filename)
+    else:
+        _exit_code = _runPgoBinary()
+
+        gcc_constants_pgo_filename = os.path.join(
+            OutputDirectories.getSourceDirectoryPath(), "__constants.gcda"
+        )
+
+        pgo_data_collected = os.path.exists(gcc_constants_pgo_filename)
+
+    if not pgo_data_collected:
         general.sysexit(
             "Error, no PGO information produced, did the created binary run at all?"
         )
+
+    general.info("Successfully collected C level PGO information.", style="blue")
+
+
+def _runPythonPgoBinary():
+    # Note: For exit codes, we do not insist on anything yet, maybe we could point it out
+    # or ask people to make scripts that buffer these kinds of errors, and take an error
+    # instead as a serious failure.
+
+    pgo_filename = OutputDirectories.getPgoRunExecutable() + ".nuitka-pgo"
+
+    with withEnvironmentVarOverriden("NUITKA_PGO_OUTPUT", pgo_filename):
+        _exit_code = _runPgoBinary()
+
+    if not os.path.exists(pgo_filename):
+        general.sysexit(
+            "Error, no Python PGO information produced, did the created binary run at all?"
+        )
+
+    return pgo_filename
 
 
 def runSconsBackend(quiet):
@@ -440,7 +534,7 @@ def runSconsBackend(quiet):
         "experimental": ",".join(Options.getExperimentalIndications()),
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "python_version": python_version_str,
-        "target_arch": Utils.getArchitecture(),
+        "target_arch": getArchitecture(),
         "python_prefix": getDirectoryRealPath(getSystemPrefixPath()),
         "nuitka_src": SconsInterface.getSconsDataPath(),
         "module_count": "%d"
@@ -451,6 +545,9 @@ def runSconsBackend(quiet):
         ),
     }
 
+    if Options.isLowMemory():
+        options["low_memory"] = asBoolStr(True)
+
     if not Options.shallMakeModule():
         options["result_exe"] = OutputDirectories.getResultFullpath(onefile=False)
 
@@ -459,6 +556,15 @@ def runSconsBackend(quiet):
 
     if isDebianPackagePython():
         options["debian_python"] = asBoolStr(True)
+
+    if isAnacondaPython():
+        options["anaconda_python"] = asBoolStr(True)
+
+    if isApplePython():
+        options["apple_python"] = asBoolStr(True)
+
+    if isPyenvPython():
+        options["pyenv_python"] = asBoolStr(True)
 
     if Options.isStandaloneMode():
         options["standalone_mode"] = asBoolStr(True)
@@ -483,7 +589,7 @@ def runSconsBackend(quiet):
             len(ModuleRegistry.getUncompiledTechnicalModules())
         )
 
-    if Utils.getOS() == "Windows":
+    if getOS() == "Windows":
         options["noelf_mode"] = asBoolStr(True)
 
     if Options.isProfile():
@@ -509,10 +615,10 @@ def runSconsBackend(quiet):
     if int(os.environ.get("NUITKA_SITE_FLAG", Options.hasPythonFlagNoSite())):
         options["python_sysflag_no_site"] = asBoolStr(True)
 
-    if "trace_imports" in Options.getPythonFlags():
+    if Options.hasPythonFlagTraceImports():
         options["python_sysflag_verbose"] = asBoolStr(True)
 
-    if "no_randomization" in Options.getPythonFlags():
+    if Options.hasPythonFlagNoRandomization():
         options["python_sysflag_no_randomization"] = asBoolStr(True)
 
     if python_version < 0x300 and sys.flags.unicode:
@@ -530,23 +636,51 @@ def runSconsBackend(quiet):
 
     SconsInterface.setCommonOptions(options)
 
-    # For PGO, we have a 2 pass system. TODO: Make it more global for onefile
-    # and standalone mode proper support, which might need data files to be
-    # there, which currently are not yet there, so it won't run.
-    if Options.isPgoMode():
-        options["pgo_mode"] = "generate"
-        SconsInterface.runScons(
+    if Options.shallCreatePgoInput():
+        options["pgo_mode"] = "python"
+
+        result = SconsInterface.runScons(
             options=options, quiet=quiet, scons_filename="Backend.scons"
         )
-        runPgoBinary()
-        options["pgo_mode"] = "use"
+        if not result:
+            return result, options
 
-    return (
+        # Need to make it usable before executing it.
+        executePostProcessing()
+        _runPythonPgoBinary()
+
+        return True, options
+
+        # Need to restart compilation from scratch here.
+    if Options.isPgoMode():
+        # For C level PGO, we have a 2 pass system. TODO: Make it more global for onefile
+        # and standalone mode proper support, which might need data files to be
+        # there, which currently are not yet there, so it won't run.
+        if Options.isPgoMode():
+            options["pgo_mode"] = "generate"
+            result = SconsInterface.runScons(
+                options=options, quiet=quiet, scons_filename="Backend.scons"
+            )
+
+            if not result:
+                return result, options
+
+            # Need to make it usable before executing it.
+            executePostProcessing()
+            _runCPgoBinary()
+            options["pgo_mode"] = "use"
+
+    result = (
         SconsInterface.runScons(
             options=options, quiet=quiet, scons_filename="Backend.scons"
         ),
         options,
     )
+
+    if options.get("pgo_mode") == "use" and _wasMsvcMode():
+        _deleteMsvcPGOFiles(pgo_mode="use")
+
+    return result
 
 
 def writeSourceCode(filename, source_code):
@@ -587,12 +721,12 @@ def callExecPython(args, clean_path, add_path):
     # Add the main arguments, previous separated.
     args += Options.getPositionalArgs()[1:] + Options.getMainArgs()
 
-    Execution.callExec(args)
+    callExecProcess(args)
 
 
 def executeMain(binary_filename, clean_path):
     if Options.shallRunInDebugger():
-        args = Execution.wrapCommandForDebuggerForExec(binary_filename)
+        args = wrapCommandForDebuggerForExec(binary_filename)
     else:
         args = (binary_filename, binary_filename)
 
@@ -600,12 +734,33 @@ def executeMain(binary_filename, clean_path):
 
 
 def executeModule(tree, clean_path):
-    python_command = "__import__('%s')" % tree.getName()
+
+    if python_version < 0x340:
+        python_command_template = """\
+import os, imp;\
+assert os.path.normcase(os.path.abspath(os.path.normpath(\
+imp.find_module('%(module_name)s')[1]))) == '%(expected_filename)s',\
+'Error, cannot launch extension module %(module_name)s, original package is in the way.'"""
+    else:
+        python_command_template = """\
+import os, importlib.util;\
+assert os.path.normcase(os.path.abspath(os.path.normpath(\
+importlib.util.find_spec('%(module_name)s').origin))) == '%(expected_filename)s',\
+'Error, cannot launch extension module %(module_name)s, original package is in the way.'"""
+
+    python_command_template += ";__import__('%(module_name)s')"
+
+    python_command = python_command_template % {
+        "module_name": tree.getName(),
+        "expected_filename": os.path.normcase(
+            os.path.abspath(
+                os.path.normpath(OutputDirectories.getResultFullpath(onefile=False))
+            )
+        ),
+    }
 
     if Options.shallRunInDebugger():
-        args = Execution.wrapCommandForDebuggerForExec(
-            sys.executable, "-c", python_command
-        )
+        args = wrapCommandForDebuggerForExec(sys.executable, "-c", python_command)
     else:
         args = (sys.executable, "python", "-c", python_command)
 
@@ -678,7 +833,7 @@ def compileTree():
             filename=os.path.join(target_dir, filename), source_code=source_code
         )
 
-    general.info("Running C level backend compilation via Scons.")
+    general.info("Running C compilation via Scons.")
 
     # Run the Scons to build things.
     result, options = runSconsBackend(quiet=not Options.isShowScons())
@@ -725,6 +880,13 @@ def main():
 
     # Main has to fulfill many options, leading to many branches and statements
     # to deal with them.  pylint: disable=too-many-branches,too-many-statements
+
+    # In case we are in a PGO run, we read its information first, so it becomes
+    # available for later parts.
+    pgo_filename = getPythonPgoInput()
+    if pgo_filename is not None:
+        readPGOInputFile(pgo_filename)
+
     if not Options.shallDumpBuiltTreeXML():
         general.info(
             "Starting Python compilation with Nuitka %r on Python %r commercial %r."
@@ -756,6 +918,16 @@ def main():
         # Exit if compilation failed.
         if not result:
             sys.exit(1)
+
+        # Relaunch in case of Python PGO input to be produced.
+        if Options.shallCreatePgoInput():
+            # Will not return.
+            pgo_filename = OutputDirectories.getPgoRunExecutable() + ".nuitka-pgo"
+            general.info(
+                "Restarting compilation using collected information from %s."
+                % pgo_filename
+            )
+            reExecuteNuitka(pgo_filename=pgo_filename)
 
         if Options.shallNotDoExecCCompilerCall():
             if Options.isShowMemory():
@@ -812,6 +984,12 @@ def main():
         final_filename = OutputDirectories.getResultFullpath(
             onefile=Options.isOnefileMode()
         )
+
+        if "macos_minversion" in options:
+            general.info(
+                "Created binary that runs on macOS %s or higher."
+                % options["macos_minversion"]
+            )
 
         Plugins.onFinalResult(final_filename)
 

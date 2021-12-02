@@ -38,6 +38,7 @@ def generateReturnCode(statement, emit, context):
     return_value_name = context.getReturnValueName()
 
     if context.getReturnReleaseMode():
+        emit("CHECK_OBJECT(%s);" % return_value_name)
         emit("Py_DECREF(%s);" % return_value_name)
 
     generateExpressionCode(
@@ -69,6 +70,7 @@ def generateReturnConstantCode(statement, emit, context):
     return_value_name = context.getReturnValueName()
 
     if context.getReturnReleaseMode():
+        emit("CHECK_OBJECT(%s);" % return_value_name)
         emit("Py_DECREF(%s);" % return_value_name)
 
     return_value_name.getCType().emitAssignmentCodeFromConstant(
@@ -96,6 +98,7 @@ def generateGeneratorReturnValueCode(statement, emit, context):
         expression = statement.subnode_expression
 
         if context.getReturnReleaseMode():
+            emit("CHECK_OBJECT(%s);" % return_value_name)
             emit("Py_DECREF(%s);" % return_value_name)
 
         generateExpressionCode(
@@ -125,6 +128,7 @@ def generateGeneratorReturnNoneCode(statement, emit, context):
         return_value_name = context.getGeneratorReturnValueName()
 
         if context.getReturnReleaseMode():
+            emit("CHECK_OBJECT(%s);" % return_value_name)
             emit("Py_DECREF(%s);" % return_value_name)
 
         return_value_name.getCType().emitAssignmentCodeFromConstant(

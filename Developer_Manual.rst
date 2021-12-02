@@ -3,15 +3,11 @@
 #########################
 
 .. image:: doc/images/Nuitka-Logo-Symbol.png
+   :alt: Nuitka Logo
 
 .. contents::
 
-.. raw:: pdf
-
-   PageBreak oneColumn
-   SetPageCounter 1
-
-The purpose of this developer manual is to present the current design of
+The purpose of this Developer Manual is to present the current design of
 Nuitka, the project rules, and the motivations for choices made. It is
 intended to be a guide to the source code, and to give explanations that
 don't fit into the source code in comments form.
@@ -112,11 +108,16 @@ Of course, all of this may be subject to change.
 Nuitka top level works like this:
 
 -  ``nuitka.tree.Building`` outputs node tree
+
 -  ``nuitka.optimization`` enhances it as best as it can
+
 -  ``nuitka.finalization`` prepares the tree for code generation
+
 -  ``nuitka.codegen.CodeGeneration`` orchestrates the creation of code
    snippets
+
 -  ``nuitka.codegen.*Codes`` knows how specific code kinds are created
+
 -  ``nuitka.MainControl`` keeps it all together
 
 This design is intended to last.
@@ -194,7 +195,7 @@ line.
 
 In order to set up hooks, you need to execute these commands:
 
-.. code:: sh
+.. code:: bash
 
    # Where python is the one you use with Nuitka, this then gets all
    # development requirements, can be full PATH.
@@ -434,7 +435,7 @@ block.
  Nuitka "git/github" Workflow
 ******************************
 
-   -  Forking and cloning
+-  Forking and cloning
 
    You need to have git installed and GitHub account. Goto Nuitka
    repository <https://github.com/Nuitka/Nuitka> and fork the
@@ -443,50 +444,50 @@ block.
    To clone it to your local machine execute the following your git
    bash:
 
-      .. code:: sh
+   .. code:: bash
 
-         git clone https://github.com/your-user-name/Nuitka.git
-         cd Nuitka
-         git remote add upstream https://github.com/Nuitka/Nuitka.git
+      git clone https://github.com/your-user-name/Nuitka.git
+      cd Nuitka
+      git remote add upstream https://github.com/Nuitka/Nuitka.git
 
-   -  Create a Branch
+-  Create a Branch
 
-      .. code:: sh
+   .. code:: bash
 
-         git checkout develop
-         git pull --rebase upstream
-         git checkout -b feature_branch
+      git checkout develop
+      git pull --rebase upstream
+      git checkout -b feature_branch
 
    If you are having merge conflicts while doing the previous step, then
    check out (DON'T FORGET TO SAVE YOUR CHANGES FIRST IF ANY):
    <https://stackoverflow.com/questions/1125968/how-do-i-force-git-pull-to-overwrite-local-files>
 
-   -  In case you have an existing branch rebase it to develop
+-  In case you have an existing branch rebase it to develop
 
-      .. code:: sh
+   .. code:: bash
 
-         git fetch upstream
-         git rebase upstream/develop
+      git fetch upstream
+      git rebase upstream/develop
 
    Fix the merge conflicts if any, stash them and continue:
 
-         .. code:: sh
+   .. code:: bash
 
-            git rebase --continue
+      git rebase --continue
 
-      If anything goes wrong while rebasing:
+   If anything goes wrong while rebasing:
 
-         .. code:: sh
+   .. code:: bash
 
-            git rebase --abort
+      git rebase --abort
 
-   -  Making changes
+-  Making changes
 
-      .. code:: sh
+   .. code:: bash
 
-         git commit -a -m "Commit Message"
-         git push -u origin # once, later always:
-         git push
+      git commit -a -m "Commit Message"
+      git push -u origin # once, later always:
+      git push
 
 **********************************
  API Documentation and Guidelines
@@ -498,14 +499,18 @@ There is API documentation generated with ``doxygen``, available at
 To ensure meaningful ``doxygen`` output, the following guidelines must
 be observed when creating or updating Python source:
 
-Use of Standard Python ``"__doc__"`` Strings
-============================================
+Use of Standard Python ``__doc__`` Strings
+==========================================
 
 Every class and every method **must be documented** via the standard
 Python delimiters (``""" ... """``) in the usual way.
 
-Special ``doxygen`` Anatomy of ``"__doc__"``
-============================================
+Special ``doxygen`` Anatomy of ``__doc__``
+==========================================
+
+.. note::
+
+   We are replacing doxygen with sphinx, this is all obsolete
 
 -  Immediately after the leading ``"""``, and after 1 space on the same
    line, enter a brief description or title of the class or method. This
@@ -521,38 +526,36 @@ Special ``doxygen`` Anatomy of ``"__doc__"``
    sections need not be preceded by empty lines -- but it is good
    practice to still do that.
 
-      -  ``Notes:`` detailed description of the item, any length.
+   -  ``Notes:`` detailed description of the item, any length.
 
-         May contain line breaks with each new line starting aligned
-         with previous one. The text will automatically be joined across
-         line breaks and be reformatted in the browser.
+      May contain line breaks with each new line starting aligned with
+      previous one. The text will automatically be joined across line
+      breaks and be reformatted in the browser.
 
-         If you describe details for a class, you can do so **without**
-         using this section header and all formatting will still work
-         fine. If you however omit the ``Notes:`` for methods, then the
-         text will be interpreted **as code,** be shown in an ugly
-         monospaced font, and no automatic line breaks will occur in the
-         browser.
+      If you describe details for a class, you can do so **without**
+      using this section header and all formatting will still work fine.
+      If you however omit the ``Notes:`` for methods, then the text will
+      be interpreted **as code**, be shown in an ugly monospaced font,
+      and no automatic line breaks will occur in the browser.
 
-      -  ``Args:`` positional arguments.
+   -  ``Args:`` positional arguments.
 
-         Each argument then follows, starting on a new line and indented
-         by 4 spaces. The argument name must be followed by a colon
-         ``:`` or double hash ``--``, followed by a description of
-         arbitrary length.
+      Each argument then follows, starting on a new line and indented by
+      4 spaces. The argument name must be followed by a colon ``:`` or
+      double hash ``--``, followed by a description of arbitrary length.
 
-         The description can be separated by line breaks.
+      The description can be separated by line breaks.
 
-      -  ``Kwargs:`` keyword arguments. Same rules as for args.
+   -  ``Kwargs:`` keyword arguments. Same rules as for args.
 
-      -  ``Returns:`` description of what will be returned if applicable
-         (any length).
+   -  ``Returns:`` description of what will be returned if applicable
+      (any length).
 
-      -  ``Yields:`` synonymous for ``Returns:``.
+   -  ``Yields:`` synonymous for ``Returns:``.
 
-      -  ``Raises:`` name any exceptions that may be raised.
+   -  ``Raises:`` name any exceptions that may be raised.
 
-      -  ``Examples:`` specify any example code.
+   -  ``Examples:`` specify any example code.
 
 .. code:: python
 
@@ -592,7 +595,7 @@ similar way, but this is not a priority, and we are not there yet.
 
 So, we currently use ``PyLint`` with options defined in a script.
 
-.. code:: sh
+.. code:: bash
 
    ./bin/check-nuitka-with-pylint
 
@@ -610,11 +613,13 @@ Running all Tests
 
 The top level access to the tests is as simple as this:
 
-.. code:: sh
+.. code:: bash
 
    ./tests/run-tests
 
-For fine grained control, it has the following options::
+For fine grained control, it has the following options:
+
+.. code::
 
    --skip-basic-tests    The basic tests, execute these to check if Nuitka is
                          healthy. Default is True.
@@ -672,7 +677,11 @@ For fine grained control, it has the following options::
                          all corner cases to be covered. With Python 2.x these
                          are not run. Default is True.
    --skip-cpython39-tests
-                         The standard CPython3.8 test suite. Execute this for
+                         The standard CPython3.9 test suite. Execute this for
+                         all corner cases to be covered. With Python 2.x these
+                         are not run. Default is True.
+   --skip-cpython310-tests
+                         The standard CPython3.10 test suite. Execute this for
                          all corner cases to be covered. With Python 2.x these
                          are not run. Default is True.
    --no-python2.6        Do not use Python 2.6 even if available on the system.
@@ -693,6 +702,8 @@ For fine grained control, it has the following options::
                          Default is False.
    --no-python3.9        Do not use Python 3.9 even if available on the system.
                          Default is False.
+   --no-python3.10       Do not use Python 3.10 even if available on the system.
+                         Default is False.
    --coverage            Make a coverage analysis, that does not really check.
                          Default is False.
 
@@ -710,7 +721,7 @@ Basic Tests
 
 You can run the "basic" tests like this:
 
-.. code:: sh
+.. code:: bash
 
    ./tests/basics/run_all.py search
 
@@ -739,7 +750,7 @@ Using the ``global`` statement on a function argument is an example of
 this. These tests make sure that the errors of Nuitka and CPython are
 totally the same for this:
 
-.. code:: sh
+.. code:: bash
 
    ./tests/syntax/run_all.py search
 
@@ -750,7 +761,7 @@ Then there are small "programs" tests, that e.g. exercise many kinds of
 import tricks and are designed to reveal problems with inter-module
 behavior. These can be run like this:
 
-.. code:: sh
+.. code:: bash
 
    ./tests/programs/run_all.py search
 
@@ -761,7 +772,7 @@ There are tests, which are generated from Jinja2 templates. They aim at
 e.g. combining at types with operations, in-place or not, or large
 constants. These can be run like this:
 
-.. code:: sh
+.. code:: bash
 
    ./tests/generated/run_all.py search
 
@@ -774,7 +785,7 @@ parts are published as `Nuitka API <https://nuitka.net/apidoc>`__ and
 argumently in a relatively bad shape as we started generating those with
 Doxygen only relatively late.
 
-.. code:: sh
+.. code:: bash
 
    doxygen ./doc/Doxyfile
    xdg-open html
@@ -802,24 +813,24 @@ The CPython test suites are different branches of the same submodule.
 When you update your git checkout, they will frequently become detached.
 In this case, simply execute this command:
 
-.. code:: sh
+.. code:: bash
 
    git submodule foreach 'git fetch && git checkout $(basename $(pwd)) && \
    git reset --hard origin/$(basename $(pwd))'
 
 When adding a test suite, for a new version, proceed like this:
 
-.. code:: sh
+.. code:: bash
 
    # Switch to a new branch.
-   git checkout CPython38
-   git branch CPython39
    git checkout CPython39
+   git branch CPython310
+   git checkout CPython310
 
    # Delete all but root commit
    git rebase -i root
    rm -rf test
-   cp ~/repos/Nuitka-references/final/Python-3.9.0/Lib/test test
+   cp ~/repos/Nuitka-references/final/Python-3.10.0/Lib/test test
    git add test
 
    # Update commit message to mention proper Python version.
@@ -829,7 +840,7 @@ When adding a test suite, for a new version, proceed like this:
    git push -u
 
    # Cherry pick the removal commits from previous branches.
-   git log origin/CPython38 --reverse --oneline | grep ' Removed' | cut -d' ' -f1 | xargs git cherry-pick
+   git log origin/CPython39 --reverse --oneline | grep ' Removed' | cut -d' ' -f1 | xargs git cherry-pick
    # While being prompted for merge conflicts with the deleted files:
    git status | sed -n 's/deleted by them://p' | xargs git rm --ignore-unmatch x ; git cherry-pick --continue
 
@@ -837,18 +848,18 @@ When adding a test suite, for a new version, proceed like this:
    git push
 
    # Cherry pick the first commit of run_all.py, the copy it from the last state, and amend the commits.
-   git log --reverse origin/CPython38 --oneline -- run_all.py | head -1 | cut -d' ' -f1 | xargs git cherry-pick
-   git checkout origin/CPython38 -- run_all.py
+   git log --reverse origin/CPython39 --oneline -- run_all.py | head -1 | cut -d' ' -f1 | xargs git cherry-pick
+   git checkout origin/CPython39 -- run_all.py
    git commit --amend run_all.py
 
    # Same for .gitignore
-   git log --reverse origin/CPython38 --oneline -- .gitignore | head -1 | cut -d' ' -f1 | xargs git cherry-pick
-   git checkout origin/CPython38 -- .gitignore
+   git log --reverse origin/CPython39 --oneline -- .gitignore | head -1 | cut -d' ' -f1 | xargs git cherry-pick
+   git checkout origin/CPython39 -- .gitignore
    git commit --amend .gitignore
 
    # Now cherry-pick all commits of test support, these disable network, audio, GUI, random filenames and more
    # and are crucial for determistic outputs and non-reliance on outside stuff.
-   git log --reverse origin/CPython38 --oneline -- tests/support/__init__.py | cut -d' ' -f1 | xargs git cherry-pick
+   git log --reverse origin/CPython39 --oneline -- test/support/__init__.py | tail -n +2 | cut -d' ' -f1 | xargs git cherry-pick
 
    git push
 
@@ -867,15 +878,24 @@ The logo was submitted by "dr. Equivalent". It's source is contained in
 
 -  Symbol only (symbol)
 
+.. code:: rest
+
    .. image:: doc/images/Nuitka-Logo-Symbol.png
+      :alt: Nuitka Logo
 
 -  Text next to symbol (horizontal)
 
+.. code:: rest
+
    .. image:: doc/images/Nuitka-Logo-Horizontal.png
+      :alt: Nuitka Logo
 
 -  Text beneath symbol (vertical)
 
+.. code:: rest
+
    .. image:: doc/images/Nuitka-Logo-Vertical.png
+      :alt: Nuitka Logo
 
 From these logos, PNG images, and "favicons", and are derived.
 
@@ -883,7 +903,7 @@ The exact ImageMagick commands are in
 ``nuitka/tools/release/Documentation``, but are not executed each time,
 the commands are also replicated here:
 
-.. code:: sh
+.. code:: bash
 
    convert -background none doc/Logo/Nuitka-Logo-Symbol.svg doc/images/Nuitka-Logo-Symbol.png
    convert -background none doc/Logo/Nuitka-Logo-Vertical.svg doc/images/Nuitka-Logo-Vertical.png
@@ -1145,7 +1165,9 @@ have changed.
 
    Output is:
 
-      {'self': <__main__.X object at 0x7f1773762390>} {'self':
+   .. code::
+
+      {'self': <__main__.X object at 0x7f1773762390>''} {'self':
       <__main__.X object at 0x7f1773762390>, '__class__': <class
       '__main__.X'>}
 
@@ -1293,7 +1315,7 @@ increases chances for non-compiled code to do that, esp. for short
 names.
 
 We then can do a simple ``is`` comparison and only fall back to real
-string `==` comparisons, after all of these failed. That means more
+string ``==`` comparisons, after all of these failed. That means more
 code, but also a lot faster code in the positive case.
 
 Argument tuple
@@ -1317,14 +1339,14 @@ SSA form for Nuitka
 The SSA form is critical to how optimization works. The so called trace
 collections builds up traces. These are facts about how this works:
 
-   -  Assignments draw from a counter unique for the variable, which
-      becomes the variable version. This happens during tree building
-      phase.
+-  Assignments draw from a counter unique for the variable, which
+   becomes the variable version. This happens during tree building
+   phase.
 
-   -  References are associated with the version of the variable active.
+-  References are associated with the version of the variable active.
 
-      This can be a merge of branches. Trace collection does do that and
-      provides nodes with the currently active trace for a variable.
+   This can be a merge of branches. Trace collection does do that and
+   provides nodes with the currently active trace for a variable.
 
 The data structures used for trace collection need to be relatively
 compact as the trace information can become easily much more data than
@@ -1332,85 +1354,83 @@ the program itself.
 
 Every trace collection has these:
 
-   -  variable_actives
+-  variable_actives
 
-      Dictionary, where per "variable" the currently used version is.
-      Used to track situations changes in branches. This is the main
-      input for merge process.
+   Dictionary, where per "variable" the currently used version is. Used
+   to track situations changes in branches. This is the main input for
+   merge process.
 
-   -  variable_traces
+-  variable_traces
 
-      Dictionary, where "variable" and "version" form the key. The
-      values are objects with or without an assignment, and a list of
-      usages, which starts out empty.
+   Dictionary, where "variable" and "version" form the key. The values
+   are objects with or without an assignment, and a list of usages,
+   which starts out empty.
 
-      These objects have usages appended to them. In "onVariableSet", a
-      new version is allocated, which gives a new object for the
-      dictionary, with an empty usages list, because each write starts a
-      new version. In "onVariableUsage" the version is detected from the
-      current version. It may be not set yet, which means, it's a read
-      of an undefined value (local variable, not a parameter name), or
-      unknown in case of global variable.
+   These objects have usages appended to them. In "onVariableSet", a new
+   version is allocated, which gives a new object for the dictionary,
+   with an empty usages list, because each write starts a new version.
+   In "onVariableUsage" the version is detected from the current
+   version. It may be not set yet, which means, it's a read of an
+   undefined value (local variable, not a parameter name), or unknown in
+   case of global variable.
 
-      These objects may be told that their value has escaped. This
-      should influence the value friend they attached to the initial
-      assignment. Each usage may have a current value friend state that
-      is different.
+   These objects may be told that their value has escaped. This should
+   influence the value friend they attached to the initial assignment.
+   Each usage may have a current value friend state that is different.
 
 When merging branches of conditional statements, the merge shall apply
 as follows:
 
-   -  Branches have their own collection
+-  Branches have their own collection
 
-      Thee have potentially deviating sets of ``variable_actives``.
-      These are children of an outer collections.
+   Thee have potentially deviating sets of ``variable_actives``. These
+   are children of an outer collections.
 
-   -  Case a) One branch only.
+-  Case a) One branch only.
 
-      For that branch a collection is performed. As usual new
-      assignments generate a new version making it "active", references
-      then related to these "active" versions.
+   For that branch a collection is performed. As usual new assignments
+   generate a new version making it "active", references then related to
+   these "active" versions.
 
-      Then, when the branch is merged, for all "active" variables, it is
-      considered, if that is a change related to before the branch. If
-      it's not the same, a merge trace with the branch condition is
-      created with the one active in the collection before that
-      statement.
+   Then, when the branch is merged, for all "active" variables, it is
+   considered, if that is a change related to before the branch. If it's
+   not the same, a merge trace with the branch condition is created with
+   the one active in the collection before that statement.
 
-   -  Case b) Two branches.
+-  Case b) Two branches.
 
-      When there are two branches, they both as are treated as above,
-      except for the merge.
+   When there are two branches, they both as are treated as above,
+   except for the merge.
 
-      When merging, a difference in active variables between the two
-      branches creates the merge trace.
+   When merging, a difference in active variables between the two
+   branches creates the merge trace.
 
-   .. note::
+.. note::
 
-      For conditional expressions, there are always only two branches.
-      Even if you think you have more than one branch, you do not. It's
-      always nested branches, already when it comes out of the parser.
+   For conditional expressions, there are always only two branches. Even
+   if you think you have more than one branch, you do not. It's always
+   nested branches, already when it comes out of the ``ast`` parser.
 
 Trace structure, there are different kinds of traces.
 
-   -  Initial write of the version
+-  Initial write of the version
 
-      There may be an initial write for each version. It can only occur
-      at the start of the scope, but not later, and there is only one.
-      This might be known to be "initialized" (parameter variables of
-      functions are like that) or "uninitialized", or "unknown".
+   There may be an initial write for each version. It can only occur at
+   the start of the scope, but not later, and there is only one. This
+   might be known to be "initialized" (parameter variables of functions
+   are like that) or "uninitialized", or "unknown".
 
-   -  Merge of other one or two other versions
+-  Merge of other one or two other versions
 
-      This combines two or more previous versions. In cases of loop
-      exits or entries, there are multiple branches to combine
-      potentially. These branches can have vastly different properties.
+   This combines two or more previous versions. In cases of loop exits
+   or entries, there are multiple branches to combine potentially. These
+   branches can have vastly different properties.
 
-   -  Becoming unknown.
+-  Becoming unknown.
 
-      When control flow escapes, e.g. for a module variable, any write
-      can occur to it, and it's value cannot be trusted to be unchanged.
-      These are then traced as unknown.
+   When control flow escapes, e.g. for a module variable, any write can
+   occur to it, and it's value cannot be trusted to be unchanged. These
+   are then traced as unknown.
 
 All traces have a base class ``ValueTraceBase`` which provides the
 interface to query facts about the state of a variable in that trace.
@@ -1421,8 +1441,8 @@ Loop SSA
 ========
 
 For loops we have the addition difficulty that we need would need to
-look ahead what types a variable has at loop exit, but that is a
-recursive dependency.
+look ahead what types a variable has at loop exit, but that is a cyclic
+dependency.
 
 Our solution is to consider the variable types at loop entry. When these
 change, we drop all gained information from inside the loop. We may e.g.
@@ -1470,8 +1490,8 @@ through a slot mechanism, which then can be overloaded.
    1.0 + float(something) // 4.140000000000001
 
 Here it is the case, that this is used by user code, but more often this
-is used internally. Not all types have all slots, e.g. `list` does not
-have ``__float__`` and therefore will refuse an addition to a `float`
+is used internally. Not all types have all slots, e.g. ``list`` does not
+have ``__float__`` and therefore will refuse an addition to a ``float``
 value, based on that.
 
 Another slot is working here, that we didn't mention yet, and that is
@@ -1483,7 +1503,7 @@ is why this fails to work:
 
    [] + ()
 
-As a deliberate choice, there is no `__list__` slot used. The Python
+As a deliberate choice, there is no ``__list__`` slot used. The Python
 designers are aiming at solving many things with slots, but they also
 accept limitations.
 
@@ -1574,7 +1594,7 @@ can be a whole lot more certain:
        )
 
 In this case, we are using a function that will produce a concrete value
-or the exception that the `computation` function raised. In this case,
+or the exception that the ``computation`` function raised. In this case,
 we can let the Python interpreter that runs Nuitka do all the hard work.
 This lives in ``CompileTimeConstantExpressionBase`` and is the base for
 all kinds of constant values, or even built-in references like the name
@@ -1663,7 +1683,7 @@ Built-in call optimization
 For calls to built-in names, there is typically a function in Python
 that delegates to the type constructor (e.g. when we talk about ``int``
 that just creates an object passing the arguments of the call) or its
-own special implementation as we saw with the `len`.
+own special implementation as we saw with the ``len``.
 
 For each built-in called, we have a specialized node, that presents to
 optimization the actions of the built-in. What are the impact, what are
@@ -1975,11 +1995,10 @@ that does the unpacking and gives the errors that come from this:
        a, b = _1
        return _tmp(a, b, c)
 
-The ``".1"`` is the variable name used by CPython internally, and
-actually works if you use keyword arguments via star dictionary. So this
-is very compatible and actually the right kind of re-formulation, but it
-removes the need from the code that does parameter parsing to deal with
-these.
+The ``.1`` is the variable name used by CPython internally, and actually
+works if you use keyword arguments via star dictionary. So this is very
+compatible and actually the right kind of re-formulation, but it removes
+the need from the code that does parameter parsing to deal with these.
 
 Obviously, there is no frame for ``_tmp``, just one for ``function`` and
 we do not use local variables, but temporary functions.
@@ -2590,8 +2609,11 @@ Complex Calls
 The call operator in Python allows to provide arguments in 4 forms.
 
 -  Positional (or normal) arguments
+
 -  Named (or keyword) arguments
+
 -  Star list arguments
+
 -  Star dictionary arguments
 
 The evaluation order is precisely that. An example would be:
@@ -2654,9 +2676,9 @@ tasked to do the difficult stuff. Our example becomes this:
 
 The call to ``_complex_call`` is be a direct function call with no
 parameter parsing overhead. And the call in its end, is a special call
-operation, which relates to the "PyObject_Call" C-API.
+operation, which relates to the ``PyObject_Call`` C-API.
 
-Print statements
+Print Statements
 ----------------
 
 The ``print`` statement exists only in Python2. It implicitly converts
@@ -2691,6 +2713,8 @@ whole print statement.
 
 This is being reformulated to:
 
+.. code:: python
+
    try:
       tmp_target = target_file
 
@@ -2718,34 +2742,76 @@ Builtin ``zip`` for Python2
 .. code:: python
 
    def _zip(a, b, c):  # Potentially more arguments.
-       # First assign, to preserve order of execution,
-       # the arguments might be complex expressions.
-       tmp_arg1 = a
-       tmp_arg2 = b
-       tmp_arg3 = c
-       # more arguments here ...
+      # First assign, to preserve the order of execution, the arguments might be
+      # complex expressions with side effects.
+      tmp_arg1 = a
+      tmp_arg2 = b
+      tmp_arg3 = c
+      # could be more
+      ...
 
-       tmp_iter_1 = iter(tmp_arg1)
-       tmp_iter_2 = iter(tmp_arg2)
-       tmp_iter_3 = iter(tmp_arg3)
-       # more arguments here ...
+      # Creation of iterators goes first.
+      try:
+         tmp_iter_1 = iter(tmp_arg1)
+      except TypeError:
+         raise TypeError("zip argument #1 must support iteration")
+      try:
+         tmp_iter_2 = iter(tmp_arg2)
+      except TypeError:
+         raise TypeError("zip argument #2 must support iteration")
+      try:
+         tmp_iter_3 = iter(tmp_arg3)
+      except TypeError:
+         raise TypeError("zip argument #3 must support iteration")
 
-       # could be more
-       tmp_result = []
-       try:
-           while 1:
-               tmp_result.append(
-                   (
-                       next(tmp_iter_1),
-                       next(tmp_iter_2),
-                       next(tmp_iter_3),
-                       # more arguments here ...
-                   )
-               )
+      # could be more
+      ...
+
+      tmp_result = []
+      try:
+         while 1:
+            tmp_result.append(
+                  (
+                     next(tmp_iter_1),
+                     next(tmp_iter_2),
+                     next(tmp_iter_3),
+                     # more arguments here ...
+                  )
+            )
+      except StopIteration:
+         pass
+
+      return tmp_result
+
+Builtin ``zip`` for Python3
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: python
+
+   for x, y, z in zip(a, b, c):
+       ...
+
+.. code:: python
+
+   def _zip_gen_object(a, b, c, ...):
+       ...
+       # See Python2
+       ...
+
+      # could be more
+      ...
+      while 1:
+           yield (
+               next(tmp_iter_1),
+               next(tmp_iter_2),
+               next(tmp_iter_3),
+               ...
+           )
        except StopIteration:
-           pass
+           break
 
-       return tmp_result
+   for x, y, z in _zip_gen_object(a, b, c):
+       ...
 
 Builtin ``map`` for Python2
 ---------------------------
@@ -2826,8 +2892,8 @@ In the optimization it is turned into
 
 .. note::
 
-   The `lambda` stands here for a reference to the function, rather than
-   a variable reference, this is the normal forward propagation of
+   The ``lambda`` stands here for a reference to the function, rather
+   than a variable reference, this is the normal forward propagation of
    values, and does not imply duplicating or moving any code at all.
 
 At this point, we still have not resolved the actual call arguments to
@@ -3034,6 +3100,53 @@ variable traces that they might be affected. It represents the bit of
 ``exec`` in Python2, that treats ``None`` as the locals argument as an
 indication to copy back.
 
+Optimizing Attribute Lookups into Method Calls for Built-ins types
+==================================================================
+
+The attribute lookup node ``ExpressionAttributeLookup`` represents
+looking up an attribute name, that is known to be a string. That's
+already a bit more special, than say what ``ExpressionBuiltinGetattr``
+does for ``getattr``, where it could be any object being looked up. From
+the Python syntax however, these are what gets created, as it's not
+allowed in any other way. So, this is where this starts.
+
+Then, when we are creating an attribute node with a *fixed* name, we
+dispatch it to generated node classes, e.g.
+``ExpressionAttributeLookupFixedAppend``. This will be the same, except
+that the attribute name is hardcoded.
+
+There are generated, such that they can have code that is special for
+``.append`` lookups. In their case, it makes sense to ask the source, if
+they are a ``list`` object exactly. It doesn't make sense to do this
+check for names that the ``list`` does not contain. So at that stage, we
+are saving both a bit of memory and time.
+
+Should this question succeed, i.e. the expression the attribute values
+is looked up upon, is known to be a ``list`` exactly, we persist this
+knowledge in the also generated nodes that represent ``list.append`` and
+just that. It is called ``ExpressionAttributeLookupListAppend`` and only
+represents the knowledge gained so far.
+
+We do not consider if ``ExpressionAttributeLookupFixedAppend`` is
+called, or not, passed as an argument, assigned somewhere, it doesn't
+matter yet, but for ``ExpressionAttributeLookupListAppend`` we know a
+hell of a lot more. We know its type, we know attributes for it, say
+``__name__``, as it is a compile time constant, therefore much
+optimization can follow for them, and code generation can specialize
+them too (not yet done).
+
+Should these nodes then, and say this happens later after some inlining
+happens be seen as called, we can then turn them into method call nodes,
+checking the arguments and such, this is then
+``ExpressionListOperationAppend`` and at this point, will raising errors
+with wrong argument counts.
+
+And then we have this ``ExpressionListOperationAppend`` which will
+influence the tracing of ``list`` contents, i.e. it will be able to tell
+the ``list`` in question is no more empty after this ``append``, and it
+will be able to at least predict the last element value, truth value of
+the list, etc.
+
 ******************************
  Plan to add "ctypes" support
 ******************************
@@ -3148,10 +3261,12 @@ here:
 
 Instead, we would probably say that for this expression:
 
-   -  The result is a ``str`` or a C level ``PyStringObject *``.
-   -  We know its length exactly, it's ``10000000000000``.
-   -  Can predict every of its elements when sub-scripted, sliced, etc.,
-      if need be, with a function we may create.
+-  The result is a ``str`` or a C level ``PyStringObject *``.
+
+-  We know its length exactly, it's ``10000000000000``.
+
+-  Can predict every of its elements when sub-scripted, sliced, etc., if
+   need be, with a function we may create.
 
 Similar is true for this horrible (in Python2) thing:
 
@@ -3161,10 +3276,12 @@ Similar is true for this horrible (in Python2) thing:
 
 So it's a rather general problem, this time we know:
 
-   -  The result is a ``list`` or C level ``PyListObject *``
-   -  We know its length exactly, ``10000000000000``
-   -  Can predict every of its elements when index, sliced, etc., if
-      need be, with a function.
+-  The result is a ``list`` or C level ``PyListObject *``.
+
+-  We know its length exactly, ``10000000000000``.
+
+-  Can predict every of its elements when index, sliced, etc., if need
+   be, with a function.
 
 Again, we wouldn't want to create the list. Therefore Nuitka avoids
 executing these calculation, when they result in constants larger than a
@@ -3239,10 +3356,12 @@ See the section about "Importing".
 So that part is "easy", and it's what will happen. During optimization,
 when the module ``__import__`` expression is examined, it should say:
 
-   -  ``ctypes`` is a module
-   -  ``ctypes`` is from standard library (if it is, might not be true)
-   -  ``ctypes`` then has code behind it, called ``ModuleFriend`` that
-      knows things about it attributes, that should be asked.
+-  ``ctypes`` is a module
+
+-  ``ctypes`` is from standard library (if it is, might not be true)
+
+-  ``ctypes`` then has code behind it, called ``ModuleFriend`` that
+   knows things about it attributes, that should be asked.
 
 The later is the generic interface, and the optimization should connect
 the two, of course via package and module full names. It will need a
@@ -3270,7 +3389,7 @@ something else.
 
 Depending on how well we control module variable assignment, we can
 decide this more of less quickly. With "compiled modules" types, the
-expectation is that it's merely a quick C `==` comparison check. The
+expectation is that it's merely a quick C ``==`` comparison check. The
 module friend should offer code to allow a check if it applies, for
 uncertain cases.
 
@@ -3345,15 +3464,20 @@ impact the return value.
 
 We should e.g. be able to make ``my_append`` tell, one or more of these:
 
-   -  Returns the first parameter value as return value (unless it
-      raises an exception).
-   -  The return value has the same type as ``a`` (unless it raises an
-      exception).
-   -  The return value has an ``append`` attribute.
-   -  The return value might be a ``list`` object.
-   -  The return value may not be a ``str`` object.
-   -  The function will raise if first argument has no ``append``
-      attribute.
+-  Returns the first parameter value as return value (unless it raises
+   an exception).
+
+-  The return value has the same type as ``a`` (unless it raises an
+   exception).
+
+-  The return value has an ``append`` attribute.
+
+-  The return value might be a ``list`` object.
+
+-  The return value may not be a ``str`` object.
+
+-  The function will raise if first argument has no ``append``
+   attribute.
 
 The exactness of statements may vary. But some things may be more
 interesting. If e.g. the aliasing of a parameter value to the return
@@ -3451,14 +3575,15 @@ their new information.
 
 In the above case:
 
-   -  The "yes" branch knows variable ``x`` is an ``int`` of constant
-      value ``1``
-   -  The "no" branch knows variable ``x`` is an ``int`` of constant
-      value ``2``
+-  The "yes" branch knows variable ``x`` is an ``int`` of constant value
+   ``1``
+
+-  The "no" branch knows variable ``x`` is an ``int`` of constant value
+   ``2``
 
 That might be collapsed to:
 
-   -  The variable ``x`` is an integer of value in ``(1,2)``
+-  The variable ``x`` is an integer of value in ``(1,2)``
 
 Given this, we then should be able to precompute the value of this:
 
@@ -3468,11 +3593,11 @@ Given this, we then should be able to precompute the value of this:
 
 The comparison operator can therefore decide and tell:
 
-   -  The variable ``b`` is a boolean of constant value ``True``.
+-  The variable ``b`` is a boolean of constant value ``True``.
 
 Were it unable to decide, it would still be able to say:
 
-   -  The variable ``b`` is a boolean.
+-  The variable ``b`` is a boolean.
 
 For conditional statements optimization, it's also noteworthy, that the
 condition is known to pass or not pass the truth check, inside branches,
@@ -4045,24 +4170,20 @@ Limitations for now
 
    This design is not likely to be the final one.
 
-.. raw:: pdf
-
-   PageBreak
-
 ***********************************
  How to make Features Experimental
 ***********************************
 
 Every experimental feature needs a name. We have a rule to pick a name
 with lower case and ``_`` as separators. An example of with would be the
-name ``jinja_generated_add`` that has been used.
+name ``jinja_generated_add`` that has been used in the past.
 
 Command Line
 ============
 
 Experimental features are enabled with the command line argument
 
-.. code:: sh
+.. code:: bash
 
    nuitka --experimental=jinja_generated_add ...
 
@@ -4143,30 +4264,36 @@ The list of runtime dependencies is in ``requirements.txt`` and it is
 for those the case, that they are not really required to be installed by
 the user, consider this snippet:
 
-   # Folders to use for cache files. appdirs == 1.4.4
+.. code:: python
+
+   # Folders to use for cache files.
+   appdirs
 
    # Scons is the backend building tool to turn C files to binaries.
-   scons == 3.1.2
+   scons
 
 For both these dependencies, there is either an inline copy (Scons) that
-we handle to use in case, Scons is not available (in fact we have a
-version that works with Python 2.6 and 2.7 still), and also for appdirs.
+we handle to use in case, if Scons is not available (in fact we have a
+version that works with Python 2.6 and 2.7 still), and also the same for
+appdirs and every dependency.
+
 But since inline copies are against the rules on some platforms that
-still do not contain the package, we even have our own wrapper which
-provides a minimal fallback.
+still do not contain the package, we often even have our own wrapper
+which provides a minimal fallback or exposes a sane interface for the
+subset of functionality that we use.
 
 .. note::
 
    Therefore, please if you consider adding one of these, get in touch
-   with @Nuitka-pushers first and get a green light.
+   with ``@Nuitka-pushers`` first and get a green light.
 
 Adding a Development Dependency
 ===============================
 
 A typical example of a development dependency is ``black`` which is used
-by our autoformat, and then in turn by the git pre-commit hook. It is
-used to format source code, and doesn't have a role at run time of the
-actual compiler code of Nuitka.
+by our autoformat tool, and then in turn by the git pre-commit hook. It
+is used to format source code, and doesn't have a role at run time of
+the actual compiler code of Nuitka.
 
 Much less strict rules apply to these in comparison to runtime
 dependencies. Generally please take care that the tool must be well
@@ -4177,16 +4304,18 @@ justify it a bit better.
 The list of development dependencies is in ``requirements-devel.txt``
 and it is for example like this:
 
-   # API doc, doxygen helper for Python doxypypy == 0.8.8.6 ;
-   python_version >= '2.7'
+.. code:: python
 
-So the ``doxypypy`` likely practically anything requires 2.7 or higher,
-but since we still run tests on Python 2.6, the installation would fail
-with that version, so we need to make a version requirement. Sometimes
-we use older versions for Python2 than for Python3, ``pylint`` being a
-notable candidate, but generally we ought to avoid that. For many tools
-only being available for currently 3.6 or higher is good enough, esp. if
-they are run as standalone tools, like ``autoformat-nuitka-source`` is.
+   # Autoformat needs this
+   rstfmt == 0.0.10 ; python_version >= '3.7'
+
+We always add the version, so that when tests run on as old versions as
+Python 2.6, the installation would fail with that version, so we need to
+make a version requirement. Sometimes we use older versions for Python2
+than for Python3, ``Jinaj2`` being a notable candidate, but generally we
+ought to avoid that. For many tools only being available for currently
+3.7 or higher is good enough, esp. if they are run as development tools,
+like ``autoformat-nuitka-source`` is.
 
 **********
  Idea Bin
@@ -4349,10 +4478,6 @@ issues created, etc.
    An earlier step may raise ``RuntimeError`` error, when built-in
    module values are written to, that we don't support.
 
-.. raw:: pdf
-
-   PageBreak
-
 -  Recursion checks are expensive.
 
    If the "caller" or the "called" can declare that it cannot be called
@@ -4360,10 +4485,6 @@ issues created, etc.
 
    TODO: Are they really that expensive? Unnecessary yes, but expensive
    may not be true.
-
-.. raw:: pdf
-
-   PageBreak
 
 ******************
  Prongs of Action
@@ -4457,7 +4578,7 @@ potential expensive optimization on the module level.
 *************************
 
 This document is written in REST. That is an ASCII format which is
-readable as ASCII, but used to generate PDF or HTML documents.
+readable to human, but easily used to generate PDF or HTML documents.
 
 You will find the current source under:
 https://github.com/Nuitka/Nuitka/blob/develop/Developer_Manual.rst

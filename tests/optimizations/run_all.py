@@ -48,9 +48,7 @@ sys.path.insert(
 )
 
 # isort:start
-from nuitka.TreeXML import toString
-
-from nuitka.tools.testing.Common import (  # isort:skip
+from nuitka.tools.testing.Common import (
     check_output,
     convertUsing2to3,
     createSearchMode,
@@ -58,8 +56,9 @@ from nuitka.tools.testing.Common import (  # isort:skip
     my_print,
     setup,
 )
+from nuitka.TreeXML import toString
 
-python_version = setup()
+python_version = setup(suite="optimiations")
 
 search_mode = createSearchMode()
 

@@ -21,7 +21,7 @@
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
-class EventletPlugin(NuitkaPluginBase):
+class NuitkaPluginEventlet(NuitkaPluginBase):
     """This class represents the main logic of the plugin."""
 
     plugin_name = "eventlet"

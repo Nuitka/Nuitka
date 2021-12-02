@@ -25,7 +25,11 @@ import hashlib
 import os
 import sys
 
-from nuitka.utils.FileOperations import areSamePaths
+from nuitka.utils.FileOperations import (
+    areSamePaths,
+    getFileContents,
+    putTextFileContents,
+)
 
 
 class SearchModeBase(object):
@@ -134,8 +138,7 @@ class SearchModeResume(SearchModeBase):
         self.cache_filename = cache_filename
 
         if os.path.exists(cache_filename):
-            with open(cache_filename, "r") as f:
-                self.resume_from = f.read() or None
+            self.resume_from = getFileContents(cache_filename) or None
         else:
             self.resume_from = None
 
@@ -151,8 +154,7 @@ class SearchModeResume(SearchModeBase):
         path = os.path.join(*parts)
 
         if self.active:
-            with open(self.cache_filename, "w") as f:
-                f.write(path)
+            putTextFileContents(self.cache_filename, contents=path)
 
             return True
 

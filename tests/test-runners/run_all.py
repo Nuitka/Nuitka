@@ -42,11 +42,11 @@ sys.path.insert(
 import subprocess
 
 from nuitka.tools.testing.Common import getTempDir, my_print, setup
-from nuitka.utils.FileOperations import copyTree
+from nuitka.utils.FileOperations import copyTree, openTextFile
 
 
 def main():
-    setup()
+    setup(suite="test-runners")
 
     os.chdir("subject")
 
@@ -56,7 +56,7 @@ def main():
     command = [
         os.environ["PYTHON"],
         nuitka_main_path,
-        "--plugin-enable=pylint-warnings",
+        "--enable-plugin=pylint-warnings",
         "--output-dir=%s" % tmp_dir,
         "--follow-imports",
         "--include-package=package",
@@ -79,7 +79,7 @@ def main():
 
     # We compile the package non-closed, so we can smuggle in tests
     # and user code. This is going to be the example code.
-    with open("package.ext/package/user_provided.py", "w") as output:
+    with openTextFile("package.ext/package/user_provided.py", "w") as output:
         # TODO: Maybe assert that the type name of a local function and one from
         # the package are not the same, i.e. we are running inside the compiled
         # package.
@@ -111,7 +111,7 @@ print("__file__:",    package.sub_package1.tests.__file__)
         )
 
     os.makedirs("nose")
-    with open("nose/usage.txt", "w") as output:
+    with openTextFile("nose/usage.txt", "w") as output:
         pass
 
     os.system("find | sort")
@@ -125,7 +125,9 @@ print("__file__:",    package.sub_package1.tests.__file__)
     # Lets make sure these to not work. These will be used in the compiled
     # form only.
     for module_path in ("__init__.py", "sub_package1__init__.py"):
-        with open(os.path.join("./package.ext/package", module_path), "w") as output:
+        with openTextFile(
+            os.path.join("./package.ext/package", module_path), "w"
+        ) as output:
             output.write("assert False")
 
     # Check the compiled package is functional for importing.

@@ -76,7 +76,7 @@ def main():
     # Complex stuff, even more should become common code or project options though.
     # pylint: disable=too-many-branches,too-many-statements
 
-    python_version = setup(needs_io_encoding=True)
+    python_version = setup(suite="standalone", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 

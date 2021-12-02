@@ -27,7 +27,7 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode
-from .PythonAPICodes import generateCAPIObjectCode
+from .PythonAPICodes import generateCAPIObjectCode, makeArgDescFromExpression
 from .TupleCodes import getTupleCreationCode
 
 
@@ -222,6 +222,26 @@ def generateBuiltinAsciiCode(to_name, expression, emit, context):
         to_name=to_name,
         capi="PyObject_ASCII",
         arg_desc=(("ascii_arg", expression.subnode_value),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateStrOperationCode(to_name, expression, emit, context):
+    api_name = expression.kind.rsplit("_")[-1]
+
+    if str is bytes:
+        api_name = "STR_" + api_name
+    else:
+        api_name = "UNICODE_" + api_name
+
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi=api_name,
+        arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),

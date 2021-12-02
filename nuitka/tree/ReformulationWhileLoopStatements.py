@@ -74,7 +74,7 @@ from .TreeHelpers import (
 
 
 def buildWhileLoopNode(provider, node, source_ref):
-    # The while loop is re-formulated according to developer manual. The
+    # The while loop is re-formulated according to Developer Manual. The
     # condition becomes an early condition to break the loop. The else block is
     # taken if a while loop exits normally, i.e. because of condition not being
     # true. We do this by introducing an indicator variable.

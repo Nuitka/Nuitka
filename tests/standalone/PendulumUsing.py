@@ -22,6 +22,8 @@
 When this import works, locales are there.
 """
 
+# nuitka-project: --standalone
+
 from __future__ import print_function
 
 import pendulum.locales

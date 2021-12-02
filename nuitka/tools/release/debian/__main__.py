@@ -4,8 +4,6 @@
 
 """
 
-from __future__ import print_function
-
 import os
 import shutil
 from optparse import OptionParser
@@ -17,6 +15,12 @@ from nuitka.tools.release.Debian import (
 )
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName, getBranchCategory
+from nuitka.Tracing import my_print
+from nuitka.utils.Execution import check_call
+from nuitka.utils.FileOperations import (
+    putTextFileContents,
+    resolveShellPatternToFilenames,
+)
 from nuitka.Version import getNuitkaVersion
 
 
@@ -101,7 +105,7 @@ Update the pbuilder chroot before building. Default %default.""",
     # warnings given. Nuitka is lintian clean and shall remain that way. For
     # hotfix releases, i.e. "stable" builds, we skip this test though.
     if category == "stable":
-        print("Skipped lintian checks for stable releases.")
+        my_print("Skipped lintian checks for stable releases.", style="blue")
     else:
         assert os.system("lintian --pedantic --allow-root dist/deb_dist/*.changes") == 0
 
@@ -121,21 +125,31 @@ sudo /usr/sbin/pbuilder --update --basetgz  /var/cache/pbuilder/%s.tgz""" % (
 
         assert os.system(command) == 0, codename
 
+    (dsc_filename,) = resolveShellPatternToFilenames("dist/deb_dist/*.dsc")
     # Execute the package build in the pbuilder with tests.
     command = (
-        """\
-sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s.tgz \
---hookdir debian/pbuilder-hookdir --debemail "Kay Hayen <kay.hayen@gmail.com>" \
---buildresult package dist/deb_dist/*.dsc"""
-        % codename
+        "sudo",
+        "/usr/sbin/pbuilder",
+        "--build",
+        "--basetgz",
+        "/var/cache/pbuilder/%s.tgz" % codename,
+        "--hookdir",
+        "debian/pbuilder-hookdir",
+        "--debemail",
+        "Kay Hayen <kay.hayen@gmail.com>",
+        "--buildresult",
+        "package",
+        dsc_filename,
     )
 
-    assert os.system(command) == 0, codename
+    check_call(command, shell=False)
 
     # Cleanup the build directory, not needed anymore.
     shutil.rmtree("build", ignore_errors=True)
 
     # Now build the repository.
+    my_print("Building repository ...", style="blue")
+
     os.chdir("package")
 
     os.makedirs("repo")
@@ -143,9 +157,9 @@ sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s.tgz \
 
     os.makedirs("conf")
 
-    with open("conf/distributions", "w") as output:
-        output.write(
-            """\
+    putTextFileContents(
+        "conf/distributions",
+        contents="""\
 Origin: Nuitka
 Label: Nuitka
 Codename: %(codename)s
@@ -154,12 +168,15 @@ Components: main
 Description: Apt repository for project Nuitka %(codename)s
 SignWith: D96ADCA1377F1CEB6B5103F11BFC33752912B99C
 """
-            % {"codename": codename}
-        )
+        % {"codename": codename},
+    )
 
-    assert os.system("reprepro includedeb %s ../*.deb" % codename) == 0
+    command = ["reprepro", "includedeb", codename]
+    command.extend(resolveShellPatternToFilenames("../*.deb"))
 
-    print("Uploading...")
+    check_call(command, shell=False)
+
+    my_print("Uploading ...", style="blue")
 
     # Create repo folder unless already done. This is needed for the first
     # build only.
@@ -179,4 +196,4 @@ SignWith: D96ADCA1377F1CEB6B5103F11BFC33752912B99C
         == 0
     )
 
-    print("Finished.")
+    my_print("Finished.", style="blue")

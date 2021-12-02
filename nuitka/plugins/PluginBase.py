@@ -18,7 +18,7 @@
 """
 Plugins: Welcome to Nuitka! This is your shortest way to become part of it.
 
-This is to provide the base class for all plug-ins. Some of which are part of
+This is to provide the base class for all plugins. Some of which are part of
 proper Nuitka, and some of which are waiting to be created and submitted for
 inclusion by you.
 
@@ -45,7 +45,7 @@ warned_unused_plugins = set()
 
 
 class NuitkaPluginBase(getMetaClassBase("Plugin")):
-    """Nuitka base class for all plug-ins.
+    """Nuitka base class for all plugins.
 
     Derive your plugin from "NuitkaPluginBase" please.
     For instructions, see https://github.com/Nuitka/Nuitka/blob/orsiris/UserPlugin-Creation.rst
@@ -59,7 +59,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     certain situations.
 
     A plugin in general must be enabled to be used by Nuitka. This happens by
-    specifying "--plugin-enable" (standard plugins) or by "--user-plugin" (user
+    specifying "--enable-plugin" (standard plugins) or by "--user-plugin" (user
     plugins) in the Nuitka command line. However, some plugins are always enabled
     and invisible to the user.
 
@@ -169,9 +169,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
-    # Provide fall-back for failed imports here.
-    module_aliases = {}
-
     def considerFailedImportReferrals(self, module_name):
         """Provide a dictionary of fallback imports for modules that failed to import.
 
@@ -180,7 +177,8 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         Returns:
             dict
         """
-        return self.module_aliases.get(module_name)
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
 
     def onModuleSourceCode(self, module_name, source_code):
         """Inspect or modify source code.
@@ -310,6 +308,19 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         """
         # Virtual method, pylint: disable=no-self-use
         return ()
+
+    def onModuleCompleteSet(self, module_set):
+        """Provide extra modules to the initial root module set.
+
+        Args:
+            module_set - tuple of module objects
+        Returns:
+            None
+        Notes:
+            You must not change anything, this is purely for warning
+            and error checking, and potentially for later stages to
+            prepare.
+        """
 
     @staticmethod
     def locateModule(importing, module_name):
@@ -556,6 +567,21 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use
         return None
 
+    def getExtraLinkDirectories(self):
+        """Decide which link directories should be added.
+
+        Notes:
+            Directories provided multiple times, e.g. by multiple plugins are
+            only added once.
+
+        Returns:
+            None for no extra link directory, otherwise the name as a **str**
+            or an iterable of names of link directories.
+        """
+
+        # Virtual method, pylint: disable=no-self-use
+        return None
+
     def warnUnusedPlugin(self, message):
         """An inactive plugin may issue a warning if it believes this may be wrong.
 
@@ -566,7 +592,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             warned_unused_plugins.add(self.plugin_name)
 
             plugins_logger.warning(
-                "Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message)
+                "Use '--enable-plugin=%s' for: %s" % (self.plugin_name, message)
             )
 
     def onDataComposerResult(self, blob_filename):
@@ -657,7 +683,7 @@ except ImportError:
         ).key
 
     @staticmethod
-    def onFunctionAssignmentParsed(module_name, function_body, assign_node):
+    def onFunctionBodyParsing(module_name, function_name, body):
         pass
 
     @classmethod

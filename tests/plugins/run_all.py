@@ -41,27 +41,16 @@ sys.path.insert(
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
+    getMainProgramFilename,
     my_print,
     setup,
     withPythonPathChange,
 )
 
 
-def getMainProgramFilename(filename):
-    for filename_main in os.listdir(filename):
-        if filename_main.endswith(("Main.py", "Main")):
-            return filename_main
-
-    sys.exit(
-        """\
-Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case."""
-        % (filename)
-    )
-
-
 def main():
     # Complex stuff, even more should become common code though.
-    setup(needs_io_encoding=True)
+    setup(suite="plugins", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 

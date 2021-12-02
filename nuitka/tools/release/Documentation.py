@@ -19,13 +19,18 @@
 
 """
 
-from __future__ import print_function
-
 import os
 import sys
 
+from nuitka.Tracing import my_print
 from nuitka.utils.Execution import check_call
-from nuitka.utils.FileOperations import getFileList
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    getFileList,
+    openTextFile,
+    putTextFileContents,
+)
+from nuitka.utils.Rest import createPDF
 
 
 def optimize_pngs(pngList):
@@ -60,7 +65,7 @@ def makeLogoImages():
 def checkRstLint(document):
     import restructuredtext_lint  # pylint: disable=I0021,import-error
 
-    print("Checking %r for proper restructed text ..." % document)
+    my_print("Checking %r for proper restructed text ..." % document, style="blue")
     lint_results = restructuredtext_lint.lint_file(document, encoding="utf8")
 
     lint_error = False
@@ -69,13 +74,13 @@ def checkRstLint(document):
         if lint_result.message.startswith("Duplicate implicit target name:"):
             continue
 
-        print(lint_result)
+        my_print(lint_result, style="yellow")
         lint_error = True
 
     if lint_error:
         sys.exit("Error, no lint clean rest.")
 
-    print("OK.")
+    my_print("OK.", style="blue")
 
 
 def makeManpages():
@@ -93,13 +98,16 @@ def makeManpages():
             "doc/nuitka-man-include.txt",
             "%s ./bin/nuitka" % python,
         ]
-        check_call(cmd, stdout=open("doc/nuitka%s.1" % suffix, "wb"))
+
+        with openTextFile("doc/nuitka%s.1" % suffix, "wb") as output:
+            check_call(cmd, stdout=output)
         cmd[-1] += "-run"
-        check_call(cmd, stdout=open("doc/nuitka%s-run.1" % suffix, "wb"))
+        with openTextFile("doc/nuitka%s-run.1" % suffix, "wb") as output:
+            check_call(cmd, stdout=output)
 
         for manpage in ("doc/nuitka%s.1" % suffix, "doc/nuitka%s-run.1" % suffix):
-            with open(manpage) as f:
-                manpage_contents = f.readlines()
+            manpage_contents = getFileContents(manpage).splitlines()
+
             new_contents = []
             mark = False
 
@@ -116,31 +124,17 @@ def makeManpages():
 
                 new_contents.append(line)
 
-            with open(manpage, "w") as f:
-                f.writelines(new_contents)
+            putTextFileContents(manpage, contents=new_contents)
 
     makeManpage("python2", "")
     makeManpage("python3", "3")
-
-
-def createRstPDF(document, args):
-    check_call(["rst2pdf"] + args + [document])
 
 
 def createReleaseDocumentation():
     checkReleaseDocumentation()
 
     for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):
-        args = []
-
-        if document != "Changelog.rst":
-            args.append("-s")
-            args.append("doc/page-styles.txt")
-
-            args.append('--header="###Title### - ###Section###"')
-            args.append('--footer="###Title### - page ###Page### - ###Section###"')
-
-        createRstPDF(document, args)
+        createPDF(document)
 
     if os.name != "nt":
         makeManpages()
@@ -151,6 +145,7 @@ def checkReleaseDocumentation():
         entry
         for entry in getFileList(".")
         if entry.endswith(".rst") and not entry.startswith("web" + os.path.sep)
+        if "inline_copy" not in entry
     ]
 
     for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):

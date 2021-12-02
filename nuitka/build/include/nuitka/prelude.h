@@ -51,12 +51,6 @@
 #include "pydebug.h"
 #endif
 
-#if defined(_NUITKA_STATIC_LIBPYTHON)
-#define _NUITKA_USE_UNEXPOSED_API 1
-#else
-#define _NUITKA_USE_UNEXPOSED_API 0
-#endif
-
 // We are not following the 3.10 change to an inline function. At least
 // not immediately.
 #if PYTHON_VERSION >= 0x3a0
@@ -94,9 +88,13 @@ extern _PyRuntimeState _PyRuntime;
 #endif
 
 #if PYTHON_VERSION >= 0x390
+#include <internal/pycore_ceval.h>
 #include <internal/pycore_interp.h>
 #include <internal/pycore_runtime.h>
 #endif
+
+// TODO: Might be useful too, allows access to Python configuration.
+// #include <internal/pycore_initconfig.h>
 
 #undef PyThreadState_GET
 #define _PyThreadState_Current _PyRuntime.gilstate.tstate_current

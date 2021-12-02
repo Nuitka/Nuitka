@@ -173,9 +173,7 @@ Convert conditional expression with unused result into conditional statement."""
         )
 
     def mayHaveSideEffectsBool(self):
-        if self.subnode_condition.mayHaveSideEffectsBool():
-            return True
-
+        # The bool will me made on either side.
         if self.subnode_expression_yes.mayHaveSideEffectsBool():
             return True
 
@@ -326,6 +324,7 @@ branches."""
         return False
 
     def mayRaiseExceptionBool(self, exception_type):
+        # The and/or bool will be working on either side.
         if self.subnode_left.mayRaiseExceptionBool(exception_type):
             return True
 

@@ -19,8 +19,6 @@
 
 """ Make PyPI upload of Nuitka, and check success of it. """
 
-from __future__ import print_function
-
 import os
 import shutil
 import sys
@@ -37,35 +35,48 @@ def main():
 
     branch_name = checkBranchName()
 
-    # Only real master releases so far.
-    assert branch_name == "master", branch_name
-    assert "pre" not in nuitka_version and "rc" not in nuitka_version
+    check_mode = "--check" in sys.argv
 
-    my_print("Working on Nuitka %r." % nuitka_version)
+    # Only real master releases so far.
+    if not check_mode:
+        assert branch_name == "master", branch_name
+        assert "pre" not in nuitka_version and "rc" not in nuitka_version
+
+    my_print("Working on Nuitka %r." % nuitka_version, style="blue")
 
     shutil.rmtree("check_nuitka", ignore_errors=True)
     shutil.rmtree("dist", ignore_errors=True)
 
-    my_print("Creating documentation.")
+    my_print("Creating documentation.", style="blue")
     createReleaseDocumentation()
-    my_print("Creating source distribution.")
+    my_print("Creating source distribution.", style="blue")
     assert os.system("umask 0022 && chmod -R a+rX . && python setup.py sdist") == 0
 
-    my_print("Creating a virtualenv for quick test:")
-    with withVirtualenv("check_nuitka") as venv:
+    with withVirtualenv("venv_nuitka", style="blue") as venv:
         my_print("Installing Nuitka into virtualenv:", style="blue")
         my_print("*" * 40, style="blue")
         venv.runCommand("python -m pip install ../dist/Nuitka*.tar.gz")
         my_print("*" * 40, style="blue")
 
-        print("Compiling basic test:")
+        my_print("Compiling basic test with runner:", style="blue")
         my_print("*" * 40, style="blue")
-        venv.runCommand("nuitka-run ../tests/basics/Asserts.py")
+        venv.runCommand(
+            "nuitka%d-run ../tests/basics/Asserts.py" % sys.version_info[0],
+            style="blue",
+        )
+        my_print("*" * 40, style="blue")
+
+        my_print("Compiling basic test with recommended -m mode:", style="blue")
+        my_print("*" * 40, style="blue")
+        venv.runCommand(
+            "python -m nuitka ../tests/basics/Asserts.py",
+            style="blue",
+        )
         my_print("*" * 40, style="blue")
 
     assert os.system("twine check dist/*") == 0
 
-    if "--check" not in sys.argv:
+    if not check_mode:
         my_print("Uploading source dist")
         assert os.system("twine upload dist/*") == 0
         my_print("Uploaded.")

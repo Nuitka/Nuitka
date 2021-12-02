@@ -25,6 +25,7 @@ __pycache__/
 *.optimization.log
 *.inclusion.log
 *.strace
+*.nuitka-pgo
 .mypy_cache
 *.egg-info
 tests/reflected/nuitka/
@@ -68,3 +69,4 @@ doxygen-*
 .vscode/ipch
 .vscode/tags
 .vscode/.ropeproject
+Nuitka-*

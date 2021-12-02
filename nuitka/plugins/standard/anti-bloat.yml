@@ -1,76 +1,85 @@
+---
+# yamllint disable rule:line-length
 psutil:
-  description:
-    "resolve platform specific imports at compile time"
+  description: "resolve platform specific imports at compile time"
   context:
     - "import psutil"
   replacements:
-    "from ._common import AIX" : "'AIX = %r' % psutil.AIX"
-    "from ._common import BSD" : "'BSD = %r' % psutil.BSD"
-    "from ._common import FREEBSD" : "'FREEBSD = %r' % + psutil.FREEBSD"
-    "from ._common import LINUX" : "'LINUX = %r' % + psutil.LINUX"
-    "from ._common import MACOS" : "'MACOS = %r' % + psutil.MACOS"
-    "from ._common import NETBSD" : "'NETBSD = %r' % + psutil.NETBSD"
-    "from ._common import OPENBSD" : "'OPENBSD = %r' % + psutil.OPENBSD"
-    "from ._common import OSX" : "'OSX = %r' % psutil.OSX"
-    "from ._common import POSIX" : "'POSIX = %r' % psutil.POSIX"
-    "from ._common import SUNOS" : "'SUNOS = %r' % psutil.SUNOS"
-    "from ._common import WINDOWS" : "'WINDOWS = %r' % psutil.WINDOWS"
+    "from ._common import AIX": "'AIX = %r' % psutil.AIX"
+    "from ._common import BSD": "'BSD = %r' % psutil.BSD"
+    "from ._common import FREEBSD": "'FREEBSD = %r' % + psutil.FREEBSD"
+    "from ._common import LINUX": "'LINUX = %r' % + psutil.LINUX"
+    "from ._common import MACOS": "'MACOS = %r' % + psutil.MACOS"
+    "from ._common import NETBSD": "'NETBSD = %r' % + psutil.NETBSD"
+    "from ._common import OPENBSD": "'OPENBSD = %r' % + psutil.OPENBSD"
+    "from ._common import OSX": "'OSX = %r' % psutil.OSX"
+    "from ._common import POSIX": "'POSIX = %r' % psutil.POSIX"
+    "from ._common import SUNOS": "'SUNOS = %r' % psutil.SUNOS"
+    "from ._common import WINDOWS": "'WINDOWS = %r' % psutil.WINDOWS"
 
 cffi.ffiplatform:
-  description:
-    "disable distutils hacks"
+  description: "disable distutils hacks"
   replacements:
-    "import setuptools" : "'pass'"
+    "import setuptools": "'pass'"
 
 skimage:
-  description:
-    "remove pytest testing framework"
+  description: "remove pytest testing framework"
   replacements:
-    "imp.find_module('pytest')" : "'None'"
+    "imp.find_module('pytest')": "'None'"
   change_function:
     "_test": "'(lambda: None)'"
 
 sklearn.random_projection:
-  description:
-    "remove numpy testing framework"
+  description: "remove numpy testing framework"
   replacements:
-    "from numpy.testing import assert_equal" : "r'assert_equal = (lambda actual, desired, err_msg=None, verbose=True: True)'"
+    "from numpy.testing import assert_equal": "r'assert_equal = (lambda actual, desired, err_msg=None, verbose=True: True)'"
 
 matplotlib:
-  description:
-    "remove pytest testing framework"
+  description: "remove pytest testing framework"
   replacements:
-    "test.__test__ = False" : ""
+    "test.__test__ = False": ""
   change_function:
     "_init_tests": "'None'"
     "test": "'None'"
+  control_tags:
+    - "allow_ipython"
 
-pandas:
-  description:
-    "remove pandas testing framework"
+matplotlib.backend_bases:
+  description: "remove IPython reference"
+  change_function:
+    "_fix_ipython_backend2gui": "'(lambda cls: None)'"
+  control_tags:
+    - "allow_ipython"
+
+matplotlib.pyplot:
+  description: "remove IPython reference"
+  change_function:
+    "install_repl_displayhook": "'(lambda: None)'"
+    "uninstall_repl_displayhook": "'(lambda: None)'"
+  control_tags:
+    - "allow_ipython"
+
+PIL.ImageShow:
+  description: "remove IPython reference"
   replacements:
-    "import pandas.testing" : ""
-    "from pandas.util._tester import test" : ""
+    "from IPython.display import display as ipython_display": "'raise ImportError'"
 
 jinja2.defaults:
-  description:
-    "remove jinja2 testing framework"
+  description: "remove jinja2 testing framework"
   replacements:
-    "from .tests import TESTS as DEFAULT_TESTS" : ""
+    "from .tests import TESTS as DEFAULT_TESTS": ""
 
 numpy.ctypeslib:
-  description:
-    "remove numpy.distutils references"
+  description: "remove numpy.distutils references"
   context:
     - "import numpy.distutils.misc_util"
   replacements:
-    "from numpy.distutils.misc_util import get_shared_lib_extension" : ""
-    "get_shared_lib_extension()" : "repr(numpy.distutils.misc_util.get_shared_lib_extension())"
-    "get_shared_lib_extension(is_python_ext=True)" : "repr(numpy.distutils.misc_util.get_shared_lib_extension(is_python_ext=True))"
+    "from numpy.distutils.misc_util import get_shared_lib_extension": ""
+    "get_shared_lib_extension()": "repr(numpy.distutils.misc_util.get_shared_lib_extension())"
+    "get_shared_lib_extension(is_python_ext=True)": "repr(numpy.distutils.misc_util.get_shared_lib_extension(is_python_ext=True))"
 
 numpy.testing:
-  description:
-    "remove numpy testing framework"
+  description: "remove numpy testing framework"
   module_code: |
     from contextlib import contextmanager
     class Tester:
@@ -84,17 +93,28 @@ numpy.testing:
     def suppress_warnings(forwarding_rule="always"):
       yield
 
+    @contextmanager
+    def _assert_warns_context(warning_class, name=None):
+        yield
+
+    def assert_warns(warning_class, *args, **kwargs):
+      if not args:
+          return _assert_warns_context(warning_class)
+
+      func = args[0]
+      args = args[1:]
+      with _assert_warns_context(warning_class, name=func.__name__):
+          return func(*args, **kwargs)
+
 numpy._pytesttester:
-  description:
-    "remove numpy testing framework"
+  description: "remove numpy testing framework"
   module_code: |
     class PytestTester:
       def __init__(self, name):
         pass
 
 numpy.testing._private.pytesttester:
-  description:
-    "remove numpy testing framework"
+  description: "remove numpy testing framework"
   module_code: |
     class PytestTester:
       def __init__(self, name):
@@ -102,44 +122,335 @@ numpy.testing._private.pytesttester:
 
 numpy.core.overrides:
   # see #1189, apparently an upstream problem hard to grasp
-  description:
-    "workaround for numpy and python flag 'no_docstrings'"
+  description: "workaround numpy issue with python flag 'no_docstrings' if used"
   replacements:
-    "add_docstring(implementation, dispatcher.__doc__)" : "'''add_docstring(implementation, dispatcher.__doc__ or '')'''"
+    "add_docstring(implementation, dispatcher.__doc__)": "'''add_docstring(implementation, dispatcher.__doc__ or '')'''"
 
 scipy.stats.morestats:
-  description:
-    "remove numpy testing framework"
+  description: "remove numpy testing framework"
   replacements:
-    "from numpy.testing.decorators import setastest" : ""
-    "@setastest(False)" : ""
+    "from numpy.testing.decorators import setastest": ""
+    "@setastest(False)": ""
 
 scipy.lib.numpy_compat:
-  description:
-    "remove numpy testing framework"
+  description: "remove numpy testing framework"
   replacements:
-    "from numpy.testing import suppress_warnings" : "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
-    "NumpyVersion(np.__version__) > '1.7.0.dev'" : "'0'"
+    "from numpy.testing import suppress_warnings": 'r''suppress_warnings = __import__("contextmanager").contextmanager(lambda : (yield))'''
+    "NumpyVersion(np.__version__) > '1.7.0.dev'": "'0'"
 
 scipy._lib._numpy_compat:
-  description:
-    "remove numpy testing framework"
+  description: "remove numpy testing framework"
   replacements:
-    "from numpy.testing import suppress_warnings" : "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
-    "NumpyVersion(np.__version__) > '1.7.0.dev'" : "'0'"
+    "from numpy.testing import suppress_warnings": 'r''suppress_warnings = __import__("contextmanager").contextmanager(lambda : (yield))'''
+    "NumpyVersion(np.__version__) > '1.7.0.dev'": "'0'"
 
 scipy._lib._testutils:
-  description:
-    "remove numpy testing framework"
+  description: "remove numpy testing framework"
   module_code: |
     class PytestTester:
       def __init__(self, name):
         pass
 
+# TODO: Move required stuff like this to separate file and apply it always.
 tensorflow.python.ops.distributions.distribution:
-  description:
-    "remove useless function copying"
+  description: "remove useless function copying"
   change_function:
     "_copy_fn": "'(lambda fn: fn)'"
   replacements:
-    "class_attr_value.__doc__" : "class_attr_value___doc__"
+    "class_attr_value.__doc__ = _update_docstring": "'class_attr_value___doc__ = _update_docstring'"
+
+gevent._util:
+  description: "remove gevent release framework"
+  change_function:
+    "prereleaser_middle": "'(lambda data: None)'"
+    "postreleaser_before": "'(lambda data: None)'"
+
+inspect:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_main": "'(lambda: None)'"
+
+sysconfig:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_main": "'(lambda: None)'"
+
+ensurepip:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_main": "'(lambda: None)'"
+
+ensurepip._uninstall:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_main": "'(lambda: None)'"
+
+pyclbr:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_main": "'(lambda: None)'"
+
+mimetypes:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_main": "'(lambda: None)'"
+
+tarfile:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+quopri:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+zipfile:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+gzip:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+    "_test": "'(lambda: None)'"
+
+base64:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+    "test": "'(lambda: None)'"
+
+ast:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+tokenize:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+keyword:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+tabnanny:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+trace:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "main": "'(lambda: None)'"
+
+uu:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+xmllib:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+mhlib:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+sgmllib:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+imghdr:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+audiodev:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+BaseHTTPServer:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+sndhdr:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+ftplib:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+mailcap:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+lib2to3.pgen2.literals:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+rexec:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+modulefinder:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+StringIO:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+fpformat:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+telnetlib:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+ctypes.util:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+formatter:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "test": "'(lambda: None)'"
+
+pickletools:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+random:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+dis:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+threading:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+xml.sax.xmlreader.py:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+doctest:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+difflib:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+Cookie:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+locale:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+binhex:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+copy:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+pickle:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+Bastion:
+  description: "remove module ability to run as a binary"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+h5py:
+  description: "remove h5py testing framework"
+  change_function:
+    "run_tests": "'(lambda args=None: None)'"
+
+pandas:
+  description: "remove pandas testing framework"
+  replacements:
+    "import pandas.testing": ""
+    "from pandas.util._tester import test": ""
+
+pandas._testing:
+  description: "remove pytest testing framework"
+  change_function:
+    "external_error_raised": "'(lambda: None)'"
+
+pandas._testing._io:
+  description: "remove pytest testing framework"
+  change_function:
+    # TODO: Actually it would be nice to specify "uncallable" rather than wrong signature
+    # for cases, where the function is not usable afterwards. That will make sure we have
+    # a nice error exit in case, some test code is run an attempts to use it.
+    "network": "'(lambda: None)'"
+    "round_trip_pathlib": "'(lambda: None)'"
+    "round_trip_localpath": "'(lambda: None)'"
+
+distributed.scheduler:
+  # TODO: We should replace this with a nuitkarize in Cython maybe.
+  description: "remove cython support"
+  replacements:
+    "from cython import compiled": "'raise ImportError'"
+    "if compiled:": "'if False:'"
+
+pywt._pytesttester:
+  description: "remove pywt testing framework"
+  module_code: |
+    class PytestTester:
+      def __init__(self, name):
+        pass
+
+feedparser.html:
+  context:
+    - "import inspect"
+    - "import textwrap"
+    - "import sgmllib"
+  change_function:
+    "goahead": "textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.goahead))"
+    "__parse_starttag": "textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.parse_starttag))"
+  replacements:
+    "def goahead(self, i):": "'def goahead(self, end):'"
+    "goahead.__code__ = sgmllib.SGMLParser.goahead.__code__": "'pass'"
+    "__parse_starttag.__code__ = sgmllib.SGMLParser.parse_starttag.__code__": "'pass'"

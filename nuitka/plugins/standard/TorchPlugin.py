@@ -65,7 +65,7 @@ def getTorchCoreFiles(module):
     return binaries
 
 
-class TorchPlugin(NuitkaPluginBase):
+class NuitkaPluginTorch(NuitkaPluginBase):
     """This class represents the main logic of the plugin.
 
     This is a plugin to ensure torch scripts compile and work well in
@@ -130,14 +130,14 @@ class TorchPlugin(NuitkaPluginBase):
         return ()
 
 
-class TorchPluginDetector(NuitkaPluginBase):
+class NuitkaPluginDetectorTorch(NuitkaPluginBase):
     """Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    detector_for = TorchPlugin
+    detector_for = NuitkaPluginTorch
 
     @classmethod
     def isRelevant(cls):

@@ -245,7 +245,7 @@ def getFileList(
     """Get all files below a given path.
 
     Args:
-        path: directory to create a recurseive listing from
+        path: directory to create a recursive listing from
         ignore_dirs: Don't descend into these directory, ignore them
         ignore_filenames: Ignore files named exactly like this
         ignore_suffixes: Don't return files with these suffixes
@@ -306,7 +306,7 @@ def getSubDirectories(path, ignore_dirs=()):
     """Get all directories below a given path.
 
     Args:
-        path: directory to create a recurseive listing from
+        path: directory to create a recursive listing from
 
     Returns:
         Sorted list of all directories below that directory,
@@ -368,9 +368,18 @@ def splitPath(path):
 def getFilenameExtension(path):
     """Get the filename extension.
 
+    Note: The extension is case normalized, i.e. it may actually be ".TXT"
+    rather than ".txt", use "changeFilenameExtension" if you want to replace
+    it with something else.
+
     Note: For checks on extension, use hasFilenameExtension instead.
     """
     return os.path.splitext(os.path.normcase(path))[1]
+
+
+def changeFilenameExtension(path, extension):
+    """Change the filename extension."""
+    return os.path.splitext(path)[0] + extension
 
 
 def hasFilenameExtension(path, extensions):
@@ -378,7 +387,10 @@ def hasFilenameExtension(path, extensions):
 
     extension = getFilenameExtension(path)
 
-    return extension in extensions
+    if isinstance(extensions, basestring):
+        return extension == extensions
+    else:
+        return extension in extensions
 
 
 def removeDirectory(path, ignore_errors):
@@ -413,9 +425,9 @@ def removeDirectory(path, ignore_errors):
 
 
 @contextmanager
-def withTemporaryFile(suffix="", mode="w", delete=True):
+def withTemporaryFile(suffix="", mode="w", delete=True, temp_path=None):
     with tempfile.NamedTemporaryFile(
-        suffix=suffix, mode=mode, delete=delete
+        suffix=suffix, mode=mode, delete=delete, dir=temp_path
     ) as temp_file:
         yield temp_file
 
@@ -444,13 +456,32 @@ def getFileContents(filename, mode="r", encoding=None):
             return f.read()
 
 
+def getFileFirstLine(filename, mode="r", encoding=None):
+    """Get the contents of a file.
+
+    Args:
+        filename: str with the file to be read
+        mode: "r" for str, "rb" for bytes result
+        encoding: optional encoding to used when reading the file, e.g. "utf8"
+
+    Returns:
+        str or bytes - depending on mode.
+
+    """
+
+    with withFileLock("reading file %s" % filename):
+        with openTextFile(filename, mode, encoding=encoding) as f:
+            return f.readline()
+
+
 def openTextFile(filename, mode, encoding=None):
     if encoding is not None:
         import codecs
 
         return codecs.open(filename, mode, encoding=encoding)
     else:
-        return open(filename, mode)
+        # Encoding was checked to be not needed.
+        return open(filename, mode)  # pylint: disable=unspecified-encoding
 
 
 def putTextFileContents(filename, contents, encoding=None):
@@ -536,11 +567,13 @@ def copyTree(source_path, dest_path):
         This must be used over `shutil.copytree` which has troubles
         with existing directories.
     """
+    if python_version >= 0x380:
+        # Python 3.8+ has dirs_exist_ok
+        return shutil.copytree(source_path, dest_path, dirs_exist_ok=True)
+    else:
+        from distutils.dir_util import copy_tree
 
-    # False alarm on travis, pylint: disable=I0021,import-error,no-name-in-module
-    from distutils.dir_util import copy_tree
-
-    return copy_tree(source_path, dest_path)
+        return copy_tree(source_path, dest_path)
 
 
 def copyFileWithPermissions(source_path, dest_path):
@@ -708,7 +741,7 @@ def resolveShellPatternToFilenames(pattern):
         if python_version >= 0x350:
             result = glob.glob(pattern, recursive=True)
         else:
-            glob2 = importFromInlineCopy("glob2", must_exist=True)
+            glob2 = importFromInlineCopy("glob2", must_exist=False)
 
             if glob2 is None:
                 options_logger.sysexit(

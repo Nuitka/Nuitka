@@ -33,6 +33,7 @@ from .ExpressionBases import (
 from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
+    makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithSideEffects,
 )
 from .shapes.StandardShapes import tshape_iterator
@@ -46,8 +47,7 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
     def computeExpression(self, trace_collection):
         trace_collection.initIteratorValue(self)
 
-        value = self.subnode_value
-        return value.computeExpressionIter1(
+        return self.subnode_value.computeExpressionIter1(
             iter_node=self, trace_collection=trace_collection
         )
 
@@ -152,6 +152,30 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
 
 class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
     kind = "EXPRESSION_BUILTIN_ITER_FOR_UNPACK"
+
+    def computeExpression(self, trace_collection):
+        trace_collection.initIteratorValue(self)
+
+        result = self.subnode_value.computeExpressionIter1(
+            iter_node=self, trace_collection=trace_collection
+        )
+
+        result_node = result[0]
+
+        # Rewrite exceptions to correct message.
+        if (
+            result_node.isExpressionRaiseException()
+            and result_node.subnode_exception_type.isExpressionBuiltinExceptionRef()
+            and result_node.subnode_exception_type.getExceptionName() == "TypeError"
+        ):
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template="cannot unpack non-iterable %s object",
+                operation="iter",
+                original_node=self,
+                value_node=self.subnode_value,
+            )
+
+        return result
 
     @staticmethod
     def simulator(value):

@@ -84,6 +84,7 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *arg
 #endif
 
 extern void CHECK_OBJECT_DEEP(PyObject *value);
+extern void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size);
 
 #include "nuitka/exceptions.h"
 
@@ -106,6 +107,7 @@ extern void stopProfiling(void);
 #include "nuitka/helper/dictionaries.h"
 #include "nuitka/helper/mappings.h"
 #include "nuitka/helper/sets.h"
+#include "nuitka/helper/strings.h"
 
 #include "nuitka/helper/raising.h"
 
@@ -365,8 +367,8 @@ extern void checkModuleConstants___main__(void);
 #endif
 #endif
 
-#if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED || _NUITKA_PLUGIN_TRACEBACK_ENCRYPTION_ENABLED
 // Call this to initialize __main__ constants in non-standard processes.
+#ifdef _NUITKA_EXE
 extern void createMainModuleConstants(void);
 #endif
 
@@ -469,5 +471,10 @@ extern PyObject *DEEP_COPY_SET(PyObject *value);
 NUITKA_MAY_BE_UNUSED static void forceGC() {
     PyObject_CallObject(PyObject_GetAttrString(PyImport_ImportModule("gc"), "collect"), NULL);
 }
+
+// We provide the sys.version info shortcut as a global value here for ease of use.
+extern PyObject *Py_SysVersionInfo;
+
+#include "nuitka/python_pgo.h"
 
 #endif

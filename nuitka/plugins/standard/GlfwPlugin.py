@@ -24,10 +24,12 @@ import os
 from nuitka import Options
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Utils import getOS, isLinux, isMacOS
 
 
-class GlfwPlugin(NuitkaPluginBase):
+class NuitkaPluginGlfw(NuitkaPluginBase):
     """This class represents the main logic of the glfw plugin.
 
     This is a plugin to ensure that glfw platform specific backends are loading
@@ -36,8 +38,13 @@ class GlfwPlugin(NuitkaPluginBase):
 
     """
 
+    # TODO: Maybe rename to opengl
     plugin_name = "glfw"  # Nuitka knows us by this name
-    plugin_desc = "Required for glfw in standalone mode"
+    plugin_desc = "Required for OpenGL and glfw in standalone mode"
+
+    @staticmethod
+    def isAlwaysEnabled():
+        return True
 
     @classmethod
     def isRelevant(cls):
@@ -49,6 +56,7 @@ class GlfwPlugin(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def getImplicitImports(self, module):
+        # Dealing with OpenGL is a bit detailed, pylint: disable=too-many-branches
         if module.getFullName() == "OpenGL":
             opengl_infos = self.queryRuntimeInformationSingle(
                 setup_codes="import OpenGL.plugins",
@@ -58,6 +66,30 @@ class GlfwPlugin(NuitkaPluginBase):
             # TODO: Filter by name.
             for _name, import_path in opengl_infos:
                 yield ModuleName(import_path).getPackageName()
+
+            for line in getFileContentByLine(module.getCompileTimeFilename()):
+                if line.startswith("PlatformPlugin("):
+                    os_part, plugin_name_part = line[15:-1].split(",")
+                    os_part = os_part.strip("' ")
+                    plugin_name_part = plugin_name_part.strip(") '")
+                    plugin_name_part = plugin_name_part[: plugin_name_part.rfind(".")]
+
+                    if os_part == "nt":
+                        if getOS() == "Windows":
+                            yield plugin_name_part
+                    elif os_part.startswith("linux"):
+                        if isLinux():
+                            yield plugin_name_part
+                    elif os_part.startswith("darwin"):
+                        if isMacOS():
+                            yield plugin_name_part
+                    elif os_part.startswith(("posix", "osmesa", "egl")):
+                        if getOS() != "Windows":
+                            yield plugin_name_part
+                    else:
+                        self.sysexit(
+                            "Undetected OS, please report bug for '%s'." % os_part
+                        )
 
     def _getDLLFilename(self):
         glfw_info = self.queryRuntimeInformationMultiple(
@@ -92,35 +124,3 @@ os.environ["PYGLFW_LIBRARY"] = os.path.join(__nuitka_binary_dir, "glfw", %r)
                 code,
                 "Setting 'PYGLFW_LIBRARY' environment variable for glfw to find platform DLL.",
             )
-
-
-class GlfwPluginDetector(NuitkaPluginBase):
-    """Only used if plugin is NOT activated.
-
-    Notes:
-        We are given the chance to issue a warning if we think we may be required.
-    """
-
-    detector_for = GlfwPlugin
-
-    @classmethod
-    def isRelevant(cls):
-        """Check whether plugin might be required.
-
-        Returns:
-            True if this is a standalone compilation.
-        """
-        return Options.isStandaloneMode()
-
-    def onModuleDiscovered(self, module):
-        """This method checks whether numpy is required.
-
-        Notes:
-            For this we check whether its first name part is numpy relevant.
-        Args:
-            module: the module object
-        Returns:
-            None
-        """
-        if module.getFullName() == "glfw":
-            self.warnUnusedPlugin("Missing glfw support.")

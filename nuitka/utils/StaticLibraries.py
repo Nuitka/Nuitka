@@ -22,17 +22,17 @@
 import os
 
 from nuitka.containers.oset import OrderedSet
+from nuitka.PythonFlavors import isDebianPackagePython, isNuitkaPython
 from nuitka.PythonVersions import (
     getPythonABI,
     getSystemPrefixPath,
-    isDebianPackagePython,
-    isNuitkaPython,
     python_version,
     python_version_str,
 )
+from nuitka.Tracing import general
 
 from .FileOperations import getFileContentByLine, getFileList
-from .Utils import isDebianBasedLinux, isWin32Windows
+from .Utils import getLinuxDistribution, isDebianBasedLinux, isWin32Windows
 
 _ldconf_paths = None
 
@@ -74,9 +74,22 @@ def _locateStaticLinkLibrary(dll_name):
 _static_lib_python_path = False
 
 
+def isDebianSuitableForStaticLinking():
+    dist_name, dist_version = getLinuxDistribution()
+
+    if dist_name == "Debian":
+        dist_version = tuple(int(x) for x in dist_version.split("."))
+
+        return dist_version >= (10,)
+    elif dist_name == "Ubuntu":
+        return True
+    else:
+        # TODO: Needs implementing potentially.
+        return True
+
+
 def _getSystemStaticLibPythonPath():
     # Return driven function with many cases, pylint: disable=too-many-branches,too-many-return-statements
-    global _static_lib_python_path  # singleton, pylint: disable=global-statement
 
     sys_prefix = getSystemPrefixPath()
     python_abi_version = python_version_str + getPythonABI()
@@ -124,17 +137,27 @@ def _getSystemStaticLibPythonPath():
             return candidate
 
         # For Python2 this works. TODO: Figure out Debian and Python3.
-        if python_version < 0x300 and isDebianBasedLinux() and isDebianPackagePython():
+        if (
+            python_version < 0x300
+            and isDebianPackagePython()
+            and isDebianSuitableForStaticLinking()
+        ):
             candidate = locateStaticLinkLibrary("python" + python_abi_version)
         else:
             candidate = None
 
         if candidate is not None and os.path.exists(candidate):
+            # Also check libz, can be missing
+            if not locateStaticLinkLibrary("z"):
+                general.warning(
+                    "Error, missing libz-dev installation needed for static lib-python."
+                )
+
             return candidate
 
         # This is not necessarily only for Python3 on Debian, but maybe others as well,
         # but that's what's been tested.
-        if python_version >= 0x300 and isDebianBasedLinux() and isDebianPackagePython():
+        if python_version >= 0x300 and isDebianPackagePython() and isDebianBasedLinux():
             try:
                 import sysconfig
 

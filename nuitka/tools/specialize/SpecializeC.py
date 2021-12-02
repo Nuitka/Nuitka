@@ -19,30 +19,33 @@
 
 """
 
-from __future__ import print_function
-
 import nuitka.Options
 
 nuitka.Options.is_fullcompat = False
 
 # isort:start
 
-import contextlib
 import math
 import os
-import shutil
 from abc import abstractmethod
-
-import jinja2
 
 import nuitka.codegen.ComparisonCodes
 import nuitka.codegen.HelperDefinitions
 import nuitka.codegen.Namify
 from nuitka.__past__ import getMetaClassBase
 from nuitka.nodes.ImportNodes import hard_modules
-from nuitka.tools.quality.autoformat.Autoformat import autoformat
-from nuitka.Tracing import my_print
 from nuitka.utils.Jinja2 import getTemplate
+
+from .Common import withFileOpenedAndAutoformatted, writeline
+
+
+def getDoExtensionUsingTemplate(template_name):
+    return getTemplate(
+        package_name=__package__,
+        template_subdir="templates_c",
+        template_name=template_name,
+        extensions=("jinja2.ext.do",),
+    )
 
 
 class TypeDescBase(getMetaClassBase("Type")):
@@ -1408,15 +1411,6 @@ class AlternativeIntOrClong(AlternativeTypeBase):
     pass
 
 
-env = jinja2.Environment(
-    loader=jinja2.PackageLoader("nuitka.tools.specialize", "templates"),
-    extensions=["jinja2.ext.do"],
-    trim_blocks=True,
-    lstrip_blocks=True,
-)
-
-env.undefined = jinja2.StrictUndefined
-
 types = (
     int_desc,
     str_desc,
@@ -1460,21 +1454,21 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
         return
 
     if left in (int_desc, clong_desc):
-        template = env.get_template("HelperOperationComparisonInt.c.j2")
+        template = getDoExtensionUsingTemplate("HelperOperationComparisonInt.c.j2")
     # elif left == long_desc:
-    #     template = env.get_template("HelperOperationComparisonLong.c.j2")
+    #     template = getDoExtensionUsingTemplate("HelperOperationComparisonLong.c.j2")
     elif left == float_desc:
-        template = env.get_template("HelperOperationComparisonFloat.c.j2")
+        template = getDoExtensionUsingTemplate("HelperOperationComparisonFloat.c.j2")
     elif left == tuple_desc:
-        template = env.get_template("HelperOperationComparisonTuple.c.j2")
+        template = getDoExtensionUsingTemplate("HelperOperationComparisonTuple.c.j2")
     elif left == list_desc:
-        template = env.get_template("HelperOperationComparisonList.c.j2")
+        template = getDoExtensionUsingTemplate("HelperOperationComparisonList.c.j2")
     # elif left == set_desc:
     #     template = env.get_template("HelperOperationComparisonSet.c.j2")
     elif left == bytes_desc:
-        template = env.get_template("HelperOperationComparisonBytes.c.j2")
+        template = getDoExtensionUsingTemplate("HelperOperationComparisonBytes.c.j2")
     elif left == str_desc:
-        template = env.get_template("HelperOperationComparisonStr.c.j2")
+        template = getDoExtensionUsingTemplate("HelperOperationComparisonStr.c.j2")
     else:
         return
 
@@ -1501,7 +1495,7 @@ def makeMulRepeatCode(target, left, right, emit):
     if key in mul_repeats:
         return
 
-    template = env.get_template("HelperOperationMulRepeatSlot.c.j2")
+    template = getDoExtensionUsingTemplate("HelperOperationMulRepeatSlot.c.j2")
 
     code = template.render(target=target, left=left, right=right)
 
@@ -1793,30 +1787,12 @@ def emitIDE(emit):
     )
 
 
-@contextlib.contextmanager
-def withFileOpenedAndAutoformatted(filename):
-    my_print("Creating %r ..." % filename)
-
-    tmp_filename = filename + ".tmp"
-    with open(tmp_filename, "w") as output:
-        yield output
-
-    autoformat(tmp_filename, None, True, effective_filename=filename, trace=False)
-
-    # No idea why, but this helps.
-    if os.name == "nt":
-        autoformat(tmp_filename, None, True, effective_filename=filename, trace=False)
-
-    shutil.copy(tmp_filename, filename)
-    os.unlink(tmp_filename)
-
-
 def makeHelpersComparisonOperation(operand, op_code):
     specialized_cmp_helpers_set = getattr(
         nuitka.codegen.ComparisonCodes, "specialized_cmp_helpers_set"
     )
 
-    template = env.get_template("HelperOperationComparison.c.j2")
+    template = getDoExtensionUsingTemplate("HelperOperationComparison.c.j2")
 
     filename_c = "nuitka/build/static_src/HelpersComparison%s.c" % op_code.title()
     filename_h = "nuitka/build/include/nuitka/helper/comparisons_%s.h" % op_code.lower()
@@ -1859,7 +1835,7 @@ def makeHelpersBinaryOperation(operand, op_code):
         nuitka.codegen.HelperDefinitions, "specialized_%s_helpers_set" % op_code.lower()
     )
 
-    template = env.get_template("HelperOperationBinary.c.j2")
+    template = getDoExtensionUsingTemplate("HelperOperationBinary.c.j2")
 
     filename_c = "nuitka/build/static_src/HelpersOperationBinary%s.c" % op_code.title()
     filename_h = (
@@ -1906,7 +1882,7 @@ def makeHelpersInplaceOperation(operand, op_code):
         "specialized_i%s_helpers_set" % op_code.lower(),
     )
 
-    template = env.get_template("HelperOperationInplace.c.j2")
+    template = getDoExtensionUsingTemplate("HelperOperationInplace.c.j2")
 
     filename_c = "nuitka/build/static_src/HelpersOperationInplace%s.c" % op_code.title()
     filename_h = (
@@ -1951,7 +1927,7 @@ def makeHelpersImportHard():
     filename_c = "nuitka/build/static_src/HelpersImportHard.c"
     filename_h = "nuitka/build/include/nuitka/helper/import_hard.h"
 
-    template = env.get_template("HelperImportHard.c.j2")
+    template = getDoExtensionUsingTemplate("HelperImportHard.c.j2")
 
     with withFileOpenedAndAutoformatted(filename_c) as output_c:
         with withFileOpenedAndAutoformatted(filename_h) as output_h:
@@ -2089,15 +2065,6 @@ def makeHelperCalls():
                 emit_h(getTemplateCodeDeclaredFunction(code))
 
 
-def writeline(output, *args):
-    if not args:
-        output.write("\n")
-    elif len(args) == 1:
-        output.write(args[0] + "\n")
-    else:
-        assert False, args
-
-
 def main():
     # Cover many things once first, then cover all for quicker turnaround during development.
     makeHelpersComparisonOperation("==", "EQ")
@@ -2142,7 +2109,3 @@ def main():
     makeHelpersComparisonOperation(">=", "GE")
     makeHelpersComparisonOperation(">", "GT")
     makeHelpersComparisonOperation("<", "LT")
-
-
-if __name__ == "__main__":
-    main()

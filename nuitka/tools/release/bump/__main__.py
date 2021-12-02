@@ -19,14 +19,14 @@
 
 """ Make version bump for Nuitka. """
 
-from __future__ import print_function
-
 import sys
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
 from nuitka.tools.release.Debian import updateDebianChangelog
 from nuitka.tools.release.Release import getBranchName
+from nuitka.Tracing import my_print
+from nuitka.utils.FileOperations import openTextFile
 
 
 def getBumpedVersion(mode, old_version):
@@ -95,7 +95,7 @@ The mode of update, prerelease, hotfix, release, auto (default auto determines f
     # Go its own directory, to have it easy with path knowledge.
     goHome()
 
-    with open("nuitka/Version.py") as f:
+    with openTextFile("nuitka/Version.py", "r") as f:
         option_lines = f.readlines()
 
     (version_line,) = [line for line in option_lines if line.startswith("Nuitka V")]
@@ -116,9 +116,9 @@ The mode of update, prerelease, hotfix, release, auto (default auto determines f
             sys.exit("Error, cannot detect mode from branch name '%s'." % branch_name)
 
     new_version = getBumpedVersion(mode, old_version)
-    print("Bumped", mode, old_version, "->", new_version)
+    my_print("Bumped %s '%s' -> '%s'." % (mode, old_version, new_version))
 
-    with open("nuitka/Version.py", "w") as options_file:
+    with openTextFile("nuitka/Version.py", "w") as options_file:
         for line in option_lines:
             if line.startswith("Nuitka V"):
                 line = "Nuitka V" + new_version + "\n"

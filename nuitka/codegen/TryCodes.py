@@ -118,7 +118,8 @@ def generateTryCode(statement, emit, context):
         getLabelCode(return_handler_escape, emit)
 
         # During the return value, the value being returned is in a variable,
-        # and therefore needs to be released before being updated.
+        # and therefore needs to be released before being updated with a new
+        # return value.
         old_return_value_release = context.setReturnReleaseMode(True)
 
         generateStatementSequenceCode(

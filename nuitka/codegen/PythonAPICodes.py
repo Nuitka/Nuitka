@@ -26,7 +26,21 @@ and then can use the same code.
 """
 
 from .CodeHelpers import generateExpressionCode
-from .ErrorCodes import getErrorExitCode, getReleaseCode
+from .ErrorCodes import (
+    getErrorExitBoolCode,
+    getErrorExitCode,
+    getReleaseCode,
+    getReleaseCodes,
+)
+
+
+def makeArgDescFromExpression(expression):
+    """Helper for providing arg_desc consistently for generateCAPIObject methods."""
+
+    return tuple(
+        (child_name + "_value", child_value)
+        for child_name, child_value in expression.getVisitableNodesNamed()
+    )
 
 
 def generateCAPIObjectCodeCommon(
@@ -122,39 +136,63 @@ def generateCAPIObjectCode0(
 def getCAPIObjectCode(
     to_name, capi, arg_names, may_raise, conversion_check, ref_count, emit, context
 ):
-    # TODO: Use context manager here too.
-    if to_name.c_type == "PyObject *":
-        value_name = to_name
-    else:
-        value_name = context.allocateTempName("capi_result")
+    release_names = tuple(arg_name for arg_name in arg_names if arg_name != "NULL")
 
-    emit(
-        "%s = %s(%s);"
-        % (value_name, capi, ", ".join(str(arg_name) for arg_name in arg_names))
-    )
+    if to_name is not None:
+        # TODO: Use context manager here too.
+        if to_name.c_type == "PyObject *":
+            value_name = to_name
+        else:
+            value_name = context.allocateTempName("capi_result")
 
-    getErrorExitCode(
-        check_name=value_name,
-        release_names=(arg_name for arg_name in arg_names if arg_name != "NULL"),
-        needs_check=may_raise,
-        emit=emit,
-        context=context,
-    )
+        emit(
+            "%s = %s(%s);"
+            % (value_name, capi, ", ".join(str(arg_name) for arg_name in arg_names))
+        )
 
-    if ref_count:
-        context.addCleanupTempName(value_name)
-
-    if to_name is not value_name:
-        to_name.getCType().emitAssignConversionCode(
-            to_name=to_name,
-            value_name=value_name,
-            needs_check=conversion_check,
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=release_names,
+            needs_check=may_raise,
             emit=emit,
             context=context,
         )
 
         if ref_count:
-            getReleaseCode(value_name, emit, context)
+            context.addCleanupTempName(value_name)
+
+        if to_name is not value_name:
+            to_name.getCType().emitAssignConversionCode(
+                to_name=to_name,
+                value_name=value_name,
+                needs_check=conversion_check,
+                emit=emit,
+                context=context,
+            )
+
+            if ref_count:
+                getReleaseCode(value_name, emit, context)
+    else:
+        if may_raise:
+            res_name = context.getIntResName()
+
+            emit(
+                "%s = %s(%s);"
+                % (res_name, capi, ", ".join(str(arg_name) for arg_name in arg_names))
+            )
+
+            getErrorExitBoolCode(
+                condition="%s == -1" % res_name,
+                release_names=release_names,
+                emit=emit,
+                context=context,
+            )
+        else:
+            emit("%s(%s);" % (capi, ", ".join(str(arg_name) for arg_name in arg_names)))
+
+            getReleaseCodes(release_names, emit, context)
+
+        assert not ref_count
 
 
 def getReferenceExportCode(base_name, emit, context):

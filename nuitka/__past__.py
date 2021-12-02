@@ -104,10 +104,8 @@ except ImportError:
 
 
 if str is bytes:
-    from collections import (  # pylint: disable=no-name-in-module
-        Iterable,
-        MutableSet,
-    )
+    # Python2 only code, pylint: disable=deprecated-class,no-name-in-module
+    from collections import Iterable, MutableSet
 else:
     from collections.abc import Iterable, MutableSet
 
@@ -158,7 +156,7 @@ else:
     import subprocess
 
 # Just to make this not Windows-specific.
-WindowsError = OSError
+WindowsError = OSError  # pylint: disable=I0021,redefined-builtin
 
 import pkgutil
 

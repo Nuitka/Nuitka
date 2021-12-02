@@ -23,11 +23,13 @@ object, so it got a dedicated node, also to perform optimizations specific
 to this.
 """
 from .ConstantRefNodes import makeConstantRefNode
-from .ExpressionBases import ExpressionChildHavingBase
-from .shapes.BuiltinTypeShapes import tshape_str_or_unicode
+from .ExpressionBases import ExpressionChildTupleHavingBase
+from .ExpressionShapeMixins import ExpressionStrOrUnicodeExactMixin
 
 
-class ExpressionStringConcatenation(ExpressionChildHavingBase):
+class ExpressionStringConcatenation(
+    ExpressionStrOrUnicodeExactMixin, ExpressionChildTupleHavingBase
+):
     kind = "EXPRESSION_STRING_CONCATENATION"
 
     named_child = "values"
@@ -35,13 +37,9 @@ class ExpressionStringConcatenation(ExpressionChildHavingBase):
     def __init__(self, values, source_ref):
         assert values
 
-        ExpressionChildHavingBase.__init__(
+        ExpressionChildTupleHavingBase.__init__(
             self, value=tuple(values), source_ref=source_ref
         )
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_str_or_unicode
 
     def computeExpression(self, trace_collection):
         # TODO: Could remove itself if only one argument or merge arguments
@@ -53,7 +51,7 @@ class ExpressionStringConcatenation(ExpressionChildHavingBase):
         values = self.subnode_values
 
         for count, value in enumerate(values):
-            if value.isCompileTimeConstant() and value.hasShapeUnicodeExact():
+            if value.isCompileTimeConstant() and value.hasShapeStrOrUnicodeExact():
                 if start is None:
                     start = count
             else:
@@ -91,7 +89,7 @@ class ExpressionStringConcatenation(ExpressionChildHavingBase):
                     "Partially combined strings for concatenation",
                 )
 
-        if len(values) == 1 and values[0].hasShapeUnicodeExact():
+        if len(values) == 1 and values[0].hasShapeStrOrUnicodeExact():
             return (
                 values[0],
                 "new_constant",

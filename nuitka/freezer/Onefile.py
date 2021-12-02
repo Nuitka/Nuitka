@@ -49,6 +49,8 @@ from nuitka.utils.FileOperations import (
     deleteFile,
     getFileContents,
     getFileList,
+    openTextFile,
+    putTextFileContents,
     removeDirectory,
 )
 from nuitka.utils.SharedLibraries import locateDLL
@@ -56,6 +58,7 @@ from nuitka.utils.Utils import (
     getArchitecture,
     getOS,
     hasOnefileSupportedOS,
+    isLinux,
     isWin32Windows,
 )
 
@@ -67,7 +70,7 @@ def packDistFolderToOnefile(dist_dir, binary_filename):
 
     if getOS() == "Windows" or Options.isOnefileTempDirMode():
         packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir)
-    elif getOS() == "Linux":
+    elif isLinux():
         packDistFolderToOnefileLinux(onefile_output_filename, dist_dir, binary_filename)
     else:
         postprocessing_logger.sysexit(
@@ -91,13 +94,13 @@ def _getAppImageToolPath(for_operation, assume_yes_for_downloads):
         arch_name = "armhf"
 
     appimagetool_url = (
-        "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-%s.AppImage"
+        "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-%s.AppImage"
         % arch_name
     )
 
     return getCachedDownload(
         url=appimagetool_url,
-        is_arch_specific=True,
+        is_arch_specific=getArchitecture(),
         binary=appimagetool_url.rsplit("/", 1)[1],
         flatten=True,
         specifity=appimagetool_url.rsplit("/", 2)[1],
@@ -127,13 +130,13 @@ for onefile creation to work on Linux."""
 
     # This might be possible to avoid being done with --runtime-file.
     apprun_filename = os.path.join(dist_dir, "AppRun")
-    with open(apprun_filename, "w") as output_file:
-        output_file.write(
-            """\
+    putTextFileContents(
+        apprun_filename,
+        contents="""\
 #!/bin/bash
 exec -a $ARGV0 $APPDIR/%s \"$@\""""
-            % os.path.basename(binary_filename)
-        )
+        % os.path.basename(binary_filename),
+    )
 
     addFileExecutablePermission(apprun_filename)
 
@@ -146,20 +149,20 @@ exec -a $ARGV0 $APPDIR/%s \"$@\""""
 
     shutil.copyfile(icon_paths[0], getResultBasepath() + extension)
 
-    with open(getResultBasepath() + ".desktop", "w") as output_file:
-        output_file.write(
-            """\
+    putTextFileContents(
+        getResultBasepath() + ".desktop",
+        contents="""\
 [Desktop Entry]
 Name=%(binary_basename)s
 Exec=%(binary_filename)s
 Icon=%(binary_basename)s
 Type=Application
 Categories=Utility;"""
-            % {
-                "binary_basename": binary_basename,
-                "binary_filename": os.path.basename(binary_filename),
-            }
-        )
+        % {
+            "binary_basename": binary_basename,
+            "binary_filename": os.path.basename(binary_filename),
+        },
+    )
 
     postprocessing_logger.info(
         "Creating single file from dist folder, this may take a while."
@@ -168,10 +171,14 @@ Categories=Utility;"""
     stdout_filename = binary_filename + ".appimage.stdout.txt"
     stderr_filename = binary_filename + ".appimage.stderr.txt"
 
-    stdout_file = open(stdout_filename, "wb")
-    stderr_file = open(stderr_filename, "wb")
+    stdout_file = openTextFile(stdout_filename, "wb")
+    stderr_file = openTextFile(stderr_filename, "wb")
 
-    # Starting the process while locked, so file handles are not duplicated.
+    # Starting the process while locked, so file handles are not duplicated, we
+    # need fine grained control over process here, therefore we cannot use the
+    # Execution.executeProcess() function without making it too complex and not
+    # all Python versions allow using with, pylint: disable=consider-using-with
+    # pylint: disable
     appimagetool_process = subprocess.Popen(
         (
             _getAppImageToolPath(
@@ -435,7 +442,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
 
 
 def checkOnefileReadiness(assume_yes_for_downloads):
-    if getOS() == "Linux":
+    if isLinux():
         app_image_path = _getAppImageToolPath(
             for_operation=False, assume_yes_for_downloads=assume_yes_for_downloads
         )

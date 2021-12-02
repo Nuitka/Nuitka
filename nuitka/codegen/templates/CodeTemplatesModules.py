@@ -84,8 +84,8 @@ static void createModuleConstants(void) {
     }
 }
 
-/* For multiprocessing, we want to be able to initialize the __main__ constants. */
-#if (_NUITKA_PLUGIN_MULTIPROCESSING_ENABLED || _NUITKA_PLUGIN_TRACEBACK_ENCRYPTION_ENABLED) && %(is_main_module)s
+// We want to be able to initialize the "__main__" constants in any case.
+#if defined(_NUITKA_EXE) && %(is_main_module)s
 void createMainModuleConstants(void) {
     createModuleConstants();
 }
@@ -285,6 +285,10 @@ static PyMethodDef _method_def_create_compiled_function = {
 
 // Internal entry point for module code.
 PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry) {
+    // Report entry to PGO.
+    PGO_onModuleEntered("%(module_name)s");
+
+    // Store the module for future use.
     module_%(module_identifier)s = module;
 
 #ifdef _NUITKA_MODULE
@@ -412,7 +416,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         PyObject *value = (PyObject *)builtin_module;
 
         // Check if main module, not a dict then but the module itself.
-#if !defined(_NUITKA_EXE) || !%(is_main_module)s
+#if defined(_NUITKA_MODULE) || !%(is_main_module)s
         value = PyModule_GetDict(value);
 #endif
 
@@ -462,6 +466,9 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
 
     // Module code.
 %(module_code)s
+
+    // Report to PGO about leaving the module without error.
+    PGO_onModuleExit("%(module_name)s", false);
 
     return module_%(module_identifier)s;
 %(module_exit)s
@@ -567,6 +574,18 @@ MOD_INIT_DECL(%(module_identifier)s) {
 
 template_module_exception_exit = """\
     module_exception_exit:
+
+#if defined(_NUITKA_MODULE) && %(is_top)d
+    {
+        PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
+
+        if (module_name != NULL) {
+            Nuitka_DelModule(module_name);
+        }
+    }
+#endif
+    PGO_onModuleExit("%(module_identifier)s", false);
+
     RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
     return NULL;
 }"""

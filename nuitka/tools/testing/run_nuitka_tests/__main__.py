@@ -25,21 +25,30 @@ Has many options, read --help output.
 import os
 import subprocess
 import sys
-import tempfile
 from optparse import OptionParser
 
 from nuitka.freezer.Onefile import checkOnefileReadiness
 from nuitka.tools.Basics import goHome
-from nuitka.tools.testing.Common import my_print, withExtendedExtraOptions
+from nuitka.tools.testing.Common import (
+    getTempDir,
+    my_print,
+    withExtendedExtraOptions,
+)
 from nuitka.utils.Execution import (
     check_call,
     check_output,
     getExecutablePath,
+    getNullOutput,
     getPythonExePathWindows,
 )
-from nuitka.utils.FileOperations import withDirectoryChange
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    openTextFile,
+    putTextFileContents,
+    withDirectoryChange,
+)
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import getOS, hasOnefileSupportedOS
+from nuitka.utils.Utils import hasOnefileSupportedOS, hasStandaloneSupportedOS
 
 
 def parseOptions():
@@ -112,7 +121,7 @@ constructs fully away. Default is %default.""",
         "--skip-standalone-tests",
         action="store_false",
         dest="standalone_tests",
-        default=getOS() != "NetBSD",
+        default=hasStandaloneSupportedOS(),
         help="""\
 The standalone tests, execute these to check if Nuitka standalone mode, e.g.
 not referring to outside, important 3rd library packages like PyQt fine.
@@ -232,6 +241,16 @@ covered. With Python 2.x these are not run. Default is %default.""",
     )
 
     parser.add_option(
+        "--skip-cpython310-tests",
+        action="store_false",
+        dest="cpython310",
+        default=True,
+        help="""\
+The standard CPython3.10 test suite. Execute this for all corner cases to be
+covered. With Python 2.x these are not run. Default is %default.""",
+    )
+
+    parser.add_option(
         "--skip-other-cpython-tests",
         action="store_true",
         dest="cpython_no_other",
@@ -343,6 +362,15 @@ Do not use Python3.9 even if available on the system. Default is %default.""",
     )
 
     parser.add_option(
+        "--no-python3.10",
+        action="store_true",
+        dest="no310",
+        default=False,
+        help="""\
+Do not use Python3.10 even if available on the system. Default is %default.""",
+    )
+
+    parser.add_option(
         "--coverage",
         action="store_true",
         dest="coverage",
@@ -404,6 +432,8 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
             options.no38 = True
         if sys.version_info[0:2] != (3, 9):
             options.no39 = True
+        if sys.version_info[0:2] != (3, 10):
+            options.no310 = True
 
     if options.cpython_no_other:
         if sys.version_info[0:2] != (2, 6):
@@ -426,6 +456,8 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
             options.cpython38 = False
         if sys.version_info[0:2] != (3, 9):
             options.cpython39 = False
+        if sys.version_info[0:2] != (3, 10):
+            options.cpython310 = False
 
     if options.cpython_none:
         options.cpython26 = False
@@ -438,6 +470,7 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
         options.cpython37 = False
         options.cpython38 = False
         options.cpython39 = False
+        options.cpython310 = False
 
     if options.coverage and os.path.exists(".coverage"):
         os.unlink(".coverage")
@@ -461,7 +494,7 @@ def publishCoverageData():
 
         suffix = platform.uname()[0] + "." + platform.uname()[4]
 
-    with open("data.coverage", "w") as data_file:
+    with openTextFile("data.coverage", "w") as data_file:
         source_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
         with withDirectoryChange(source_dir):
@@ -479,8 +512,7 @@ def publishCoverageData():
     def makeCoverageRelative(filename):
         """Normalize coverage data."""
 
-        with open(filename) as input_file:
-            data = input_file.read()
+        data = getFileContents(filename)
 
         data = data.replace(
             (os.path.abspath(".") + os.path.sep).replace("\\", "\\\\"), ""
@@ -489,8 +521,7 @@ def publishCoverageData():
         if os.path.sep != "/":
             data.replace(os.path.sep, "/")
 
-        with open(filename, "w") as output_file:
-            output_file.write(data)
+        putTextFileContents(filename, contents=data)
 
     coverage_file = os.environ.get("COVERAGE_FILE", ".coverage")
 
@@ -543,6 +574,8 @@ def main():
             return False
         if command == "python3.9" and options.no39:
             return False
+        if command == "python3.10" and options.no310:
+            return False
 
         # Shortcuts for python versions, also needed for Windows as it won't have
         # the version number in the Python binaries at all.
@@ -563,6 +596,8 @@ def main():
         if command == "python3.8" and sys.version_info[0:2] == (3, 8):
             return True
         if command == "python3.9" and sys.version_info[0:2] == (3, 9):
+            return True
+        if command == "python3.10" and sys.version_info[0:2] == (3, 10):
             return True
 
         path = os.environ["PATH"]
@@ -596,11 +631,7 @@ def main():
             yield "--mingw64"
 
         if where is not None:
-            tmp_dir = tempfile.gettempdir()
-
-            # Try to avoid RAM disk /tmp and use the disk one instead.
-            if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
-                tmp_dir = "/var/tmp"
+            tmp_dir = getTempDir()
 
             where = os.path.join(tmp_dir, name, where)
 
@@ -631,8 +662,7 @@ def main():
         my_print("Run '%s' in '%s'." % (" ".join(parts), os.getcwd()))
 
         if hide_output:
-            with open(os.devnull, "w") as devnull:
-                result = subprocess.call(parts, stdout=devnull)
+            result = subprocess.call(parts, stdout=getNullOutput())
         else:
             result = subprocess.call(parts)
 
@@ -854,6 +884,17 @@ def main():
                     else:
                         my_print("The CPython3.9 tests are not present, not run.")
 
+            # Running the Python 3.9 test suite only with CPython3.x.
+            if not use_python.startswith("python2"):
+                if options.cpython310:
+                    if os.path.exists("./tests/CPython310/run_all.py"):
+                        with withExtendedExtraOptions(
+                            *getExtraFlags(where, "310tests", flags)
+                        ):
+                            executeSubTest("./tests/CPython310/run_all.py search")
+                    else:
+                        my_print("The CPython3.10 tests are not present, not run.")
+
     assert (
         checkExecutableCommand("python2.6")
         or checkExecutableCommand("python2.7")
@@ -864,6 +905,7 @@ def main():
         or checkExecutableCommand("python3.7")
         or checkExecutableCommand("python3.8")
         or checkExecutableCommand("python3.9")
+        or checkExecutableCommand("python3.10")
     )
 
     if options.debug:
@@ -921,6 +963,11 @@ def main():
         execute_tests("python3.9-nodebug", "python3.9", "")
     else:
         my_print("Cannot execute tests with Python 3.9, disabled or not installed.")
+
+    if checkExecutableCommand("python3.10"):
+        execute_tests("python3.10-nodebug", "python3.10", "")
+    else:
+        my_print("Cannot execute tests with Python 3.10, disabled or not installed.")
 
     if options.coverage:
         publishCoverageData()

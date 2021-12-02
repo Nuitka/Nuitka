@@ -44,9 +44,9 @@ Nuitka also differentiates between "mandatory" and "optional" |sps|.
 Their behaviour cannot be influenced other than by modifying them.
 
 **Optional** |sps| must be enabled via the command line parameter
-``--plugin-enable-=name``, with an identifying string ``name``. Even
-when not enabled however, |ops| can detect, whether their use might have
-been "forgotten" and issue an appropriate warning.
+``--enable-plugin=name``, with an identifying string ``name``. Even when
+not enabled however, |ops| can detect, whether their use might have been
+"forgotten" and issue an appropriate warning.
 
 Where appropriate, the behaviour of optional |sps| (like with |ups|) can
 be controlled via *options* (see "Using Plugin Options").
@@ -56,12 +56,15 @@ be controlled via *options* (see "Using Plugin Options").
 *******************
 
 Almost all |ops| are relevant for standalone mode only. Specifying all
-the right plugins is up to the user and critical for success: for
-example. if you are using package *numpy* and forget to activate that
+the right plugins is up to the user and critical for success: For
+example, if you are using package *numpy* and forget to activate that
 plugin, then your compile will
 
-   -  end with no error, but a warning about missing numpy support,
-   -  not generate a working binary.
+-  end with no error, but a warning about missing numpy support,
+
+-  not generate a working binary.
+
+Also:
 
 -  |ups| are able to programmatically enable |ops|, the **reverse is not
    possible**. The user must know the requirements of his script and
@@ -89,21 +92,43 @@ and only used packages are included.
 ***********************************
 
 Create a list of available optional |sps| giving their identifier
-together with a short description via ``--plugin-list``::
+together with a short description via ``--plugin-list``:
 
-          The following optional standard plugins are available in Nuitka
-   --------------------------------------------------------------------------------
-   dill-compat      Required by the dill module
-   eventlet         Required by the eventlet package
-   gevent           Required by the gevent package
-   multiprocessing  Required by Python's multiprocessing module
-   numpy            Required for numpy, scipy, pandas, matplotlib, etc.
-   pmw-freezer      Required by the Pmw package
-   pylint-warnings  Support PyLint / PyDev linting source markers
-   qt-plugins       Required by the PyQt and PySide packages
-   tensorflow       Required by the tensorflow package
-   tk-inter         Required by Python's Tk modules
-   torch            Required by the torch / torchvision packages
+The following optional standard plugins are available in Nuitka:
+
+.. code::
+
+   anti-bloat            Patch stupid imports out of widely used library modules source codes.
+   data-files
+   data-hiding           Commercial: Hide program constant Python data from offline inspection of created binaries.
+   datafile-inclusion    Commercial: Load file trusted file contents at compile time.
+   dill-compat
+   enum-compat
+   ethereum              Commercial: Required for ethereum packages in standalone mode
+   eventlet              Support for including 'eventlet' dependencies and its need for 'dns' package monkey patching
+   gevent                Required by the gevent package
+   gi                    Support for GI dependencies
+   glfw                  Required for glfw in standalone mode
+   implicit-imports
+   multiprocessing       Required by Python's multiprocessing module
+   numpy                 Required for numpy, scipy, pandas, matplotlib, etc.
+   pbr-compat
+   pkg-resources         Resolve version numbers at compile time.
+   pmw-freezer           Required by the Pmw package
+   pylint-warnings       Support PyLint / PyDev linting source markers
+   pyqt5                 Required by the PyQt5 package.
+   pyside2               Required by the PySide2 package.
+   pyside6               Required by the PySide6 package for standalone mode.
+   pyzmq                 Required for pyzmq in standalone mode
+   tensorflow            Required by the tensorflow package
+   tk-inter              Required by Python's Tk modules
+   torch                 Required by the torch / torchvision packages
+   traceback-encryption  Commercial: Encrypt tracebacks (de-Jong-Stacks).
+   windows-service       Commercial: Create Windows Service files
+
+.. note::
+
+   This list is continuously growing and most likely out of date.
 
 *****************************************
  Optional Standard Plugins Documentation
@@ -114,6 +139,7 @@ dill-compat
 
 -  Required by the *dill* module. Dill extends Python's pickle module
    for serializing and de-serializing objects.
+
 -  Options: none.
 
 eventlet
@@ -121,6 +147,7 @@ eventlet
 
 -  Required by the *eventlet* package. Eventlet is a concurrent
    networking library.
+
 -  Options: none.
 
 gevent
@@ -137,14 +164,17 @@ numpy
 
 -  Required for *numpy, scipy, pandas, matplotlib, xarray, sklearn,
    skimage*, and most other scientific packages.
--  Options: "scipy", "matplotlib" if used. E.g. ``--plugin-enable=numpy
-   --include-scipy --include-matplotlib``.
+
+-  Options: Can disable some of the packages handled, e.g.
+   ``--enable-plugin=numpy --noinclude-scipy --noinclude-matplotlib``
+   which disables the handling to make these actually usable.
 
 pmw-freezer
 ===========
 
 -  Required by the *Pmw* package. Pmw is a toolkit for building
    high-level compound widgets.
+
 -  Options: none.
 
 pylint-warnings
@@ -152,14 +182,25 @@ pylint-warnings
 
 -  Support *PyLint* / *PyDev* linting source markers. Python static code
    analysis tools which help enforcing a coding standard.
+
 -  Options: none
 
-qt-plugins
-==========
+pyside2, pyside6, pyqt5
+=======================
 
--  Required by the *PyQt* and *PySide* GUI packages.
--  Options: "sensible", "styles", "qml", "xml", "all", where "sensible"
-   means the default minimum set of Qt features.
+-  Required by the *PySide* and *PyQt* and GUI packages, only one can be
+   activated at a time.
+
+-  Options: With ``--include-qt-plugins`` you can select which Qt
+   plugins to include. By default a relatively small set, called
+   ``sensible`` that is defined in the code is include, but you can add
+   more, and even ``all``, which will add a terrible amount of
+   dependencies though. But without the proper Qt plugins, functionality
+   of Qt might be broken, crashes can occur, or appearance can be
+   inferior.
+
+-  These plugins also inhibit other GUI frameworks from being included
+   in standalone distributions.
 
 tensorflow
 ==========
@@ -174,7 +215,10 @@ tk-inter
 ========
 
 -  Required by Python's Tk modules.
--  Options: none.
+
+-  Options: Can override the automatic detection of Tcl and Tk
+   directories with ``--tk-library-dir`` and ``--tcl-library-dir`` but
+   that should not be needed.
 
 torch
 =====

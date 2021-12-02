@@ -26,7 +26,7 @@ import re
 import sys
 
 from nuitka import Options, SourceCodeReferences
-from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import unicode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version, python_version_str
 from nuitka.Tracing import general
@@ -116,7 +116,7 @@ def _detectEncoding2(source_file):
 def _readSourceCodeFromFilename2(source_filename):
     _installFutureFStrings()
 
-    # Detect the encoding.
+    # Detect the encoding, we do not know it, pylint: disable=unspecified-encoding
     with open(source_filename, "rU") as source_file:
         encoding = _detectEncoding2(source_file)
 
@@ -163,7 +163,7 @@ def readSourceCodeFromFilename(module_name, source_filename):
     else:
         source_code = _readSourceCodeFromFilename3(source_filename)
 
-    # Allow plug-ins to mess with source code. Test code calls this
+    # Allow plugins to mess with source code. Test code calls this
     # without a module and doesn't want changes from plugins.
     if module_name is not None:
         source_code_modified = Plugins.onModuleSourceCode(module_name, source_code)

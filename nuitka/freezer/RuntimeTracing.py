@@ -29,7 +29,7 @@ import re
 
 from nuitka.__past__ import subprocess
 from nuitka.utils.Execution import (
-    call,
+    callProcess,
     isExecutableCommand,
     withEnvironmentVarOverriden,
 )
@@ -147,7 +147,7 @@ Error, needs 'strace' on your system to scan used libraries."""
 
         # TODO: Move the handling of this into nuitka.tools.Execution module methods.
         try:
-            call(command, timeout=5 * 60)
+            callProcess(command, timeout=5 * 60)
         except Exception as e:  # Catch all the things, pylint: disable=broad-except
             if e.__class__.__name__ == "TimeoutExpired":
                 if required:
