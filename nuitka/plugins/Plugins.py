@@ -745,7 +745,7 @@ class Plugins(object):
         return False
 
     @staticmethod
-    def decideCompilation(module_name, source_ref):
+    def decideCompilation(module_name):
         """Let plugins decide whether to C compile a module or include as bytecode.
 
         Notes:
@@ -755,7 +755,7 @@ class Plugins(object):
             "compiled" (default) or "bytecode".
         """
         for plugin in getActivePlugins():
-            value = plugin.decideCompilation(module_name, source_ref)
+            value = plugin.decideCompilation(module_name)
 
             if value is not None:
                 assert value in ("compiled", "bytecode")

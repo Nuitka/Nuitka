@@ -1297,6 +1297,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "site",  # Not performance relevant and problems with .pth files
     )
 
-    def decideCompilation(self, module_name, source_ref):
+    def decideCompilation(self, module_name):
         if module_name.hasOneOfNamespaces(self.unworthy_namespaces):
             return "bytecode"

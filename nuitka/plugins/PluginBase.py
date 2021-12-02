@@ -504,7 +504,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
-    def decideCompilation(self, module_name, source_ref):
+    def decideCompilation(self, module_name):
         """Decide whether to compile a module (or just use its bytecode).
 
         Notes:
@@ -514,10 +514,9 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
 
         Args:
             module_name: name of module
-            source_ref: ???
 
         Returns:
-            "compiled" or "bytecode" or None (default)
+            "compiled" or "bytecode" or None (no opinion, use by default)
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None

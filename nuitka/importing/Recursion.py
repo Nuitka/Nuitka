@@ -101,13 +101,21 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
     is_stdlib = StandardLibrary.isStandardLibraryPath(module_filename)
 
     if not is_stdlib or Options.shallFollowStandardLibrary():
-        pgo_decision = decideInclusionFromPGO(
-            module_name=module_name,
-            module_kind=module_kind,
-        )
+        # TODO: Bad placement of this function or should PGO also know about
+        # bytecode modules loaded or not.
+        from nuitka.tree.Building import decideCompilationMode
 
-        if pgo_decision is not None:
-            return pgo_decision, "PGO based decision"
+        if (
+            decideCompilationMode(is_top=False, module_name=module_name, for_pgo=True)
+            == "compiled"
+        ):
+            pgo_decision = decideInclusionFromPGO(
+                module_name=module_name,
+                module_kind=module_kind,
+            )
+
+            if pgo_decision is not None:
+                return pgo_decision, "PGO based decision"
 
     no_case, reason = module_name.matchesToShellPatterns(
         patterns=Options.getShallFollowInNoCase()

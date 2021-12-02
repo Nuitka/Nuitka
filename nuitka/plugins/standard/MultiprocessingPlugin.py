@@ -160,7 +160,7 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
         if module_name.hasNamespace("multiprocessing"):
             return True, "Multiprocessing plugin needs this to monkey patch it."
 
-    def decideCompilation(self, module_name, source_ref):
+    def decideCompilation(self, module_name):
         if module_name.hasNamespace("multiprocessing"):
             return "bytecode"
 

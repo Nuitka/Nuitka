@@ -49,6 +49,6 @@ class NuitkaPluginEventlet(NuitkaPluginBase):
             yield "eventlet.hubs.selects"
             yield "eventlet.hubs.timer"
 
-    def decideCompilation(self, module_name, source_ref):
+    def decideCompilation(self, module_name):
         if module_name.hasNamespace("dns"):
             return "bytecode"

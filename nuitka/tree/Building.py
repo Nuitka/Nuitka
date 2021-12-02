@@ -932,8 +932,14 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
         assert False
 
 
-def decideCompilationMode(is_top, module_name, source_ref):
-    result = Plugins.decideCompilation(module_name, source_ref)
+def decideCompilationMode(is_top, module_name, for_pgo):
+    """Decide the compilation mode for a module.
+
+    module_name - The module to decide compilation mode for.
+    for_pgo - consider PGO information or not
+    """
+
+    result = Plugins.decideCompilation(module_name)
 
     # Cannot change mode of __main__ to bytecode, that is not going
     # to work currently.
@@ -948,7 +954,7 @@ required to compiled."""
         result = "compiled"
 
     # Plugins need to win over PGO, as they might know it better
-    if result is None:
+    if result is None and not for_pgo:
         result = decideCompilationFromPGO(module_name=module_name)
 
     # Default if neither plugins nor PGO have expressed an opinion
@@ -1071,7 +1077,9 @@ def _createModule(
     elif is_main:
         result = PythonMainModule(
             main_added=main_added,
-            mode=decideCompilationMode(False, module_name, source_ref),
+            mode=decideCompilationMode(
+                is_top=is_top, module_name=module_name, for_pgo=False
+            ),
             future_spec=None,
             source_ref=source_ref,
         )
@@ -1080,7 +1088,9 @@ def _createModule(
     elif is_namespace:
         result = createNamespacePackage(module_name, is_top, source_ref)
     else:
-        mode = decideCompilationMode(is_top, module_name, source_ref)
+        mode = decideCompilationMode(
+            is_top=is_top, module_name=module_name, for_pgo=False
+        )
 
         if (
             mode == "bytecode"
