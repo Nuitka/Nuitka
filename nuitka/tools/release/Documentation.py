@@ -126,7 +126,7 @@ def makeManpages():
 
             putTextFileContents(manpage, contents=new_contents)
 
-    makeManpage("python2", "")
+    makeManpage("python2", "2")
     makeManpage("python3", "3")
 
 
