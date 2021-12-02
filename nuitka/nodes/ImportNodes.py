@@ -107,6 +107,9 @@ module_importlib_trust = dict(
 
 module_sys_trust = {
     "version": trust_constant,
+    "hexversion": trust_constant,
+    "platform": trust_constant,
+    "maxsize": trust_constant,
     "stdout": trust_exist,
     "stderr": trust_exist,
 }
@@ -121,6 +124,9 @@ if python_version < 0x300:
     module_sys_trust["exc_type"] = trust_may_exist
     module_sys_trust["exc_value"] = trust_may_exist
     module_sys_trust["exc_traceback"] = trust_may_exist
+
+    module_sys_trust["maxint"] = trust_constant
+    module_sys_trust["subversion"] = trust_constant
 else:
     module_sys_trust["exc_type"] = trust_not_exist
     module_sys_trust["exc_value"] = trust_not_exist
@@ -493,7 +499,7 @@ class ExpressionImportModuleHard(ExpressionImportHardBase):
                         result,
                         "new_expression",
                         "Attribute lookup %r of hard module %r becomes node %r."
-                        % (self.module_name, attribute_name, result.kind),
+                        % (self.module_name.asString(), attribute_name, result.kind),
                     )
                 else:
                     result = ExpressionImportModuleNameHard(

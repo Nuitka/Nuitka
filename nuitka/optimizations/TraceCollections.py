@@ -228,6 +228,13 @@ class CollectionStartpointMixin(CollectionUpdateMixin):
 
         return trace
 
+    def initVariableModule(self, variable):
+        trace = ValueTraceUnknown(owner=self.owner, previous=None)
+
+        self.addVariableTrace(variable, 0, trace)
+
+        return trace
+
     def _initVariableInit(self, variable):
         trace = ValueTraceInit(self.owner)
 
@@ -294,7 +301,7 @@ class CollectionStartpointMixin(CollectionUpdateMixin):
         elif variable.isLocalVariable():
             result = self._initVariableUninit(variable)
         elif variable.isModuleVariable():
-            result = self.initVariableUnknown(variable)
+            result = self.initVariableModule(variable)
         elif variable.isTempVariable():
             result = self._initVariableUninit(variable)
         elif variable.isLocalsDictVariable():
@@ -388,7 +395,7 @@ class TraceCollectionBase(object):
         return self.variable_actives.keys()
 
     def markActiveVariableAsEscaped(self, variable):
-        current = self.getVariableCurrentTrace(variable=variable)
+        current = self.getVariableCurrentTrace(variable)
 
         if not current.isEscapeOrUnknownTrace():
             version = variable.allocateTargetNumber()
@@ -402,7 +409,7 @@ class TraceCollectionBase(object):
             self.markCurrentVariableTrace(variable, version)
 
     def markActiveVariableAsUnknown(self, variable):
-        current = self.getVariableCurrentTrace(variable=variable)
+        current = self.getVariableCurrentTrace(variable)
 
         if not current.isUnknownTrace():
             version = variable.allocateTargetNumber()
@@ -527,7 +534,7 @@ class TraceCollectionBase(object):
         variable_trace = ValueTraceAssign(
             owner=self.owner,
             assign_node=assign_node,
-            previous=self.getVariableCurrentTrace(variable=variable),
+            previous=self.getVariableCurrentTrace(variable),
         )
 
         self.addVariableTrace(variable, version, variable_trace)
@@ -886,6 +893,9 @@ class TraceCollectionBase(object):
     def addOutlineFunction(self, outline):
         self.parent.addOutlineFunction(outline)
 
+    def getVeryTrustedModuleVariables(self):
+        return self.parent.getVeryTrustedModuleVariables()
+
 
 class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
     __slots__ = ("variable_traces",)
@@ -938,6 +948,7 @@ class TraceCollectionFunction(CollectionStartpointMixin, TraceCollectionBase):
         "return_collections",
         "exception_collections",
         "outline_functions",
+        "very_trusted_module_variables",
     )
 
     def __init__(self, parent, function_body):
@@ -956,6 +967,11 @@ class TraceCollectionFunction(CollectionStartpointMixin, TraceCollectionBase):
             name="collection_" + function_body.getCodeName(),
             parent=parent,
         )
+
+        if parent is not None:
+            self.very_trusted_module_variables = parent.getVeryTrustedModuleVariables()
+        else:
+            self.very_trusted_module_variables = ()
 
         if function_body.isExpressionFunctionBody():
             parameters = function_body.getParameters()
@@ -988,6 +1004,22 @@ class TraceCollectionFunction(CollectionStartpointMixin, TraceCollectionBase):
             else:
                 function_body.locals_scope = None
 
+    def initVariableModule(self, variable):
+        trusted_node = self.very_trusted_module_variables.get(variable)
+
+        if trusted_node is None:
+            return CollectionStartpointMixin.initVariableModule(self, variable)
+
+        assign_trace = ValueTraceAssign(
+            self.owner, assign_node=trusted_node.getParent(), previous=None
+        )
+
+        # This is rare enough to not need a more optimized code.
+        self.addVariableTrace(variable, 0, assign_trace)
+        self.markActiveVariableAsEscaped(variable)
+
+        return self.getVariableCurrentTrace(variable)
+
 
 class TraceCollectionPureFunction(TraceCollectionFunction):
     """Pure functions don't feed their parent."""
@@ -1015,9 +1047,10 @@ class TraceCollectionModule(CollectionStartpointMixin, TraceCollectionBase):
         "return_collections",
         "exception_collections",
         "outline_functions",
+        "very_trusted_module_variables",
     )
 
-    def __init__(self, module):
+    def __init__(self, module, very_trusted_module_variables):
         assert module.isCompiledPythonModule(), module
 
         CollectionStartpointMixin.__init__(self)
@@ -1025,6 +1058,8 @@ class TraceCollectionModule(CollectionStartpointMixin, TraceCollectionBase):
         TraceCollectionBase.__init__(
             self, owner=module, name="module:" + module.getFullName(), parent=None
         )
+
+        self.very_trusted_module_variables = very_trusted_module_variables
 
     def onUsedModule(self, module_name, module_relpath):
         assert type(module_name) is ModuleName, module_name
@@ -1037,6 +1072,16 @@ class TraceCollectionModule(CollectionStartpointMixin, TraceCollectionBase):
 
         module = getImportedModuleByNameAndPath(module_name, module_relpath)
         addUsedModule(module)
+
+    def getVeryTrustedModuleVariables(self):
+        return self.very_trusted_module_variables
+
+    def updateVeryTrustedModuleVariables(self, very_trusted_module_variables):
+        result = self.very_trusted_module_variables != very_trusted_module_variables
+
+        self.very_trusted_module_variables = very_trusted_module_variables
+
+        return result
 
 
 # TODO: This should not exist, but be part of decision at the time these are collected.

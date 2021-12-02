@@ -515,7 +515,12 @@ class CompiledPythonModule(
 
         old_collection = self.trace_collection
 
-        self.trace_collection = TraceCollectionModule(self)
+        self.trace_collection = TraceCollectionModule(
+            self,
+            old_collection.getVeryTrustedModuleVariables()
+            if old_collection is not None
+            else {},
+        )
 
         module_body = self.subnode_body
 
@@ -529,9 +534,31 @@ class CompiledPythonModule(
 
         self.attemptRecursion()
 
+        # We determine the trusted module variable for use on next turnaround to provide functions with traces for them.
+        very_trusted_module_variables = {}
+        for module_variable in self.locals_scope.getLocalsRelevantVariables():
+            very_trusted_node = self.trace_collection.getVariableCurrentTrace(
+                module_variable
+            ).getAttributeNodeVeryTrusted()
+            if very_trusted_node is not None:
+                very_trusted_module_variables[module_variable] = very_trusted_node
+
+        if self.trace_collection.updateVeryTrustedModuleVariables(
+            very_trusted_module_variables
+        ):
+            self.trace_collection.signalChange(
+                tags="trusted_module_variables",
+                message="Trusting module variable(s) '%s'"
+                % ",".join(
+                    variable.getName()
+                    for variable in self.trace_collection.getVeryTrustedModuleVariables()
+                ),
+                source_ref=self.source_ref,
+            )
+
         # Finalize locals scopes previously determined for removal in last pass.
         self.trace_collection.updateVariablesFromCollection(
-            old_collection, self.source_ref
+            old_collection=old_collection, source_ref=self.source_ref
         )
 
         # Indicate if this is pass 1 for the module as return value.
