@@ -266,11 +266,7 @@ except AttributeError:
 else:
     easy_install.get_script_args = get_script_args
 
-
-if sys.version_info[0] == 2:
-    binary_suffix = ""
-else:
-    binary_suffix = "%d" % sys.version_info[0]
+binary_suffix = "%d" % sys.version_info[0]
 
 if os.name == "nt":
     console_scripts = []
