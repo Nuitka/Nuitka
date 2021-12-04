@@ -291,61 +291,62 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
     // Store the module for future use.
     module_%(module_identifier)s = module;
 
-#ifdef _NUITKA_MODULE
-    // In case of a stand alone extension module, need to call initialization
-    // the init here because that's the first and only time we are going to get
-    // called here.
+    // Modules can be loaded again in case of errors, avoid the init being done again.
+    static bool init_done = false;
 
-    // Initialize the constant values used.
-    _initBuiltinModule();
-    createGlobalConstants();
+    if (init_done == false) {
+#if defined(_NUITKA_MODULE) && %(is_top)d
+        // In case of an extension module loaded into a process, we need to call
+        // initialization here because that's the first and potentially only time
+        // we are going called.
 
-    /* Initialize the compiled types of Nuitka. */
-    _initCompiledCellType();
-    _initCompiledGeneratorType();
-    _initCompiledFunctionType();
-    _initCompiledMethodType();
-    _initCompiledFrameType();
+        // Initialize the constant values used.
+        _initBuiltinModule();
+        createGlobalConstants();
 
-    _initSlotCompare();
+        /* Initialize the compiled types of Nuitka. */
+        _initCompiledCellType();
+        _initCompiledGeneratorType();
+        _initCompiledFunctionType();
+        _initCompiledMethodType();
+        _initCompiledFrameType();
+
+        _initSlotCompare();
 #if PYTHON_VERSION >= 0x270
-    _initSlotIternext();
+        _initSlotIternext();
 #endif
 
-    patchBuiltinModule();
-    patchTypeComparison();
+        patchBuiltinModule();
+        patchTypeComparison();
 
-    // Enable meta path based loader if not already done.
+        // Enable meta path based loader if not already done.
 #ifdef _NUITKA_TRACE
-    PRINT_STRING("%(module_name)s: Calling setupMetaPathBasedLoader().\n");
+        PRINT_STRING("%(module_name)s: Calling setupMetaPathBasedLoader().\n");
 #endif
-    setupMetaPathBasedLoader();
+        setupMetaPathBasedLoader();
 
 #if PYTHON_VERSION >= 0x300
-    patchInspectModule();
+        patchInspectModule();
 #endif
 
 #endif
 
-    /* The constants only used by this module are created now. */
+        /* The constants only used by this module are created now. */
 #ifdef _NUITKA_TRACE
-    PRINT_STRING("%(module_name)s: Calling createModuleConstants().\n");
+        PRINT_STRING("%(module_name)s: Calling createModuleConstants().\n");
 #endif
-    createModuleConstants();
+        createModuleConstants();
 
-    /* The code objects used by this module are created now. */
+        /* The code objects used by this module are created now. */
 #ifdef _NUITKA_TRACE
-    PRINT_STRING("%(module_name)s: Calling createModuleCodeObjects().\n");
+        PRINT_STRING("%(module_name)s: Calling createModuleCodeObjects().\n");
 #endif
-    createModuleCodeObjects();
+        createModuleCodeObjects();
+
+        init_done = true;
+    }
 
     // PRINT_STRING("in init%(module_identifier)s\n");
-
-    // Create the module object first. There are no methods initially, all are
-    // added dynamically in actual code only.  Also no "__doc__" is initially
-    // set at this time, as it could not contain NUL characters this way, they
-    // are instead set in early module code.  No "self" for modules, we have no
-    // use for it.
 
     moduledict_%(module_identifier)s = MODULE_DICT(module_%(module_identifier)s);
 
