@@ -47,7 +47,7 @@ BuildRequires:  python3-MarkupSafe
 %if 0%{?fedora} >= 27
 BuildRequires:  python3-tools
 %endif
-%if 0%{?suse_version} >= 1500
+%if 0%{?fedora} >= 35 || 0%{?suse_version} >= 1500
 BuildRequires:  python3-setuptools
 %endif
 BuildRequires:  gcc-c++
@@ -170,10 +170,10 @@ then
 fi
 
 mkdir -p %{buildroot}%{_mandir}/man1
-gzip -c doc/nuitka2.1 > %{buildroot}%{_mandir}/man1/nuitka.1.gz
-cp %{buildroot}%{_mandir}/man1/nuitka.1.gz %{buildroot}%{_mandir}/man1/nuitka3.1.gz
-gzip -c doc/nuitka2-run.1 > %{buildroot}%{_mandir}/man1/nuitka-run.1.gz
-cp %{buildroot}%{_mandir}/man1/nuitka-run.1.gz %{buildroot}%{_mandir}/man1/nuitka3-run.1.gz
+gzip -c doc/nuitka.1 > %{buildroot}%{_mandir}/man1/nuitka2.1.gz
+cp %{buildroot}%{_mandir}/man1/nuitka2.1.gz %{buildroot}%{_mandir}/man1/nuitka3.1.gz
+gzip -c doc/nuitka-run.1 > %{buildroot}%{_mandir}/man1/nuitka2-run.1.gz
+cp %{buildroot}%{_mandir}/man1/nuitka2-run.1.gz %{buildroot}%{_mandir}/man1/nuitka3-run.1.gz
 
 %clean
 rm -rf %{buildroot}
@@ -182,8 +182,8 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %doc README.rst Changelog.rst
 %if 0%{?fedora} < 31 && 0%{?rhel} < 8
-%{_bindir}/nuitka
-%{_bindir}/nuitka-run
+%{_bindir}/nuitka2
+%{_bindir}/nuitka2-run
 %{python_sitearch}/*
 %endif
 %{_mandir}/man1/*

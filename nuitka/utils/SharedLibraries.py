@@ -295,19 +295,32 @@ libraries that need to be removed.""",
     )
 
 
+def _filterPatchelfErrorOutput(stderr):
+    stderr = b"\n".join(
+        line
+        for line in stderr.splitlines()
+        if line
+        if b"warning: working around" not in line
+    )
+
+    return stderr
+
+
 def _setSharedLibraryRPATHElf(filename, rpath):
     # TODO: Might write something that makes a shell script replacement
     # in case no rpath is present, or use patchelf, for now our use
     # case seems to use rpaths for executables.
 
     # patchelf --set-rpath "$ORIGIN/path/to/library" <executable>
-    executeToolChecked(
-        logger=postprocessing_logger,
-        command=["patchelf", "--set-rpath", rpath, filename],
-        absence_message="""\
+    with withEnvironmentVarOverriden("LANG", "C"):
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=["patchelf", "--set-rpath", rpath, filename],
+            stderr_filter=_filterPatchelfErrorOutput,
+            absence_message="""\
 Error, needs 'patchelf' on your system, due to 'RPATH' settings that need to be
 set.""",
-    )
+        )
 
 
 def _filterInstallNameToolErrorOutput(stderr):
