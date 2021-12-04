@@ -131,6 +131,7 @@ def getModuleCode(
         "version": getNuitkaVersion(),
         "year": getNuitkaVersionYear(),
         "is_main_module": 1 if module.isMainModule() else 0,
+        "is_top": 1 if module.isTopModule() else 0,
         "is_dunder_main": 1
         if module_name == "__main__"
         and os.path.basename(module.getCompileTimeFilename()) == "__main__.py"
