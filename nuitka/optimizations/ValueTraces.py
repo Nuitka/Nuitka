@@ -508,9 +508,6 @@ class ValueTraceMerge(ValueTraceMergeBase):
     def __init__(self, traces):
         ValueTraceMergeBase.__init__(self, owner=traces[0].owner, previous=traces)
 
-        for trace in traces:
-            trace.addMergeUsage()
-
     def __repr__(self):
         return "<ValueTraceMerge of {previous}>".format(previous=self.previous)
 
@@ -564,6 +561,15 @@ class ValueTraceMerge(ValueTraceMergeBase):
 
     def addUsage(self):
         self.usage_count += 1
+
+        # Only do it once.
+        if self.usage_count == 1:
+            for trace in self.previous:
+                trace.addMergeUsage()
+
+    def addMergeUsage(self):
+        self.addUsage()
+        self.merge_usage_count += 1
 
     def hasShapeDictionaryExact(self):
         return all(previous.hasShapeDictionaryExact() for previous in self.previous)
