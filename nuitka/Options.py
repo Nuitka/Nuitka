@@ -538,6 +538,7 @@ def commentArgs():
     if (
         options.static_libpython == "auto"
         and not shallMakeModule()
+        and not shallDumpBuiltTreeXML()
         and not shallUseStaticLibPython()
         and getSystemStaticLibPythonPath() is not None
     ):
