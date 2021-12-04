@@ -270,7 +270,11 @@ def generateImportlibImportCallCode(to_name, expression, emit, context):
         )
 
         getErrorExitCode(
-            check_name=value_name, needs_check=needs_check, emit=emit, context=context
+            check_name=value_name,
+            release_names=(import_name, package_name),
+            needs_check=needs_check,
+            emit=emit,
+            context=context,
         )
 
 
