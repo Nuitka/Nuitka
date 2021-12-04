@@ -156,6 +156,11 @@ def main():
             # For the warnings.
             extra_flags.append("ignore_warnings")
 
+        # TODO: Once we have a noqt Plugin, we should use that.
+        if filename == "MatplotlibUsing.py":
+            # For the plugin warnings.
+            extra_flags.append("ignore_warnings")
+
         if filename == "NumpyUsing.py":
             # TODO: Disabled for now.
             reportSkip("numpy.test not fully working yet", ".", filename)

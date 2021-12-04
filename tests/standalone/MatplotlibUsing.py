@@ -32,5 +32,4 @@ import matplotlib
 # nuitka-project: --noinclude-custom-mode=numpy.distutils:error
 # nuitka-project: --noinclude-custom-mode=IPython:error
 
-
 print("OK.")
