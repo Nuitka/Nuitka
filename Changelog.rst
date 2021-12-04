@@ -10,11 +10,30 @@ Nuitka blog.
  Nuitka Release 0.6.19 (Draft)
 *******************************
 
+Bug Fixes
+=========
+
+-  Calls to ``importlib.import_module`` with expressions that need
+   releases, i.e. are not constant values, could crash the compilation.
+   Fixed in 0.6.19.1 already.
+
+Optimization
+============
+
+-  Also trust hard imports made on the module level in function level
+   code, this unlocks many more static optimization e.g. with
+   ``sys.version_info`` when the import and the use are not on the same
+   level.
+
 This release is not done yet.
 
 ***********************
  Nuitka Release 0.6.18
 ***********************
+
+This release has a focus on new kinds performance improvements, some of
+which enable static optimization of what normally would be dynamic
+imports, while also polishing plugins and adding also many new features.
 
 Bug Fixes
 =========
@@ -423,6 +442,20 @@ Organisational
 
 -  Updated to latest ``black``, ``isort``, ``pylint`` versions.
 
+-  The binary names for Python2 changed from ``nuitka`` and
+   ``nuitka-run`` to ``nuitka2`` and ``nuitka2-run``. This harmonizes it
+   with Python2 and avoids issues, where the ``bin`` folder in
+   ``sys.path`` can cause issues with re-execution of Nuitka finding
+   those to import.
+
+   .. note::
+
+      You ought to be using ``python -m nuitka`` style of calling Nuitka
+      anyway, as it gives you best control over what Python is used to
+      run Nuitka, you can pick ``python2`` there if you want it to run
+      with that, even with full path. Check the relevant section in the
+      User Manual too.
+
 Cleanups
 ========
 
@@ -536,7 +569,7 @@ the recommended platform to use.
 This release achieves major compatibility improvements. And of course,
 the experimental support for 3.10 is not the least. The next release
 will strive to complete the support for it fully, but this should be
-usable at least.
+usable at least, for now please stay on 3.9 if you can.
 
 ***********************
  Nuitka Release 0.6.17
