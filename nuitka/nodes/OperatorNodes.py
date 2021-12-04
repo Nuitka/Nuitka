@@ -490,7 +490,38 @@ class ExpressionOperationBinaryPow(ExpressionOperationBinaryBase):
         return left_shape.getOperationBinaryPowShape(right_shape)
 
 
-class ExpressionOperationBinaryLshift(ExpressionOperationBinaryBase):
+class ExpressionOperationLshiftMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    def getValueShape(self):
+        return self.shape
+
+    def _isTooLarge(self):
+        if self.subnode_right.isNumberConstant():
+            if self.subnode_left.isNumberConstant():
+                # Estimate with logarithm, if the result of number
+                # calculations is computable with acceptable effort,
+                # otherwise, we will have to do it at runtime.
+                left_value = self.subnode_left.getCompileTimeConstant()
+
+                if left_value != 0:
+                    right_value = self.subnode_right.getCompileTimeConstant()
+
+                    # More than a typical shift, most likely a stupid test.
+                    if right_value > 64:
+                        self.shape = ShapeLargeConstantValue(
+                            size=None, shape=tshape_int_or_long
+                        )
+
+                        return True
+
+        return False
+
+
+class ExpressionOperationBinaryLshift(
+    ExpressionOperationLshiftMixin, ExpressionOperationBinaryBase
+):
     kind = "EXPRESSION_OPERATION_BINARY_LSHIFT"
 
     operator = "LShift"
