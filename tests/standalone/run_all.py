@@ -177,7 +177,6 @@ def main():
 
         if filename == "GlfwUsing.py":
             # For the warnings.
-            extra_flags.append("plugin_enable:glfw")
             extra_flags.append("plugin_enable:numpy")
 
         if filename == "PasslibUsing.py":
