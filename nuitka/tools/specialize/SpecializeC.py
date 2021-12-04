@@ -32,11 +32,16 @@ from abc import abstractmethod
 import nuitka.codegen.ComparisonCodes
 import nuitka.codegen.HelperDefinitions
 import nuitka.codegen.Namify
+import nuitka.specs.BuiltinDictOperationSpecs
+import nuitka.specs.BuiltinStrOperationSpecs
+import nuitka.specs.BuiltinUnicodeOperationSpecs
 from nuitka.__past__ import getMetaClassBase, long
 from nuitka.nodes.ImportNodes import hard_modules
 from nuitka.utils.Jinja2 import getTemplate
 
 from .Common import (
+    formatArgs,
+    getMethodVariations,
     python2_dict_methods,
     python2_str_methods,
     python2_unicode_methods,
@@ -170,6 +175,15 @@ class TypeDescBase(getMetaClassBase("Type")):
             type_name,
             "object",
         )
+
+    @classmethod
+    def getTypeCheckExactExpression(cls, operand):
+        if cls.type_name == "str":
+            return "PyStr_CheckExact(%s)" % operand
+        elif cls.type_name == "dict":
+            return "PyDict_CheckExact(%s)" % operand
+        else:
+            assert False, cls
 
     @classmethod
     def getIntCheckExpression(cls, operand):
@@ -837,15 +851,9 @@ class ConcreteTypeBase(TypeDescBase):
     def getCheckValueCode(self, operand):
         return """\
 CHECK_OBJECT(%(operand)s);
-assert(%(type_name)s_CheckExact(%(operand)s));
-#if PYTHON_VERSION < 0x300
-assert(%(is_newstyle)sNEW_STYLE_NUMBER(%(operand)s));
-#endif""" % {
+assert(%(type_name)s_CheckExact(%(operand)s));""" % {
             "operand": operand,
             "type_name": self.getTypeValueExpression(operand)[1:].split("_")[0],
-            "is_newstyle": ""
-            if self.getNewStyleNumberTypeCheckExpression(operand) == "1"
-            else "!",
         }
 
     @abstractmethod
@@ -952,8 +960,7 @@ class UnicodeDesc(ConcreteTypeBase):
     def getCheckValueCode(cls, operand):
         return """\
 CHECK_OBJECT(%(operand)s);
-assert(PyUnicode_CheckExact(%(operand)s));
-assert(NEW_STYLE_NUMBER(%(operand)s));""" % {
+assert(PyUnicode_CheckExact(%(operand)s));""" % {
             "operand": operand
         }
 
@@ -2128,7 +2135,39 @@ def _makeHelperBuiltinTypeAttributes(
         emit_c("#endif")
 
 
-def makeHelperBuiltinTypeAttributes():
+generate_builtin_type_operations = [
+    # TODO: For these, we would need an implementation for adding/deleting dictionary values. That
+    # has turned out to be too hard so far and these are very good friends, not doing hashing
+    # multiple times when reading and writing, so can't do it unless we add something for the
+    # Nuitka-Python eventually.
+    (
+        "tshape_dict",
+        dict_desc,
+        nuitka.specs.BuiltinDictOperationSpecs,
+        ("pop", "setdefault"),
+    ),
+    # TODO: These are very complex things using stringlib in Python, that we do not have easy access to,
+    # but we might one day for Nuitka-Python expose it for the static linking of it and then we
+    # could in fact call these directly.
+    (
+        "tshape_str",
+        str_desc,
+        nuitka.specs.BuiltinStrOperationSpecs,
+        ("strip", "rstrip", "lstrip", "partition", "rpartition"),
+    ),
+    # TODO: This is using Python2 spec module for Python3 strings, that will be a problem down the
+    # road, when version specifics come in.
+    (
+        "tshape_unicode",
+        unicode_desc,
+        nuitka.specs.BuiltinUnicodeOperationSpecs,
+        ("strip", "rstrip", "lstrip"),
+    ),
+]
+
+
+def makeHelperBuiltinTypeMethods():
+    # Many details, pylint: disable=too-many-locals
     filename_c = "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
 
     with withFileOpenedAndAutoformatted(filename_c) as output_c:
@@ -2152,11 +2191,76 @@ def makeHelperBuiltinTypeAttributes():
             output_c, "dict", "PyDict_Type", python2_dict_methods, python3_dict_methods
         )
 
+        template = getDoExtensionUsingTemplate("HelperBuiltinMethodOperation.c.j2")
+
+        for (
+            shape_name,
+            type_desc,
+            spec_module,
+            method_names,
+        ) in generate_builtin_type_operations:
+            if type_desc.python_requirement:
+                emit_c("#if %s" % type_desc.python_requirement)
+
+            for method_name in sorted(method_names):
+                present, arg_names, arg_name_mapping, arg_counts = getMethodVariations(
+                    spec_module=spec_module,
+                    shape_name=shape_name,
+                    method_name=method_name,
+                    must_exist=True,
+                )
+
+                assert present, method_name
+
+                def formatArgumentDeclaration(arg_types, arg_names, starting):
+                    return formatArgs(
+                        [
+                            arg_type.getVariableDecl(arg_name)
+                            for arg_type, arg_name in zip(arg_types, arg_names)
+                        ],
+                        starting=starting,
+                    )
+
+                # Function is used immediately in same loop, pylint: disable=cell-var-from-loop
+                def replaceArgNameForC(arg_name):
+                    if arg_name in arg_name_mapping:
+                        arg_name = arg_name_mapping[arg_name]
+
+                    if arg_name == "default":
+                        return arg_name + "_value"
+                    else:
+                        return arg_name
+
+                for arg_count in arg_counts:
+                    variant_args = [
+                        replaceArgNameForC(arg_name)
+                        for arg_name in arg_names[:arg_count]
+                    ]
+
+                    code = template.render(
+                        object_desc=object_desc,
+                        builtin_type=type_desc,
+                        builtin_arg_name=type_desc.type_name,
+                        method_name=method_name,
+                        api_suffix=str(arg_count + 1) if len(arg_counts) > 1 else "",
+                        arg_names=variant_args,
+                        arg_types=[object_desc] * len(variant_args),
+                        formatArgumentDeclaration=formatArgumentDeclaration,
+                        zip=zip,
+                        len=len,
+                        name=template.name,
+                    )
+
+                    emit_c(code)
+
+            if type_desc.python_requirement:
+                emit_c("#endif")
+
 
 def main():
 
     # Cover many things once first, then cover all for quicker turnaround during development.
-    makeHelperBuiltinTypeAttributes()
+    makeHelperBuiltinTypeMethods()
     makeHelpersComparisonOperation("==", "EQ")
     makeHelpersBinaryOperation("+", "ADD")
     makeHelpersInplaceOperation("+", "ADD")

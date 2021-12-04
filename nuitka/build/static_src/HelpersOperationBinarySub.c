@@ -29,14 +29,8 @@
 static PyObject *_BINARY_OPERATION_SUB_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyObject *result;
 
@@ -55,14 +49,8 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_INT_INT(PyObject *operand1, PyObje
 
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     const long a = PyInt_AS_LONG(operand1);
     const long b = PyInt_AS_LONG(operand2);
@@ -247,9 +235,6 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_INT(PyObject *operand1, PyO
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyInt_Type;
@@ -276,14 +261,8 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_INT(PyObject *operand1, PyO
 
         CHECK_OBJECT(operand1);
         assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand1));
-#endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
         const long a = PyInt_AS_LONG(operand1);
         const long b = PyInt_AS_LONG(operand2);
@@ -483,9 +462,6 @@ exit_binary_exception:
 static PyObject *_BINARY_OPERATION_SUB_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = &PyInt_Type;
@@ -513,14 +489,8 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_INT_OBJECT(PyObject *operand1, PyO
 
         CHECK_OBJECT(operand1);
         assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand1));
-#endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
         const long a = PyInt_AS_LONG(operand1);
         const long b = PyInt_AS_LONG(operand2);
@@ -573,14 +543,8 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *o
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     nuitka_bool result;
 
@@ -599,14 +563,8 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_INT_INT(PyObject *operand1, PyObj
 
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     const long a = PyInt_AS_LONG(operand1);
     const long b = PyInt_AS_LONG(operand2);
@@ -779,9 +737,6 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_INT(PyObject *operand1, Py
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyInt_Type;
@@ -808,14 +763,8 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_INT(PyObject *operand1, Py
 
         CHECK_OBJECT(operand1);
         assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand1));
-#endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
         const long a = PyInt_AS_LONG(operand1);
         const long b = PyInt_AS_LONG(operand2);
@@ -1003,9 +952,6 @@ exit_binary_exception:
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = &PyInt_Type;
@@ -1033,14 +979,8 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_INT_OBJECT(PyObject *operand1, Py
 
         CHECK_OBJECT(operand1);
         assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand1));
-#endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
         const long a = PyInt_AS_LONG(operand1);
         const long b = PyInt_AS_LONG(operand2);
@@ -1072,14 +1012,8 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *
 static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyObject *result;
 
@@ -1280,9 +1214,6 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_LONG(PyObject *operand1, Py
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyLong_Type;
@@ -1506,9 +1437,6 @@ exit_binary_exception:
 static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = &PyLong_Type;
@@ -1582,14 +1510,8 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     nuitka_bool result;
 
@@ -1800,9 +1722,6 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_LONG(PyObject *operand1, P
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyLong_Type;
@@ -2036,9 +1955,6 @@ exit_binary_exception:
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = &PyLong_Type;
@@ -2113,14 +2029,8 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject 
 static PyObject *_BINARY_OPERATION_SUB_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyObject *result;
 
@@ -2138,14 +2048,8 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
 
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     double a = PyFloat_AS_DOUBLE(operand1);
     double b = PyFloat_AS_DOUBLE(operand2);
@@ -2307,9 +2211,6 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyFloat_Type;
@@ -2335,14 +2236,8 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
 
         CHECK_OBJECT(operand1);
         assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand1));
-#endif
         CHECK_OBJECT(operand2);
         assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
         double a = PyFloat_AS_DOUBLE(operand1);
         double b = PyFloat_AS_DOUBLE(operand2);
@@ -2519,9 +2414,6 @@ exit_binary_exception:
 static PyObject *_BINARY_OPERATION_SUB_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = &PyFloat_Type;
@@ -2548,14 +2440,8 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
 
         CHECK_OBJECT(operand1);
         assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand1));
-#endif
         CHECK_OBJECT(operand2);
         assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
         double a = PyFloat_AS_DOUBLE(operand1);
         double b = PyFloat_AS_DOUBLE(operand2);
@@ -2584,14 +2470,8 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject 
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     nuitka_bool result;
 
@@ -2609,14 +2489,8 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_FLOAT_FLOAT(PyObject *operand1, P
 
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     double a = PyFloat_AS_DOUBLE(operand1);
     double b = PyFloat_AS_DOUBLE(operand2);
@@ -2786,9 +2660,6 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyFloat_Type;
@@ -2814,14 +2685,8 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
 
         CHECK_OBJECT(operand1);
         assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand1));
-#endif
         CHECK_OBJECT(operand2);
         assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
         double a = PyFloat_AS_DOUBLE(operand1);
         double b = PyFloat_AS_DOUBLE(operand2);
@@ -3006,9 +2871,6 @@ exit_binary_exception:
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
 
     PyTypeObject *type1 = &PyFloat_Type;
@@ -3035,14 +2897,8 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
 
         CHECK_OBJECT(operand1);
         assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand1));
-#endif
         CHECK_OBJECT(operand2);
         assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
         double a = PyFloat_AS_DOUBLE(operand1);
         double b = PyFloat_AS_DOUBLE(operand2);
@@ -3072,14 +2928,8 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject
 static PyObject *_BINARY_OPERATION_SUB_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = &PyLong_Type;
@@ -3148,14 +2998,8 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_INT_LONG(PyObject *operand1, PyObject *ope
 static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = &PyInt_Type;
@@ -3224,14 +3068,8 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_INT(PyObject *operand1, PyObject *ope
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = &PyLong_Type;
@@ -3308,14 +3146,8 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_LONG(PyObject *operand1, PyObject *op
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = &PyInt_Type;
@@ -3392,14 +3224,8 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_LONG_INT(PyObject *operand1, PyObject *op
 static PyObject *_BINARY_OPERATION_SUB_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = &PyFloat_Type;
@@ -3468,14 +3294,8 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *op
 static PyObject *_BINARY_OPERATION_SUB_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = &PyInt_Type;
@@ -3544,14 +3364,8 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *op
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = &PyFloat_Type;
@@ -3628,14 +3442,8 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *o
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = &PyInt_Type;
@@ -3711,14 +3519,8 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *o
 static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = &PyFloat_Type;
@@ -3789,14 +3591,8 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *o
 static PyObject *_BINARY_OPERATION_SUB_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = &PyLong_Type;
@@ -3867,14 +3663,8 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *o
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = &PyFloat_Type;
@@ -3953,14 +3743,8 @@ nuitka_bool BINARY_OPERATION_SUB_NBOOL_LONG_FLOAT(PyObject *operand1, PyObject *
 static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = &PyLong_Type;
@@ -4059,14 +3843,8 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
 
         CHECK_OBJECT(operand1);
         assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand1));
-#endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
         const long a = PyInt_AS_LONG(operand1);
         const long b = PyInt_AS_LONG(operand2);
@@ -4284,14 +4062,8 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_OBJECT(PyObject *operand1,
 
         CHECK_OBJECT(operand1);
         assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand1));
-#endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
         const long a = PyInt_AS_LONG(operand1);
         const long b = PyInt_AS_LONG(operand2);

@@ -441,3 +441,151 @@ static void _initDictBuiltinMethods() {
     dict_builtin_viewvalues = PyObject_GetAttrString((PyObject *)&PyDict_Type, "viewvalues");
 #endif
 }
+PyObject *DICT_POP2(PyObject *dict, PyObject *key) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_CheckExact(dict));
+
+    CHECK_OBJECT(key);
+
+    PyObject *args[2] = {dict, key};
+    return CALL_METHODDESCR_WITH_ARGS2(dict_builtin_pop, args);
+}
+PyObject *DICT_POP3(PyObject *dict, PyObject *key, PyObject *default_value) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_CheckExact(dict));
+
+    CHECK_OBJECT(key);
+    CHECK_OBJECT(default_value);
+
+    PyObject *args[3] = {dict, key, default_value};
+    return CALL_METHODDESCR_WITH_ARGS3(dict_builtin_pop, args);
+}
+PyObject *DICT_SETDEFAULT2(PyObject *dict, PyObject *key) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_CheckExact(dict));
+
+    CHECK_OBJECT(key);
+
+    PyObject *args[2] = {dict, key};
+    return CALL_METHODDESCR_WITH_ARGS2(dict_builtin_setdefault, args);
+}
+PyObject *DICT_SETDEFAULT3(PyObject *dict, PyObject *key, PyObject *default_value) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_CheckExact(dict));
+
+    CHECK_OBJECT(key);
+    CHECK_OBJECT(default_value);
+
+    PyObject *args[3] = {dict, key, default_value};
+    return CALL_METHODDESCR_WITH_ARGS3(dict_builtin_setdefault, args);
+}
+#if PYTHON_VERSION < 0x300
+PyObject *STR_LSTRIP1(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_lstrip, str);
+}
+PyObject *STR_LSTRIP2(PyObject *str, PyObject *chars) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(chars);
+
+    PyObject *args[2] = {str, chars};
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_lstrip, args);
+}
+PyObject *STR_PARTITION(PyObject *str, PyObject *sep) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(sep);
+
+    PyObject *args[2] = {str, sep};
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_partition, args);
+}
+PyObject *STR_RPARTITION(PyObject *str, PyObject *sep) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(sep);
+
+    PyObject *args[2] = {str, sep};
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_rpartition, args);
+}
+PyObject *STR_RSTRIP1(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_rstrip, str);
+}
+PyObject *STR_RSTRIP2(PyObject *str, PyObject *chars) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(chars);
+
+    PyObject *args[2] = {str, chars};
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_rstrip, args);
+}
+PyObject *STR_STRIP1(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_strip, str);
+}
+PyObject *STR_STRIP2(PyObject *str, PyObject *chars) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(chars);
+
+    PyObject *args[2] = {str, chars};
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_strip, args);
+}
+#endif
+PyObject *UNICODE_LSTRIP1(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_lstrip, unicode);
+}
+PyObject *UNICODE_LSTRIP2(PyObject *unicode, PyObject *chars) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(chars);
+
+    PyObject *args[2] = {unicode, chars};
+    return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_lstrip, args);
+}
+PyObject *UNICODE_RSTRIP1(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_rstrip, unicode);
+}
+PyObject *UNICODE_RSTRIP2(PyObject *unicode, PyObject *chars) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(chars);
+
+    PyObject *args[2] = {unicode, chars};
+    return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_rstrip, args);
+}
+PyObject *UNICODE_STRIP1(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_strip, unicode);
+}
+PyObject *UNICODE_STRIP2(PyObject *unicode, PyObject *chars) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(chars);
+
+    PyObject *args[2] = {unicode, chars};
+    return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_strip, args);
+}

@@ -33,6 +33,7 @@ import nuitka.specs.BuiltinStrOperationSpecs
 from nuitka.utils.Jinja2 import getTemplate
 
 from .Common import (
+    formatArgs,
     getMethodVariations,
     python2_dict_methods,
     python2_str_methods,
@@ -133,18 +134,6 @@ WARNING, this code is GENERATED. Modify the template %s instead!
 '''
         % template_name
     )
-
-
-def formatArgs(args, starting=True):
-    result = []
-    if args is not None:
-        for arg in args:
-            result.append(arg)
-
-            if arg is not args[-1] or starting:
-                result.append(",")
-
-    return "".join(result)
 
 
 def formatCallArgs(operation_node_arg_mapping, args, starting=True):

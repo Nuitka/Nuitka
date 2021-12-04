@@ -188,13 +188,6 @@ python3_str_methods = (
     "zfill",
 )
 
-if str is bytes:
-    for method_name in python2_str_methods:
-        assert hasattr("", method_name), method_name
-else:
-    for method_name in python3_str_methods:
-        assert hasattr("", method_name), method_name
-
 python2_unicode_methods = (
     "capitalize",
     "center",
@@ -238,17 +231,15 @@ python2_unicode_methods = (
     "zfill",
 )
 
-if str is bytes:
-    for method_name in python2_unicode_methods:
-        assert hasattr(u"", method_name), method_name
 
-
-def getMethodVariations(spec_module, shape_name, method_name):
-    spec = getattr(
-        spec_module, shape_name.split("_")[-1] + "_" + method_name + "_spec", None
-    )
+def getMethodVariations(spec_module, shape_name, method_name, must_exist=False):
+    spec_name = shape_name.split("_")[-1] + "_" + method_name + "_spec"
+    spec = getattr(spec_module, spec_name, None)
 
     present = spec is not None
+
+    if not present and must_exist:
+        assert False, spec_name
 
     if present:
         if spec.isStarListSingleArg():
@@ -275,3 +266,36 @@ def getMethodVariations(spec_module, shape_name, method_name):
         arg_names = arg_name_mapping = arg_counts = None
 
     return present, arg_names, arg_name_mapping, arg_counts
+
+
+def formatArgs(args, starting=True, finishing=True):
+    result = []
+    if args:
+        if not starting:
+            result.append(",")
+
+        for arg in args:
+            result.append(arg)
+
+            if arg is not args[-1] or not finishing:
+                result.append(",")
+
+    return "".join(result)
+
+
+def check():
+    if str is bytes:
+        for method_name in python2_str_methods:
+            assert hasattr("", method_name), method_name
+        for method_name in python2_unicode_methods:
+            assert hasattr(u"", method_name), method_name
+        for method_name in python2_dict_methods:
+            assert hasattr({}, method_name), method_name
+    else:
+        for method_name in python3_str_methods:
+            assert hasattr("", method_name), method_name
+        for method_name in python3_dict_methods:
+            assert hasattr({}, method_name), method_name
+
+
+check()

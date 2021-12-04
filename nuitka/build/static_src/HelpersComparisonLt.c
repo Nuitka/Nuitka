@@ -28,14 +28,8 @@
 static PyObject *COMPARE_LT_OBJECT_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     const long a = PyInt_AS_LONG(operand1);
     const long b = PyInt_AS_LONG(operand2);
@@ -52,14 +46,8 @@ static PyObject *COMPARE_LT_OBJECT_INT_INT(PyObject *operand1, PyObject *operand
 static bool COMPARE_LT_CBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     const long a = PyInt_AS_LONG(operand1);
     const long b = PyInt_AS_LONG(operand2);
@@ -76,14 +64,8 @@ static bool COMPARE_LT_CBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
 static nuitka_bool COMPARE_LT_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     const long a = PyInt_AS_LONG(operand1);
     const long b = PyInt_AS_LONG(operand2);
@@ -1094,14 +1076,8 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
 static PyObject *COMPARE_LT_OBJECT_STR_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyString_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyStringObject *a = (PyStringObject *)operand1;
     PyStringObject *b = (PyStringObject *)operand2;
@@ -1439,14 +1415,8 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
 static bool COMPARE_LT_CBOOL_STR_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyString_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyStringObject *a = (PyStringObject *)operand1;
     PyStringObject *b = (PyStringObject *)operand2;
@@ -1840,14 +1810,8 @@ bool RICH_COMPARE_LT_CBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
 static nuitka_bool COMPARE_LT_NBOOL_STR_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyString_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyString_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyStringObject *a = (PyStringObject *)operand1;
     PyStringObject *b = (PyStringObject *)operand2;
@@ -3256,14 +3220,8 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_STR_STR(PyObject *operand1, PyObject *operand2
 static bool COMPARE_LT_CBOOL_BYTES_BYTES(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyBytes_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyBytesObject *a = (PyBytesObject *)operand1;
     PyBytesObject *b = (PyBytesObject *)operand2;
@@ -3657,14 +3615,8 @@ bool RICH_COMPARE_LT_CBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) 
 static nuitka_bool COMPARE_LT_NBOOL_BYTES_BYTES(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyBytes_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyBytesObject *a = (PyBytesObject *)operand1;
     PyBytesObject *b = (PyBytesObject *)operand2;
@@ -4058,14 +4010,8 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
 static PyObject *COMPARE_LT_OBJECT_BYTES_BYTES(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyBytes_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyBytes_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyBytesObject *a = (PyBytesObject *)operand1;
     PyBytesObject *b = (PyBytesObject *)operand2;
@@ -7130,14 +7076,8 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
 static PyObject *COMPARE_LT_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     const double a = PyFloat_AS_DOUBLE(operand1);
     const double b = PyFloat_AS_DOUBLE(operand2);
@@ -7158,14 +7098,8 @@ PyObject *RICH_COMPARE_LT_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *opera
 static bool COMPARE_LT_CBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     const double a = PyFloat_AS_DOUBLE(operand1);
     const double b = PyFloat_AS_DOUBLE(operand2);
@@ -7186,14 +7120,8 @@ bool RICH_COMPARE_LT_CBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
 static nuitka_bool COMPARE_LT_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     const double a = PyFloat_AS_DOUBLE(operand1);
     const double b = PyFloat_AS_DOUBLE(operand2);
@@ -9184,14 +9112,8 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
 static PyObject *COMPARE_LT_OBJECT_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTupleObject *a = (PyTupleObject *)operand1;
     PyTupleObject *b = (PyTupleObject *)operand2;
@@ -9243,14 +9165,8 @@ PyObject *RICH_COMPARE_LT_OBJECT_TUPLE_TUPLE(PyObject *operand1, PyObject *opera
 static bool COMPARE_LT_CBOOL_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTupleObject *a = (PyTupleObject *)operand1;
     PyTupleObject *b = (PyTupleObject *)operand2;
@@ -9302,14 +9218,8 @@ bool RICH_COMPARE_LT_CBOOL_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {
 static nuitka_bool COMPARE_LT_NBOOL_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyTupleObject *a = (PyTupleObject *)operand1;
     PyTupleObject *b = (PyTupleObject *)operand2;
@@ -11331,14 +11241,8 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
 static PyObject *COMPARE_LT_OBJECT_LIST_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyList_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyListObject *a = (PyListObject *)operand1;
     PyListObject *b = (PyListObject *)operand2;
@@ -11390,14 +11294,8 @@ PyObject *RICH_COMPARE_LT_OBJECT_LIST_LIST(PyObject *operand1, PyObject *operand
 static bool COMPARE_LT_CBOOL_LIST_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyList_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyListObject *a = (PyListObject *)operand1;
     PyListObject *b = (PyListObject *)operand2;
@@ -11449,14 +11347,8 @@ bool RICH_COMPARE_LT_CBOOL_LIST_LIST(PyObject *operand1, PyObject *operand2) {
 static nuitka_bool COMPARE_LT_NBOOL_LIST_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyList_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     PyListObject *a = (PyListObject *)operand1;
     PyListObject *b = (PyListObject *)operand2;
