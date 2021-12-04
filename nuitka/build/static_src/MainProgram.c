@@ -593,7 +593,7 @@ int main(int argc, char **argv) {
     setCommandLineParameters(argc, argv_unicode, false);
 #endif
 
-    /* Initialize the built-in module tricks used. */
+    /* Initialize the built-in module tricks used and builtin-type methods */
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinModule().");
     _initBuiltinModule();
 

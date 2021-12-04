@@ -602,17 +602,11 @@ PyObject *UNICODE_RPARTITION(PyObject *str, PyObject *sep) {
     return PyUnicode_RPartition(str, sep);
 }
 
-static PyObject *unicode_builtin_strip = NULL;
-
 PyObject *UNICODE_STRIP1(PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyUnicode_CheckExact(str));
 
-    if (unlikely(unicode_builtin_strip == NULL)) {
-        unicode_builtin_strip = PyObject_GetAttrString((PyObject *)&PyUnicode_Type, "strip");
-    }
-
-    return CALL_FUNCTION_WITH_SINGLE_ARG(unicode_builtin_strip, str);
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_strip, str);
 }
 
 PyObject *UNICODE_STRIP2(PyObject *str, PyObject *chars) {
@@ -620,26 +614,16 @@ PyObject *UNICODE_STRIP2(PyObject *str, PyObject *chars) {
     CHECK_OBJECT(chars);
     assert(PyUnicode_CheckExact(str));
 
-    if (unlikely(unicode_builtin_strip == NULL)) {
-        unicode_builtin_strip = PyObject_GetAttrString((PyObject *)&PyUnicode_Type, "strip");
-    }
-
     PyObject *args[2] = {str, chars};
 
-    return CALL_FUNCTION_WITH_ARGS2(unicode_builtin_strip, args);
+    return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_strip, args);
 }
-
-static PyObject *unicode_builtin_lstrip = NULL;
 
 PyObject *UNICODE_LSTRIP1(PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyUnicode_CheckExact(str));
 
-    if (unlikely(unicode_builtin_lstrip == NULL)) {
-        unicode_builtin_lstrip = PyObject_GetAttrString((PyObject *)&PyUnicode_Type, "lstrip");
-    }
-
-    return CALL_FUNCTION_WITH_SINGLE_ARG(unicode_builtin_lstrip, str);
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_lstrip, str);
 }
 
 PyObject *UNICODE_LSTRIP2(PyObject *str, PyObject *chars) {
@@ -647,26 +631,16 @@ PyObject *UNICODE_LSTRIP2(PyObject *str, PyObject *chars) {
     CHECK_OBJECT(chars);
     assert(PyUnicode_CheckExact(str));
 
-    if (unlikely(unicode_builtin_lstrip == NULL)) {
-        unicode_builtin_lstrip = PyObject_GetAttrString((PyObject *)&PyUnicode_Type, "lstrip");
-    }
-
     PyObject *args[2] = {str, chars};
 
-    return CALL_FUNCTION_WITH_ARGS2(unicode_builtin_lstrip, args);
+    return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_lstrip, args);
 }
-
-static PyObject *unicode_builtin_rstrip = NULL;
 
 PyObject *UNICODE_RSTRIP1(PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyUnicode_CheckExact(str));
 
-    if (unlikely(unicode_builtin_rstrip == NULL)) {
-        unicode_builtin_rstrip = PyObject_GetAttrString((PyObject *)&PyUnicode_Type, "rstrip");
-    }
-
-    return CALL_FUNCTION_WITH_SINGLE_ARG(unicode_builtin_rstrip, str);
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_rstrip, str);
 }
 
 PyObject *UNICODE_RSTRIP2(PyObject *str, PyObject *chars) {
@@ -674,13 +648,9 @@ PyObject *UNICODE_RSTRIP2(PyObject *str, PyObject *chars) {
     CHECK_OBJECT(chars);
     assert(PyUnicode_CheckExact(str));
 
-    if (unlikely(unicode_builtin_rstrip == NULL)) {
-        unicode_builtin_rstrip = PyObject_GetAttrString((PyObject *)&PyUnicode_Type, "rstrip");
-    }
-
     PyObject *args[2] = {str, chars};
 
-    return CALL_FUNCTION_WITH_ARGS2(unicode_builtin_rstrip, args);
+    return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_rstrip, args);
 }
 
 #if PYTHON_VERSION < 0x300
@@ -693,49 +663,31 @@ PyObject *STR_JOIN(PyObject *str, PyObject *iterable) {
     return _PyString_Join(str, iterable);
 }
 
-static PyObject *str_builtin_partition = NULL;
-
 PyObject *STR_PARTITION(PyObject *str, PyObject *sep) {
     CHECK_OBJECT(str);
     CHECK_OBJECT(sep);
     assert(PyString_CheckExact(str));
 
-    if (unlikely(str_builtin_partition == NULL)) {
-        str_builtin_partition = PyObject_GetAttrString((PyObject *)&PyString_Type, "partition");
-    }
-
     PyObject *args[2] = {str, sep};
 
-    return CALL_FUNCTION_WITH_ARGS2(str_builtin_partition, args);
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_partition, args);
 }
-
-static PyObject *str_builtin_rpartition = NULL;
 
 PyObject *STR_RPARTITION(PyObject *str, PyObject *sep) {
     CHECK_OBJECT(str);
     CHECK_OBJECT(sep);
     assert(PyString_CheckExact(str));
 
-    if (unlikely(str_builtin_rpartition == NULL)) {
-        str_builtin_rpartition = PyObject_GetAttrString((PyObject *)&PyString_Type, "rpartition");
-    }
-
     PyObject *args[2] = {str, sep};
 
-    return CALL_FUNCTION_WITH_ARGS2(str_builtin_rpartition, args);
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_rpartition, args);
 }
-
-static PyObject *str_builtin_strip = NULL;
 
 PyObject *STR_STRIP1(PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
-    if (unlikely(str_builtin_strip == NULL)) {
-        str_builtin_strip = PyObject_GetAttrString((PyObject *)&PyString_Type, "strip");
-    }
-
-    return CALL_FUNCTION_WITH_SINGLE_ARG(str_builtin_strip, str);
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_strip, str);
 }
 
 PyObject *STR_STRIP2(PyObject *str, PyObject *chars) {
@@ -743,26 +695,16 @@ PyObject *STR_STRIP2(PyObject *str, PyObject *chars) {
     CHECK_OBJECT(chars);
     assert(PyString_CheckExact(str));
 
-    if (unlikely(str_builtin_strip == NULL)) {
-        str_builtin_strip = PyObject_GetAttrString((PyObject *)&PyString_Type, "strip");
-    }
-
     PyObject *args[2] = {str, chars};
 
-    return CALL_FUNCTION_WITH_ARGS2(str_builtin_strip, args);
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_strip, args);
 }
-
-static PyObject *str_builtin_lstrip = NULL;
 
 PyObject *STR_LSTRIP1(PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
-    if (unlikely(str_builtin_lstrip == NULL)) {
-        str_builtin_lstrip = PyObject_GetAttrString((PyObject *)&PyString_Type, "lstrip");
-    }
-
-    return CALL_FUNCTION_WITH_SINGLE_ARG(str_builtin_lstrip, str);
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_lstrip, str);
 }
 
 PyObject *STR_LSTRIP2(PyObject *str, PyObject *chars) {
@@ -770,26 +712,16 @@ PyObject *STR_LSTRIP2(PyObject *str, PyObject *chars) {
     CHECK_OBJECT(chars);
     assert(PyString_CheckExact(str));
 
-    if (unlikely(str_builtin_lstrip == NULL)) {
-        str_builtin_lstrip = PyObject_GetAttrString((PyObject *)&PyString_Type, "lstrip");
-    }
-
     PyObject *args[2] = {str, chars};
 
-    return CALL_FUNCTION_WITH_ARGS2(str_builtin_lstrip, args);
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_lstrip, args);
 }
-
-static PyObject *str_builtin_rstrip = NULL;
 
 PyObject *STR_RSTRIP1(PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
-    if (unlikely(str_builtin_rstrip == NULL)) {
-        str_builtin_rstrip = PyObject_GetAttrString((PyObject *)&PyString_Type, "rstrip");
-    }
-
-    return CALL_FUNCTION_WITH_SINGLE_ARG(str_builtin_rstrip, str);
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_rstrip, str);
 }
 
 PyObject *STR_RSTRIP2(PyObject *str, PyObject *chars) {
@@ -797,13 +729,9 @@ PyObject *STR_RSTRIP2(PyObject *str, PyObject *chars) {
     CHECK_OBJECT(chars);
     assert(PyString_CheckExact(str));
 
-    if (unlikely(str_builtin_rstrip == NULL)) {
-        str_builtin_rstrip = PyObject_GetAttrString((PyObject *)&PyString_Type, "rstrip");
-    }
-
     PyObject *args[2] = {str, chars};
 
-    return CALL_FUNCTION_WITH_ARGS2(str_builtin_rstrip, args);
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_rstrip, args);
 }
 
 #endif

@@ -32,11 +32,19 @@ from abc import abstractmethod
 import nuitka.codegen.ComparisonCodes
 import nuitka.codegen.HelperDefinitions
 import nuitka.codegen.Namify
-from nuitka.__past__ import getMetaClassBase
+from nuitka.__past__ import getMetaClassBase, long
 from nuitka.nodes.ImportNodes import hard_modules
 from nuitka.utils.Jinja2 import getTemplate
 
-from .Common import withFileOpenedAndAutoformatted, writeline
+from .Common import (
+    python2_dict_methods,
+    python2_str_methods,
+    python2_unicode_methods,
+    python3_dict_methods,
+    python3_str_methods,
+    withFileOpenedAndAutoformatted,
+    writeline,
+)
 
 
 def getDoExtensionUsingTemplate(template_name):
@@ -746,7 +754,7 @@ return %(return_value)s;""" % {
         if cls.type_name in ("object", "long"):
             if str is bytes:
                 # Cannot put "L" in Jinja code for constant value.
-                value = long(value)  # pylint: disable=undefined-variable
+                value = long(value)
 
             # The only on we surely know right now.
             assert value == 0
@@ -1987,6 +1995,7 @@ def makeHelperCalls():
     from nuitka.codegen.CallCodes import (
         getQuickCallCode,
         getQuickMethodCallCode,
+        getQuickMethodDescrCallCode,
         getQuickMixedCallCode,
         getTemplateCodeDeclaredFunction,
         max_quick_call,
@@ -2054,9 +2063,11 @@ def makeHelperCalls():
                         emit_c(code)
                         emit_h(getTemplateCodeDeclaredFunction(code))
 
-            template = getTemplate(
-                "nuitka.codegen", "CodeTemplateCallsMethodPositional.j2"
-            )
+            for args_count in range(1, 5):
+                code = getQuickMethodDescrCallCode(args_count=args_count)
+
+                emit_c(code)
+                emit_h(getTemplateCodeDeclaredFunction(code))
 
             for args_count in range(max_quick_call + 1):
                 code = getQuickMethodCallCode(args_count=args_count)
@@ -2065,8 +2076,87 @@ def makeHelperCalls():
                 emit_h(getTemplateCodeDeclaredFunction(code))
 
 
+def _makeHelperBuiltinTypeAttributes(
+    output_c, type_prefix, type_name, python2_methods, python3_methods
+):
+    def emit_c(*args):
+        writeline(output_c, *args)
+
+    def getVarName(method_name):
+        return "%s_builtin_%s" % (type_prefix, method_name)
+
+    for method_name in sorted(set(python2_methods + python3_methods)):
+        if method_name in python2_methods and method_name not in python3_methods:
+            emit_c("#if PYTHON_VERSION < 0x300")
+            needs_endif = True
+        elif method_name not in python2_methods and method_name in python3_methods:
+            emit_c("#if PYTHON_VERSION >= 0x300")
+            needs_endif = True
+        else:
+            needs_endif = False
+
+        emit_c("static PyObject *%s = NULL;" % getVarName(method_name))
+
+        if needs_endif:
+            emit_c("#endif")
+
+    if not python3_methods:
+        emit_c("#if PYTHON_VERSION < 0x300")
+
+    emit_c("static void _init%sBuiltinMethods() {" % type_prefix.title())
+    for method_name in sorted(set(python2_methods + python3_methods)):
+        if method_name in python2_methods and method_name not in python3_methods:
+            emit_c("#if PYTHON_VERSION < 0x300")
+            needs_endif = True
+        elif method_name not in python2_methods and method_name in python3_methods:
+            emit_c("#if PYTHON_VERSION >= 0x300")
+            needs_endif = True
+        else:
+            needs_endif = False
+
+        emit_c(
+            '%s = PyObject_GetAttrString((PyObject *)&%s, "%s");'
+            % (getVarName(method_name), type_name, method_name)
+        )
+
+        if needs_endif:
+            emit_c("#endif")
+
+    emit_c("}")
+
+    if not python3_methods:
+        emit_c("#endif")
+
+
+def makeHelperBuiltinTypeAttributes():
+    filename_c = "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
+
+    with withFileOpenedAndAutoformatted(filename_c) as output_c:
+
+        def emit_c(*args):
+            writeline(output_c, *args)
+
+        emitIDE(emit_c)
+
+        _makeHelperBuiltinTypeAttributes(
+            output_c, "str", "PyString_Type", python2_str_methods, ()
+        )
+        _makeHelperBuiltinTypeAttributes(
+            output_c,
+            "unicode",
+            "PyUnicode_Type",
+            python2_unicode_methods,
+            python3_str_methods,
+        )
+        _makeHelperBuiltinTypeAttributes(
+            output_c, "dict", "PyDict_Type", python2_dict_methods, python3_dict_methods
+        )
+
+
 def main():
+
     # Cover many things once first, then cover all for quicker turnaround during development.
+    makeHelperBuiltinTypeAttributes()
     makeHelpersComparisonOperation("==", "EQ")
     makeHelpersBinaryOperation("+", "ADD")
     makeHelpersInplaceOperation("+", "ADD")

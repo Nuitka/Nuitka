@@ -27,6 +27,16 @@
 
 #include "nuitka/prelude.h"
 
+#include "HelpersBuiltinTypeMethods.c"
+
+void _initBuiltinTypeMethods() {
+#if PYTHON_VERSION < 0x300
+    _initStrBuiltinMethods();
+#endif
+    _initUnicodeBuiltinMethods();
+    _initDictBuiltinMethods();
+}
+
 #include "HelpersBuiltin.c"
 #include "HelpersClasses.c"
 #include "HelpersDictionaries.c"
@@ -1885,6 +1895,7 @@ static char const *getDllDirectory() {
 static void _initDeepCopy();
 
 void _initBuiltinModule() {
+    _initBuiltinTypeMethods();
     _initDeepCopy();
 
 #if _NUITKA_MODULE

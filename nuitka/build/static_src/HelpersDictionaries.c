@@ -983,8 +983,6 @@ void DICT_CLEAR(PyObject *dict) {
     PyDict_Clear(dict);
 }
 
-static PyObject *dict_builtin_setdefault = NULL;
-
 PyObject *DICT_SETDEFAULT2(PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
     assert(PyDict_Check(dict));
@@ -992,13 +990,9 @@ PyObject *DICT_SETDEFAULT2(PyObject *dict, PyObject *key) {
 
     // TODO: We would need to implement search and insert for dictionaries to
     // make this fast.
-    if (unlikely(dict_builtin_setdefault == NULL)) {
-        dict_builtin_setdefault = PyObject_GetAttrString((PyObject *)&PyDict_Type, "setdefault");
-    }
-
     PyObject *args[2] = {dict, key};
 
-    return CALL_FUNCTION_WITH_ARGS2(dict_builtin_setdefault, args);
+    return CALL_METHODDESCR_WITH_ARGS2(dict_builtin_setdefault, args);
 }
 
 PyObject *DICT_SETDEFAULT3(PyObject *dict, PyObject *key, PyObject *default_value) {
@@ -1009,16 +1003,10 @@ PyObject *DICT_SETDEFAULT3(PyObject *dict, PyObject *key, PyObject *default_valu
 
     // TODO: We would need to implement search and insert for dictionaries to
     // make this fast.
-    if (unlikely(dict_builtin_setdefault == NULL)) {
-        dict_builtin_setdefault = PyObject_GetAttrString((PyObject *)&PyDict_Type, "setdefault");
-    }
-
     PyObject *args[3] = {dict, key, default_value};
 
-    return CALL_FUNCTION_WITH_ARGS3(dict_builtin_setdefault, args);
+    return CALL_METHODDESCR_WITH_ARGS3(dict_builtin_setdefault, args);
 }
-
-static PyObject *dict_builtin_pop = NULL;
 
 PyObject *DICT_POP2(PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
@@ -1027,13 +1015,9 @@ PyObject *DICT_POP2(PyObject *dict, PyObject *key) {
 
     // TODO: We would need to implement search and remove for dictionaries to
     // make this fast.
-    if (unlikely(dict_builtin_pop == NULL)) {
-        dict_builtin_pop = PyObject_GetAttrString((PyObject *)&PyDict_Type, "pop");
-    }
-
     PyObject *args[2] = {dict, key};
 
-    return CALL_FUNCTION_WITH_ARGS2(dict_builtin_pop, args);
+    return CALL_METHODDESCR_WITH_ARGS2(dict_builtin_pop, args);
 }
 
 PyObject *DICT_POP3(PyObject *dict, PyObject *key, PyObject *default_value) {
@@ -1044,11 +1028,7 @@ PyObject *DICT_POP3(PyObject *dict, PyObject *key, PyObject *default_value) {
 
     // TODO: We would need to implement search and remove for dictionaries to
     // make this fast.
-    if (unlikely(dict_builtin_pop == NULL)) {
-        dict_builtin_pop = PyObject_GetAttrString((PyObject *)&PyDict_Type, "pop");
-    }
-
     PyObject *args[3] = {dict, key, default_value};
 
-    return CALL_FUNCTION_WITH_ARGS3(dict_builtin_pop, args);
+    return CALL_METHODDESCR_WITH_ARGS3(dict_builtin_pop, args);
 }

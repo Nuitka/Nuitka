@@ -1065,6 +1065,16 @@ def getQuickMixedCallCode(args_count, has_tuple_arg, has_dict_values):
     )
 
 
+def getQuickMethodDescrCallCode(args_count):
+    template = getTemplate(
+        "nuitka.codegen", "CodeTemplateCallsPositionalMethodDescr.j2"
+    )
+
+    return template.render(
+        args_count=args_count,
+    )
+
+
 def getTemplateCodeDeclaredFunction(code):
     return "extern " + code.splitlines()[0].replace(" {", ";")
 

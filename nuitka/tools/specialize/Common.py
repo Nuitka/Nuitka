@@ -57,3 +57,221 @@ def writeline(output, *args):
         output.write(args[0] + "\n")
     else:
         assert False, args
+
+
+# Python2 dict methods:
+python2_dict_methods = (
+    "clear",  # has full dict coverage
+    "copy",  # has full dict coverage
+    "fromkeys",
+    "get",  # has full dict coverage
+    "has_key",  # has full dict coverage
+    "items",  # has full dict coverage
+    "iteritems",  # has full dict coverage
+    "iterkeys",  # has full dict coverage
+    "itervalues",  # has full dict coverage
+    "keys",  # has full dict coverage
+    "pop",  # has full dict coverage
+    "popitem",  # has full dict coverage
+    "setdefault",  # has full dict coverage
+    "update",  # has full dict coverage
+    "values",  # has full dict coverage
+    "viewitems",  # has full dict coverage
+    "viewkeys",  # has full dict coverage
+    "viewvalues",  # has full dict coverage
+)
+
+python3_dict_methods = (
+    # see Python2 methods, these are only less
+    "clear",
+    "copy",
+    "fromkeys",
+    "get",
+    "items",
+    "keys",
+    "pop",
+    "popitem",
+    "setdefault",
+    "update",
+    "values",
+)
+
+python2_str_methods = (
+    "capitalize",
+    "center",
+    "count",
+    "decode",
+    "encode",
+    "endswith",
+    "expandtabs",
+    "find",
+    "format",
+    "index",
+    "isalnum",
+    "isalpha",
+    "isdigit",
+    "islower",
+    "isspace",
+    "istitle",
+    "isupper",
+    "join",
+    "ljust",
+    "lower",
+    "lstrip",
+    "partition",  # has full str coverage
+    "replace",
+    "rfind",
+    "rindex",
+    "rjust",
+    "rpartition",  # has full str coverage
+    "rsplit",
+    "rstrip",
+    "split",
+    "splitlines",
+    "startswith",
+    "strip",
+    "swapcase",
+    "title",
+    "translate",
+    "upper",
+    "zfill",
+)
+
+python3_str_methods = (
+    "capitalize",
+    "casefold",
+    "center",
+    "count",
+    "encode",
+    "endswith",
+    "expandtabs",
+    "find",
+    "format",
+    "format_map",
+    "index",
+    "isalnum",
+    "isalpha",
+    "isascii",
+    "isdecimal",
+    "isdigit",
+    "isidentifier",
+    "islower",
+    "isnumeric",
+    "isprintable",
+    "isspace",
+    "istitle",
+    "isupper",
+    "join",
+    "ljust",
+    "lower",
+    "lstrip",
+    "maketrans",
+    "partition",  # has full str coverage
+    # TODO: Python3.9 or higher:
+    # "removeprefix",
+    # "removesuffix",
+    "replace",
+    "rfind",
+    "rindex",
+    "rjust",
+    "rpartition",  # has full str coverage
+    "rsplit",
+    "rstrip",
+    "split",
+    "splitlines",
+    "startswith",
+    "strip",
+    "swapcase",
+    "title",
+    "translate",
+    "upper",
+    "zfill",
+)
+
+if str is bytes:
+    for method_name in python2_str_methods:
+        assert hasattr("", method_name), method_name
+else:
+    for method_name in python3_str_methods:
+        assert hasattr("", method_name), method_name
+
+python2_unicode_methods = (
+    "capitalize",
+    "center",
+    "count",
+    "decode",
+    "encode",
+    "endswith",
+    "expandtabs",
+    "find",
+    "format",
+    "index",
+    "isalnum",
+    "isalpha",
+    "isdecimal",
+    "isdigit",
+    "islower",
+    "isnumeric",
+    "isspace",
+    "istitle",
+    "isupper",
+    "join",
+    "ljust",
+    "lower",
+    "lstrip",
+    "partition",
+    "replace",
+    "rfind",
+    "rindex",
+    "rjust",
+    "rpartition",
+    "rsplit",
+    "rstrip",
+    "split",
+    "splitlines",
+    "startswith",
+    "strip",
+    "swapcase",
+    "title",
+    "translate",
+    "upper",
+    "zfill",
+)
+
+if str is bytes:
+    for method_name in python2_unicode_methods:
+        assert hasattr(u"", method_name), method_name
+
+
+def getMethodVariations(spec_module, shape_name, method_name):
+    spec = getattr(
+        spec_module, shape_name.split("_")[-1] + "_" + method_name + "_spec", None
+    )
+
+    present = spec is not None
+
+    if present:
+        if spec.isStarListSingleArg():
+            required = 1
+
+            arg_counts = tuple(range(required, required + 2))
+
+            arg_names = (
+                spec.getStarListArgumentName(),
+                spec.getStarDictArgumentName(),
+            )
+            arg_name_mapping = {
+                "list_args": "iterable",
+                "kw_args": "pairs",
+            }
+        else:
+            required = spec.getArgumentCount() - spec.getDefaultCount()
+
+            arg_counts = tuple(range(required, spec.getArgumentCount() + 1))
+
+            arg_names = spec.getArgumentNames()
+            arg_name_mapping = {}
+    else:
+        arg_names = arg_name_mapping = arg_counts = None
+
+    return present, arg_names, arg_name_mapping, arg_counts
