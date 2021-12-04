@@ -1625,8 +1625,12 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/gobject"):
             continue
 
-        # PyQt5 seems to do this, but won't use contents then.
+        # PyQt5 and PySide6 seems to do this, but won't use contents then.
         if loaded_filename in (
+            "/usr/lib/qt6/plugins",
+            "/usr/lib/qt6",
+            "/usr/lib64/qt6/plugins",
+            "/usr/lib64/qt6",
             "/usr/lib/qt5/plugins",
             "/usr/lib/qt5",
             "/usr/lib64/qt5/plugins",
