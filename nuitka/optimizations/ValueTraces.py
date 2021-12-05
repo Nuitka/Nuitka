@@ -494,6 +494,18 @@ class ValueTraceMergeBase(ValueTraceBase):
             for previous in self.previous:
                 previous.addNameUsage()
 
+    def addUsage(self):
+        self.usage_count += 1
+
+        # Only do it once.
+        if self.usage_count == 1:
+            for trace in self.previous:
+                trace.addMergeUsage()
+
+    def addMergeUsage(self):
+        self.addUsage()
+        self.merge_usage_count += 1
+
 
 class ValueTraceMerge(ValueTraceMergeBase):
     """Merge of two or more traces.
@@ -559,18 +571,6 @@ class ValueTraceMerge(ValueTraceMergeBase):
 
         return True
 
-    def addUsage(self):
-        self.usage_count += 1
-
-        # Only do it once.
-        if self.usage_count == 1:
-            for trace in self.previous:
-                trace.addMergeUsage()
-
-    def addMergeUsage(self):
-        self.addUsage()
-        self.merge_usage_count += 1
-
     def hasShapeDictionaryExact(self):
         return all(previous.hasShapeDictionaryExact() for previous in self.previous)
 
@@ -610,8 +610,6 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
     def __init__(self, loop_node, previous, type_shapes):
         # Note: That previous is being added to later.
         ValueTraceMergeBase.__init__(self, owner=previous.owner, previous=(previous,))
-
-        previous.addMergeUsage()
 
         self.loop_node = loop_node
         self.type_shapes = type_shapes

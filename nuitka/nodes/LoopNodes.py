@@ -250,7 +250,12 @@ class StatementLoop(StatementChildHavingBase):
                 )
 
                 # Only if the variable is re-entering the loop, annotate that.
-                if not loop_resume_traces:
+                if not loop_resume_traces or (
+                    len(loop_resume_traces) == 1
+                    and loop_entry_trace.compareValueTrace(
+                        next(iter(loop_resume_traces))
+                    )
+                ):
                     # Remove the variable, need not consider it
                     # ever again.
                     del self.loop_resume[loop_variable]
