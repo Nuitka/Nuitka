@@ -21,7 +21,27 @@ Bug Fixes
 
 -  Calls to ``importlib.import_module`` with expressions that need
    releases, i.e. are not constant values, could crash the compilation.
-   Fixed in 0.6.19.1 already.
+   Fixed in 0.6.18.1 already.
+
+-  After a fix for the previous release, modules that fail to import are
+   attempted again when another import is executed. However, during this
+   some initialization was done repeatedly, and could cause issues.
+   Fixed in 0.6.18.1 already.
+
+-  Standalone: Ignore warning given by ``patchelf`` on Linux with at
+   least newer OpenSUSE. Fixed in 0.6.18.1 already.
+
+-  Standalone: Add needed datafile for ``cv2`` package. Fixed in
+   0.6.18.2 already.
+
+-  Fix, need to avoid computing large values out of ``<<`` operation as
+   well. Fixed in 0.6.18.2 already.
+
+   .. code:: python
+
+      # This large value was computed at runtime and then if used, also
+      # converted to a string and potentially hashed, taking a long time.
+      1 << sys.maxint
 
 Optimization
 ============
@@ -30,6 +50,38 @@ Optimization
    code, this unlocks many more static optimization e.g. with
    ``sys.version_info`` when the import and the use are not on the same
    level.
+
+-  For the built-in type method calls with generic implementation, we
+   now do faster method descriptor calls. These avoid creating a
+   temporary ``PyCFunction`` object, that the normal call slot would,
+   this should make these calls faster. Checking them for compiled
+   function, etc. was only wasteful, so this makes it more direct.
+
+-  Loop and normal merge traces were keeping assignments made before the
+   loop or inside a branch, that was otherwise unused alive. This should
+   enable more optimization for code with branches and loops.
+
+Cleanups
+========
+
+-  Generate all existing generic builtin type method calls and method
+   attribute lookups.
+
+Organisational
+==============
+
+-  The main script runners for Python2 have been renamed to ``nuitka2``
+   and ``nuitka2-run``, which is consistent with what we do for Python3,
+   and avoids issues where ``bin`` folder ends up in ``sys.path`` and
+   prevents the loading of ``nuitka`` package.
+
+-  Added support for Fedora 35.
+
+-  User Manual: Add descripotion how to access code attributes in
+   ``nuitka-project`` style options.
+
+Summary
+=======
 
 This release is not done yet.
 
@@ -461,6 +513,8 @@ Organisational
       run Nuitka, you can pick ``python2`` there if you want it to run
       with that, even with full path. Check the relevant section in the
       User Manual too.
+
+-  Added support for Fedora 34.
 
 Cleanups
 ========
