@@ -184,7 +184,7 @@ class ValueTraceBase(object):
 
     @staticmethod
     def getComparisonValue():
-        return None
+        return False, None
 
     @staticmethod
     def getAttributeNode():
@@ -601,7 +601,7 @@ class ValueTraceMerge(ValueTraceMergeBase):
     def getComparisonValue(self):
         # TODO: Support multiple values as candidates, e.g. both 1, 3 could be compared to 2, for
         # now we are delaying that.
-        return None
+        return False, None
 
 
 class ValueTraceLoopBase(ValueTraceMergeBase):
@@ -685,7 +685,7 @@ class ValueTraceLoopComplete(ValueTraceLoopBase):
 
     @staticmethod
     def getComparisonValue():
-        return None
+        return False, None
 
 
 class ValueTraceLoopIncomplete(ValueTraceLoopBase):
@@ -715,4 +715,4 @@ class ValueTraceLoopIncomplete(ValueTraceLoopBase):
 
     @staticmethod
     def getComparisonValue():
-        return None
+        return False, None

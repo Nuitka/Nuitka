@@ -98,7 +98,14 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
 
 
 class ExpressionComparisonRichBase(ExpressionComparisonBase):
-    __slots__ = "type_shape", "escape_desc"
+    __slots__ = (
+        "type_shape",
+        "escape_desc",
+        "left_available",
+        "left_comparable",
+        "right_available",
+        "right_comparable",
+    )
 
     def __init__(self, left, right, source_ref):
         ExpressionComparisonBase.__init__(
@@ -107,6 +114,11 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
 
         self.type_shape = tshape_unknown
         self.escape_desc = None
+
+        self.left_available = False
+        self.left_comparable = None
+        self.right_available = False
+        self.right_comparable = None
 
     def getTypeShape(self):
         return self.type_shape
@@ -147,14 +159,19 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
         left = self.subnode_left
         right = self.subnode_right
 
-        left_value = left.getComparisonValue()
-        if left_value is not None:
-            right_value = right.getComparisonValue()
+        if not self.left_available:
+            self.left_available, self.left_comparable = left.getComparisonValue()
 
-            if right_value is not None:
+        if self.left_available:
+            if not self.right_available:
+                self.right_available, self.right_comparable = right.getComparisonValue()
+
+            if self.right_available:
                 return trace_collection.getCompileTimeComputationResult(
                     node=self,
-                    computation=lambda: self.getSimulator()(left_value, right_value),
+                    computation=lambda: self.getSimulator()(
+                        self.left_comparable, self.right_comparable
+                    ),
                     description="Comparison of constant arguments.",
                 )
 
@@ -315,17 +332,22 @@ class ExpressionComparisonNeq(ExpressionComparisonRichBase):
 class ExpressionComparisonIsIsNotBase(
     ExpressionBoolShapeExactMixin, ExpressionComparisonBase
 ):
-    __slots__ = ("match_value",)
+    __slots__ = (
+        "left_available",
+        "left_comparable",
+        "right_available",
+        "right_comparable",
+    )
 
     def __init__(self, left, right, source_ref):
         ExpressionComparisonBase.__init__(
             self, left=left, right=right, source_ref=source_ref
         )
 
-        assert self.comparator in ("Is", "IsNot")
-
-        # TODO: Forward propagate this one.
-        self.match_value = self.comparator == "Is"
+        self.left_available = False
+        self.left_comparable = None
+        self.right_available = False
+        self.right_comparable = None
 
     @staticmethod
     def getDetails():
@@ -337,11 +359,12 @@ class ExpressionComparisonIsIsNotBase(
         ) or self.subnode_right.mayRaiseException(exception_type)
 
     def computeExpression(self, trace_collection):
-        left, right = self.getOperands()
+        left = self.subnode_left
+        right = self.subnode_right
 
         if trace_collection.mustAlias(left, right):
             result = makeConstantReplacementNode(
-                constant=self.match_value, node=self, user_provided=False
+                constant=self.comparator == "Is", node=self, user_provided=False
             )
 
             if left.mayHaveSideEffects() or right.mayHaveSideEffects():
@@ -361,7 +384,7 @@ Determined values to alias and therefore result of %s comparison."""
 
         if trace_collection.mustNotAlias(left, right):
             result = makeConstantReplacementNode(
-                constant=not self.match_value, node=self, user_provided=False
+                constant=self.comparator != "Is", node=self, user_provided=False
             )
 
             if left.mayHaveSideEffects() or right.mayHaveSideEffects():
@@ -379,14 +402,19 @@ Determined values to not alias and therefore result of '%s' comparison."""
                 % (self.comparator),
             )
 
-        left_value = left.getComparisonValue()
-        if left_value is not None:
-            right_value = right.getComparisonValue()
+        if not self.left_available:
+            self.left_available, self.left_comparable = left.getComparisonValue()
 
-            if right_value is not None:
+        if self.left_available:
+            if not self.right_available:
+                self.right_available, self.right_comparable = right.getComparisonValue()
+
+            if self.right_available:
                 return trace_collection.getCompileTimeComputationResult(
                     node=self,
-                    computation=lambda: self.getSimulator()(left_value, right_value),
+                    computation=lambda: self.getSimulator()(
+                        self.left_comparable, self.right_comparable
+                    ),
                     description="Comparison '%s' with constant arguments."
                     % self.comparator,
                 )
@@ -394,9 +422,10 @@ Determined values to not alias and therefore result of '%s' comparison."""
         return self, None, None
 
     def extractSideEffects(self):
-        left, right = self.getOperands()
-
-        return left.extractSideEffects() + right.extractSideEffects()
+        return (
+            self.subnode_left.extractSideEffects()
+            + self.subnode_right.extractSideEffects()
+        )
 
     def computeExpressionDrop(self, statement, trace_collection):
         from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
@@ -439,27 +468,47 @@ class ExpressionComparisonIsNot(ExpressionComparisonIsIsNotBase):
 class ExpressionComparisonExceptionMatchBase(
     ExpressionBoolShapeExactMixin, ExpressionComparisonBase
 ):
+    __slots__ = (
+        "left_available",
+        "left_comparable",
+        "right_available",
+        "right_comparable",
+    )
+
     def __init__(self, left, right, source_ref):
         ExpressionComparisonBase.__init__(
             self, left=left, right=right, source_ref=source_ref
         )
+
+        self.left_available = False
+        self.left_comparable = None
+        self.right_available = False
+        self.right_comparable = None
 
     @staticmethod
     def getDetails():
         return {}
 
     def computeExpression(self, trace_collection):
-        left = self.subnode_left
-        right = self.subnode_right
+        if not self.left_available:
+            (
+                self.left_available,
+                self.left_comparable,
+            ) = self.subnode_left.getComparisonValue()
 
-        left_value = left.getComparisonValue()
-        if left_value is not None:
-            right_value = right.getComparisonValue()
+        if self.left_available:
+            if not self.right_available:
+                (
+                    self.right_available,
+                    self.right_comparable,
+                ) = self.subnode_right.getComparisonValue()
 
-            if right_value is not None:
+            if self.right_available:
                 return trace_collection.getCompileTimeComputationResult(
                     node=self,
-                    computation=lambda: self.getSimulator()(left_value, right_value),
+                    computation=lambda: self.getSimulator()(
+                        self.left_comparable, self.right_comparable
+                    ),
                     description="Exception matched with constant arguments.",
                 )
 
