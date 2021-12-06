@@ -156,7 +156,7 @@ which can and should be a top level package and then one choice, "error",
         )
 
     def onModuleSourceCode(self, module_name, source_code):
-        # Complex dealing with many cases, pylint: disable=too-many-branches,too-many-locals
+        # Complex dealing with many cases, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
         config = self.config.get(module_name)
 
@@ -206,6 +206,12 @@ which can and should be a top level package and then one choice, "error",
                     )
             else:
                 replace_dst = ""
+
+            if type(replace_dst) is not str:
+                self.sysexit(
+                    "Error, expression needs to generate string, not %s"
+                    % type(replace_dst)
+                )
 
             old = source_code
             source_code = source_code.replace(replace_src, replace_dst)
