@@ -139,3 +139,7 @@ def getTreeFilenameWithSuffix(module, suffix):
 
 def getPgoRunExecutable():
     return Options.getPgoExecutable() or getResultRunFilename(onefile=False)
+
+
+def getPgoRunInputFilename():
+    return getPgoRunExecutable() + ".nuitka-pgo"

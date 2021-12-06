@@ -501,7 +501,7 @@ def _runPythonPgoBinary():
     # or ask people to make scripts that buffer these kinds of errors, and take an error
     # instead as a serious failure.
 
-    pgo_filename = OutputDirectories.getPgoRunExecutable() + ".nuitka-pgo"
+    pgo_filename = OutputDirectories.getPgoRunInputFilename()
 
     with withEnvironmentVarOverriden("NUITKA_PGO_OUTPUT", pgo_filename):
         _exit_code = _runPgoBinary()
@@ -921,9 +921,9 @@ def main():
         # Relaunch in case of Python PGO input to be produced.
         if Options.shallCreatePgoInput():
             # Will not return.
-            pgo_filename = OutputDirectories.getPgoRunExecutable() + ".nuitka-pgo"
+            pgo_filename = OutputDirectories.getPgoRunInputFilename()
             general.info(
-                "Restarting compilation using collected information from %s."
+                "Restarting compilation using collected information from '%s'."
                 % pgo_filename
             )
             reExecuteNuitka(pgo_filename=pgo_filename)

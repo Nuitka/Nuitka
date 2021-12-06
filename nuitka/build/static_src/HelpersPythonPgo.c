@@ -107,3 +107,4 @@ void PGO_onProbePassed(char const *probe_str, char const *module_name, uint32_t 
 
 void PGO_onModuleEntered(char const *module_name) { PGO_onProbePassed("ModuleEnter", module_name, 0); }
 void PGO_onModuleExit(char const *module_name, bool error) { PGO_onProbePassed("ModuleExit", module_name, error); }
+void PGO_onTechnicalModule(char const *module_name) { PGO_onProbePassed("ModuleTechnical", module_name, 0); }

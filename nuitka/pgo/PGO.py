@@ -96,6 +96,10 @@ def readPGOInputFile(input_filename):
                 _module_exits[module_name] = had_error
             elif probe_name == "END":
                 break
+            else:
+                pgo_logger.sysexit(
+                    "Error, unknown problem '%s' encountered." % probe_name
+                )
 
     _pgo_active = True
 
