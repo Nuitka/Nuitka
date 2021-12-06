@@ -130,9 +130,12 @@ def main():
             plugin_names = set(["pylint-warnings", "anti-bloat"])
             if module_name.hasNamespace("PySide2"):
                 plugin_names.add("pyside2")
-            if module_name.hasNamespace("PySide6"):
+            elif module_name.hasNamespace("PySide6"):
                 plugin_names.add("pyside2")
-            if module_name.hasNamespace("PyQt5"):
+            elif module_name.hasNamespace("PyQt5"):
+                plugin_names.add("pyqt5")
+            else:
+                # TODO: We do not have a noqt plugin yet.
                 plugin_names.add("pyqt5")
 
             for plugin_name in plugin_names:
@@ -179,10 +182,13 @@ def main():
 
                     search_mode.onErrorDetected(1)
 
-                if output[-1] != b"OK":
-                    sys.exit("FAIL")
+                if output[-1] != b"OK.":
+                    my_print(" ".join(command))
+                    my_print(filename)
+                    my_print(output)
+                    test_logger.sysexit("FAIL.")
 
-                my_print("OK")
+                my_print("OK.")
 
                 assert not outside_accesses, outside_accesses
 
