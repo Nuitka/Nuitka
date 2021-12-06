@@ -160,11 +160,9 @@ class build(distutils.command.build.build):
         to_builds = self._find_to_build()
         for to_build in to_builds:
             package, main_filename, finding = findModule(
-                importing=None,
                 module_name=ModuleName(to_build.module_name),
                 parent_package=None,
                 level=0,
-                warn=False,
             )
 
             # Check expectations, e.g. do not compile built-in modules.

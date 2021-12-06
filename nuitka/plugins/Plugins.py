@@ -47,7 +47,6 @@ from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
     makePath,
     putTextFileContents,
-    relpath,
 )
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName
@@ -269,15 +268,9 @@ class Plugins(object):
 
             try:
                 _module_package, module_filename, _finding = Importing.findModule(
-                    importing=module,
                     module_name=full_name,
                     parent_package=None,
                     level=-1,
-                    warn=False,
-                )
-
-                module_filename = plugin.locateModule(
-                    importing=module, module_name=full_name
                 )
             except Exception:
                 plugin.warning(
@@ -325,9 +318,8 @@ class Plugins(object):
             if decision:
                 imported_module = Recursion.recurseTo(
                     signal_change=signal_change,
-                    module_package=full_name.getPackageName(),
+                    module_name=full_name,
                     module_filename=module_filename,
-                    module_relpath=relpath(module_filename),
                     module_kind=module_kind,
                     reason=reason,
                 )
@@ -519,7 +511,7 @@ class Plugins(object):
                     os.path.dirname(module.getCompileTimeFilename()),
                     module_name.asPath() + ".py",
                 ),
-                module_package=module_name.getPackageName(),
+                module_name=module_name,
                 source_code=code,
                 is_top=False,
                 is_main=False,
@@ -718,28 +710,22 @@ class Plugins(object):
         return None
 
     @staticmethod
-    def suppressUnknownImportWarning(importing, module_name):
+    def suppressUnknownImportWarning(importing, source_ref, module_name):
         """Let plugins decide whether to suppress import warnings for an unknown module.
 
         Notes:
             If all plugins return False or None, the return will be False, else True.
         Args:
             importing: the module which is importing "module_name"
+            source_ref: pointer to file source code or bytecode
             module_name: the module to be imported
         returns:
             True or False (default)
         """
-        if importing.isCompiledPythonModule() or importing.isPythonShlibModule():
-            importing_module = importing
-        else:
-            importing_module = importing.getParentModule()
-
         source_ref = importing.getSourceReference()
 
         for plugin in getActivePlugins():
-            if plugin.suppressUnknownImportWarning(
-                importing_module, module_name, source_ref
-            ):
+            if plugin.suppressUnknownImportWarning(importing, module_name, source_ref):
                 return True
 
         return False

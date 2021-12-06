@@ -892,7 +892,9 @@ def getPackageSpecificDLLDirectories(package_name):
     if package_name is not None:
         from nuitka.importing.Importing import findModule
 
-        package_dir = findModule(None, package_name, None, 0, False)[1]
+        package_dir = findModule(
+            module_name=package_name, parent_package=None, level=0
+        )[1]
 
         if os.path.isdir(package_dir):
             scan_dirs.add(package_dir)
@@ -916,13 +918,7 @@ def getScanDirectories(package_name, original_dir):
     scan_dirs = [sys.prefix]
 
     if package_name is not None:
-        from nuitka.importing.Importing import findModule
-
-        package_dir = findModule(None, package_name, None, 0, False)[1]
-
-        if os.path.isdir(package_dir):
-            scan_dirs.append(package_dir)
-            scan_dirs.extend(getSubDirectories(package_dir))
+        scan_dirs.extend(getPackageSpecificDLLDirectories(package_name))
 
     if original_dir is not None:
         scan_dirs.append(original_dir)

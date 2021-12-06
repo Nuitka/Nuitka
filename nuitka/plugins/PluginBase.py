@@ -332,14 +332,16 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         Returns:
             filename for module
         """
+
+        # TODO: Remove importing, and become clear about level, should
+        # probably only do absolute imports, so level 0 would make more
+        # sense, pylint:disable=unused-argument
         from nuitka.importing import Importing
 
         _module_package, module_filename, _finding = Importing.findModule(
-            importing=importing,
             module_name=ModuleName(module_name),
             parent_package=None,
             level=-1,
-            warn=False,
         )
 
         return module_filename

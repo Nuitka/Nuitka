@@ -113,7 +113,6 @@ def _createNodeTree(filename):
     # First, build the raw node tree from the source code.
     main_module = Building.buildMainModuleTree(
         filename=filename,
-        package=None,
         is_main=not Options.shallMakeModule(),
     )
 
@@ -150,11 +149,9 @@ def _createNodeTree(filename):
 
     for package_name in Options.getMustIncludePackages():
         package_package, package_directory, kind = Importing.findModule(
-            importing=None,
             module_name=ModuleName(package_name),
             parent_package=None,
             level=0,
-            warn=False,
         )
 
         if kind != "absolute":
@@ -169,11 +166,9 @@ def _createNodeTree(filename):
 
     for module_name in Options.getMustIncludeModules():
         module_package, module_filename, kind = Importing.findModule(
-            importing=None,
             module_name=ModuleName(module_name),
             parent_package=None,
             level=0,
-            warn=False,
         )
 
         if kind != "absolute":

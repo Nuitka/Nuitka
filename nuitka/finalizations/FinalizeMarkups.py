@@ -82,7 +82,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
                 else:
                     search.markAsNeedsGeneratorReturnHandling(1)
 
-        if node.isExpressionBuiltinImport() and node.recurse_attempted:
+        if node.isExpressionBuiltinImport() and node.follow_attempted:
             module_name = node.subnode_name
 
             if module_name.isCompileTimeConstant():

@@ -34,9 +34,10 @@ from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import fromFilename
+from nuitka.tree.Operations import DetectUsedModules, visitTree
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
-from nuitka.utils.FileOperations import getFileContentByLine, relpath
+from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
 
 from .Checkers import checkStatementsSequenceOrNone
@@ -89,16 +90,14 @@ class PythonModuleBase(NodeBase):
         package = getModuleByName(package_name)
 
         if package_name is not None and package is None:
-            package_package, package_filename, finding = findModule(
-                importing=self,
+            _package_package, package_filename, finding = findModule(
                 module_name=package_name,
                 parent_package=None,
                 level=1,
-                warn=python_version < 0x300,
             )
 
-            # TODO: Temporary, if we can't find the package for Python3.3 that
-            # is semi-OK, maybe.
+            # If we can't find the package for Python3.3 that is semi-OK, it might be in a
+            # namespace package, these have no init code.
             if python_version >= 0x300 and not package_filename:
                 return ()
 
@@ -123,9 +122,8 @@ class PythonModuleBase(NodeBase):
                     signal_change=self.trace_collection.signalChange
                     if hasattr(self, "trace_collection")
                     else None,
-                    module_package=package_package,
+                    module_name=package_name,
                     module_filename=package_filename,
-                    module_relpath=relpath(package_filename),
                     module_kind="py",
                     reason="Containing package of '%s'." % self.getFullName(),
                 )
@@ -279,6 +277,8 @@ class CompiledPythonModule(
         self.locals_scope = getLocalsDictHandle(
             self.module_dict_name, "module_dict", self
         )
+
+        self.used_modules = OrderedSet()
 
     @staticmethod
     def isCompiledPythonModule():
@@ -446,16 +446,18 @@ class CompiledPythonModule(
         self.setChild("functions", functions)
 
     def startTraversal(self):
-        self.used_modules = OrderedSet()
+        self.used_modules = None
         self.active_functions = OrderedSet()
 
     def restartTraversal(self):
         self.visited_functions = set()
 
-    def addUsedModule(self, key):
-        self.used_modules.add(key)
-
     def getUsedModules(self):
+        if self.used_modules is None:
+            visitor = DetectUsedModules()
+            visitTree(tree=self, visitor=visitor)
+            self.used_modules = visitor.getUsedModules()
+
         return self.used_modules
 
     def addUsedFunction(self, function_body):

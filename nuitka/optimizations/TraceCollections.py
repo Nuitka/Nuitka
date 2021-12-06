@@ -30,19 +30,16 @@ from contextlib import contextmanager
 from nuitka import Tracing, Variables
 from nuitka.__past__ import iterItems  # Python3 compatibility.
 from nuitka.containers.oset import OrderedSet
-from nuitka.importing.ImportCache import getImportedModuleByNameAndPath
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.nodes.shapes.StandardShapes import tshape_uninit
 from nuitka.tree.SourceReading import readSourceLine
-from nuitka.utils.FileOperations import relpath
 from nuitka.utils.InstanceCounters import (
     counted_del,
     counted_init,
     isCountingInstances,
 )
-from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Timing import TimerReport
 
 from .ValueTraces import (
@@ -462,11 +459,6 @@ class TraceCollectionBase(object):
     def signalChange(tags, source_ref, message):
         # This is monkey patched from another module. pylint: disable=I0021,not-callable
         signalChange(tags, source_ref, message)
-
-    def onUsedModule(self, module_name, module_relpath):
-        return self.parent.onUsedModule(
-            module_name=module_name, module_relpath=module_relpath
-        )
 
     def onUsedFunction(self, function_body):
         owning_module = function_body.getParentModule()
@@ -1060,18 +1052,6 @@ class TraceCollectionModule(CollectionStartpointMixin, TraceCollectionBase):
         )
 
         self.very_trusted_module_variables = very_trusted_module_variables
-
-    def onUsedModule(self, module_name, module_relpath):
-        assert type(module_name) is ModuleName, module_name
-
-        # TODO: Make users provide this through a method that has already
-        # done this.
-        module_relpath = relpath(module_relpath)
-
-        self.owner.addUsedModule((module_name, module_relpath))
-
-        module = getImportedModuleByNameAndPath(module_name, module_relpath)
-        addUsedModule(module)
 
     def getVeryTrustedModuleVariables(self):
         return self.very_trusted_module_variables

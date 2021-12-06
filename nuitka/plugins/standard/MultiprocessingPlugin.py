@@ -140,7 +140,7 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
 
         multiprocessing_main_module, _added = buildModule(
             module_filename=root_module.getCompileTimeFilename(),
-            module_package=module_name.getPackageName(),
+            module_name=module_name,
             source_code=source_code,
             is_top=False,
             is_main=False,

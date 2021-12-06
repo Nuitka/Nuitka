@@ -67,11 +67,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                     )
 
                 _package, module_filename, _finding = findModule(
-                    importing=None,
                     module_name=ModuleName(current),
                     parent_package=None,
                     level=0,
-                    warn=False,
                 )
 
                 for sub_module in iter_modules([module_filename]):
