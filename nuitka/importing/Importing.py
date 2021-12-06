@@ -118,12 +118,14 @@ def getModuleNameAndKindFromFilename(module_filename):
         module_name = ModuleName(os.path.basename(module_filename))
         module_kind = "py"
     elif module_filename.endswith(".py"):
-        module_name = os.path.basename(module_filename)[:-3]
+        module_name = ModuleName(os.path.basename(module_filename)[:-3])
         module_kind = "py"
     else:
         for suffix in getSharedLibrarySuffixes():
             if module_filename.endswith(suffix):
-                module_name = os.path.basename(module_filename)[: -len(suffix)]
+                module_name = ModuleName(
+                    os.path.basename(module_filename)[: -len(suffix)]
+                )
                 module_kind = "shlib"
 
                 break
@@ -145,9 +147,9 @@ def warnAbout(importing, module_name, parent_package, level, tried_names):
     if module_name == "":
         return
 
-    if not isIgnoreListedImportMaker(importing) and not isIgnoreListedNotExistingModule(
+    if not isIgnoreListedNotExistingModule(
         module_name
-    ):
+    ) and not isIgnoreListedImportMaker(importing):
         key = module_name, parent_package, level
 
         if key not in warned_about:
@@ -283,6 +285,23 @@ def findModule(importing, module_name, parent_package, level, warn):
                     % (module_name,)
                 )
             return package_name, None, "built-in"
+
+        # Frozen module names are similar to built-in, but there is no list of
+        # them, therefore check loader name. Not useful at this time
+        # to make a difference with built-in.
+        if python_version >= 0x300 and module_name in sys.modules:
+            loader = getattr(sys.modules[module_name], "__loader__", None)
+
+            if (
+                loader is not None
+                and getattr(loader, "__name__", "") == "FrozenImporter"
+            ):
+                if _debug_module_finding:
+                    my_print(
+                        "findModule: Absolute imported module '%s' in as frozen':"
+                        % (module_name,)
+                    )
+                return package_name, None, "built-in"
 
         try:
             module_filename = _findModule(module_name=module_name)
@@ -639,3 +658,39 @@ def _findModule2(module_name):
         return preloaded_path[0]
 
     return _findModuleInPath(module_name=module_name)
+
+
+def locateModule(importing, module_name, parent_package, level, warn):
+    """Locate a module with given package name as parent.
+
+    The package name can be None of course. Level is the same
+    as with "__import__" built-in. Warnings are optional.
+
+    Returns:
+        Returns a quadruple of module name the module has considering
+        package containing it, and filename of it which can be a
+        directory for packages, and a package indication,
+        and the location method used.
+    """
+    module_package, module_filename, finding = findModule(
+        importing=importing,
+        module_name=module_name,
+        parent_package=parent_package,
+        level=level,
+        warn=warn,
+    )
+
+    assert module_package is None or (
+        type(module_package) is ModuleName and module_package != ""
+    ), repr(module_package)
+
+    if module_filename is not None:
+        module_filename = os.path.normpath(module_filename)
+
+        module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
+
+        assert module_kind is not None, module_filename
+
+        module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
+
+    return module_name, module_filename, finding

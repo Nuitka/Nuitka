@@ -503,6 +503,22 @@ def commentArgs():
             % standalone_mode
         )
 
+    if (
+        not standalone_mode
+        and not options.follow_all
+        and not options.follow_none
+        and not options.follow_modules
+        and not options.follow_stdlib
+        and not options.include_modules
+        and not options.include_packages
+        and not options.include_extra
+    ):
+        Tracing.options_logger.warning(
+            """Did not specify to follow or including anything but main %s. Check options and \
+make sure that is intended."""
+            % ("module" if shallMakeModule() else "program")
+        )
+
     if options.dependency_tool:
         Tracing.options_logger.warning(
             "Using removed option '--windows-dependency-tool' is deprecated and has no impact anymore."

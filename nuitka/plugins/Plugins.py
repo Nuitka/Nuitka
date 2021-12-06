@@ -47,7 +47,6 @@ from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
     makePath,
     putTextFileContents,
-    relpath,
 )
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName
@@ -325,9 +324,8 @@ class Plugins(object):
             if decision:
                 imported_module = Recursion.recurseTo(
                     signal_change=signal_change,
-                    module_package=full_name.getPackageName(),
+                    module_name=full_name,
                     module_filename=module_filename,
-                    module_relpath=relpath(module_filename),
                     module_kind=module_kind,
                     reason=reason,
                 )
@@ -519,7 +517,7 @@ class Plugins(object):
                     os.path.dirname(module.getCompileTimeFilename()),
                     module_name.asPath() + ".py",
                 ),
-                module_package=module_name.getPackageName(),
+                module_name=module_name,
                 source_code=code,
                 is_top=False,
                 is_main=False,

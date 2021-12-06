@@ -126,7 +126,6 @@ from nuitka.pgo.PGO import decideCompilationFromPGO
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import (
-    general,
     memory_logger,
     optimization_logger,
     plugins_logger,
@@ -134,7 +133,6 @@ from nuitka.Tracing import (
     unusual_logger,
 )
 from nuitka.utils import MemoryUsage
-from nuitka.utils.FileOperations import splitPath
 from nuitka.utils.ModuleNames import ModuleName
 
 from . import SyntaxErrors
@@ -964,11 +962,10 @@ required to compiled."""
     return result
 
 
-def _decideModuleSourceRef(filename, package, is_shlib, is_top, is_main, is_fake):
+def _decideModuleSourceRef(filename, module_name, is_main, is_fake):
     # Many branches due to the many cases
-    # pylint: disable=too-many-branches
 
-    assert package is None or type(package) is ModuleName
+    assert type(module_name) is ModuleName
     assert filename is not None
 
     is_namespace = False
@@ -1002,31 +999,8 @@ def _decideModuleSourceRef(filename, package, is_shlib, is_top, is_main, is_fake
 
         source_ref = SourceCodeReferences.fromFilename(filename=filename)
 
-        if is_main:
-            module_name = ModuleName("__main__")
-        else:
-            # Derive module name from filename.
-            module_name = os.path.basename(filename)
-            if is_shlib:
-                module_name = module_name.split(".")[0]
-            elif module_name.endswith(".py"):
-                module_name = module_name[:-3]
-
-            if "." in module_name:
-                general.sysexit(
-                    "Error, '%s' is not a proper python module name.\n" % module_name
-                )
-
-            module_name = ModuleName.makeModuleNameInPackage(module_name, package)
     elif Importing.isPackageDir(filename):
         is_package = True
-
-        if is_top:
-            module_name = splitPath(filename)[-1]
-        else:
-            module_name = os.path.basename(filename)
-
-        module_name = ModuleName.makeModuleNameInPackage(module_name, package)
 
         source_filename = os.path.join(filename, "__init__.py")
 
@@ -1047,7 +1021,6 @@ def _decideModuleSourceRef(filename, package, is_shlib, is_top, is_main, is_fake
         sys.exit(2)
 
     return (
-        module_name,
         main_added,
         is_package,
         is_namespace,
@@ -1060,7 +1033,6 @@ def _createModule(
     module_name,
     source_code,
     source_ref,
-    package,
     is_shlib,
     is_namespace,
     is_package,
@@ -1070,7 +1042,6 @@ def _createModule(
 ):
     # Many details due to the caching done here.
     # pylint: disable=too-many-locals
-    assert package is None or type(package) is ModuleName
 
     if is_shlib:
         result = PythonShlibModule(module_name=module_name, source_ref=source_ref)
@@ -1182,13 +1153,18 @@ def createModuleTree(module, source_ref, ast_tree, is_main):
         )
 
 
-def buildMainModuleTree(filename, package, is_main):
+def buildMainModuleTree(filename, is_main):
     # Detect to be frozen modules if any, so we can consider to not follow
     # to them.
 
+    if is_main:
+        module_name = ModuleName("__main__")
+    else:
+        module_name = Importing.getModuleNameAndKindFromFilename(filename)[0]
+
     module, _added = buildModule(
+        module_name=module_name,
         module_filename=filename,
-        module_package=package,
         source_code=None,
         is_top=True,
         is_main=is_main,
@@ -1275,8 +1251,8 @@ Cannot follow import to import module '%r' ('%r') because code is too complex.""
 
 
 def buildModule(
+    module_name,
     module_filename,
-    module_package,
     source_code,
     is_top,
     is_main,
@@ -1285,9 +1261,7 @@ def buildModule(
     hide_syntax_error,
 ):
     # Many details to deal with, pylint: disable=too-many-locals
-
     (
-        module_name,
         main_added,
         is_package,
         is_namespace,
@@ -1295,10 +1269,8 @@ def buildModule(
         source_filename,
     ) = _decideModuleSourceRef(
         filename=module_filename,
-        package=module_package,
-        is_top=is_top,
+        module_name=module_name,
         is_main=is_main,
-        is_shlib=is_shlib,
         is_fake=is_fake,
     )
 
@@ -1359,7 +1331,6 @@ def buildModule(
 
     module = _createModule(
         module_name=module_name,
-        package=module_package,
         source_code=source_code,
         source_ref=source_ref,
         is_top=is_top,
