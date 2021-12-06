@@ -226,7 +226,9 @@ static PyObject *loadModuleFromCodeObject(PyObject *module, PyCodeObject *code_o
     patchCodeObjectPaths(code_object, module_path);
 #endif
 
+    PGO_onModuleEntered(name);
     module = PyImport_ExecCodeModuleEx((char *)name, (PyObject *)code_object, Nuitka_String_AsString(module_path));
+    PGO_onModuleExit(name, module == NULL);
 
     Py_DECREF(module_path);
 
@@ -693,6 +695,8 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
     _Py_PackageContext = (char *)package;
 
     // Finally call into the DLL.
+    PGO_onModuleEntered(full_name);
+
 #if PYTHON_VERSION < 0x300
     (*entrypoint)();
 #else
@@ -704,6 +708,8 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
 #if PYTHON_VERSION < 0x300
     PyObject *module = Nuitka_GetModuleString(full_name);
 #endif
+
+    PGO_onModuleExit(name, module == NULL);
 
     if (unlikely(module == NULL)) {
         if (unlikely(!ERROR_OCCURRED())) {
@@ -969,7 +975,9 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyObject *module, PyObject *module_nam
     }
 
     if (frozen_import) {
+        PGO_onModuleEntered(name);
         int res = PyImport_ImportFrozenModule((char *)name);
+        PGO_onModuleExit(name, res == -1);
 
         if (unlikely(res == -1)) {
             return NULL;
