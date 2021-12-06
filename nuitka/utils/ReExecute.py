@@ -65,7 +65,11 @@ def reExecuteNuitka(pgo_filename):
     os.environ["NUITKA_NAMESPACES"] = repr(detectPreLoadedPackagePaths())
 
     if "site" in sys.modules:
-        os.environ["NUITKA_SITE_FILENAME"] = sys.modules["site"].__file__
+        site_filename = sys.modules["site"].__file__
+        if site_filename.endswith(".pyc"):
+            site_filename = site_filename[:-4] + ".py"
+
+        os.environ["NUITKA_SITE_FILENAME"] = site_filename
 
         os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
 
