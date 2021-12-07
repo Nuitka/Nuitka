@@ -35,6 +35,7 @@ from nuitka.PythonFlavors import (
     isAnacondaPython,
     isApplePython,
     isDebianPackagePython,
+    isMSYS2MingwPython,
     isNuitkaPython,
     isPyenvPython,
     isWinPython,
@@ -45,6 +46,7 @@ from nuitka.utils.Utils import (
     getLinuxDistribution,
     getOS,
     isLinux,
+    isPosixWindows,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
@@ -73,6 +75,10 @@ def _getPythonFlavor():
         return "Apple Python"
     elif isPyenvPython():
         return "pyenv"
+    elif isPosixWindows():
+        return "MSYS2 Posix"
+    elif isMSYS2MingwPython():
+        return "MSYS2 MinGW"
     else:
         return "Unknown"
 
