@@ -561,12 +561,24 @@ class ExpressionComparisonExceptionMismatch(ExpressionComparisonExceptionMatchBa
 class ExpressionComparisonInNotInBase(
     ExpressionBoolShapeExactMixin, ExpressionComparisonBase
 ):
+    __slots__ = (
+        "left_available",
+        "left_comparable",
+        "right_available",
+        "right_comparable",
+    )
+
     def __init__(self, left, right, source_ref):
         ExpressionComparisonBase.__init__(
             self, left=left, right=right, source_ref=source_ref
         )
 
         assert self.comparator in ("In", "NotIn")
+
+        self.left_available = False
+        self.left_comparable = None
+        self.right_available = False
+        self.right_comparable = None
 
     @staticmethod
     def getDetails():
@@ -585,7 +597,33 @@ class ExpressionComparisonInNotInBase(
 
         return right.mayRaiseExceptionIn(exception_type, left)
 
+    def getSimulator(self):
+        return PythonOperators.other_comparison_functions[self.comparator]
+
     def computeExpression(self, trace_collection):
+        if not self.left_available:
+            (
+                self.left_available,
+                self.left_comparable,
+            ) = self.subnode_left.getComparisonValue()
+
+        if self.left_available:
+            if not self.right_available:
+                (
+                    self.right_available,
+                    self.right_comparable,
+                ) = self.subnode_right.getComparisonValue()
+
+            if self.right_available:
+                return trace_collection.getCompileTimeComputationResult(
+                    node=self,
+                    computation=lambda: self.getSimulator()(
+                        self.left_comparable, self.right_comparable
+                    ),
+                    description="Contains check %s of constant arguments."
+                    % self.comparator,
+                )
+
         return self.subnode_right.computeExpressionComparisonIn(
             in_node=self,
             value_node=self.subnode_left,
