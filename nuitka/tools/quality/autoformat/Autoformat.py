@@ -400,6 +400,8 @@ def _cleanupRstFmt(filename):
     # more people will know it.
     updated_contents = contents.replace(b".. code:: sh\n", b".. code:: bash\n")
 
+    updated_contents = updated_contents.replace(b"..\n   raw:", b".. raw:")
+
     lines = []
     inside = False
     needs_empty = False
