@@ -53,3 +53,9 @@ str_rpartition_spec = StrMethodSpec("rpartition", arg_names=("sep",))
 str_strip_spec = StrMethodSpec("strip", arg_names=("chars",), default_count=1)
 str_lstrip_spec = StrMethodSpec("lstrip", arg_names=("chars",), default_count=1)
 str_rstrip_spec = StrMethodSpec("rstrip", arg_names=("chars",), default_count=1)
+str_find_spec = StrMethodSpec(
+    "find", arg_names=("sub", "start", "end"), default_count=2
+)
+str_rfind_spec = StrMethodSpec(
+    "rfind", arg_names=("sub", "start", "end"), default_count=2
+)

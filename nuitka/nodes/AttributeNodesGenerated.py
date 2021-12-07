@@ -689,6 +689,9 @@ class ExpressionAttributeLookupFixedFind(ExpressionAttributeLookupFixedBase):
 attribute_classes["find"] = ExpressionAttributeLookupFixedFind
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_find_spec
+
+
 class ExpressionAttributeLookupStrFind(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedFind
 ):
@@ -703,7 +706,45 @@ class ExpressionAttributeLookupStrFind(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationFind is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationFind(sub, start, end, source_ref):
+            if end is not None:
+                from .StrNodes import ExpressionStrOperationFind4
+
+                return ExpressionStrOperationFind4(
+                    str_arg=self.subnode_expression,
+                    sub=sub,
+                    start=start,
+                    end=end,
+                    source_ref=source_ref,
+                )
+            elif start is not None:
+                from .StrNodes import ExpressionStrOperationFind3
+
+                return ExpressionStrOperationFind3(
+                    str_arg=self.subnode_expression,
+                    sub=sub,
+                    start=start,
+                    source_ref=source_ref,
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationFind2
+
+                return ExpressionStrOperationFind2(
+                    str_arg=self.subnode_expression, sub=sub, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationFind,
+            builtin_spec=str_find_spec,
+        )
+
+        return result, "new_expression", "Call to 'find' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrFind)
@@ -2881,6 +2922,9 @@ class ExpressionAttributeLookupFixedRfind(ExpressionAttributeLookupFixedBase):
 attribute_classes["rfind"] = ExpressionAttributeLookupFixedRfind
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_rfind_spec
+
+
 class ExpressionAttributeLookupStrRfind(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedRfind
 ):
@@ -2895,7 +2939,45 @@ class ExpressionAttributeLookupStrRfind(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationRfind is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationRfind(sub, start, end, source_ref):
+            if end is not None:
+                from .StrNodes import ExpressionStrOperationRfind4
+
+                return ExpressionStrOperationRfind4(
+                    str_arg=self.subnode_expression,
+                    sub=sub,
+                    start=start,
+                    end=end,
+                    source_ref=source_ref,
+                )
+            elif start is not None:
+                from .StrNodes import ExpressionStrOperationRfind3
+
+                return ExpressionStrOperationRfind3(
+                    str_arg=self.subnode_expression,
+                    sub=sub,
+                    start=start,
+                    source_ref=source_ref,
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationRfind2
+
+                return ExpressionStrOperationRfind2(
+                    str_arg=self.subnode_expression, sub=sub, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationRfind,
+            builtin_spec=str_rfind_spec,
+        )
+
+        return result, "new_expression", "Call to 'rfind' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrRfind)

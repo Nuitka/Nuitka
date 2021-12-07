@@ -26,6 +26,7 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase,
 )
 from .ExpressionShapeMixins import (
+    ExpressionIntShapeExactMixin,
     ExpressionStrShapeExactMixin,
     ExpressionTupleShapeExactMixin,
 )
@@ -300,3 +301,200 @@ class ExpressionStrOperationRstrip1(ExpressionStrOperationStrip1Base):
     @staticmethod
     def simulator(str_value):
         return str_value.rstrip()
+
+
+class ExpressionStrOperationFind2Base(
+    ExpressionIntShapeExactMixin, ExpressionChildrenHavingBase
+):
+    named_children = ("str_arg", "sub")
+
+    def __init__(self, str_arg, sub, source_ref):
+        assert str_arg is not None
+        assert sub is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"str_arg": str_arg, "sub": sub},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        sub = self.subnode_sub
+
+        if str_arg.isCompileTimeConstant() and sub.isCompileTimeConstant():
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: self.simulator(
+                    str_arg.getCompileTimeConstant(), sub.getCompileTimeConstant()
+                ),
+                description="Str find with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the sub is not a string
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrFindMixin(object):
+    __slots__ = ()
+
+    @staticmethod
+    def simulator(*args):
+        return str.find(*args)
+
+
+class ExpressionStrRfindMixin(object):
+    __slots__ = ()
+
+    @staticmethod
+    def simulator(*args):
+        return str.rfind(*args)
+
+
+class ExpressionStrOperationFind2(
+    ExpressionStrFindMixin, ExpressionStrOperationFind2Base
+):
+    """This operation represents s.find(sub)."""
+
+    kind = "EXPRESSION_STR_OPERATION_FIND2"
+
+
+class ExpressionStrOperationRfind2(
+    ExpressionStrRfindMixin, ExpressionStrOperationFind2Base
+):
+    """This operation represents s.rfind(sub)."""
+
+    kind = "EXPRESSION_STR_OPERATION_RFIND2"
+
+
+class ExpressionStrOperationFind3Base(
+    ExpressionIntShapeExactMixin, ExpressionChildrenHavingBase
+):
+    """This operation represents s.find(sub)."""
+
+    kind = "EXPRESSION_STR_OPERATION_FIND3"
+
+    named_children = ("str_arg", "sub", "start")
+
+    def __init__(self, str_arg, sub, start, source_ref):
+        assert str_arg is not None
+        assert sub is not None
+        assert start is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"str_arg": str_arg, "sub": sub, "start": start},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        sub = self.subnode_sub
+        start = self.subnode_start
+
+        if (
+            str_arg.isCompileTimeConstant()
+            and sub.isCompileTimeConstant()
+            and start.isCompileTimeConstant()
+        ):
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: self.simulator(
+                    str_arg.getCompileTimeConstant(),
+                    sub.getCompileTimeConstant(),
+                    start.getCompileTimeConstant(),
+                ),
+                description="Str find with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the sub is not a string or start is not an int
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationFind3(
+    ExpressionStrFindMixin, ExpressionStrOperationFind3Base
+):
+    """This operation represents s.find(sub, start)."""
+
+    kind = "EXPRESSION_STR_OPERATION_FIND3"
+
+
+class ExpressionStrOperationRfind3(
+    ExpressionStrRfindMixin, ExpressionStrOperationFind3Base
+):
+    """This operation represents s.rfind(sub, start)."""
+
+    kind = "EXPRESSION_STR_OPERATION_RFIND3"
+
+
+class ExpressionStrOperationFind4Base(
+    ExpressionIntShapeExactMixin, ExpressionChildrenHavingBase
+):
+    """This operation represents s.find(sub)."""
+
+    kind = "EXPRESSION_STR_OPERATION_FIND4"
+
+    named_children = ("str_arg", "sub", "start", "end")
+
+    def __init__(self, str_arg, sub, start, end, source_ref):
+        assert str_arg is not None
+        assert sub is not None
+        assert start is not None
+        assert end is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"str_arg": str_arg, "sub": sub, "start": start, "end": end},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        sub = self.subnode_sub
+        start = self.subnode_start
+        end = self.subnode_end
+
+        if (
+            str_arg.isCompileTimeConstant()
+            and sub.isCompileTimeConstant()
+            and start.isCompileTimeConstant()
+            and end.isCompileTimeConstant()
+        ):
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: self.simulator(
+                    str_arg.getCompileTimeConstant(),
+                    sub.getCompileTimeConstant(),
+                    start.getCompileTimeConstant(),
+                    end.getCompileTimeConstant(),
+                ),
+                description="Str find with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the sub is not a string or start and end are not int
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationFind4(
+    ExpressionStrFindMixin, ExpressionStrOperationFind4Base
+):
+    """This operation represents s.find(sub, start, end)."""
+
+    kind = "EXPRESSION_STR_OPERATION_FIND4"
+
+
+class ExpressionStrOperationRfind4(
+    ExpressionStrRfindMixin, ExpressionStrOperationFind4Base
+):
+    """This operation represents s.rfind(sub, start, end)."""
+
+    kind = "EXPRESSION_STR_OPERATION_RFIND4"
