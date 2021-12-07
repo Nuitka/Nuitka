@@ -28,7 +28,7 @@ import os
 import sys
 
 from nuitka.utils.FileOperations import isPathBelowOrSameAs
-from nuitka.utils.Utils import isLinux, isMacOS
+from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
 from .PythonVersions import (
     getRunningPythonDLLPath,
@@ -72,6 +72,15 @@ def isPyenvPython():
     return os.environ.get("PYENV_ROOT") and isPathBelowOrSameAs(
         path=os.environ["PYENV_ROOT"], filename=getSystemPrefixPath()
     )
+
+
+def isMSYS2MingwPython():
+    if not isWin32Windows() or "GCC" not in sys.version:
+        return False
+
+    import sysconfig
+
+    return "-mingw_" in sysconfig.get_config_var("SO")
 
 
 def isUninstalledPython():
