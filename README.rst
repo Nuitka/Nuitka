@@ -1036,12 +1036,12 @@ Follow me on Twitter
 ====================
 
 Nuitka announcements and interesting stuff is pointed to on the Twitter
-account, but obviously with no details. `@KayHayen
+account, but obviously with not too many details. `@KayHayen
 <https://twitter.com/KayHayen>`_.
 
-I will not answer Nuitka issues via Twitter though, rather make
-occasional polls, and give important announcements, as well as low-level
-posts about development ongoing.
+.. raw:: html
+
+   <a href="https://twitter.com/KayHayen?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-show-count="false">Follow @KayHayen</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 Report issues or bugs
 =====================
