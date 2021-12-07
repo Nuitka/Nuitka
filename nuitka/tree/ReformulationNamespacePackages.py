@@ -37,7 +37,7 @@ from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModuleNameHard,
     ExpressionImportName,
-    makeExpressionAbsoluteImportNode,
+    makeExpressionImportModuleFixed,
 )
 from nuitka.nodes.ModuleAttributeNodes import (
     ExpressionModuleAttributeFileRef,
@@ -155,7 +155,7 @@ def createPython3NamespacePath(package, source_ref):
         variable_name="__path__",
         source=ExpressionCallNoKeywords(
             called=ExpressionImportName(
-                module=makeExpressionAbsoluteImportNode(
+                module=makeExpressionImportModuleFixed(
                     module_name="_frozen_importlib"
                     if python_version < 0x350
                     else "_frozen_importlib_external",

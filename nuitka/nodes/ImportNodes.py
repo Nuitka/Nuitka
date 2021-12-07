@@ -150,17 +150,6 @@ def isHardModuleWithoutSideEffect(module_name):
     return module_name in hard_modules and module_name != "site"
 
 
-def makeExpressionAbsoluteImportNode(module_name, source_ref):
-    return ExpressionBuiltinImport(
-        name=makeConstantRefNode(module_name, source_ref, True),
-        globals_arg=None,
-        locals_arg=None,
-        fromlist=None,
-        level=makeConstantRefNode(0, source_ref, True),
-        source_ref=source_ref,
-    )
-
-
 class ExpressionImportModuleFixed(ExpressionBase):
     """Hard coded import names, that we know to exist."
 

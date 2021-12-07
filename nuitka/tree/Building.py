@@ -96,7 +96,7 @@ from nuitka.nodes.ExceptionNodes import (
 )
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
-from nuitka.nodes.ImportNodes import makeExpressionAbsoluteImportNode
+from nuitka.nodes.ImportNodes import makeExpressionImportModuleFixed
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleAttributeNodes import (
     ExpressionModuleAttributeFileRef,
@@ -772,7 +772,7 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
         if is_main and not Options.hasPythonFlagNoSite():
             statements.append(
                 StatementExpressionOnly(
-                    expression=makeExpressionAbsoluteImportNode(
+                    expression=makeExpressionImportModuleFixed(
                         module_name="site", source_ref=source_ref
                     ),
                     source_ref=source_ref,
@@ -782,7 +782,7 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
             for path_imported_name in getPthImportedPackages():
                 statements.append(
                     StatementExpressionOnly(
-                        expression=makeExpressionAbsoluteImportNode(
+                        expression=makeExpressionImportModuleFixed(
                             module_name=path_imported_name, source_ref=source_ref
                         ),
                         source_ref=source_ref,
