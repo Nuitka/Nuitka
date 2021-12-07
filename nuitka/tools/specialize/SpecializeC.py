@@ -2153,7 +2153,7 @@ generate_builtin_type_operations = [
         "tshape_str",
         str_desc,
         nuitka.specs.BuiltinStrOperationSpecs,
-        ("strip", "rstrip", "lstrip", "partition", "rpartition"),
+        ("strip", "rstrip", "lstrip", "partition", "rpartition", "find", "rfind"),
     ),
     # TODO: This is using Python2 spec module for Python3 strings, that will be a problem down the
     # road, when version specifics come in.
@@ -2161,7 +2161,7 @@ generate_builtin_type_operations = [
         "tshape_unicode",
         unicode_desc,
         nuitka.specs.BuiltinUnicodeOperationSpecs,
-        ("strip", "rstrip", "lstrip"),
+        ("strip", "rstrip", "lstrip", "find", "rfind"),
     ),
 ]
 

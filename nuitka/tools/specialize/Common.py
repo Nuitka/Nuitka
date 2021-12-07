@@ -104,7 +104,7 @@ python2_str_methods = (
     "encode",
     "endswith",
     "expandtabs",
-    "find",
+    "find",  # has full str coverage
     "format",
     "index",
     "isalnum",
@@ -120,7 +120,7 @@ python2_str_methods = (
     "lstrip",
     "partition",  # has full str coverage
     "replace",
-    "rfind",
+    "rfind",  # has full str coverage
     "rindex",
     "rjust",
     "rpartition",  # has full str coverage

@@ -51,3 +51,9 @@ unicode_rpartition_spec = UnicodeMethodSpec("rpartition", arg_names=("sep",))
 unicode_strip_spec = UnicodeMethodSpec("strip", arg_names=("chars",), default_count=1)
 unicode_lstrip_spec = UnicodeMethodSpec("lstrip", arg_names=("chars",), default_count=1)
 unicode_rstrip_spec = UnicodeMethodSpec("rstrip", arg_names=("chars",), default_count=1)
+unicode_find_spec = UnicodeMethodSpec(
+    "find", arg_names=("sub", "start", "end"), default_count=2
+)
+unicode_rfind_spec = UnicodeMethodSpec(
+    "rfind", arg_names=("sub", "start", "end"), default_count=2
+)
