@@ -36,8 +36,7 @@ from nuitka import Tracing
 from nuitka.__past__ import unicode
 from nuitka.containers.oset import OrderedSet
 from nuitka.PythonVersions import python_version
-
-from .FinalizeBase import FinalizationVisitorBase
+from nuitka.tree.Operations import VisitorNoopMixin
 
 imported_names = OrderedSet()
 
@@ -46,7 +45,7 @@ def getImportedNames():
     return imported_names
 
 
-class FinalizeMarkups(FinalizationVisitorBase):
+class FinalizeMarkups(VisitorNoopMixin):
     def onEnterNode(self, node):
         try:
             self._onEnterNode(node)
