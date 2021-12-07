@@ -1270,9 +1270,15 @@ if python_version < 0x300:
         matmult_shapes = matmult_shapes_strorunicode
 
     tshape_str_or_unicode = ShapeTypeStrOrUnicode()
+
+    class ShapeTypeStrOrUnicodeDerived(ShapeTypeUnknown):
+        pass
+
+    tshape_str_or_unicode_derived = ShapeTypeStrOrUnicodeDerived()
+
 else:
     tshape_str_or_unicode = tshape_str
-
+    tshape_str_or_unicode_derived = tshape_str_derived
 
 if python_version >= 0x300:
 
