@@ -408,8 +408,8 @@ class ExpressionImportModuleHard(ExpressionImportHardBase):
                             user_provided=True,
                         ),
                         "new_constant",
-                        "Hard module %r imported %r pre-computed to constant value."
-                        % (self.module_name, attribute_name),
+                        "Hard module '%s' imported %r pre-computed to constant value."
+                        % (self.module_name.asString(), attribute_name),
                     )
                 elif trust is trust_node:
                     result = trust_node_factory[self.module_name, attribute_name](
