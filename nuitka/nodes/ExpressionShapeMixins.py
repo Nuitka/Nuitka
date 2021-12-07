@@ -54,17 +54,20 @@ from .shapes.BuiltinTypeShapes import (
     tshape_set,
     tshape_slice,
     tshape_str,
+    tshape_str_derived,
     tshape_str_or_unicode,
+    tshape_str_or_unicode_derived,
     tshape_tuple,
     tshape_unicode,
+    tshape_unicode_derived,
 )
 
 
-class ExpressionSpecificExactMixinBase(object):
+class ExpressionSpecificDerivedMixinBase(object):
     """Mixin that provides all shapes exactly false overloads.
 
-    This is to be used as a base class for specific shape mixins,
-    such that they automatically provide false for all other exact
+    This is to be used as a base class for specific or derived shape
+    mixins, such that they automatically provide false for all other exact
     shape checks except the one they care about.
     """
 
@@ -137,6 +140,17 @@ class ExpressionSpecificExactMixinBase(object):
     @staticmethod
     def hasShapeSliceExact():
         return False
+
+
+class ExpressionSpecificExactMixinBase(ExpressionSpecificDerivedMixinBase):
+    """Mixin that provides attribute knowledge for exact type shapes.
+
+    This is to be used as a base class for specific shape mixins,
+    such that they automatically provide false for all other exact
+    shape checks except the one they care about.
+    """
+
+    __slots__ = ()
 
     @staticmethod
     def hasShapeTrustedAttributes():
@@ -795,3 +809,37 @@ class ExpressionSliceShapeExactMixin(
     @staticmethod
     def isKnownToBeHashable():
         return False
+
+
+class ExpressionStrDerivedShapeMixin(ExpressionSpecificDerivedMixinBase):
+    """Mixin for nodes with str derived shape."""
+
+    __slots__ = ()
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_str_derived
+
+
+class ExpressionUnicodeDerivedShapeMixin(ExpressionSpecificDerivedMixinBase):
+    """Mixin for nodes with unicode derived shape."""
+
+    __slots__ = ()
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_unicode_derived
+
+
+if str is not bytes:
+    ExpressionStrOrUnicodeDerivedShapeMixin = ExpressionUnicodeDerivedShapeMixin
+else:
+
+    class ExpressionStrOrUnicodeDerivedShapeMixin(ExpressionSpecificDerivedMixinBase):
+        """Mixin for nodes with str or unicode derived shape."""
+
+        __slots__ = ()
+
+        @staticmethod
+        def getTypeShape():
+            return tshape_str_or_unicode_derived
