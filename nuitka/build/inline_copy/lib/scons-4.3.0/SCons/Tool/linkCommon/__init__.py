@@ -29,6 +29,8 @@ import SCons.Util
 import SCons.Warnings
 # Nuitka: Disable unused tools
 # from SCons.Tool.DCommon import isD
+def isD(env,source): return False
+
 from SCons.Util import is_List
 
 issued_mixed_link_warning = False
@@ -130,10 +132,11 @@ def _call_env_subst(env, string, *args, **kw):
 
 def smart_link(source, target, env, for_signature):
     import SCons.Tool.cxx
-    import SCons.Tool.FortranCommon
+    # Nuitka: Avoid ununused tools
+    # import SCons.Tool.FortranCommon
 
     has_cplusplus = SCons.Tool.cxx.iscplusplus(source)
-    has_fortran = SCons.Tool.FortranCommon.isfortran(env, source)
+    has_fortran = False
     has_d = isD(env, source)
     if has_cplusplus and has_fortran and not has_d:
         global issued_mixed_link_warning
