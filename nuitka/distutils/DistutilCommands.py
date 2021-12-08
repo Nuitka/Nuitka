@@ -203,6 +203,14 @@ class build(distutils.command.build.build):
                     "nuitka"
                 ].items():
                     option = "--" + option.lstrip("-")
+
+                    if (
+                        type(value) is tuple
+                        and len(value) == 2
+                        and value[0] == "setup.py"
+                    ):
+                        value = value[1]
+
                     if value is None:
                         command.append(option)
                     elif isinstance(value, bool):
