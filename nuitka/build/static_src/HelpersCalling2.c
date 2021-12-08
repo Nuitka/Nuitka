@@ -355,9 +355,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
         PyObject *result;
 
         if (function->m_args_simple && 1 == function->m_args_positional_count) {
-            for (Py_ssize_t i = 0; i < 1; i++) {
-                Py_INCREF(args[i]);
-            }
+            Py_INCREF(args[0]);
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 1 + function->m_defaults_given == function->m_args_positional_count) {
             NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
@@ -415,10 +413,8 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
-                for (Py_ssize_t i = 0; i < 1; i++) {
-                    python_pars[i + 1] = args[i];
-                    Py_INCREF(args[i]);
-                }
+                python_pars[1] = args[0];
+                Py_INCREF(args[0]);
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        1 + 1 + function->m_defaults_given == function->m_args_positional_count) {
@@ -728,9 +724,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
         PyObject *result;
 
         if (function->m_args_simple && 1 == function->m_args_positional_count) {
-            for (Py_ssize_t i = 0; i < 1; i++) {
-                Py_INCREF(args[i]);
-            }
+            Py_INCREF(args[0]);
             result = function->m_c_code(function, (PyObject **)args);
         } else if (function->m_args_simple && 1 + function->m_defaults_given == function->m_args_positional_count) {
             NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_positional_count);
@@ -788,10 +782,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
-                for (Py_ssize_t i = 0; i < 1; i++) {
-                    python_pars[i + 1] = args[i];
-                    Py_INCREF(args[i]);
-                }
+                python_pars[1] = args[0];
+                Py_INCREF(args[0]);
                 result = function->m_c_code(function, python_pars);
             } else if (function->m_args_simple &&
                        1 + 1 + function->m_defaults_given == function->m_args_positional_count) {
