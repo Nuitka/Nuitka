@@ -54,10 +54,12 @@ def main():
     row1 = osc_reader.next()
     # Nuitka-Unstable (follow git develop branch)
     row2 = osc_reader.next()
+    # Nuitka-Experimental (follow git factory branch)
+    row3 = osc_reader.next()
 
     problems = []
 
-    def decideConsideration(title):
+    def decideConsideration(title, status):
         # Ignore other arch builds, they might to not even boot at times.
         if "ppc" in title or "aarch" in title or "arm" in title:
             return False
@@ -66,25 +68,43 @@ def main():
         if "openSUSE_Tumbleweed" in title:
             return False
 
+        # Ignore old Fedora and RHEL6 32 bit being blocked.
+        if status == "blocked":
+            if (
+                "Fedora_2" in title
+                or "RedHat_RHEL-6/i586" in title
+                or "CentOS_CentOS-6/i586" in title
+            ):
+                return False
+
         return True
 
     for count, title in enumerate(titles):
-        if not decideConsideration(title):
-            continue
-
         status = row1[count + 1]
+
+        if not decideConsideration(title, status):
+            continue
 
         if status in bad:
             problems.append((row1[0], title, status))
 
     for count, title in enumerate(titles):
-        if not decideConsideration(title):
-            continue
-
         status = row2[count + 1]
+
+        if not decideConsideration(title, status):
+            continue
 
         if status in bad:
             problems.append((row2[0], title, status))
+
+    for count, title in enumerate(titles):
+        status = row3[count + 1]
+
+        if not decideConsideration(title, status):
+            continue
+
+        if status in bad:
+            problems.append((row3[0], title, status))
 
     if problems:
         my_print("There are problems with:", style="yellow")
