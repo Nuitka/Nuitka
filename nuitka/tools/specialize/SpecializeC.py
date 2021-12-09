@@ -36,8 +36,16 @@ import nuitka.specs.BuiltinDictOperationSpecs
 import nuitka.specs.BuiltinStrOperationSpecs
 import nuitka.specs.BuiltinUnicodeOperationSpecs
 from nuitka.__past__ import getMetaClassBase, long
+from nuitka.codegen.CallCodes import (
+    getQuickCallCode,
+    getQuickMethodCallCode,
+    getQuickMethodDescrCallCode,
+    getQuickMixedCallCode,
+    getTemplateCodeDeclaredFunction,
+    max_quick_call,
+)
 from nuitka.nodes.ImportNodes import hard_modules
-from nuitka.utils.Jinja2 import getTemplate
+from nuitka.utils.Jinja2 import getTemplateC
 
 from .Common import (
     formatArgs,
@@ -52,9 +60,9 @@ from .Common import (
 )
 
 
-def getDoExtensionUsingTemplate(template_name):
-    return getTemplate(
-        package_name=__package__,
+def getDoExtensionUsingTemplateC(template_name):
+    return getTemplateC(
+        package_name="nuitka.codegen",
         template_subdir="templates_c",
         template_name=template_name,
         extensions=("jinja2.ext.do",),
@@ -1469,21 +1477,21 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
         return
 
     if left in (int_desc, clong_desc):
-        template = getDoExtensionUsingTemplate("HelperOperationComparisonInt.c.j2")
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonInt.c.j2")
     # elif left == long_desc:
-    #     template = getDoExtensionUsingTemplate("HelperOperationComparisonLong.c.j2")
+    #     template = getDoExtensionUsingTemplateC("HelperOperationComparisonLong.c.j2")
     elif left == float_desc:
-        template = getDoExtensionUsingTemplate("HelperOperationComparisonFloat.c.j2")
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonFloat.c.j2")
     elif left == tuple_desc:
-        template = getDoExtensionUsingTemplate("HelperOperationComparisonTuple.c.j2")
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonTuple.c.j2")
     elif left == list_desc:
-        template = getDoExtensionUsingTemplate("HelperOperationComparisonList.c.j2")
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonList.c.j2")
     # elif left == set_desc:
     #     template = env.get_template("HelperOperationComparisonSet.c.j2")
     elif left == bytes_desc:
-        template = getDoExtensionUsingTemplate("HelperOperationComparisonBytes.c.j2")
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonBytes.c.j2")
     elif left == str_desc:
-        template = getDoExtensionUsingTemplate("HelperOperationComparisonStr.c.j2")
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonStr.c.j2")
     else:
         return
 
@@ -1510,7 +1518,7 @@ def makeMulRepeatCode(target, left, right, emit):
     if key in mul_repeats:
         return
 
-    template = getDoExtensionUsingTemplate("HelperOperationMulRepeatSlot.c.j2")
+    template = getDoExtensionUsingTemplateC("HelperOperationMulRepeatSlot.c.j2")
 
     code = template.render(target=target, left=left, right=right)
 
@@ -1683,16 +1691,7 @@ def makeHelperOperations(
         )
 
         emit_c(code)
-        emit_h(
-            "extern "
-            + code.splitlines()[0]
-            .replace(" {", ";")
-            .replace("static ", "")
-            .replace("inline ", "")
-            .replace("HEDLEY_NEVER_INLINE ", "")
-            .replace("__BINARY", "BINARY")
-            .replace("_BINARY", "BINARY")
-        )
+        emit_h(getTemplateCodeDeclaredFunction(code))
 
         if python_requirement:
             emit("#endif")
@@ -1776,7 +1775,7 @@ def makeHelperComparisons(
         )
 
         emit_c(code)
-        emit_h("extern " + code.splitlines()[0].replace(" {", ";"))
+        emit_h(getTemplateCodeDeclaredFunction(code))
 
         if python_requirement:
             emit("#endif")
@@ -1807,7 +1806,7 @@ def makeHelpersComparisonOperation(operand, op_code):
         nuitka.codegen.ComparisonCodes, "specialized_cmp_helpers_set"
     )
 
-    template = getDoExtensionUsingTemplate("HelperOperationComparison.c.j2")
+    template = getDoExtensionUsingTemplateC("HelperOperationComparison.c.j2")
 
     filename_c = "nuitka/build/static_src/HelpersComparison%s.c" % op_code.title()
     filename_h = "nuitka/build/include/nuitka/helper/comparisons_%s.h" % op_code.lower()
@@ -1850,7 +1849,7 @@ def makeHelpersBinaryOperation(operand, op_code):
         nuitka.codegen.HelperDefinitions, "specialized_%s_helpers_set" % op_code.lower()
     )
 
-    template = getDoExtensionUsingTemplate("HelperOperationBinary.c.j2")
+    template = getDoExtensionUsingTemplateC("HelperOperationBinary.c.j2")
 
     filename_c = "nuitka/build/static_src/HelpersOperationBinary%s.c" % op_code.title()
     filename_h = (
@@ -1897,7 +1896,7 @@ def makeHelpersInplaceOperation(operand, op_code):
         "specialized_i%s_helpers_set" % op_code.lower(),
     )
 
-    template = getDoExtensionUsingTemplate("HelperOperationInplace.c.j2")
+    template = getDoExtensionUsingTemplateC("HelperOperationInplace.c.j2")
 
     filename_c = "nuitka/build/static_src/HelpersOperationInplace%s.c" % op_code.title()
     filename_h = (
@@ -1942,7 +1941,7 @@ def makeHelpersImportHard():
     filename_c = "nuitka/build/static_src/HelpersImportHard.c"
     filename_h = "nuitka/build/include/nuitka/helper/import_hard.h"
 
-    template = getDoExtensionUsingTemplate("HelperImportHard.c.j2")
+    template = getDoExtensionUsingTemplateC("HelperImportHard.c.j2")
 
     with withFileOpenedAndAutoformatted(filename_c) as output_c:
         with withFileOpenedAndAutoformatted(filename_h) as output_h:
@@ -1990,24 +1989,13 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
     )
 
     emit_c(code)
-    emit_h("extern " + code.splitlines()[0].replace(" {", ";"))
+    emit_h(getTemplateCodeDeclaredFunction(code))
 
     if python_requirement:
         emit("#endif")
 
 
 def makeHelperCalls():
-    # Many cases, pylint: disable=too-many-locals
-
-    from nuitka.codegen.CallCodes import (
-        getQuickCallCode,
-        getQuickMethodCallCode,
-        getQuickMethodDescrCallCode,
-        getQuickMixedCallCode,
-        getTemplateCodeDeclaredFunction,
-        max_quick_call,
-    )
-
     filename_c = "nuitka/build/static_src/HelpersCalling2.c"
     filename_h = "nuitka/build/include/nuitka/helper/calling2.h"
 
@@ -2015,6 +2003,7 @@ def makeHelperCalls():
         with withFileOpenedAndAutoformatted(filename_h) as output_h:
 
             def emit_h(*args):
+                assert args[0] != "extern "
                 writeline(output_h, *args)
 
             def emit_c(*args):
@@ -2024,7 +2013,9 @@ def makeHelperCalls():
                 emit_h(*args)
                 emit_c(*args)
 
-            template = getTemplate("nuitka.codegen", "CodeTemplateCallsPositional.j2")
+            template = getTemplateC(
+                "nuitka.codegen", "CodeTemplateCallsPositional.c.j2"
+            )
 
             emitGenerationWarning(emit, template.name)
 
@@ -2042,7 +2033,7 @@ def makeHelperCalls():
                     emit_c(code)
                     emit_h(getTemplateCodeDeclaredFunction(code))
 
-            template = getTemplate("nuitka.codegen", "CodeTemplateCallsMixed.j2")
+            template = getTemplateC("nuitka.codegen", "CodeTemplateCallsMixed.c.j2")
 
             # Only keywords, but not positional arguments, via split args.
             code = getQuickMixedCallCode(
@@ -2191,7 +2182,7 @@ def makeHelperBuiltinTypeMethods():
             output_c, "dict", "PyDict_Type", python2_dict_methods, python3_dict_methods
         )
 
-        template = getDoExtensionUsingTemplate("HelperBuiltinMethodOperation.c.j2")
+        template = getDoExtensionUsingTemplateC("HelperBuiltinMethodOperation.c.j2")
 
         for (
             shape_name,

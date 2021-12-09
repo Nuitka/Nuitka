@@ -15,7 +15,7 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-/* WARNING, this code is GENERATED. Modify the template CodeTemplateCallsPositional.j2 instead! */
+/* WARNING, this code is GENERATED. Modify the template CodeTemplateCallsPositional.c.j2 instead! */
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
@@ -342,7 +342,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
     return result;
 }
 PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
-    PyObject **args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg; // For easier code compatibility.
     CHECK_OBJECT(called);
     CHECK_OBJECTS(args, 1);
 
@@ -7185,6 +7185,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
     return result;
 }
 PyObject *CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(PyObject *called, PyObject *const *kw_values, PyObject *kw_names) {
+
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
 
@@ -9700,7 +9701,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10_KWSPLIT(PyObject *called, PyObject *pos_a
     return Nuitka_CheckFunctionResult(result);
 }
 PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
-    PyObject **args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg; // For easier code compatibility.
     CHECK_OBJECT(called);
     CHECK_OBJECTS(args, 1);
 

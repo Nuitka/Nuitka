@@ -15,11 +15,12 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
+{% from 'HelperObjectTools.c.j2' import CHECK_OBJECTS %}
 {% if args_count == 0 %}
 PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
 {% elif args_count == 1 and not has_tuple_arg %}
 PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
-    PyObject **args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg; // For easier code compatibility.
 {% else %}
 {% if has_tuple_arg %}
 PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}(PyObject *called, PyObject *pos_args) {
@@ -31,9 +32,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 {% endif %}
 {% endif %}
     CHECK_OBJECT(called);
-{% if args_count != 0 %}
-    CHECK_OBJECTS(args, {{args_count}});
-{% endif %}
+    {{ CHECK_OBJECTS(args, args_count) }}
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {

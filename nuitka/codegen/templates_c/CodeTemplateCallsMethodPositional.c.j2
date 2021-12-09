@@ -15,6 +15,7 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
+{% from 'HelperObjectTools.c.j2' import CHECK_OBJECTS %}
 {% macro call_function_with_args(called, args, args_count) %}
 {% if args_count == 0 %}
 CALL_FUNCTION_NO_ARGS({{ called }})
@@ -35,9 +36,7 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyObject *source, PyObject *attr_n
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);
 
-{% if args_count != 0 %}
-    CHECK_OBJECTS(args, {{args_count}});
-{% endif %}
+    {{ CHECK_OBJECTS(args, args_count) }}
 
     PyTypeObject *type = Py_TYPE(source);
 

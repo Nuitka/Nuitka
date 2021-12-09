@@ -15,6 +15,7 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
+{% from 'HelperObjectTools.c.j2' import CHECK_OBJECTS %}
 {% if not has_dict_values %}
 PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}_VECTORCALL(PyObject *called, PyObject *const *args, PyObject *kw_names) {
 {% elif args_count == 0 and has_dict_values %}
@@ -26,9 +27,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}_KWSPLIT(PyObject *called, PyO
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
 {% endif %}
-{% if args_count != 0 %}
-    CHECK_OBJECTS(args, {{args_count}});
-{% endif %}
+    {{ CHECK_OBJECTS(args, args_count) }}
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
 

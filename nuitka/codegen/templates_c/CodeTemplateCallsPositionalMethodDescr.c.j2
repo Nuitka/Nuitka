@@ -15,16 +15,15 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
+{% from 'HelperObjectTools.c.j2' import CHECK_OBJECTS %}
 {% if args_count == 1 %}
 PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
-    PyObject **args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg; // For easier code compatibility.
 {% else %}
 PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyObject *called, PyObject *const *args) {
 {% endif %}
     CHECK_OBJECT(called);
-{% if args_count != 0 %}
-    CHECK_OBJECTS(args, {{args_count}});
-{% endif %}
+    {{ CHECK_OBJECTS(args, args_count) }}
 
 #if PYTHON_VERSION >= 0x380
     assert (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL));

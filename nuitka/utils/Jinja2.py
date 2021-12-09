@@ -89,6 +89,16 @@ def getTemplate(
     ).get_template(template_name)
 
 
+def getTemplateC(
+    package_name, template_name, template_subdir="templates_c", extensions=()
+):
+    return getEnvironment(
+        package_name=package_name,
+        template_subdir=template_subdir,
+        extensions=extensions,
+    ).get_template(template_name)
+
+
 def getTemplateFromString(template_str):
     return getEnvironment(
         package_name=None, template_subdir=None, extensions=()

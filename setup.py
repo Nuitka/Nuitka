@@ -362,7 +362,7 @@ setup(
             "include/*/*/*.h",
         ]
         + inline_copy_files,
-        "nuitka.codegen": ["templates/*.j2"],
+        "nuitka.codegen": ["templates_c/*.j2"],
     },
     # metadata for upload to PyPI
     author="Kay Hayen",
