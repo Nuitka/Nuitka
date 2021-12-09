@@ -801,6 +801,15 @@ The comments must be a start of line, and indentation is to be used, to
 end a conditional block, much like in Python. There are currently no
 other keywords than the used ones demonstrated above.
 
+You can put abitrary Python expressions there, and if you wanted to e.g.
+access a version information of a package, you could simply use
+``__import__("module_name").__version__`` if that would be required to
+e.g. enable or disable certain Nuitka settings. The only thing Nuitka
+does that makes this not Python expressions, is expanding ``{variable}``
+for a pre-defined set of variables:
+
+Table with supported variables:
+
 +------------------+--------------------------------+------------------------------------------+
 | Variable         | What this Expands to           | Example                                  |
 +==================+================================+==========================================+

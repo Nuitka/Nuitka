@@ -72,7 +72,7 @@ class ExpressionBase(NodeBase):
     def getComparisonValue():
         """Return known value used for compile time comparison. The "None" value indicates unknown."""
 
-        return None
+        return False, None
 
     @staticmethod
     def isKnownToBeIterable(count):
@@ -901,7 +901,7 @@ class CompileTimeConstantExpressionBase(ExpressionNoSideEffectsMixin, Expression
         return bool(self.getCompileTimeConstant())
 
     def getComparisonValue(self):
-        return self.getCompileTimeConstant()
+        return True, self.getCompileTimeConstant()
 
     @abstractmethod
     def getCompileTimeConstant(self):

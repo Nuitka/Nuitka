@@ -17,10 +17,22 @@
 #
 """ Nuitka python -m build integration """
 
-from setuptools.build_meta import _BuildMetaBackend, suppress_known_deprecation
+import contextlib
+
+import setuptools.build_meta
+
+if not hasattr(setuptools.build_meta, "suppress_known_deprecation"):
+
+    @contextlib.contextmanager
+    def suppress_known_deprecation():
+        yield
 
 
-class NuitkaBuildMetaBackend(_BuildMetaBackend):
+else:
+    suppress_known_deprecation = setuptools.build_meta
+
+
+class NuitkaBuildMetaBackend(setuptools.build_meta._BuildMetaBackend):
     def build_wheel(
         self, wheel_directory, config_settings=None, metadata_directory=None
     ):

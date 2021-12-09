@@ -10,6 +10,12 @@ Nuitka blog.
  Nuitka Release 0.6.19 (Draft)
 *******************************
 
+This release is not done yet.
+
+***********************
+ Nuitka Release 0.6.18
+***********************
+
 Bug Fixes
 =========
 
