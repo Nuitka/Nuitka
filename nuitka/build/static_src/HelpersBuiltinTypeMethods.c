@@ -480,6 +480,42 @@ PyObject *DICT_SETDEFAULT3(PyObject *dict, PyObject *key, PyObject *default_valu
     return CALL_METHODDESCR_WITH_ARGS3(dict_builtin_setdefault, args);
 }
 #if PYTHON_VERSION < 0x300
+PyObject *STR_CAPITALIZE(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_capitalize, str);
+}
+PyObject *STR_ENDSWITH2(PyObject *str, PyObject *suffix) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(suffix);
+
+    PyObject *args[2] = {str, suffix};
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_endswith, args);
+}
+PyObject *STR_ENDSWITH3(PyObject *str, PyObject *suffix, PyObject *start) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(suffix);
+    CHECK_OBJECT(start);
+
+    PyObject *args[3] = {str, suffix, start};
+    return CALL_METHODDESCR_WITH_ARGS3(str_builtin_endswith, args);
+}
+PyObject *STR_ENDSWITH4(PyObject *str, PyObject *suffix, PyObject *start, PyObject *end) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(suffix);
+    CHECK_OBJECT(start);
+    CHECK_OBJECT(end);
+
+    PyObject *args[4] = {str, suffix, start, end};
+    return CALL_METHODDESCR_WITH_ARGS4(str_builtin_endswith, args);
+}
 PyObject *STR_FIND2(PyObject *str, PyObject *sub) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
@@ -510,6 +546,84 @@ PyObject *STR_FIND4(PyObject *str, PyObject *sub, PyObject *start, PyObject *end
     PyObject *args[4] = {str, sub, start, end};
     return CALL_METHODDESCR_WITH_ARGS4(str_builtin_find, args);
 }
+PyObject *STR_INDEX2(PyObject *str, PyObject *sub) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(sub);
+
+    PyObject *args[2] = {str, sub};
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_index, args);
+}
+PyObject *STR_INDEX3(PyObject *str, PyObject *sub, PyObject *start) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(sub);
+    CHECK_OBJECT(start);
+
+    PyObject *args[3] = {str, sub, start};
+    return CALL_METHODDESCR_WITH_ARGS3(str_builtin_index, args);
+}
+PyObject *STR_INDEX4(PyObject *str, PyObject *sub, PyObject *start, PyObject *end) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(sub);
+    CHECK_OBJECT(start);
+    CHECK_OBJECT(end);
+
+    PyObject *args[4] = {str, sub, start, end};
+    return CALL_METHODDESCR_WITH_ARGS4(str_builtin_index, args);
+}
+PyObject *STR_ISALNUM(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_isalnum, str);
+}
+PyObject *STR_ISALPHA(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_isalpha, str);
+}
+PyObject *STR_ISDIGIT(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_isdigit, str);
+}
+PyObject *STR_ISLOWER(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_islower, str);
+}
+PyObject *STR_ISSPACE(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_isspace, str);
+}
+PyObject *STR_ISTITLE(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_istitle, str);
+}
+PyObject *STR_ISUPPER(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_isupper, str);
+}
+PyObject *STR_LOWER(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_lower, str);
+}
 PyObject *STR_LSTRIP1(PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
@@ -533,6 +647,27 @@ PyObject *STR_PARTITION(PyObject *str, PyObject *sep) {
 
     PyObject *args[2] = {str, sep};
     return CALL_METHODDESCR_WITH_ARGS2(str_builtin_partition, args);
+}
+PyObject *STR_REPLACE3(PyObject *str, PyObject *old, PyObject *new_value) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(old);
+    CHECK_OBJECT(new_value);
+
+    PyObject *args[3] = {str, old, new_value};
+    return CALL_METHODDESCR_WITH_ARGS3(str_builtin_replace, args);
+}
+PyObject *STR_REPLACE4(PyObject *str, PyObject *old, PyObject *new_value, PyObject *count) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(old);
+    CHECK_OBJECT(new_value);
+    CHECK_OBJECT(count);
+
+    PyObject *args[4] = {str, old, new_value, count};
+    return CALL_METHODDESCR_WITH_ARGS4(str_builtin_replace, args);
 }
 PyObject *STR_RFIND2(PyObject *str, PyObject *sub) {
     CHECK_OBJECT(str);
@@ -564,6 +699,36 @@ PyObject *STR_RFIND4(PyObject *str, PyObject *sub, PyObject *start, PyObject *en
     PyObject *args[4] = {str, sub, start, end};
     return CALL_METHODDESCR_WITH_ARGS4(str_builtin_rfind, args);
 }
+PyObject *STR_RINDEX2(PyObject *str, PyObject *sub) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(sub);
+
+    PyObject *args[2] = {str, sub};
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_rindex, args);
+}
+PyObject *STR_RINDEX3(PyObject *str, PyObject *sub, PyObject *start) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(sub);
+    CHECK_OBJECT(start);
+
+    PyObject *args[3] = {str, sub, start};
+    return CALL_METHODDESCR_WITH_ARGS3(str_builtin_rindex, args);
+}
+PyObject *STR_RINDEX4(PyObject *str, PyObject *sub, PyObject *start, PyObject *end) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(sub);
+    CHECK_OBJECT(start);
+    CHECK_OBJECT(end);
+
+    PyObject *args[4] = {str, sub, start, end};
+    return CALL_METHODDESCR_WITH_ARGS4(str_builtin_rindex, args);
+}
 PyObject *STR_RPARTITION(PyObject *str, PyObject *sep) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
@@ -572,6 +737,31 @@ PyObject *STR_RPARTITION(PyObject *str, PyObject *sep) {
 
     PyObject *args[2] = {str, sep};
     return CALL_METHODDESCR_WITH_ARGS2(str_builtin_rpartition, args);
+}
+PyObject *STR_RSPLIT1(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_rsplit, str);
+}
+PyObject *STR_RSPLIT2(PyObject *str, PyObject *sep) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(sep);
+
+    PyObject *args[2] = {str, sep};
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_rsplit, args);
+}
+PyObject *STR_RSPLIT3(PyObject *str, PyObject *sep, PyObject *maxsplit) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(sep);
+    CHECK_OBJECT(maxsplit);
+
+    PyObject *args[3] = {str, sep, maxsplit};
+    return CALL_METHODDESCR_WITH_ARGS3(str_builtin_rsplit, args);
 }
 PyObject *STR_RSTRIP1(PyObject *str) {
     CHECK_OBJECT(str);
@@ -588,6 +778,61 @@ PyObject *STR_RSTRIP2(PyObject *str, PyObject *chars) {
     PyObject *args[2] = {str, chars};
     return CALL_METHODDESCR_WITH_ARGS2(str_builtin_rstrip, args);
 }
+PyObject *STR_SPLIT1(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_split, str);
+}
+PyObject *STR_SPLIT2(PyObject *str, PyObject *sep) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(sep);
+
+    PyObject *args[2] = {str, sep};
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_split, args);
+}
+PyObject *STR_SPLIT3(PyObject *str, PyObject *sep, PyObject *maxsplit) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(sep);
+    CHECK_OBJECT(maxsplit);
+
+    PyObject *args[3] = {str, sep, maxsplit};
+    return CALL_METHODDESCR_WITH_ARGS3(str_builtin_split, args);
+}
+PyObject *STR_STARTSWITH2(PyObject *str, PyObject *prefix) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(prefix);
+
+    PyObject *args[2] = {str, prefix};
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_startswith, args);
+}
+PyObject *STR_STARTSWITH3(PyObject *str, PyObject *prefix, PyObject *start) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(prefix);
+    CHECK_OBJECT(start);
+
+    PyObject *args[3] = {str, prefix, start};
+    return CALL_METHODDESCR_WITH_ARGS3(str_builtin_startswith, args);
+}
+PyObject *STR_STARTSWITH4(PyObject *str, PyObject *prefix, PyObject *start, PyObject *end) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(prefix);
+    CHECK_OBJECT(start);
+    CHECK_OBJECT(end);
+
+    PyObject *args[4] = {str, prefix, start, end};
+    return CALL_METHODDESCR_WITH_ARGS4(str_builtin_startswith, args);
+}
 PyObject *STR_STRIP1(PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
@@ -603,7 +848,61 @@ PyObject *STR_STRIP2(PyObject *str, PyObject *chars) {
     PyObject *args[2] = {str, chars};
     return CALL_METHODDESCR_WITH_ARGS2(str_builtin_strip, args);
 }
+PyObject *STR_SWAPCASE(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_swapcase, str);
+}
+PyObject *STR_TITLE(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_title, str);
+}
+PyObject *STR_UPPER(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_upper, str);
+}
 #endif
+PyObject *UNICODE_CAPITALIZE(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_capitalize, unicode);
+}
+PyObject *UNICODE_ENDSWITH2(PyObject *unicode, PyObject *suffix) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(suffix);
+
+    PyObject *args[2] = {unicode, suffix};
+    return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_endswith, args);
+}
+PyObject *UNICODE_ENDSWITH3(PyObject *unicode, PyObject *suffix, PyObject *start) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(suffix);
+    CHECK_OBJECT(start);
+
+    PyObject *args[3] = {unicode, suffix, start};
+    return CALL_METHODDESCR_WITH_ARGS3(unicode_builtin_endswith, args);
+}
+PyObject *UNICODE_ENDSWITH4(PyObject *unicode, PyObject *suffix, PyObject *start, PyObject *end) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(suffix);
+    CHECK_OBJECT(start);
+    CHECK_OBJECT(end);
+
+    PyObject *args[4] = {unicode, suffix, start, end};
+    return CALL_METHODDESCR_WITH_ARGS4(unicode_builtin_endswith, args);
+}
 PyObject *UNICODE_FIND2(PyObject *unicode, PyObject *sub) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
@@ -634,6 +933,84 @@ PyObject *UNICODE_FIND4(PyObject *unicode, PyObject *sub, PyObject *start, PyObj
     PyObject *args[4] = {unicode, sub, start, end};
     return CALL_METHODDESCR_WITH_ARGS4(unicode_builtin_find, args);
 }
+PyObject *UNICODE_INDEX2(PyObject *unicode, PyObject *sub) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(sub);
+
+    PyObject *args[2] = {unicode, sub};
+    return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_index, args);
+}
+PyObject *UNICODE_INDEX3(PyObject *unicode, PyObject *sub, PyObject *start) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(sub);
+    CHECK_OBJECT(start);
+
+    PyObject *args[3] = {unicode, sub, start};
+    return CALL_METHODDESCR_WITH_ARGS3(unicode_builtin_index, args);
+}
+PyObject *UNICODE_INDEX4(PyObject *unicode, PyObject *sub, PyObject *start, PyObject *end) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(sub);
+    CHECK_OBJECT(start);
+    CHECK_OBJECT(end);
+
+    PyObject *args[4] = {unicode, sub, start, end};
+    return CALL_METHODDESCR_WITH_ARGS4(unicode_builtin_index, args);
+}
+PyObject *UNICODE_ISALNUM(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_isalnum, unicode);
+}
+PyObject *UNICODE_ISALPHA(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_isalpha, unicode);
+}
+PyObject *UNICODE_ISDIGIT(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_isdigit, unicode);
+}
+PyObject *UNICODE_ISLOWER(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_islower, unicode);
+}
+PyObject *UNICODE_ISSPACE(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_isspace, unicode);
+}
+PyObject *UNICODE_ISTITLE(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_istitle, unicode);
+}
+PyObject *UNICODE_ISUPPER(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_isupper, unicode);
+}
+PyObject *UNICODE_LOWER(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_lower, unicode);
+}
 PyObject *UNICODE_LSTRIP1(PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
@@ -648,6 +1025,27 @@ PyObject *UNICODE_LSTRIP2(PyObject *unicode, PyObject *chars) {
 
     PyObject *args[2] = {unicode, chars};
     return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_lstrip, args);
+}
+PyObject *UNICODE_REPLACE3(PyObject *unicode, PyObject *old, PyObject *new_value) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(old);
+    CHECK_OBJECT(new_value);
+
+    PyObject *args[3] = {unicode, old, new_value};
+    return CALL_METHODDESCR_WITH_ARGS3(unicode_builtin_replace, args);
+}
+PyObject *UNICODE_REPLACE4(PyObject *unicode, PyObject *old, PyObject *new_value, PyObject *count) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(old);
+    CHECK_OBJECT(new_value);
+    CHECK_OBJECT(count);
+
+    PyObject *args[4] = {unicode, old, new_value, count};
+    return CALL_METHODDESCR_WITH_ARGS4(unicode_builtin_replace, args);
 }
 PyObject *UNICODE_RFIND2(PyObject *unicode, PyObject *sub) {
     CHECK_OBJECT(unicode);
@@ -679,6 +1077,61 @@ PyObject *UNICODE_RFIND4(PyObject *unicode, PyObject *sub, PyObject *start, PyOb
     PyObject *args[4] = {unicode, sub, start, end};
     return CALL_METHODDESCR_WITH_ARGS4(unicode_builtin_rfind, args);
 }
+PyObject *UNICODE_RINDEX2(PyObject *unicode, PyObject *sub) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(sub);
+
+    PyObject *args[2] = {unicode, sub};
+    return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_rindex, args);
+}
+PyObject *UNICODE_RINDEX3(PyObject *unicode, PyObject *sub, PyObject *start) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(sub);
+    CHECK_OBJECT(start);
+
+    PyObject *args[3] = {unicode, sub, start};
+    return CALL_METHODDESCR_WITH_ARGS3(unicode_builtin_rindex, args);
+}
+PyObject *UNICODE_RINDEX4(PyObject *unicode, PyObject *sub, PyObject *start, PyObject *end) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(sub);
+    CHECK_OBJECT(start);
+    CHECK_OBJECT(end);
+
+    PyObject *args[4] = {unicode, sub, start, end};
+    return CALL_METHODDESCR_WITH_ARGS4(unicode_builtin_rindex, args);
+}
+PyObject *UNICODE_RSPLIT1(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_rsplit, unicode);
+}
+PyObject *UNICODE_RSPLIT2(PyObject *unicode, PyObject *sep) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(sep);
+
+    PyObject *args[2] = {unicode, sep};
+    return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_rsplit, args);
+}
+PyObject *UNICODE_RSPLIT3(PyObject *unicode, PyObject *sep, PyObject *maxsplit) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(sep);
+    CHECK_OBJECT(maxsplit);
+
+    PyObject *args[3] = {unicode, sep, maxsplit};
+    return CALL_METHODDESCR_WITH_ARGS3(unicode_builtin_rsplit, args);
+}
 PyObject *UNICODE_RSTRIP1(PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
@@ -694,6 +1147,61 @@ PyObject *UNICODE_RSTRIP2(PyObject *unicode, PyObject *chars) {
     PyObject *args[2] = {unicode, chars};
     return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_rstrip, args);
 }
+PyObject *UNICODE_SPLIT1(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_split, unicode);
+}
+PyObject *UNICODE_SPLIT2(PyObject *unicode, PyObject *sep) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(sep);
+
+    PyObject *args[2] = {unicode, sep};
+    return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_split, args);
+}
+PyObject *UNICODE_SPLIT3(PyObject *unicode, PyObject *sep, PyObject *maxsplit) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(sep);
+    CHECK_OBJECT(maxsplit);
+
+    PyObject *args[3] = {unicode, sep, maxsplit};
+    return CALL_METHODDESCR_WITH_ARGS3(unicode_builtin_split, args);
+}
+PyObject *UNICODE_STARTSWITH2(PyObject *unicode, PyObject *prefix) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(prefix);
+
+    PyObject *args[2] = {unicode, prefix};
+    return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_startswith, args);
+}
+PyObject *UNICODE_STARTSWITH3(PyObject *unicode, PyObject *prefix, PyObject *start) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(prefix);
+    CHECK_OBJECT(start);
+
+    PyObject *args[3] = {unicode, prefix, start};
+    return CALL_METHODDESCR_WITH_ARGS3(unicode_builtin_startswith, args);
+}
+PyObject *UNICODE_STARTSWITH4(PyObject *unicode, PyObject *prefix, PyObject *start, PyObject *end) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(prefix);
+    CHECK_OBJECT(start);
+    CHECK_OBJECT(end);
+
+    PyObject *args[4] = {unicode, prefix, start, end};
+    return CALL_METHODDESCR_WITH_ARGS4(unicode_builtin_startswith, args);
+}
 PyObject *UNICODE_STRIP1(PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
@@ -708,4 +1216,22 @@ PyObject *UNICODE_STRIP2(PyObject *unicode, PyObject *chars) {
 
     PyObject *args[2] = {unicode, chars};
     return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_strip, args);
+}
+PyObject *UNICODE_SWAPCASE(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_swapcase, unicode);
+}
+PyObject *UNICODE_TITLE(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_title, unicode);
+}
+PyObject *UNICODE_UPPER(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_upper, unicode);
 }

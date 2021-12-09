@@ -94,7 +94,7 @@ class ExpressionMakeSequenceBase(
             computation=lambda: simulator(
                 element.getCompileTimeConstant() for element in elements
             ),
-            description="%s with constant arguments." % simulator.__name__.title(),
+            description="%s with constant arguments." % simulator.__name__.capitalize(),
             user_provided=True,
         )
 

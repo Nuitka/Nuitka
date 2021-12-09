@@ -30,6 +30,7 @@ from nuitka.nodes.AttributeNodesGenerated import (
     attribute_classes,
     attribute_typed_classes,
 )
+from nuitka.nodes.StrNodes import getStrOperationClasses
 from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.CStrings import encodePythonStringToC
 
@@ -678,21 +679,6 @@ addExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_POP3": generateDictOperationPop3Code,
         "EXPRESSION_DICT_OPERATION_UPDATE2": generateDictOperationUpdate2Code,
         "EXPRESSION_DICT_OPERATION_UPDATE3": generateDictOperationUpdate3Code,
-        "EXPRESSION_STR_OPERATION_JOIN": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_PARTITION": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_RPARTITION": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_STRIP1": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_LSTRIP1": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_RSTRIP1": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_STRIP2": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_LSTRIP2": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_RSTRIP2": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_FIND2": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_RFIND2": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_FIND3": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_RFIND3": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_FIND4": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_RFIND4": generateStrOperationCode,
         "EXPRESSION_FUNCTION_CREATION": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
         "EXPRESSION_FUNCTION_ERROR_STR": generateFunctionErrorStrCode,
@@ -795,6 +781,11 @@ addExpressionDispatchDict(
 addExpressionDispatchDict(
     dict((cls.kind, generateAttributeLookupCode) for cls in attribute_typed_classes)
 )
+
+addExpressionDispatchDict(
+    dict((cls.kind, generateStrOperationCode) for cls in getStrOperationClasses())
+)
+
 
 setStatementDispatchDict(
     {

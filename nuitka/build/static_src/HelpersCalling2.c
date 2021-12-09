@@ -9719,16 +9719,17 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
     // Try to be fast about wrapping the arguments.
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
-    if (unlikely(flags & METH_NOARGS)) {
-        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes no arguments (1 given)", method_def->ml_name);
-        return NULL;
-    } else if ((flags & METH_O)) {
+    if (likely(flags & METH_NOARGS)) {
         PyCFunction method = method_def->ml_meth;
         PyObject *self = args[0];
 
         PyObject *result = (*method)(self, NULL);
 
         return Nuitka_CheckFunctionResult(result);
+    } else if ((flags & METH_O)) {
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (1 given)",
+                                            method_def->ml_name);
+        return NULL;
     } else if (flags & METH_VARARGS) {
         PyCFunction method = method_def->ml_meth;
         PyObject *self = args[0];
@@ -9802,12 +9803,19 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyObject *called, PyObject *const *args) {
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if (unlikely(flags & METH_NOARGS)) {
-        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes no arguments (2 given)", method_def->ml_name);
-        return NULL;
+        PyCFunction method = method_def->ml_meth;
+        PyObject *self = args[0];
+
+        PyObject *result = (*method)(self, NULL);
+
+        return Nuitka_CheckFunctionResult(result);
     } else if (unlikely(flags & METH_O)) {
-        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (2 given)",
-                                            method_def->ml_name);
-        return NULL;
+        PyCFunction method = method_def->ml_meth;
+        PyObject *self = args[0];
+
+        PyObject *result = (*method)(self, args[1]);
+
+        return Nuitka_CheckFunctionResult(result);
     } else if (flags & METH_VARARGS) {
         PyCFunction method = method_def->ml_meth;
         PyObject *self = args[0];
@@ -9881,8 +9889,12 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyObject *called, PyObject *const *args) {
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if (unlikely(flags & METH_NOARGS)) {
-        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes no arguments (3 given)", method_def->ml_name);
-        return NULL;
+        PyCFunction method = method_def->ml_meth;
+        PyObject *self = args[0];
+
+        PyObject *result = (*method)(self, NULL);
+
+        return Nuitka_CheckFunctionResult(result);
     } else if (unlikely(flags & METH_O)) {
         SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (3 given)",
                                             method_def->ml_name);
@@ -9960,8 +9972,12 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyObject *called, PyObject *const *args) {
     int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
     if (unlikely(flags & METH_NOARGS)) {
-        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes no arguments (4 given)", method_def->ml_name);
-        return NULL;
+        PyCFunction method = method_def->ml_meth;
+        PyObject *self = args[0];
+
+        PyObject *result = (*method)(self, NULL);
+
+        return Nuitka_CheckFunctionResult(result);
     } else if (unlikely(flags & METH_O)) {
         SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (4 given)",
                                             method_def->ml_name);

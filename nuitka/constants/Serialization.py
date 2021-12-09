@@ -197,7 +197,7 @@ class ConstantAccessor(object):
                 elif constant is str:
                     type_name = "string" if python_version < 0x300 else "unicode"
 
-                key = "(PyObject *)&Py%s_Type" % type_name.title()
+                key = "(PyObject *)&Py%s_Type" % type_name.capitalize()
         else:
             key = "const_" + namifyConstant(constant)
 
