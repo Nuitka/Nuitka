@@ -150,8 +150,9 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
     def getCompileTimeConstant(self):
         return self.constant
 
+    # TODO: Push this to singletons for being static functions
     def getComparisonValue(self):
-        return self.constant
+        return True, self.constant
 
     @staticmethod
     def getIterationHandle():

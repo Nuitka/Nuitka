@@ -55,7 +55,9 @@ class ExpressionAttributeLookup(ExpressionChildHavingBase):
         )
 
     def mayRaiseException(self, exception_type):
-        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
+        return self.subnode_expression.mayRaiseException(
+            exception_type
+        ) or self.subnode_expression.mayRaiseExceptionAttributeLookup(
             exception_type=exception_type, attribute_name=self.attribute_name
         )
 
@@ -96,7 +98,9 @@ class ExpressionAttributeLookupFixedBase(ExpressionChildHavingBase):
         )
 
     def mayRaiseException(self, exception_type):
-        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
+        return self.subnode_expression.mayRaiseException(
+            exception_type
+        ) or self.subnode_expression.mayRaiseExceptionAttributeLookup(
             exception_type=exception_type, attribute_name=self.attribute_name
         )
 

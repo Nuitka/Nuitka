@@ -24,18 +24,24 @@ scons with mismatching Python major versions.
 
 """
 import os
-import re
 import sys
+
+os.chdir(os.path.dirname(__file__) or ".")
+sys.path.insert(0, os.path.abspath(os.getcwd()))
+
+# isort:start
+
+import re
 
 from setuptools import setup
 from setuptools.command import easy_install
 
-os.chdir(os.path.dirname(__file__) or ".")
+from nuitka.PythonFlavors import isMSYS2MingwPython
 
 scripts = []
 
 # For Windows, there are batch files to launch Nuitka.
-if os.name == "nt":
+if os.name == "nt" and not isMSYS2MingwPython():
     scripts += ["misc/nuitka.bat", "misc/nuitka-run.bat"]
 
 
@@ -268,7 +274,7 @@ else:
 
 binary_suffix = "%d" % sys.version_info[0]
 
-if os.name == "nt":
+if os.name == "nt" and not isMSYS2MingwPython():
     console_scripts = []
 else:
     console_scripts = [

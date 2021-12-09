@@ -23,6 +23,7 @@ That is import as expression, and star import.
 from nuitka.nodes.ImportNodes import hard_modules
 from nuitka.nodes.LocalsScopes import GlobalsDictHandle
 from nuitka.PythonVersions import python_version
+from nuitka.utils.Jinja2 import renderTemplateFromString
 
 from .CodeHelpers import (
     generateChildExpressionsCode,
@@ -245,28 +246,27 @@ def generateImportlibImportCallCode(to_name, expression, emit, context):
 
         # TODO: The import name wouldn't have to be an object really, could do with a
         # C string only.
+
         emit(
-            """\
+            renderTemplateFromString(
+                r"""
 {
     PyObject *hard_module = IMPORT_HARD_IMPORTLIB();
-    PyObject *import_module_func = LOOKUP_ATTRIBUTE(hard_module, %(import_name)s);
-    %(to_name)s = %(call_code)s;
+    PyObject *import_module_func = LOOKUP_ATTRIBUTE(hard_module, {{context.getConstantCode("import_module")}});
+{% if package_name == None %}
+    {{to_name}} = CALL_FUNCTION_WITH_SINGLE_ARG(import_module_func, {{import_name}});
+{% else %}
+    PyObject *args[2] = { {{import_name}}, {{package_name}} };
+    {{to_name}} = CALL_FUNCTION_WITH_ARGS2(import_module_func, args);
+{% endif %}
     Py_DECREF(import_module_func);
 }
-"""
-            % {
-                "to_name": value_name,
-                "import_name": context.getConstantCode("import_module"),
-                "call_code": (
-                    "CALL_FUNCTION_WITH_SINGLE_ARG(import_module_func, %s)"
-                    % import_name
-                )
-                if package_name is None
-                else (
-                    "CALL_FUNCTION_WITH_ARG2(import_module_func, %s, %s)"
-                    % (import_name, package_name)
-                ),
-            }
+""",
+                context=context,
+                to_name=value_name,
+                import_name=import_name,
+                package_name=package_name,
+            )
         )
 
         getErrorExitCode(
