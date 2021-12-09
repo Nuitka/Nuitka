@@ -17,6 +17,35 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-from __future__ import print_function
+[tool.poetry]
+version = "0.1.0"
+name = "hello-world-example"
+description = "Hello places and things"
+packages = [
+    {include = "src" },
+]
+keywords = [
+    "Hello",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: Other/Proprietary License",
+    "Operating System :: OS Independent"
+]
+authors = ["Nobody really <email@someplace.com>"]
+homepage = "https://www.nuitka.net"
 
-print("Hello Distutils this is", __name__)
+[tool.poetry.dependencies]
+python = "3.6.3"
+
+[tool.poetry.dev-dependencies]
+nuitka = "*"
+build = "*"
+
+[build-system]
+requires = ["setuptools>=42", "wheel", "nuitka"]
+build-backend = "nuitka.distutils.Build"
+
+[virtualenvs]
+create = true
+in-project = true

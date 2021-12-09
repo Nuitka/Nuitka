@@ -28,16 +28,11 @@ from setuptools import setup
 # and bdist and build will allways use nuitka
 
 setup(
-    name='bdist_nuitka_test_3',
-    description='nuitka bdist_nuitka test-case compiling a namespace package',
-    author='Some Three',
-    author_email = "email@someplace.com",
+    name="bdist_nuitka_test_3",
+    description="nuitka bdist_nuitka test-case compiling a namespace package",
+    author="Nobody really",
+    author_email="email@someplace.com",
     version="0.2",
     packages=["outer.inner"],
-    entry_points={
-        'console_scripts': [
-            'runner = outer.inner.main:main'
-        ]
-    },
-
+    entry_points={"console_scripts": ["runner = outer.inner.main:main"]},
 )

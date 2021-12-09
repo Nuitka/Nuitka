@@ -489,12 +489,14 @@ def _shouldNotFormatCode(filename):
         return True
     elif (
         "tests" in parts
-        and not "basics" in parts
+        and "basics" not in parts
         and "programs" not in parts
         and "commercial" not in parts
+        and "distutils" not in parts
     ):
         return parts[-1] not in (
             "run_all.py",
+            "setup.py",
             "compile_itself.py",
             "update_doctest_generated.py",
             "compile_itself.py",

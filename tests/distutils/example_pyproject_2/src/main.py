@@ -17,6 +17,3 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-from __future__ import print_function
-
-print("Hello Distutils this is", __name__)

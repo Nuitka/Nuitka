@@ -28,12 +28,11 @@ from setuptools import setup
 # and bdist and build will allways use nuitka
 
 setup(
-    name='py_modules_only',
-    description='nuitka bdist_nuitka test-case compiling py_modules only' +
-                ' package',
-    author='Tommy',
-    author_email='xxx@gmail.com',
+    name="py_modules_only",
+    description="nuitka bdist_nuitka test-case compiling py_modules only" + " package",
+    author="Nobody really",
+    author_email="email@someplace.com",
     py_modules=["py_modules_only"],
     version="0.1",
-    scripts = ["runner"],
+    scripts=["runner"],
 )
