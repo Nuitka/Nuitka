@@ -57,3 +57,40 @@ unicode_find_spec = UnicodeMethodSpec(
 unicode_rfind_spec = UnicodeMethodSpec(
     "rfind", arg_names=("sub", "start", "end"), default_count=2
 )
+unicode_index_spec = UnicodeMethodSpec(
+    "index", arg_names=("sub", "start", "end"), default_count=2
+)
+unicode_rindex_spec = UnicodeMethodSpec(
+    "rindex", arg_names=("sub", "start", "end"), default_count=2
+)
+unicode_split_spec = UnicodeMethodSpec(
+    "split", arg_names=("sep", "maxsplit"), default_count=2
+)
+unicode_rsplit_spec = UnicodeMethodSpec(
+    "rsplit", arg_names=("sep", "maxsplit"), default_count=2
+)
+
+unicode_startswith_spec = UnicodeMethodSpec(
+    "startswith", arg_names=("prefix", "start", "end"), default_count=2
+)
+unicode_endswith_spec = UnicodeMethodSpec(
+    "endswith", arg_names=("suffix", "start", "end"), default_count=2
+)
+
+unicode_replace_spec = UnicodeMethodSpec(
+    "replace", arg_names=("old", "new", "count"), default_count=1
+)
+
+
+unicode_capitalize_spec = UnicodeMethodSpec("capitalize", arg_names=())
+unicode_upper_spec = UnicodeMethodSpec("upper", arg_names=())
+unicode_lower_spec = UnicodeMethodSpec("lower", arg_names=())
+unicode_swapcase_spec = UnicodeMethodSpec("swapcase", arg_names=())
+unicode_title_spec = UnicodeMethodSpec("title", arg_names=())
+unicode_isalnum_spec = UnicodeMethodSpec("isalnum", arg_names=())
+unicode_isalpha_spec = UnicodeMethodSpec("isalpha", arg_names=())
+unicode_isdigit_spec = UnicodeMethodSpec("isdigit", arg_names=())
+unicode_islower_spec = UnicodeMethodSpec("islower", arg_names=())
+unicode_isupper_spec = UnicodeMethodSpec("isupper", arg_names=())
+unicode_isspace_spec = UnicodeMethodSpec("isspace", arg_names=())
+unicode_istitle_spec = UnicodeMethodSpec("istitle", arg_names=())

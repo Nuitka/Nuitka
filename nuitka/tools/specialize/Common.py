@@ -97,43 +97,43 @@ python3_dict_methods = (
 )
 
 python2_str_methods = (
-    "capitalize",
+    "capitalize",  # has full str coverage
     "center",
     "count",
     "decode",
     "encode",
-    "endswith",
+    "endswith",  # has full str coverage
     "expandtabs",
     "find",  # has full str coverage
     "format",
-    "index",
-    "isalnum",
-    "isalpha",
-    "isdigit",
-    "islower",
-    "isspace",
-    "istitle",
-    "isupper",
-    "join",
+    "index",  # has full str coverage
+    "isalnum",  # has full str coverage
+    "isalpha",  # has full str coverage
+    "isdigit",  # has full str coverage
+    "islower",  # has full str coverage
+    "isspace",  # has full str coverage
+    "istitle",  # has full str coverage
+    "isupper",  # has full str coverage
+    "join",  # has full str coverage
     "ljust",
-    "lower",
-    "lstrip",
+    "lower",  # has full str coverage
+    "lstrip",  # has full str coverage
     "partition",  # has full str coverage
     "replace",
     "rfind",  # has full str coverage
-    "rindex",
+    "rindex",  # has full str coverage
     "rjust",
     "rpartition",  # has full str coverage
-    "rsplit",
-    "rstrip",
-    "split",
+    "rsplit",  # has full str coverage
+    "rstrip",  # has full str coverage
+    "split",  # has full str coverage
     "splitlines",
-    "startswith",
-    "strip",
-    "swapcase",
-    "title",
+    "startswith",  # has full str coverage
+    "strip",  # has full str coverage
+    "swapcase",  # has full str coverage
+    "title",  # has full str coverage
     "translate",
-    "upper",
+    "upper",  # has full str coverage
     "zfill",
 )
 
@@ -166,7 +166,7 @@ python3_str_methods = (
     "lower",
     "lstrip",
     "maketrans",
-    "partition",  # has full str coverage
+    "partition",
     # TODO: Python3.9 or higher:
     # "removeprefix",
     # "removesuffix",
@@ -174,7 +174,7 @@ python3_str_methods = (
     "rfind",
     "rindex",
     "rjust",
-    "rpartition",  # has full str coverage
+    "rpartition",
     "rsplit",
     "rstrip",
     "split",

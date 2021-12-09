@@ -71,6 +71,9 @@ operations = (
 from nuitka.tools.specialize.SpecializePython import (
     python2_dict_methods as dict_method_names,
 )
+from nuitka.tools.specialize.SpecializePython import (
+    python2_str_methods as str_method_names,
+)
 
 # For typical constant values to use in operation tests.
 candidates = (
@@ -119,6 +122,7 @@ def main():
     template_context = {
         "operations": operations,
         "dict_method_names": dict_method_names,
+        "str_method_names": str_method_names,
         "ioperations": tuple(
             operation
             for operation in operations

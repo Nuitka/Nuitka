@@ -1808,7 +1808,7 @@ def makeHelpersComparisonOperation(operand, op_code):
 
     template = getDoExtensionUsingTemplateC("HelperOperationComparison.c.j2")
 
-    filename_c = "nuitka/build/static_src/HelpersComparison%s.c" % op_code.title()
+    filename_c = "nuitka/build/static_src/HelpersComparison%s.c" % op_code.capitalize()
     filename_h = "nuitka/build/include/nuitka/helper/comparisons_%s.h" % op_code.lower()
 
     with withFileOpenedAndAutoformatted(filename_c) as output_c:
@@ -1851,7 +1851,9 @@ def makeHelpersBinaryOperation(operand, op_code):
 
     template = getDoExtensionUsingTemplateC("HelperOperationBinary.c.j2")
 
-    filename_c = "nuitka/build/static_src/HelpersOperationBinary%s.c" % op_code.title()
+    filename_c = (
+        "nuitka/build/static_src/HelpersOperationBinary%s.c" % op_code.capitalize()
+    )
     filename_h = (
         "nuitka/build/include/nuitka/helper/operations_binary_%s.h" % op_code.lower()
     )
@@ -1898,7 +1900,9 @@ def makeHelpersInplaceOperation(operand, op_code):
 
     template = getDoExtensionUsingTemplateC("HelperOperationInplace.c.j2")
 
-    filename_c = "nuitka/build/static_src/HelpersOperationInplace%s.c" % op_code.title()
+    filename_c = (
+        "nuitka/build/static_src/HelpersOperationInplace%s.c" % op_code.capitalize()
+    )
     filename_h = (
         "nuitka/build/include/nuitka/helper/operations_inplace_%s.h" % op_code.lower()
     )
@@ -2075,11 +2079,12 @@ def makeHelperCalls():
 
 
 def _makeHelperBuiltinTypeAttributes(
-    output_c, type_prefix, type_name, python2_methods, python3_methods
+    type_prefix,
+    type_name,
+    python2_methods,
+    python3_methods,
+    emit_c,
 ):
-    def emit_c(*args):
-        writeline(output_c, *args)
-
     def getVarName(method_name):
         return "%s_builtin_%s" % (type_prefix, method_name)
 
@@ -2101,7 +2106,7 @@ def _makeHelperBuiltinTypeAttributes(
     if not python3_methods:
         emit_c("#if PYTHON_VERSION < 0x300")
 
-    emit_c("static void _init%sBuiltinMethods() {" % type_prefix.title())
+    emit_c("static void _init%sBuiltinMethods() {" % type_prefix.capitalize())
     for method_name in sorted(set(python2_methods + python3_methods)):
         if method_name in python2_methods and method_name not in python3_methods:
             emit_c("#if PYTHON_VERSION < 0x300")
@@ -2144,7 +2149,34 @@ generate_builtin_type_operations = [
         "tshape_str",
         str_desc,
         nuitka.specs.BuiltinStrOperationSpecs,
-        ("strip", "rstrip", "lstrip", "partition", "rpartition", "find", "rfind"),
+        (
+            "strip",
+            "rstrip",
+            "lstrip",
+            "partition",
+            "rpartition",
+            "find",
+            "rfind",
+            "index",
+            "rindex",
+            "capitalize",
+            "upper",
+            "lower",
+            "swapcase",
+            "title",
+            "isalnum",
+            "isalpha",
+            "isdigit",
+            "islower",
+            "isupper",
+            "isspace",
+            "istitle",
+            "split",
+            "rsplit",
+            "startswith",
+            "endswith",
+            "replace",
+        ),
     ),
     # TODO: This is using Python2 spec module for Python3 strings, that will be a problem down the
     # road, when version specifics come in.
@@ -2152,7 +2184,32 @@ generate_builtin_type_operations = [
         "tshape_unicode",
         unicode_desc,
         nuitka.specs.BuiltinUnicodeOperationSpecs,
-        ("strip", "rstrip", "lstrip", "find", "rfind"),
+        (
+            "strip",
+            "rstrip",
+            "lstrip",
+            "find",
+            "rfind",
+            "index",
+            "rindex",
+            "capitalize",
+            "upper",
+            "lower",
+            "swapcase",
+            "title",
+            "isalnum",
+            "isalpha",
+            "isdigit",
+            "islower",
+            "isupper",
+            "isspace",
+            "istitle",
+            "split",
+            "rsplit",
+            "startswith",
+            "endswith",
+            "replace",
+        ),
     ),
 ]
 
@@ -2160,92 +2217,115 @@ generate_builtin_type_operations = [
 def makeHelperBuiltinTypeMethods():
     # Many details, pylint: disable=too-many-locals
     filename_c = "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
-
+    filename_h = "nuitka/build/include/nuitka/helper/operations_builtin_types.h"
     with withFileOpenedAndAutoformatted(filename_c) as output_c:
+        with withFileOpenedAndAutoformatted(filename_h) as output_h:
 
-        def emit_c(*args):
-            writeline(output_c, *args)
+            def emit_h(*args):
+                writeline(output_h, *args)
 
-        emitIDE(emit_c)
+            def emit_c(*args):
+                writeline(output_c, *args)
 
-        _makeHelperBuiltinTypeAttributes(
-            output_c, "str", "PyString_Type", python2_str_methods, ()
-        )
-        _makeHelperBuiltinTypeAttributes(
-            output_c,
-            "unicode",
-            "PyUnicode_Type",
-            python2_unicode_methods,
-            python3_str_methods,
-        )
-        _makeHelperBuiltinTypeAttributes(
-            output_c, "dict", "PyDict_Type", python2_dict_methods, python3_dict_methods
-        )
+            def emit(*args):
+                emit_h(*args)
+                emit_c(*args)
 
-        template = getDoExtensionUsingTemplateC("HelperBuiltinMethodOperation.c.j2")
+            emitIDE(emit)
 
-        for (
-            shape_name,
-            type_desc,
-            spec_module,
-            method_names,
-        ) in generate_builtin_type_operations:
-            if type_desc.python_requirement:
-                emit_c("#if %s" % type_desc.python_requirement)
+            _makeHelperBuiltinTypeAttributes(
+                "str",
+                "PyString_Type",
+                python2_str_methods,
+                (),
+                emit_c,
+            )
+            _makeHelperBuiltinTypeAttributes(
+                "unicode",
+                "PyUnicode_Type",
+                python2_unicode_methods,
+                python3_str_methods,
+                emit_c,
+            )
+            _makeHelperBuiltinTypeAttributes(
+                "dict",
+                "PyDict_Type",
+                python2_dict_methods,
+                python3_dict_methods,
+                emit_c,
+            )
 
-            for method_name in sorted(method_names):
-                present, arg_names, arg_name_mapping, arg_counts = getMethodVariations(
-                    spec_module=spec_module,
-                    shape_name=shape_name,
-                    method_name=method_name,
-                    must_exist=True,
-                )
+            template = getDoExtensionUsingTemplateC("HelperBuiltinMethodOperation.c.j2")
 
-                assert present, method_name
+            for (
+                shape_name,
+                type_desc,
+                spec_module,
+                method_names,
+            ) in generate_builtin_type_operations:
+                if type_desc.python_requirement:
+                    emit("#if %s" % type_desc.python_requirement)
 
-                def formatArgumentDeclaration(arg_types, arg_names, starting):
-                    return formatArgs(
-                        [
-                            arg_type.getVariableDecl(arg_name)
-                            for arg_type, arg_name in zip(arg_types, arg_names)
-                        ],
-                        starting=starting,
-                    )
-
-                # Function is used immediately in same loop, pylint: disable=cell-var-from-loop
-                def replaceArgNameForC(arg_name):
-                    if arg_name in arg_name_mapping:
-                        arg_name = arg_name_mapping[arg_name]
-
-                    if arg_name == "default":
-                        return arg_name + "_value"
-                    else:
-                        return arg_name
-
-                for arg_count in arg_counts:
-                    variant_args = [
-                        replaceArgNameForC(arg_name)
-                        for arg_name in arg_names[:arg_count]
-                    ]
-
-                    code = template.render(
-                        object_desc=object_desc,
-                        builtin_type=type_desc,
-                        builtin_arg_name=type_desc.type_name,
+                for method_name in sorted(method_names):
+                    (
+                        present,
+                        arg_names,
+                        arg_name_mapping,
+                        arg_counts,
+                    ) = getMethodVariations(
+                        spec_module=spec_module,
+                        shape_name=shape_name,
                         method_name=method_name,
-                        api_suffix=str(arg_count + 1) if len(arg_counts) > 1 else "",
-                        arg_names=variant_args,
-                        arg_types=[object_desc] * len(variant_args),
-                        formatArgumentDeclaration=formatArgumentDeclaration,
-                        zip=zip,
-                        len=len,
-                        name=template.name,
+                        must_exist=True,
                     )
 
-                    emit_c(code)
+                    assert present, method_name
 
-            if type_desc.python_requirement:
-                emit_c("#endif")
+                    def formatArgumentDeclaration(arg_types, arg_names, starting):
+                        return formatArgs(
+                            [
+                                arg_type.getVariableDecl(arg_name)
+                                for arg_type, arg_name in zip(arg_types, arg_names)
+                            ],
+                            starting=starting,
+                        )
+
+                    # Function is used immediately in same loop, pylint: disable=cell-var-from-loop
+                    def replaceArgNameForC(arg_name):
+                        if arg_name in arg_name_mapping:
+                            arg_name = arg_name_mapping[arg_name]
+
+                        if arg_name in ("default", "new"):
+                            return arg_name + "_value"
+                        else:
+                            return arg_name
+
+                    for arg_count in arg_counts:
+                        variant_args = [
+                            replaceArgNameForC(arg_name)
+                            for arg_name in arg_names[:arg_count]
+                        ]
+
+                        code = template.render(
+                            object_desc=object_desc,
+                            builtin_type=type_desc,
+                            builtin_arg_name=type_desc.type_name,
+                            method_name=method_name,
+                            api_suffix=str(arg_count + 1)
+                            if len(arg_counts) > 1
+                            else "",
+                            arg_names=variant_args,
+                            arg_types=[object_desc] * len(variant_args),
+                            formatArgumentDeclaration=formatArgumentDeclaration,
+                            zip=zip,
+                            len=len,
+                            name=template.name,
+                        )
+
+                        emit_c(code)
+                        emit_h(getTemplateCodeDeclaredFunction(code))
+                if type_desc.python_requirement:
+                    emit("#endif")
 
 
 def main():

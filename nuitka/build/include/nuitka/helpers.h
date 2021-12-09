@@ -106,6 +106,7 @@ extern void stopProfiling(void);
 #include "nuitka/helper/boolean.h"
 #include "nuitka/helper/dictionaries.h"
 #include "nuitka/helper/mappings.h"
+#include "nuitka/helper/operations_builtin_types.h"
 #include "nuitka/helper/sets.h"
 #include "nuitka/helper/strings.h"
 
