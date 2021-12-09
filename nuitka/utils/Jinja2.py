@@ -102,7 +102,7 @@ def getTemplateC(
 def getTemplateFromString(template_str):
     return getEnvironment(
         package_name=None, template_subdir=None, extensions=()
-    ).from_string(template_str)
+    ).from_string(template_str.strip())
 
 
 _template_cache = {}
