@@ -96,7 +96,10 @@ from nuitka.nodes.ExceptionNodes import (
 )
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
-from nuitka.nodes.ImportNodes import makeExpressionImportModuleFixed
+from nuitka.nodes.ImportNodes import (
+    isHardModuleWithoutSideEffect,
+    makeExpressionImportModuleFixed,
+)
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleAttributeNodes import (
     ExpressionModuleAttributeFileRef,
@@ -780,6 +783,9 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
             )
 
             for path_imported_name in getPthImportedPackages():
+                if isHardModuleWithoutSideEffect(path_imported_name):
+                    continue
+
                 statements.append(
                     StatementExpressionOnly(
                         expression=makeExpressionImportModuleFixed(

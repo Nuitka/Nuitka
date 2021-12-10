@@ -68,8 +68,8 @@ is_fullcompat = None
 is_report_missing = None
 
 
-def parseArgs(will_reexec):
-    """Parse the command line arguments, with the knowledge if Nuitka will re-execute itself.
+def parseArgs():
+    """Parse the command line arguments
 
     :meta private:
     """
@@ -101,15 +101,18 @@ def parseArgs(will_reexec):
     if options.quiet or int(os.environ.get("NUITKA_QUIET", "0")):
         Tracing.setQuiet()
 
-    if not will_reexec and not shallDumpBuiltTreeXML():
+    if not shallDumpBuiltTreeXML():
         Tracing.options_logger.info(
             "Used command line options: %s" % " ".join(sys.argv[1:])
         )
 
-    if options.progress_bar and not will_reexec:
+    if os.environ.get("NUITKA_REEXECUTION", "1") and not isAllowedToReexecute():
+        Tracing.sysexit("Error, not allowed to re-execute, but that has happened.")
+
+    if options.progress_bar:
         Progress.enableProgressBar()
 
-    if options.verbose_output and not will_reexec:
+    if options.verbose_output:
         Tracing.optimization_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
             openTextFile(options.verbose_output, "w", encoding="utf8")
@@ -119,7 +122,7 @@ def parseArgs(will_reexec):
 
     Tracing.optimization_logger.is_quiet = not options.verbose
 
-    if options.show_inclusion_output and not will_reexec:
+    if options.show_inclusion_output:
         Tracing.inclusion_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
             openTextFile(options.show_inclusion_output, "w", encoding="utf8")
@@ -386,11 +389,7 @@ standalone where there is a sane default used inside the dist folder."""
             "Error, static libpython is not found or not supported for this Python installation."
         )
 
-    if (
-        not will_reexec
-        and shallUseStaticLibPython()
-        and getSystemStaticLibPythonPath() is None
-    ):
+    if shallUseStaticLibPython() and getSystemStaticLibPythonPath() is None:
         Tracing.options_logger.sysexit(
             """Error, usable static libpython is not found for this Python installation. You \
 might be missing required '-dev' packages. Disable with --static-libpython=no" if you don't \
@@ -514,7 +513,7 @@ def commentArgs():
         and not options.include_extra
     ):
         Tracing.options_logger.warning(
-            """Did not specify to follow or including anything but main %s. Check options and \
+            """Did not specify to follow or include anything but main %s. Check options and \
 make sure that is intended."""
             % ("module" if shallMakeModule() else "program")
         )

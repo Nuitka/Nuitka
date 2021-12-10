@@ -73,9 +73,8 @@ def reExecuteNuitka(pgo_filename):
 
         os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
 
-    os.environ["NUITKA_SITE_FLAG"] = (
-        str(sys.flags.no_site) if not Options.hasPythonFlagNoSite() else "1"
-    )
+    if sys.flags.no_site:
+        os.environ["NUITKA_NOSITE_FLAG"] = "1"
 
     os.environ["PYTHONHASHSEED"] = "0"
 

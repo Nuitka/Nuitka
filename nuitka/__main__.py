@@ -74,23 +74,16 @@ def main():
     if os.environ.get("PYTHONHASHSEED", "-1") != "0":
         needs_reexec = True
 
-    # For re-execution, we might not have done this.
-    from nuitka import Options  # isort:skip
-
     # In case we need to re-execute.
     if needs_reexec:
-        Options.parseArgs(will_reexec=True)
-
-        # TODO: If that's the only usage of Options, why do it at all, could start
-        # directly, and recognize the re-execution in the second run.
-        if not Options.isAllowedToReexecute():
-            sys.exit("Error, not allowed to re-execute, but that would be needed.")
-
         from nuitka.utils.ReExecute import reExecuteNuitka  # isort:skip
 
+        # Does not return
         reExecuteNuitka(pgo_filename=None)
 
-    Options.parseArgs(will_reexec=False)
+    from nuitka import Options  # isort:skip
+
+    Options.parseArgs()
 
     Options.commentArgs()
 

@@ -607,7 +607,7 @@ def runSconsBackend(quiet):
     if sys.flags.bytes_warning:
         options["python_sysflag_bytes_warning"] = asBoolStr(True)
 
-    if int(os.environ.get("NUITKA_SITE_FLAG", Options.hasPythonFlagNoSite())):
+    if int(os.environ.get("NUITKA_NOSITE_FLAG", Options.hasPythonFlagNoSite())):
         options["python_sysflag_no_site"] = asBoolStr(True)
 
     if Options.hasPythonFlagTraceImports():
