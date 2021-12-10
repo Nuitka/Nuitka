@@ -334,7 +334,8 @@ class TypeDescBase(getMetaClassBase("Type")):
                 operand + "->tp_as_sequence->" + slot,
             )
         elif slot == "tp_richcompare":
-            # Try to detect fallbacks
+            # Try to detect fallbacks, this needs version specific management
+            # for at least "LONG", maybe others.
 
             assert self is object_desc, self
             return "RICHCOMPARE(%s)" % operand
@@ -418,8 +419,8 @@ return %(return_value)s;""" % {
                 "operator": operator,
                 "left_type2": "%s" if left is object_desc else left.getTypeName2(),
                 "right_type2": "%s" if right is object_desc else right.getTypeName2(),
-                "left_type3": "%s" if left is object_desc else left.getTypeName2(),
-                "right_type3": "%s" if right is object_desc else right.getTypeName2(),
+                "left_type3": "%s" if left is object_desc else left.getTypeName3(),
+                "right_type3": "%s" if right is object_desc else right.getTypeName3(),
                 "args": args,
                 "return_value": self.getExceptionResultIndicatorValue(),
             }
@@ -1182,8 +1183,24 @@ class LongDesc(ConcreteTypeBase):
             return slot != "nb_matrix_multiply"
         elif slot.startswith("sq_"):
             return False
-        else:
+        elif slot == "tp_richcompare":
             assert False
+            # For Python3 it's there though
+            return False
+        elif slot == "tp_compare":
+            # For Python2 it's tp_compare though
+            return True
+        else:
+            assert False, slot
+
+    def getSlotValueExpression(self, operand, slot):
+        # Python2 long does have "tp_compare", Python3 does have "tp_richcompare",
+        # therefore create code that makes this a conditional expression on the
+        # Python version
+        if slot == "tp_richcompare":
+            return "(PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(%s))" % operand
+
+        return ConcreteTypeBase.getSlotValueExpression(self, operand=operand, slot=slot)
 
     @classmethod
     def getNewStyleNumberTypeCheckExpression(cls, operand):
@@ -1478,8 +1495,8 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
 
     if left in (int_desc, clong_desc):
         template = getDoExtensionUsingTemplateC("HelperOperationComparisonInt.c.j2")
-    # elif left == long_desc:
-    #     template = getDoExtensionUsingTemplateC("HelperOperationComparisonLong.c.j2")
+    elif left == long_desc:
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonLong.c.j2")
     elif left == float_desc:
         template = getDoExtensionUsingTemplateC("HelperOperationComparisonFloat.c.j2")
     elif left == tuple_desc:

@@ -62,7 +62,7 @@
     PyTypeObject *type2 = {{right.getTypeValueExpression("operand2")}};
 
 #if PYTHON_VERSION < 0x300
-    // If the types are equal, we may get away immediately.
+    // If the types are equal, we may get away immediately except for instances.
     if ({{left.getTypeIdenticalCheckExpression(right, "type1", "type2")}}
           && !{{left.getMostSpecificType(right).getInstanceCheckCode("operand1")}}
           ) {
