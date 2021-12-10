@@ -10,6 +10,58 @@ Nuitka blog.
  Nuitka Release 0.6.19 (Draft)
 *******************************
 
+Bug Fixes
+=========
+
+-  Fix, in module move, the top level modules if loaded again, e.g.
+   because previously it gave an ``ImportError`` was initializing
+   multiple time, which lead to issues. Fixed in 0.6.18.1 already.
+
+-  Standalone: Ignore warning given by ``patchelf`` on Linux about a
+   workaround being applied.
+
+-  Fix, calls to ``importlib.import_module`` were not correctly creating
+   code for dynamic argument values that need to be released, causing
+   the compilation to report the error. Fixed in 0.6.18.1 already.
+
+-  MSYS2: Fix, the console scripts are actually good for it as opposed
+   to CPython, and the batch scripts should not be installed. Fixed in
+   0.6.18.2 already.
+
+-  Setuptools: Added support older version of ``setuptools`` in meta
+   ``build`` integration of Nuitka.
+
+-  Fix, calls to ``importlib.import_module`` with 2 arguments that are
+   dynamic, were not working at all. Fixed in 0.6.18.2 already.
+
+-  Windows: Compiling with MinGW64 without ``ccache`` was not working
+   due to issues in Scons. Fixed in 0.6.18.2 already.
+
+-  Fix, the ``repr`` built-in was falsely annotated as producing a
+   ``str`` value, but it can be also derived or ``unicode`` in Python2.
+
+-  Fix, attribute nodes were not considering the value they are looking
+   up on. Now that more values will know to have the attributes, that
+   was causing errors. Fixed in 0.6.18.2 already.
+
+-  Standalone: Added datafile for ``cv2`` package. Fixed in 0.6.18.2
+   already.
+
+-  Fix, left shifting can also produce large values and needs to be
+   avoided in that case, similar to what we do for multiplications
+   already. Fixed in 0.6.18.2 already.
+
+Organisational
+==============
+
+-  MSYS2: Detecting MinGW and POSIX flavors of this Python.
+
+-  User Manual: Added example explaining how to access values from your
+   code in Nuitka project options.
+
+Summary
+=======
+
 This release is not done yet.
 
 ***********************
