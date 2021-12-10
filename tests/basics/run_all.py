@@ -60,8 +60,8 @@ def main():
             "expect_success",
             # Keep no temporary files.
             "remove_output",
-            # Include imported files, mostly nothing though.
-            "--follow-imports",
+            # Do not follow imports.
+            "--nofollow-imports",
             # Use the original __file__ value, at least one case warns about things
             # with filename included.
             "--file-reference-choice=original",
