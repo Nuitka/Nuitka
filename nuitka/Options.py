@@ -503,7 +503,8 @@ def commentArgs():
         )
 
     if (
-        not standalone_mode
+        not shallDumpBuiltTreeXML()
+        and not standalone_mode
         and not options.follow_all
         and not options.follow_none
         and not options.follow_modules
