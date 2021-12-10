@@ -285,7 +285,7 @@ low_memory_mode = getArgumentBool("low_memory", False)
 # Minimum version required on macOS.
 macos_minversion = getArgumentDefaulted("macos_minversion", "")
 
-if getArgumentBool("progress_bar", True):
+if getArgumentBool("progress_bar", True) and not show_scons_mode:
     enableSconsProgressBar()
 
 
