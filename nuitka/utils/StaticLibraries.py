@@ -84,7 +84,8 @@ def isDebianSuitableForStaticLinking():
     elif dist_name == "Ubuntu":
         return True
     else:
-        # TODO: Needs implementing potentially.
+        # TODO: Needs implementing potentially, Mint etc. are based
+        # on something that should be considered.
         return True
 
 
