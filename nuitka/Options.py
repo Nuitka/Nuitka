@@ -36,7 +36,6 @@ from nuitka.PythonFlavors import (
 )
 from nuitka.PythonVersions import (
     getSupportedPythonVersions,
-    python_version,
     python_version_str,
 )
 from nuitka.utils.Execution import getExecutablePath
@@ -828,14 +827,13 @@ def _shallUseStaticLibPython():
         if isNuitkaPython():
             return True
 
-        # Debian packages with Python2 are usable, Python3 will follow eventually maybe.
+        # Debian packages with are usable if the OS is new enough
         from nuitka.utils.StaticLibraries import (
             isDebianSuitableForStaticLinking,
         )
 
         if (
-            python_version < 0x300
-            and isDebianPackagePython()
+            isDebianPackagePython()
             and isDebianSuitableForStaticLinking()
             and not isPythonDebug()
         ):
