@@ -796,7 +796,7 @@ and "auto" (when it's known to work). Defaults to "auto".""",
 c_compiler_group.add_option(
     "--disable-ccache",
     action="store_true",
-    dest="no_ccache",
+    dest="disable_ccache",
     default=False,
     help="""\
 Do not attempt to use ccache (gcc, clang, etc.) or clcache (MSVC, clangcl).""",

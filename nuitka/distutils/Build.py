@@ -29,7 +29,7 @@ if not hasattr(setuptools.build_meta, "suppress_known_deprecation"):
 
 
 else:
-    suppress_known_deprecation = setuptools.build_meta
+    suppress_known_deprecation = setuptools.build_meta.suppress_known_deprecation
 
 
 class NuitkaBuildMetaBackend(setuptools.build_meta._BuildMetaBackend):

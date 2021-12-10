@@ -942,6 +942,7 @@ def getMsvcVersion():
 
 def shallDisableCCacheUsage():
     """:returns: bool derived from ``disable-ccache``"""
+    return options.disable_ccache
 
 
 def shallDisableConsoleWindow():
