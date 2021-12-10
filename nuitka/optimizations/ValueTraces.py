@@ -179,6 +179,18 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
+    def hasShapeStrExact():
+        return False
+
+    @staticmethod
+    def hasShapeUnicodeExact():
+        return False
+
+    @staticmethod
+    def hasShapeTupleExact():
+        return False
+
+    @staticmethod
     def getTruthValue():
         return None
 
@@ -285,8 +297,8 @@ class ValueTraceInitStarArgs(ValueTraceInit):
         return tshape_tuple
 
     @staticmethod
-    def hasShapeDictionaryExact():
-        return False
+    def hasShapeTupleExact():
+        return True
 
 
 class ValueTraceInitStarDict(ValueTraceInit):
@@ -454,6 +466,12 @@ class ValueTraceAssign(ValueTraceBase):
 
     def hasShapeDictionaryExact(self):
         return self.assign_node.subnode_source.hasShapeDictionaryExact()
+
+    def hasShapeStrExact(self):
+        return self.assign_node.subnode_source.hasShapeStrExact()
+
+    def hasShapeUnicodeExact(self):
+        return self.assign_node.subnode_source.hasShapeUnicodeExact()
 
     def getTruthValue(self):
         return self.assign_node.subnode_source.getTruthValue()
