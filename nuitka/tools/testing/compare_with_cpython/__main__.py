@@ -237,7 +237,7 @@ def main():
     remove_binary = not hasArg("--keep-binary")
     standalone_mode = hasArg("--standalone")
     onefile_mode = hasArg("--onefile")
-    no_site = hasArg("no_site")
+    no_site = hasArg("no_site") or hasArg("coverage")
     nofollow_imports = hasArg("recurse_none") or hasArg("--nofollow-imports")
     follow_imports = hasArg("recurse_all") or hasArg("--follow-imports")
     timing = hasArg("timing")
