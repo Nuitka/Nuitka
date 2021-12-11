@@ -103,6 +103,33 @@
 // For tracing outputs if enabled at compile time.
 #include "nuitka/tracing.h"
 
+static void printError(char const *message) {
+#if defined(_WIN32)
+    LPCTSTR err_buffer;
+
+    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
+                  GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&err_buffer, 0, NULL);
+
+    puts(message);
+    puts(err_buffer);
+#else
+    perror(message);
+#endif
+}
+
+static void fatalError(char const *message) {
+    printError(message);
+    abort();
+}
+
+static void fatalErrorTempFiles() { fatalError("Error, couldn't runtime expand temporary files."); }
+
+static void fatalErrorAttachedData() { fatalError("Error, couldn't decode attached data."); }
+
+static void fatalErrorMemory() { fatalError("Error, couldn't allocate memory."); }
+
+static void fatalErrorChild() { fatalError("Error, couldn't launch child."); }
+
 #if defined(_WIN32)
 static void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size) {
     while (*target != 0) {
@@ -163,10 +190,15 @@ static FILE_HANDLE createFileForWriting(filename_char_t const *filename) {
 static void writeToFile(FILE_HANDLE target_file, void *chunk, size_t chunk_size) {
 #if defined(_WIN32)
     BOOL bool_res = WriteFile(target_file, chunk, chunk_size, NULL, NULL);
-    assert(bool_res);
+    if (bool_res == false) {
+        fatalErrorTempFiles();
+    }
 #else
     long written = fwrite(chunk, 1, chunk_size, target_file);
-    assert(written == chunk_size);
+
+    if (written != chunk_size) {
+        fatalErrorTempFiles();
+    }
 #endif
 }
 
@@ -175,7 +207,10 @@ static void closeFile(FILE_HANDLE target_file) {
     CloseHandle(target_file);
 #else
     int r = fclose(target_file);
-    assert(r == 0);
+
+    if (r != 0) {
+        fatalErrorTempFiles();
+    }
 #endif
 }
 
@@ -207,14 +242,20 @@ static ZSTD_outBuffer output = {NULL, 0, 0};
 static void initZSTD() {
     size_t const buffInSize = ZSTD_DStreamInSize();
     input.src = malloc(buffInSize);
-    assert(input.src);
+    if (input.src == NULL) {
+        fatalErrorMemory();
+    }
 
     size_t const buffOutSize = ZSTD_DStreamOutSize();
     output.dst = malloc(buffOutSize);
-    assert(output.dst);
+    if (output.dst == NULL) {
+        fatalErrorMemory();
+    }
 
     dctx = ZSTD_createDCtx();
-    assert(dctx != NULL);
+    if (dctx == NULL) {
+        fatalErrorMemory();
+    }
 }
 
 #endif
@@ -235,12 +276,17 @@ static void readChunk(void *buffer, size_t size) {
 #if defined(_WIN32)
     DWORD read_size;
     BOOL bool_res = ReadFile(exe_file, buffer, size, &read_size, NULL);
-    assert(bool_res);
-    assert(read_size == size);
+
+    if (bool_res == false || read_size != size) {
+        fatalErrorAttachedData();
+    }
 #else
     size_t read_size = fread(buffer, 1, size, exe_file);
 
-    assert(read_size == size);
+    if (read_size != size) {
+        fatalErrorAttachedData();
+    }
+
 #endif
 }
 
@@ -289,7 +335,10 @@ static void readPayloadChunk(void *buffer, size_t size) {
             // printf("return output %d %d\n", output.pos, output.size);
             end_of_buffer = (output.pos == output.size);
 
-            assert(!ZSTD_isError(ret));
+            if (ZSTD_isError(ret)) {
+                fatalErrorAttachedData();
+            }
+
             output.size = output.pos;
             output.pos = 0;
 
@@ -299,7 +348,9 @@ static void readPayloadChunk(void *buffer, size_t size) {
             continue;
         }
 
-        assert(input.size == input.pos);
+        if (input.size != input.pos) {
+            fatalErrorAttachedData();
+        }
 
         // No input available, make it available from stream respecting end.
         size_t to_read = ZSTD_DStreamInSize();
@@ -360,20 +411,6 @@ static filename_char_t *readPayloadFilename() {
     return buffer;
 }
 
-static void printError(char const *message) {
-#if defined(_WIN32)
-    LPCTSTR err_buffer;
-
-    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
-                  GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&err_buffer, 0, NULL);
-
-    puts(message);
-    puts(err_buffer);
-#else
-    perror(message);
-#endif
-}
-
 // Zero means, not yet created, created unsuccessfully, terminated already.
 #if defined(_WIN32)
 HANDLE handle_process = 0;
@@ -425,7 +462,10 @@ int removeDirectory(char const *path) {
 
             len = path_len + strlen(p->d_name) + 2;
             char *buf = malloc(len);
-            assert(buf);
+
+            if (buf == NULL) {
+                fatalErrorMemory();
+            }
 
             struct stat statbuf;
 
@@ -490,7 +530,9 @@ static char *convertUnicodePathToAnsi(wchar_t const *path) {
     // first get short path as otherwise, conversion might not be reliable
     DWORD l = GetShortPathNameW(path, NULL, 0);
     wchar_t *shortPath = (wchar_t *)malloc(sizeof(wchar_t) * (l + 1));
-    assert(shortPath);
+    if (shortPath == NULL) {
+        fatalErrorMemory();
+    }
 
     l = GetShortPathNameW(path, shortPath, l);
     if (unlikely(l == 0)) {
@@ -502,7 +544,9 @@ static char *convertUnicodePathToAnsi(wchar_t const *path) {
         goto err_shortPath;
     }
     char *ansiPath = (char *)malloc(i);
-    assert(ansiPath);
+    if (ansiPath == NULL) {
+        fatalErrorMemory();
+    }
     if (unlikely(wcstombs_s(&i, ansiPath, i, shortPath, _TRUNCATE) != 0)) {
         goto err_ansiPath;
     }
@@ -713,10 +757,14 @@ int main(int argc, char **argv) {
     } else {
         res = SetFilePointer(exe_file, cert_table_addr - 8, NULL, FILE_BEGIN);
     }
-    assert(res != INVALID_SET_FILE_POINTER);
+    if (res == INVALID_SET_FILE_POINTER) {
+        fatalErrorAttachedData();
+    }
 #else
     int res = fseek(exe_file, -8, SEEK_END);
-    assert(res == 0);
+    if (res != 0) {
+        fatalErrorAttachedData();
+    }
 #endif
     stream_end_pos = getPosition();
 
@@ -728,23 +776,33 @@ int main(int argc, char **argv) {
     // The start offset won't exceed LONG.
 #if defined(_WIN32)
     res = SetFilePointer(exe_file, (LONG)start_pos, NULL, FILE_BEGIN);
-    assert(res != INVALID_SET_FILE_POINTER);
+    if (res == INVALID_SET_FILE_POINTER) {
+        fatalErrorAttachedData();
+    }
 #else
-    fseek(exe_file, start_pos, SEEK_SET);
+    res = fseek(exe_file, start_pos, SEEK_SET);
+    if (res != 0) {
+        fatalErrorAttachedData();
+    }
 #endif
 
     char header[3];
     readChunk(&header, sizeof(header));
 
-    assert(header[0] == 'K');
-    assert(header[1] == 'A');
+    if (header[0] != 'K' || header[1] != 'A') {
+        fatalErrorAttachedData();
+    }
 
 // The 'X' stands for no compression, 'Y' is compressed, handle that.
 #ifdef _NUITKA_ONEFILE_COMPRESSION
-    assert(header[2] == 'Y');
+    if (header[2] != 'Y') {
+        fatalErrorAttachedData();
+    }
     initZSTD();
 #else
-    assert(header[2] == 'X');
+    if (header[2] != 'X') {
+        fatalErrorAttachedData();
+    }
 #endif
 
     static filename_char_t first_filename[1024] = {0};
@@ -823,7 +881,9 @@ int main(int argc, char **argv) {
 
             file_size -= chunk_size;
         }
-        assert(file_size == 0);
+        if (file_size != 0) {
+            fatalErrorAttachedData();
+        }
 
         closeFile(target_file);
     }
@@ -856,7 +916,9 @@ int main(int argc, char **argv) {
 
     NUITKA_PRINT_TIMING("ONEFILE: Started slave process.");
 
-    assert(bool_res);
+    if (bool_res == false) {
+        fatalErrorChild();
+    }
 
     CloseHandle(pi.hThread);
     handle_process = pi.hProcess;

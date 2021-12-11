@@ -107,7 +107,9 @@ def parseArgs():
         )
 
     if os.environ.get("NUITKA_REEXECUTION", "1") and not isAllowedToReexecute():
-        Tracing.sysexit("Error, not allowed to re-execute, but that has happened.")
+        Tracing.general.sysexit(
+            "Error, not allowed to re-execute, but that has happened."
+        )
 
     if options.progress_bar:
         Progress.enableProgressBar()
