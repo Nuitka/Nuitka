@@ -27,6 +27,7 @@ from .ExpressionBases import (
 )
 from .ExpressionShapeMixins import (
     ExpressionBoolShapeExactMixin,
+    ExpressionBytesShapeExactMixin,
     ExpressionIntShapeExactMixin,
     ExpressionListShapeExactMixin,
     ExpressionStrOrUnicodeExactMixin,
@@ -1324,6 +1325,179 @@ class ExpressionStrOperationReplace4(ExpressionStrOperationReplaceBase):
             )
 
         # TODO: Only if the old/new are not strings
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationEncodeMixin(
+    ExpressionBytesShapeExactMixin if str is not bytes else ExpressionStrShapeExactMixin
+):
+    __slots__ = ()
+
+    # TODO: Encodings might be registered and influence things at runtime, disabled
+    # until we researched that.
+    @staticmethod
+    def getSimulator():
+        """Compile time simulation"""
+
+        return str.encode
+
+
+class ExpressionStrOperationEncode1(
+    ExpressionStrOperationEncodeMixin, ExpressionChildHavingBase
+):
+    kind = "EXPRESSION_STR_OPERATION_ENCODE1"
+
+    named_child = "str_arg"
+
+    def __init__(self, str_arg, source_ref):
+        assert str_arg is not None
+
+        ExpressionChildHavingBase.__init__(
+            self,
+            value=str_arg,
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+
+        # TODO: Only if the string cannot be encoded.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationEncode2(
+    ExpressionStrOperationEncodeMixin, ExpressionChildrenHavingBase
+):
+    kind = "EXPRESSION_STR_OPERATION_ENCODE2"
+
+    named_children = "str_arg", "encoding"
+
+    def __init__(self, str_arg, encoding, source_ref):
+        assert str_arg is not None
+        assert encoding is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"str_arg": str_arg, "encoding": encoding},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        # TODO: Only if the string cannot be encoded to the given encoding
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationEncode3(
+    ExpressionStrOperationEncodeMixin, ExpressionChildrenHavingBase
+):
+    kind = "EXPRESSION_STR_OPERATION_ENCODE3"
+
+    named_children = "str_arg", "encoding", "errors"
+
+    def __init__(self, str_arg, encoding, errors, source_ref):
+        assert str_arg is not None
+        assert encoding is not None
+        assert errors is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"str_arg": str_arg, "encoding": encoding, "errors": errors},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        # TODO: Only if the string cannot be encoded to the given encoding, and errors
+        # is not ignore.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationDecodeMixin(ExpressionStrOrUnicodeExactMixin):
+    __slots__ = ()
+
+    # TODO: Encodings might be registered and influence things at runtime, disabled
+    # until we researched that.
+    @staticmethod
+    def getSimulator():
+        """Compile time simulation"""
+
+        return str.decode
+
+
+class ExpressionStrOperationDecode1(
+    ExpressionStrOperationDecodeMixin, ExpressionChildHavingBase
+):
+    kind = "EXPRESSION_STR_OPERATION_DECODE1"
+
+    named_child = "str_arg"
+
+    def __init__(self, str_arg, source_ref):
+        assert str_arg is not None
+
+        ExpressionChildHavingBase.__init__(
+            self,
+            value=str_arg,
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        # TODO: Only if the string cannot be decoded.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationDecode2(
+    ExpressionStrOperationDecodeMixin, ExpressionChildrenHavingBase
+):
+    kind = "EXPRESSION_STR_OPERATION_DECODE2"
+
+    named_children = "str_arg", "encoding"
+
+    def __init__(self, str_arg, encoding, source_ref):
+        assert str_arg is not None
+        assert encoding is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"str_arg": str_arg, "encoding": encoding},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        # TODO: Only if the string cannot be decoded to the given encoding
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationDecode3(
+    ExpressionStrOperationDecodeMixin, ExpressionChildrenHavingBase
+):
+    kind = "EXPRESSION_STR_OPERATION_DECODE3"
+
+    named_children = "str_arg", "encoding", "errors"
+
+    def __init__(self, str_arg, encoding, errors, source_ref):
+        assert str_arg is not None
+        assert encoding is not None
+        assert errors is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"str_arg": str_arg, "encoding": encoding, "errors": errors},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        # TODO: Only if the string cannot be decoded to the given encoding, and errors
+        # is not ignore.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

@@ -41,6 +41,8 @@ def forgetType(value):
 {% set method_arg_variants = ["['a', 1]", "None", "1", "['a', 'b']"] %}
 {% elif str_method_name == "replace"  %}
 {% set method_arg_variants = ["'a', 1", "'a', 'b'"] %}
+{% elif str_method_name in ("encode", "decode") %}
+{% set method_arg_variants = ["", "'a'", "'a', 'utf8'"] %}
 {% elif "find" in str_method_name or "index" in str_method_name or "with" in str_method_name %}
 {% set method_arg_variants = ["1", "'a'", "'a', 'b'", "'a', 'b', 'c'"] %}
 {% else %}

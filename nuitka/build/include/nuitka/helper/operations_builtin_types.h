@@ -27,6 +27,12 @@ extern PyObject *DICT_SETDEFAULT2(PyObject *dict, PyObject *key);
 extern PyObject *DICT_SETDEFAULT3(PyObject *dict, PyObject *key, PyObject *default_value);
 #if PYTHON_VERSION < 0x300
 extern PyObject *STR_CAPITALIZE(PyObject *str);
+extern PyObject *STR_DECODE1(PyObject *str);
+extern PyObject *STR_DECODE2(PyObject *str, PyObject *encoding);
+extern PyObject *STR_DECODE3(PyObject *str, PyObject *encoding, PyObject *errors);
+extern PyObject *STR_ENCODE1(PyObject *str);
+extern PyObject *STR_ENCODE2(PyObject *str, PyObject *encoding);
+extern PyObject *STR_ENCODE3(PyObject *str, PyObject *encoding, PyObject *errors);
 extern PyObject *STR_ENDSWITH2(PyObject *str, PyObject *suffix);
 extern PyObject *STR_ENDSWITH3(PyObject *str, PyObject *suffix, PyObject *start);
 extern PyObject *STR_ENDSWITH4(PyObject *str, PyObject *suffix, PyObject *start, PyObject *end);
@@ -74,6 +80,9 @@ extern PyObject *STR_TITLE(PyObject *str);
 extern PyObject *STR_UPPER(PyObject *str);
 #endif
 extern PyObject *UNICODE_CAPITALIZE(PyObject *unicode);
+extern PyObject *UNICODE_ENCODE1(PyObject *unicode);
+extern PyObject *UNICODE_ENCODE2(PyObject *unicode, PyObject *encoding);
+extern PyObject *UNICODE_ENCODE3(PyObject *unicode, PyObject *encoding, PyObject *errors);
 extern PyObject *UNICODE_ENDSWITH2(PyObject *unicode, PyObject *suffix);
 extern PyObject *UNICODE_ENDSWITH3(PyObject *unicode, PyObject *suffix, PyObject *start);
 extern PyObject *UNICODE_ENDSWITH4(PyObject *unicode, PyObject *suffix, PyObject *start, PyObject *end);

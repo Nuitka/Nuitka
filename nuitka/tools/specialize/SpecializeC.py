@@ -2193,6 +2193,8 @@ generate_builtin_type_operations = [
             "startswith",
             "endswith",
             "replace",
+            "encode",
+            "decode",
         ),
     ),
     # TODO: This is using Python2 spec module for Python3 strings, that will be a problem down the
@@ -2226,6 +2228,7 @@ generate_builtin_type_operations = [
             "startswith",
             "endswith",
             "replace",
+            "encode",
         ),
     ),
 ]

@@ -17,10 +17,13 @@
 #
 """Unicode operation specs, Python2 only. """
 
-from .BuiltinParameterSpecs import BuiltinParameterSpecNoKeywords
+from .BuiltinParameterSpecs import (
+    BuiltinParameterSpec,
+    BuiltinParameterSpecNoKeywords,
+)
 
 
-class UnicodeMethodSpec(BuiltinParameterSpecNoKeywords):
+class UnicodeMethodSpecNoKeywords(BuiltinParameterSpecNoKeywords):
     __slots__ = ()
 
     def __init__(
@@ -28,69 +31,96 @@ class UnicodeMethodSpec(BuiltinParameterSpecNoKeywords):
         name,
         arg_names=(),
         default_count=0,
-        list_star_arg=None,
-        dict_star_arg=None,
-        pos_only_args=(),
-        kw_only_args=(),
     ):
         BuiltinParameterSpecNoKeywords.__init__(
             self,
             name="unicode." + name,
             arg_names=arg_names,
             default_count=default_count,
-            list_star_arg=list_star_arg,
-            dict_star_arg=dict_star_arg,
-            pos_only_args=pos_only_args,
-            kw_only_args=kw_only_args,
+            list_star_arg=None,
+            dict_star_arg=None,
+            pos_only_args=(),
+            kw_only_args=(),
         )
 
 
-unicode_join_spec = UnicodeMethodSpec("join", arg_names=("iterable",))
-unicode_partition_spec = UnicodeMethodSpec("partition", arg_names=("sep",))
-unicode_rpartition_spec = UnicodeMethodSpec("rpartition", arg_names=("sep",))
-unicode_strip_spec = UnicodeMethodSpec("strip", arg_names=("chars",), default_count=1)
-unicode_lstrip_spec = UnicodeMethodSpec("lstrip", arg_names=("chars",), default_count=1)
-unicode_rstrip_spec = UnicodeMethodSpec("rstrip", arg_names=("chars",), default_count=1)
-unicode_find_spec = UnicodeMethodSpec(
+class UnicodeMethodSpec(BuiltinParameterSpec):
+    __slots__ = ()
+
+    def __init__(
+        self,
+        name,
+        arg_names=(),
+        default_count=0,
+    ):
+        BuiltinParameterSpec.__init__(
+            self,
+            name="unicode." + name,
+            arg_names=arg_names,
+            default_count=default_count,
+            list_star_arg=None,
+            dict_star_arg=None,
+            pos_only_args=(),
+            kw_only_args=(),
+        )
+
+
+unicode_join_spec = UnicodeMethodSpecNoKeywords("join", arg_names=("iterable",))
+unicode_partition_spec = UnicodeMethodSpecNoKeywords("partition", arg_names=("sep",))
+unicode_rpartition_spec = UnicodeMethodSpecNoKeywords("rpartition", arg_names=("sep",))
+unicode_strip_spec = UnicodeMethodSpecNoKeywords(
+    "strip", arg_names=("chars",), default_count=1
+)
+unicode_lstrip_spec = UnicodeMethodSpecNoKeywords(
+    "lstrip", arg_names=("chars",), default_count=1
+)
+unicode_rstrip_spec = UnicodeMethodSpecNoKeywords(
+    "rstrip", arg_names=("chars",), default_count=1
+)
+unicode_find_spec = UnicodeMethodSpecNoKeywords(
     "find", arg_names=("sub", "start", "end"), default_count=2
 )
-unicode_rfind_spec = UnicodeMethodSpec(
+unicode_rfind_spec = UnicodeMethodSpecNoKeywords(
     "rfind", arg_names=("sub", "start", "end"), default_count=2
 )
-unicode_index_spec = UnicodeMethodSpec(
+unicode_index_spec = UnicodeMethodSpecNoKeywords(
     "index", arg_names=("sub", "start", "end"), default_count=2
 )
-unicode_rindex_spec = UnicodeMethodSpec(
+unicode_rindex_spec = UnicodeMethodSpecNoKeywords(
     "rindex", arg_names=("sub", "start", "end"), default_count=2
 )
-unicode_split_spec = UnicodeMethodSpec(
+unicode_split_spec = UnicodeMethodSpecNoKeywords(
     "split", arg_names=("sep", "maxsplit"), default_count=2
 )
-unicode_rsplit_spec = UnicodeMethodSpec(
+unicode_rsplit_spec = UnicodeMethodSpecNoKeywords(
     "rsplit", arg_names=("sep", "maxsplit"), default_count=2
 )
 
-unicode_startswith_spec = UnicodeMethodSpec(
+unicode_startswith_spec = UnicodeMethodSpecNoKeywords(
     "startswith", arg_names=("prefix", "start", "end"), default_count=2
 )
-unicode_endswith_spec = UnicodeMethodSpec(
+unicode_endswith_spec = UnicodeMethodSpecNoKeywords(
     "endswith", arg_names=("suffix", "start", "end"), default_count=2
 )
 
-unicode_replace_spec = UnicodeMethodSpec(
+unicode_replace_spec = UnicodeMethodSpecNoKeywords(
     "replace", arg_names=("old", "new", "count"), default_count=1
 )
 
 
-unicode_capitalize_spec = UnicodeMethodSpec("capitalize", arg_names=())
-unicode_upper_spec = UnicodeMethodSpec("upper", arg_names=())
-unicode_lower_spec = UnicodeMethodSpec("lower", arg_names=())
-unicode_swapcase_spec = UnicodeMethodSpec("swapcase", arg_names=())
-unicode_title_spec = UnicodeMethodSpec("title", arg_names=())
-unicode_isalnum_spec = UnicodeMethodSpec("isalnum", arg_names=())
-unicode_isalpha_spec = UnicodeMethodSpec("isalpha", arg_names=())
-unicode_isdigit_spec = UnicodeMethodSpec("isdigit", arg_names=())
-unicode_islower_spec = UnicodeMethodSpec("islower", arg_names=())
-unicode_isupper_spec = UnicodeMethodSpec("isupper", arg_names=())
-unicode_isspace_spec = UnicodeMethodSpec("isspace", arg_names=())
-unicode_istitle_spec = UnicodeMethodSpec("istitle", arg_names=())
+unicode_capitalize_spec = UnicodeMethodSpecNoKeywords("capitalize", arg_names=())
+unicode_upper_spec = UnicodeMethodSpecNoKeywords("upper", arg_names=())
+unicode_lower_spec = UnicodeMethodSpecNoKeywords("lower", arg_names=())
+unicode_swapcase_spec = UnicodeMethodSpecNoKeywords("swapcase", arg_names=())
+unicode_title_spec = UnicodeMethodSpecNoKeywords("title", arg_names=())
+unicode_isalnum_spec = UnicodeMethodSpecNoKeywords("isalnum", arg_names=())
+unicode_isalpha_spec = UnicodeMethodSpecNoKeywords("isalpha", arg_names=())
+unicode_isdigit_spec = UnicodeMethodSpecNoKeywords("isdigit", arg_names=())
+unicode_islower_spec = UnicodeMethodSpecNoKeywords("islower", arg_names=())
+unicode_isupper_spec = UnicodeMethodSpecNoKeywords("isupper", arg_names=())
+unicode_isspace_spec = UnicodeMethodSpecNoKeywords("isspace", arg_names=())
+unicode_istitle_spec = UnicodeMethodSpecNoKeywords("istitle", arg_names=())
+
+unicode_encode_spec = UnicodeMethodSpec(
+    "encode", arg_names=("encoding", "errors"), default_count=2
+)

@@ -486,6 +486,56 @@ PyObject *STR_CAPITALIZE(PyObject *str) {
 
     return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_capitalize, str);
 }
+PyObject *STR_DECODE1(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_decode, str);
+}
+PyObject *STR_DECODE2(PyObject *str, PyObject *encoding) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(encoding);
+
+    PyObject *args[2] = {str, encoding};
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_decode, args);
+}
+PyObject *STR_DECODE3(PyObject *str, PyObject *encoding, PyObject *errors) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(encoding);
+    CHECK_OBJECT(errors);
+
+    PyObject *args[3] = {str, encoding, errors};
+    return CALL_METHODDESCR_WITH_ARGS3(str_builtin_decode, args);
+}
+PyObject *STR_ENCODE1(PyObject *str) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(str_builtin_encode, str);
+}
+PyObject *STR_ENCODE2(PyObject *str, PyObject *encoding) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(encoding);
+
+    PyObject *args[2] = {str, encoding};
+    return CALL_METHODDESCR_WITH_ARGS2(str_builtin_encode, args);
+}
+PyObject *STR_ENCODE3(PyObject *str, PyObject *encoding, PyObject *errors) {
+    CHECK_OBJECT(str);
+    assert(PyString_CheckExact(str));
+
+    CHECK_OBJECT(encoding);
+    CHECK_OBJECT(errors);
+
+    PyObject *args[3] = {str, encoding, errors};
+    return CALL_METHODDESCR_WITH_ARGS3(str_builtin_encode, args);
+}
 PyObject *STR_ENDSWITH2(PyObject *str, PyObject *suffix) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
@@ -872,6 +922,31 @@ PyObject *UNICODE_CAPITALIZE(PyObject *unicode) {
     assert(PyUnicode_CheckExact(unicode));
 
     return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_capitalize, unicode);
+}
+PyObject *UNICODE_ENCODE1(PyObject *unicode) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_encode, unicode);
+}
+PyObject *UNICODE_ENCODE2(PyObject *unicode, PyObject *encoding) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(encoding);
+
+    PyObject *args[2] = {unicode, encoding};
+    return CALL_METHODDESCR_WITH_ARGS2(unicode_builtin_encode, args);
+}
+PyObject *UNICODE_ENCODE3(PyObject *unicode, PyObject *encoding, PyObject *errors) {
+    CHECK_OBJECT(unicode);
+    assert(PyUnicode_CheckExact(unicode));
+
+    CHECK_OBJECT(encoding);
+    CHECK_OBJECT(errors);
+
+    PyObject *args[3] = {unicode, encoding, errors};
+    return CALL_METHODDESCR_WITH_ARGS3(unicode_builtin_encode, args);
 }
 PyObject *UNICODE_ENDSWITH2(PyObject *unicode, PyObject *suffix) {
     CHECK_OBJECT(unicode);

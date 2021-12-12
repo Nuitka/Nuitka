@@ -478,6 +478,9 @@ class ExpressionAttributeLookupFixedDecode(ExpressionAttributeLookupFixedBase):
 attribute_classes["decode"] = ExpressionAttributeLookupFixedDecode
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_decode_spec
+
+
 class ExpressionAttributeLookupStrDecode(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedDecode
 ):
@@ -492,7 +495,43 @@ class ExpressionAttributeLookupStrDecode(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationDecode is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationDecode(encoding, errors, source_ref):
+            if errors is not None:
+                from .StrNodes import ExpressionStrOperationDecode3
+
+                return ExpressionStrOperationDecode3(
+                    str_arg=self.subnode_expression,
+                    encoding=encoding,
+                    errors=errors,
+                    source_ref=source_ref,
+                )
+            elif encoding is not None:
+                from .StrNodes import ExpressionStrOperationDecode2
+
+                return ExpressionStrOperationDecode2(
+                    str_arg=self.subnode_expression,
+                    encoding=encoding,
+                    source_ref=source_ref,
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationDecode1
+
+                return ExpressionStrOperationDecode1(
+                    str_arg=self.subnode_expression, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationDecode,
+            builtin_spec=str_decode_spec,
+        )
+
+        return result, "new_expression", "Call to 'decode' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrDecode)
@@ -536,6 +575,9 @@ class ExpressionAttributeLookupFixedEncode(ExpressionAttributeLookupFixedBase):
 attribute_classes["encode"] = ExpressionAttributeLookupFixedEncode
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_encode_spec
+
+
 class ExpressionAttributeLookupStrEncode(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedEncode
 ):
@@ -550,7 +592,43 @@ class ExpressionAttributeLookupStrEncode(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationEncode is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationEncode(encoding, errors, source_ref):
+            if errors is not None:
+                from .StrNodes import ExpressionStrOperationEncode3
+
+                return ExpressionStrOperationEncode3(
+                    str_arg=self.subnode_expression,
+                    encoding=encoding,
+                    errors=errors,
+                    source_ref=source_ref,
+                )
+            elif encoding is not None:
+                from .StrNodes import ExpressionStrOperationEncode2
+
+                return ExpressionStrOperationEncode2(
+                    str_arg=self.subnode_expression,
+                    encoding=encoding,
+                    source_ref=source_ref,
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationEncode1
+
+                return ExpressionStrOperationEncode1(
+                    str_arg=self.subnode_expression, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationEncode,
+            builtin_spec=str_encode_spec,
+        )
+
+        return result, "new_expression", "Call to 'encode' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrEncode)
@@ -3139,8 +3217,6 @@ attribute_classes["replace"] = ExpressionAttributeLookupFixedReplace
 
 from nuitka.specs.BuiltinStrOperationSpecs import str_replace_spec
 
-from .StrNodes import ExpressionStrOperationReplace4
-
 
 class ExpressionAttributeLookupStrReplace(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedReplace
@@ -3159,6 +3235,7 @@ class ExpressionAttributeLookupStrReplace(
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         def wrapExpressionStrOperationReplace(old, new, count, source_ref):
             if count is not None:
+                from .StrNodes import ExpressionStrOperationReplace4
 
                 return ExpressionStrOperationReplace4(
                     str_arg=self.subnode_expression,
