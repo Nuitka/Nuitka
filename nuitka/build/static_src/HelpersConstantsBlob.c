@@ -514,6 +514,15 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         PRINT_FORMAT("Type %c for %d of %d:\n", c, _i, count);
 #endif
         switch (c) {
+
+        case 'p': {
+            assert(_i > 0);
+
+            *output = *(output - 1);
+            is_object = true;
+
+            break;
+        }
         case 'T': {
             // TODO: Use fixed sizes
             // uint32_t size = unpackSizeUint32(&data);
@@ -551,18 +560,22 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             break;
         }
         case 'D': {
-            // TODO: Use fixed sizes
+            // TODO: Use flexible sizes with bias towards small values.
             // uint32_t size = unpackSizeUint32(&data);
             int size = unpackValueInt(&data);
 
             PyObject *d = _PyDict_NewPresized(size);
 
-            while (size-- > 0) {
-                PyObject *items[2];
-                // TODO: Special case string keys only dict.
-                data = _unpackBlobConstants(&items[0], data, 2);
+            if (size > 0) {
+                NUITKA_DYNAMIC_ARRAY_DECL(keys, PyObject *, size);
+                NUITKA_DYNAMIC_ARRAY_DECL(values, PyObject *, size);
 
-                PyDict_SetItem(d, items[0], items[1]);
+                data = _unpackBlobConstants(&keys[0], data, size);
+                data = _unpackBlobConstants(&values[0], data, size);
+
+                for (int i = 0; i < size; i++) {
+                    PyDict_SetItem(d, keys[i], values[i]);
+                }
             }
 
             insertToDictCacheForcedHash(dict_cache, &d, (hashfunc)our_dict_hash, (richcmpfunc)our_dict_richcompare);
@@ -599,11 +612,14 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
                 }
             }
 
-            while (size-- > 0) {
-                PyObject *value;
+            if (size > 0) {
+                NUITKA_DYNAMIC_ARRAY_DECL(values, PyObject *, size);
 
-                data = _unpackBlobConstants(&value, data, 1);
-                PySet_Add(s, value);
+                data = _unpackBlobConstants(&values[0], data, size);
+
+                for (int i = 0; i < size; i++) {
+                    PySet_Add(s, values[i]);
+                }
             }
 
             // sets are cached globally too.
