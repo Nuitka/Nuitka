@@ -42,9 +42,9 @@ sys.path.insert(
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
-    getMainProgramFilename,
     my_print,
     reportSkip,
+    scanDirectoryForTestCaseFolders,
     setup,
     withPythonPathChange,
 )
@@ -60,15 +60,7 @@ def main():
 
     extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
 
-    for filename in sorted(os.listdir(".")):
-        if (
-            not os.path.isdir(filename)
-            or filename.endswith(".build")
-            or filename.endswith(".dist")
-        ):
-            continue
-
-        filename = os.path.relpath(filename)
+    for filename, filename_main in scanDirectoryForTestCaseFolders("."):
 
         # For these, we expect that they will fail.
         expected_errors = [
@@ -166,8 +158,6 @@ def main():
 
         if active:
             my_print("Consider output of recursively compiled program:", filename)
-
-            filename_main = getMainProgramFilename(filename)
 
             extra_python_path = [
                 os.path.abspath(os.path.join(filename, entry))

@@ -42,8 +42,7 @@ sys.path.insert(
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
-    getMainProgramFilename,
-    scanDirectoryForTestCases,
+    scanDirectoryForTestCaseFolders,
     setup,
 )
 
@@ -54,7 +53,7 @@ def main():
     search_mode = createSearchMode()
 
     # Now run all the tests in this directory.
-    for filename in scanDirectoryForTestCases("."):
+    for filename, filename_main in scanDirectoryForTestCaseFolders("."):
         extra_flags = [
             # No error exits normally, unless we break tests, and that we would
             # like to know.
@@ -63,6 +62,9 @@ def main():
             "remove_output",
             # Include imported files, PGO will then have to deal with unused ones.
             "--follow-imports",
+            # The output during compilation from PGO capture is harmful, so
+            # split compilation and execution of final result.
+            "two_step_execution",
             # Cache the CPython results for re-use, they will normally not change.
             "cpython_cache",
         ]
@@ -70,10 +72,8 @@ def main():
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
-            filename_main = getMainProgramFilename(filename)
-
             compareWithCPython(
-                dirname=None,
+                dirname=filename,
                 filename=filename_main,
                 extra_flags=extra_flags,
                 search_mode=search_mode,

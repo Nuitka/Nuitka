@@ -17,13 +17,20 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Basic Python PGO test. """
+
 # nuitka-test-variations: TEST_VARIANT ("yes","no")
+
+# nuitka-project-if: os.getenv("TEST_VARIANT") != "no":
+#   nuitka-project: --pgo-python
 
 import os
 
-if os.getenv("TEST_VARIANT") == "yes":
+if os.getenv("TEST_VARIANT") == "no":
+    print("Using ImportedButMaybeNotUsed module:")
     import ImportedButMaybeNotUsed
+    print(ImportedButMaybeNotUsed)
 else:
-    print("Not including ImportedButMaybeNotUsed module")
+    print("Not using ImportedButMaybeNotUsed module:")
 
 print("OK.")

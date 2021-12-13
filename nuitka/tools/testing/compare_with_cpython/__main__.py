@@ -657,6 +657,8 @@ Stderr was:
 
                 exit_nuitka = exit_nuitka1
                 stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
+                stdout_nuitka2 = b"not run due to compilation error:\n" + stdout_nuitka1
+                stderr_nuitka2 = stderr_nuitka1
             else:
                 # No execution second step for coverage mode.
                 if comparison_mode:
@@ -715,7 +717,11 @@ Stderr was:
 
         def makeComparisons(trace_result):
             exit_code_stdout = compareOutput(
-                "stdout", stdout_cpython, stdout_nuitka, ignore_warnings, syntax_errors
+                "stdout",
+                stdout_cpython,
+                stdout_nuitka2 if two_step_execution else stdout_nuitka,
+                ignore_warnings,
+                syntax_errors,
             )
 
             if ignore_stderr:
@@ -724,7 +730,7 @@ Stderr was:
                 exit_code_stderr = compareOutput(
                     "stderr",
                     stderr_cpython,
-                    stderr_nuitka,
+                    stderr_nuitka2 if two_step_execution else stderr_nuitka,
                     ignore_warnings,
                     syntax_errors,
                 )

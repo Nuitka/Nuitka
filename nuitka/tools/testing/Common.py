@@ -1192,6 +1192,25 @@ def scanDirectoryForTestCases(dirname, template_context=None):
         yield filename
 
 
+def scanDirectoryForTestCaseFolders(dirname):
+    filenames = os.listdir(dirname)
+
+    for filename in sorted(filenames):
+        filename = os.path.join(dirname, filename)
+        filename = os.path.relpath(filename)
+
+        if (
+            not os.path.isdir(filename)
+            or filename.endswith(".build")
+            or filename.endswith(".dist")
+        ):
+            continue
+
+        filename_main = getMainProgramFilename(filename)
+
+        yield filename, filename_main
+
+
 def setupCacheHashSalt(test_code_path):
     assert os.path.exists(test_code_path)
 
@@ -1714,6 +1733,6 @@ def getMainProgramFilename(filename):
 
     test_logger.sysexit(
         """\
-Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case."""
+Error, no file ends with 'Main.py' or 'Main' in '%s', incomplete test case."""
         % (filename)
     )
