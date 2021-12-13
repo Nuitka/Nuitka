@@ -1643,8 +1643,8 @@ more about loop variables, etc. so we can achieve the near C speed we
 are looking for, at least in the field of ``int`` performance.
 
 This release has largely been driven by the `Nuitka Commercial
-</pages/commercial.html>`__ offering and needs for compatibility with
-more code, which is of course always a good thing.
+</doc/commercial.html>`__ offering and needs for compatibility with more
+code, which is of course always a good thing.
 
 ***********************
  Nuitka Release 0.6.13
@@ -9967,9 +9967,8 @@ Organisational
 -  Updated the Nuitka GUI to the latest version, with enhanced features.
 
 -  The builds of releases and update of the `downloads page
-   <https://nuitka.net/pages/download.html>`__ is now driven by
-   Buildbot. Page will be automatically updated as updated binaries
-   arrive.
+   <https://nuitka.net/doc/download.html>`__ is now driven by Buildbot.
+   Page will be automatically updated as updated binaries arrive.
 
 Cleanups
 ========
@@ -10257,7 +10256,7 @@ Organisational
 -  Using dedicated `Buildbot <http://buildbot.net>`__ for continuous
    integration testing and release creation as well.
 
--  The `Downloads <https://nuitka.net/pages/download.html>`__ now offers
+-  The `Downloads <https://nuitka.net/doc/download.html>`__ now offers
    MSI files for Win64 as well.
 
 -  Discontinued the support for cross compilation to Win32. That was too
@@ -11417,7 +11416,7 @@ New Tests
 Organisational
 ==============
 
--  The `Downloads <https://nuitka.net/pages/download.html>`__ page now
+-  The `Downloads <https://nuitka.net/doc/download.html>`__ page now
    offers RPMs for RHEL6, CentOS6, F17, F18, and openSUSE 12.1, 12.2,
    12.3. This large coverage is thanks to openSUSE build service and
    "ownssh" for contributing an RPM spec file.
@@ -13348,8 +13347,8 @@ Cleanups
 Organisational
 ==============
 
--  The `"Download" <../pages/download.html>`__ page is now finally
-   updated for releases automatically.
+-  The `"Download" <https://nuitka.net/doc/download.html>`__ page is now
+   finally updated for releases automatically.
 
    This closes `Issue#7 <http://bugs.nuitka.net/issue7>`__ completely.
    Up to this release, I had to manually edit that page, but now

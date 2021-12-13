@@ -4,7 +4,7 @@ Before submitting an Issue, please review the [Issue Guidelines](https://github.
 
 * Please check out if the develop version of Nuitka works better for you.
 
-  Download source, packages [from here](https://nuitka.net/pages/download.html)
+  Download source, packages [from here](https://nuitka.net/doc/download.html)
   where you will also find instructions how to do it via pip.
 
 If you want to post a problem/bug, to help us understand and resolve your issue
@@ -52,8 +52,8 @@ up to here:
 
 * Consider getting commercial support
 
-  [Nuitka commercial](https://nuitka.net/pages/commercial.html) offers subscriptions and priority
-  support. This can help accelerate your problem solution.
+  [Nuitka commercial](https://nuitka.net/doc/commercial.html) offers subscriptions and priority
+  support. This will accelerate your problem solution and helps to sustain Nuitka development.
 
 Some things are not welcome, please consider it.
 
