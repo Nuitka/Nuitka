@@ -54,24 +54,28 @@ def main():
 
     # Now run all the tests in this directory.
     for filename, filename_main in scanDirectoryForTestCaseFolders("."):
-        extra_flags = [
-            # No error exits normally, unless we break tests, and that we would
-            # like to know.
-            "expect_success",
-            # Keep no temporary files.
-            "remove_output",
-            # Include imported files, PGO will then have to deal with unused ones.
-            "--follow-imports",
-            # The output during compilation from PGO capture is harmful, so
-            # split compilation and execution of final result.
-            "two_step_execution",
-            # Cache the CPython results for re-use, they will normally not change.
-            "cpython_cache",
-        ]
 
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
+            extra_flags = [
+                # No error exits normally, unless we break tests, and that we would
+                # like to know.
+                "expect_success",
+                # Keep no temporary files.
+                "remove_output",
+                # Include imported files, PGO will then have to deal with unused ones.
+                "--follow-imports",
+                # The output during compilation from PGO capture is harmful, so
+                # split compilation and execution of final result.
+                "two_step_execution",
+                # Inclusion report is used by the testing of expected things included
+                # or not.
+                "--report=%s.xml" % filename,
+                # Cache the CPython results for re-use, they will normally not change.
+                "cpython_cache",
+            ]
+
             compareWithCPython(
                 dirname=filename,
                 filename=filename_main,

@@ -21,12 +21,13 @@
 
 # nuitka-test-variations: TEST_VARIANT ("yes","no")
 
-# nuitka-project-if: os.getenv("TEST_VARIANT") != "no":
+# nuitka-project-if: os.getenv("TEST_VARIANT", "yes") != "no":
 #   nuitka-project: --pgo-python
+#   nuitka-project: --pgo-python-policy-unused-module=exclude
 
 import os
 
-if os.getenv("TEST_VARIANT") == "no":
+if os.getenv("NUITKA_TEST_USE_IT", "no") == "yes":
     print("Using ImportedButMaybeNotUsed module:")
     import ImportedButMaybeNotUsed
     print(ImportedButMaybeNotUsed)

@@ -133,7 +133,7 @@ def decideInclusionFromPGO(module_name, module_kind):
     if unseen_module_policy == "exclude":
         return False
     else:
-        return True
+        return None
 
 
 def decideCompilationFromPGO(module_name):
