@@ -69,6 +69,9 @@ def isApplePython():
 
 
 def isPyenvPython():
+    if isWin32Windows():
+        return False
+
     return os.environ.get("PYENV_ROOT") and isPathBelowOrSameAs(
         path=os.environ["PYENV_ROOT"], filename=getSystemPrefixPath()
     )
