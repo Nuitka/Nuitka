@@ -31,9 +31,6 @@ from __future__ import print_function
 import os
 import sys
 import traceback
-from contextlib import contextmanager
-
-from nuitka.utils.ThreadedExecutor import RLock
 
 # Written by Options module.
 is_quiet = False
@@ -111,17 +108,38 @@ def getDisableStyleCode():
     return "\033[0m"
 
 
-# Locking seems necessary to avoid colored output split up.
-trace_lock = RLock()
+def _my_print(file_output, is_atty, args, kwargs):
+    if "style" in kwargs:
+        style = kwargs["style"]
+        del kwargs["style"]
 
+        if "end" in kwargs:
+            end = kwargs["end"]
+            del kwargs["end"]
+        else:
+            end = "\n"
 
-@contextmanager
-def withTraceLock():
-    """Hold a lock, so traces cannot be output at the same time mixing them up."""
+        if style is not None and is_atty:
+            enable_style = getEnableStyleCode(style)
 
-    trace_lock.acquire()
-    yield
-    trace_lock.release()
+            if enable_style is None:
+                raise ValueError(
+                    "%r is an invalid value for keyword argument style" % style
+                )
+
+            _enableAnsi()
+
+            print(enable_style, end="", **kwargs)
+
+        print(*args, end=end, **kwargs)
+
+        if style is not None and is_atty:
+            print(getDisableStyleCode(), end="", **kwargs)
+    else:
+        print(*args, **kwargs)
+
+    # Flush the output.
+    file_output.flush()
 
 
 def my_print(*args, **kwargs):
@@ -136,43 +154,10 @@ def my_print(*args, **kwargs):
     is_atty = file_output.isatty()
 
     if progress and is_atty:
-        progress.hideProgressBar()
-
-    with withTraceLock():
-        if "style" in kwargs:
-            style = kwargs["style"]
-            del kwargs["style"]
-
-            if "end" in kwargs:
-                end = kwargs["end"]
-                del kwargs["end"]
-            else:
-                end = "\n"
-
-            if style is not None and is_atty:
-                enable_style = getEnableStyleCode(style)
-
-                if enable_style is None:
-                    raise ValueError(
-                        "%r is an invalid value for keyword argument style" % style
-                    )
-
-                _enableAnsi()
-
-                print(enable_style, end="", **kwargs)
-
-            print(*args, end=end, **kwargs)
-
-            if style is not None and is_atty:
-                print(getDisableStyleCode(), end="", **kwargs)
-        else:
-            print(*args, **kwargs)
-
-        # Flush the output.
-        file_output.flush()
-
-    if progress and is_atty:
-        progress.resumeProgressBar()
+        with progress.withExternalWritingPause():
+            _my_print(file_output, is_atty, args, kwargs)
+    else:
+        _my_print(file_output, is_atty, args, kwargs)
 
 
 class OurLogger(object):
