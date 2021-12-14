@@ -938,6 +938,15 @@ Where to output --show-modules, should be a filename. Default is standard output
 )
 
 tracing_group.add_option(
+    "--report",
+    action="store",
+    dest="compilation_report_filename",
+    default=None,
+    help="""\
+Report module inclusion in an XML output file. Default is off.""",
+)
+
+tracing_group.add_option(
     "--verbose",
     action="store_true",
     dest="verbose",

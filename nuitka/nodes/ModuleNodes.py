@@ -131,7 +131,13 @@ class PythonModuleBase(NodeBase):
         if package:
             from nuitka.ModuleRegistry import addUsedModule
 
-            addUsedModule(package)
+            addUsedModule(
+                package,
+                using_module=self,
+                usage_tag="package",
+                reason="Containing package",
+                source_ref=self.source_ref,
+            )
 
     def getCodeName(self):
         # Abstract method, pylint: disable=no-self-use
@@ -859,7 +865,20 @@ class PythonMainModule(CompiledPythonModule):
         from nuitka.ModuleRegistry import addUsedModule
 
         for early_module in self.early_modules:
-            addUsedModule(early_module)
+            if early_module.isTechnical():
+                usage_tag = "technical"
+                reason = "Module needed for initializing Python"
+            else:
+                usage_tag = "stdlib"
+                reason = "Part of standard library"
+
+            addUsedModule(
+                module=early_module,
+                using_module=self,
+                usage_tag=usage_tag,
+                reason=reason,
+                source_ref=self.source_ref,
+            )
 
 
 class PythonShlibModule(PythonModuleBase):

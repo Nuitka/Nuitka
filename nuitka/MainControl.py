@@ -96,6 +96,7 @@ from .freezer.Onefile import packDistFolderToOnefile
 from .freezer.Standalone import copyUsedDLLs
 from .optimizations.Optimization import optimizeModules
 from .pgo.PGO import readPGOInputFile
+from .Reports import writeCompilationReport
 from .tree import Building
 
 
@@ -989,6 +990,11 @@ def main():
         Plugins.onFinalResult(final_filename)
 
         general.info("Successfully created %r." % final_filename)
+
+        report_filename = Options.getCompilationReportFilename()
+
+        if report_filename:
+            writeCompilationReport(report_filename)
 
         # Execute the module immediately if option was given.
         if Options.shallExecuteImmediately():

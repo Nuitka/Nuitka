@@ -238,6 +238,7 @@ def main():
     standalone_mode = hasArg("--standalone")
     onefile_mode = hasArg("--onefile")
     no_site = hasArg("no_site") or hasArg("coverage")
+    report = hasArgValue("--report")
     nofollow_imports = hasArg("recurse_none") or hasArg("--nofollow-imports")
     follow_imports = hasArg("recurse_all") or hasArg("--follow-imports")
     timing = hasArg("timing")
@@ -468,6 +469,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     if keep_python_path or binary_python_path:
         extra_options.append("--execute-with-pythonpath")
+
+    if report:
+        extra_options.append("--report=%s" % report)
 
     if nofollow_imports:
         extra_options.append("--nofollow-imports")

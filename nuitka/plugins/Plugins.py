@@ -299,7 +299,7 @@ class Plugins(object):
         return result
 
     @staticmethod
-    def _reportImplicitImports(implicit_imports, signal_change):
+    def _reportImplicitImports(plugin, module, implicit_imports, signal_change):
         from nuitka.importing import Recursion
         from nuitka.importing.Importing import getModuleNameAndKindFromFilename
 
@@ -324,7 +324,13 @@ class Plugins(object):
                     reason=reason,
                 )
 
-                addUsedModule(imported_module)
+                addUsedModule(
+                    module=imported_module,
+                    using_module=module,
+                    usage_tag="plugin:" + plugin.plugin_name,
+                    reason=reason,
+                    source_ref=module.source_ref,
+                )
 
     @classmethod
     def considerImplicitImports(cls, module, signal_change):
@@ -337,6 +343,8 @@ class Plugins(object):
                 )
 
             cls._reportImplicitImports(
+                plugin=plugin,
+                module=module,
                 implicit_imports=cls.implicit_imports_cache[key],
                 signal_change=signal_change,
             )
@@ -345,10 +353,22 @@ class Plugins(object):
         full_name = module.getFullName()
 
         if full_name in pre_modules:
-            addUsedModule(pre_modules[full_name])
+            addUsedModule(
+                pre_modules[full_name],
+                using_module=module,
+                usage_tag="plugins",
+                reason="Not yet propagated by plugins.",
+                source_ref=module.source_ref,
+            )
 
         if full_name in post_modules:
-            addUsedModule(post_modules[full_name])
+            addUsedModule(
+                module=post_modules[full_name],
+                using_module=module,
+                usage_tag="plugins",
+                reason="Not yet propagated by plugins.",
+                source_ref=module.source_ref,
+            )
 
     @staticmethod
     def onStandaloneDistributionFinished(dist_dir):

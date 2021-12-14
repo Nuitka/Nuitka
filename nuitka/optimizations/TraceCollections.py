@@ -466,7 +466,13 @@ class TraceCollectionBase(object):
         # Make sure the owning module is added to the used set. This is most
         # important for helper functions, or modules, which otherwise have
         # become unused.
-        addUsedModule(owning_module)
+        addUsedModule(
+            module=owning_module,
+            using_module=None,
+            usage_tag="function",
+            reason="Function %s" % self.name,
+            source_ref=owning_module.source_ref,
+        )
 
         needs_visit = owning_module.addUsedFunction(function_body)
 

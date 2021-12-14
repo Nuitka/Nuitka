@@ -370,7 +370,13 @@ def considerUsedModules(module, signal_change):
                     reason=reason,
                 )
 
-                addUsedModule(used_module)
+                addUsedModule(
+                    module=used_module,
+                    using_module=module,
+                    usage_tag="import",
+                    reason=reason,
+                    source_ref=source_ref,
+                )
         except NuitkaForbiddenImportEncounter as e:
             recursion_logger.sysexit(
                 "Error, forbidden import of '%s' in module '%s' encountered."

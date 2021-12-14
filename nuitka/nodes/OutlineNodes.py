@@ -100,7 +100,13 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
         # become unused.
         from nuitka.ModuleRegistry import addUsedModule
 
-        addUsedModule(owning_module)
+        addUsedModule(
+            module=owning_module,
+            using_module=None,
+            usage_tag="outline",
+            reason="Owning module",
+            source_ref=self.source_ref,
+        )
 
         abort_context = trace_collection.makeAbortStackContext(
             catch_breaks=False,

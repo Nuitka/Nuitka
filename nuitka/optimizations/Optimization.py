@@ -176,7 +176,13 @@ def optimizeUncompiledPythonModule(module):
         except KeyError:
             pass
         else:
-            ModuleRegistry.addUsedModule(used_module)
+            ModuleRegistry.addUsedModule(
+                module=used_module,
+                using_module=module,
+                usage_tag="package",
+                reason="Package of %s" % module.getFullName(),
+                source_ref=module.source_ref,
+            )
 
     Plugins.considerImplicitImports(module=module, signal_change=signalChange)
 

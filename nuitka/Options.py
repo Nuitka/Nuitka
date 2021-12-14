@@ -1437,3 +1437,8 @@ def shallPersistModifications():
 def isLowMemory():
     """*bool* low memory usage requested"""
     return options.low_memory
+
+
+def getCompilationReportFilename():
+    """*str* filename to write XML report of compilation to"""
+    return options.compilation_report_filename

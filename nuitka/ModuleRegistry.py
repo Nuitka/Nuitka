@@ -25,6 +25,7 @@
     the existing set of modules.
 """
 
+import collections
 import os
 
 from nuitka.containers.oset import OrderedSet
@@ -36,6 +37,13 @@ root_modules = OrderedSet()
 
 # To be traversed modules
 active_modules = OrderedSet()
+
+# Information about why a module became active.
+active_modules_info = {}
+
+ActiveModuleInfo = collections.namedtuple(
+    "ActiveModuleInfo", ("using_module", "usage_tag", "reason", "source_ref")
+)
 
 # Already traversed modules
 done_modules = set()
@@ -137,18 +145,34 @@ def removeUncompiledModule(module):
 def startTraversal():
     # Using global here, as this is really a singleton, in the form of a module,
     # pylint: disable=global-statement
-    global active_modules, done_modules
+    global active_modules, done_modules, active_modules_info
 
     active_modules = OrderedSet(root_modules)
+
+    active_modules_info = {}
+    for root_module in root_modules:
+        active_modules_info[root_module] = ActiveModuleInfo(
+            using_module=None,
+            usage_tag="root_module",
+            reason="Root module",
+            source_ref=None,
+        )
     done_modules = set()
 
     for active_module in active_modules:
         active_module.startTraversal()
 
 
-def addUsedModule(module):
+def addUsedModule(module, using_module, usage_tag, reason, source_ref):
     if module not in done_modules and module not in active_modules:
         active_modules.add(module)
+
+        active_modules_info[module] = ActiveModuleInfo(
+            using_module=using_module,
+            usage_tag=usage_tag,
+            reason=reason,
+            source_ref=source_ref,
+        )
 
         module.startTraversal()
 
@@ -173,6 +197,10 @@ def getDoneModulesCount():
 
 def getDoneModules():
     return sorted(done_modules, key=lambda module: (module.getFullName(), module.kind))
+
+
+def getModuleInclusionInfos():
+    return active_modules_info
 
 
 def removeDoneModule(module):
