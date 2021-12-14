@@ -1035,13 +1035,13 @@ PyObject *IMPORT_EMBEDDED_MODULE(char const *name) {
 
     PyObject *result = _EXECUTE_EMBEDDED_MODULE(module, module_name, name);
 
-    Py_DECREF(module_name);
-
 #if PYTHON_VERSION < 0x350
     if (unlikely(result == NULL)) {
         Nuitka_DelModule(module_name);
     }
 #endif
+
+    Py_DECREF(module_name);
 
     return result;
 }
