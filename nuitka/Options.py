@@ -31,6 +31,7 @@ from nuitka.OptionParsing import isPyenvPython, parseOptions
 from nuitka.PythonFlavors import (
     isAnacondaPython,
     isDebianPackagePython,
+    isMSYS2MingwPython,
     isNuitkaPython,
     isUninstalledPython,
 )
@@ -841,9 +842,7 @@ def _shallUseStaticLibPython():
         ):
             return True
 
-        if isWin32Windows() and os.path.exists(
-            os.path.join(sys.prefix, "etc/config.site")
-        ):
+        if isMSYS2MingwPython():
             return True
 
         # For Anaconda default to trying static lib python library, which
