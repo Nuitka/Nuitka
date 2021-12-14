@@ -26,4 +26,6 @@ extern PyObject *UNICODE_JOIN(PyObject *str, PyObject *iterable);
 extern PyObject *UNICODE_PARTITION(PyObject *str, PyObject *sep);
 extern PyObject *UNICODE_RPARTITION(PyObject *str, PyObject *sep);
 
+extern PyObject *NuitkaUnicode_FromWideChar(const wchar_t *str, Py_ssize_t size);
+
 #endif

@@ -787,15 +787,19 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
 
 #endif
 
-    // Set filename attribute
+    // Set filename attribute if not already set, in some branches we don't
+    // do it, esp. not for older Python.
+    if (HAS_ATTR_BOOL(module, const_str_plain___file__) == false) {
+
 #ifdef _WIN32
-    int res = PyModule_AddObject(module, "__file__", PyUnicode_FromWideChar(filename, -1));
+        int res = SET_ATTRIBUTE(module, const_str_plain___file__, NuitkaUnicode_FromWideChar(filename, -1));
 #else
-    int res = PyModule_AddObject(module, "__file__", PyUnicode_FromString(filename));
+        int res = SET_ATTRIBUTE(module, const_str_plain___file__, PyUnicode_FromString(filename));
 #endif
-    if (unlikely(res < 0)) {
-        // Might be refuted, which wouldn't be harmful.
-        CLEAR_ERROR_OCCURRED();
+        if (unlikely(res < 0)) {
+            // Might be refuted, which wouldn't be harmful.
+            CLEAR_ERROR_OCCURRED();
+        }
     }
 
     // Call the standard import fix-ups for extension modules. Their interface
@@ -810,16 +814,16 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
     PyObject *full_name_obj = PyUnicode_FromString(full_name);
     CHECK_OBJECT(full_name_obj);
 #ifdef _WIN32
-    PyObject *filename_obj = PyUnicode_FromWideChar(filename, -1);
+    PyObject *filename_obj = NuitkaUnicode_FromWideChar(filename, -1);
 #else
     PyObject *filename_obj = PyUnicode_FromString(filename);
 #endif
     CHECK_OBJECT(filename_obj);
 
-    res = _PyImport_FixupExtensionObject(module, full_name_obj, filename_obj
+    int res = _PyImport_FixupExtensionObject(module, full_name_obj, filename_obj
 #if PYTHON_VERSION >= 0x370
-                                         ,
-                                         PyImport_GetModuleDict()
+                                             ,
+                                             PyImport_GetModuleDict()
 #endif
 
     );
@@ -900,6 +904,14 @@ static PyObject *loadModule(PyObject *module, PyObject *module_name,
         appendStringSafe(filename, ".so", sizeof(filename));
 
 #endif
+
+        // Set filename attribute before execution, some modules expect it early.
+#ifdef _WIN32
+        SET_ATTRIBUTE(module, const_str_plain___file__, NuitkaUnicode_FromWideChar(filename, -1));
+#else
+        SET_ATTRIBUTE(module, const_str_plain___file__, PyUnicode_FromString(filename));
+#endif
+
         // Not used unfortunately. TODO: Check if we can make it so.
         Py_DECREF(module);
 
@@ -1067,6 +1079,7 @@ static PyObject *_path_unfreezer_load_module(PyObject *self, PyObject *args, PyO
         PyObject *extension_module_filename = DICT_GET_ITEM0(installed_extension_modules, module_name);
 
         if (extension_module_filename != NULL) {
+            // TODO: Should we not set __file__ for the module here, but there is no object.
             return callIntoInstalledShlibModule(module_name, extension_module_filename);
         }
     }
@@ -1362,6 +1375,14 @@ static PyObject *_path_unfreezer_exec_module(PyObject *self, PyObject *args, PyO
         PyObject *extension_module_filename = DICT_GET_ITEM0(installed_extension_modules, module_name);
 
         if (extension_module_filename != NULL) {
+            // Set filename attribute
+            res = SET_ATTRIBUTE(module, const_str_plain___file__, extension_module_filename);
+
+            if (unlikely(res < 0)) {
+                // Might be refuted, which wouldn't be harmful.
+                CLEAR_ERROR_OCCURRED();
+            }
+
             return callIntoInstalledShlibModule(module_name, extension_module_filename);
         }
     }

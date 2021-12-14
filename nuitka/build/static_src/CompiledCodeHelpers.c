@@ -1792,7 +1792,7 @@ static PyObject *getBinaryDirectoryObject() {
 #if PYTHON_VERSION >= 0x300
 #ifdef _WIN32
     wchar_t const *bin_directory = getBinaryDirectoryWideChars();
-    binary_directory = PyUnicode_FromWideChar(bin_directory, wcslen(bin_directory));
+    binary_directory = NuitkaUnicode_FromWideChar(bin_directory, -1);
 #else
     binary_directory = PyUnicode_DecodeFSDefault(getBinaryDirectoryHostEncoded());
 #endif

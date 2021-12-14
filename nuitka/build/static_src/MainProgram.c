@@ -702,7 +702,7 @@ int main(int argc, char **argv) {
             abort();
         }
 
-        PyObject *filename = PyUnicode_FromWideChar(filename_buffer, wcslen(filename_buffer));
+        PyObject *filename = NuitkaUnicode_FromWideChar(filename_buffer, -1);
 
         PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w", const_int_pos_1);
         if (unlikely(stdout_file == NULL)) {
@@ -727,7 +727,7 @@ int main(int argc, char **argv) {
             abort();
         }
 
-        PyObject *filename = PyUnicode_FromWideChar(filename_buffer, wcslen(filename_buffer));
+        PyObject *filename = NuitkaUnicode_FromWideChar(filename_buffer, -1);
 
         PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w", const_int_pos_1);
         if (unlikely(stderr_file == NULL)) {
