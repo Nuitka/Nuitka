@@ -720,16 +720,6 @@ class Plugins(object):
             plugin.onModuleCompleteSet(module_set)
 
     @staticmethod
-    def considerFailedImportReferrals(module_name):
-        for plugin in getActivePlugins():
-            new_module_name = plugin.considerFailedImportReferrals(module_name)
-
-            if new_module_name is not None:
-                return ModuleName(new_module_name)
-
-        return None
-
-    @staticmethod
     def suppressUnknownImportWarning(importing, source_ref, module_name):
         """Let plugins decide whether to suppress import warnings for an unknown module.
 

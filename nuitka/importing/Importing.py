@@ -641,16 +641,7 @@ def _findModule(module_name):
 
         return result
 
-    try:
-        module_search_cache[key] = _findModule2(module_name)
-    except ImportError:
-        new_module_name = Plugins.considerFailedImportReferrals(module_name)
-
-        if new_module_name is None or new_module_name == module_name:
-            module_search_cache[key] = ImportError
-            raise
-
-        module_search_cache[key] = _findModule(new_module_name)
+    module_search_cache[key] = _findModule2(module_name)
 
     return module_search_cache[key]
 

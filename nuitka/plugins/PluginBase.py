@@ -169,17 +169,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
-    def considerFailedImportReferrals(self, module_name):
-        """Provide a dictionary of fallback imports for modules that failed to import.
-
-        Args:
-            module_name: name of module
-        Returns:
-            dict
-        """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
-        return None
-
     def onModuleSourceCode(self, module_name, source_code):
         """Inspect or modify source code.
 
