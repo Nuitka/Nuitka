@@ -211,7 +211,7 @@ def findModule(module_name, parent_package, level):
         method used.
     """
     # We have many branches here, because there are a lot of cases to try.
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
 
     assert type(module_name) is ModuleName, module_name
 
@@ -250,6 +250,17 @@ def findModule(module_name, parent_package, level):
 
         full_name = normalizePackageName(full_name)
         tried_names.append(full_name)
+
+        preloaded_path = getPreloadedPackagePath(module_name)
+
+        if preloaded_path is not None:
+            for module_filename in preloaded_path:
+                if os.path.exists(module_filename):
+                    break
+            else:
+                module_filename = None
+
+            return full_name.getPackageName(), module_filename, "pth"
 
         try:
             module_filename = _findModule(module_name=full_name)
@@ -296,6 +307,17 @@ def findModule(module_name, parent_package, level):
                         % (module_name,)
                     )
                 return package_name, None, "built-in"
+
+        preloaded_path = getPreloadedPackagePath(module_name)
+
+        if preloaded_path is not None:
+            for module_filename in preloaded_path:
+                if os.path.exists(module_filename):
+                    break
+            else:
+                module_filename = None
+
+            return package_name, module_filename, "pth"
 
         try:
             module_filename = _findModule(module_name=module_name)
@@ -636,11 +658,6 @@ def _findModule(module_name):
 def _findModule2(module_name):
     # Need a real module name.
     assert module_name != ""
-
-    preloaded_path = getPreloadedPackagePath(module_name)
-
-    if preloaded_path is not None:
-        return preloaded_path[0]
 
     return _findModuleInPath(module_name=module_name)
 
