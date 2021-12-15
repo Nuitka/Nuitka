@@ -53,7 +53,6 @@ from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
     copyFileWithPermissions,
-    copyTree,
     getDirectoryRealPath,
     getFileContentByLine,
     getFileContents,
@@ -82,7 +81,11 @@ from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
 
 from .DependsExe import detectDLLsWithDependencyWalker
-from .IncludedDataFiles import IncludedDataFile, makeIncludedDataFile
+from .IncludedDataFiles import (
+    IncludedDataDirectory,
+    IncludedDataFile,
+    makeIncludedDataFile,
+)
 
 
 def loadCodeObjectData(precompiled_filename):
@@ -1351,10 +1354,8 @@ different from
 
 def _handleDataFile(dist_dir, tracer, included_datafile):
     """Handle a data file."""
-    if not isinstance(included_datafile, IncludedDataFile):
-        tracer.sysexit(
-            "Error, cannot only include 'IncludedDataFile' objects in plugins."
-        )
+    if not isinstance(included_datafile, (IncludedDataFile, IncludedDataDirectory)):
+        tracer.sysexit("Error, cannot only include 'IncludedData*' objects in plugins.")
 
     if included_datafile.kind == "empty_dirs":
         tracer.info(
@@ -1392,10 +1393,27 @@ def _handleDataFile(dist_dir, tracer, included_datafile):
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
         makePath(os.path.dirname(dest_path))
 
-        copied = copyTree(included_datafile.source_path, dest_path)
+        copied = []
+
+        for filename in getFileList(
+            included_datafile.source_path,
+            ignore_dirs=included_datafile.ignore_dirs,
+            ignore_filenames=included_datafile.ignore_filenames,
+            ignore_suffixes=included_datafile.ignore_suffixes,
+            only_suffixes=included_datafile.only_suffixes,
+            normalize=included_datafile.normalize,
+        ):
+            filename_relative = os.path.relpath(filename, included_datafile.source_path)
+
+            filename_dest = os.path.join(dest_path, filename_relative)
+            makePath(os.path.dirname(filename_dest))
+
+            copyFileWithPermissions(source_path=filename, dest_path=filename_dest)
+
+            copied.append(filename_relative)
 
         tracer.info(
-            "Included data dir %r with %d files due to %s."
+            "Included data dir %r with %d files due to: %s."
             % (
                 included_datafile.dest_path,
                 len(copied),
