@@ -623,6 +623,9 @@ module_search_cache = {}
 
 
 def _findModule(module_name):
+    # Not a good module name. TODO: Push this to ModuleName() creation maybe.
+    assert module_name != ""
+
     if _debug_module_finding:
         my_print("_findModule: Enter to search '%s'." % (module_name,))
 
@@ -641,16 +644,9 @@ def _findModule(module_name):
 
         return result
 
-    module_search_cache[key] = _findModule2(module_name)
+    module_search_cache[key] = _findModuleInPath(module_name)
 
     return module_search_cache[key]
-
-
-def _findModule2(module_name):
-    # Need a real module name.
-    assert module_name != ""
-
-    return _findModuleInPath(module_name=module_name)
 
 
 def locateModule(module_name, parent_package, level):
