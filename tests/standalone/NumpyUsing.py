@@ -17,7 +17,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import numpy
+from __future__ import print_function
 
 # nuitka-skip-unless-imports: numpy
 
@@ -30,5 +30,11 @@ import numpy
 # nuitka-project: --noinclude-setuptools-mode=error
 # nuitka-project: --noinclude-pytest-mode=error
 # nuitka-project: --noinclude-custom-mode=numpy.distutils:error
+
+import numpy as np
+
+a = np.arange(15).reshape(3, 5)
+
+print("An array", a)
 
 print("OK.")
