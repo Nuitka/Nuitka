@@ -107,7 +107,7 @@ def parseArgs():
             "Used command line options: %s" % " ".join(sys.argv[1:])
         )
 
-    if os.environ.get("NUITKA_REEXECUTION", "1") and not isAllowedToReexecute():
+    if os.environ.get("NUITKA_REEXECUTION") and not isAllowedToReexecute():
         Tracing.general.sysexit(
             "Error, not allowed to re-execute, but that has happened."
         )
@@ -516,7 +516,7 @@ def commentArgs():
         and not options.include_extra
     ):
         Tracing.options_logger.warning(
-            """Did not specify to follow or include anything but main %s. Check options and \
+            """You did not specify to follow or include anything but main %s. Check options and \
 make sure that is intended."""
             % ("module" if shallMakeModule() else "program")
         )

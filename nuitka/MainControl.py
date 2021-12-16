@@ -68,7 +68,6 @@ from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import InstanceCounters, MemoryUsage
 from nuitka.utils.Execution import (
-    callExecProcess,
     callProcess,
     withEnvironmentVarOverriden,
     wrapCommandForDebuggerForExec,
@@ -83,7 +82,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.ReExecute import reExecuteNuitka
+from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import getArchitecture, getOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion

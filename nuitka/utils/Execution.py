@@ -36,38 +36,6 @@ from .Download import getCachedDownloadedMinGW64
 from .FileOperations import getExternalUsePath
 from .Utils import getArchitecture, getOS, isWin32Windows
 
-
-def callExecProcess(args):
-    """Do exec in a portable way preserving exit code.
-
-    On Windows, unfortunately there is no real exec, so we have to spawn
-    a new process instead.
-    """
-
-    # On Windows os.execl does not work properly
-    if isWin32Windows():
-        args = list(args)
-        del args[1]
-
-        try:
-            process = subprocess.Popen(args=args)
-            process.communicate()
-            # No point in cleaning up, pylint: disable=protected-access
-            try:
-                os._exit(process.returncode)
-            except OverflowError:
-                # Seems negative values go wrong otherwise,
-                # see https://bugs.python.org/issue28474
-                os._exit(process.returncode - 2 ** 32)
-        except KeyboardInterrupt:
-            # There was a more relevant stack trace already, so abort this
-            # right here, pylint: disable=protected-access
-            os._exit(2)
-    else:
-        # The star arguments is the API of execl
-        os.execl(*args)
-
-
 # Cache, so we avoid repeated command lookups.
 _executable_command_cache = {}
 
