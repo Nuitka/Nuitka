@@ -27,4 +27,4 @@ from .FileOperations import getFileContents
 
 
 def loadJsonFromFilename(filename):
-    return json.load(getFileContents(filename))
+    return json.loads(getFileContents(filename))

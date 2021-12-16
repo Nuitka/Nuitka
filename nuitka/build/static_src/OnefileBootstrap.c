@@ -28,6 +28,10 @@
 #define _POSIX_C_SOURCE 200809L
 #endif
 
+#ifdef __NUITKA_NO_ASSERT__
+#define NDEBUG
+#endif
+
 #include <assert.h>
 #include <errno.h>
 #include <stdint.h>

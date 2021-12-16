@@ -22,6 +22,8 @@ to the user while it's being displayed.
 
 """
 
+from contextlib import contextmanager
+
 from nuitka import Tracing
 from nuitka.Tracing import general
 from nuitka.utils.Importing import importFromInlineCopy
@@ -86,15 +88,13 @@ class NuitkaProgessBar(object):
     def clear(self):
         self.tqdm.clear()
 
-    def hideProgressBar(self):
-        # TODO: Need a better way to do this.
-        self.tqdm.clear()
-
-    def resumeProgressBar(self):
-        self._reinit()
-
     def close(self):
         self.tqdm.close()
+
+    @contextmanager
+    def withExternalWritingPause(self):
+        with self.tqdm.external_write_mode():
+            yield
 
 
 def enableProgressBar():
