@@ -80,6 +80,8 @@ class NuitkaPluginZmq(NuitkaPluginBase):
 
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "zmq" and Options.isStandaloneMode():
+            # TODO: Make the anti-bloat engine to this.
+
             if "_delvewheel_init_patch" in source_code:
                 match = re.search(
                     r"(def _delvewheel_init_patch_(.*?)\(\):\n.*?_delvewheel_init_patch_\2\(\))",
