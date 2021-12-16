@@ -26,7 +26,7 @@ import sys
 
 import wheel.bdist_wheel  # pylint: disable=I0021,import-error,no-name-in-module
 
-from nuitka.tools.testing.Common import my_print
+from nuitka.Tracing import wheel_logger
 from nuitka.utils.Execution import check_call
 
 
@@ -86,7 +86,9 @@ class build(distutils.command.build.build):
         self.py_modules = self.distribution.py_modules or ()
 
         if not self.compile_packages and not self.py_modules:
-            sys.exit("Missing both compile_packages and py_modules, aborting...")
+            wheel_logger.sysexit(
+                "No modules or packages specified, aborting. Did you provide packages in 'setup.cfg' or 'setup.py'?"
+            )
 
         # Python2 does not allow super on this old style class.
         distutils.command.build.build.run(self)
@@ -181,7 +183,6 @@ class build(distutils.command.build.build):
                 "--enable-plugin=pylint-warnings",
                 "--output-dir=%s" % output_dir,
                 "--nofollow-import-to=*.tests",
-                "--show-modules",
                 "--remove-output",
             ]
 
@@ -227,11 +228,11 @@ class build(distutils.command.build.build):
             command.append(main_filename)
 
             # Adding traces for clarity
-            my_print(
+            wheel_logger.info(
                 "Building: '%s' with command %r" % (to_build, command), style="blue"
             )
             check_call(command, cwd=build_lib)
-            my_print("Finished compilation of '%s'." % to_build, style="green")
+            wheel_logger.info("Finished compilation of '%s'." % to_build, style="green")
 
             for root, _, filenames in os.walk(build_lib):
                 for filename in filenames:

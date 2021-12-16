@@ -198,6 +198,10 @@ def _getAnonBuiltins():
         anon_names["instancemethod"] = MethodType
         anon_codes["instancemethod"] = "&PyMethod_Type"
 
+    if python_version >= 0x270:
+        anon_names["version_info"] = type(sys.version_info)
+        anon_codes["instancemethod"] = 'Py_TYPE(Nuitka_SysGetObject("version_info"))'
+
     return anon_names, anon_codes
 
 

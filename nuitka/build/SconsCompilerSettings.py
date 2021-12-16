@@ -147,7 +147,7 @@ version for lto mode (>= 4.6). Disabled."""
         if env.debug_mode:
             env.Append(LINKFLAGS=["-Og"])
         else:
-            env.Append(LINKFLAGS=["-O3" if nuitka_python else "-O2"])
+            env.Append(LINKFLAGS=["-O3" if nuitka_python or env.mingw_mode else "-O2"])
 
     # Tell compiler to use link time optimization for MSVC
     if env.msvc_mode and lto_mode:

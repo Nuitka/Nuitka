@@ -183,7 +183,7 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
     __slots__ = ()
 
     def __init__(self, builtin_name, source_ref):
-        assert builtin_name in builtin_anon_names, builtin_name
+        assert builtin_name in builtin_anon_names, (builtin_name, source_ref)
 
         ExpressionBuiltinRefBase.__init__(
             self, builtin_name=builtin_name, source_ref=source_ref
