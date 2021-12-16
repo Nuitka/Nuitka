@@ -91,7 +91,7 @@ def getLinuxDistribution():
                 general.sysexit("Error, cannot detect Linux distribution.")
 
         # Change e.g. "11 (Bullseye)"" to "11".
-        if version is not None:
+        if version is not None and version.strip():
             version = version.split()[0]
 
         _linux_distribution_info = result.title(), version
