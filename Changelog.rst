@@ -13,9 +13,30 @@ Nuitka blog.
 Bug Fixes
 =========
 
--  Fix, in module move, the top level modules if loaded again, e.g.
-   because previously it gave an ``ImportError`` was initializing
-   multiple time, which lead to issues. Fixed in 0.6.18.1 already.
+-  Calls to ``importlib.import_module`` with expressions that need
+   releases, i.e. are not constant values, could crash the compilation.
+   Fixed in 0.6.18.1 already.
+
+-  After a fix for the previous release, modules that fail to import are
+   attempted again when another import is executed. However, during this
+   initialization for top level module in ``--module`` mode, this was
+   was done repeatedly, and could cause issues. Fixed in 0.6.18.1
+   already.
+
+-  Standalone: Ignore warning given by ``patchelf`` on Linux with at
+   least newer OpenSUSE. Fixed in 0.6.18.1 already.
+
+-  Standalone: Add needed datafile for ``cv2`` package. Fixed in
+   0.6.18.2 already.
+
+-  Fix, need to avoid computing large values out of ``<<`` operation as
+   well. Fixed in 0.6.18.2 already.
+
+   .. code:: python
+
+      # This large value was computed at runtime and then if used, also
+      # converted to a string and potentially hashed, taking a long time.
+      1 << sys.maxint
 
 -  Standalone: Ignore warning given by ``patchelf`` on Linux about a
    workaround being applied.
@@ -51,49 +72,30 @@ Bug Fixes
    avoided in that case, similar to what we do for multiplications
    already. Fixed in 0.6.18.2 already.
 
-Organisational
-==============
+-  UI: The new option ``--disable-ccache`` didn't really have the
+   intended effect. Fixed in 0.6.18.3 already.
 
--  MSYS2: Detecting MinGW and POSIX flavors of this Python.
+-  UI: The progress bar was causing tearing and corrupted outputs, when
+   outputs were made, now using proper ``tqdm`` API for doing it, this
+   has been solved. Fixed in 0.6.18.4 already.
 
--  User Manual: Added example explaining how to access values from your
-   code in Nuitka project options.
+-  Fix, the constant value ``sys.version_info`` didn't yet have support
+   for its type to be also a compile time constant in e.g. tuples. Fixed
+   in 0.6.18.4 already.
 
-Summary
-=======
+-  Onefile: Assertions were not disabled, and on Windows with MinGW64
+   this lead to including the C filenames of the ``zstd`` inline copy
+   files and obviously less optimal code. Fixed in 0.6.18.4 already.
 
-This release is not done yet.
+-  Python3: Fix, need to set ``__file__`` before executing modules, as
+   some modules, specifically newer PyWin32 use them to locate things
+   during their initialization already.
 
-***********************
- Nuitka Release 0.6.18
-***********************
+-  Fix, some ``.pth`` files create module namespaces with ``__path__``
+   that does not exist, ignore these in module importing.
 
-Bug Fixes
-=========
-
--  Calls to ``importlib.import_module`` with expressions that need
-   releases, i.e. are not constant values, could crash the compilation.
-   Fixed in 0.6.18.1 already.
-
--  After a fix for the previous release, modules that fail to import are
-   attempted again when another import is executed. However, during this
-   some initialization was done repeatedly, and could cause issues.
-   Fixed in 0.6.18.1 already.
-
--  Standalone: Ignore warning given by ``patchelf`` on Linux with at
-   least newer OpenSUSE. Fixed in 0.6.18.1 already.
-
--  Standalone: Add needed datafile for ``cv2`` package. Fixed in
-   0.6.18.2 already.
-
--  Fix, need to avoid computing large values out of ``<<`` operation as
-   well. Fixed in 0.6.18.2 already.
-
-   .. code:: python
-
-      # This large value was computed at runtime and then if used, also
-      # converted to a string and potentially hashed, taking a long time.
-      1 << sys.maxint
+-  Python2.6-3.4: Fix, modules with an error could use their module name
+   after it was released.
 
 Optimization
 ============
@@ -113,24 +115,41 @@ Optimization
    loop or inside a branch, that was otherwise unused alive. This should
    enable more optimization for code with branches and loops.
 
-Cleanups
-========
-
--  Generate all existing generic builtin type method calls and method
-   attribute lookups.
-
 Organisational
 ==============
 
--  The main script runners for Python2 have been renamed to ``nuitka2``
-   and ``nuitka2-run``, which is consistent with what we do for Python3,
-   and avoids issues where ``bin`` folder ends up in ``sys.path`` and
-   prevents the loading of ``nuitka`` package.
+-  MSYS2: Detecting MinGW and POSIX flavors of this Python.
 
--  Added support for Fedora 35.
+-  User Manual: Added example explaining how to access values from your
+   code in Nuitka project options.
 
--  User Manual: Add descripotion how to access code attributes in
-   ``nuitka-project`` style options.
+-  UI: Disable progress bar when ``--show-scons`` is used, it makes
+   capturing the output from the terminal only harder.
+
+-  Distutils: Improved error messages when using ``setuptools`` or
+   ``build`` integration and failing to provide packages to compile.
+
+-  Plugins: Removed now unused feature to rename modules on import, as
+   it was only making the code more complex, while being no more needed
+   after recently adding a place for meta path based importers to be
+   accounted for.
+
+Cleanups
+========
+
+-  Generate all existing C code for generic builtin type method calls
+   automatically, and use those for method attribute lookups, making it
+   easier to add more.
+
+-  Changed ``TkInter`` module to data file providing interface, yielding
+   the 2 directories in question, with a filter for ``demos``.
+
+-  The importing code got a major overhaul and no longer works with
+   relative filenames, or filenames combined with package names, and
+   module names, but always only with module names and absolute
+   filenames. This cleans up some of the oldest and most complex code in
+   Nuitka, that had grown to address various requirements discovered
+   over time.
 
 Summary
 =======
@@ -141,9 +160,11 @@ This release is not done yet.
  Nuitka Release 0.6.18
 ***********************
 
-This release has a focus on new kinds performance improvements, some of
-which enable static optimization of what normally would be dynamic
-imports, while also polishing plugins and adding also many new features.
+This release has a focus on new features of all kinds, and then also new
+kinds of performance improvements, some of which enable static
+optimization of what normally would be dynamic imports, while also
+polishing plugins and adding also many new features and a huge amount of
+organisational changes.
 
 Bug Fixes
 =========
@@ -504,6 +525,11 @@ Organisational
    possible. This is using Stripe. Get in touch with me if you want to
    use bank transfer, which is of course still best for me.
 
+-  The main script runners for Python2 have been renamed to ``nuitka2``
+   and ``nuitka2-run``, which is consistent with what we do for Python3,
+   and avoids issues where ``bin`` folder ends up in ``sys.path`` and
+   prevents the loading of ``nuitka`` package.
+
 -  Windows: Added support for Visual Studio 2022 by updating the inline
    copy of Scons used for Windows to version 4.3.0, on non Windows, the
    other ones will keep being used.
@@ -520,6 +546,9 @@ Organisational
    early parts of API documentation there too. This gives much more
    readable results than what we have done so far with Nikola. More
    things will move there.
+
+-  User Manual: Add description how to access code attributes in
+   ``nuitka-project`` style options.
 
 -  User Manual: Added commands used to generate performance numbers for
    Python.
@@ -566,7 +595,7 @@ Organisational
       with that, even with full path. Check the relevant section in the
       User Manual too.
 
--  Added support for Fedora 34.
+-  Added support for Fedora 34 and Fedora 35.
 
 Cleanups
 ========
@@ -654,7 +683,8 @@ unlocks static optimization of module imports, that previously would
 have to be considered implicit. This work will need one extra step,
 namely to also trace hard imports on the function level, then this will
 be an extremely powerful tool to solve these kinds of issues in the
-future.
+future. The next release will have this and go even further in this
+area.
 
 With the dictionary methods, and some string methods, also a whole new
 kind of optimization has been started. These will make working with
