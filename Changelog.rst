@@ -97,6 +97,20 @@ Bug Fixes
 -  Python2.6-3.4: Fix, modules with an error could use their module name
    after it was released.
 
+-  Distutils: When providing arguments, the method suggested in the docs
+   is not compatible with all other systems, e.g. not
+   ``setuptools_rust`` for which a two elemented tuple form needs to be
+   used for values. Added support for that and documented its use as
+   well in the User Manual.
+
+New Features
+============
+
+-  We now can write XML reports with information about the compilation.
+   This is initially for use in PGO tests, to decide if the expected
+   forms of inclusions have happened and should grow into a proper
+   reporting tool over time.
+
 Optimization
 ============
 
@@ -113,12 +127,84 @@ Optimization
 
 -  Loop and normal merge traces were keeping assignments made before the
    loop or inside a branch, that was otherwise unused alive. This should
-   enable more optimization for code with branches and loops.
+   enable more optimization for code with branches and loops. Also
+   unused loop traces are now recognized and removed as well.
+
+-  The ``str`` shape is now detected through variables.
+
+-  Added many ``str`` operation nodes.
+
+   These are specifically all methods with no arguments, as these are
+   very generic to add, introduced a base class for them, where we know
+   they all have no effect or raise, as these functions are all
+   guarantueed to succeed and can be served by a common base class.
+
+   This covers the ``str.capitalize``, ``str.upper``, ``str.lower``,
+   ``str.swapcase``, ``str.title``, ``str.isalnum``, ``str.isalpha``,
+   ``str.isdigit``, ``str.islower``, ``str.isupper``, ``str.isspace``,
+   and ``str.istitle`` functions.
+
+   For static optimization ``str.find`` and ``str.rfind`` were added, as
+   they are e.g. used in a ``sys.version.find(...)`` style in the ``os``
+   module, helping to decide to not consider ``OS/2`` only modules.
+
+   Then, support for ``str.index`` and ``str.rindex`` was added, as
+   these are very similar to ``str.find`` forms, only that these may
+   raise an exception.
+
+   Also add support for ``str.split`` and ``str.rsplit`` which will be
+   used sometimes for code needed to be compile time computed, to e.g.
+   detect imports.
+
+   .. note::
+
+      Status
+
+      The ``endswith`` and ``startswith`` functions are missing and
+      would also be relatively important, otherwise the important ones
+      seem covered. With time we will achieve "all" of them, but that
+      may not happen in this release.
+
+-  Added trust for ``sys.builtin_module_names`` as well. The ``os``
+   module is using it to make platform determinations.
+
+-  When writing constant values, esp. ``tuple``, ``list``, or ``dict``
+   values, an encoding of "last value" has been added, avoiding the need
+   to repeat the same value again, making many values more compact.
+
+-  When starting Nuitka, it usually restarts itself with information
+   collected in a mode without the ``site`` module loaded, and with hash
+   randomization disabled, for deterministic behaviour. There was an
+   option to prevent this from happening, where the goal is to avoid it,
+   e.g. in testing, say for the coverage taking, but that meant to parse
+   the options twice, which also loads a lot of code.
+
+   Now only a minimal amount of code is used, and the options are parsed
+   only on the restart, and then an error is raised when it notices, it
+   was not allowed to do so. This also makes code a lot cleaner.
+
+-  Specialized comparison code for Python2 ``long`` and Python3 ``int``
+   code, making these operations much faster to use.
+
+-  Enable static libpython with Python3 Debian packages too. As with
+   Python2, this will improve the performance of the created binary a
+   lot and reduce size for standalone distribution.
+
+-  Comparisons with ``in`` and ``not in`` also consider value traces and
+   go through variables as well where possible. So far only the rich
+   comparisons and ``is`` and ``is not`` did that.
+
+-  Create fixed import nodes in re-formulations rather than
+   ``__import__`` nodes, avoiding later optimization doing that, and of
+   course that's simpler code too.
 
 Organisational
 ==============
 
--  MSYS2: Detecting MinGW and POSIX flavors of this Python.
+-  Added a small presentation about Nuitka on the Download page, to make
+   sure people are aware of core features.
+
+-  MSYS2: Detecting ``MinGW`` and ``POSIX`` flavors of this Python.
 
 -  User Manual: Added example explaining how to access values from your
    code in Nuitka project options.
@@ -133,6 +219,13 @@ Organisational
    it was only making the code more complex, while being no more needed
    after recently adding a place for meta path based importers to be
    accounted for.
+
+-  Twitter: Use embedded Tweet in Credits, and regular follow button in
+   User Manual.
+
+-  Warnings about imports not done, are now only given when optimization
+   can not remove the usage, and no options relatved to following have
+   been given.
 
 Cleanups
 ========
@@ -150,6 +243,34 @@ Cleanups
    filenames. This cleans up some of the oldest and most complex code in
    Nuitka, that had grown to address various requirements discovered
    over time.
+
+-  Major cleanup of Jinja2 template organisation
+
+   Renamed all C templates from ``.j2`` to ``.c.j2`` for clarity, this
+   was not done fully consistent before. Also move all C templates to
+   ``nuitka.codegen`` package data, it will be confusing to make a
+   difference between ones used during compile time and for the static
+   generation, and the lines are going to become blurry.
+
+   Added Jinja2 new macro ``CHECK_OBJECTS`` to avoid branches on
+   argument count in the call code templates. More of these things
+   should be added.
+
+   Cleanup of code that generates header declarations, there was some
+   duplication going on, that made it hard to generate consistent code.
+
+-  Removed ``nuitka.finalizatios.FinalizationBase``, we only have one
+   final visitor that does everything, and that of course makes a lot of
+   sense for its performance.
+
+Tests
+=====
+
+-  Started test suite for Python PGO, not yet completely working though,
+   it's not yet doing what is needed though.
+
+-  Added generated test that exercises str methods in multiple
+   variations.
 
 Summary
 =======
