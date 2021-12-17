@@ -95,6 +95,9 @@ struct Nuitka_GeneratorObject {
     PyObject *m_returned;
 #endif
 
+    // A kind of uuid for the generator object, used in comparisons.
+    long m_counter;
+
     /* The heap of generator objects at run time. */
     void *m_heap_storage;
 

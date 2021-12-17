@@ -82,6 +82,9 @@ struct Nuitka_AsyncgenObject {
     // It is closed, and cannot be closed again.
     bool m_closed;
 
+    // A kind of uuid for the generator object, used in comparisons.
+    long m_counter;
+
     /* The heap of generator objects at run time. */
     void *m_heap_storage;
 

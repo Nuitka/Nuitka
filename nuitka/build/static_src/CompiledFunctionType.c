@@ -566,6 +566,9 @@ void _initCompiledFunctionType(void) {
     assert(Nuitka_Function_Type.tp_subclasses != PyFunction_Type.tp_subclasses || PyFunction_Type.tp_cache == NULL);
     assert(Nuitka_Function_Type.tp_weaklist != PyFunction_Type.tp_weaklist);
     assert(Nuitka_Function_Type.tp_del != PyFunction_Type.tp_del || PyFunction_Type.tp_del == NULL);
+#if PYTHON_VERSION >= 0x340
+    assert(Nuitka_Function_Type.tp_finalize != PyFunction_Type.tp_finalize || PyFunction_Type.tp_finalize == NULL);
+#endif
 
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
     // TODO: Move this to a __nuitka__ module maybe

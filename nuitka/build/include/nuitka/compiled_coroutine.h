@@ -75,6 +75,9 @@ struct Nuitka_CoroutineObject {
     // NULL if not a return
     PyObject *m_returned;
 
+    // A kind of uuid for the generator object, used in comparisons.
+    long m_counter;
+
     /* The heap of generator objects at run time. */
     void *m_heap_storage;
 

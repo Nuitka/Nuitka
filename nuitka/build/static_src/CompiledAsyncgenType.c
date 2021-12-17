@@ -48,6 +48,8 @@ int count_allocated_Nuitka_AsyncgenAthrow_Type = 0;
 int count_released_Nuitka_AsyncgenAthrow_Type = 0;
 #endif
 
+static long Nuitka_Asyncgen_tp_hash(struct Nuitka_AsyncgenObject *asyncgen) { return asyncgen->m_counter; }
+
 static PyObject *Nuitka_Asyncgen_get_name(struct Nuitka_AsyncgenObject *asyncgen) {
     CHECK_OBJECT(asyncgen);
 
@@ -995,6 +997,8 @@ static int Nuitka_Asyncgen_tp_traverse(struct Nuitka_AsyncgenObject *asyncgen, v
         Py_VISIT(asyncgen->m_closure[i]);
     }
 
+    Py_VISIT(asyncgen->m_frame);
+
     Py_VISIT(asyncgen->m_finalizer);
 
     return 0;
@@ -1048,7 +1052,7 @@ PyTypeObject Nuitka_Asyncgen_Type = {
     0,                                                                  /* tp_as_number */
     0,                                                                  /* tp_as_sequence */
     0,                                                                  /* tp_as_mapping */
-    0,                                                                  /* tp_hash */
+    (hashfunc)Nuitka_Asyncgen_tp_hash,                                  /* tp_hash */
     0,                                                                  /* tp_call */
     0,                                                                  /* tp_str */
     PyObject_GenericGetAttr,                                            /* tp_getattro */
@@ -1158,6 +1162,9 @@ PyObject *Nuitka_Asyncgen_New(asyncgen_code code, PyObject *module, PyObject *na
     result->m_exc_state.exc_traceback = NULL;
 #endif
 
+    static long Nuitka_Asyncgen_counter = 0;
+    result->m_counter = Nuitka_Asyncgen_counter++;
+
     Nuitka_GC_Track(result);
     return (PyObject *)result;
 }
@@ -1215,7 +1222,7 @@ static PyTypeObject Nuitka_AsyncgenValueWrapper_Type = {
     PyObject_GenericGetAttr,                                                 /* tp_getattro */
     0,                                                                       /* tp_setattro */
     0,                                                                       /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,                                 /* tp_flags */
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_FINALIZE,      /* tp_flags */
     0,                                                                       /* tp_doc */
     (traverseproc)Nuitka_AsyncgenValueWrapper_tp_traverse,                   /* tp_traverse */
     0,                                                                       /* tp_clear */
@@ -2092,6 +2099,40 @@ static PyObject *Nuitka_AsyncgenAthrow_New(struct Nuitka_AsyncgenObject *asyncge
 
 static void _initCompiledAsyncgenTypes(void) {
     PyType_Ready(&Nuitka_Asyncgen_Type);
+
+    // Be a paranoid subtype of uncompiled function, we want nothing shared.
+    assert(Nuitka_Asyncgen_Type.tp_doc != PyAsyncGen_Type.tp_doc || PyAsyncGen_Type.tp_doc == NULL);
+    assert(Nuitka_Asyncgen_Type.tp_traverse != PyAsyncGen_Type.tp_traverse);
+    assert(Nuitka_Asyncgen_Type.tp_clear != PyAsyncGen_Type.tp_clear || PyAsyncGen_Type.tp_clear == NULL);
+    assert(Nuitka_Asyncgen_Type.tp_richcompare != PyAsyncGen_Type.tp_richcompare ||
+           PyAsyncGen_Type.tp_richcompare == NULL);
+    assert(Nuitka_Asyncgen_Type.tp_weaklistoffset != PyAsyncGen_Type.tp_weaklistoffset);
+    assert(Nuitka_Asyncgen_Type.tp_iter != PyAsyncGen_Type.tp_iter || PyAsyncGen_Type.tp_iter == NULL);
+    assert(Nuitka_Asyncgen_Type.tp_iternext != PyAsyncGen_Type.tp_iternext || PyAsyncGen_Type.tp_iternext == NULL);
+    assert(Nuitka_Asyncgen_Type.tp_methods != PyAsyncGen_Type.tp_methods);
+    assert(Nuitka_Asyncgen_Type.tp_members != PyAsyncGen_Type.tp_members);
+    assert(Nuitka_Asyncgen_Type.tp_getset != PyAsyncGen_Type.tp_getset);
+#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
+    assert(Nuitka_Asyncgen_Type.tp_base != PyAsyncGen_Type.tp_base);
+#endif
+    assert(Nuitka_Asyncgen_Type.tp_dict != PyAsyncGen_Type.tp_dict);
+    assert(Nuitka_Asyncgen_Type.tp_descr_get != PyAsyncGen_Type.tp_descr_get || PyAsyncGen_Type.tp_descr_get == NULL);
+
+    assert(Nuitka_Asyncgen_Type.tp_descr_set != PyAsyncGen_Type.tp_descr_set || PyAsyncGen_Type.tp_descr_set == NULL);
+    assert(Nuitka_Asyncgen_Type.tp_dictoffset != PyAsyncGen_Type.tp_dictoffset || PyAsyncGen_Type.tp_dictoffset == 0);
+    // TODO: These get changed and into the same thing, not sure what to compare against, project something
+    // assert(Nuitka_Generator_Type.tp_init != PyAsyncGen_Type.tp_init || PyAsyncGen_Type.tp_init == NULL);
+    // assert(Nuitka_Generator_Type.tp_alloc != PyAsyncGen_Type.tp_alloc || PyAsyncGen_Type.tp_alloc == NULL);
+    // assert(Nuitka_Generator_Type.tp_new != PyAsyncGen_Type.tp_new || PyAsyncGen_Type.tp_new == NULL);
+    // assert(Nuitka_Generator_Type.tp_free != PyAsyncGen_Type.tp_free || PyAsyncGen_Type.tp_free == NULL);
+    assert(Nuitka_Asyncgen_Type.tp_bases != PyAsyncGen_Type.tp_bases);
+    assert(Nuitka_Asyncgen_Type.tp_mro != PyAsyncGen_Type.tp_mro);
+    assert(Nuitka_Asyncgen_Type.tp_cache != PyAsyncGen_Type.tp_cache || PyAsyncGen_Type.tp_cache == NULL);
+    assert(Nuitka_Asyncgen_Type.tp_subclasses != PyAsyncGen_Type.tp_subclasses || PyAsyncGen_Type.tp_cache == NULL);
+    assert(Nuitka_Asyncgen_Type.tp_weaklist != PyAsyncGen_Type.tp_weaklist);
+    assert(Nuitka_Asyncgen_Type.tp_del != PyAsyncGen_Type.tp_del || PyAsyncGen_Type.tp_del == NULL);
+    assert(Nuitka_Asyncgen_Type.tp_finalize != PyAsyncGen_Type.tp_finalize || PyAsyncGen_Type.tp_finalize == NULL);
+
     PyType_Ready(&Nuitka_AsyncgenAsend_Type);
     PyType_Ready(&Nuitka_AsyncgenAthrow_Type);
     PyType_Ready(&Nuitka_AsyncgenValueWrapper_Type);
