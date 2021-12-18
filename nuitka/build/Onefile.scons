@@ -288,6 +288,7 @@ elif clang_mode:
 env = checkWindowsCompilerFound(
     env=env,
     target_arch=target_arch,
+    clang_mode=clang_mode,
     msvc_version=msvc_version,
     assume_yes_for_downloads=assume_yes_for_downloads,
 )

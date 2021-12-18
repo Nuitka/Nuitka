@@ -168,7 +168,9 @@ version for lto mode (>= 4.6). Disabled."""
     _enablePgoSettings(env, pgo_mode)
 
 
-def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_downloads):
+def checkWindowsCompilerFound(
+    env, target_arch, clang_mode, msvc_version, assume_yes_for_downloads
+):
     """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
 
     if os.name == "nt":
@@ -237,8 +239,8 @@ def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_dow
                     env["CC"] = None
 
         if compiler_path is None and msvc_version is None:
-            # This will succeed to find "gcc.exe" when conda install m2w64-gcc has
-            # been done.
+            # This will download "gcc.exe" (and "clang.exe") when all others have been
+            # rejected and MSVC is not enforced.
             compiler_path = getCachedDownloadedMinGW64(
                 target_arch=target_arch,
                 assume_yes_for_downloads=assume_yes_for_downloads,
@@ -251,7 +253,8 @@ def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_dow
                 target_arch=target_arch,
             )
 
-            env["CC"] = compiler_path
+            if clang_mode:
+                env["CC"] = os.path.join(os.path.dirname(compiler_path), "clang.exe")
 
         if env["CC"] is None:
             raiseNoCompilerFoundErrorExit()
