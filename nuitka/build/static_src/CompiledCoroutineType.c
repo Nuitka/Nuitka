@@ -488,7 +488,7 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
 #if _DEBUG_COROUTINE
             PRINT_COROUTINE_STATUS("finishing from yield", coroutine);
             PRINT_COROUTINE_STRING("closing", closing ? "(closing) " : "(not closing) ");
-            PRINT_STRING("-> finishing sets status_Finished\n");
+            PRINT_STRING("-> finishing coroutine sets status_Finished\n");
             PRINT_COROUTINE_VALUE("return_value", coroutine->m_returned);
             PRINT_CURRENT_EXCEPTION();
             PRINT_NEW_LINE();
@@ -1045,9 +1045,20 @@ static PyObject *Nuitka_Coroutine_await(struct Nuitka_CoroutineObject *coroutine
 }
 
 #if PYTHON_VERSION >= 0x3a0
-static PySendResult _Nuitka_Coroutine_amsend(struct Nuitka_CoroutineObject *asyncgen, PyObject *arg,
+static PySendResult _Nuitka_Coroutine_amsend(struct Nuitka_CoroutineObject *coroutine, PyObject *arg,
                                              PyObject **result) {
-    return _Nuitka_Coroutine_sendR(asyncgen, arg, false, NULL, NULL, NULL, result);
+#if _DEBUG_COROUTINE
+    PRINT_COROUTINE_STATUS("Enter", coroutine);
+#endif
+
+    PySendResult res = _Nuitka_Coroutine_sendR(coroutine, arg, false, NULL, NULL, NULL, result);
+
+#if _DEBUG_COROUTINE
+    PRINT_COROUTINE_STATUS("Leave", coroutine);
+    PRINT_COROUTINE_VALUE("result", *result);
+    PRINT_NEW_LINE();
+#endif
+    return res;
 }
 #endif
 
@@ -1164,7 +1175,7 @@ static PyAsyncMethods Nuitka_Coroutine_as_async = {
     0                                  /* am_anext */
 #if PYTHON_VERSION >= 0x3a0
     ,
-    (sendfunc)_Nuitka_Coroutine_amsend /* am_anext */
+    (sendfunc)_Nuitka_Coroutine_amsend /* am_send */
 #endif
 
 };

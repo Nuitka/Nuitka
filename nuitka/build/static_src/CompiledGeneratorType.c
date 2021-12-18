@@ -571,7 +571,7 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
         if (yielded == NULL) {
 #if _DEBUG_GENERATOR
             PRINT_GENERATOR_STATUS("finishing from yield", generator);
-            PRINT_STRING("-> finishing sets status_Finished\n");
+            PRINT_STRING("-> finishing generator sets status_Finished\n");
             PRINT_COROUTINE_VALUE("return_value", generator->m_returned);
             PRINT_CURRENT_EXCEPTION();
             PRINT_NEW_LINE();

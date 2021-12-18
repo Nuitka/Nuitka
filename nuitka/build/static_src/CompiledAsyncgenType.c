@@ -398,7 +398,7 @@ static PySendResult _Nuitka_Asyncgen_sendR(struct Nuitka_AsyncgenObject *asyncge
 #if _DEBUG_ASYNCGEN
             PRINT_ASYNCGEN_STATUS("finishing from yield", asyncgen);
             PRINT_CURRENT_EXCEPTION();
-            PRINT_STRING("-> finishing sets status_Finished\n");
+            PRINT_STRING("-> finishing asyncgen with exception sets status_Finished\n");
             PRINT_NEW_LINE();
 #endif
             asyncgen->m_status = status_Finished;
@@ -706,6 +706,9 @@ static PyObject *_Nuitka_Asyncgen_throw2(struct Nuitka_AsyncgenObject *asyncgen,
 
 throw_here:
     // We continue to have exception ownership here.
+#if _DEBUG_ASYNCGEN
+    PRINT_ASYNCGEN_STATUS("Need to throw into itself", asyncgen);
+#endif
 
     if (unlikely(_Nuitka_Generator_check_throw2(&exception_type, &exception_value, &exception_tb) == false)) {
         // Exception was released by _Nuitka_Generator_check_throw2 already.
@@ -881,7 +884,19 @@ static PyObject *Nuitka_Asyncgen_athrow(struct Nuitka_AsyncgenObject *asyncgen, 
 
 #if PYTHON_VERSION >= 0x3a0
 static PySendResult _Nuitka_Asyncgen_amsend(struct Nuitka_AsyncgenObject *asyncgen, PyObject *arg, PyObject **result) {
-    return _Nuitka_Asyncgen_sendR(asyncgen, arg, false, NULL, NULL, NULL, result);
+#if _DEBUG_ASYNCGEN
+    PRINT_ASYNCGEN_STATUS("Enter", asyncgen);
+#endif
+
+    *result = NULL;
+    PySendResult res = _Nuitka_Asyncgen_sendR(asyncgen, arg, false, NULL, NULL, NULL, result);
+
+#if _DEBUG_ASYNCGEN
+    PRINT_ASYNCGEN_STATUS("Leave", asyncgen);
+    PRINT_COROUTINE_VALUE("result", *result);
+    PRINT_NEW_LINE();
+#endif
+    return res;
 }
 #endif
 
