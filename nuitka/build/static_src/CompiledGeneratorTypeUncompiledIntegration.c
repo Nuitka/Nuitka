@@ -104,6 +104,33 @@ static inline bool Nuitka_PyGeneratorIsExecuting(PyGenObject const *gen) {
 // what it does. It's unrelated to compiled generators, and used from coroutines
 // and asyncgen to interact with them.
 static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
+#if PYTHON_VERSION >= 0x3a0
+    PyObject *result;
+
+    PySendResult res = PyIter_Send((PyObject *)gen, arg, &result);
+
+    switch (res) {
+    case PYGEN_RETURN:
+        if (result == NULL) {
+            SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
+        } else {
+            if (result != Py_None) {
+                Nuitka_SetStopIterationValue(result);
+            }
+
+            Py_DECREF(result);
+        }
+
+        return NULL;
+    case PYGEN_NEXT:
+        return result;
+    case PYGEN_ERROR:
+        return NULL;
+    default:
+        NUITKA_CANNOT_GET_HERE("invalid PYGEN_ result");
+    }
+#else
+
     PyFrameObject *f = gen->gi_frame;
 
 #if PYTHON_VERSION >= 0x3a0
@@ -265,6 +292,7 @@ static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
 #endif
 
     return result;
+#endif
 }
 
 #endif
