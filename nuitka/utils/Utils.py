@@ -70,9 +70,9 @@ def getLinuxDistribution():
 
                 for line in getFileContentByLine("/etc/os-release"):
                     if line.startswith("ID="):
-                        result = line[3:]
+                        result = line[3:].strip('"')
                     if line.startswith("VERSION="):
-                        version = line[8:]
+                        version = line[8:].strip('"')
 
             if result is None:
                 from .Execution import check_output
