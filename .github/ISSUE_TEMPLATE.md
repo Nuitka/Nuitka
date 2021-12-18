@@ -11,14 +11,16 @@ If you want to post a problem/bug, to help us understand and resolve your issue
 please check that you have provided at least the information below, and discard
 up to here:
 
-* Nuitka version, full Python version and Platform (Windows, OSX, Linux ...)
+* Nuitka version, full Python version, flavor, OS, etc. as output by this
+  command (it does more than you think, and we are adding more all the time):
 
   > python -m nuitka --version
 
+
 * How did you install Nuitka and Python
 
-  Did you use pip, anaconda, deb, rpm, from source, in a virtualenv or not,
-  this is very important usually.
+  Did you use pip, anaconda, deb, rpm, from source, git clone, then install into
+  a virtualenv or not, this is very important usually.
 
 * The specific PyPI names and versions
 
