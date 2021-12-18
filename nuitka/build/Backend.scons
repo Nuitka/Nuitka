@@ -146,6 +146,9 @@ nuitka_python = getArgumentBool("nuitka_python", False)
 # The Debian Python, for which we know that some optimization can be done.
 debian_python = getArgumentBool("debian_python", False)
 
+# For the msys2 python, we can know a few things, it's not Win32 entirely.
+msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
+
 # Python debug mode: reference count checking, assertions in CPython core.
 python_debug = getArgumentBool("python_debug", False)
 
@@ -198,9 +201,10 @@ mingw_mode = getArgumentBool("mingw_mode", False)
 # Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getArgumentBool("clang_mode", False)
 
-# Clang on Windows is always clang-cl for now.
+# Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
+# is changed to ClangCL from Visual Studio.
 clangcl_mode = False
-if win_target and not mingw_mode and clang_mode:
+if win_target and not (mingw_mode or msys2_mingw_python) and clang_mode:
     clang_mode = False
     clangcl_mode = True
 

@@ -54,6 +54,7 @@ from nuitka.PythonFlavors import (
     isAnacondaPython,
     isApplePython,
     isDebianPackagePython,
+    isMSYS2MingwPython,
     isNuitkaPython,
     isPyenvPython,
 )
@@ -551,6 +552,9 @@ def runSconsBackend(quiet):
 
     if isDebianPackagePython():
         options["debian_python"] = asBoolStr(True)
+
+    if isMSYS2MingwPython():
+        options["msys2_mingw_python"] = asBoolStr(True)
 
     if isAnacondaPython():
         options["anaconda_python"] = asBoolStr(True)

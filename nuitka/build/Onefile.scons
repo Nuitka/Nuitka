@@ -149,17 +149,21 @@ unstripped_mode = getArgumentBool("unstripped_mode", False)
 # data.
 target_arch = ARGUMENTS["target_arch"]
 
+# MinGW compiler mode, optional and interesting to Windows only.
+mingw_mode = getArgumentBool("mingw_mode", False)
+
 # Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getArgumentBool("clang_mode", False)
 
-# Clang on Windows is always clang-cl for now.
+# For the msys2 python, we can know a few things, it's not Win32 entirely.
+msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
+
+# Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
+# is changed to ClangCL from Visual Studio.
 clangcl_mode = False
-if win_target and clang_mode:
+if win_target and not (mingw_mode or msys2_mingw_python) and clang_mode:
     clang_mode = False
     clangcl_mode = True
-
-# MinGW compiler mode, optional and interesting to Windows only.
-mingw_mode = getArgumentBool("mingw_mode", False)
 
 # Show scons mode, output information about Scons operation
 show_scons_mode = getArgumentBool("show_scons", False)
