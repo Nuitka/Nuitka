@@ -44,14 +44,14 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/nuitka/build/include",
-                "/usr/include/python3.7"
+                "/usr/include/python3.9"
             ],
             "defines": [
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE",
                 "__IDE_ONLY__",
-                "PYTHON_VERSION=0x370"
+                "PYTHON_VERSION=0x390"
             ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
