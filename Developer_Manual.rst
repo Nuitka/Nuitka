@@ -2678,6 +2678,46 @@ The call to ``_complex_call`` is be a direct function call with no
 parameter parsing overhead. And the call in its end, is a special call
 operation, which relates to the ``PyObject_Call`` C-API.
 
+Match Statements
+----------------
+
+.. code:: python
+
+   match something():
+       case [x] if x:
+           z = 2
+       case _ as y if y == x and y:
+           z = 1
+       case 0:
+           z = 0
+
+This is the same as
+
+.. code:: python
+
+   tmp_match_subject = something()
+
+   # Indicator variable, once true, all matching stops.
+   tmp_handled = False
+
+   # First branch
+   x = tmp_match_subject
+
+   if sequence_check(x)
+      if x:
+         z = 2
+         tmp_handled = True
+
+   if tmp_handled is False:
+      y = tmp_match_subject
+
+      if x == y and y:
+         z = 1
+         tmp_handled = True
+
+   if tmp_handled is False:
+      z = 0
+
 Print Statements
 ----------------
 
