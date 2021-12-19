@@ -394,7 +394,7 @@ class TraceCollectionBase(object):
     def markActiveVariableAsEscaped(self, variable):
         current = self.getVariableCurrentTrace(variable)
 
-        if not current.isEscapeOrUnknownTrace():
+        if not current.isEscapeOrUnknownOrUninitTrace():
             version = variable.allocateTargetNumber()
 
             self.addVariableTrace(
@@ -750,26 +750,40 @@ class TraceCollectionBase(object):
 
         for variable, versions in iterItems(variable_versions):
             if type(versions) is tuple:
-                version = self.addVariableMergeMultipleTrace(
-                    variable=variable,
-                    traces=(
-                        self.getVariableTrace(variable, versions[0]),
-                        self.getVariableTrace(variable, versions[1]),
-                    ),
-                )
+                trace1 = self.getVariableTrace(variable, versions[0])
+                trace2 = self.getVariableTrace(variable, versions[1])
+
+                if trace1.isEscapeTrace() and trace1.previous is trace2:
+                    version = versions[0]
+                elif trace2 is trace1.isEscapeTrace() and trace2.previous is trace1:
+                    version = versions[1]
+                else:
+                    version = self.addVariableMergeMultipleTrace(
+                        variable=variable,
+                        traces=(
+                            trace1,
+                            trace2,
+                        ),
+                    )
             else:
                 version = versions
 
             self.markCurrentVariableTrace(variable, version)
 
     def mergeMultipleBranches(self, collections):
+        # This one is really complex, pylint: disable=too-many-branches
+
         assert collections
 
         # Optimize for length 1, which is trivial merge and needs not a
-        # lot of work.
-        if len(collections) == 1:
+        # lot of work, and length 2 has dedicated code as it's so frequent.
+        merge_size = len(collections)
+
+        if merge_size == 1:
             self.replaceBranch(collections[0])
-            return None
+            return
+        elif merge_size == 2:
+            return self.mergeBranches(*collections)
 
         # print("Enter mergeMultipleBranches", len(collections))
         with TimerReport(
@@ -793,13 +807,33 @@ class TraceCollectionBase(object):
                 if len(versions) == 1:
                     (version,) = versions
                 else:
-                    version = self.addVariableMergeMultipleTrace(
-                        variable=variable,
-                        traces=tuple(
-                            self.getVariableTrace(variable, version)
-                            for version in versions
-                        ),
-                    )
+                    traces = []
+                    escaped = []
+                    winner_version = None
+
+                    for version in versions:
+                        trace = self.getVariableTrace(variable, version)
+
+                        if trace.isEscapeTrace():
+                            winner_version = version
+                            escaped_trace = trace.previous
+
+                            if escaped_trace in traces:
+                                traces.remove(trace.previous)
+
+                            escaped.append(escaped)
+                            traces.append(trace)
+                        else:
+                            if trace not in escaped:
+                                traces.append(trace)
+
+                    if len(traces) == 1:
+                        version = winner_version
+                        assert winner_version is not None
+                    else:
+                        version = self.addVariableMergeMultipleTrace(
+                            variable=variable, traces=tuple(traces)
+                        )
 
                 self.markCurrentVariableTrace(variable, version)
 

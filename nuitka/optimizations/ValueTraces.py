@@ -148,7 +148,7 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
-    def isEscapeOrUnknownTrace():
+    def isEscapeOrUnknownOrUninitTrace():
         return False
 
     @staticmethod
@@ -245,6 +245,10 @@ class ValueTraceUninit(ValueTraceUnassignedBase):
     def isUninitTrace():
         return True
 
+    @staticmethod
+    def isEscapeOrUnknownOrUninitTrace():
+        return True
+
 
 class ValueTraceDeleted(ValueTraceUnassignedBase):
     """Trace caused by a deletion."""
@@ -314,9 +318,6 @@ class ValueTraceInitStarDict(ValueTraceInit):
 class ValueTraceUnknown(ValueTraceBase):
     __slots__ = ()
 
-    def __init__(self, owner, previous):
-        ValueTraceBase.__init__(self, owner=owner, previous=previous)
-
     @staticmethod
     def getTypeShape():
         return tshape_unknown
@@ -343,7 +344,7 @@ class ValueTraceUnknown(ValueTraceBase):
         return True
 
     @staticmethod
-    def isEscapeOrUnknownTrace():
+    def isEscapeOrUnknownOrUninitTrace():
         return True
 
     @staticmethod
@@ -406,7 +407,7 @@ class ValueTraceEscaped(ValueTraceUnknown):
         return True
 
     @staticmethod
-    def isEscapeOrUnknownTrace():
+    def isEscapeOrUnknownOrUninitTrace():
         return True
 
     def getAttributeNode(self):
