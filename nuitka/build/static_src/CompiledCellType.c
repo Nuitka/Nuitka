@@ -144,11 +144,16 @@ static PyObject *Nuitka_Cell_get_contents(struct Nuitka_CellObject *cell, void *
 #if PYTHON_VERSION >= 0x370
 static int Nuitka_Cell_set_contents(struct Nuitka_CellObject *cell, PyObject *value) {
     PyObject *old = cell->ob_ref;
+
+    if (old != NULL && value == NULL) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cell_contents cannot be used to delete values Nuitka");
+        return -1;
+    }
+
     cell->ob_ref = value;
     Py_XINCREF(value);
     Py_XDECREF(old);
 
-    // Cannot fail.
     return 0;
 }
 #endif
