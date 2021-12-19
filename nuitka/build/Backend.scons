@@ -649,7 +649,11 @@ def _detectPythonHeaderPath():
         # include path.
 
         candidates = [
-            os.path.join(python_prefix, "include", "python" + python_abi_version)
+            os.path.join(python_prefix, "include", "python" + python_abi_version),
+            # Haiku specific paths:
+            os.path.join(
+                python_prefix, "develop/headers", "python" + python_abi_version
+            ),
         ]
 
     for candidate in candidates:
