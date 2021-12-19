@@ -241,6 +241,20 @@ static void _initDeepCopy() {
                    Nuitka_CapsuleNew((void *)DEEP_COPY_GENERICALIAS));
 #endif
 
+#if PYTHON_VERSION >= 0x3a0
+    {
+        PyObject *args[2] = {(PyObject *)&PyFloat_Type, (PyObject *)&PyTuple_Type};
+        PyObject *args_tuple = MAKE_TUPLE(args, 2);
+        PyObject *union_value = MAKE_UNION_TYPE(args_tuple);
+
+        PyDict_SetItem(_deep_copy_dispatch, (PyObject *)Py_TYPE(union_value), _deep_noop);
+
+        Py_DECREF(union_value);
+        Py_DECREF(args_tuple);
+    }
+
+#endif
+
 #if PYTHON_VERSION < 0x300
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyString_Type, _deep_noop);
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyInt_Type, _deep_noop);

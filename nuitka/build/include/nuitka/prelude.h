@@ -93,6 +93,10 @@ extern _PyRuntimeState _PyRuntime;
 #include <internal/pycore_runtime.h>
 #endif
 
+#if PYTHON_VERSION >= 0x3a0
+#include <internal/pycore_unionobject.h>
+#endif
+
 // TODO: Might be useful too, allows access to Python configuration.
 // #include <internal/pycore_initconfig.h>
 

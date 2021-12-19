@@ -2028,6 +2028,30 @@ void _initSlotIternext() {
 }
 #endif
 
+#if PYTHON_VERSION >= 0x3a0
+extern PyObject *MAKE_UNION_TYPE(PyObject *args) {
+    assert(PyTuple_CheckExact(args));
+    assert(PyTuple_GET_SIZE(args) > 1);
+
+    CHECK_OBJECT_DEEP(args);
+
+    PyObject *result = NULL;
+
+    for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(args); i++) {
+        PyObject *value = PyTuple_GET_ITEM(args, i);
+
+        if (result == NULL) {
+            assert(i == 0);
+            result = value;
+        } else {
+            result = PyNumber_InPlaceBitor(result, value);
+        }
+    }
+
+    return result;
+}
+#endif
+
 #include "HelpersDeepcopy.c"
 
 #include "HelpersAttributes.c"

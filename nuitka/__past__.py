@@ -133,6 +133,11 @@ try:
 except ImportError:
     GenericAlias = None
 
+try:
+    from types import UnionType
+except ImportError:
+    UnionType = None
+
 
 def getMetaClassBase(meta_class_prefix):
     """For Python2/3 compatible source, we create a base class that has the metaclass
@@ -189,3 +194,4 @@ assert Iterable
 assert MutableSet
 assert subprocess
 assert GenericAlias or intern
+assert UnionType or intern

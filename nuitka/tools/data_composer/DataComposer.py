@@ -28,6 +28,7 @@ import sys
 from nuitka.__past__ import (
     BytesIO,
     GenericAlias,
+    UnionType,
     long,
     to_byte,
     unicode,
@@ -300,6 +301,10 @@ def _writeConstantValue(output, constant_value):
         output.write(b"G")
         _last_written = None
         _writeConstantValue(output, constant_value.__origin__)
+        _writeConstantValue(output, constant_value.__args__)
+    elif constant_type is UnionType:
+        output.write(b"H")
+        _last_written = None
         _writeConstantValue(output, constant_value.__args__)
     else:
         assert False, constant_value

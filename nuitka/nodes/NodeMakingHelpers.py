@@ -27,7 +27,7 @@ making it more difficult to use.
 """
 
 from nuitka import Options
-from nuitka.__past__ import GenericAlias
+from nuitka.__past__ import GenericAlias, UnionType
 from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
 from nuitka.PythonVersions import python_version
@@ -249,6 +249,13 @@ def makeCompileTimeConstantReplacementNode(value, node, user_provided):
 
         return ExpressionConstantGenericAlias(
             generic_alias=value,
+            source_ref=node.getSourceReference(),
+        )
+    elif UnionType is not None and isinstance(value, UnionType):
+        from .BuiltinTypeNodes import ExpressionConstantUnionType
+
+        return ExpressionConstantUnionType(
+            union_type=value,
             source_ref=node.getSourceReference(),
         )
     else:

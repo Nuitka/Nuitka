@@ -346,3 +346,34 @@ class ExpressionConstantGenericAlias(CompileTimeConstantExpressionBase):
     def computeExpressionRaw(self, trace_collection):
         # Nothing much to do.
         return self, None, None
+
+
+class ExpressionConstantUnionType(CompileTimeConstantExpressionBase):
+    kind = "EXPRESSION_CONSTANT_UNION_TYPE"
+
+    __slots__ = ("union_type",)
+
+    def __init__(self, union_type, source_ref):
+        CompileTimeConstantExpressionBase.__init__(self, source_ref=source_ref)
+
+        self.union_type = union_type
+
+    def finalize(self):
+        del self.parent
+
+    def getDetails(self):
+        return {"union_type": self.union_type}
+
+    def getCompileTimeConstant(self):
+        return self.union_type
+
+    def getStrValue(self):
+        return makeConstantRefNode(
+            constant=str(self.getCompileTimeConstant()),
+            user_provided=True,
+            source_ref=self.source_ref,
+        )
+
+    def computeExpressionRaw(self, trace_collection):
+        # Nothing much to do.
+        return self, None, None

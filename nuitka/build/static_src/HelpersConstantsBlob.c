@@ -1081,7 +1081,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         }
 #if PYTHON_VERSION >= 0x390
         case 'G': {
-            // Slice object
+            // GenericAlias object
             PyObject *items[2];
             data = _unpackBlobConstants(&items[0], data, 2);
 
@@ -1089,6 +1089,21 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
             // TODO: Maybe deduplicate.
             *output = g;
+
+            is_object = true;
+            break;
+        }
+#endif
+#if PYTHON_VERSION >= 0x3a0
+        case 'H': {
+            // UnionType object
+            PyObject *args;
+            data = _unpackBlobConstants(&args, data, 1);
+
+            PyObject *union_type = MAKE_UNION_TYPE(args);
+
+            // TODO: Maybe deduplicate.
+            *output = union_type;
 
             is_object = true;
             break;
