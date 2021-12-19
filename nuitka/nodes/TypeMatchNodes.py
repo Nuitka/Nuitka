@@ -39,6 +39,9 @@ class ExpressionMatchTypeCheckBase(
             source_ref=source_ref,
         )
 
+    def mayRaiseException(self, exception_type):
+        return self.subnode_value.mayRaiseException(exception_type)
+
 
 class ExpressionMatchTypeCheckSequence(ExpressionMatchTypeCheckBase):
     kind = "EXPRESSION_MATCH_TYPE_CHECK_SEQUENCE"
