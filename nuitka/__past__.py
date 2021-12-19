@@ -53,7 +53,6 @@ if str is bytes:
     def iterItems(d):
         return d.iteritems()
 
-
 else:
 
     def iterItems(d):
@@ -174,7 +173,6 @@ if not hasattr(pkgutil, "ModuleInfo"):
     def iter_modules(path=None, prefix=""):
         for item in pkgutil.iter_modules(path, prefix):
             yield ModuleInfo(*item)
-
 
 else:
     iter_modules = pkgutil.iter_modules

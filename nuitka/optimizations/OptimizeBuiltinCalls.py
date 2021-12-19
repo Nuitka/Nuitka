@@ -603,7 +603,6 @@ if python_version < 0x300:
             builtin_spec=ExpressionBuiltinUnicodeP2.builtin_spec,
         )
 
-
 else:
     from nuitka.nodes.BuiltinTypeNodes import (
         ExpressionBuiltinBytes1,

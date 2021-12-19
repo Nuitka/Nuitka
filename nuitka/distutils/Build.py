@@ -27,7 +27,6 @@ if not hasattr(setuptools.build_meta, "suppress_known_deprecation"):
     def suppress_known_deprecation():
         yield
 
-
 else:
     suppress_known_deprecation = setuptools.build_meta.suppress_known_deprecation
 

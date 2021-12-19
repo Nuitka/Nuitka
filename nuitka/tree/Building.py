@@ -230,7 +230,6 @@ if str is not bytes:
             source_ref=source_ref,
         )
 
-
 else:
 
     def buildVariableReferenceNode(provider, node, source_ref):
