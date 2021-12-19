@@ -423,7 +423,7 @@ def commentArgs():
     :meta private:
 
     """
-    # A ton of cases to consider, pylint: disable=too-many-branches
+    # A ton of cases to consider, pylint: disable=too-many-branches,too-many-statements
 
     # Inform the user about potential issues with the running version. e.g. unsupported
     # version.
@@ -478,6 +478,11 @@ def commentArgs():
             Tracing.options_logger.warning(
                 "Requesting Windows specific compilers has no effect on other platforms."
             )
+
+    if isMingw64() and getMsvcVersion():
+        Tracing.options_logger.sysexit(
+            "Requesting both Windows specific compilers makes no sense."
+        )
 
     if isOnefileMode():
         standalone_mode = "onefile"
