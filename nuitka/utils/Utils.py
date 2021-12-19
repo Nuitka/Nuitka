@@ -22,7 +22,6 @@ Here the small things that fit nowhere else and don't deserve their own module.
 """
 
 import os
-import platform
 import sys
 
 
@@ -57,6 +56,8 @@ def getLinuxDistribution():
         return None, None
 
     if _linux_distribution_info is None:
+        import platform
+
         # pylint: disable=I0021,deprecated-method,no-member
         try:
             result = platform.dist()[0]
@@ -97,6 +98,15 @@ def getLinuxDistribution():
         _linux_distribution_info = result.title(), version
 
     return _linux_distribution_info
+
+
+def getWindowsRelease():
+    if getOS() != "Windows":
+        return None
+
+    import platform
+
+    return platform.release()
 
 
 def isDebianBasedLinux():

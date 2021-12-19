@@ -45,6 +45,7 @@ from nuitka.utils.Utils import (
     getArchitecture,
     getLinuxDistribution,
     getOS,
+    getWindowsRelease,
     isLinux,
     isPosixWindows,
 )
@@ -96,6 +97,9 @@ def _getVersionInformationValues():
 
     if isLinux():
         yield "Distribution: %s %s" % getLinuxDistribution()
+
+    if getOS() == "Windows":
+        yield "WindowsRelease: %s" % getWindowsRelease()
 
 
 parser = OptionParser(
@@ -1355,13 +1359,16 @@ def _expandProjectArg(arg, filename_arg, for_eval):
         "MAIN_DIRECTORY": wrap(os.path.dirname(filename_arg) or "."),
     }
 
-    if getOS() != "Linux":
-        dist_info = "N/A", "0"
-    else:
+    if isLinux():
         dist_info = getLinuxDistribution()
+    else:
+        dist_info = "N/A", "0"
 
     values["Linux_Distribution_Name"] = dist_info[0]
     values["Linux_Distribution_Version"] = dist_info[1]
+
+    if getOS() == "Windows":
+        values["WindowsRelease"] = getWindowsRelease()
 
     arg = arg.format(**values)
 
