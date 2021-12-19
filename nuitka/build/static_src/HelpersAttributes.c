@@ -805,27 +805,34 @@ bool SET_ATTRIBUTE(PyObject *target, PyObject *attr_name, PyObject *value) {
 #if PYTHON_VERSION < 0x300 || defined(_NUITKA_USE_UNEXPOSED_API)
     if (type->tp_setattro == PyObject_GenericSetAttr) {
         return SET_ATTRIBUTE_GENERIC(type, target, attr_name, value);
-    } else
+    }
 #endif
 #if PYTHON_VERSION < 0x300
-        if (type->tp_setattro == PyInstance_Type.tp_setattro) {
+    if (type->tp_setattro == PyInstance_Type.tp_setattro) {
         return SET_INSTANCE(target, attr_name, value);
-    } else
+    }
 #endif
-        if (type->tp_setattro != NULL) {
-
+    if (type->tp_setattro != NULL) {
         int status = (*type->tp_setattro)(target, attr_name, value);
 
         if (unlikely(status == -1)) {
             return false;
         }
-    } else if (type->tp_setattr != NULL) {
+
+        return true;
+    }
+
+    if (type->tp_setattr != NULL) {
         int status = (*type->tp_setattr)(target, (char *)Nuitka_String_AsString_Unchecked(attr_name), value);
 
         if (unlikely(status == -1)) {
             return false;
         }
-    } else if (type->tp_getattr == NULL && type->tp_getattro == NULL) {
+
+        return true;
+    }
+
+    if (type->tp_getattr == NULL && type->tp_getattro == NULL) {
         PyErr_Format(PyExc_TypeError, "'%s' object has no attributes (assign to %s)", type->tp_name,
                      Nuitka_String_AsString_Unchecked(attr_name));
 
@@ -836,8 +843,6 @@ bool SET_ATTRIBUTE(PyObject *target, PyObject *attr_name, PyObject *value) {
 
         return false;
     }
-
-    return true;
 }
 
 bool SET_ATTRIBUTE_DICT_SLOT(PyObject *target, PyObject *value) {
