@@ -715,12 +715,13 @@ throw_here:
         return NULL;
     }
 
+    PyObject *result;
+
     if (asyncgen->m_status == status_Running) {
-        PyObject *result = _Nuitka_Asyncgen_send(asyncgen, NULL, false, exception_type, exception_value, exception_tb);
-        return result;
+        result = _Nuitka_Asyncgen_send(asyncgen, NULL, false, exception_type, exception_value, exception_tb);
     } else if (asyncgen->m_status == status_Finished) {
         RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
-        return NULL;
+        result = NULL;
     } else {
         if (exception_tb == NULL) {
             // TODO: Our compiled objects really need a way to store common
@@ -740,8 +741,17 @@ throw_here:
 
         asyncgen->m_status = status_Finished;
 
-        return NULL;
+        result = NULL;
     }
+
+#if _DEBUG_ASYNCGEN
+    PRINT_ASYNCGEN_STATUS("Leave", asyncgen);
+    PRINT_COROUTINE_VALUE("yieldfrom", asyncgen->m_yieldfrom);
+    PRINT_CURRENT_EXCEPTION();
+    PRINT_NEW_LINE();
+#endif
+
+    return result;
 }
 
 static PyObject *Nuitka_Asyncgen_throw(struct Nuitka_AsyncgenObject *asyncgen, PyObject *args) {
@@ -832,14 +842,14 @@ static PyObject *Nuitka_AsyncgenAthrow_New(struct Nuitka_AsyncgenObject *asyncge
 static PyObject *Nuitka_Asyncgen_anext(struct Nuitka_AsyncgenObject *asyncgen) {
     CHECK_OBJECT(asyncgen);
 
-    if (Nuitka_Asyncgen_init_hooks(asyncgen)) {
-        return NULL;
-    }
-
 #if _DEBUG_ASYNCGEN
     PRINT_ASYNCGEN_STATUS("Enter", asyncgen);
     PRINT_NEW_LINE();
 #endif
+
+    if (Nuitka_Asyncgen_init_hooks(asyncgen)) {
+        return NULL;
+    }
 
     PyObject *result = Nuitka_AsyncgenAsend_New(asyncgen, Py_None);
 
@@ -1354,10 +1364,13 @@ static PyObject *Nuitka_Asyncgen_unwrap_value(struct Nuitka_AsyncgenObject *asyn
     CHECK_OBJECT_X(result);
 
     if (result == NULL) {
-        if (!ERROR_OCCURRED()) {
+        PyObject *error = GET_ERROR_OCCURRED();
+
+        if (error == NULL) {
             SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopAsyncIteration);
             asyncgen->m_closed = true;
-        } else if (PyErr_ExceptionMatches(PyExc_StopAsyncIteration) || PyErr_ExceptionMatches(PyExc_GeneratorExit)) {
+        } else if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_StopAsyncIteration) ||
+                   EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_GeneratorExit)) {
             asyncgen->m_closed = true;
         }
 
