@@ -716,7 +716,7 @@ class StatementReleaseVariable(StatementBase):
                     None,
                     "new_statements",
                     "Original parameter variable value of '%s' is not released."
-                    % self.variable.getDescription(),
+                    % self.variable.getName(),
                 )
 
         self.variable_trace = trace_collection.getVariableCurrentTrace(self.variable)
