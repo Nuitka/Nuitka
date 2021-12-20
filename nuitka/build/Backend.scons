@@ -685,7 +685,7 @@ if nuitka_python:
 if static_libpython:
     env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
 
-if static_libpython and not (env.anaconda_python and win_target):
+if static_libpython and (not win_target or nuitka_python):
     env.Append(CPPDEFINES=["_NUITKA_USE_UNEXPOSED_API"])
 
 if win_target:

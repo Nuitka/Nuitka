@@ -1070,14 +1070,24 @@ PyTypeObject Nuitka_Asyncgen_Type = {
 #else
     0, /* tp_base */
 #endif
-    0, /* tp_dict */
-    0, /* tp_descr_get */
-    0, /* tp_descr_set */
-    0, /* tp_dictoffset */
-    0, /* tp_init */
-    0, /* tp_alloc */
-    0, /* tp_new */
-    0, /* tp_free */
+    0,                                       /* tp_dict */
+    0,                                       /* tp_descr_get */
+    0,                                       /* tp_descr_set */
+    0,                                       /* tp_dictoffset */
+    0,                                       /* tp_init */
+    0,                                       /* tp_alloc */
+    0,                                       /* tp_new */
+    0,                                       /* tp_free */
+    0,                                       /* tp_is_gc */
+    0,                                       /* tp_bases */
+    0,                                       /* tp_mro */
+    0,                                       /* tp_cache */
+    0,                                       /* tp_subclasses */
+    0,                                       /* tp_weaklist */
+    0,                                       /* tp_del */
+    0,                                       /* tp_version_tag */
+    (destructor)Nuitka_Asyncgen_tp_finalize, /* tp_finalize */
+
 };
 
 PyObject *Nuitka_Asyncgen_New(asyncgen_code code, PyObject *module, PyObject *name, PyObject *qualname,
@@ -2051,7 +2061,7 @@ static PyTypeObject Nuitka_AsyncgenAthrow_Type = {
     0,                                                                /* tp_weaklist */
     0,                                                                /* tp_del */
     0,                                                                /* tp_version_tag */
-    (destructor)Nuitka_Asyncgen_tp_finalize,                          /* tp_finalize */
+    0,                                                                /* tp_finalize */
 };
 
 static PyObject *Nuitka_AsyncgenAthrow_New(struct Nuitka_AsyncgenObject *asyncgen, PyObject *args) {

@@ -148,3 +148,7 @@ kivy:
 kivymd:
   dirs:
     - "fonts"
+
+seedir.printing:
+  patterns:
+    - "words.txt"
