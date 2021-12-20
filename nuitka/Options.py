@@ -519,6 +519,7 @@ def commentArgs():
         and not options.include_modules
         and not options.include_packages
         and not options.include_extra
+        and not options.follow_not_modules
     ):
         Tracing.options_logger.warning(
             """You did not specify to follow or include anything but main %s. Check options and \
