@@ -395,7 +395,7 @@ standalone where there is a sane default used inside the dist folder."""
     if shallUseStaticLibPython() and getSystemStaticLibPythonPath() is None:
         Tracing.options_logger.sysexit(
             """Error, usable static libpython is not found for this Python installation. You \
-might be missing required '-dev' packages. Disable with --static-libpython=no" if you don't \
+might be missing required packages. Disable with --static-libpython=no" if you don't \
 want to install it."""
         )
 
@@ -828,12 +828,12 @@ def _shallUseStaticLibPython():
     # return driven, pylint: disable=too-many-return-statements
 
     if shallMakeModule():
-        return False
+        return False, "not used in module mode"
 
     if options.static_libpython == "auto":
         # Nuitka-Python is good to to static linking.
         if isNuitkaPython():
-            return True
+            return True, "Nuitka-Python is broken."
 
         # Debian packages with are usable if the OS is new enough
         from nuitka.utils.StaticLibraries import (
@@ -845,20 +845,22 @@ def _shallUseStaticLibPython():
             and isDebianSuitableForStaticLinking()
             and not isPythonDebug()
         ):
-            return True
+            return True, "Nuitka on Debian-Python needs package '%s' installed." % (
+                "python2-dev" if str is bytes else "python3-dev"
+            )
 
         if isMSYS2MingwPython():
-            return True
+            return True, "Nuitka on MSYS2 needs package 'python-devel' installed."
 
         # For Anaconda default to trying static lib python library, which
         # normally is just not available or if it is even unusable.
         if isAnacondaPython() and not isMacOS():
-            return True
+            return True, "Nuitka on Anaconda needs package 'libpython' installed."
 
         if isPyenvPython():
-            return True
+            return True, "Nuitka on pyenv should not use '--enable-shared'."
 
-    return options.static_libpython == "yes"
+    return options.static_libpython == "yes", None
 
 
 def shallUseStaticLibPython():
@@ -871,7 +873,18 @@ def shallUseStaticLibPython():
     global _shall_use_static_lib_python  # singleton, pylint: disable=global-statement
 
     if _shall_use_static_lib_python is None:
-        _shall_use_static_lib_python = _shallUseStaticLibPython()
+        _shall_use_static_lib_python, reason = _shallUseStaticLibPython()
+
+        if _shall_use_static_lib_python and reason:
+            static_libpython = getSystemStaticLibPythonPath()
+
+            if not static_libpython:
+                Tracing.options_logger.sysexit(
+                    """\
+Automatic detection of static libpython failed. %s Disable with '--static-libpython=no' if you don't \
+want to install it."""
+                    % reason
+                )
 
     return _shall_use_static_lib_python
 
