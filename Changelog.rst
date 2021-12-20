@@ -87,6 +87,20 @@ Bug Fixes
    this lead to including the C filenames of the ``zstd`` inline copy
    files and obviously less optimal code. Fixed in 0.6.18.4 already.
 
+-  Standalone: Added support for ``bottle.ext`` loading extensions to
+   resolve at compile time. Fixed in 0.6.18.5 already.
+
+-  Standalone: Added support for ``seedir`` required data file. Fixed in
+   0.6.18.5 already.
+
+-  MSYS2: Failed to link when using the static libpython, which is also
+   now the default for MSYS2. Fixed in 0.6.18.5 already.
+
+-  Python3.6+: Fix, the intended finalizer of compiled ``asyncgen`` was
+   not present and in fact associated to help type. This could have
+   caused corruption, but that was also very unlikely. Fixed in 0.6.18.5
+   already.
+
 -  Python3: Fix, need to set ``__file__`` before executing modules, as
    some modules, specifically newer PyWin32 use them to locate things
    during their initialization already.
@@ -103,6 +117,10 @@ Bug Fixes
    used for values. Added support for that and documented its use as
    well in the User Manual.
 
+-  Python3.7+: Do no longer allow deleting cell values, this can lead to
+   corruption and should be avoided, it seems unlikely outside of tests
+   anyway.
+
 New Features
 ============
 
@@ -110,6 +128,14 @@ New Features
    This is initially for use in PGO tests, to decide if the expected
    forms of inclusions have happened and should grow into a proper
    reporting tool over time.
+
+-  Added support for Python 3.10, only ``match`` statements are not
+   completely supported. Variantion with ``|`` matches that also assign
+   are not allowed currently.
+
+-  Windows: Allow using ``--clang`` with ``--mingw64`` to e.g. use the
+   ``clang.exe`` that is contained in the Nuitka automatic download
+   rather than ``gcc.exe``.
 
 Optimization
 ============
@@ -129,6 +155,13 @@ Optimization
    loop or inside a branch, that was otherwise unused alive. This should
    enable more optimization for code with branches and loops. Also
    unused loop traces are now recognized and removed as well.
+
+-  Avoiding merges of escaped traces with the unescaped trace, there is
+   no point in them. This was actually happening a lot and should mean a
+   scalability improvement and unlock new optimization as well.
+
+-  Avoid escaping uninit traces. Unset values need not be considered as
+   potentially modified as that cannot be done.
 
 -  The ``str`` shape is now detected through variables.
 
@@ -186,6 +219,11 @@ Optimization
 -  Specialized comparison code for Python2 ``long`` and Python3 ``int``
    code, making these operations much faster to use.
 
+-  Specialized comparison code for Python2 ``unicode`` and Python3
+   ``str`` code, making these operations much faster to use, currently
+   only ``==`` and ``!=`` are fully accelerated, the other comparisons
+   will follow.
+
 -  Enable static libpython with Python3 Debian packages too. As with
    Python2, this will improve the performance of the created binary a
    lot and reduce size for standalone distribution.
@@ -198,6 +236,9 @@ Optimization
    ``__import__`` nodes, avoiding later optimization doing that, and of
    course that's simpler code too.
 
+-  Python 3.10: Added support for ``union`` types as compiled time
+   constants.
+
 Organisational
 ==============
 
@@ -209,8 +250,14 @@ Organisational
 -  User Manual: Added example explaining how to access values from your
    code in Nuitka project options.
 
+-  UI: For Python flavors where we expect a static libpython, the error
+   message will now point out how to achieve it for each flavor.
+
 -  UI: Disable progress bar when ``--show-scons`` is used, it makes
    capturing the output from the terminal only harder.
+
+-  UI: Catch error of specifying both ``--msvc=`` and ``--mingw64``
+   options.
 
 -  Distutils: Improved error messages when using ``setuptools`` or
    ``build`` integration and failing to provide packages to compile.
@@ -226,6 +273,13 @@ Organisational
 -  Warnings about imports not done, are now only given when optimization
    can not remove the usage, and no options relatved to following have
    been given.
+
+-  Added Windows version to ``--version`` output of Nuitka. This is to
+   more clearly recognize Windows 10 from Windows 11 report, and also
+   the odd Windows 7 report, where tool chain will be different.
+
+-  In Visual Code, the default Python used is now 3.9 in the "Linux" C
+   configuration. This matches Debian Bullseye.
 
 Cleanups
 ========
@@ -262,6 +316,9 @@ Cleanups
 -  Removed ``nuitka.finalizatios.FinalizationBase``, we only have one
    final visitor that does everything, and that of course makes a lot of
    sense for its performance.
+
+-  Resolved deprecation warnings given by with ``--python-debug`` for
+   Nuitka.
 
 Tests
 =====
@@ -395,15 +452,15 @@ Bug Fixes
 
 -  Fix, for module mode filenames are used, and for packages, you can
    specify a directory, however, a trailing slash was not working. Fixed
-   in 0.6.16.7 already.
+   in 0.6.17.7 already.
 
 -  Compatibility: Fix, when locating modules, a package directory and an
    extension module of the same name were not used according to
-   priority. Fixed in 0.6.16.7 already.
+   priority. Fixed in 0.6.17.7 already.
 
 -  Standalone: Added workaround ``importlib_resources`` insisting on
    Python source files to exist to be able to load datafiles. Fixed in
-   0.6.16.7 already.
+   0.6.17.7 already.
 
 -  Standalone: Properly detect usage of hard imports from standard
    library in ``--follow-stdlib`` mode.
@@ -414,9 +471,6 @@ Bug Fixes
 
 -  Anaconda: For accelerated binaries, the created ``.cmd`` file wasn't
    containing all needed environment.
-
--  Standalone: Added support for ``bottle.ext`` loading extensions to
-   resolve at compile time.
 
 -  macOS: Set minimum OS version derived from the Python executable
    used, this should make it work on all supported platforms (of that
