@@ -133,7 +133,7 @@ def resolveModuleName(module_name):
     # importer effects here.
     if module_name.isBelowNamespace("bottle.ext"):
         # bottle.ext.something -> bottle_something
-        module_name = ModuleName(
+        return ModuleName(
             "bottle_"
             + module_name.splitPackageName()[1].splitPackageName()[1].asString()
         )

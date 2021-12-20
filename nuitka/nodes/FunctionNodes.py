@@ -820,7 +820,7 @@ class ExpressionFunctionPureBody(ExpressionFunctionBody):
                 optimization_logger.info(
                     "{source_ref} : {tags} : {message}".format(
                         source_ref=source_ref.getAsString(),
-                        tags=tags,
+                        tags=tag,
                         message=change_desc()
                         if inspect.isfunction(change_desc)
                         else change_desc,
