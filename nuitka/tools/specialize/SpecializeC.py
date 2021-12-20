@@ -982,6 +982,10 @@ assert(PyUnicode_CheckExact(%(operand)s));""" % {
             return slot == "nb_remainder"
         elif slot.startswith("sq_"):
             return "ass" not in slot and "inplace" not in slot
+        elif slot == "tp_richcompare":
+            return True
+        elif slot == "tp_compare":
+            return True
         else:
             assert False, slot
 
@@ -1509,6 +1513,8 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
         template = getDoExtensionUsingTemplateC("HelperOperationComparisonBytes.c.j2")
     elif left == str_desc:
         template = getDoExtensionUsingTemplateC("HelperOperationComparisonStr.c.j2")
+    elif left == unicode_desc:
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonUnicode.c.j2")
     else:
         return
 
