@@ -37,7 +37,7 @@ PyObject *IMPORT_HARD___FUTURE__(void) {
 }
 /* C helper for hard import of module "_frozen_importlib" import. */
 
-#if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x350
+#if PYTHON_VERSION >= 0x300
 PyObject *IMPORT_HARD__FROZEN_IMPORTLIB(void) {
     static PyObject *module__frozen_importlib = NULL;
 

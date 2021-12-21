@@ -2002,7 +2002,7 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
     emit()
 
     if module_name == "_frozen_importlib":
-        python_requirement = "PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x350"
+        python_requirement = "PYTHON_VERSION >= 0x300"
     elif module_name == "_frozen_importlib_external":
         python_requirement = "PYTHON_VERSION >= 0x350"
     else:
