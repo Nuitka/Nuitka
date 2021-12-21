@@ -13129,8 +13129,8 @@ Optimization
    difficult to recognize.
 
 -  Added optimization for module attributes ``__file__``, ``__doc__``
-   and ``__package__`` if they are read only. It's the same as
-   ``__name__``.
+   and ``__package__`` if they are read only. It's the same as was done
+   for ``__name__`` so far only.
 
 -  Added optimization for slices and subscripts of "compile time
    constant" values. These will play a more important role, once value
