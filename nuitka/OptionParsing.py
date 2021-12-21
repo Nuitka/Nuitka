@@ -232,7 +232,8 @@ parser.add_option(
     default=False,
     help="""\
 Allow Nuitka to download external code if necessary, e.g. dependency
-walker, ccache, and even gcc on Windows.""",
+walker, ccache, and even gcc on Windows. To disable, redirect input
+from nul device, e.g. "</dev/null" or "<NUL:". Default is to prompt.""",
 )
 
 
