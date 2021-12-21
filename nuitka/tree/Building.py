@@ -1263,7 +1263,7 @@ def buildModule(
     is_fake,
     hide_syntax_error,
 ):
-    # Many details to deal with, pylint: disable=too-many-locals
+    # Many details to deal with, pylint: disable=too-many-branches,too-many-locals
     (
         main_added,
         is_package,
@@ -1276,6 +1276,16 @@ def buildModule(
         is_main=is_main,
         is_fake=is_fake,
     )
+
+    if Options.hasPythonFlagPackageMode():
+        if is_top and Options.shallMakeModule():
+            optimization_logger.warning(
+                "Python flag -m (package_mode) has no effect in module mode, it's only for executables."
+            )
+        elif is_main and not main_added:
+            optimization_logger.warning(
+                "Python flag -m (package_mode) only works on packages with '__main__.py'."
+            )
 
     # Read source code if necessary. Might give a SyntaxError due to not being proper
     # encoded source.

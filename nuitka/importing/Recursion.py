@@ -25,7 +25,7 @@ import os
 from nuitka import ModuleRegistry, Options
 from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.importing import ImportCache, Importing, StandardLibrary
-from nuitka.ModuleRegistry import addUsedModule
+from nuitka.ModuleRegistry import addUsedModule, getRootTopModule
 from nuitka.pgo.PGO import decideInclusionFromPGO
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
@@ -81,6 +81,15 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
     # pylint: disable=too-many-branches,too-many-return-statements
     if module_name == "__main__":
         return False, "Main program is not followed to a second time."
+
+    # In -m mode, when including the package, do not duplicate main program.
+    if (
+        Options.hasPythonFlagPackageMode()
+        and not Options.shallMakeModule()
+        and module_name.getBasename() == "__main__"
+    ):
+        if module_name.getPackageName() == getRootTopModule().getRuntimePackageValue():
+            return False, "Main program is already included in package mode."
 
     plugin_decision = Plugins.onModuleEncounter(
         module_filename=module_filename,

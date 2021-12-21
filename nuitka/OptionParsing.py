@@ -192,7 +192,7 @@ enforces a specific mode. These are options that also exist to standard
 Python executable. Currently supported: "-S" (alias "no_site"),
 "static_hashes" (do not use hash randomization), "no_warnings" (do not
 give Python runtime warnings), "-O" (alias "no_asserts"), "no_docstrings"
-(do not use docstrings). Default empty.""",
+(do not use docstrings), and "-m".  Default empty.""",
 )
 
 parser.add_option(

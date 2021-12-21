@@ -1246,6 +1246,8 @@ _python_flags = None
 
 def _getPythonFlags():
     """*list*, values of ``--python-flag``"""
+    # There is many flags, pylint: disable=too-many-branches
+
     # singleton, pylint: disable=global-statement
     global _python_flags
 
@@ -1276,6 +1278,8 @@ def _getPythonFlags():
                     _python_flags.add("no_asserts")
                 elif part in ("no_annotations", "noannotations"):
                     _python_flags.add("no_annotations")
+                elif part in ("-m", "package_mode"):
+                    _python_flags.add("package_mode")
                 else:
                     Tracing.options_logger.sysexit("Unsupported python flag %r." % part)
 
@@ -1322,6 +1326,12 @@ def hasPythonFlagNoRandomization():
     """*bool* = "no_randomization", "-R", "static_hashes" in python flags given"""
 
     return "no_randomization" in _getPythonFlags()
+
+
+def hasPythonFlagPackageMode():
+    """*bool* = "package_mode", "-m" in python flags given"""
+
+    return "package_mode" in _getPythonFlags()
 
 
 def shallFreezeAllStdlib():

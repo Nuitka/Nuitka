@@ -27,8 +27,6 @@ quickly, in others they will present boundaries for optimization.
 
 """
 
-import os
-
 from nuitka import Options
 
 from .ConstantRefNodes import makeConstantRefNode
@@ -132,23 +130,7 @@ class ExpressionModuleAttributePackageRef(ExpressionModuleAttributeBase):
 
         if not Options.shallMakeModule():
             provider = self.variable.getModule()
-
-            if provider.isCompiledPythonPackage():
-                value = provider.getFullName().asString()
-            else:
-                value = provider.getFullName().getPackageName()
-
-                if value is not None:
-                    value = value.asString()
-                else:
-                    if (
-                        provider.getFullName() == "__main__"
-                        and os.path.basename(provider.getCompileTimeFilename())
-                        == "__main__.py"
-                    ):
-                        value = ""
-                    else:
-                        value = None
+            value = provider.getRuntimePackageValue()
 
             result = makeConstantRefNode(constant=value, source_ref=self.source_ref)
 

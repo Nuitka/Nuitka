@@ -656,6 +656,29 @@ class CompiledPythonModule(
     def getLocalsScope(self):
         return self.locals_scope
 
+    def getRuntimePackageValue(self):
+        assert not Options.shallMakeModule()
+
+        if self.isCompiledPythonPackage():
+            return self.getFullName().asString()
+
+        value = self.getFullName().getPackageName()
+
+        if value is not None:
+            return value.asString()
+
+        filename = self.getCompileTimeFilename()
+        if (
+            self.getFullName() == "__main__"
+            and os.path.basename(filename) == "__main__.py"
+        ):
+            if Options.hasPythonFlagPackageMode():
+                return os.path.basename(os.path.dirname(filename))
+            else:
+                return ""
+        else:
+            return None
+
 
 class CompiledPythonPackage(CompiledPythonModule):
     kind = "COMPILED_PYTHON_PACKAGE"

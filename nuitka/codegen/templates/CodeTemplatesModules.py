@@ -367,7 +367,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         UPDATE_STRING_DICT0(
             moduledict_%(module_identifier)s,
             (Nuitka_StringObject *)const_str_plain___package__,
-            const_str_empty
+            %(dunder_main_package)s
         );
 #elif %(is_package)s
         PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
