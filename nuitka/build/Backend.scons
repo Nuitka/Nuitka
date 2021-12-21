@@ -460,7 +460,14 @@ if env.gcc_mode and env.lto_mode:
     if env.debug_mode:
         env.Append(LINKFLAGS=["-Og"])
     else:
-        env.Append(LINKFLAGS=["-O2" if env.lto_mode and not nuitka_python else "-O3"])
+        # For LTO with static libpython combined, there are crashes with Python core
+        # being inlined, so we must refrain from that. On Windows there is no such
+        # thing, and Nuitka-Python is not affected.
+        env.Append(
+            LINKFLAGS=[
+                "-O3" if nuitka_python or win_target or not static_libpython else "-O2"
+            ]
+        )
 
 # Avoid them as appearing to be different files. TODO: Find out which
 # clang version has this, clang-8 does not.
