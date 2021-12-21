@@ -60,7 +60,6 @@ from .SconsCompilerSettings import (
     checkWindowsCompilerFound,
     enableC11Settings,
     enableExperimentalSettings,
-    enableLtoSettings,
     setupCCompiler,
     switchFromGccToGpp,
 )
@@ -318,6 +317,12 @@ env.msvc_mode = win_target and not env.gcc_mode
 env.mingw_mode = win_target and env.gcc_mode
 env.clangcl_mode = clangcl_mode
 
+# Python specific modes have to influence some decisions, but not
+# for Onefile.
+env.nuitka_python = False
+env.debian_python = False
+env.static_libpython = None
+
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
 switchFromGccToGpp(
     env=env,
@@ -346,15 +351,10 @@ if show_scons_mode:
 setupScons(env, source_dir)
 
 # Set up C compiler settings.
-setupCCompiler(env)
-
-# Enable LTO for compiler.
-enableLtoSettings(
+setupCCompiler(
     env=env,
     lto_mode=lto_mode,
     pgo_mode="no",  # TODO: Have this here too, decompression might benefit.
-    nuitka_python=False,
-    debian_python=False,
     job_count=job_count,
 )
 
@@ -490,25 +490,6 @@ else:
     if env.gcc_mode:
         if not env.clang_mode:
             env.Append(LINKFLAGS=["-s"])
-
-# When debugging, optimize less than when optimizing, when not remove
-# assertions.
-if debug_mode:
-    if env.gcc_mode or env.msvc_mode:
-        env.Append(CCFLAGS=["-O2"])
-else:
-    if env.gcc_mode:
-        env.Append(CCFLAGS=["-O3"])
-    elif env.msvc_mode:
-        env.Append(
-            CCFLAGS=[
-                "/Ox",  # Enable most speed optimization
-                "/GF",  # Eliminate duplicate strings.
-                "/Gy",  # Function level object storage, to allow removing unused ones
-            ]
-        )
-
-    env.Append(CPPDEFINES=["__NUITKA_NO_ASSERT__"])
 
 # Tell compiler to create a program.
 if env.msvc_mode:

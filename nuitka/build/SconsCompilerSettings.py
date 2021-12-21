@@ -76,16 +76,13 @@ def enableC11Settings(env):
     return c11_mode
 
 
-def enableLtoSettings(
+def _enableLtoSettings(
     env,
     lto_mode,
     pgo_mode,
-    nuitka_python,
-    debian_python,
     job_count,
 ):
-    # This is driven by many branches on purpose and has a lot of things
-    # to deal with for LTO checks and flags, pylint: disable=too-many-branches,too-many-statements
+    # This is driven by branches on purpose and pylint: disable=too-many-branches
 
     orig_lto_mode = lto_mode
 
@@ -101,11 +98,11 @@ def enableLtoSettings(
     elif env.msvc_mode and getMsvcVersion(env) >= 14:
         lto_mode = True
         reason = "known to be supported"
-    elif nuitka_python:
+    elif env.nuitka_python:
         lto_mode = True
         reason = "known to be supported (Nuitka-Python)"
     elif (
-        debian_python
+        env.debian_python
         and env.gcc_mode
         and not env.clang_mode
         and env.gcc_version >= (6,)
@@ -143,11 +140,6 @@ version for lto mode (>= 4.6). Disabled."""
 
             # Need to tell the linker these things are OK.
             env.Append(LINKFLAGS=["-fpartial-inlining", "-freorder-functions"])
-
-        if env.debug_mode:
-            env.Append(LINKFLAGS=["-Og"])
-        else:
-            env.Append(LINKFLAGS=["-O3" if nuitka_python or env.mingw_mode else "-O2"])
 
     # Tell compiler to use link time optimization for MSVC
     if env.msvc_mode and lto_mode:
@@ -416,8 +408,17 @@ def enableExperimentalSettings(env, experimental_flags):
                 env.Append(CPPDEFINES=["_NUITKA_EXPERIMENTAL_%s" % experiment])
 
 
-def setupCCompiler(env):
-    # Many things to deal with, pylint: disable=too-many-branches
+def setupCCompiler(env, lto_mode, pgo_mode, job_count):
+    # This is driven by many branches on purpose and has a lot of things
+    # to deal with for LTO checks and flags, pylint: disable=too-many-branches,too-many-statements
+
+    # Enable LTO for compiler.
+    _enableLtoSettings(
+        env=env,
+        lto_mode=lto_mode,
+        pgo_mode=pgo_mode,
+        job_count=job_count,
+    )
 
     if env.gcc_mode:
         # Support for gcc and clang, restricting visibility as much as possible.
@@ -524,6 +525,67 @@ def setupCCompiler(env):
     # itself, while we do not need it really.
     if env.gcc_mode and not env.clang_mode and env.gcc_version >= (6,):
         env.Append(CCFLAGS=["-Wno-misleading-indentation"])
+
+    # Disable output of notes, e.g. on struct alignment layout changes for
+    # some arches, we don't care.
+    if env.gcc_mode and not env.clang_mode:
+        env.Append(CCFLAGS=["-fcompare-debug-second"])
+
+    # Prevent using LTO when told not to use it, causes errors with some
+    # static link libraries.
+    if (
+        env.gcc_mode
+        and not env.clang_mode
+        and env.static_libpython
+        and not env.lto_mode
+    ):
+        env.Append(CCFLAGS=["-fno-lto"])
+        env.Append(LINKFLAGS=["-fno-lto"])
+
+    # Set optimization level for gcc and clang in LTO mode
+    if env.gcc_mode and env.lto_mode:
+        if env.debug_mode:
+            env.Append(LINKFLAGS=["-Og"])
+        else:
+            # For LTO with static libpython combined, there are crashes with Python core
+            # being inlined, so we must refrain from that. On Windows there is no such
+            # thing, and Nuitka-Python is not affected.
+            env.Append(
+                LINKFLAGS=[
+                    "-O3"
+                    if env.nuitka_python or os.name == "nt" or not env.static_libpython
+                    else "-O2"
+                ]
+            )
+
+    # When debugging, optimize less than when optimizing, when not remove
+    # assertions.
+    if env.debug_mode:
+        if env.clang_mode or (env.gcc_mode and env.gcc_version >= (4, 8)):
+            env.Append(CCFLAGS=["-Og"])
+        elif env.gcc_mode:
+            env.Append(CCFLAGS=["-O1"])
+        elif env.msvc_mode:
+            env.Append(CCFLAGS=["-O2"])
+    else:
+        if env.gcc_mode:
+            env.Append(
+                CCFLAGS=[
+                    "-O3"
+                    if env.nuitka_python or os.name == "nt" or not env.static_libpython
+                    else "-O2"
+                ]
+            )
+        elif env.msvc_mode:
+            env.Append(
+                CCFLAGS=[
+                    "/Ox",  # Enable most speed optimization
+                    "/GF",  # Eliminate duplicate strings.
+                    "/Gy",  # Function level object storage, to allow removing unused ones
+                ]
+            )
+
+        env.Append(CPPDEFINES=["__NUITKA_NO_ASSERT__"])
 
 
 def _enablePgoSettings(env, pgo_mode):

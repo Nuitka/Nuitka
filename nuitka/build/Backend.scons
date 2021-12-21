@@ -64,7 +64,6 @@ from .SconsCompilerSettings import (
     decideConstantsBlobResourceMode,
     enableC11Settings,
     enableExperimentalSettings,
-    enableLtoSettings,
     enableWindowsStackSize,
     setupCCompiler,
     switchFromGccToGpp,
@@ -284,7 +283,7 @@ compiler_version_mode = getArgumentBool("compiler_version", False)
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 
 # Low memory mode, compile using less memory if possible.
-low_memory_mode = getArgumentBool("low_memory", False)
+low_memory = getArgumentBool("low_memory", False)
 
 # Minimum version required on macOS.
 macos_minversion = getArgumentDefaulted("macos_minversion", "")
@@ -370,7 +369,7 @@ env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
 env.source_dir = source_dir
-env.low_memory = low_memory_mode
+env.low_memory = low_memory
 env.macos_minversion = macos_minversion
 
 # Various flavors could influence builds.
@@ -394,6 +393,11 @@ env.clang_mode = clang_mode
 env.msvc_mode = win_target and not env.gcc_mode
 env.mingw_mode = win_target and env.gcc_mode
 env.clangcl_mode = clangcl_mode
+
+# Python specific modes have to influence some decisions
+env.nuitka_python = nuitka_python
+env.debian_python = debian_python
+env.static_libpython = static_libpython
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
 switchFromGccToGpp(
@@ -425,49 +429,13 @@ if show_scons_mode:
 setupScons(env, source_dir)
 
 # Set up C compiler settings.
-setupCCompiler(env)
-
-# Enable LTO for compiler.
-enableLtoSettings(
+setupCCompiler(
     env=env,
     lto_mode=lto_mode,
     pgo_mode=pgo_mode,
-    nuitka_python=nuitka_python,
-    debian_python=debian_python,
     job_count=job_count,
 )
 
-# Support details for real gcc, not clang.
-if env.gcc_mode and not env.clang_mode:
-    # Use link time optimizations so that gcc can help with optimization across
-    # files, but unfortunately at this time it seriously slows down the compiled
-    # code. This may be because it needs -O3 option to be effective.
-    if static_libpython and not env.lto_mode:
-        env.Append(CCFLAGS=["-fno-lto"])
-        env.Append(LINKFLAGS=["-fno-lto"])
-
-    # We don't care about that.
-    env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
-
-    # The var-tracking does not scale, disable it. Should we really need it, we
-    # can enable it. TODO: Does this cause a performance loss?
-    env.Append(CCFLAGS=["-fno-var-tracking"])
-
-    # This disables output of notes, e.g. on struct alignment layout changes
-    env.Append(CCFLAGS=["-fcompare-debug-second"])
-
-if env.gcc_mode and env.lto_mode:
-    if env.debug_mode:
-        env.Append(LINKFLAGS=["-Og"])
-    else:
-        # For LTO with static libpython combined, there are crashes with Python core
-        # being inlined, so we must refrain from that. On Windows there is no such
-        # thing, and Nuitka-Python is not affected.
-        env.Append(
-            LINKFLAGS=[
-                "-O3" if nuitka_python or win_target or not static_libpython else "-O2"
-            ]
-        )
 
 # Avoid them as appearing to be different files. TODO: Find out which
 # clang version has this, clang-8 does not.
@@ -858,28 +826,6 @@ else:
         elif not env.clang_mode:
             env.Append(LINKFLAGS=["-s"])
 
-# When debugging, optimize less than when optimizing, when not remove
-# assertions.
-if env.debug_mode:
-    if env.clang_mode or (env.gcc_mode and env.gcc_version >= (4, 8)):
-        env.Append(CCFLAGS=["-Og"])
-    elif env.gcc_mode:
-        env.Append(CCFLAGS=["-O1"])
-    elif env.msvc_mode:
-        env.Append(CCFLAGS=["-O2"])
-else:
-    if env.gcc_mode:
-        env.Append(CCFLAGS=["-O2" if env.lto_mode and not nuitka_python else "-O3"])
-    elif env.msvc_mode:
-        env.Append(
-            CCFLAGS=[
-                "/Ox",  # Enable most speed optimization
-                "/GF",  # Eliminate duplicate strings.
-                "/Gy",  # Function level object storage, to allow removing unused ones
-            ]
-        )
-
-    env.Append(CPPDEFINES=["__NUITKA_NO_ASSERT__"])
 
 # MinGW for 64 bits needs this due to CPython bugs.
 if win_target and target_arch == "x86_64" and env.gcc_mode:
