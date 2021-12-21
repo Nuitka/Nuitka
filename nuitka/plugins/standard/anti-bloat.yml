@@ -34,6 +34,11 @@ sklearn.random_projection:
   replacements:
     "from numpy.testing import assert_equal": "r'assert_equal = (lambda actual, desired, err_msg=None, verbose=True: True)'"
 
+sklearn.utils._testing:
+  description: "remove pytest testing framework"
+  replacements:
+    "import pytest": "'raise ImportError'"
+
 matplotlib:
   description: "remove pytest testing framework"
   replacements:
