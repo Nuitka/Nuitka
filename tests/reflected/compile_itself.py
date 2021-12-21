@@ -261,10 +261,17 @@ def executePASS1():
     if os.path.exists(scons_inline_copy_path):
         copyTree(scons_inline_copy_path, os.path.join("nuitka", "build", "inline_copy"))
 
-    shutil.copyfile(
-        os.path.join(base_dir, "nuitka", "build", "Backend.scons"),
-        os.path.join("nuitka", "build", "Backend.scons"),
-    )
+    # Copy required data files.
+    for filename in (
+        "nuitka/build/Backend.scons",
+        "nuitka/plugins/standard/anti-bloat.yml",
+        "nuitka/plugins/standard/implicit-imports.yml",
+        "nuitka/plugins/standard/data-files.yml",
+    ):
+        shutil.copyfile(
+            os.path.join(base_dir, filename),
+            filename,
+        )
     copyTree(
         os.path.join(base_dir, "nuitka", "build", "static_src"),
         os.path.join("nuitka", "build", "static_src"),
