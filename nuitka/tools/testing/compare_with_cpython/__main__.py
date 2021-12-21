@@ -227,6 +227,7 @@ def main():
     expect_failure = hasArg("expect_failure")
     python_debug = hasArg("python_debug")
     module_mode = hasArg("--module")
+    coverage_mode = hasArg("coverage")
     two_step_execution = hasArg("two_step_execution")
     binary_python_path = hasArg("binary_python_path")
     keep_python_path = hasArg("keep_python_path")
@@ -237,12 +238,11 @@ def main():
     remove_binary = not hasArg("--keep-binary")
     standalone_mode = hasArg("--standalone")
     onefile_mode = hasArg("--onefile")
-    no_site = hasArg("no_site") or hasArg("coverage")
+    no_site = hasArg("no_site") or coverage_mode
     report = hasArgValue("--report")
     nofollow_imports = hasArg("recurse_none") or hasArg("--nofollow-imports")
     follow_imports = hasArg("recurse_all") or hasArg("--follow-imports")
     timing = hasArg("timing")
-    coverage_mode = hasArg("coverage")
     original_file = hasArg("original_file") or hasArg(
         "--file-reference-choice=original"
     )
