@@ -149,7 +149,7 @@ def _createNodeTree(filename):
         Recursion.checkPluginFilenamePattern(pattern=pattern)
 
     for package_name in Options.getMustIncludePackages():
-        package_package, package_directory, kind = Importing.findModule(
+        package_name, package_directory, kind = Importing.locateModule(
             module_name=ModuleName(package_name),
             parent_package=None,
             level=0,
@@ -158,15 +158,16 @@ def _createNodeTree(filename):
         if kind != "absolute":
             inclusion_logger.sysexit(
                 "Error, failed to locate package %r you asked to include."
-                % package_name
+                % package_name.asString()
             )
 
         Recursion.checkPluginPath(
-            plugin_filename=package_directory, module_package=package_package
+            plugin_filename=package_directory,
+            module_package=package_name.getPackageName(),
         )
 
     for module_name in Options.getMustIncludeModules():
-        module_package, module_filename, kind = Importing.findModule(
+        module_name, module_filename, kind = Importing.locateModule(
             module_name=ModuleName(module_name),
             parent_package=None,
             level=0,
@@ -175,11 +176,11 @@ def _createNodeTree(filename):
         if kind != "absolute":
             inclusion_logger.sysexit(
                 "Error, failed to locate module '%s' you asked to include."
-                % module_name
+                % module_name.asString()
             )
 
         Recursion.checkPluginSinglePath(
-            plugin_filename=module_filename, module_package=module_package
+            plugin_filename=module_filename, module_package=module_name.getPackageName()
         )
 
     # Allow plugins to add more modules based on the initial set being complete.

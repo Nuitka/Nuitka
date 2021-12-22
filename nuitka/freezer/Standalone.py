@@ -35,6 +35,7 @@ from nuitka.Bytecodes import compileSourceToBytecode
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing import ImportCache
+from nuitka.importing.Importing import locateModule
 from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
     isStandardLibraryPath,
@@ -893,9 +894,7 @@ def getPackageSpecificDLLDirectories(package_name):
     scan_dirs = OrderedSet()
 
     if package_name is not None:
-        from nuitka.importing.Importing import findModule
-
-        package_dir = findModule(
+        package_dir = locateModule(
             module_name=package_name, parent_package=None, level=0
         )[1]
 

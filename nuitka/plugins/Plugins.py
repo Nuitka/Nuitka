@@ -267,7 +267,7 @@ class Plugins(object):
             full_name = ModuleName(full_name)
 
             try:
-                _module_package, module_filename, _finding = Importing.findModule(
+                _module_name, module_filename, _finding = Importing.locateModule(
                     module_name=full_name,
                     parent_package=None,
                     level=-1,

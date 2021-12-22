@@ -50,7 +50,6 @@ catching and passing in exceptions raised.
 """
 import marshal
 import os
-import sys
 
 from nuitka import (
     ModuleRegistry,
@@ -129,6 +128,7 @@ from nuitka.pgo.PGO import decideCompilationFromPGO
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import (
+    general,
     memory_logger,
     optimization_logger,
     plugins_logger,
@@ -967,73 +967,6 @@ required to compiled."""
     return result
 
 
-def _decideModuleSourceRef(filename, module_name, is_main, is_fake):
-    # Many branches due to the many cases
-
-    assert type(module_name) is ModuleName
-    assert filename is not None
-
-    is_namespace = False
-    is_package = False
-
-    if is_main and os.path.isdir(filename):
-        source_filename = os.path.join(filename, "__main__.py")
-
-        if not os.path.isfile(source_filename):
-            sys.stderr.write(
-                "%s: can't find '__main__' module in '%s'\n"
-                % (os.path.basename(sys.argv[0]), filename)
-            )
-            sys.exit(2)
-
-        filename = source_filename
-
-        main_added = True
-    else:
-        main_added = False
-
-    if is_fake:
-        source_filename = filename
-
-        source_ref = SourceCodeReferences.fromFilename(filename=filename)
-
-        module_name = is_fake
-
-    elif os.path.isfile(filename):
-        source_filename = filename
-
-        source_ref = SourceCodeReferences.fromFilename(filename=filename)
-
-    elif Importing.isPackageDir(filename):
-        is_package = True
-
-        source_filename = os.path.join(filename, "__init__.py")
-
-        if not os.path.isfile(source_filename):
-            source_ref = SourceCodeReferences.fromFilename(
-                filename=filename
-            ).atInternal()
-            is_namespace = True
-        else:
-            source_ref = SourceCodeReferences.fromFilename(
-                filename=os.path.abspath(source_filename)
-            )
-
-    else:
-        sys.stderr.write(
-            "%s: can't open file '%s'.\n" % (os.path.basename(sys.argv[0]), filename)
-        )
-        sys.exit(2)
-
-    return (
-        main_added,
-        is_package,
-        is_namespace,
-        source_ref,
-        source_filename,
-    )
-
-
 def _createModule(
     module_name,
     source_code,
@@ -1095,7 +1028,7 @@ def _createModule(
             for used_module_name in getCachedImportedModulesNames(
                 module_name=module_name, source_code=source_code
             ):
-                (_module_package, module_filename, _finding,) = Importing.findModule(
+                (_module_name, module_filename, _finding,) = Importing.locateModule(
                     module_name=used_module_name,
                     parent_package=None,
                     level=0,
@@ -1189,8 +1122,6 @@ def buildMainModuleTree(filename, is_main):
 
 
 def _makeModuleBodyFromSyntaxError(exc, module_name, module_filename):
-    assert module_name != "markupsafe._speedups", module_filename
-
     if module_filename not in Importing.warned_about:
         Importing.warned_about.add(module_filename)
 
@@ -1270,11 +1201,12 @@ def buildModule(
         is_namespace,
         source_ref,
         source_filename,
-    ) = _decideModuleSourceRef(
+    ) = Importing.decideModuleSourceRef(
         filename=module_filename,
         module_name=module_name,
         is_main=is_main,
         is_fake=is_fake,
+        logger=general,
     )
 
     if Options.hasPythonFlagPackageMode():

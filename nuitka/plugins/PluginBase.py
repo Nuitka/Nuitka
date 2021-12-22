@@ -327,7 +327,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # sense, pylint:disable=unused-argument
         from nuitka.importing import Importing
 
-        _module_package, module_filename, _finding = Importing.findModule(
+        _module_name, module_filename, _finding = Importing.locateModule(
             module_name=ModuleName(module_name),
             parent_package=None,
             level=-1,

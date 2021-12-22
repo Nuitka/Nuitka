@@ -29,7 +29,7 @@ import sys
 from nuitka.__past__ import iter_modules
 from nuitka.containers.oset import OrderedSet
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
-from nuitka.importing.Importing import findModule
+from nuitka.importing.Importing import locateModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContentByLine
@@ -66,7 +66,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                         "Error, cannot use patter for first part '%s'." % pattern
                     )
 
-                _package, module_filename, _finding = findModule(
+                _module_name, module_filename, _finding = locateModule(
                     module_name=ModuleName(current),
                     parent_package=None,
                     level=0,

@@ -42,7 +42,7 @@ import os
 import sys
 import zipfile
 
-from nuitka import Options
+from nuitka import Options, SourceCodeReferences
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing import StandardLibrary
 from nuitka.plugins.Plugins import Plugins
@@ -656,10 +656,9 @@ def locateModule(module_name, parent_package, level):
     as with "__import__" built-in. Warnings are optional.
 
     Returns:
-        Returns a quadruple of module name the module has considering
+        Returns a triple of module name the module has considering
         package containing it, and filename of it which can be a
-        directory for packages, and a package indication,
-        and the location method used.
+        directory for packages, and the location method used.
     """
     module_package, module_filename, finding = findModule(
         module_name=module_name,
@@ -681,3 +680,70 @@ def locateModule(module_name, parent_package, level):
         module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
 
     return module_name, module_filename, finding
+
+
+def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
+    # Many branches due to the many cases
+
+    assert type(module_name) is ModuleName
+    assert filename is not None
+
+    is_namespace = False
+    is_package = False
+
+    if is_main and os.path.isdir(filename):
+        source_filename = os.path.join(filename, "__main__.py")
+
+        if not os.path.isfile(source_filename):
+            sys.stderr.write(
+                "%s: can't find '__main__' module in '%s'\n"
+                % (os.path.basename(sys.argv[0]), filename)
+            )
+            sys.exit(2)
+
+        filename = source_filename
+
+        main_added = True
+    else:
+        main_added = False
+
+    if is_fake:
+        source_filename = filename
+
+        source_ref = SourceCodeReferences.fromFilename(filename=filename)
+
+        module_name = is_fake
+
+    elif os.path.isfile(filename):
+        source_filename = filename
+
+        source_ref = SourceCodeReferences.fromFilename(filename=filename)
+
+    elif isPackageDir(filename):
+        is_package = True
+
+        source_filename = os.path.join(filename, "__init__.py")
+
+        if not os.path.isfile(source_filename):
+            source_ref = SourceCodeReferences.fromFilename(
+                filename=filename
+            ).atInternal()
+            is_namespace = True
+        else:
+            source_ref = SourceCodeReferences.fromFilename(
+                filename=os.path.abspath(source_filename)
+            )
+
+    else:
+        logger.sysexit(
+            "%s: can't open file '%s'." % (os.path.basename(sys.argv[0]), filename),
+            exit_code=2,
+        )
+
+    return (
+        main_added,
+        is_package,
+        is_namespace,
+        source_ref,
+        source_filename,
+    )

@@ -26,8 +26,8 @@ import os
 from nuitka import Options, Variables
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing.Importing import (
-    findModule,
     getModuleNameAndKindFromFilename,
+    locateModule,
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
@@ -90,7 +90,7 @@ class PythonModuleBase(NodeBase):
         package = getModuleByName(package_name)
 
         if package_name is not None and package is None:
-            _package_package, package_filename, finding = findModule(
+            _package_name, package_filename, finding = locateModule(
                 module_name=package_name,
                 parent_package=None,
                 level=1,
@@ -787,6 +787,8 @@ class UncompiledPythonPackage(UncompiledPythonModule):
 
 
 class PythonMainModule(CompiledPythonModule):
+    """Main module of a program, typically "__main__" but can be inside a package too."""
+
     kind = "PYTHON_MAIN_MODULE"
 
     __slots__ = ("main_added", "early_modules")
