@@ -116,6 +116,9 @@ result_basepath = getArgumentRequired("result_name")
 # The name of executable that we produce (in executable mode).
 result_exe = getArgumentDefaulted("result_exe", None)
 
+# Name of the main program (in executable mode, typically __main__ but can be in a package too.)
+main_module_name = getArgumentDefaulted("main_module_name", "__main__")
+
 # The suffix for an extension module (in module mode).
 module_suffix = getArgumentDefaulted("module_suffix", None)
 
@@ -1016,6 +1019,8 @@ def createBuildDefinitionsFile():
         build_definitions["NUITKA_FORCED_STDOUT_PATH"] = forced_stdout_path
     if forced_stderr_path:
         build_definitions["NUITKA_FORCED_STDERR_PATH"] = forced_stderr_path
+
+    build_definitions["NUITKA_MAIN_MODULE_NAME"] = main_module_name
 
     createDefinitionsFile(source_dir, "build_definitions.h", build_definitions)
 

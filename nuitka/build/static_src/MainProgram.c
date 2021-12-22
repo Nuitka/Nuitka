@@ -43,6 +43,10 @@
 #define SYSFLAG_UTF8 0
 #endif
 
+#ifndef NUITKA_MAIN_MODULE_NAME
+#define NUITKA_MAIN_MODULE_NAME "__main__"
+#endif
+
 #include <osdefs.h>
 #include <structseq.h>
 
@@ -187,7 +191,7 @@ extern void SvcLaunchService();
 // Callback from Windows Service logic.
 DWORD WINAPI SvcStartPython(LPVOID lpParam) {
     if (lpParam == NULL) {
-        IMPORT_EMBEDDED_MODULE("__main__");
+        IMPORT_EMBEDDED_MODULE(NUITKA_MAIN_MODULE_NAME);
 
         // TODO: Log exception and call ReportSvcStatus
         if (ERROR_OCCURRED()) {
@@ -828,16 +832,16 @@ int main(int argc, char **argv) {
             }
         }
 #endif
-        PyDict_DelItem(PyImport_GetModuleDict(), const_str_plain___main__);
+        PyDict_DelItemString(PyImport_GetModuleDict(), NUITKA_MAIN_MODULE_NAME);
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
         NUITKA_PRINT_TRACE("main(): Calling plugin SvcLaunchService() entry point.");
         SvcLaunchService();
 #else
     /* Execute the "__main__" module. */
-    NUITKA_PRINT_TIMING("main(): Calling __main__.");
-    IMPORT_EMBEDDED_MODULE("__main__");
-    NUITKA_PRINT_TIMING("main(): Exited from __main__.");
+    NUITKA_PRINT_TIMING("main(): Calling " NUITKA_MAIN_MODULE_NAME ".");
+    IMPORT_EMBEDDED_MODULE(NUITKA_MAIN_MODULE_NAME);
+    NUITKA_PRINT_TIMING("main(): Exited from " NUITKA_MAIN_MODULE_NAME ".");
 
 #endif
 #ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED

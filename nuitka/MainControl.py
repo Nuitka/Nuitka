@@ -547,6 +547,13 @@ def runSconsBackend(quiet):
     if not Options.shallMakeModule():
         options["result_exe"] = OutputDirectories.getResultFullpath(onefile=False)
 
+        main_module = ModuleRegistry.getRootTopModule()
+        assert main_module.isMainModule()
+
+        main_module_name = main_module.getFullName()
+        if main_module_name != "__main__":
+            options["main_module_name"] = main_module_name
+
     if Options.shallUseStaticLibPython():
         options["static_libpython"] = getSystemStaticLibPythonPath()
 
