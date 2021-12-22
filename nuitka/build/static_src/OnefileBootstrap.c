@@ -15,10 +15,10 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-/* The main program for a compiled program.
+/* The main program for onefile bootstrap.
  *
- * It needs to prepare the interpreter and then loads and executes
- * the "__main__" module.
+ * It needs to unpack the attached files and and then loads and executes
+ * the compiled program.
  *
  */
 
