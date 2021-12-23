@@ -1617,12 +1617,16 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
 #endif
 
 PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
+    CHECK_OBJECT(dirname);
+    CHECK_OBJECT(filename);
+
     static PyObject *sep_object = NULL;
 
     if (sep_object == NULL) {
         static char const sep[2] = {SEP, 0};
         sep_object = Nuitka_String_FromString(sep);
     }
+    CHECK_OBJECT(sep_object);
 
     // Avoid string APIs, so str, unicode doesn't matter for input.
     PyObject *result = PyNumber_Add(dirname, sep_object);

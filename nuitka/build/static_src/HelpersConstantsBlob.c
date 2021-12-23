@@ -751,6 +751,8 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 
             // TODO: Make this zero copy for non-interned with fake objects?
             PyObject *b = PyBytes_FromStringAndSize((const char *)data, size);
+            CHECK_OBJECT(b);
+
             data += size + 1;
 
 #if PYTHON_VERSION < 0x300
@@ -1152,7 +1154,7 @@ void loadConstantsBlob(PyObject **output, char const *name) {
 
     if (init_done == false) {
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
-        PRINT_STRING("loadConstantsBlob one time init\n");
+        PRINT_FORMAT("loadConstantsBlob '%s' one time init\n", name);
 #endif
 
 #if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
