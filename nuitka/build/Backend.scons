@@ -855,11 +855,7 @@ if macosx_target and not module_mode:
 
 addConstantBlobFile(
     env=env,
-    resource_desc=decideConstantsBlobResourceMode(
-        gcc_mode=env.gcc_mode,
-        clang_mode=env.clang_mode,
-        lto_mode=env.lto_mode,
-    ),
+    resource_desc=decideConstantsBlobResourceMode(env=env, module_mode=module_mode),
     source_dir=source_dir,
     target_arch=target_arch,
 )
