@@ -554,7 +554,7 @@ def autoformat(
     filename = os.path.normpath(filename)
     effective_filename = os.path.normpath(effective_filename)
 
-    if trace:
+    if trace and not check_only:
         my_print("Consider", filename, end=": ")
 
     is_python = isPythonFile(filename, effective_filename)
@@ -642,6 +642,7 @@ def autoformat(
         if old_code != getFileContents(tmp_filename, "rb"):
 
             if check_only:
+                my_print(filename, end=": ")
                 my_print("FAIL.", style="red")
             else:
                 if trace:
@@ -659,7 +660,7 @@ def autoformat(
 
             changed = True
         else:
-            if trace:
+            if trace and not check_only:
                 my_print("OK.")
 
         return changed
