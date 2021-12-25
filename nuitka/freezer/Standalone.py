@@ -270,6 +270,10 @@ print("\\n".join(sorted(
 
     # Don't let errors here go unnoticed.
     if exit_code != 0:
+        # An error by the user pressing CTRL-C should not lead to the below output.
+        if b"KeyboardInterrupt" in stderr:
+            general.sysexit("Pressed CTRL-C while detecting early imports.")
+
         general.warning("There is a problem with detecting imports, CPython said:")
         for line in stderr.split(b"\n"):
             printError(line)
