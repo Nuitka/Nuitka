@@ -332,7 +332,7 @@ Environment.Detect = getEnhancedToolDetect()
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
 env = createEnvironment(
-    mingw_mode=mingw_mode,
+    mingw_mode=mingw_mode or msys2_mingw_python,
     msvc_version=msvc_version,
     target_arch=target_arch,
 )
