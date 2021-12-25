@@ -29,8 +29,9 @@ Build-Depends: debhelper (>= 9),
                chrpath,
                patchelf,
                gdb | lldb
+Rules-Requires-Root: no
 Vcs-Git: https://github.com/Nuitka/Nuitka.git
-Vcs-browser: https://github.com/Nuitka/Nuitka
+Vcs-Browser: https://github.com/Nuitka/Nuitka
 Homepage: https://nuitka.net
 Standards-Version: 4.4.1
 X-Python-Version: >= 2.6

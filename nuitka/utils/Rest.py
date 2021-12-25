@@ -25,6 +25,8 @@ on release package, as in case of Debian, therefore it's here.
 import os
 import tempfile
 
+from nuitka.utils.Execution import withEnvironmentVarOverriden
+
 from .Execution import check_call
 from .FileOperations import (
     changeFilenameExtension,
@@ -90,7 +92,8 @@ def createPDF(document):
             document += ".tmp"
             putTextFileContents(filename=document, contents=new_contents)
 
-        check_call(["rst2pdf"] + args + [document])
+        with withEnvironmentVarOverriden("PYTHONWARNINGS", "ignore"):
+            check_call(["rst2pdf"] + args + [document])
     finally:
         if new_contents != old_contents:
             deleteFile(document, must_exist=False)
