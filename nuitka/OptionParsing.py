@@ -614,12 +614,13 @@ Enable vmprof based profiling of time spent. Not working currently. Defaults to 
 )
 
 debug_group.add_option(
-    "--graph",
+    "--internal-graph",
     action="store_true",
     dest="graph",
     default=False,
     help="""\
-Create graph of optimization process. Defaults to off.""",
+Create graph of optimization process internals, do not use for whole programs, but only
+for small test cases. Defaults to off.""",
 )
 
 debug_group.add_option(
