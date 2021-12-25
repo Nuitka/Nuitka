@@ -31,7 +31,13 @@ def _isGiModule(module):
 
 class NuitkaPluginGi(NuitkaPluginBase):
     plugin_name = "gi"
-    plugin_desc = "Support for GI dependencies"
+    plugin_desc = "Support for GI typelib dependency"
+
+    @staticmethod
+    def isAlwaysEnabled():
+        """Request to be always enabled."""
+
+        return True
 
     @classmethod
     def isRelevant(cls):
@@ -74,33 +80,3 @@ if not os.environ.get("GI_TYPELIB_PATH="):
                 dest_path="girepository",
                 reason="typelib files for gi modules",
             )
-
-
-class NuitkaPluginDetectorGi(NuitkaPluginBase):
-    """Only used if plugin is NOT activated
-
-    Notes:
-         We are given the chance to issue a warning if we think we may be required.
-    """
-
-    detector_for = NuitkaPluginGi
-
-    @classmethod
-    def isRelevant(cls):
-        """Check whether plugin might be required.
-        Returns:
-            True if this is a standalone compilation.
-        """
-        return Options.isStandaloneMode()
-
-    def onModuleDiscovered(self, module):
-        """This method checks whether gi is required.
-        Notes:
-            For this we check whether its first name part is gi relevant.
-        Args:
-            module: the module object
-        Returns:
-            None
-        """
-        if module.getFullName() == "gi":
-            self.warnUnusedPlugin("Missing gi support.")
