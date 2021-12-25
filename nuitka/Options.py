@@ -945,7 +945,7 @@ def isClang():
 def isMingw64():
     """:returns: bool derived from ``--mingw64``, available only on Windows, otherwise false"""
     if isWin32Windows():
-        return options.mingw64
+        return options.mingw64 or isMSYS2MingwPython()
     else:
         return None
 

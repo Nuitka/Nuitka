@@ -206,7 +206,7 @@ clang_mode = getArgumentBool("clang_mode", False)
 # Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
 # is changed to ClangCL from Visual Studio.
 clangcl_mode = False
-if win_target and not (mingw_mode or msys2_mingw_python) and clang_mode:
+if win_target and not mingw_mode and clang_mode:
     clang_mode = False
     clangcl_mode = True
 
@@ -332,7 +332,7 @@ Environment.Detect = getEnhancedToolDetect()
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
 env = createEnvironment(
-    mingw_mode=mingw_mode or msys2_mingw_python,
+    mingw_mode=mingw_mode,
     msvc_version=msvc_version,
     target_arch=target_arch,
 )
@@ -400,6 +400,7 @@ env.clangcl_mode = clangcl_mode
 # Python specific modes have to influence some decisions
 env.nuitka_python = nuitka_python
 env.debian_python = debian_python
+env.msys2_mingw_python = msys2_mingw_python
 env.static_libpython = static_libpython
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
@@ -695,7 +696,7 @@ if win_target:
     elif env.gcc_mode and static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
     else:
-        # Some non standard Pythons on Windows have this.
+        # Some non CPython flavors on Windows have this.
         def addWinLib():
             # Make sure to locate the Python link library from multiple potential
             # locations (installed vs. self-built).
@@ -722,7 +723,8 @@ if win_target:
             env.Append(LIBPATH=[win_lib_path])
             env.Append(LIBS=[win_lib_name])
 
-        addWinLib()
+        if not msys2_mingw_python:
+            addWinLib()
 elif not module_mode:
     # Add the python library path to the library path
     python_lib_path = os.path.join(python_prefix, "lib")
