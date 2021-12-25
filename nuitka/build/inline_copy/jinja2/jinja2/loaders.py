@@ -201,6 +201,9 @@ class FileSystemLoader(BaseLoader):
                         found.add(template)
         return sorted(found)
 
+# Nuitka: Load this immediately to avoid having to have pkg_resources
+# inline copy present after initial import.
+from pkg_resources import DefaultProvider, ResourceManager, get_provider
 
 class PackageLoader(BaseLoader):
     """Load templates from python eggs or packages.  It is constructed with
@@ -219,8 +222,6 @@ class PackageLoader(BaseLoader):
 
     def __init__(self, package_name, package_path='templates',
                  encoding='utf-8'):
-        from pkg_resources import DefaultProvider, ResourceManager, \
-                                  get_provider
         provider = get_provider(package_name)
         self.encoding = encoding
         self.manager = ResourceManager()
