@@ -112,6 +112,9 @@ def _enableLtoSettings(
     elif env.gcc_mode and env.the_cc_name == "gnu-cc":
         lto_mode = True
         reason = "known to be supported (CondaCC)"
+    elif env.gcc_mode and env.mingw_mode and env.gcc_version >= (11, 2):
+        lto_mode = True
+        reason = "known to be supported (new MinGW64)"
     else:
         lto_mode = False
         reason = "not known to be supported"
