@@ -273,6 +273,12 @@ def executePASS1():
             os.path.join(base_dir, filename),
             filename,
         )
+
+    copyTree(
+        os.path.join(base_dir, "nuitka", "codegen", "templates_c"),
+        os.path.join("nuitka", "codegen", "templates_c"),
+    )
+
     copyTree(
         os.path.join(base_dir, "nuitka", "build", "static_src"),
         os.path.join("nuitka", "build", "static_src"),
