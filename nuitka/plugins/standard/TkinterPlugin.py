@@ -137,6 +137,8 @@ The Tcl library dir. See comments for Tk library dir.""",
             os.environ.get("TCL_LIBRARY"),
             os.path.join(sys.prefix, "tcl", "tcl8.5"),
             os.path.join(sys.prefix, "tcl", "tcl8.6"),
+            os.path.join(sys.prefix, "lib", "tcl8.5"),
+            os.path.join(sys.prefix, "lib", "tcl8.6"),
             "/usr/share/tcltk/tcl8.6",
             "/usr/share/tcltk/tcl8.5",
             "/usr/share/tcl8.6",
@@ -144,10 +146,13 @@ The Tcl library dir. See comments for Tk library dir.""",
             "/usr/lib64/tcl/tcl8.5",
             "/usr/lib64/tcl/tcl8.6",
         )
+
         candidates_tk = (
             os.environ.get("TK_LIBRARY"),
             os.path.join(sys.prefix, "tcl", "tk8.5"),
             os.path.join(sys.prefix, "tcl", "tk8.6"),
+            os.path.join(sys.prefix, "lib", "tk8.5"),
+            os.path.join(sys.prefix, "lib", "tk8.6"),
             "/usr/share/tcltk/tk8.6",
             "/usr/share/tcltk/tk8.5",
             "/usr/share/tk8.6",
@@ -163,7 +168,9 @@ The Tcl library dir. See comments for Tk library dir.""",
                     break
 
         if tcl is None or not os.path.exists(tcl):
-            self.sysexit("Could not find Tcl. Aborting standalone generation.")
+            self.sysexit(
+                "Could not find Tcl, you might need to set 'TCL_LIBRARY' and if that works, report a bug."
+            )
 
         tk = self.tk_library_dir
         if tk is None:
@@ -171,8 +178,10 @@ The Tcl library dir. See comments for Tk library dir.""",
                 if tk is not None and os.path.exists(tk):
                     break
 
-        if tk is None or not os.path.exists(tcl):
-            self.sysexit("Could not find Tk. Aborting standalone generation.")
+        if tk is None or not os.path.exists(tk):
+            self.sysexit(
+                "Could not find Tk, you might need to set 'TK_LIBRARY' and if that works, report a bug."
+            )
 
         # survived the above, now do provide the locations
         yield makeIncludedDataDirectory(
