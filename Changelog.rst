@@ -11250,12 +11250,12 @@ Organisational
 
 -  Nuitka is now available on the social code platforms as well
 
-   -  `Bitbucket <https://bitbucket.org/kayhayen/nuitka>`__
+   -  Bitbucket (since removed)
    -  `Github <https://github.com/kayhayen/Nuitka>`__
-   -  `Gitorious <https://gitorious.org/nuitka/nuitka>`__
-   -  `Google Code <https://code.google.com/p/nuitka/>`__
+   -  Gitorious (since discontinued)
+   -  Google Code (since discontinued)
 
--  Removed "clean-up.sh", which is practically useless, as tests now
+-  Removed ``clean-up.sh``, which is practically useless, as tests now
    clean up after themselves reasonably, and with ``git clean -dfx``
    working better.
 
