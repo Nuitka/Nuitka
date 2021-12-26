@@ -1016,30 +1016,43 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name.hasOneOfNamespaces("Crypto", "Cryptodome"):
             crypto_module_name = full_name.getTopLevelPackageName()
 
-            if full_name == crypto_module_name + ".Util._raw_api":
-                for module_name in (
-                    "_raw_aes",
-                    "_raw_aesni",
-                    "_raw_arc2",
-                    "_raw_blowfish",
-                    "_raw_cast",
-                    "_raw_cbc",
-                    "_raw_cfb",
-                    "_raw_ctr",
-                    "_raw_des",
-                    "_raw_des3",
-                    "_raw_ecb",
-                    "_raw_ocb",
-                    "_raw_ofb",
-                ):
-                    if full_name == crypto_module_name + ".Util._raw_api":
-                        yield crypto_module_name + ".Cipher." + module_name
+            if full_name == crypto_module_name + ".Cipher._mode_ofb":
+                yield crypto_module_name + ".Cipher._raw_ofb"
+            elif full_name == crypto_module_name + ".Cipher.CAST":
+                yield crypto_module_name + ".Cipher._raw_cast"
+            elif full_name == crypto_module_name + ".Cipher.DES3":
+                yield crypto_module_name + ".Cipher._raw_des3"
+            elif full_name == crypto_module_name + ".Cipher.DES":
+                yield crypto_module_name + ".Cipher._raw_des"
+            elif full_name == crypto_module_name + ".Cipher._mode_ecb":
+                yield crypto_module_name + ".Cipher._raw_ecb"
+            elif full_name == crypto_module_name + ".Cipher.AES":
+                yield crypto_module_name + ".Cipher._raw_aes"
+                yield crypto_module_name + ".Cipher._raw_aesni"
+            elif full_name == crypto_module_name + ".Cipher._mode_cfb":
+                yield crypto_module_name + ".Cipher._raw_cfb"
+            elif full_name == crypto_module_name + ".Cipher.ARC2":
+                yield crypto_module_name + ".Cipher._raw_arc2"
+            elif full_name == crypto_module_name + ".Cipher.DES3":
+                yield crypto_module_name + ".Cipher._raw_des3"
+            elif full_name == crypto_module_name + ".Cipher._mode_ocb":
+                yield crypto_module_name + ".Cipher._raw_ocb"
+            elif full_name == crypto_module_name + ".Cipher._EKSBlowfish":
+                yield crypto_module_name + ".Cipher._raw_eksblowfish"
+            elif full_name == crypto_module_name + ".Cipher.Blowfish":
+                yield crypto_module_name + ".Cipher._raw_blowfish"
+            elif full_name == crypto_module_name + ".Cipher._mode_ctr":
+                yield crypto_module_name + ".Cipher._raw_ctr"
+            elif full_name == crypto_module_name + ".Cipher._mode_cbc":
+                yield crypto_module_name + ".Cipher._raw_cbc"
             elif full_name == crypto_module_name + ".Util.strxor":
                 yield crypto_module_name + ".Util._strxor"
             elif full_name == crypto_module_name + ".Util._cpu_features":
                 yield crypto_module_name + ".Util._cpuid_c"
             elif full_name == crypto_module_name + ".Hash.BLAKE2s":
                 yield crypto_module_name + ".Hash._BLAKE2s"
+            elif full_name == crypto_module_name + ".Hash.BLAKE2b":
+                yield crypto_module_name + ".Hash._BLAKE2b"
             elif full_name == crypto_module_name + ".Hash.SHA1":
                 yield crypto_module_name + ".Hash._SHA1"
             elif full_name == crypto_module_name + ".Hash.SHA224":
@@ -1050,19 +1063,34 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield crypto_module_name + ".Hash._SHA384"
             elif full_name == crypto_module_name + ".Hash.SHA512":
                 yield crypto_module_name + ".Hash._SHA512"
+            elif full_name == crypto_module_name + ".Hash.MD2":
+                yield crypto_module_name + ".Hash._MD2"
+            elif full_name == crypto_module_name + ".Hash.MD4":
+                yield crypto_module_name + ".Hash._MD4"
             elif full_name == crypto_module_name + ".Hash.MD5":
                 yield crypto_module_name + ".Hash._MD5"
             elif full_name == crypto_module_name + ".Hash.keccak":
                 yield crypto_module_name + ".Hash._keccak"
+            elif full_name == crypto_module_name + ".Hash.RIPEMD160":
+                yield crypto_module_name + ".Hash._RIPEMD160"
+            elif full_name == crypto_module_name + ".Hash.Poly1305":
+                yield crypto_module_name + ".Hash._poly1305"
             elif full_name == crypto_module_name + ".Protocol.KDF":
                 yield crypto_module_name + ".Cipher._Salsa20"
                 yield crypto_module_name + ".Protocol._scrypt"
             elif full_name == crypto_module_name + ".Cipher._mode_gcm":
+                yield crypto_module_name + ".Hash._ghash_clmul"
                 yield crypto_module_name + ".Hash._ghash_portable"
+            elif full_name == crypto_module_name + ".Cipher.Salsa20":
+                yield crypto_module_name + ".Cipher._Salsa20"
             elif full_name == crypto_module_name + ".Cipher.ChaCha20":
                 yield crypto_module_name + ".Cipher._chacha20"
             elif full_name == crypto_module_name + ".PublicKey.ECC":
                 yield crypto_module_name + ".PublicKey._ec_ws"
+            elif full_name == crypto_module_name + ".Cipher.ARC4":
+                yield crypto_module_name + ".Cipher._ARC4"
+            elif full_name == crypto_module_name + ".Math._IntegerCustom":
+                yield crypto_module_name + ".Math._modexp"
         elif full_name == "pycparser.c_parser":
             yield "pycparser.yacctab"
             yield "pycparser.lextab"
