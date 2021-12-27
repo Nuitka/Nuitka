@@ -793,7 +793,7 @@ all of Nuitka into a single binary.
 That test case also gives good coverage of the ``import`` mechanisms,
 because Nuitka uses a lot of packages and imports between them.
 
-.. code:: sh
+.. code:: bash
 
    ./tests/reflected/compile_itself.py
 
@@ -868,15 +868,24 @@ When adding a test suite, for a new version, proceed like this:
    # Push to github, this is useful.
    git push
 
-   # Cherry pick the first commit of run_all.py, the copy it from the last state, and amend the commits.
+   # Cherry pick the first commit of 'run_all.py', the copy it from the last state, and amend the commits.
    git log --reverse origin/CPython39 --oneline -- run_all.py | head -1 | cut -d' ' -f1 | xargs git cherry-pick
    git checkout origin/CPython39 -- run_all.py
-   git commit --amend run_all.py
+   chmod +x run_all.py
+   sed -i -e 's#python3.9#python3.10#' run_all.py
+   git commit --amend --no-edit run_all.py
+
+   # Same for 'update_doctest_generated.py'
+   git log --reverse origin/CPython39 --oneline -- update_doctest_generated.py | head -1 | cut -d' ' -f1 | xargs git cherry-pick
+   git checkout origin/CPython39 -- update_doctest_generated.py
+   chmod +x update_doctest_generated.py
+   sed -i -e 's#python3.9#python3.10#' update_doctest_generated.py
+   git commit --amend --no-edit update_doctest_generated.py
 
    # Same for .gitignore
    git log --reverse origin/CPython39 --oneline -- .gitignore | head -1 | cut -d' ' -f1 | xargs git cherry-pick
    git checkout origin/CPython39 -- .gitignore
-   git commit --amend .gitignore
+   git commit --amend --no-edit .gitignore
 
    # Now cherry-pick all commits of test support, these disable network, audio, GUI, random filenames and more
    # and are crucial for determistic outputs and non-reliance on outside stuff.
