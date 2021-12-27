@@ -1379,6 +1379,25 @@ static int Nuitka_Generator_set_frame(struct Nuitka_GeneratorObject *generator, 
     return -1;
 }
 
+static PyObject *Nuitka_Generator_get_running(struct Nuitka_GeneratorObject *generator) {
+    PyObject *result;
+
+/* The type of "gi_running" changed in Python3. */
+#if PYTHON_VERSION < 0x300
+    result = PyInt_FromLong(generator->m_running);
+#else
+    result = BOOL_FROM(generator->m_running != 0);
+    Py_INCREF(result);
+#endif
+    return result;
+}
+
+static int Nuitka_Generator_set_running(struct Nuitka_GeneratorObject *generator, PyObject *value) {
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_AttributeError,
+                                    "attribute 'gi_running' of 'generator' objects is not writable");
+    return -1;
+}
+
 static PyGetSetDef Nuitka_Generator_getsetlist[] = {
 #if PYTHON_VERSION < 0x350
     {(char *)"__name__", (getter)Nuitka_Generator_get_name, NULL, NULL},
@@ -1389,6 +1408,7 @@ static PyGetSetDef Nuitka_Generator_getsetlist[] = {
 #endif
     {(char *)"gi_code", (getter)Nuitka_Generator_get_code, (setter)Nuitka_Generator_set_code, NULL},
     {(char *)"gi_frame", (getter)Nuitka_Generator_get_frame, (setter)Nuitka_Generator_set_frame, NULL},
+    {(char *)"gi_running", (getter)Nuitka_Generator_get_running, (setter)Nuitka_Generator_set_running, NULL},
 
     {NULL}};
 
@@ -1398,15 +1418,6 @@ static PyMethodDef Nuitka_Generator_methods[] = {{"send", (PyCFunction)Nuitka_Ge
                                                  {NULL}};
 
 #include <structmember.h>
-
-static PyMemberDef Nuitka_Generator_members[] = {
-/* The type of "gi_running" changed in Python3. */
-#if PYTHON_VERSION < 0x300
-    {(char *)"gi_running", T_INT, offsetof(struct Nuitka_GeneratorObject, m_running), READONLY},
-#else
-    {(char *)"gi_running", T_BOOL, offsetof(struct Nuitka_GeneratorObject, m_running), READONLY},
-#endif
-    {NULL}};
 
 PyTypeObject Nuitka_Generator_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "compiled_generator", /* tp_name */
@@ -1441,7 +1452,7 @@ PyTypeObject Nuitka_Generator_Type = {
     PyObject_SelfIter,                                   /* tp_iter */
     (iternextfunc)Nuitka_Generator_tp_iternext,          /* tp_iternext */
     Nuitka_Generator_methods,                            /* tp_methods */
-    Nuitka_Generator_members,                            /* tp_members */
+    NULL,                                                /* tp_members */
     Nuitka_Generator_getsetlist,                         /* tp_getset */
 #if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
     &PyGen_Type, /* tp_base */
