@@ -902,7 +902,7 @@ def main():
                     else:
                         my_print("The CPython3.9 tests are not present, not run.")
 
-            # Running the Python 3.9 test suite only with CPython3.x.
+            # Running the Python 3.10 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
                 if options.cpython310:
                     if os.path.exists("./tests/CPython310/run_all.py"):

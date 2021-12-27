@@ -18,7 +18,7 @@ license, requirements, credits, etc.
 Nuitka is **the** Python compiler. It is written in Python. It is a
 seamless replacement or extension to the Python interpreter and compiles
 **every** construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8,
-3.9 have, when itself run with that Python version.
+3.9, 3.10 have, when itself run with that Python version.
 
 It then executes uncompiled code and compiled code together in an
 extremely compatible manner.
@@ -67,7 +67,7 @@ Requirements
    -  On Windows the ``clang-cl`` compiler on Windows can be used if
       provided by the Visual Studio installer.
 
--  Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9
+-  Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10
 
    .. admonition:: For Python 3.3/3.4 and *only* those, we need other Python version as a *compile time* dependency.
 
@@ -994,11 +994,11 @@ versions:
 
 When using MingGW64, you'll need the following redist versions:
 
-+------------------+-------------+-------------------------+
-| MingGW64 version | Redist Year | CPython                 |
-+==================+=============+=========================+
-| 8.1.0            | 2015        | 3.5, 3.6, 3.7, 3.8, 3.9 |
-+------------------+-------------+-------------------------+
++------------------+-------------+-------------------------------+
+| MingGW64 version | Redist Year | CPython                       |
++==================+=============+===============================+
+| 8.1.0            | 2015        | 3.5, 3.6, 3.7, 3.8, 3.9, 3.10 |
++------------------+-------------+-------------------------------+
 
 Once the corresponding runtime libraries are installed on the target
 system, you may remove all ``api-ms-crt-*.dll`` files from your Nuitka
