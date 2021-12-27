@@ -442,7 +442,7 @@ def generateFunctionBodyCode(function_body, context):
     return function_code, function_decl
 
 
-def generateModuleCode(module, data_filename):
+def _generateModuleCode(module, data_filename):
     # As this not only creates all modules, but also functions, it deals
     # also with its functions.
 
@@ -503,6 +503,13 @@ def generateModuleCode(module, data_filename):
         ),
         context=context,
     )
+
+
+def generateModuleCode(module, data_filename):
+    try:
+        return _generateModuleCode(module=module, data_filename=data_filename)
+    except KeyboardInterrupt:
+        raise KeyboardInterrupt("Interrupted while working on", module)
 
 
 def generateHelpersCode():
