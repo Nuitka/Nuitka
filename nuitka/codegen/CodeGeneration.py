@@ -646,6 +646,7 @@ addExpressionDispatchDict(
         "EXPRESSION_CONSTANT_TYPE_SUBSCRIPTABLE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_BYTEARRAY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_GENERIC_ALIAS": generateConstantGenericAliasCode,
+        "EXPRESSION_CONSTANT_UNION_TYPE": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SYS_VERSION_INFO_REF": generateConstantSysVersionInfoCode,
         "EXPRESSION_CONDITIONAL": generateConditionalCode,
         "EXPRESSION_CONDITIONAL_OR": generateConditionalAndOrCode,

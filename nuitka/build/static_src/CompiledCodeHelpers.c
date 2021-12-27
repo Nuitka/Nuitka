@@ -2033,7 +2033,7 @@ void _initSlotIternext() {
 #endif
 
 #if PYTHON_VERSION >= 0x3a0
-extern PyObject *MAKE_UNION_TYPE(PyObject *args) {
+PyObject *MAKE_UNION_TYPE(PyObject *args) {
     assert(PyTuple_CheckExact(args));
     assert(PyTuple_GET_SIZE(args) > 1);
 

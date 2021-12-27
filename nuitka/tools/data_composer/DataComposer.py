@@ -28,7 +28,6 @@ import sys
 from nuitka.__past__ import (
     BytesIO,
     GenericAlias,
-    UnionType,
     long,
     to_byte,
     unicode,
@@ -40,6 +39,7 @@ from nuitka.constants.Serialization import (
     BlobData,
     BuiltinAnonValue,
     BuiltinSpecialValue,
+    BuiltinUnionTypeValue,
     ConstantStreamReader,
 )
 from nuitka.PythonVersions import python_version
@@ -302,10 +302,10 @@ def _writeConstantValue(output, constant_value):
         _last_written = None
         _writeConstantValue(output, constant_value.__origin__)
         _writeConstantValue(output, constant_value.__args__)
-    elif constant_type is UnionType:
+    elif constant_type is BuiltinUnionTypeValue:
         output.write(b"H")
         _last_written = None
-        _writeConstantValue(output, constant_value.__args__)
+        _writeConstantValue(output, constant_value.args)
     else:
         assert False, constant_value
 

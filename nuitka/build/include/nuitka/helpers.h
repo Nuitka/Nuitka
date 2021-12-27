@@ -478,4 +478,6 @@ extern PyObject *Py_SysVersionInfo;
 
 #include "nuitka/python_pgo.h"
 
+extern PyObject *MAKE_UNION_TYPE(PyObject *args);
+
 #endif
