@@ -554,9 +554,6 @@ def autoformat(
     filename = os.path.normpath(filename)
     effective_filename = os.path.normpath(effective_filename)
 
-    if trace and not check_only:
-        my_print("Consider", filename, end=": ")
-
     is_python = isPythonFile(filename, effective_filename)
 
     is_c = effective_filename.endswith((".c", ".h"))
@@ -642,11 +639,10 @@ def autoformat(
         if old_code != getFileContents(tmp_filename, "rb"):
 
             if check_only:
-                my_print(filename, end=": ")
-                my_print("FAIL.", style="red")
+                my_print("%s: FAIL." % filename, style="red")
             else:
                 if trace:
-                    my_print("Updated.")
+                    my_print("Updated %s." % filename)
 
                 with withPreserveFileMode(filename):
                     if git_stage:
@@ -659,9 +655,6 @@ def autoformat(
                         renameFile(tmp_filename, filename)
 
             changed = True
-        else:
-            if trace and not check_only:
-                my_print("OK.")
 
         return changed
     finally:
