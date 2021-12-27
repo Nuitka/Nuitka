@@ -25,7 +25,7 @@ from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.utils.FileOperations import listDir
-from nuitka.utils.Utils import getOS, isWin32Windows
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 sklearn_mods = [
     "sklearn.utils.sparsetools._graph_validation",
@@ -177,7 +177,7 @@ Should scipy, sklearn or skimage when used be not included with numpy, Default i
         numpy_core_dir = os.path.join(numpy_dir, "core")
 
         # first look in numpy/.libs for binaries
-        libdir = os.path.join(numpy_dir, ".libs" if getOS() != "Darwin" else ".dylibs")
+        libdir = os.path.join(numpy_dir, ".libs" if not isMacOS() else ".dylibs")
         if os.path.isdir(libdir):
             for full_path, filename in listDir(libdir):
                 yield full_path, filename
