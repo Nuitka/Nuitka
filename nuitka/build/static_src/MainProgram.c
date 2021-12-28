@@ -395,6 +395,11 @@ static int HANDLE_PROGRAM_EXIT() {
     return exit_code;
 }
 
+static PyObject *EXECUTE_MAIN_MODULE(char const *module_name) {
+    NUITKA_INIT_PROGRAM_LATE(module_name);
+    return IMPORT_EMBEDDED_MODULE(module_name);
+}
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
 #if defined(__MINGW32__) && !defined(_W64)
@@ -410,6 +415,7 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdL
 int main(int argc, char **argv) {
 #endif
     NUITKA_PRINT_TIMING("main(): Entered.");
+    NUITKA_INIT_PROGRAM_EARLY(argc, argv);
 
     orig_argv = argv;
     orig_argc = argc;
@@ -797,7 +803,7 @@ int main(int argc, char **argv) {
 #ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
     if (unlikely(is_multiprocessing_fork)) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
-        IMPORT_EMBEDDED_MODULE("__parents_main__");
+        EXECUTE_MAIN_MODULE("__parents_main__");
 
         int exit_code = HANDLE_PROGRAM_EXIT();
 
@@ -807,7 +813,7 @@ int main(int argc, char **argv) {
         exit(exit_code);
     } else if (unlikely(multiprocessing_resource_tracker_arg != NULL)) {
         NUITKA_PRINT_TRACE("main(): Calling resource_tracker.");
-        PyObject *resource_tracker_module = IMPORT_EMBEDDED_MODULE("multiprocessing.resource_tracker");
+        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE("multiprocessing.resource_tracker");
 
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
 
@@ -840,7 +846,7 @@ int main(int argc, char **argv) {
 #else
     /* Execute the "__main__" module. */
     NUITKA_PRINT_TIMING("main(): Calling " NUITKA_MAIN_MODULE_NAME ".");
-    IMPORT_EMBEDDED_MODULE(NUITKA_MAIN_MODULE_NAME);
+    EXECUTE_MAIN_MODULE(NUITKA_MAIN_MODULE_NAME);
     NUITKA_PRINT_TIMING("main(): Exited from " NUITKA_MAIN_MODULE_NAME ".");
 
 #endif

@@ -533,4 +533,11 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #define UNTRANSLATE(x) (x)
 #endif
 
+#if _NUITKA_EXPERIMENTAL_INIT_PROGRAM
+#include "nuitka_init_program.h"
+#else
+#define NUITKA_INIT_PROGRAM_EARLY(argc, argv)
+#define NUITKA_INIT_PROGRAM_LATE(module_name)
+#endif
+
 #endif
