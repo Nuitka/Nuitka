@@ -382,6 +382,15 @@ def _cleanupImportSortOrder(filename):
 
 
 def _cleanupRstFmt(filename):
+    contents = getFileContents(filename, mode="rb")
+    updated_contents = contents.replace(b".. post::", b".. raw:: post").replace(
+        b".. youtube::", b".. raw:: youtube"
+    )
+
+    if updated_contents != contents:
+        with open(filename, "wb") as out_file:
+            out_file.write(updated_contents)
+
     rstfmt_call = _getPythonBinaryCall("rstfmt")
 
     check_call(
@@ -394,14 +403,14 @@ def _cleanupRstFmt(filename):
 
     cleanupWindowsNewlines(filename)
 
-    with open(filename, "rb") as f:
-        contents = f.read()
+    contents = getFileContents(filename, mode="rb")
 
     # Enforce choice between "bash" and "sh" for code directive. Use bash as
     # more people will know it.
     updated_contents = contents.replace(b".. code:: sh\n", b".. code:: bash\n")
 
-    updated_contents = updated_contents.replace(b"..\n   raw:", b".. raw:")
+    updated_contents = updated_contents.replace(b".. raw:: post", b".. post::")
+    updated_contents = updated_contents.replace(b".. raw:: youtube", b".. youtube::")
 
     lines = []
     inside = False
