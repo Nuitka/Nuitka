@@ -10106,8 +10106,7 @@ Bug Fixes
 Organisational
 ==============
 
--  Replying to email from the `issue tracker <http://bugs.nuitka.net>`__
-   works now.
+-  Replying to email from the issue tracker works now.
 
 -  Added option name alias ``--xml`` for ``--dump-xml``.
 
@@ -10891,8 +10890,8 @@ Organisational
    <https://nuitka.net/doc/user-manual.html#license>`__.
 
 -  Added `Nuitka Logo
-   <https://nuitka.net/doc/images/Nuitka-Logo-Symbol.png>`__ to the
-   distribution.
+   <https://github.com/Nuitka/Nuitka/blob/develop/doc/images/Nuitka-Logo-Symbol.png>`__
+   to the distribution.
 
 -  Use Nuitka Logo as the bitmap in the Windows installer.
 
@@ -14189,11 +14188,11 @@ New Tests
 Organisational
 ==============
 
--  There is a new issue tracker available under http://bugs.nuitka.net
+-  There is a new issue tracker available (since migrated and removed)
 
    Please register and report issues you encounter with Nuitka. I have
    put all the known issues there and started to use it recently. It's
-   Roundup based like http://bugs.python.org is, so people will find it
+   Roundup based like https://bugs.python.org is, so people will find it
    familiar.
 
 -  The ``setup.py`` is now apparently functional. The source releases
