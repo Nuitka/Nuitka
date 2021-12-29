@@ -49,15 +49,18 @@ def makeLogoImages():
         [basePathLogo % item for item in ("Vertical", "Symbol", "Horizontal")]
     )
 
-    if os.path.exists("../nikola-site"):
+    if os.path.exists("../Nuitka-website"):
         cmd = "convert -resize %s doc/Logo/Nuitka-Logo-Symbol.svg %s"
         for icon, size in {
-            "../nikola-site/files/favicon.ico": "32x32",
-            "../nikola-site/files/favicon.png": "32x32",
-            "../nikola-site/files/apple-touch-icon-ipad.png": "72x72",
-            "../nikola-site/files/apple-touch-icon-ipad3.png": "144x144",
-            "../nikola-site/files/apple-touch-icon-iphone.png": "57x57",
-            "../nikola-site/files/apple-touch-icon-iphone4.png": "114x114",
+            "../Nuitka-website/files/favicon.ico": "32x32",
+            "../Nuitka-website/files/favicon.png": "32x32",
+            "../Nuitka-website/doc/_static/favicon.ico": "32x32",
+            "../Nuitka-website/doc/_static/favicon.png": "32x32",
+            "../Nuitka-website/doc/_static/apple-touch-icon-ipad.png": "72x72",
+            "../Nuitka-website/doc/_static/apple-touch-icon-ipad3.png": "144x144",
+            "../Nuitka-website/doc/_static/apple-touch-icon-iphone.png": "57x57",
+            "../Nuitka-website/doc/_static/apple-touch-icon-iphone4.png": "114x114",
+            "../Nuitka-website/doc/_static/apple-touch-icon-180x180.png": "180x180",
         }:
             check_call((cmd % (icon, size)).split())
 
