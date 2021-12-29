@@ -1393,8 +1393,18 @@ static PyObject *Nuitka_Generator_get_running(struct Nuitka_GeneratorObject *gen
 }
 
 static int Nuitka_Generator_set_running(struct Nuitka_GeneratorObject *generator, PyObject *value) {
-    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_AttributeError,
-                                    "attribute 'gi_running' of 'generator' objects is not writable");
+#if PYTHON_VERSION < 0x300
+    PyObject *exception_type = PyExc_TypeError;
+#else
+    PyObject *exception_type = PyExc_AttributeError;
+#endif
+
+#if !defined(_NUITKA_FULL_COMPAT) || PYTHON_VERSION >= 0x3a0
+    SET_CURRENT_EXCEPTION_TYPE0_STR(exception_type, "attribute 'gi_running' of 'generator' objects is not writable");
+#else
+    SET_CURRENT_EXCEPTION_TYPE0_STR(exception_type, "readonly attribute");
+#endif
+
     return -1;
 }
 
