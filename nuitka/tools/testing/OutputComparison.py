@@ -117,7 +117,10 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
     for line in lines:
         if type(line) is not str:
-            line = line.decode("utf-8" if os.name != "nt" else "cp850")
+            try:
+                line = line.decode("utf-8" if os.name != "nt" else "cp850")
+            except UnicodeDecodeError:
+                line = repr(line)
 
         if line.endswith("\r"):
             line = line[:-1]
