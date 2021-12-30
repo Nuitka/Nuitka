@@ -237,14 +237,12 @@ class ExpressionAttributeLookupFixedClear(ExpressionAttributeLookupFixedBase):
         subnode_expression = self.subnode_expression
 
         if subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictClear(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'clear' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictClear(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'clear' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -297,7 +295,11 @@ class ExpressionAttributeLookupDictClear(
             builtin_spec=dict_clear_spec,
         )
 
-        return result, "new_expression", "Call to 'clear' of dictionary recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'clear' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictClear)
@@ -316,14 +318,12 @@ class ExpressionAttributeLookupFixedCopy(ExpressionAttributeLookupFixedBase):
         subnode_expression = self.subnode_expression
 
         if subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictCopy(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'copy' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictCopy(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'copy' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -376,7 +376,11 @@ class ExpressionAttributeLookupDictCopy(
             builtin_spec=dict_copy_spec,
         )
 
-        return result, "new_expression", "Call to 'copy' of dictionary recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'copy' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictCopy)
@@ -1021,14 +1025,12 @@ class ExpressionAttributeLookupFixedFromkeys(ExpressionAttributeLookupFixedBase)
         subnode_expression = self.subnode_expression
 
         if subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictFromkeys(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'fromkeys' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictFromkeys(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'fromkeys' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -1079,14 +1081,12 @@ class ExpressionAttributeLookupFixedGet(ExpressionAttributeLookupFixedBase):
         subnode_expression = self.subnode_expression
 
         if subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictGet(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'get' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictGet(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'get' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -1149,7 +1149,11 @@ class ExpressionAttributeLookupDictGet(
             builtin_spec=dict_get_spec,
         )
 
-        return result, "new_expression", "Call to 'get' of dictionary recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'get' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictGet)
@@ -1168,14 +1172,12 @@ class ExpressionAttributeLookupFixedHaskey(ExpressionAttributeLookupFixedBase):
         subnode_expression = self.subnode_expression
 
         if str is bytes and subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictHaskey(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'has_key' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictHaskey(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'has_key' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -1228,7 +1230,11 @@ class ExpressionAttributeLookupDictHaskey(
             builtin_spec=dict_has_key_spec,
         )
 
-        return result, "new_expression", "Call to 'has_key' of dictionary recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'has_key' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictHaskey)
@@ -2189,14 +2195,12 @@ class ExpressionAttributeLookupFixedItems(ExpressionAttributeLookupFixedBase):
         subnode_expression = self.subnode_expression
 
         if subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictItems(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'items' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictItems(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'items' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -2256,7 +2260,11 @@ class ExpressionAttributeLookupDictItems(
             builtin_spec=dict_items_spec,
         )
 
-        return result, "new_expression", "Call to 'items' of dictionary recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'items' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictItems)
@@ -2275,14 +2283,12 @@ class ExpressionAttributeLookupFixedIteritems(ExpressionAttributeLookupFixedBase
         subnode_expression = self.subnode_expression
 
         if str is bytes and subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictIteritems(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'iteritems' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictIteritems(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'iteritems' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -2335,7 +2341,11 @@ class ExpressionAttributeLookupDictIteritems(
             builtin_spec=dict_iteritems_spec,
         )
 
-        return result, "new_expression", "Call to 'iteritems' of dictionary recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'iteritems' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictIteritems)
@@ -2354,14 +2364,12 @@ class ExpressionAttributeLookupFixedIterkeys(ExpressionAttributeLookupFixedBase)
         subnode_expression = self.subnode_expression
 
         if str is bytes and subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictIterkeys(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'iterkeys' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictIterkeys(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'iterkeys' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -2414,7 +2422,11 @@ class ExpressionAttributeLookupDictIterkeys(
             builtin_spec=dict_iterkeys_spec,
         )
 
-        return result, "new_expression", "Call to 'iterkeys' of dictionary recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'iterkeys' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictIterkeys)
@@ -2433,14 +2445,12 @@ class ExpressionAttributeLookupFixedItervalues(ExpressionAttributeLookupFixedBas
         subnode_expression = self.subnode_expression
 
         if str is bytes and subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictItervalues(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'itervalues' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictItervalues(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'itervalues' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -2493,10 +2503,10 @@ class ExpressionAttributeLookupDictItervalues(
             builtin_spec=dict_itervalues_spec,
         )
 
-        return (
-            result,
-            "new_expression",
-            "Call to 'itervalues' of dictionary recognized.",
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'itervalues' of dictionary recognized.",
         )
 
 
@@ -2597,14 +2607,12 @@ class ExpressionAttributeLookupFixedKeys(ExpressionAttributeLookupFixedBase):
         subnode_expression = self.subnode_expression
 
         if subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictKeys(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'keys' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictKeys(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'keys' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -2664,7 +2672,11 @@ class ExpressionAttributeLookupDictKeys(
             builtin_spec=dict_keys_spec,
         )
 
-        return result, "new_expression", "Call to 'keys' of dictionary recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'keys' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictKeys)
@@ -3043,14 +3055,12 @@ class ExpressionAttributeLookupFixedPop(ExpressionAttributeLookupFixedBase):
         subnode_expression = self.subnode_expression
 
         if subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictPop(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'pop' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictPop(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'pop' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -3113,7 +3123,11 @@ class ExpressionAttributeLookupDictPop(
             builtin_spec=dict_pop_spec,
         )
 
-        return result, "new_expression", "Call to 'pop' of dictionary recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'pop' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictPop)
@@ -3132,14 +3146,12 @@ class ExpressionAttributeLookupFixedPopitem(ExpressionAttributeLookupFixedBase):
         subnode_expression = self.subnode_expression
 
         if subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictPopitem(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'popitem' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictPopitem(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'popitem' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -3799,14 +3811,12 @@ class ExpressionAttributeLookupFixedSetdefault(ExpressionAttributeLookupFixedBas
         subnode_expression = self.subnode_expression
 
         if subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictSetdefault(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'setdefault' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictSetdefault(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'setdefault' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -3869,10 +3879,10 @@ class ExpressionAttributeLookupDictSetdefault(
             builtin_spec=dict_setdefault_spec,
         )
 
-        return (
-            result,
-            "new_expression",
-            "Call to 'setdefault' of dictionary recognized.",
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'setdefault' of dictionary recognized.",
         )
 
 
@@ -4448,14 +4458,12 @@ class ExpressionAttributeLookupFixedUpdate(ExpressionAttributeLookupFixedBase):
         subnode_expression = self.subnode_expression
 
         if subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictUpdate(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'update' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictUpdate(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'update' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -4520,7 +4528,11 @@ class ExpressionAttributeLookupDictUpdate(
             builtin_spec=dict_update_spec,
         )
 
-        return result, "new_expression", "Call to 'update' of dictionary recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'update' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictUpdate)
@@ -4618,14 +4630,12 @@ class ExpressionAttributeLookupFixedValues(ExpressionAttributeLookupFixedBase):
         subnode_expression = self.subnode_expression
 
         if subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictValues(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'values' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictValues(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'values' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -4685,7 +4695,11 @@ class ExpressionAttributeLookupDictValues(
             builtin_spec=dict_values_spec,
         )
 
-        return result, "new_expression", "Call to 'values' of dictionary recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'values' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictValues)
@@ -4704,14 +4718,12 @@ class ExpressionAttributeLookupFixedViewitems(ExpressionAttributeLookupFixedBase
         subnode_expression = self.subnode_expression
 
         if str is bytes and subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictViewitems(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'viewitems' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictViewitems(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'viewitems' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -4764,7 +4776,11 @@ class ExpressionAttributeLookupDictViewitems(
             builtin_spec=dict_viewitems_spec,
         )
 
-        return result, "new_expression", "Call to 'viewitems' of dictionary recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'viewitems' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictViewitems)
@@ -4783,14 +4799,12 @@ class ExpressionAttributeLookupFixedViewkeys(ExpressionAttributeLookupFixedBase)
         subnode_expression = self.subnode_expression
 
         if str is bytes and subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictViewkeys(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'viewkeys' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictViewkeys(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'viewkeys' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -4843,7 +4857,11 @@ class ExpressionAttributeLookupDictViewkeys(
             builtin_spec=dict_viewkeys_spec,
         )
 
-        return result, "new_expression", "Call to 'viewkeys' of dictionary recognized."
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'viewkeys' of dictionary recognized.",
+        )
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictViewkeys)
@@ -4862,14 +4880,12 @@ class ExpressionAttributeLookupFixedViewvalues(ExpressionAttributeLookupFixedBas
         subnode_expression = self.subnode_expression
 
         if str is bytes and subnode_expression.hasShapeDictionaryExact():
-            result = ExpressionAttributeLookupDictViewvalues(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'viewvalues' on dict shape resolved.",
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictViewvalues(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'viewvalues' on dict shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -4922,10 +4938,10 @@ class ExpressionAttributeLookupDictViewvalues(
             builtin_spec=dict_viewvalues_spec,
         )
 
-        return (
-            result,
-            "new_expression",
-            "Call to 'viewvalues' of dictionary recognized.",
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'viewvalues' of dictionary recognized.",
         )
 
 
