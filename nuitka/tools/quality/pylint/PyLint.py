@@ -167,7 +167,7 @@ redundant-u-string-prefix,consider-using-f-string
 --const-rgx=.*
 --max-line-length=125
 --no-docstring-rgx=.*
---max-module-lines=5000
+--max-module-lines=6000
 --min-public-methods=0
 --max-public-methods=100
 --max-args=11

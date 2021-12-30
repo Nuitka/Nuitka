@@ -59,11 +59,13 @@ class ExpressionAttributeLookupFixed{{attribute_name_class}}(ExpressionAttribute
 {% else %}
         if subnode_expression.hasShapeDictionaryExact():
 {% endif %}
-            result = ExpressionAttributeLookupDict{{attribute_name_class}}(
-                expression=subnode_expression, source_ref=self.source_ref
+            return trace_collection.computedExpressionResult(
+                expression = ExpressionAttributeLookupDict{{attribute_name_class}}(
+                   expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags = "new_expression",
+                change_desc = "Attribute lookup '{{attribute_name}}' on dict shape resolved."
             )
-
-            return result, "new_expression", "Attribute lookup '{{attribute_name}}' on dict shape resolved."
 {% endif %}
 {% if str_shape %}
 {% if str_operation_version_check %}
@@ -161,7 +163,11 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
             builtin_spec=dict_{{attribute_name}}_spec,
         )
 
-        return result, "new_expression", "Call to '{{attribute_name}}' of dictionary recognized."
+        return trace_collection.computedExpressionResult(
+            expression = result,
+            change_tags = "new_expression",
+            change_desc = "Call to '{{attribute_name}}' of dictionary recognized."
+        )
 {% else %}
     # No computeExpressionCall as dict operation ExpressionDictOperation{{attribute_name_class}} is not yet implemented
 {% endif %}
