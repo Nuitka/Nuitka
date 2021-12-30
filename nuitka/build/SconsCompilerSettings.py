@@ -223,7 +223,10 @@ def checkWindowsCompilerFound(
                 gcc_version = myDetectVersion(env, compiler_path)
 
                 min_version = (11, 2)
-                if gcc_version is not None and gcc_version < min_version:
+                if gcc_version is not None and (
+                    gcc_version < min_version
+                    or "force-winlibs-gcc" in env.experimental_flags
+                ):
                     scons_logger.info(
                         "Too old gcc %r (%r < %r) ignored!"
                         % (compiler_path, gcc_version, min_version)
@@ -413,6 +416,8 @@ def enableExperimentalSettings(env, experimental_flags):
                 env.Append(CPPDEFINES=[("_NUITKA_EXPERIMENTAL_%s" % experiment, value)])
             else:
                 env.Append(CPPDEFINES=["_NUITKA_EXPERIMENTAL_%s" % experiment])
+
+    env.experimental_flags = experimental_flags
 
 
 def setupCCompiler(env, lto_mode, pgo_mode, job_count):

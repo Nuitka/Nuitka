@@ -282,6 +282,8 @@ elif clang_mode:
     env["CC"] = "clang"
     env["CCVERSION"] = None
 
+enableExperimentalSettings(env, experimental)
+
 # On Windows, in case MSVC was not found and not previously forced, use the
 # winlibs MinGW64 as a download, and use it as a fallback.
 env = checkWindowsCompilerFound(
@@ -425,8 +427,6 @@ if debug_mode:
 
         # Disable warnings, the first 3 are for Python headers, maybe not needed.
         env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610", "/wd4996"])
-
-enableExperimentalSettings(env, experimental)
 
 if trace_mode:
     env.Append(CPPDEFINES=["_NUITKA_TRACE"])

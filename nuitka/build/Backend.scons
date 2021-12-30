@@ -357,6 +357,8 @@ elif clang_mode:
     env["CC"] = "clang"
     env["CCVERSION"] = None
 
+enableExperimentalSettings(env, experimental)
+
 # On Windows, in case MSVC was not found and not previously forced, use the
 # winlibs MinGW64 as a download, and use it as a fallback.
 env = checkWindowsCompilerFound(
@@ -531,9 +533,6 @@ if env.debug_mode:
 
 if full_compat_mode:
     env.Append(CPPDEFINES=["_NUITKA_FULL_COMPAT"])
-
-if experimental:
-    enableExperimentalSettings(env, experimental)
 
 if profile_mode:
     env.Append(CPPDEFINES=["_NUITKA_PROFILE"])
