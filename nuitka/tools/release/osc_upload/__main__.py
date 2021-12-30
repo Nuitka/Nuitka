@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -49,86 +49,41 @@ def main():
         or branch_name.startswith("hotfix")
         or branch_name == "master"
     ):
-        # Cleanup the osc directory.
-        shutil.rmtree("osc", ignore_errors=True)
-        os.makedirs("osc")
+        osc_project_name = "Nuitka"
+        spec_suffix = ""
+    elif branch_name == "develop":
+        osc_project_name = "Nuitka-Unstable"
+        spec_suffix = "-unstable"
+    elif branch_name == "factory":
+        osc_project_name = "Nuitka-experimental"
+        spec_suffix = "-experimental"
+    else:
+        sys.exit("Skipping OSC for branch '%s'" % branch_name)
 
-        # Stage the "osc" checkout from the ground up.
-        assert (
-            os.system(
-                """\
+    # Cleanup the osc directory.
+    shutil.rmtree("osc", ignore_errors=True)
+    os.makedirs("osc")
+
+    # Stage the "osc" checkout from the ground up.
+    assert (
+        os.system(
+            f"""\
 cd osc && \
-osc init home:kayhayen Nuitka && osc repairwc && \
-cp ../dist/Nuitka-*.tar.gz . && \
-sed -e s/VERSION/%s/ ../rpm/nuitka.spec >./nuitka.spec && \
-cp ../rpm/nuitka-rpmlintrc . && \
-osc addremove && \
+osc checkout home:kayhayen {osc_project_name} && \
+rm home:kayhayen/{osc_project_name}/* && \
+cp ../dist/Nuitka-*.tar.gz home:kayhayen/{osc_project_name}/ && \
+sed -e s/VERSION/{nuitka_version}/ ../rpm/nuitka.spec >home:kayhayen/{osc_project_name}/nuitka{spec_suffix}.spec && \
+sed -i home:kayhayen/{osc_project_name}/nuitka{spec_suffix}.spec -e \
+    's/Name: *nuitka/Name:           nuitka{spec_suffix}/' && \
+cp ../rpm/nuitka-rpmlintrc home:kayhayen/{osc_project_name}/ && \
+cd home:kayhayen/{osc_project_name}/ && \
+osc addremove -r && \
 echo 'New release' >ci_message && \
 osc ci --file ci_message
 """
-                % nuitka_version
-            )
-            == 0
         )
-
-        # Cleanup the osc directory.
-        shutil.rmtree("osc", ignore_errors=True)
-    elif branch_name == "develop":
-        # Cleanup the osc directory.
-        shutil.rmtree("osc", ignore_errors=True)
-        os.makedirs("osc")
-
-        # Stage the "osc" checkout from the ground up, but path the RPM spec to say
-        # it is nuitks-unstable package.
-        assert (
-            os.system(
-                """\
-cd osc && \
-osc init home:kayhayen Nuitka-Unstable && \
-osc repairwc && \
-cp ../dist/Nuitka-*.tar.gz . && \
-sed -e s/VERSION/%s/ ../rpm/nuitka.spec >./nuitka-unstable.spec && \
-sed -i nuitka-unstable.spec -e 's/Name: *nuitka/Name:           nuitka-unstable/' && \
-cp ../rpm/nuitka-rpmlintrc . && \
-osc addremove && echo 'New release' >ci_message && \
-osc ci --file ci_message
-"""
-                % nuitka_version
-            )
-            == 0
-        )
-
-        # Cleanup the osc directory.
-        shutil.rmtree("osc", ignore_errors=True)
-    elif branch_name == "factory":
-        # Cleanup the osc directory.
-        shutil.rmtree("osc", ignore_errors=True)
-        os.makedirs("osc")
-
-        # Stage the "osc" checkout from the ground up, but path the RPM spec to say
-        # it is nuitks-unstable package.
-        assert (
-            os.system(
-                """\
-cd osc && \
-osc init home:kayhayen Nuitka-experimental && \
-osc repairwc && \
-cp ../dist/Nuitka-*.tar.gz . && \
-sed -e s/VERSION/%s/ ../rpm/nuitka.spec >./nuitka-experimental.spec && \
-sed -i nuitka-experimental.spec -e 's/Name: *nuitka/Name:           nuitka-experimental/' && \
-cp ../rpm/nuitka-rpmlintrc . && \
-osc addremove && \
-echo 'New release' >ci_message && osc ci --file ci_message
-"""
-                % nuitka_version
-            )
-            == 0
-        )
-
-        # Cleanup the osc directory.
-        shutil.rmtree("osc", ignore_errors=True)
-    else:
-        sys.exit("Skipping OSC for branch '%s'" % branch_name)
+        == 0
+    )
 
 
 if __name__ == "__main__":
