@@ -227,22 +227,16 @@ def executePostProcessingResources(manifest, onefile):
     """
     result_filename = OutputDirectories.getResultFullpath(onefile=onefile)
 
-    # TODO: Maybe make these different for onefile and not onefile.
-    if (
-        Options.shallAskForWindowsAdminRights()
-        or Options.shallAskForWindowsUIAccessRights()
-    ):
-        if manifest is None:
-            manifest = getDefaultWindowsExecutableManifest()
+    if manifest is None:
+        manifest = getDefaultWindowsExecutableManifest()
 
-        if Options.shallAskForWindowsAdminRights():
-            manifest.addUacAdmin()
+    if Options.shallAskForWindowsAdminRights():
+        manifest.addUacAdmin()
 
-        if Options.shallAskForWindowsUIAccessRights():
-            manifest.addUacUiAccess()
+    if Options.shallAskForWindowsUIAccessRights():
+        manifest.addUacUiAccess()
 
-    if manifest is not None:
-        manifest.addResourceToFile(result_filename, logger=postprocessing_logger)
+    manifest.addResourceToFile(result_filename, logger=postprocessing_logger)
 
     if (
         Options.getWindowsVersionInfoStrings()
