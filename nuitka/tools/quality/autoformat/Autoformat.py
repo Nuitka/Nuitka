@@ -21,8 +21,10 @@
 
 """
 
+import contextlib
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -45,6 +47,7 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
+    openTextFile,
     putTextFileContents,
     renameFile,
     withPreserveFileMode,
@@ -669,3 +672,28 @@ def autoformat(
     finally:
         if os.path.exists(tmp_filename):
             os.unlink(tmp_filename)
+
+
+@contextlib.contextmanager
+def withFileOpenedAndAutoformatted(filename):
+    my_print("Creating %r ..." % filename)
+
+    tmp_filename = filename + ".tmp"
+    with openTextFile(tmp_filename, "w") as output:
+        yield output
+
+    autoformat(
+        filename=tmp_filename, git_stage=None, effective_filename=filename, trace=False
+    )
+
+    # No idea why, but this helps.
+    if os.name == "nt":
+        autoformat(
+            filename=tmp_filename,
+            git_stage=None,
+            effective_filename=filename,
+            trace=False,
+        )
+
+    shutil.copy(tmp_filename, filename)
+    os.unlink(tmp_filename)

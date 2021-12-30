@@ -16,38 +16,10 @@
 #     limitations under the License.
 #
 """ Common helper functions for specializing code."""
-import contextlib
-import os
-import shutil
 
-from nuitka.tools.quality.autoformat.Autoformat import autoformat
-from nuitka.Tracing import my_print
-from nuitka.utils.FileOperations import openTextFile
-
-
-@contextlib.contextmanager
-def withFileOpenedAndAutoformatted(filename):
-    my_print("Creating %r ..." % filename)
-
-    tmp_filename = filename + ".tmp"
-    with openTextFile(tmp_filename, "w") as output:
-        yield output
-
-    autoformat(
-        filename=tmp_filename, git_stage=None, effective_filename=filename, trace=False
-    )
-
-    # No idea why, but this helps.
-    if os.name == "nt":
-        autoformat(
-            filename=tmp_filename,
-            git_stage=None,
-            effective_filename=filename,
-            trace=False,
-        )
-
-    shutil.copy(tmp_filename, filename)
-    os.unlink(tmp_filename)
+from nuitka.tools.quality.autoformat.Autoformat import (  # For import from here, pylint: disable=unused-import
+    withFileOpenedAndAutoformatted,
+)
 
 
 def writeline(output, *args):
