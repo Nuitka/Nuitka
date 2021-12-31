@@ -674,21 +674,24 @@ int main(int argc, char **argv) {
     {
         PyObject *nul_filename = Nuitka_String_FromString("NUL:");
 
-        if (Nuitka_SysGetObject("stdin") == NULL) {
+        PyObject *sys_stdin = Nuitka_SysGetObject("stdin");
+        if (sys_stdin == NULL || sys_stdin == Py_None) {
             PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r", NULL);
 
             CHECK_OBJECT(stdin_file);
             Nuitka_SysSetObject("stdin", stdin_file);
         }
 
-        if (Nuitka_SysGetObject("stdout") == NULL) {
+        PyObject *sys_stdout = Nuitka_SysGetObject("stdout");
+        if (sys_stdout == NULL || sys_stdout == Py_None) {
             PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", NULL);
 
             CHECK_OBJECT(stdout_file);
             Nuitka_SysSetObject("stdout", stdout_file);
         }
 
-        if (Nuitka_SysGetObject("stderr") == NULL) {
+        PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
+        if (sys_stderr == NULL || sys_stderr == Py_None) {
             PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", NULL);
 
             CHECK_OBJECT(stderr_file);
