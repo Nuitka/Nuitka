@@ -2046,7 +2046,7 @@ def makeHelperCalls():
 
             emitGenerationWarning(emit, template.name)
 
-            emitIDE(emit_c)
+            emitIDE(emit)
 
             for args_count in range(max_quick_call + 1):
                 code = getQuickCallCode(args_count=args_count, has_tuple_arg=False)

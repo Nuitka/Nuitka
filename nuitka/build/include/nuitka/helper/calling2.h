@@ -16,6 +16,12 @@
 //     limitations under the License.
 //
 /* WARNING, this code is GENERATED. Modify the template CodeTemplateCallsPositional.c.j2 instead! */
+
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 extern PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called);
 extern PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg);
 extern PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args);
