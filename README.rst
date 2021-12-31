@@ -199,7 +199,7 @@ Installation
 ============
 
 For most systems, there will be packages on the `download page
-<http://www.nuitka.net/doc/download.html>`__ of Nuitka. But you can also
+<https://nuitka.net/doc/download.html>`__ of Nuitka. But you can also
 install it from source code as described above, but also like any other
 Python program it can be installed via the normal ``python setup.py
 install`` routine.
