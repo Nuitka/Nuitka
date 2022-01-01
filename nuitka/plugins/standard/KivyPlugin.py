@@ -80,3 +80,13 @@ import kivy.core.window
                 yield full_name.getChildNamed(module_name)
         elif full_name == "kivy.core.window.window_sdl2":
             yield "kivy.core.window._window_sdl2"
+        elif full_name == "kivy.core.window.window_x11":
+            yield "kivy.core.window.window_info"
+        elif full_name == "kivy.graphics.cgl":
+            yield "kivy.graphics.cgl_backend"
+        elif full_name == "kivy.graphics.cgl_backend":
+            yield "kivy.graphics.cgl_backend.cgl_glew"
+        elif full_name == "kivy.graphics.cgl_backend.cgl_glew":
+            yield "kivy.graphics.cgl_backend.cgl_gl"
+        elif full_name == "kivymd.app":
+            yield self.locateModules("kivymd.uix")

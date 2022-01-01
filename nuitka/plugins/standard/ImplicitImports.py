@@ -28,13 +28,11 @@ import sys
 
 from nuitka.__past__ import iter_modules
 from nuitka.containers.oset import OrderedSet
-from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
-from nuitka.importing.Importing import locateModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.SharedLibraries import getPyWin32Dir, locateDLL
+from nuitka.utils.SharedLibraries import getPyWin32Dir
 from nuitka.utils.Utils import getOS, isLinux, isMacOS, isWin32Windows
 from nuitka.utils.Yaml import parsePackageYaml
 
@@ -66,10 +64,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                         "Error, cannot use patter for first part '%s'." % pattern
                     )
 
-                _module_name, module_filename, _finding = locateModule(
+                module_filename = self.locateModule(
                     module_name=ModuleName(current),
-                    parent_package=None,
-                    level=0,
                 )
 
                 for sub_module in iter_modules([module_filename]):
@@ -153,17 +149,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "_socket"
         elif full_name == "ctypes":
             yield "_ctypes"
-        elif full_name == "gi._gi":
-            yield "gi._error"
-        elif full_name == "gi._gi_cairo":
-            yield "cairo"
         elif full_name == "cairo._cairo":
             yield "gi._gobject"
-        elif full_name == "gi.overrides":
-            yield "gi.overrides.Gtk"
-            yield "gi.overrides.Gdk"
-            yield "gi.overrides.GLib"
-            yield "gi.overrides.GObject"
         elif full_name in ("Tkinter", "tkinter"):
             yield "_tkinter"
         elif full_name == "cryptography":
@@ -1222,13 +1209,11 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         full_name = module.getFullName()
 
         if full_name == "uuid" and isLinux():
-            uuid_dll_path = locateDLL("uuid")
+            uuid_dll_path = self.locateDLL("uuid")
 
             if uuid_dll_path is not None:
-                return (
-                    makeDllEntryPoint(
-                        uuid_dll_path, os.path.basename(uuid_dll_path), None
-                    ),
+                yield self.makeDllEntryPoint(
+                    uuid_dll_path, os.path.basename(uuid_dll_path), None
                 )
         elif full_name == "iptc" and isLinux():
             import iptc.util  # pylint: disable=I0021,import-error
@@ -1236,31 +1221,14 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             xtwrapper_dll = iptc.util.find_library("xtwrapper")[0]
             xtwrapper_dll_path = xtwrapper_dll._name  # pylint: disable=protected-access
 
-            return (
-                makeDllEntryPoint(
-                    xtwrapper_dll_path, os.path.basename(xtwrapper_dll_path), None
-                ),
+            yield self.makeDllEntryPoint(
+                xtwrapper_dll_path, os.path.basename(xtwrapper_dll_path), None
             )
-        # TODO: Move this to the gi plugin.
-        elif full_name == "gi._gi":
-            gtk_dll_path = locateDLL("gtk-3")
-
-            if gtk_dll_path is None:
-                gtk_dll_path = locateDLL("gtk-3-0")
-
-            if gtk_dll_path is not None:
-                return (
-                    makeDllEntryPoint(
-                        gtk_dll_path, os.path.basename(gtk_dll_path), None
-                    ),
-                )
         elif full_name == "coincurve._libsecp256k1" and isWin32Windows():
-            return (
-                makeDllEntryPoint(
-                    os.path.join(module.getCompileTimeDirectory(), "libsecp256k1.dll"),
-                    os.path.join(full_name.getPackageName(), "libsecp256k1.dll"),
-                    full_name.getPackageName(),
-                ),
+            yield self.makeDllEntryPoint(
+                os.path.join(module.getCompileTimeDirectory(), "libsecp256k1.dll"),
+                os.path.join(full_name.getPackageName(), "libsecp256k1.dll"),
+                full_name.getPackageName(),
             )
         # TODO: This should be its own plugin.
         elif (
@@ -1268,7 +1236,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             in ("win32api", "pythoncom", "win32file", "win32com", "win32print")
             and isWin32Windows()
         ):
-            result = []
             pywin_dir = getPyWin32Dir()
 
             if pywin_dir is not None:
@@ -1282,15 +1249,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                     pythoncom_dll_path = os.path.join(pywin_dir, pythoncom_filename)
 
                     if os.path.exists(pythoncom_dll_path):
-                        result.append(
-                            makeDllEntryPoint(
-                                pythoncom_dll_path, pythoncom_filename, None
-                            )
+                        yield self.makeDllEntryPoint(
+                            pythoncom_dll_path, pythoncom_filename, None
                         )
-
-            return result
-
-        return ()
 
     unworthy_namespaces = (
         "setuptools",  # Not performance relevant.

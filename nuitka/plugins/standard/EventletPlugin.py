@@ -35,9 +35,7 @@ class NuitkaPluginEventlet(NuitkaPluginBase):
         full_name = module.getFullName()
 
         if full_name == "eventlet":
-            for dns_module_name in self.locateModules(module, "dns"):
-                yield dns_module_name
-
+            yield self.locateModules("dns")
             yield "eventlet.hubs"
 
         elif full_name == "eventlet.hubs":

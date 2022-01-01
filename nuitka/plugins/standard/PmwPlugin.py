@@ -100,7 +100,7 @@ Should 'Pmw.Color' not be included, Default is to include it.""",
 
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "Pmw":
-            pmw_path = self.locateModule(importing=None, module_name=module_name)
+            pmw_path = self.locateModule(module_name=module_name)
 
             return self._packagePmw(pmw_path)
 

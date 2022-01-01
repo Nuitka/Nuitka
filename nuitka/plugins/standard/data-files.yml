@@ -148,6 +148,7 @@ kivy:
 kivymd:
   dirs:
     - "fonts"
+    - "images"
 
 seedir.printing:
   patterns:

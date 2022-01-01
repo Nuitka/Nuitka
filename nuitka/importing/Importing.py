@@ -35,6 +35,7 @@ it's from the standard library, one can abuse the attribute ``__file__`` of the
 
 """
 
+
 import collections
 import hashlib
 import imp
@@ -43,6 +44,7 @@ import sys
 import zipfile
 
 from nuitka import Options, SourceCodeReferences
+from nuitka.__past__ import iter_modules
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing import StandardLibrary
 from nuitka.plugins.Plugins import Plugins
@@ -653,7 +655,7 @@ def locateModule(module_name, parent_package, level):
     """Locate a module with given package name as parent.
 
     The package name can be None of course. Level is the same
-    as with "__import__" built-in. Warnings are optional.
+    as with "__import__" built-in.
 
     Returns:
         Returns a triple of module name the module has considering
@@ -680,6 +682,23 @@ def locateModule(module_name, parent_package, level):
         module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
 
     return module_name, module_filename, finding
+
+
+def locateModules(package_name):
+    """Determine child module names.
+
+    Return:
+        generator of ModuleName objects
+    """
+    package_name = ModuleName(package_name)
+
+    module_filename = locateModule(
+        module_name=ModuleName(package_name), parent_package=None, level=0
+    )[1]
+
+    if module_filename is not None:
+        for sub_module in iter_modules([module_filename]):
+            yield package_name.getChildNamed(sub_module.name)
 
 
 def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):

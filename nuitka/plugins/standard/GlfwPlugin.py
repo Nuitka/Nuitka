@@ -22,7 +22,6 @@
 import os
 
 from nuitka import Options
-from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
@@ -104,7 +103,7 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
         if module.getFullName() == "glfw":
             dll_filename = self._getDLLFilename()
 
-            yield makeDllEntryPoint(
+            yield self.makeDllEntryPoint(
                 source_path=dll_filename,
                 dest_path=os.path.join("glfw", os.path.basename(dll_filename)),
                 package_name="glfw.library",

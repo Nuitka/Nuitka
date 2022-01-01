@@ -26,17 +26,20 @@ The base class will serve as documentation. And it will point to examples of
 it being used.
 """
 
+import inspect
 import os
-import pkgutil
 import shutil
 import sys
 from collections import namedtuple
 
 from nuitka.__past__ import getMetaClassBase
+from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
+from nuitka.Options import isStandaloneMode
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.FileOperations import makePath
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.SharedLibraries import locateDLL
 
 pre_modules = {}
 post_modules = {}
@@ -312,7 +315,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         """
 
     @staticmethod
-    def locateModule(importing, module_name):
+    def locateModule(module_name):
         """Provide a filename / -path for a to-be-imported module.
 
         Args:
@@ -322,43 +325,39 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             filename for module
         """
 
-        # TODO: Remove importing, and become clear about level, should
-        # probably only do absolute imports, so level 0 would make more
-        # sense, pylint:disable=unused-argument
-        from nuitka.importing import Importing
+        from nuitka.importing.Importing import locateModule
 
-        _module_name, module_filename, _finding = Importing.locateModule(
-            module_name=ModuleName(module_name),
-            parent_package=None,
-            level=-1,
+        _module_name, module_filename, _finding = locateModule(
+            module_name=ModuleName(module_name), parent_package=None, level=0
         )
 
         return module_filename
 
-    def locateModules(self, importing, module_name):
+    @staticmethod
+    def locateModules(module_name):
         """Provide a filename / -path for a to-be-imported module.
 
         Args:
-            importing: module object that asked for it (tracing only)
             module_name: (str or ModuleName) full name of module
-            warn: (bool) True if required module
         Returns:
             list of ModuleName
         """
-        module_path = self.locateModule(importing, module_name)
 
-        result = []
+        from nuitka.importing.Importing import locateModules
 
-        def _scanModules(path, prefix):
-            for module_info in pkgutil.walk_packages((path,), prefix=prefix + "."):
-                result.append(ModuleName(module_info[1]))
+        return locateModules(module_name)
 
-                if module_info[2]:
-                    _scanModules(module_info[1], module_name + module_info[1])
+    @classmethod
+    def locateDLL(cls, dll_name):
+        """Locate a DLL by name."""
+        return locateDLL(dll_name)
 
-        _scanModules(module_path, module_name)
-
-        return result
+    @classmethod
+    def makeDllEntryPoint(cls, source_path, dest_path, package_name):
+        """Create an entry point, as expected to be provided by getExtraDlls."""
+        return makeDllEntryPoint(
+            source_path=source_path, dest_path=dest_path, package_name=package_name
+        )
 
     def considerExtraDlls(self, dist_dir, module):
         """Provide a tuple of names of binaries to be included.
@@ -370,9 +369,8 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             tuple
         """
         # TODO: This should no longer be here, as this API is obsolete, pylint: disable=unused-argument
-
         for included_entry_point in self.getExtraDlls(module):
-            # Copy to the dist directory, which normally should not be our task, but is for now.
+            # Copy to the dist directory, which normally should not be a plugin task, but is for now.
             makePath(os.path.dirname(included_entry_point.dest_path))
 
             shutil.copyfile(
@@ -713,3 +711,22 @@ def replaceTriggerModule(old, new):
 
     if found is not None:
         post_modules[found] = new
+
+
+import functools
+
+
+def standalone_only(func):
+    """For plugins that have functionality that should be done in standalone mode only."""
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        if isStandaloneMode():
+            return func(*args, **kwargs)
+        else:
+            if inspect.isgeneratorfunction(func):
+                return ()
+            else:
+                return None
+
+    return wrapped

@@ -21,7 +21,6 @@
 import os
 
 from nuitka.freezer.IncludedDataFiles import makeIncludedDataFile
-from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin
@@ -75,7 +74,7 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
     def getExtraDlls(self, module):
         if module.getFullName() == "webview":
             for filename, filename_relative in self._getWebviewFiles(module, dlls=True):
-                yield makeDllEntryPoint(
+                yield self.makeDllEntryPoint(
                     source_path=filename,
                     dest_path=os.path.normpath(
                         os.path.join(
@@ -88,7 +87,7 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
 
             # TODO: Not sure where this pointing to "site-packages" comes from.
             if isWin32Windows():
-                yield makeDllEntryPoint(
+                yield self.makeDllEntryPoint(
                     source_path=os.path.abspath(
                         os.path.join(
                             module.getCompileTimeDirectory(), "..", "Python.Runtime.dll"

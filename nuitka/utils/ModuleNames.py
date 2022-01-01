@@ -30,6 +30,9 @@ class ModuleName(str):
     def __init__(self, value):
         assert ".." not in str(value), value
 
+        # TODO: Disallow some conversion, e.g. from module, function, etc.
+        # objects, and white list what types we accept.
+
         str.__init__(value)
 
     @staticmethod

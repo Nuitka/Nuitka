@@ -21,7 +21,6 @@ import os
 import re
 
 from nuitka import Options
-from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.utils.FileOperations import listDir
@@ -142,7 +141,7 @@ Should scipy, sklearn or skimage when used be not included with numpy, Default i
             )
 
             for full_path, target_filename in numpy_binaries:
-                yield makeDllEntryPoint(
+                yield self.makeDllEntryPoint(
                     source_path=full_path,
                     dest_path=target_filename,
                     package_name=full_name,
@@ -156,7 +155,7 @@ Should scipy, sklearn or skimage when used be not included with numpy, Default i
             )
 
             for source_path, target_filename in scipy_binaries:
-                yield makeDllEntryPoint(
+                yield self.makeDllEntryPoint(
                     source_path=source_path,
                     dest_path=target_filename,
                     package_name=full_name,

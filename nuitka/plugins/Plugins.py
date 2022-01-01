@@ -257,15 +257,23 @@ class Plugins(object):
 
         result = []
 
-        for full_name in plugin.getImplicitImports(module):
-            if type(full_name) in (tuple, list):
-                raise NuitkaPluginError(
-                    "Plugin %r needs to be change to only return modules names, not %r"
-                    % (plugin, full_name)
-                )
+        def iterateModuleNames(value):
+            for v in value:
+                if type(v) in (tuple, list):
+                    raise NuitkaPluginError(
+                        "Plugin %r needs to be change to only return modules names, not %r"
+                        % (plugin, v)
+                    )
 
-            full_name = ModuleName(full_name)
+                if inspect.isgenerator(v):
+                    for w in iterateModuleNames(v):
+                        yield w
 
+                    return
+
+                yield ModuleName(v)
+
+        for full_name in iterateModuleNames(plugin.getImplicitImports(module)):
             try:
                 _module_name, module_filename, _finding = Importing.locateModule(
                     module_name=full_name,

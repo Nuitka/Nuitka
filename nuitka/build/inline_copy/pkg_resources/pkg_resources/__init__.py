@@ -140,6 +140,8 @@ _state_vars = {}
 
 
 def _declare_state(vartype, **kw):
+    assert "sys" not in kw
+
     globals().update(kw)
     _state_vars.update(dict.fromkeys(kw, vartype))
 
@@ -361,11 +363,18 @@ def get_provider(moduleOrReq):
     # Nuitka: We don't need that
     # if isinstance(moduleOrReq, Requirement):
     #     return working_set.find(moduleOrReq) or require(str(moduleOrReq))[0]
+
+    # Nuitka: No idea why, but something can erase the globals sys.
+    import sys
     try:
         module = sys.modules[moduleOrReq]
     except KeyError:
         __import__(moduleOrReq)
         module = sys.modules[moduleOrReq]
+    except AttributeError:
+        # For debugging
+        print(sys)
+        raise
     loader = getattr(module, '__loader__', None)
     return _find_adapter(_provider_factories, loader)(module)
 
@@ -468,6 +477,9 @@ def compatible_platforms(provided, required):
 
 def run_script(dist_spec, script_name):
     """Locate distribution `dist_spec` and run its `script_name` script"""
+    # Nuitka: This seems to pollute globals
+    assert False
+
     ns = sys._getframe(1).f_globals
     name = ns['__name__']
     ns.clear()
@@ -665,6 +677,9 @@ class WorkingSet:
 
     def run_script(self, requires, script_name):
         """Locate distribution for `requires` and run `script_name` script"""
+        # Nuitka: This seems to pollute globals
+        assert False
+
         ns = sys._getframe(1).f_globals
         name = ns['__name__']
         ns.clear()
@@ -3190,6 +3205,9 @@ def _call_aside(f, *args, **kwargs):
 def _initialize(g=globals()):
     "Set up global resource manager (deliberately not state-saved)"
     manager = ResourceManager()
+
+    assert "sys" not in dir(manager), manager
+
     g['_manager'] = manager
     g.update(
         (name, getattr(manager, name))
