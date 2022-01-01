@@ -169,10 +169,6 @@ The extensions to be installed are part of the Visual Code
 recommendations in ``.vscode/extensions.json`` and you will be prompted
 about that and ought to install these.
 
-Another one we found useful to collaborate:
-
--  Live Share (``ms-vsliveshare.vsliveshare``)
-
 Eclipse / PyCharm
 =================
 
@@ -502,7 +498,7 @@ be observed when creating or updating Python source:
 Use of Standard Python ``__doc__`` Strings
 ==========================================
 
-Every class and every method **must be documented** via the standard
+Every class and every method should be documented via the standard
 Python delimiters (``""" ... """``) in the usual way.
 
 Special ``doxygen`` Anatomy of ``__doc__``
