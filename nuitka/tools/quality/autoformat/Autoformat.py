@@ -384,11 +384,16 @@ def _cleanupImportSortOrder(filename):
         putTextFileContents(filename, contents=contents)
 
 
+_extra_rst_keywords = b"post", b"youtube", b"grid"
+
+
 def _cleanupRstFmt(filename):
-    contents = getFileContents(filename, mode="rb")
-    updated_contents = contents.replace(b".. post::", b".. raw:: post").replace(
-        b".. youtube::", b".. raw:: youtube"
-    )
+    updated_contents = contents = getFileContents(filename, mode="rb")
+
+    for keyword in _extra_rst_keywords:
+        updated_contents = updated_contents.replace(
+            b".. %s::" % keyword, b".. raw:: %s" % keyword
+        )
 
     if updated_contents != contents:
         with open(filename, "wb") as out_file:
@@ -412,8 +417,10 @@ def _cleanupRstFmt(filename):
     # more people will know it.
     updated_contents = contents.replace(b".. code:: sh\n", b".. code:: bash\n")
 
-    updated_contents = updated_contents.replace(b".. raw:: post", b".. post::")
-    updated_contents = updated_contents.replace(b".. raw:: youtube", b".. youtube::")
+    for keyword in _extra_rst_keywords:
+        updated_contents = updated_contents.replace(
+            b".. raw:: %s" % keyword, b".. %s::" % keyword
+        )
 
     lines = []
     inside = False
