@@ -26,7 +26,7 @@
 // its own.
 #ifdef __IDE_ONLY__
 #if defined(_WIN32)
-#include "windows.h"
+#include <windows.h>
 #endif
 #include <stdbool.h>
 #endif

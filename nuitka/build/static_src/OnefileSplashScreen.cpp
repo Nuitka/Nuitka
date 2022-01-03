@@ -19,7 +19,7 @@
 
 #ifdef __IDE_ONLY__
 #include "HelpersSafeStrings.c"
-#include "windows.h"
+#include <windows.h>
 #endif
 
 #include <assert.h>
