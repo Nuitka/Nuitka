@@ -28,7 +28,12 @@ import os
 import sys
 
 from nuitka.utils.FileOperations import isPathBelowOrSameAs
-from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
+from nuitka.utils.Utils import (
+    isLinux,
+    isMacOS,
+    isWin32Windows,
+    withNoDeprecationWarning,
+)
 
 from .PythonVersions import (
     getRunningPythonDLLPath,
@@ -126,13 +131,10 @@ def isDebianPackagePython():
     if python_version < 0x300:
         return hasattr(sys, "_multiarch")
     else:
-        import warnings
-
-        try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=DeprecationWarning)
+        with withNoDeprecationWarning():
+            try:
                 from distutils.dir_util import _multiarch
-        except ImportError:
-            return False
-        else:
-            return True
+            except ImportError:
+                return False
+            else:
+                return True

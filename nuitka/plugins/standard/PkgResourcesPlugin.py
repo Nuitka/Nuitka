@@ -26,6 +26,7 @@ some packages in their code, e.g. derive their __version__ value from that.
 import re
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.utils.Utils import withNoDeprecationWarning
 
 
 class NuitkaPluginResources(NuitkaPluginBase):
@@ -33,12 +34,13 @@ class NuitkaPluginResources(NuitkaPluginBase):
     plugin_desc = "Resolve version numbers at compile time."
 
     def __init__(self):
-        try:
-            import pkg_resources
-        except (ImportError, RuntimeError):
-            self.pkg_resources = None
-        else:
-            self.pkg_resources = pkg_resources
+        with withNoDeprecationWarning():
+            try:
+                import pkg_resources
+            except (ImportError, RuntimeError):
+                self.pkg_resources = None
+            else:
+                self.pkg_resources = pkg_resources
 
         try:
             import importlib_metadata
@@ -76,7 +78,8 @@ class NuitkaPluginResources(NuitkaPluginBase):
                     break
 
         if module_name is None and self.pkg_resources:
-            entry_point = self.pkg_resources.get_entry_info(dist, group, name)
+            with withNoDeprecationWarning():
+                entry_point = self.pkg_resources.get_entry_info(dist, group, name)
 
             module_name = entry_point.module_name
             main_name = entry_point.name
@@ -97,7 +100,7 @@ sys.exit(%(module_name)s.%(main_name)s)
         }
 
     def onModuleSourceCode(self, module_name, source_code):
-        # Many cases to deal with, pylint: disable=too-many-branches
+        # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
 
         if module_name == "__main__":
             match = re.search(
@@ -126,7 +129,8 @@ sys.exit(%(module_name)s.%(main_name)s)
                 source_code,
             ):
                 try:
-                    value = self.pkg_resources.get_distribution(match[1]).version
+                    with withNoDeprecationWarning():
+                        value = self.pkg_resources.get_distribution(match[1]).version
                 except self.pkg_resources.DistributionNotFound:
                     self.warning(
                         "Cannot find distribution '%s' for '%s', expect potential run time problem."
@@ -155,7 +159,8 @@ sys.exit(%(module_name)s.%(main_name)s)
             ):
                 # Explicitly call the require function at Nuitka compile time.
                 try:
-                    self.pkg_resources.require(match[1])
+                    with withNoDeprecationWarning():
+                        self.pkg_resources.require(match[1])
                 except self.pkg_resources.ResolutionError:
                     self.warning(
                         "Cannot find requirement '%s' for '%s', expect potential run time problem."

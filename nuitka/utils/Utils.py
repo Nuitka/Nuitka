@@ -23,6 +23,7 @@ Here the small things that fit nowhere else and don't deserve their own module.
 
 import os
 import sys
+from contextlib import contextmanager
 
 
 def getOS():
@@ -234,3 +235,25 @@ def getUserName():
     import pwd  # pylint: disable=I0021,import-error
 
     return pwd.getpwuid(os.getuid())[0]
+
+
+@contextmanager
+def withNoDeprecationWarning():
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+        # These do not inherit from DeprecationWarning by some decision we
+        # are not to care about.
+        if "pkg_resources" in sys.modules:
+            try:
+                from pkg_resources import PkgResourcesDeprecationWarning
+            except ImportError:
+                pass
+            else:
+                warnings.filterwarnings(
+                    "ignore", category=PkgResourcesDeprecationWarning
+                )
+
+        yield
