@@ -622,10 +622,15 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
         PySys_WriteStderr("import %s # LoadLibraryExW(\"%S\");\n", full_name, filename);
     }
 
+#ifndef _NUITKA_EXPERIMENTAL_DEBUG_STANDALONE
     unsigned int old_mode = SetErrorMode(SEM_FAILCRITICALERRORS);
+#endif
 
     HINSTANCE hDLL = LoadLibraryExW(filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+
+#ifndef _NUITKA_EXPERIMENTAL_DEBUG_STANDALONE
     SetErrorMode(old_mode);
+#endif
 
     if (unlikely(hDLL == NULL)) {
         char buffer[1024];
