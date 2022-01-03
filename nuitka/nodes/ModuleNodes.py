@@ -951,7 +951,6 @@ class PythonShlibModule(PythonModuleBase):
         """Read the .pyi file if present and scan for dependencies."""
 
         # Complex stuff, pylint: disable=too-many-branches,too-many-statements
-
         if self.used_modules is None:
             pyi_filename = self.getPyIFilename()
 
@@ -982,8 +981,25 @@ class PythonShlibModule(PythonModuleBase):
 
                             if origin_name == ".":
                                 origin_name = self.getFullName()
+                            else:
+                                dot_count = 0
+                                while origin_name.startswith("."):
+                                    origin_name = origin_name[1:]
+                                    dot_count += 1
 
-                            # TODO: Might want to add full relative import handling.
+                                if dot_count > 0:
+                                    if origin_name:
+                                        origin_name = (
+                                            self.getFullName()
+                                            .getRelativePackageName(level=dot_count + 1)
+                                            .getChildNamed(origin_name)
+                                        )
+                                    else:
+                                        origin_name = (
+                                            self.getFullName().getRelativePackageName(
+                                                level=dot_count + 1
+                                            )
+                                        )
 
                             if origin_name != self.getFullName():
                                 pyi_deps.add(origin_name)

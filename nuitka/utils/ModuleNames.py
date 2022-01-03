@@ -27,7 +27,9 @@ import os
 
 
 def checkModuleName(value):
-    return ".." not in str(value)
+    return ".." not in str(value) and not (
+        str(value).endswith(".") or str(value) == "."
+    )
 
 
 class ModuleName(str):
@@ -88,6 +90,14 @@ class ModuleName(str):
         """
 
         return self.splitModuleBasename()[0]
+
+    def getRelativePackageName(self, level):
+        result = ".".join(self.asString().split(".")[: -level + 1])
+
+        if result == "":
+            return None
+        else:
+            return ModuleName(result)
 
     def getTopLevelPackageName(self):
         """Get the top level package name.
