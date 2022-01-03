@@ -39,7 +39,6 @@ from nuitka.__past__ import basestring, iter_modules
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
-from nuitka.Errors import NuitkaPluginError
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPointOld
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
@@ -49,7 +48,7 @@ from nuitka.utils.FileOperations import (
     putTextFileContents,
 )
 from nuitka.utils.Importing import importFileAsModule
-from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 
 from .PluginBase import NuitkaPluginBase, post_modules, pre_modules
 
@@ -260,9 +259,9 @@ class Plugins(object):
         def iterateModuleNames(value):
             for v in value:
                 if type(v) in (tuple, list):
-                    raise NuitkaPluginError(
-                        "Plugin %r needs to be change to only return modules names, not %r"
-                        % (plugin, v)
+                    plugin.sysexit(
+                        "Plugin %r needs to be change to only return modules names, not %r (for %s)"
+                        % (plugin.plugin_name, v, module.getFullName().asString())
                     )
 
                 if inspect.isgenerator(v):
@@ -270,6 +269,12 @@ class Plugins(object):
                         yield w
 
                     return
+
+                if not checkModuleName(v):
+                    plugin.sysexit(
+                        "Plugin %r returned an invalid module name, not %r (for %s)"
+                        % (plugin, v, module.getFullName().asString())
+                    )
 
                 yield ModuleName(v)
 

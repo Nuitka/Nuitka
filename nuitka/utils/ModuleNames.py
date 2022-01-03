@@ -26,9 +26,13 @@ import fnmatch
 import os
 
 
+def checkModuleName(value):
+    return ".." not in str(value)
+
+
 class ModuleName(str):
     def __init__(self, value):
-        assert ".." not in str(value), value
+        assert checkModuleName(value), value
 
         # TODO: Disallow some conversion, e.g. from module, function, etc.
         # objects, and white list what types we accept.
