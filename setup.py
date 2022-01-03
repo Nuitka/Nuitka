@@ -36,7 +36,11 @@ import re
 from setuptools import setup
 from setuptools.command import easy_install
 
-from nuitka.PythonFlavors import isMSYS2MingwPython
+# TODO: We need a better solution for this, probably
+# error exit, once sys.exit is optimized for. This is
+# to avoid descending into Nuitka through distutils.
+if __name__ == "__main__":
+    from nuitka.PythonFlavors import isMSYS2MingwPython
 
 scripts = []
 
