@@ -1034,9 +1034,8 @@ Compile time constant bytes value pre-computed.""",
         # If it raises, or the attribute itself is a compile time constant,
         # then do execute it.
         if not self.computed_attribute or isCompileTimeConstantValue(
-            getattr(value, attribute_name)
+            getattr(value, attribute_name, None)
         ):
-
             return trace_collection.getCompileTimeComputationResult(
                 node=lookup_node,
                 computation=lambda: getattr(value, attribute_name),
