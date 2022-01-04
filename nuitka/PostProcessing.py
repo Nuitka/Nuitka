@@ -383,7 +383,7 @@ def executePostProcessing():
 rem This script was created by Nuitka to execute '%(exe_filename)s' with Python DLL being found.
 set PATH=%(dll_directory)s;%%PATH%%
 set PYTHONHOME=%(dll_directory)s
-"%%~dp0.\\%(exe_filename)s"
+"%%~dp0.\\%(exe_filename)s" %%*
 """ % {
             "dll_directory": dll_directory,
             "exe_filename": os.path.basename(result_filename),
