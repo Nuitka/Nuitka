@@ -65,6 +65,8 @@ import kivy.core.window
         return info
 
     def getImplicitImports(self, module):
+        # Using branches to dispatch, pylint: disable=too-many-branches
+
         full_name = module.getFullName()
 
         if full_name == "kivy.core.image":
@@ -80,6 +82,8 @@ import kivy.core.window
                 yield full_name.getChildNamed(module_name)
         elif full_name == "kivy.core.window.window_sdl2":
             yield "kivy.core.window._window_sdl2"
+        elif full_name == "kivy.core.window._window_sdl2":
+            yield "kivy.core.window.window_info"
         elif full_name == "kivy.core.window.window_x11":
             yield "kivy.core.window.window_info"
         elif full_name == "kivy.graphics.cgl":
