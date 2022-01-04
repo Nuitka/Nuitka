@@ -746,13 +746,13 @@ def executeModule(tree, clean_path):
         python_command_template = """\
 import os, imp;\
 assert os.path.normcase(os.path.abspath(os.path.normpath(\
-imp.find_module('%(module_name)s')[1]))) == '%(expected_filename)s',\
+imp.find_module('%(module_name)s')[1]))) == %(expected_filename)r,\
 'Error, cannot launch extension module %(module_name)s, original package is in the way.'"""
     else:
         python_command_template = """\
 import os, importlib.util;\
 assert os.path.normcase(os.path.abspath(os.path.normpath(\
-importlib.util.find_spec('%(module_name)s').origin))) == '%(expected_filename)s',\
+importlib.util.find_spec('%(module_name)s').origin))) == %(expected_filename)r,\
 'Error, cannot launch extension module %(module_name)s, original package is in the way.'"""
 
     python_command_template += ";__import__('%(module_name)s')"
