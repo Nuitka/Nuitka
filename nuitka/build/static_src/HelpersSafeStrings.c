@@ -111,7 +111,6 @@ void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) 
 }
 
 #if defined(_WIN32)
-#include <shellapi.h>
 
 bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_size) {
     target[0] = 0;
@@ -135,10 +134,7 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
                     GetTempPathW((DWORD)buffer_size, target);
                 } else if (wcsicmp(var_name, L"PROGRAM") == 0) {
 #if _NUITKA_ONEFILE_TEMP == 1
-                    int argc;
-                    wchar_t **args = CommandLineToArgvW(GetCommandLineW(), &argc);
-
-                    appendWStringSafeW(target, args[0], buffer_size);
+                    appendWStringSafeW(target, __wargv[0], buffer_size);
 #else
                     if (!GetModuleFileNameW(NULL, target, (DWORD)buffer_size)) {
                         return false;

@@ -189,7 +189,7 @@ static FILE_HANDLE createFileForWriting(filename_char_t const *filename) {
 
 static void writeToFile(FILE_HANDLE target_file, void *chunk, size_t chunk_size) {
 #if defined(_WIN32)
-    BOOL bool_res = WriteFile(target_file, chunk, chunk_size, NULL, NULL);
+    BOOL bool_res = WriteFile(target_file, chunk, (DWORD)chunk_size, NULL, NULL);
     if (bool_res == false) {
         fatalErrorTempFiles();
     }
@@ -275,7 +275,7 @@ static void readChunk(void *buffer, size_t size) {
 
 #if defined(_WIN32)
     DWORD read_size;
-    BOOL bool_res = ReadFile(exe_file, buffer, size, &read_size, NULL);
+    BOOL bool_res = ReadFile(exe_file, buffer, (DWORD)size, &read_size, NULL);
 
     if (bool_res == false || read_size != size) {
         fatalErrorAttachedData();
@@ -656,18 +656,15 @@ char const *getBinaryPath() {
 #endif
 
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
-int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
-#if defined(__MINGW32__) && !defined(_W64)
-    /* MINGW32 */
-    int argc = _argc;
-    char **argv = _argv;
-#else
-    /* MSVC, MINGW64 */
+int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     int argc = __argc;
-    char **argv = __argv;
-#endif
+    wchar_t **argv = __wargv;
+#else
+#if defined(_WIN32)
+int wmain(int argc, wchar_t **argv) {
 #else
 int main(int argc, char **argv) {
+#endif
 #endif
     NUITKA_PRINT_TIMING("ONEFILE: Entered main().");
 
