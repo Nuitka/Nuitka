@@ -29,9 +29,9 @@
 // coroutine object instance of which there can be many for each code.
 struct Nuitka_CoroutineObject {
     /* Python object folklore: */
-    PyObject_VAR_HEAD;
+    PyObject_VAR_HEAD
 
-    PyObject *m_name;
+        PyObject *m_name;
 
     // TODO: Only to make traceback for non-started throw
     PyObject *m_module;
@@ -101,9 +101,9 @@ static inline bool Nuitka_Coroutine_Check(PyObject *object) { return Py_TYPE(obj
 
 struct Nuitka_CoroutineWrapperObject {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    struct Nuitka_CoroutineObject *m_coroutine;
+        struct Nuitka_CoroutineObject *m_coroutine;
 };
 
 extern PyTypeObject Nuitka_CoroutineWrapper_Type;

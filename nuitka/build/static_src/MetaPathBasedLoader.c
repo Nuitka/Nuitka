@@ -44,10 +44,10 @@ extern PyTypeObject Nuitka_Loader_Type;
 
 struct Nuitka_LoaderObject {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    /* The loader entry, to know what was loaded exactly. */
-    struct Nuitka_MetaPathBasedLoaderEntry const *m_loader_entry;
+        /* The loader entry, to know what was loaded exactly. */
+        struct Nuitka_MetaPathBasedLoaderEntry const *m_loader_entry;
 };
 
 #ifdef _NUITKA_EXE
@@ -1404,10 +1404,10 @@ static PyObject *_path_unfreezer_exec_module(PyObject *self, PyObject *args, PyO
 
 struct Nuitka_DistributionObject {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    /* The loader entry, to know this is about exactly. */
-    struct Nuitka_MetaPathBasedLoaderEntry const *m_loader_entry;
+        /* The loader entry, to know this is about exactly. */
+        struct Nuitka_MetaPathBasedLoaderEntry const *m_loader_entry;
 };
 
 static void Nuitka_Distribution_tp_dealloc(struct Nuitka_DistributionObject *distribution) {

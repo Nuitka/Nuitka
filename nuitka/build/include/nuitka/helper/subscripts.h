@@ -324,7 +324,7 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT(PyObject *source, PyObject *subsc
             Py_ssize_t index = PyNumber_AsSsize_t(subscript, NULL);
 
             if (index == -1 && ERROR_OCCURRED()) {
-                return NULL;
+                return false;
             }
 
             PyObject *result = PySequence_GetItem(source, index);

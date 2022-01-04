@@ -43,7 +43,28 @@ from .SconsUtils import (
 )
 
 
-def enableC11Settings(env):
+def _detectWindowsSDK(env):
+    # Check if there is a WindowsSDK installed.
+    if env.msvc_mode or env.clangcl_mode:
+        if "WindowsSDKVersion" not in env:
+            if "WindowsSDKVersion" in os.environ:
+                windows_sdk_version = os.environ["WindowsSDKVersion"].rstrip("\\")
+            else:
+                windows_sdk_version = None
+        else:
+            windows_sdk_version = env["WindowsSDKVersion"]
+
+        if not windows_sdk_version:
+            scons_logger.sysexit(
+                "Error, the Windows SDK must be installed in Visual Studio."
+            )
+
+        scons_details_logger.info("Using Windows SDK '%s'." % windows_sdk_version)
+
+        env.windows_sdk_version = tuple(int(x) for x in windows_sdk_version.split("."))
+
+
+def _enableC11Settings(env):
     """Decide if C11 mode can be used and enable the C compile flags for it.
 
     Args:
@@ -56,10 +77,11 @@ def enableC11Settings(env):
     if env.clangcl_mode:
         c11_mode = True
     elif env.msvc_mode:
-        c11_mode = False
-
-        # TODO: Once it includes updated Windows SDK, we could use C11 mode with it.
-        # float(env.get("MSVS_VERSION", "0")) >= 14.2
+        # TODO: Make this experimental mode the default.
+        c11_mode = (
+            env.windows_sdk_version >= (10, 0, 19041, 0)
+            and "msvc_c11" in env.experimental_flags
+        )
     elif env.clang_mode:
         c11_mode = True
     elif env.gcc_mode and env.gcc_version >= (5,):
@@ -73,7 +95,13 @@ def enableC11Settings(env):
         elif env.msvc_mode:
             env.Append(CCFLAGS=["/std:c11"])
 
-    return c11_mode
+    if env.msvc_mode and c11_mode:
+        # Windows SDK shows this even in non-debug mode in C11 mode.
+        env.Append(CCFLAGS=["/wd5105"])
+
+    scons_details_logger.info("Using C11 mode: %s" % c11_mode)
+
+    env.c11_mode = c11_mode
 
 
 def _enableLtoSettings(
@@ -432,6 +460,9 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
         job_count=job_count,
     )
 
+    _detectWindowsSDK(env)
+    _enableC11Settings(env)
+
     if env.gcc_mode:
         # Support for gcc and clang, restricting visibility as much as possible.
         env.Append(CCFLAGS=["-fvisibility=hidden"])
@@ -480,28 +511,15 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
         # Windows XP
         env.Append(CPPDEFINES=["_WIN32_WINNT=0x0501"])
 
+    # Unicode entry points for programs.
+    if env.mingw_mode:
+        env.Append(LINKFLAGS=["-municode"])
+
     # Detect the gcc version
     if env.gcc_mode and not env.clang_mode:
         env.gcc_version = myDetectVersion(env, env.the_compiler)
     else:
         env.gcc_version = None
-
-    # Check if there is a WindowsSDK installed.
-    if env.msvc_mode or env.clangcl_mode:
-        if "WindowsSDKVersion" not in env:
-            if "WindowsSDKVersion" in os.environ:
-                windows_sdk_version = os.environ["WindowsSDKVersion"].rstrip("\\")
-            else:
-                windows_sdk_version = None
-        else:
-            windows_sdk_version = env["WindowsSDKVersion"]
-
-        scons_details_logger.info("Using Windows SDK %r." % windows_sdk_version)
-
-        if not windows_sdk_version:
-            scons_logger.sysexit(
-                "Error, the Windows SDK must be installed in Visual Studio."
-            )
 
     # Older g++ complains about aliasing with Py_True and Py_False, but we don't
     # care.

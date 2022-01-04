@@ -58,7 +58,6 @@ from nuitka.Tracing import (
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
     checkWindowsCompilerFound,
-    enableC11Settings,
     enableExperimentalSettings,
     setupCCompiler,
     switchFromGccToGpp,
@@ -333,13 +332,6 @@ switchFromGccToGpp(
 
 if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
     raiseNoCompilerFoundErrorExit()
-
-# Do we use C11 for source files, or pretend to be C++ as a workaround.
-env.c11_mode = enableC11Settings(
-    env=env,
-)
-
-scons_details_logger.info("Using C11 mode: %s" % env.c11_mode)
 
 if show_scons_mode:
     my_print("Scons: Compiler used", end=" ")

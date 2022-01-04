@@ -53,9 +53,9 @@
 // dictionary.
 typedef struct {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    PyObject *md_dict;
+        PyObject *md_dict;
 } PyModuleObject;
 
 // Generated code helpers, used in static helper codes:

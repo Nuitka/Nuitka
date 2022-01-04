@@ -211,8 +211,7 @@ static PyObject *Nuitka_CapsuleNew(void *pointer) {
 
 #if PYTHON_VERSION >= 0x300
 typedef struct {
-    PyObject_HEAD;
-    void *pointer;
+    PyObject_HEAD void *pointer;
     const char *name;
     void *context;
     PyCapsule_Destructor destructor;

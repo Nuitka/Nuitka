@@ -62,7 +62,6 @@ from .SconsCompilerSettings import (
     addConstantBlobFile,
     checkWindowsCompilerFound,
     decideConstantsBlobResourceMode,
-    enableC11Settings,
     enableExperimentalSettings,
     enableWindowsStackSize,
     setupCCompiler,
@@ -413,13 +412,6 @@ switchFromGccToGpp(
 if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
     raiseNoCompilerFoundErrorExit()
 
-# Do we use C11 for source files, or pretend to be C++ as a workaround.
-env.c11_mode = enableC11Settings(
-    env=env,
-)
-
-scons_details_logger.info("Using C11 mode: %s" % env.c11_mode)
-
 no_import_lib = False
 
 if show_scons_mode:
@@ -521,6 +513,7 @@ if env.debug_mode:
                 "/wd4702",
                 "/wd4189",
                 "/wd4211",
+                "/wd4115",
                 "/WX",
             ]
         )
@@ -569,11 +562,6 @@ if win_target:
 
     if disable_console:
         env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
-
-    if env.msvc_mode:
-        # This is used for "GetCommandLineW" used in Windows code for Python3.
-        if python_version >= (3,) or onefile_temp_mode:
-            env.Append(LIBS=["Shell32"])
 
 if python_debug:
     env.Append(CPPDEFINES=["Py_DEBUG"])

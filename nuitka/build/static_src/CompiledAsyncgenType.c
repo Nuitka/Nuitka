@@ -1196,9 +1196,9 @@ PyObject *Nuitka_Asyncgen_New(asyncgen_code code, PyObject *module, PyObject *na
 
 struct Nuitka_AsyncgenWrappedValueObject {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    PyObject *m_value;
+        PyObject *m_value;
 };
 
 static struct Nuitka_AsyncgenWrappedValueObject *free_list_asyncgen_value_wrappers = NULL;
@@ -1300,9 +1300,9 @@ typedef enum {
 
 struct Nuitka_AsyncgenAsendObject {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    struct Nuitka_AsyncgenObject *m_gen;
+        struct Nuitka_AsyncgenObject *m_gen;
     PyObject *m_sendval;
 
     AwaitableState m_state;
@@ -1352,9 +1352,9 @@ NUITKA_MAY_BE_UNUSED static void _PRINT_ASYNCGENASEND_STATUS(char const *descrip
 
 struct _PyAsyncGenWrappedValue {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    PyObject *agw_val;
+        PyObject *agw_val;
 };
 
 #define _PyAsyncGenWrappedValue_CheckExact(o) (Py_TYPE(o) == &_PyAsyncGenWrappedValue_Type)
@@ -1728,10 +1728,10 @@ static PyObject *Nuitka_AsyncgenAsend_New(struct Nuitka_AsyncgenObject *asyncgen
 
 struct Nuitka_AsyncgenAthrowObject {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    // The asyncgen we are working for.
-    struct Nuitka_AsyncgenObject *m_gen;
+        // The asyncgen we are working for.
+        struct Nuitka_AsyncgenObject *m_gen;
     // Arguments, NULL in case of close, otherwise throw arguments.
     PyObject *m_args;
 
