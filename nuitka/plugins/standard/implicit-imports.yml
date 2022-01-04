@@ -25,3 +25,7 @@ pendulum.locales:
 phonenumbers.data:
   depends:
     - ".region_*"
+
+srsly.msgpack._packer:
+  depends:
+    - "srsly.msgpack.util"
