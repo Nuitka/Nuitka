@@ -318,9 +318,14 @@ import %(binding_name)s.QtCore
 
     def _getQtBinDirs(self):
         for plugin_dir in self.getQtPluginDirs():
-            qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "bin"))
+            if "PyQt" in self.binding_name:
+                qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "bin"))
 
-            if os.path.isdir(qt_bin_dir):
+                if os.path.isdir(qt_bin_dir):
+                    yield qt_bin_dir
+            else:
+                qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, ".."))
+
                 yield qt_bin_dir
 
     def hasPluginFamily(self, family):
@@ -720,8 +725,7 @@ Prefix = .
                     [],
                 )
 
-                self.info("Including OpenSSL DLLs.")
-
+                count = 0
                 for filename in qt_bin_files:
                     basename = os.path.basename(filename).lower()
                     if basename in ("libeay32.dll", "ssleay32.dll"):
@@ -730,6 +734,10 @@ Prefix = .
                             dest_path=basename,
                             package_name=full_name,
                         )
+
+                        count += 1
+
+                self.reportFileCount(full_name, count, section="OpenSSL")
 
             if (
                 "qml" in self.getQtPluginsSelected()
@@ -755,8 +763,7 @@ Prefix = .
                 if isWin32Windows():
                     opengl_dlls = ("libegl.dll", "libglesv2.dll", "opengl32sw.dll")
 
-                    self.info("Including OpenGL DLLs.")
-
+                    count = 0
                     for filename in qt_bin_files:
                         basename = os.path.basename(filename).lower()
 
@@ -768,6 +775,8 @@ Prefix = .
                                 dest_path=basename,
                                 package_name=full_name,
                             )
+
+                    self.reportFileCount(full_name, count, section="OpenGL")
 
         elif full_name == self.binding_name + ".QtNetwork":
             if not isWin32Windows():
