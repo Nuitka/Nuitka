@@ -48,6 +48,16 @@ import kivy.core.text
 # Prevent Window from being created at compile time.
 kivy.core.core_select_lib=(lambda *args, **kwargs: None)
 import kivy.core.window
+
+# Kivy has packages designed to provide these on Windows
+try:
+    from kivy_deps.sdl2 import dep_bins as sdl2_dep_bins
+except ImportError:
+    sdl2_dep_bins = []
+try:
+    from kivy_deps.glew import dep_bins as glew_dep_bins
+except ImportError:
+    glew_dep_bins = []
 """
         info = self.queryRuntimeInformationMultiple(
             info_name="kivy_info",
@@ -56,6 +66,8 @@ import kivy.core.window
                 ("libs_loaded", "kivy.core.image.libs_loaded"),
                 ("window_impl", "kivy.core.window.window_impl"),
                 ("label_libs", "kivy.core.text.label_libs"),
+                ("sdl2_dep_bins", "sdl2_dep_bins"),
+                ("glew_dep_bins", "glew_dep_bins"),
             ),
         )
 
@@ -94,3 +106,30 @@ import kivy.core.window
             yield "kivy.graphics.cgl_backend.cgl_gl"
         elif full_name == "kivymd.app":
             yield self.locateModules("kivymd.uix")
+
+    def getExtraDlls(self, module):
+        """Copy extra shared libraries or data for this installation.
+
+        Args:
+            module: module object
+        Yields:
+            DLL entry point objects
+        """
+
+        full_name = module.getFullName()
+
+        if full_name == "kivy":
+            kivy_info = self._getKivyInformation()
+
+            kivy_dlls = []
+            for dll_folder in kivy_info.sdl2_dep_bins + kivy_info.glew_dep_bins:
+                kivy_dlls.extend(self.locateDLLsInDirectory(dll_folder))
+
+            for full_path, target_filename, _dll_extension in kivy_dlls:
+                yield self.makeDllEntryPoint(
+                    source_path=full_path,
+                    dest_path=target_filename,
+                    package_name=full_name,
+                )
+
+            self.reportFileCount(full_name, len(kivy_dlls))

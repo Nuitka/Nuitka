@@ -39,7 +39,7 @@ from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.FileOperations import makePath
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.SharedLibraries import locateDLL
+from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
 
 pre_modules = {}
 post_modules = {}
@@ -353,11 +353,30 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         return locateDLL(dll_name)
 
     @classmethod
+    def locateDLLsInDirectory(cls, directory):
+        """Locate all DLLs in a folder
+
+        Returns:
+            list of (filename, filename_relative, dll_extension)
+        """
+        return locateDLLsInDirectory(directory)
+
+    @classmethod
     def makeDllEntryPoint(cls, source_path, dest_path, package_name):
         """Create an entry point, as expected to be provided by getExtraDlls."""
         return makeDllEntryPoint(
             source_path=source_path, dest_path=dest_path, package_name=package_name
         )
+
+    def reportFileCount(self, module_name, count):
+        if count:
+            msg = "Found %d %s DLLs from '%s' installation." % (
+                count,
+                "file" if count < 2 else "files",
+                module_name.asString(),
+            )
+
+            self.info(msg)
 
     def considerExtraDlls(self, dist_dir, module):
         """Provide a tuple of names of binaries to be included.

@@ -58,16 +58,6 @@ class NuitkaPluginMatplotlib(NuitkaPluginBase):
         """
         return isStandaloneMode()
 
-    def reportFileCount(self, module_name, count):
-        if count:
-            msg = "Found %d %s DLLs from '%s' installation." % (
-                count,
-                "file" if count < 2 else "files",
-                module_name.asString(),
-            )
-
-            self.info(msg)
-
     def _getMatplotlibInfo(self):
         """Determine the filename of matplotlibrc and the default backend, etc.
 

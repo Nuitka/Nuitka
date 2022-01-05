@@ -92,16 +92,6 @@ class NuitkaPluginNumpy(NuitkaPluginBase):
         """
         return Options.isStandaloneMode()
 
-    def reportFileCount(self, module_name, count):
-        if count:
-            msg = "Found %d %s DLLs from '%s' installation." % (
-                count,
-                "file" if count < 2 else "files",
-                module_name.asString(),
-            )
-
-            self.info(msg)
-
     @classmethod
     def addPluginCommandLineOptions(cls, group):
         group.add_option(
@@ -128,10 +118,9 @@ Should scipy, sklearn or skimage when used be not included with numpy, Default i
         """Copy extra shared libraries or data for this installation.
 
         Args:
-            dist_dir: the name of the program's dist folder
             module: module object
-        Returns:
-            empty tuple
+        Yields:
+            DLL entry point objects
         """
         full_name = module.getFullName()
 
