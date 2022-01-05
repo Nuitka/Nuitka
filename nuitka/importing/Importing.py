@@ -233,13 +233,7 @@ def findModule(module_name, parent_package, level):
         # TODO: Should give a warning and return not found if the levels
         # exceed the package name.
         if parent_package is not None:
-            # TODO: This should be done with the API instead.
-            parent_package = ModuleName(
-                ".".join(parent_package.asString().split(".")[: -level + 1])
-            )
-
-            if parent_package == "":
-                parent_package = None
+            parent_package = parent_package.getRelativePackageName(level)
         else:
             return None, None, "not-found"
 
