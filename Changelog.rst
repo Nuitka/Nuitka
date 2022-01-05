@@ -121,13 +121,25 @@ Bug Fixes
    corruption and should be avoided, it seems unlikely outside of tests
    anyway.
 
+-  Standalone: Added support for more ciphers and hashes with
+   ``pycryptodome`` and ``pycryptodomex``, while also only including
+   Ciphers when needed.
+
+-  Distutils: Was not including modules or packages only referenced in
+   the entry point definition, but not in the list of packages. That is
+   not compatible and has been fixed.
+
+-  Fix, must not expose the constants blob from extension modules, as
+   loading these into a compiled binary can cause issues in this case.
+
 New Features
 ============
 
 -  We now can write XML reports with information about the compilation.
    This is initially for use in PGO tests, to decide if the expected
    forms of inclusions have happened and should grow into a proper
-   reporting tool over time.
+   reporting tool over time. At this point, the report is not very
+   useful yet.
 
 -  Added support for Python 3.10, only ``match`` statements are not
    completely supported. Variantion with ``|`` matches that also assign
@@ -136,6 +148,13 @@ New Features
 -  Windows: Allow using ``--clang`` with ``--mingw64`` to e.g. use the
    ``clang.exe`` that is contained in the Nuitka automatic download
    rather than ``gcc.exe``.
+
+-  Added support for Kivy. Works through a plugin that is automatically
+   enabled and needs no other inputs, detecting everything from using
+   Kivy at compile time.
+
+-  Added initial support for Haiku OS, a clone of BeOS with a few
+   differences in their Python installation.
 
 Optimization
 ============
@@ -163,7 +182,8 @@ Optimization
 -  Avoid escaping uninit traces. Unset values need not be considered as
    potentially modified as that cannot be done.
 
--  The ``str`` shape is now detected through variables.
+-  The ``str`` shape is now detected through variables, this enables
+   many optimization on the function level.
 
 -  Added many ``str`` operation nodes.
 
@@ -207,7 +227,7 @@ Optimization
 
 -  When starting Nuitka, it usually restarts itself with information
    collected in a mode without the ``site`` module loaded, and with hash
-   randomization disabled, for deterministic behaviour. There was an
+   randomization disabled, for deterministic behaviour. There is a
    option to prevent this from happening, where the goal is to avoid it,
    e.g. in testing, say for the coverage taking, but that meant to parse
    the options twice, which also loads a lot of code.
@@ -239,13 +259,47 @@ Optimization
 -  Python 3.10: Added support for ``union`` types as compiled time
    constants.
 
+-  Modules are now fully optimized before considering which modules they
+   are in turn using, this avoids temporary dependencies, that later
+   turn out unused, and can shorten the compilation in some cases by a
+   lot of time.
+
+-  On platforms without a static link library, in LTO mode, and with
+   gcc, we can use the ``-O3`` mode, which doesn't work for
+   ``libpython``, but that's not used there. This also includes fake
+   static libpython, as used by MinGW64 and Anaconda on Windows.
+
+-  The ``anti-bloat`` plugin now also handles newer ``sklearn`` and
+   knows more about the standard library, and its runners which it will
+   exclude from compilation if use for it. Currently that is not the
+   default, but it should become that.
+
 Organisational
 ==============
+
+-  Migrated the Nuitka blog from Nikola to Sphinx based ABlog and made
+   the whole site render with Sphinx.
 
 -  Added a small presentation about Nuitka on the Download page, to make
    sure people are aware of core features.
 
--  MSYS2: Detecting ``MinGW`` and ``POSIX`` flavors of this Python.
+-  The ``gi`` plugin is now always on. The copying of the typelib when
+   ``gi`` is imported is harmless and people can disable the plugin if
+   that's not needed.
+
+-  The ``matplotlib`` plugin is new and also always on. It previously
+   was part of the ``numpy`` plugin, which is doing too many unrelated
+   things. Moving this one out is part of a plan to split it up and have
+   it on by default without causing issues.
+
+-  MSYS2: Detecting ``MinGW`` and ``POSIX`` flavors of this Python. For
+   the ``MinGW`` flavor of MSYS2, the option ``--mingw64`` is now the
+   default, before it could attempt to use MSVC, which is not going to
+   work for it. And also the Tcl and Tk installations of it are being
+   detected automatically for the ``tk-inter`` plugin.
+
+-  Added Windows version to Nuitka version output, so we have this for
+   bug reports.
 
 -  User Manual: Added example explaining how to access values from your
    code in Nuitka project options.
@@ -280,6 +334,22 @@ Organisational
 
 -  In Visual Code, the default Python used is now 3.9 in the "Linux" C
    configuration. This matches Debian Bullseye.
+
+-  Nicer outputs from check mode of the autoformat as run for CI
+   testing, displays problematic files more clearly.
+
+-  Remove broken links to old bug tracker that is no longer online from
+   the Changelog.
+
+-  UI: When hitting CTRL-C during initial technical import detection, no
+   longer ask to submit a bug report with the exception stack, instead
+   exit cleanly.
+
+-  Windows: Enable LTO mode for MinGW64 and other gcc by default. We
+   require a version that can do it, so take advantage of that.
+
+-  For cases, where code generation of a module takes long, make sure
+   its name is output when CTRL-C is hit.
 
 Cleanups
 ========
@@ -317,6 +387,9 @@ Cleanups
    final visitor that does everything, and that of course makes a lot of
    sense for its performance.
 
+-  Major cleanup of the Scons C compiler configuration setup. Moved
+   things to the dedicate function, and harmonized it more.
+
 -  Resolved deprecation warnings given by with ``--python-debug`` for
    Nuitka.
 
@@ -328,6 +401,10 @@ Tests
 
 -  Added generated test that exercises str methods in multiple
    variations.
+
+-  Revived ``reflected`` test, that had been removed, because of Nuitka
+   special needs. This one is not yet passing again though, due to a few
+   details not yet being as compatible as needed.
 
 Summary
 =======
