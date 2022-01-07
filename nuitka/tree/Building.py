@@ -986,6 +986,7 @@ def _createModule(
     elif is_main:
         result = PythonMainModule(
             main_added=main_added,
+            module_name=module_name,
             mode=decideCompilationMode(
                 is_top=is_top, module_name=module_name, for_pgo=False
             ),
@@ -1094,7 +1095,11 @@ def buildMainModuleTree(filename, is_main):
     # to them.
 
     if is_main:
-        module_name = ModuleName("__main__")
+        # TODO: Doesn't work for deeply nested packages at all.
+        if Options.hasPythonFlagPackageMode():
+            module_name = ModuleName(os.path.basename(filename) + ".__main__")
+        else:
+            module_name = ModuleName("__main__")
     else:
         module_name = Importing.getModuleNameAndKindFromFilename(filename)[0]
 

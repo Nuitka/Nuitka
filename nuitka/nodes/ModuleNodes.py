@@ -657,6 +657,7 @@ class CompiledPythonModule(
         return self.locals_scope
 
     def getRuntimePackageValue(self):
+        # Do not want to get asked for now.
         assert not Options.shallMakeModule()
 
         if self.isCompiledPythonPackage():
@@ -667,17 +668,22 @@ class CompiledPythonModule(
         if value is not None:
             return value.asString()
 
-        filename = self.getCompileTimeFilename()
-        if (
-            self.getFullName() == "__main__"
-            and os.path.basename(filename) == "__main__.py"
-        ):
-            if Options.hasPythonFlagPackageMode():
-                return os.path.basename(os.path.dirname(filename))
-            else:
+        if self.isMainModule():
+            if self.main_added:
                 return ""
+            else:
+                return None
         else:
             return None
+
+    def getRuntimeNameValue(self):
+        # Do not want to get asked for now.
+        assert not Options.shallMakeModule()
+
+        if self.isMainModule() and Options.hasPythonFlagPackageMode():
+            return "__main__"
+        else:
+            return self.getFullName().asString()
 
 
 class CompiledPythonPackage(CompiledPythonModule):
@@ -793,13 +799,15 @@ class PythonMainModule(CompiledPythonModule):
 
     __slots__ = ("main_added", "early_modules")
 
-    def __init__(self, main_added, mode, future_spec, source_ref):
-        # Is this one from a "__main__.py" file.
+    def __init__(self, module_name, main_added, mode, future_spec, source_ref):
+        assert not Options.shallMakeModule()
+
+        # Is this one from a "__main__.py" file
         self.main_added = main_added
 
         CompiledPythonModule.__init__(
             self,
-            module_name=ModuleName("__main__"),
+            module_name=module_name,
             is_top=True,
             mode=mode,
             future_spec=future_spec,
@@ -811,6 +819,7 @@ class PythonMainModule(CompiledPythonModule):
     def getDetails(self):
         return {
             "filename": self.source_ref.getFilename(),
+            "module_name": self.module_name,
             "main_added": self.main_added,
             "mode": self.mode,
         }
@@ -823,6 +832,7 @@ class PythonMainModule(CompiledPythonModule):
         result = cls(
             main_added=args["main_added"] == "True",
             mode=args["mode"],
+            module_name=ModuleName(args["module_name"]),
             future_spec=future_spec,
             source_ref=source_ref,
         )

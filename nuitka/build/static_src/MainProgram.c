@@ -187,7 +187,7 @@ extern void SvcLaunchService();
 // Callback from Windows Service logic.
 DWORD WINAPI SvcStartPython(LPVOID lpParam) {
     if (lpParam == NULL) {
-        IMPORT_EMBEDDED_MODULE(NUITKA_MAIN_MODULE_NAME);
+        EXECUTE_MAIN_MODULE(NUITKA_MAIN_MODULE_NAME);
 
         // TODO: Log exception and call ReportSvcStatus
         if (ERROR_OCCURRED()) {
@@ -391,6 +391,33 @@ static int HANDLE_PROGRAM_EXIT() {
 
 static PyObject *EXECUTE_MAIN_MODULE(char const *module_name) {
     NUITKA_INIT_PROGRAM_LATE(module_name);
+
+#if NUITKA_MAIN_PACKAGE_MODE
+    {
+        char const *w = module_name;
+
+        for (;;) {
+            char const *s = strchr(w, '.');
+
+            if (s == NULL) {
+                break;
+            }
+
+            w = s + 1;
+
+            char buffer[1024];
+            memset(buffer, 0, sizeof(buffer));
+            memcpy(buffer, module_name, s - module_name);
+
+            PyObject *result = IMPORT_EMBEDDED_MODULE(buffer);
+
+            if (ERROR_OCCURRED()) {
+                return result;
+            }
+        }
+    }
+#endif
+
     return IMPORT_EMBEDDED_MODULE(module_name);
 }
 
@@ -1024,7 +1051,9 @@ orig_argv = argv;
     checkGlobalConstants();
 
     /* TODO: Walk over all loaded compiled modules, and make this kind of checks. */
+#if !NUITKA_MAIN_PACKAGE_MODE
     checkModuleConstants___main__();
+#endif
 
 #endif
 

@@ -1007,6 +1007,9 @@ def createBuildDefinitionsFile():
 
     build_definitions["NUITKA_MAIN_MODULE_NAME"] = main_module_name
 
+    if main_module_name != "__main__":
+        build_definitions["NUITKA_MAIN_PACKAGE_MODE"] = 1
+
     createDefinitionsFile(source_dir, "build_definitions.h", build_definitions)
 
 

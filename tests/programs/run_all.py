@@ -86,6 +86,8 @@ def main():
         if python_version < (3,):
             expected_errors.append("named_imports")
 
+        extra_variant = []
+
         if filename not in expected_errors:
             extra_flags = ["expect_success"]
         else:
@@ -117,6 +119,10 @@ def main():
             extra_flags.append("--file-reference-choice=original")
         else:
             extra_flags.append("--file-reference-choice=runtime")
+
+        # Run it as a package and also as directory.
+        if filename == "package_program":
+            extra_variant.append("--python-flag=-m")
 
         # Cannot include the files with syntax errors, these would then become
         # ImportError, but that's not the test. In all other cases, use two
@@ -176,6 +182,16 @@ def main():
                     search_mode=search_mode,
                     needs_2to3=False,
                 )
+
+                if extra_variant:
+                    my_print("Extra variation %r." % extra_variant)
+                    compareWithCPython(
+                        dirname=filename,
+                        filename=filename_main,
+                        extra_flags=extra_flags + extra_variant,
+                        search_mode=search_mode,
+                        needs_2to3=False,
+                    )
 
     search_mode.finish()
 

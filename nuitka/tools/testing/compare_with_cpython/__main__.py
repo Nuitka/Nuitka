@@ -258,6 +258,7 @@ def main():
     output_dir = hasArgValue("--output-dir", None)
     include_packages = hasArgValues("--include-package")
     include_modules = hasArgValues("--include-module")
+    python_flag_m = hasArg("--python-flag=-m")
 
     plugins_enabled = []
     for count, arg in reversed(tuple(enumerate(args))):
@@ -373,28 +374,32 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if module_name.endswith(".py"):
             module_name = module_name[:-3]
 
+        cpython_cmd = [
+            os.environ["PYTHON"],
+            "-c",
+            "import sys; sys.path.append(%s); import %s"
+            % (repr(os.path.dirname(filename)), module_name),
+        ]
+
         if no_warnings:
-            cpython_cmd = [
-                os.environ["PYTHON"],
+            cpython_cmd[1:1] = [
                 "-W",
                 "ignore",
-                "-c",
-                "import sys; sys.path.append(%s); import %s"
-                % (repr(os.path.dirname(filename)), module_name),
             ]
-        else:
-            cpython_cmd = [
-                os.environ["PYTHON"],
-                "-c",
-                "import sys; sys.path.append(%s); import %s"
-                % (repr(os.path.dirname(filename)), module_name),
+    else:
+        cpython_cmd = [os.environ["PYTHON"]]
+
+        if no_warnings:
+            cpython_cmd[1:1] = [
+                "-W",
+                "ignore",
             ]
 
-    else:
-        if no_warnings:
-            cpython_cmd = [os.environ["PYTHON"], "-W", "ignore", filename]
+        if python_flag_m:
+            cpython_cmd += ["-m", os.path.basename(filename)]
+            os.chdir(os.path.dirname(filename))
         else:
-            cpython_cmd = [os.environ["PYTHON"], filename]
+            cpython_cmd.append(filename)
 
     if no_site:
         cpython_cmd.insert(1, "-S")
@@ -447,6 +452,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     if noprefer_source:
         extra_options.append("--no-prefer-source")
+
+    if python_flag_m:
+        extra_options.append("--python-flag=-m")
 
     if coverage_mode:
         # Coverage modules hates Nuitka to re-execute, and so we must avoid

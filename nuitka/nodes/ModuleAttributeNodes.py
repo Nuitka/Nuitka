@@ -106,7 +106,7 @@ class ExpressionModuleAttributeNameRef(ExpressionModuleAttributeBase):
 
         if not Options.shallMakeModule():
             result = makeConstantRefNode(
-                constant=self.variable.getModule().getFullName().asString(),
+                constant=self.variable.getModule().getRuntimeNameValue(),
                 source_ref=self.source_ref,
             )
 

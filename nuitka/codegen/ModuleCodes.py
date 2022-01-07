@@ -19,8 +19,6 @@
 
 """
 
-import os
-
 from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.codegen import Emission
@@ -126,11 +124,7 @@ def getModuleCode(
     module_code_objects_decl = getCodeObjectsDeclCode(context)
     module_code_objects_init = getCodeObjectsInitCode(context)
 
-    is_dunder_main = (
-        module_name == "__main__"
-        and os.path.basename(module.getCompileTimeFilename()) == "__main__.py"
-        and not Options.shallMakeModule()
-    )
+    is_dunder_main = module.isMainModule()
 
     dunder_main_package = context.getConstantCode(
         module.getRuntimePackageValue() if is_dunder_main else ""
@@ -140,7 +134,6 @@ def getModuleCode(
         "module_name": module_name,
         "version": getNuitkaVersion(),
         "year": getNuitkaVersionYear(),
-        "is_main_module": 1 if module.isMainModule() else 0,
         "is_top": 1 if module.isTopModule() else 0,
         "is_dunder_main": 1 if is_dunder_main else 0,
         "dunder_main_package": dunder_main_package,
