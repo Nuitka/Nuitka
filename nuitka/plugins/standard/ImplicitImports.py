@@ -1233,7 +1233,35 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         # TODO: This should be its own plugin.
         elif (
             full_name
-            in ("win32api", "pythoncom", "win32file", "win32com", "win32print")
+            in (
+                "pythoncom",
+                "win32api",
+                "win32clipboard",
+                "win32console",
+                "win32cred",
+                "win32crypt",
+                "win32event",
+                "win32evtlog",
+                "win32file",
+                "win32gui",
+                "win32help",
+                "win32inet",
+                "win32job",
+                "win32lz",
+                "win32net",
+                "win32pdh",
+                "win32pipe",
+                "win32print",
+                "win32process",
+                "win32profile",
+                "win32ras",
+                "win32security",
+                "win32service",
+                "win32trace",
+                "win32transaction",
+                "win32ts",
+                "win32wnet",
+            )
             and isWin32Windows()
         ):
             pywin_dir = getPyWin32Dir()
