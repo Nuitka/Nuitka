@@ -130,10 +130,7 @@ def createEnvironment(mingw_mode, msvc_version, target_arch):
         and not mingw_mode
         and msvc_version is None
         and msvc_version != "latest"
-        and (
-            getExecutablePath("cl", env=None) is not None
-            or getExecutablePath("gcc", env=None) is not None
-        )
+        and (getExecutablePath("cl", env=None) is not None)
     ):
         args["MSVC_USE_SCRIPT"] = False
 
