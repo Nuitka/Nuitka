@@ -44,9 +44,14 @@ def unlikely_or_likely_from(value):
 
 _jinja2 = None
 
+# For pkg resources, we need to keep a reference, after we delete it from
+# "sys.modules" again.
+
+_loaded_pkg_resources = None
+
 
 def getJinja2Package():
-    global _jinja2  # singleton package using a cache, pylint: disable=global-statement
+    global _jinja2, _loaded_pkg_resources  # singleton package using a cache, pylint: disable=global-statement
 
     # Import dependencies, sadly we get to manage this ourselves.
     importFromInlineCopy("markupsafe", must_exist=True)
@@ -54,14 +59,12 @@ def getJinja2Package():
     # Newer Jinja2 may not use it, but we load it and remove it, so it
     # does not interfere with anything else.
     if "pkg_resources" not in sys.modules:
-        loaded_pkg_resources = importFromInlineCopy("pkg_resources", must_exist=False)
-    else:
-        loaded_pkg_resources = None
+        _loaded_pkg_resources = importFromInlineCopy("pkg_resources", must_exist=False)
 
     _jinja2 = importFromInlineCopy("jinja2", must_exist=True)
 
     # Unload if it was us loading it, as the inline copy is incomplete.
-    if loaded_pkg_resources:
+    if _loaded_pkg_resources is not None:
         del sys.modules["pkg_resources"]
 
     return _jinja2
