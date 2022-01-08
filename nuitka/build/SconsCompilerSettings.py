@@ -201,6 +201,10 @@ def checkWindowsCompilerFound(
         # winlibs MinGW64 as a download, and use it as a fallback.
         compiler_path = getExecutablePath(env["CC"], env=env)
 
+        scons_details_logger.info(
+            "Checking usability of %r from %r" % (compiler_path, env["CC"])
+        )
+
         # Drop wrong arch compiler, most often found by scans. There might be wrong gcc or cl on the PATH.
         if compiler_path is not None:
             the_cc_name = os.path.basename(compiler_path)
@@ -265,6 +269,10 @@ def checkWindowsCompilerFound(
                     env["CC"] = None
 
         if compiler_path is None and msvc_version is None:
+            scons_details_logger.info(
+                "No usable C compiler, attempt fallback to winlibs gcc."
+            )
+
             # This will download "gcc.exe" (and "clang.exe") when all others have been
             # rejected and MSVC is not enforced.
             compiler_path = getCachedDownloadedMinGW64(

@@ -345,6 +345,8 @@ if "CC" in os.environ:
     # If the environment variable CC is set, use that.
     env["CC"] = os.path.expanduser(os.environ["CC"])
     env["CCVERSION"] = None
+
+    scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
 elif clangcl_mode:
     # If possible, add Clang directory from MSVC if available.
     addClangClPathFromMSVC(env=env, target_arch=target_arch)
