@@ -10,6 +10,9 @@ Nuitka blog.
  Nuitka Release 0.6.19 (Draft)
 *******************************
 
+This release adds support for 3.10 while also adding very many new
+optimization, and doing a lot of bug fixes.
+
 Bug Fixes
 =========
 
@@ -26,8 +29,7 @@ Bug Fixes
 -  Standalone: Ignore warning given by ``patchelf`` on Linux with at
    least newer OpenSUSE. Fixed in 0.6.18.1 already.
 
--  Standalone: Add needed datafile for ``cv2`` package. Fixed in
-   0.6.18.2 already.
+-  Standalone: Add needed datafile for ``cv2`` package.
 
 -  Fix, need to avoid computing large values out of ``<<`` operation as
    well. Fixed in 0.6.18.2 already.
@@ -102,8 +104,11 @@ Bug Fixes
    already.
 
 -  Python3: Fix, need to set ``__file__`` before executing modules, as
-   some modules, specifically newer PyWin32 use them to locate things
-   during their initialization already.
+   some modules, e.g. newer PyWin32 use them to locate things during
+   their initialization already.
+
+-  Standalone: Handle all PyWin32 modules that need the special DLLs and
+   not just a few.
 
 -  Fix, some ``.pth`` files create module namespaces with ``__path__``
    that does not exist, ignore these in module importing.
@@ -132,8 +137,32 @@ Bug Fixes
 -  Fix, must not expose the constants blob from extension modules, as
    loading these into a compiled binary can cause issues in this case.
 
+-  Standalone: Added support for including OpenGL and SSL libraries with
+   ``PySide2`` and ``PySide6`` packages.
+
+-  Windows: Fix, the ``cmd`` files created for uninstalled Python and
+   accelerated programs to find the Python installation were not passing
+   command line arguments.
+
+-  Windows: Executing modules with ``--run`` was not working properly
+   due to missing escaping of file paths.
+
+-  Fix, parsing ``.pyi`` files that make relative imports was not
+   resolving them correctly.
+
+-  Python3: Fix, when disabling the console on Windows, make sure the
+   file handles still work and are not ``None``.
+
+-  Windows: Fix, need to claim all OS versions of Windows as supported,
+   otherwise e.g. high DPI features are not available.
+
 New Features
 ============
+
+-  Programs that are to be executed with the ``-m`` flag, can now be
+   compiled with ``--python-flag=-m`` and will then behave in a
+   compatible way, i.e. load the containing package first, and have a
+   proper ``__package__`` value at run time.
 
 -  We now can write XML reports with information about the compilation.
    This is initially for use in PGO tests, to decide if the expected
@@ -155,6 +184,9 @@ New Features
 
 -  Added initial support for Haiku OS, a clone of BeOS with a few
    differences in their Python installation.
+
+-  Added experimental plugin ``trio`` that works around issues with that
+   package.
 
 Optimization
 ============
@@ -278,7 +310,7 @@ Organisational
 ==============
 
 -  Migrated the Nuitka blog from Nikola to Sphinx based ABlog and made
-   the whole site render with Sphinx.
+   the whole site render with Sphinx, making it a lot more usable.
 
 -  Added a small presentation about Nuitka on the Download page, to make
    sure people are aware of core features.
@@ -351,6 +383,9 @@ Organisational
 -  For cases, where code generation of a module takes long, make sure
    its name is output when CTRL-C is hit.
 
+-  Windows: Splash screen only works with MSVC, added error indicator
+   for MinGW64 that states that and asks for porting help.
+
 Cleanups
 ========
 
@@ -402,14 +437,56 @@ Tests
 -  Added generated test that exercises str methods in multiple
    variations.
 
--  Revived ``reflected`` test, that had been removed, because of Nuitka
-   special needs. This one is not yet passing again though, due to a few
-   details not yet being as compatible as needed.
+-  Revived ``reflected`` test suite, that had been removed, because of
+   Nuitka special needs. This one is not yet passing again though, due
+   to a few details not yet being as compatible as needed.
+
+-  Added test suite for CPython 3.10 and enable execution of tests with
+   this version on Github actions.
 
 Summary
 =======
 
-This release is not done yet.
+This release is another big step forward.
+
+The amount of optimization added is again very large, some of which yet
+again unlocks more static optimization of module imports, that
+previously would have to be considered implicit. Now analysing these on
+the function level as well, we can start searching for cases, where it
+could be done, but is not done yet.
+
+After starting with ``dict``, method optimization has focused on ``str``
+which is esp. important for static optimization of imports. The next
+goal will here be to cover ``list`` which are important for run time
+performance and currently not yet optimized. Future releases will
+progress there, and also add more types.
+
+The C type specialization for Python3 has finally progressed, such that
+it is also covering the ``long`` and ``unicode`` and as such not limited
+to Python2 as much. The focus now needs to turn back to not working with
+``PyObject *`` for these types, but e.g. with ``+= 1`` to make it
+directly work with ``CLONG`` rather than ``LONG`` for which structural
+changes in code generation will be needed.
+
+For scalability, the ``anti-bloat`` work has not yet progressed as much
+as to be able to enable it by default. It needs to be more possible to
+disable it where it causes problems, e.g. when somebody really wants to
+include ``pytest`` and test frameworks generally, that's something that
+needs to be doable. Compiling without ``anti-bloat`` plugin is something
+that is immediately noticeable in exploding module amounts. It is very
+urgently recommended to enable it for your compilations.
+
+The support for Windows has been further refined, actually fixing a few
+important issues, esp. for the Qt bindings too.
+
+This release adds support for 3.10 outside of very special ``match``
+statements, bringing Nuitka back to where it works great with recent
+Python. Unfortunately ``orderedset`` is not available for it yet, which
+means it will be slower than 3.9 during compilation.
+
+Overall, Nuitka is closing many open lines of action with this. The
+``setuptools`` support has yet again improved and at this point should
+be very good.
 
 ***********************
  Nuitka Release 0.6.18
