@@ -7047,7 +7047,7 @@ Organisational
 
 -  Added support for Python3.5 numbers to Speedcenter. There are now
    also tags for speedcenter, indicating how well "develop" branch fares
-   in comparison to master.
+   in comparison to the stable branch.
 
 -  With a new tool, source code and Developer Manual contents can be
    kept in sync, so that descriptions can be quoted there. Eventually a
@@ -14655,8 +14655,8 @@ Organisational
 
 -  Then there was a feature branch ``meta_path_import`` that lived until
    being merged to ``develop`` to improve the import code, which is now
-   released on ``master`` as stable. Getting that feature right took a
-   while.
+   released as part of the main branch. Getting that feature right took
+   a while.
 
 -  And there is the feature branch ``minimize_CPython26_tests_diff``
    which has some success already in documenting the required changes to
@@ -16915,7 +16915,8 @@ Organisational
 
    .. admonition:: Update
 
-      Turned out I never master it, and used ReStructured Text instead.
+      Turned out I never mastered it, and used ReStructured Text
+      instead.
 
 -  There is a public git repository for you to track Nuitka releases.
    Make your changes and then ``git pull --rebase``. If you encounter
