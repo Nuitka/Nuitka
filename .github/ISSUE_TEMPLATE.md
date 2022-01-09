@@ -1,4 +1,4 @@
-Before submitting an Issue, please review the [Issue Guidelines](https://github.com/kayhayen/Nuitka/blob/master/CONTRIBUTING.md#submitting-an-issue).
+Before submitting an Issue, please review the [Issue Guidelines](https://github.com/kayhayen/Nuitka/blob/develop/CONTRIBUTING.md#submitting-an-issue).
 
 * Please check whether the bug was already reported or fixed.
 

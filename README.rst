@@ -1121,7 +1121,7 @@ complete the project in all minor and major ways.
 The development of Nuitka occurs in git. We currently have these 3
 branches:
 
--  ``master``
+-  ``main``
 
    This branch contains the stable release to which only hotfixes for
    bugs will be done. It is supposed to work at all times and is

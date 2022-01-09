@@ -390,14 +390,14 @@ block.
    of fixes to both the stable and the development version, supported by
    a git plug-in, that can be installed via "apt-get install git-flow".
 
--  Stable (master branch)
+-  Stable (``main`` branch)
 
    The stable version, is expected to pass all the tests at all times
    and is fully supported. As soon as bugs are discovered, they are
    fixed as hot fixes, and then merged to develop by the "git flow"
    automatically.
 
--  Development (develop branch)
+-  Development (``develop`` branch)
 
    The future release, supposedly in almost ready for release state at
    nearly all times, but this is as strict. It is not officially
@@ -416,9 +416,7 @@ block.
 
 -  Personal branches (jorj, orsiris, others as well)
 
-   Same as factory, but not integrated as factory normally is, and not
-   rebased all the time. For some branches, they will be rebased as a
-   service when we update develop.
+   We are currently not using this, but it's an option.
 
 -  Feature Branches
 
@@ -4543,14 +4541,6 @@ issues created, etc.
    ``RuntimeError`` error, but just do the correct thing, in all cases.
    An earlier step may raise ``RuntimeError`` error, when built-in
    module values are written to, that we don't support.
-
--  Recursion checks are expensive.
-
-   If the "caller" or the "called" can declare that it cannot be called
-   by itself, we could leave it out.
-
-   TODO: Are they really that expensive? Unnecessary yes, but expensive
-   may not be true.
 
 ******************
  Prongs of Action

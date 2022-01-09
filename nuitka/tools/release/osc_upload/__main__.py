@@ -47,7 +47,7 @@ def main():
     if (
         branch_name.startswith("release")
         or branch_name.startswith("hotfix")
-        or branch_name == "master"
+        or branch_name == "main"
     ):
         osc_project_name = "Nuitka"
         spec_suffix = ""

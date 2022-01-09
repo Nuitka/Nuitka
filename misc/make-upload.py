@@ -63,8 +63,8 @@ assert (
 for filename in ("README.pdf", "Changelog.pdf", "Developer_Manual.pdf"):
     assert os.system("rsync %s root@nuitka.net:/var/www/doc/" % filename) == 0
 
-# Upload only stable releases to OpenSUSE Build Service:
-if branch_name.startswith("release") or branch_name == "master":
+# Upload only stable and develop releases to OpenSUSE Build Service:
+if branch_name.startswith("release") or branch_name == "main":
     pass
 elif branch_name == "develop":
     for remote in "origin", "github":
@@ -75,6 +75,6 @@ elif branch_name == "develop":
             )
             == 0
         )
-        assert os.system("git push %s master" % remote) == 0
+        assert os.system("git push %s main" % remote) == 0
 else:
     sys.stdout.write("Skipping for branch '%s'" % branch_name)

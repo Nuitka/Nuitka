@@ -6,7 +6,7 @@ on:
       - develop
   push:
     branches:
-      - master
+      - main
       - develop
       - factory
       - release/**

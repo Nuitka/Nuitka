@@ -108,7 +108,7 @@ The mode of update, prerelease, hotfix, release, auto (default auto determines f
     if mode is None:
         if branch_name.startswith("hotfix/"):
             mode = "hotfix"
-        elif branch_name == "master" or branch_name.startswith("release/"):
+        elif branch_name == "main" or branch_name.startswith("release/"):
             mode = "release"
         elif branch_name == "develop":
             mode = "prerelease"
