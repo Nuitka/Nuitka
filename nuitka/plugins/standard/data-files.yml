@@ -92,10 +92,6 @@ sklearn.datasets:
     - "data"
     - "descr"
 
-opencv-python:
-  patterns:
-    - "config*.py"
-
 osgeo:
   dirs:
     - "data"
