@@ -296,9 +296,6 @@ with open("README.rst", "rb") as input_file:
     long_description = long_description.replace(
         ".. image:: doc/images/Nuitka-Logo-Symbol.png\n", ""
     )
-    long_description = long_description.replace(
-        ".. raw:: pdf\n\n   PageBreak oneColumn\n   SetPageCounter 1", ""
-    )
 
 setup(
     name=project_name,
