@@ -6,9 +6,9 @@ In this document, we track the per version changes and comments. This
 becomes a document on the website, as well as individual posts on the
 Nuitka blog.
 
-*******************************
- Nuitka Release 0.6.19 (Draft)
-*******************************
+***********************
+ Nuitka Release 0.6.19
+***********************
 
 This release adds support for 3.10 while also adding very many new
 optimization, and doing a lot of bug fixes.
