@@ -35,6 +35,7 @@ it's from the standard library, one can abuse the attribute ``__file__`` of the
 
 """
 
+
 import collections
 import hashlib
 import imp
@@ -42,7 +43,8 @@ import os
 import sys
 import zipfile
 
-from nuitka import Options
+from nuitka import Options, SourceCodeReferences
+from nuitka.__past__ import iter_modules
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing import StandardLibrary
 from nuitka.plugins.Plugins import Plugins
@@ -118,12 +120,14 @@ def getModuleNameAndKindFromFilename(module_filename):
         module_name = ModuleName(os.path.basename(module_filename))
         module_kind = "py"
     elif module_filename.endswith(".py"):
-        module_name = os.path.basename(module_filename)[:-3]
+        module_name = ModuleName(os.path.basename(module_filename)[:-3])
         module_kind = "py"
     else:
         for suffix in getSharedLibrarySuffixes():
             if module_filename.endswith(suffix):
-                module_name = os.path.basename(module_filename)[: -len(suffix)]
+                module_name = ModuleName(
+                    os.path.basename(module_filename)[: -len(suffix)]
+                )
                 module_kind = "shlib"
 
                 break
@@ -134,31 +138,26 @@ def getModuleNameAndKindFromFilename(module_filename):
     return module_name, module_kind
 
 
-def isIgnoreListedImportMaker(node):
-    module = node.getParentModule()
-
-    return StandardLibrary.isStandardLibraryPath(module.getFilename())
+def isIgnoreListedImportMaker(source_ref):
+    return StandardLibrary.isStandardLibraryPath(source_ref.getFilename())
 
 
-def warnAbout(importing, module_name, parent_package, level, tried_names):
-    # This probably should not be dealt with here, pylint: disable=too-many-branches
+def warnAbout(importing, module_name, level, source_ref):
+    # This probably should not be dealt with here
     if module_name == "":
         return
 
-    if not isIgnoreListedImportMaker(importing) and not isIgnoreListedNotExistingModule(
+    if not isIgnoreListedNotExistingModule(
         module_name
-    ):
-        key = module_name, parent_package, level
+    ) and not isIgnoreListedImportMaker(source_ref):
+        key = module_name, level
 
         if key not in warned_about:
             warned_about.add(key)
 
-            if parent_package is None:
-                full_name = module_name
-            else:
-                full_name = module_name
-
-            if Plugins.suppressUnknownImportWarning(importing, full_name):
+            if Plugins.suppressUnknownImportWarning(
+                importing=importing, source_ref=source_ref, module_name=module_name
+            ):
                 return
 
             if level == 0:
@@ -171,15 +170,14 @@ def warnAbout(importing, module_name, parent_package, level, tried_names):
                 level_desc = "%d package levels up" % level
 
             if _debug_module_finding:
-                if parent_package is not None:
+                if importing.getPackageName() is not None:
                     recursion_logger.warning(
-                        "%s: Cannot find '%s' in package '%s' %s (tried %s)."
+                        "%s: Cannot find '%s' in package '%s' %s."
                         % (
                             importing.getSourceReference().getAsString(),
                             module_name,
-                            parent_package,
+                            importing.getPackageName().asString(),
                             level_desc,
-                            ",".join(tried_names),
                         )
                     )
                 else:
@@ -203,7 +201,7 @@ def normalizePackageName(module_name):
     return module_name
 
 
-def findModule(importing, module_name, parent_package, level, warn):
+def findModule(module_name, parent_package, level):
     """Find a module with given package name as parent.
 
     The package name can be None of course. Level is the same
@@ -215,7 +213,7 @@ def findModule(importing, module_name, parent_package, level, warn):
         method used.
     """
     # We have many branches here, because there are a lot of cases to try.
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
 
     assert type(module_name) is ModuleName, module_name
 
@@ -235,13 +233,7 @@ def findModule(importing, module_name, parent_package, level, warn):
         # TODO: Should give a warning and return not found if the levels
         # exceed the package name.
         if parent_package is not None:
-            # TODO: This should be done with the API instead.
-            parent_package = ModuleName(
-                ".".join(parent_package.asString().split(".")[: -level + 1])
-            )
-
-            if parent_package == "":
-                parent_package = None
+            parent_package = parent_package.getRelativePackageName(level)
         else:
             return None, None, "not-found"
 
@@ -254,6 +246,17 @@ def findModule(importing, module_name, parent_package, level, warn):
 
         full_name = normalizePackageName(full_name)
         tried_names.append(full_name)
+
+        preloaded_path = getPreloadedPackagePath(module_name)
+
+        if preloaded_path is not None:
+            for module_filename in preloaded_path:
+                if os.path.exists(module_filename):
+                    break
+            else:
+                module_filename = None
+
+            return full_name.getPackageName(), module_filename, "pth"
 
         try:
             module_filename = _findModule(module_name=full_name)
@@ -284,6 +287,34 @@ def findModule(importing, module_name, parent_package, level, warn):
                 )
             return package_name, None, "built-in"
 
+        # Frozen module names are similar to built-in, but there is no list of
+        # them, therefore check loader name. Not useful at this time
+        # to make a difference with built-in.
+        if python_version >= 0x300 and module_name in sys.modules:
+            loader = getattr(sys.modules[module_name], "__loader__", None)
+
+            if (
+                loader is not None
+                and getattr(loader, "__name__", "") == "FrozenImporter"
+            ):
+                if _debug_module_finding:
+                    my_print(
+                        "findModule: Absolute imported module '%s' in as frozen':"
+                        % (module_name,)
+                    )
+                return package_name, None, "built-in"
+
+        preloaded_path = getPreloadedPackagePath(module_name)
+
+        if preloaded_path is not None:
+            for module_filename in preloaded_path:
+                if os.path.exists(module_filename):
+                    break
+            else:
+                module_filename = None
+
+            return package_name, module_filename, "pth"
+
         try:
             module_filename = _findModule(module_name=module_name)
         except ImportError:
@@ -297,15 +328,6 @@ def findModule(importing, module_name, parent_package, level, warn):
                 )
 
             return package_name, module_filename, "absolute"
-
-    if warn:
-        warnAbout(
-            importing=importing,
-            module_name=module_name,
-            parent_package=parent_package,
-            tried_names=tried_names,
-            level=level,
-        )
 
     return None, None, "not-found"
 
@@ -597,6 +619,9 @@ module_search_cache = {}
 
 
 def _findModule(module_name):
+    # Not a good module name. TODO: Push this to ModuleName() creation maybe.
+    assert module_name != ""
+
     if _debug_module_finding:
         my_print("_findModule: Enter to search '%s'." % (module_name,))
 
@@ -615,27 +640,123 @@ def _findModule(module_name):
 
         return result
 
-    try:
-        module_search_cache[key] = _findModule2(module_name)
-    except ImportError:
-        new_module_name = Plugins.considerFailedImportReferrals(module_name)
-
-        if new_module_name is None or new_module_name == module_name:
-            module_search_cache[key] = ImportError
-            raise
-
-        module_search_cache[key] = _findModule(new_module_name)
+    module_search_cache[key] = _findModuleInPath(module_name)
 
     return module_search_cache[key]
 
 
-def _findModule2(module_name):
-    # Need a real module name.
-    assert module_name != ""
+def locateModule(module_name, parent_package, level):
+    """Locate a module with given package name as parent.
 
-    preloaded_path = getPreloadedPackagePath(module_name)
+    The package name can be None of course. Level is the same
+    as with "__import__" built-in.
 
-    if preloaded_path is not None:
-        return preloaded_path[0]
+    Returns:
+        Returns a triple of module name the module has considering
+        package containing it, and filename of it which can be a
+        directory for packages, and the location method used.
+    """
+    module_package, module_filename, finding = findModule(
+        module_name=module_name,
+        parent_package=parent_package,
+        level=level,
+    )
 
-    return _findModuleInPath(module_name=module_name)
+    assert module_package is None or (
+        type(module_package) is ModuleName and module_package != ""
+    ), repr(module_package)
+
+    if module_filename is not None:
+        module_filename = os.path.normpath(module_filename)
+
+        module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
+
+        assert module_kind is not None, module_filename
+
+        module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
+
+    return module_name, module_filename, finding
+
+
+def locateModules(package_name):
+    """Determine child module names.
+
+    Return:
+        generator of ModuleName objects
+    """
+    package_name = ModuleName(package_name)
+
+    module_filename = locateModule(
+        module_name=ModuleName(package_name), parent_package=None, level=0
+    )[1]
+
+    if module_filename is not None:
+        for sub_module in iter_modules([module_filename]):
+            yield package_name.getChildNamed(sub_module.name)
+
+
+def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
+    # Many branches due to the many cases
+
+    assert type(module_name) is ModuleName
+    assert filename is not None
+
+    is_namespace = False
+    is_package = False
+
+    if is_main and os.path.isdir(filename):
+        source_filename = os.path.join(filename, "__main__.py")
+
+        if not os.path.isfile(source_filename):
+            sys.stderr.write(
+                "%s: can't find '__main__' module in '%s'\n"
+                % (os.path.basename(sys.argv[0]), filename)
+            )
+            sys.exit(2)
+
+        filename = source_filename
+
+        main_added = True
+    else:
+        main_added = False
+
+    if is_fake:
+        source_filename = filename
+
+        source_ref = SourceCodeReferences.fromFilename(filename=filename)
+
+        module_name = is_fake
+
+    elif os.path.isfile(filename):
+        source_filename = filename
+
+        source_ref = SourceCodeReferences.fromFilename(filename=filename)
+
+    elif isPackageDir(filename):
+        is_package = True
+
+        source_filename = os.path.join(filename, "__init__.py")
+
+        if not os.path.isfile(source_filename):
+            source_ref = SourceCodeReferences.fromFilename(
+                filename=filename
+            ).atInternal()
+            is_namespace = True
+        else:
+            source_ref = SourceCodeReferences.fromFilename(
+                filename=os.path.abspath(source_filename)
+            )
+
+    else:
+        logger.sysexit(
+            "%s: can't open file '%s'." % (os.path.basename(sys.argv[0]), filename),
+            exit_code=2,
+        )
+
+    return (
+        main_added,
+        is_package,
+        is_namespace,
+        source_ref,
+        source_filename,
+    )

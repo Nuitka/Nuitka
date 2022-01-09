@@ -24,7 +24,7 @@ import pickle
 import sys
 
 from nuitka import OutputDirectories
-from nuitka.__past__ import basestring, to_byte, xrange
+from nuitka.__past__ import UnionType, basestring, to_byte, xrange
 from nuitka.Builtins import (
     builtin_anon_codes,
     builtin_anon_values,
@@ -51,6 +51,11 @@ class BuiltinAnonValue(object):
         """Return byte value, encoding the anon built-in value."""
 
         return to_byte(self.anon_values.index(self.anon_name))
+
+
+class BuiltinUnionTypeValue(object):
+    def __init__(self, args):
+        self.args = args
 
 
 class BuiltinSpecialValue(object):
@@ -96,6 +101,10 @@ def _pickleAnonValues(pickler, value):
         pickler.save_global(value)
 
 
+def _pickeUnionType(picker, value):
+    picker.save(BuiltinUnionTypeValue(value.__args__))
+
+
 class ConstantStreamWriter(object):
     """Write constants to a stream and return numbers for them."""
 
@@ -117,6 +126,10 @@ class ConstantStreamWriter(object):
 
         if type(sys.version_info) is not tuple:
             self.pickle.dispatch[type(sys.version_info)] = _pickleAnonValues
+
+        # Standard pickling doesn't work with our necessary wrappers.
+        if python_version >= 0x3A0:
+            self.pickle.dispatch[UnionType] = _pickeUnionType
 
     def addConstantValue(self, constant_value):
         self.pickle.dump(constant_value)
@@ -197,7 +210,7 @@ class ConstantAccessor(object):
                 elif constant is str:
                     type_name = "string" if python_version < 0x300 else "unicode"
 
-                key = "(PyObject *)&Py%s_Type" % type_name.title()
+                key = "(PyObject *)&Py%s_Type" % type_name.capitalize()
         else:
             key = "const_" + namifyConstant(constant)
 

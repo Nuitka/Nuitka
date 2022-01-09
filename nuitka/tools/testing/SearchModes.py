@@ -70,10 +70,11 @@ class SearchModeBase(object):
         candidates = (
             dirname,
             filename,
-            filename.replace(".py", ""),
-            filename.split(".")[0],
+            filename.rsplit(".", 1)[0],
+            filename.rsplit(".", 1)[0].replace("Test", ""),
             path,
-            path.replace(".py", ""),
+            path.rsplit(".", 1)[0],
+            path.rsplit(".", 1)[0].replace("Test", ""),
         )
 
         candidate2 = os.path.relpath(

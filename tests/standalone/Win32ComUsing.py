@@ -17,6 +17,14 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Test that uses win32com superficially.
+
+Please help make it more useful, ideally by adding something
+that would work on every machine.
+"""
+
+# nuitka-project: --standalone
+
 from win32com import storagecon
 from win32com.shell import shell, shellcon
 

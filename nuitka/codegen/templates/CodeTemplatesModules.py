@@ -85,7 +85,7 @@ static void createModuleConstants(void) {
 }
 
 // We want to be able to initialize the "__main__" constants in any case.
-#if defined(_NUITKA_EXE) && %(is_main_module)s
+#if %(is_dunder_main)s
 void createMainModuleConstants(void) {
     createModuleConstants();
 }
@@ -367,7 +367,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         UPDATE_STRING_DICT0(
             moduledict_%(module_identifier)s,
             (Nuitka_StringObject *)const_str_plain___package__,
-            const_str_empty
+            %(dunder_main_package)s
         );
 #elif %(is_package)s
         PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
@@ -417,7 +417,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         PyObject *value = (PyObject *)builtin_module;
 
         // Check if main module, not a dict then but the module itself.
-#if defined(_NUITKA_MODULE) || !%(is_main_module)s
+#if defined(_NUITKA_MODULE) || !%(is_dunder_main)s
         value = PyModule_GetDict(value);
 #endif
 
@@ -431,7 +431,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
 #if PYTHON_VERSION >= 0x340
 // Set the "__spec__" value
 
-#if %(is_main_module)s
+#if %(is_dunder_main)s
     // Main modules just get "None" as spec.
     UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, Py_None);
 #else

@@ -17,10 +17,13 @@
 #
 """Str operation specs. """
 
-from .BuiltinParameterSpecs import BuiltinParameterSpecNoKeywords
+from .BuiltinParameterSpecs import (
+    BuiltinParameterSpec,
+    BuiltinParameterSpecNoKeywords,
+)
 
 
-class StrMethodSpec(BuiltinParameterSpecNoKeywords):
+class StrMethodSpecNoKeywords(BuiltinParameterSpecNoKeywords):
     __slots__ = ()
 
     def __init__(
@@ -28,28 +31,99 @@ class StrMethodSpec(BuiltinParameterSpecNoKeywords):
         name,
         arg_names=(),
         default_count=0,
-        list_star_arg=None,
-        dict_star_arg=None,
-        pos_only_args=(),
-        kw_only_args=(),
     ):
         BuiltinParameterSpecNoKeywords.__init__(
             self,
             name="str." + name,
             arg_names=arg_names,
             default_count=default_count,
-            list_star_arg=list_star_arg,
-            dict_star_arg=dict_star_arg,
-            pos_only_args=pos_only_args,
-            kw_only_args=kw_only_args,
+            list_star_arg=None,
+            dict_star_arg=None,
+            pos_only_args=(),
+            kw_only_args=(),
         )
 
 
-# str_upper_spec = StrMethodSpec("upper")
+class StrMethodSpec(BuiltinParameterSpec):
+    __slots__ = ()
 
-str_join_spec = StrMethodSpec("join", arg_names=("iterable",))
-str_partition_spec = StrMethodSpec("partition", arg_names=("sep",))
-str_rpartition_spec = StrMethodSpec("rpartition", arg_names=("sep",))
-str_strip_spec = StrMethodSpec("strip", arg_names=("chars",), default_count=1)
-str_lstrip_spec = StrMethodSpec("lstrip", arg_names=("chars",), default_count=1)
-str_rstrip_spec = StrMethodSpec("rstrip", arg_names=("chars",), default_count=1)
+    def __init__(
+        self,
+        name,
+        arg_names=(),
+        default_count=0,
+    ):
+        BuiltinParameterSpec.__init__(
+            self,
+            name="str." + name,
+            arg_names=arg_names,
+            default_count=default_count,
+            list_star_arg=None,
+            dict_star_arg=None,
+            pos_only_args=(),
+            kw_only_args=(),
+        )
+
+
+str_join_spec = StrMethodSpecNoKeywords("join", arg_names=("iterable",))
+str_partition_spec = StrMethodSpecNoKeywords("partition", arg_names=("sep",))
+str_rpartition_spec = StrMethodSpecNoKeywords("rpartition", arg_names=("sep",))
+str_strip_spec = StrMethodSpecNoKeywords("strip", arg_names=("chars",), default_count=1)
+str_lstrip_spec = StrMethodSpecNoKeywords(
+    "lstrip", arg_names=("chars",), default_count=1
+)
+str_rstrip_spec = StrMethodSpecNoKeywords(
+    "rstrip", arg_names=("chars",), default_count=1
+)
+str_find_spec = StrMethodSpecNoKeywords(
+    "find", arg_names=("sub", "start", "end"), default_count=2
+)
+str_rfind_spec = StrMethodSpecNoKeywords(
+    "rfind", arg_names=("sub", "start", "end"), default_count=2
+)
+str_index_spec = StrMethodSpecNoKeywords(
+    "index", arg_names=("sub", "start", "end"), default_count=2
+)
+str_rindex_spec = StrMethodSpecNoKeywords(
+    "rindex", arg_names=("sub", "start", "end"), default_count=2
+)
+
+str_split_spec = StrMethodSpecNoKeywords(
+    "split", arg_names=("sep", "maxsplit"), default_count=2
+)
+str_rsplit_spec = StrMethodSpecNoKeywords(
+    "rsplit", arg_names=("sep", "maxsplit"), default_count=2
+)
+
+str_startswith_spec = StrMethodSpecNoKeywords(
+    "startswith", arg_names=("prefix", "start", "end"), default_count=2
+)
+str_endswith_spec = StrMethodSpecNoKeywords(
+    "endswith", arg_names=("suffix", "start", "end"), default_count=2
+)
+
+str_replace_spec = StrMethodSpecNoKeywords(
+    "replace", arg_names=("old", "new", "count"), default_count=1
+)
+
+str_capitalize_spec = StrMethodSpecNoKeywords("capitalize", arg_names=())
+str_upper_spec = StrMethodSpecNoKeywords("upper", arg_names=())
+str_lower_spec = StrMethodSpecNoKeywords("lower", arg_names=())
+str_swapcase_spec = StrMethodSpecNoKeywords("swapcase", arg_names=())
+str_title_spec = StrMethodSpecNoKeywords("title", arg_names=())
+str_isalnum_spec = StrMethodSpecNoKeywords("isalnum", arg_names=())
+str_isalpha_spec = StrMethodSpecNoKeywords("isalpha", arg_names=())
+str_isdigit_spec = StrMethodSpecNoKeywords("isdigit", arg_names=())
+str_islower_spec = StrMethodSpecNoKeywords("islower", arg_names=())
+str_isupper_spec = StrMethodSpecNoKeywords("isupper", arg_names=())
+str_isspace_spec = StrMethodSpecNoKeywords("isspace", arg_names=())
+str_istitle_spec = StrMethodSpecNoKeywords("istitle", arg_names=())
+
+str_encode_spec = StrMethodSpec(
+    "encode", arg_names=("encoding", "errors"), default_count=2
+)
+
+# Python2 only, Python3 this is in bytes
+str_decode_spec = StrMethodSpec(
+    "decode", arg_names=("encoding", "errors"), default_count=2
+)

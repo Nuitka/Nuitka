@@ -1,0 +1,131 @@
+{#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+    {{left.getCheckValueCode("operand1")}}
+    {{right.getCheckValueCode("operand2")}}
+
+    PyLongObject *a = (PyLongObject *)operand1;
+    PyLongObject *b = (PyLongObject *)operand2;
+
+
+    bool r;
+
+
+{% if operand == "==" %}
+    if (a == b) {
+        r = true;
+    } else if (Py_SIZE(a) != Py_SIZE(b)) {
+        r = false;
+    } else {
+        Py_ssize_t i = Py_ABS(Py_SIZE(a));
+        r = true;
+        while (--i >= 0) {
+            if (a->ob_digit[i] != b->ob_digit[i]) {
+                r = false;
+                break;
+            }
+        }
+    }
+{% elif operand == "!=" %}
+    if (a == b) {
+        r = false;
+    } else if (Py_SIZE(a) != Py_SIZE(b)) {
+        r = true;
+    } else {
+        Py_ssize_t i = Py_ABS(Py_SIZE(a));
+        r = false;
+        while (--i >= 0) {
+            if (a->ob_digit[i] != b->ob_digit[i]) {
+                r = true;
+                break;
+            }
+        }
+    }
+{% elif operand == "<=" %}
+    if (a == b) {
+        r = true;
+    } else if (Py_SIZE(a) != Py_SIZE(b)) {
+        r = Py_SIZE(a) - Py_SIZE(b) < 0;
+    } else {
+        Py_ssize_t i = Py_ABS(Py_SIZE(a));
+        r = true;
+        while (--i >= 0) {
+            if (a->ob_digit[i] != b->ob_digit[i]) {
+                r = a->ob_digit[i] < b->ob_digit[i];
+                if (Py_SIZE(a) < 0) r = !r;
+                break;
+            }
+        }
+    }
+{% elif operand == ">=" %}
+    if (a == b) {
+        r = true;
+    } else if (Py_SIZE(a) != Py_SIZE(b)) {
+        r = Py_SIZE(a) - Py_SIZE(b) > 0;
+    } else {
+        Py_ssize_t i = Py_ABS(Py_SIZE(a));
+        r = true;
+        while (--i >= 0) {
+            if (a->ob_digit[i] != b->ob_digit[i]) {
+                r = a->ob_digit[i] > b->ob_digit[i];
+                if (Py_SIZE(a) < 0) r = !r;
+                break;
+            }
+        }
+    }
+{% elif operand == "<" %}
+    if (a == b) {
+        r = false;
+    } else if (Py_SIZE(a) != Py_SIZE(b)) {
+        r = Py_SIZE(a) - Py_SIZE(b) < 0;
+    } else {
+        Py_ssize_t i = Py_ABS(Py_SIZE(a));
+        r = false;
+        while (--i >= 0) {
+            if (a->ob_digit[i] != b->ob_digit[i]) {
+                r = a->ob_digit[i] < b->ob_digit[i];
+                if (Py_SIZE(a) < 0) r = !r;
+                break;
+            }
+        }
+    }
+{% elif operand == ">" %}
+    if (a == b) {
+        r = false;
+    } else if (Py_SIZE(a) != Py_SIZE(b)) {
+        r = Py_SIZE(a) - Py_SIZE(b) > 0;
+    } else {
+        Py_ssize_t i = Py_ABS(Py_SIZE(a));
+        r = false;
+        while (--i >= 0) {
+            if (a->ob_digit[i] != b->ob_digit[i]) {
+                r = a->ob_digit[i] > b->ob_digit[i];
+                if (Py_SIZE(a) < 0) r = !r;
+                break;
+            }
+        }
+    }
+{% else %}
+# error unknown operand {{operand}}
+{% endif %}
+
+    // Convert to target type.
+    {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
+    {{target.getTakeReferenceStatement("result")}}
+    return result;
+}

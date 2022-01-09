@@ -110,7 +110,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         statements=statements, allow_none=True, source_ref=source_ref
     )
 
-    if body:
+    if body and python_version < 0x3A0:
         deepest = body
 
         while deepest.getVisitableNodes():

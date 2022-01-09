@@ -28,17 +28,13 @@ from nuitka.freezer.IncludedDataFiles import (
     makeIncludedDataFile,
     makeIncludedGeneratedDataFile,
 )
-from nuitka.freezer.IncludedEntryPoints import (
-    makeDllEntryPoint,
-    makeExeEntryPoint,
-)
+from nuitka.freezer.IncludedEntryPoints import makeExeEntryPoint
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileList, listDir
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.SharedLibraries import locateDLL
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 # Use to detect the Qt plugin that is active and check for conflicts.
@@ -322,9 +318,14 @@ import %(binding_name)s.QtCore
 
     def _getQtBinDirs(self):
         for plugin_dir in self.getQtPluginDirs():
-            qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "bin"))
+            if "PyQt" in self.binding_name:
+                qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "bin"))
 
-            if os.path.isdir(qt_bin_dir):
+                if os.path.isdir(qt_bin_dir):
+                    yield qt_bin_dir
+            else:
+                qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, ".."))
+
                 yield qt_bin_dir
 
     def hasPluginFamily(self, family):
@@ -385,7 +386,7 @@ import %(binding_name)s.QtCore
                 if not self.hasQtPluginSelected(qt_plugin_name):
                     continue
 
-                yield makeDllEntryPoint(
+                yield self.makeDllEntryPoint(
                     source_path=filename,
                     dest_path=os.path.join(
                         self.binding_name,
@@ -724,16 +725,19 @@ Prefix = .
                     [],
                 )
 
-                self.info("Including OpenSSL DLLs.")
-
+                count = 0
                 for filename in qt_bin_files:
                     basename = os.path.basename(filename).lower()
                     if basename in ("libeay32.dll", "ssleay32.dll"):
-                        yield makeDllEntryPoint(
+                        yield self.makeDllEntryPoint(
                             source_path=filename,
                             dest_path=basename,
                             package_name=full_name,
                         )
+
+                        count += 1
+
+                self.reportFileCount(full_name, count, section="OpenSSL")
 
             if (
                 "qml" in self.getQtPluginsSelected()
@@ -745,7 +749,7 @@ Prefix = .
                 for filename in self._getQmlFileList(dlls=True):
                     filename_relative = os.path.relpath(filename, qml_plugin_dir)
 
-                    yield makeDllEntryPoint(
+                    yield self.makeDllEntryPoint(
                         source_path=filename,
                         dest_path=os.path.join(
                             qml_target_dir,
@@ -759,33 +763,34 @@ Prefix = .
                 if isWin32Windows():
                     opengl_dlls = ("libegl.dll", "libglesv2.dll", "opengl32sw.dll")
 
-                    self.info("Including OpenGL DLLs.")
-
+                    count = 0
                     for filename in qt_bin_files:
                         basename = os.path.basename(filename).lower()
 
                         if basename in opengl_dlls or basename.startswith(
                             "d3dcompiler_"
                         ):
-                            yield makeDllEntryPoint(
+                            yield self.makeDllEntryPoint(
                                 source_path=filename,
                                 dest_path=basename,
                                 package_name=full_name,
                             )
 
+                    self.reportFileCount(full_name, count, section="OpenGL")
+
         elif full_name == self.binding_name + ".QtNetwork":
             if not isWin32Windows():
-                dll_path = locateDLL("crypto")
+                dll_path = self.locateDLL("crypto")
                 if dll_path is not None:
-                    yield makeDllEntryPoint(
+                    yield self.makeDllEntryPoint(
                         source_path=dll_path,
                         dest_path=os.path.basename(dll_path),
                         package_name=full_name,
                     )
 
-                dll_path = locateDLL("ssl")
+                dll_path = self.locateDLL("ssl")
                 if dll_path is not None:
-                    yield makeDllEntryPoint(
+                    yield self.makeDllEntryPoint(
                         source_path=dll_path,
                         dest_path=os.path.basename(dll_path),
                         package_name=full_name,

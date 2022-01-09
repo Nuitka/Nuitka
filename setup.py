@@ -36,7 +36,11 @@ import re
 from setuptools import setup
 from setuptools.command import easy_install
 
-from nuitka.PythonFlavors import isMSYS2MingwPython
+# TODO: We need a better solution for this, probably
+# error exit, once sys.exit is optimized for. This is
+# to avoid descending into Nuitka through distutils.
+if __name__ == "__main__":
+    from nuitka.PythonFlavors import isMSYS2MingwPython
 
 scripts = []
 
@@ -362,7 +366,7 @@ setup(
             "include/*/*/*.h",
         ]
         + inline_copy_files,
-        "nuitka.codegen": ["templates/*.j2"],
+        "nuitka.codegen": ["templates_c/*.j2"],
     },
     # metadata for upload to PyPI
     author="Kay Hayen",
@@ -372,8 +376,9 @@ setup(
 Python compiler with full language support and CPython compatibility""",
     keywords="compiler,python,nuitka",
     project_urls={
-        "Documentation": "https://nuitka.net/doc",
-        "Commercial": "https://nuitka.net/pages/commercial.html",
+        "Commercial": "https://nuitka.net/doc/commercial.html",
+        "Support": "https://nuitka.net/pages/support.html",
+        "Documentation": "https://nuitka.net/doc/user-manual.html",
         "Donations": "https://nuitka.net/pages/donations.html",
         "Twitter": "https://twitter.com/KayHayen",
         "Source": "https://github.com/Nuitka/Nuitka",

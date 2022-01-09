@@ -327,7 +327,7 @@ which can and should be a top level package and then one choice, "error",
         # Do not provide an opinion about it.
         return None
 
-    def decideCompilation(self, module_name, source_ref):
+    def decideCompilation(self, module_name):
         for handled_module_name, mode in self.handled_modules.items():
             if mode != "bytecode":
                 continue

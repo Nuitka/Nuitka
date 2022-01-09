@@ -19,11 +19,15 @@
 
 #ifdef __IDE_ONLY__
 #include "HelpersSafeStrings.c"
-#include "windows.h"
+#include <windows.h>
 #endif
 
 #include <assert.h>
 #include <wincodec.h>
+
+#ifdef __MINGW32__
+#error "No support for splash screens with MinGW64 yet, only works with MSVC. Somebody please make it portable."
+#endif
 
 IStream *createImageStream() {
 

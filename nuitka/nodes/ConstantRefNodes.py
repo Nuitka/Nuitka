@@ -23,7 +23,14 @@ import sys
 from abc import abstractmethod
 
 from nuitka import Options
-from nuitka.__past__ import GenericAlias, iterItems, long, unicode, xrange
+from nuitka.__past__ import (
+    GenericAlias,
+    UnionType,
+    iterItems,
+    long,
+    unicode,
+    xrange,
+)
 from nuitka.Builtins import (
     builtin_anon_values,
     builtin_exception_values_list,
@@ -1486,6 +1493,12 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
 
             return ExpressionConstantGenericAlias(
                 generic_alias=constant, source_ref=source_ref
+            )
+        elif constant_type is UnionType:
+            from .BuiltinTypeNodes import ExpressionConstantUnionType
+
+            return ExpressionConstantUnionType(
+                union_type=constant, source_ref=source_ref
             )
         elif constant is sys.version_info:
             return ExpressionConstantSysVersionInfoRef(source_ref=source_ref)

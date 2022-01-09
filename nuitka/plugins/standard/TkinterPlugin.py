@@ -18,12 +18,11 @@
 """ Details see below in class definition.
 """
 import os
-import shutil
 import sys
 
 from nuitka import Options
+from nuitka.freezer.IncludedDataFiles import makeIncludedDataDirectory
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.FileOperations import copyTree
 
 
 def _isTkInterModule(module):
@@ -32,28 +31,25 @@ def _isTkInterModule(module):
 
 
 class NuitkaPluginTkinter(NuitkaPluginBase):
-    """This class represents the main logic of the plugin.
+    """This class represents the main logic of the TkInter plugin.
 
-    This is a plug-in to make programs work well in standalone mode which are using tkinter.
-    These programs require the presence of certain libraries written in the TCL language.
-    On Windows platforms, and even on Linux, the existence of these libraries cannot be
-    assumed. We therefore
+     This is a plug-in to make programs work well in standalone mode which are using tkinter.
+     These programs require the presence of certain libraries written in the TCL language.
+     On Windows platforms, and even on Linux, the existence of these libraries cannot be
+     assumed. We therefore
 
-    1. Copy the TCL libraries as sub-folders to the program's dist folder
-    2. Redirect the program's tkinter requests to these library copies. This is
-       done by setting appropriate variables in the os.environ dictionary.
-       Tkinter will use these variable value to locate the library locations.
+     1. Copy the TCL libraries as sub-folders to the program's dist folder
+     2. Redirect the program's tkinter requests to these library copies. This is
+        done by setting appropriate variables in the os.environ dictionary.
+        Tkinter will use these variable value to locate the library locations.
 
-    Each time before the program issues an import to a tkinter module, we make
-    sure, that the TCL environment variables are correctly set.
-
-    Args:
-        NuitkaPluginBase: the plugin template class we are inheriting.
+     Each time before the program issues an import to a tkinter module, we make
+     sure, that the TCL environment variables are correctly set.
 
     Notes:
-        You can enforce using a specific TCL folder by using TCL_LIBRARY
-        and a Tk folder by using TK_LIBRARY, but that ought to normally
-        not be necessary.
+         You can enforce using a specific TCL folder by using TCL_LIBRARY
+         and a Tk folder by using TK_LIBRARY, but that ought to normally
+         not be necessary.
     """
 
     plugin_name = "tk-inter"  # Nuitka knows us by this name
@@ -94,9 +90,8 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
             # If required we set the respective environment values.
             code = r"""
 import os
-if not os.environ.get("TCL_LIBRARY"):
-    os.environ["TCL_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tcl")
-    os.environ["TK_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tk")"""
+os.environ["TCL_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tcl")
+os.environ["TK_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tk")"""
 
             return code, "Need to make sure we set environment variables for TCL."
 
@@ -109,8 +104,7 @@ if not os.environ.get("TCL_LIBRARY"):
             default=None,
             help="""\
 The Tk library dir. Nuitka is supposed to automatically detect it, but you can
-override it here. Should it fail to discover, please report the bug. Default
-is automatic detection.""",
+override it here. Default is automatic detection.""",
         )
 
         group.add_option(
@@ -122,33 +116,29 @@ is automatic detection.""",
 The Tcl library dir. See comments for Tk library dir.""",
         )
 
-    def considerExtraDlls(self, dist_dir, module):
-        """Copy TCL libraries to the dist folder.
+    def considerDataFiles(self, module):
+        """Provide TCL libraries to the dist folder.
 
         Notes:
-            We will copy the TCL/TK directories to the program's root directory.
-            The general intention is that we return a tuple of file names.
-            We need however two subdirectories inserted, and therefore do the
-            copy ourselves and return an empty tuple.
+            We will provide the copy the TCL/TK directories to the program's root directory,
+            that might be shiftable with some work.
 
         Args:
-            dist_dir: the name of the program's dist folder
-            module: the module object (not used here)
+            module: the module in question, maybe ours
 
-        Returns:
-            None
+        Yields:
+            IncludedDataFile objects.
         """
         if not _isTkInterModule(module):
-            return ()
-        if self.files_copied:
-            return ()
-        self.files_copied = True
+            return
 
         # Check typical locations of the dirs
         candidates_tcl = (
             os.environ.get("TCL_LIBRARY"),
             os.path.join(sys.prefix, "tcl", "tcl8.5"),
             os.path.join(sys.prefix, "tcl", "tcl8.6"),
+            os.path.join(sys.prefix, "lib", "tcl8.5"),
+            os.path.join(sys.prefix, "lib", "tcl8.6"),
             "/usr/share/tcltk/tcl8.6",
             "/usr/share/tcltk/tcl8.5",
             "/usr/share/tcl8.6",
@@ -156,10 +146,13 @@ The Tcl library dir. See comments for Tk library dir.""",
             "/usr/lib64/tcl/tcl8.5",
             "/usr/lib64/tcl/tcl8.6",
         )
+
         candidates_tk = (
             os.environ.get("TK_LIBRARY"),
             os.path.join(sys.prefix, "tcl", "tk8.5"),
             os.path.join(sys.prefix, "tcl", "tk8.6"),
+            os.path.join(sys.prefix, "lib", "tk8.5"),
+            os.path.join(sys.prefix, "lib", "tk8.6"),
             "/usr/share/tcltk/tk8.6",
             "/usr/share/tcltk/tk8.5",
             "/usr/share/tk8.6",
@@ -175,7 +168,9 @@ The Tcl library dir. See comments for Tk library dir.""",
                     break
 
         if tcl is None or not os.path.exists(tcl):
-            self.sysexit("Could not find Tcl. Aborting standalone generation.")
+            self.sysexit(
+                "Could not find Tcl, you might need to set 'TCL_LIBRARY' and if that works, report a bug."
+            )
 
         tk = self.tk_library_dir
         if tk is None:
@@ -183,24 +178,23 @@ The Tcl library dir. See comments for Tk library dir.""",
                 if tk is not None and os.path.exists(tk):
                     break
 
-        if tk is None or not os.path.exists(tcl):
-            self.sysexit("Could not find Tk. Aborting standalone generation.")
+        if tk is None or not os.path.exists(tk):
+            self.sysexit(
+                "Could not find Tk, you might need to set 'TK_LIBRARY' and if that works, report a bug."
+            )
 
-        # survived the above, now do the copying to following locations
-        target_tk = os.path.join(dist_dir, "tk")
-        target_tcl = os.path.join(dist_dir, "tcl")
-
-        copyTree(tk, target_tk)
-        self.info("Copied Tk libraries from %s." % tk)  # just to entertain
-
-        # Definitely don't need the demos, so remove them again.
-        # TODO: Anything else?
-        shutil.rmtree(os.path.join(target_tk, "demos"), ignore_errors=True)
-
-        copyTree(tcl, target_tcl)
-        self.info("Copied TCL libraries from %s." % tcl)  # just to entertain
-
-        return ()
+        # survived the above, now do provide the locations
+        yield makeIncludedDataDirectory(
+            source_path=tk,
+            dest_path="tk",
+            reason="Tk copy needed for standalone Tcl",
+            ignore_dirs=("demos",),
+        )
+        yield makeIncludedDataDirectory(
+            source_path=tcl,
+            dest_path="tcl",
+            reason="Tcl needed for tkinter usage",
+        )
 
 
 class NuitkaPluginDetectorTkinter(NuitkaPluginBase):

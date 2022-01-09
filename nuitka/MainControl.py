@@ -54,6 +54,7 @@ from nuitka.PythonFlavors import (
     isAnacondaPython,
     isApplePython,
     isDebianPackagePython,
+    isMSYS2MingwPython,
     isNuitkaPython,
     isPyenvPython,
 )
@@ -68,7 +69,6 @@ from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import InstanceCounters, MemoryUsage
 from nuitka.utils.Execution import (
-    callExecProcess,
     callProcess,
     withEnvironmentVarOverriden,
     wrapCommandForDebuggerForExec,
@@ -83,7 +83,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.ReExecute import reExecuteNuitka
+from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import getArchitecture, getOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
@@ -96,6 +96,7 @@ from .freezer.Onefile import packDistFolderToOnefile
 from .freezer.Standalone import copyUsedDLLs
 from .optimizations.Optimization import optimizeModules
 from .pgo.PGO import readPGOInputFile
+from .Reports import writeCompilationReport
 from .tree import Building
 
 
@@ -113,7 +114,6 @@ def _createNodeTree(filename):
     # First, build the raw node tree from the source code.
     main_module = Building.buildMainModuleTree(
         filename=filename,
-        package=None,
         is_main=not Options.shallMakeModule(),
     )
 
@@ -149,41 +149,38 @@ def _createNodeTree(filename):
         Recursion.checkPluginFilenamePattern(pattern=pattern)
 
     for package_name in Options.getMustIncludePackages():
-        package_package, package_directory, kind = Importing.findModule(
-            importing=None,
+        package_name, package_directory, kind = Importing.locateModule(
             module_name=ModuleName(package_name),
             parent_package=None,
             level=0,
-            warn=False,
         )
 
         if kind != "absolute":
             inclusion_logger.sysexit(
                 "Error, failed to locate package %r you asked to include."
-                % package_name
+                % package_name.asString()
             )
 
         Recursion.checkPluginPath(
-            plugin_filename=package_directory, module_package=package_package
+            plugin_filename=package_directory,
+            module_package=package_name.getPackageName(),
         )
 
     for module_name in Options.getMustIncludeModules():
-        module_package, module_filename, kind = Importing.findModule(
-            importing=None,
+        module_name, module_filename, kind = Importing.locateModule(
             module_name=ModuleName(module_name),
             parent_package=None,
             level=0,
-            warn=False,
         )
 
         if kind != "absolute":
             inclusion_logger.sysexit(
                 "Error, failed to locate module '%s' you asked to include."
-                % module_name
+                % module_name.asString()
             )
 
         Recursion.checkPluginSinglePath(
-            plugin_filename=module_filename, module_package=module_package
+            plugin_filename=module_filename, module_package=module_name.getPackageName()
         )
 
     # Allow plugins to add more modules based on the initial set being complete.
@@ -502,7 +499,7 @@ def _runPythonPgoBinary():
     # or ask people to make scripts that buffer these kinds of errors, and take an error
     # instead as a serious failure.
 
-    pgo_filename = OutputDirectories.getPgoRunExecutable() + ".nuitka-pgo"
+    pgo_filename = OutputDirectories.getPgoRunInputFilename()
 
     with withEnvironmentVarOverriden("NUITKA_PGO_OUTPUT", pgo_filename):
         _exit_code = _runPgoBinary()
@@ -551,11 +548,21 @@ def runSconsBackend(quiet):
     if not Options.shallMakeModule():
         options["result_exe"] = OutputDirectories.getResultFullpath(onefile=False)
 
+        main_module = ModuleRegistry.getRootTopModule()
+        assert main_module.isMainModule()
+
+        main_module_name = main_module.getFullName()
+        if main_module_name != "__main__":
+            options["main_module_name"] = main_module_name
+
     if Options.shallUseStaticLibPython():
         options["static_libpython"] = getSystemStaticLibPythonPath()
 
     if isDebianPackagePython():
         options["debian_python"] = asBoolStr(True)
+
+    if isMSYS2MingwPython():
+        options["msys2_mingw_python"] = asBoolStr(True)
 
     if isAnacondaPython():
         options["anaconda_python"] = asBoolStr(True)
@@ -612,7 +619,7 @@ def runSconsBackend(quiet):
     if sys.flags.bytes_warning:
         options["python_sysflag_bytes_warning"] = asBoolStr(True)
 
-    if int(os.environ.get("NUITKA_SITE_FLAG", Options.hasPythonFlagNoSite())):
+    if int(os.environ.get("NUITKA_NOSITE_FLAG", Options.hasPythonFlagNoSite())):
         options["python_sysflag_no_site"] = asBoolStr(True)
 
     if Options.hasPythonFlagTraceImports():
@@ -739,13 +746,13 @@ def executeModule(tree, clean_path):
         python_command_template = """\
 import os, imp;\
 assert os.path.normcase(os.path.abspath(os.path.normpath(\
-imp.find_module('%(module_name)s')[1]))) == '%(expected_filename)s',\
+imp.find_module('%(module_name)s')[1]))) == %(expected_filename)r,\
 'Error, cannot launch extension module %(module_name)s, original package is in the way.'"""
     else:
         python_command_template = """\
 import os, importlib.util;\
 assert os.path.normcase(os.path.abspath(os.path.normpath(\
-importlib.util.find_spec('%(module_name)s').origin))) == '%(expected_filename)s',\
+importlib.util.find_spec('%(module_name)s').origin))) == %(expected_filename)r,\
 'Error, cannot launch extension module %(module_name)s, original package is in the way.'"""
 
     python_command_template += ";__import__('%(module_name)s')"
@@ -922,9 +929,9 @@ def main():
         # Relaunch in case of Python PGO input to be produced.
         if Options.shallCreatePgoInput():
             # Will not return.
-            pgo_filename = OutputDirectories.getPgoRunExecutable() + ".nuitka-pgo"
+            pgo_filename = OutputDirectories.getPgoRunInputFilename()
             general.info(
-                "Restarting compilation using collected information from %s."
+                "Restarting compilation using collected information from '%s'."
                 % pgo_filename
             )
             reExecuteNuitka(pgo_filename=pgo_filename)
@@ -994,6 +1001,11 @@ def main():
         Plugins.onFinalResult(final_filename)
 
         general.info("Successfully created %r." % final_filename)
+
+        report_filename = Options.getCompilationReportFilename()
+
+        if report_filename:
+            writeCompilationReport(report_filename)
 
         # Execute the module immediately if option was given.
         if Options.shallExecuteImmediately():

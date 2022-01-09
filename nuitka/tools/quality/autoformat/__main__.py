@@ -21,9 +21,9 @@
 
 """
 
-import sys
 from optparse import OptionParser
 
+from nuitka.Progress import enableProgressBar, wrapWithProgressBar
 from nuitka.tools.quality.autoformat.Autoformat import autoformat
 from nuitka.tools.quality.Git import getStagedFileChangeDesc
 from nuitka.tools.quality.ScanSources import scanTargets
@@ -58,6 +58,15 @@ def main():
         help="""For CI testing, check if it's properly formatted. Default is %default.""",
     )
 
+    parser.add_option(
+        "--no-progressbar",
+        action="store_false",
+        dest="progress_bar",
+        default=True,
+        help="""Disable progress bar outputs (if tqdm is installed).
+Defaults to off.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     if options.from_commit:
@@ -84,12 +93,18 @@ def main():
                 suffixes=(".py", ".scons", ".rst", ".txt", ".j2", ".md", ".c", ".h"),
             )
         )
+
         if not filenames:
-            sys.exit("No files found.")
+            tools_logger.sysexit("No files found.")
 
         result = 0
 
-        for filename in filenames:
+        if options.progress_bar:
+            enableProgressBar()
+
+        for filename in wrapWithProgressBar(
+            filenames, stage="Autoformat", unit="files"
+        ):
             if autoformat(filename, git_stage=False, check_only=options.check_only):
                 result += 1
 

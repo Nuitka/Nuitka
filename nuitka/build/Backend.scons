@@ -62,9 +62,7 @@ from .SconsCompilerSettings import (
     addConstantBlobFile,
     checkWindowsCompilerFound,
     decideConstantsBlobResourceMode,
-    enableC11Settings,
     enableExperimentalSettings,
-    enableLtoSettings,
     enableWindowsStackSize,
     setupCCompiler,
     switchFromGccToGpp,
@@ -117,6 +115,9 @@ result_basepath = getArgumentRequired("result_name")
 # The name of executable that we produce (in executable mode).
 result_exe = getArgumentDefaulted("result_exe", None)
 
+# Name of the main program (in executable mode, typically __main__ but can be in a package too.)
+main_module_name = getArgumentDefaulted("main_module_name", "__main__")
+
 # The suffix for an extension module (in module mode).
 module_suffix = getArgumentDefaulted("module_suffix", None)
 
@@ -145,6 +146,9 @@ nuitka_python = getArgumentBool("nuitka_python", False)
 
 # The Debian Python, for which we know that some optimization can be done.
 debian_python = getArgumentBool("debian_python", False)
+
+# For the msys2 python, we can know a few things, it's not Win32 entirely.
+msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
 
 # Python debug mode: reference count checking, assertions in CPython core.
 python_debug = getArgumentBool("python_debug", False)
@@ -198,7 +202,8 @@ mingw_mode = getArgumentBool("mingw_mode", False)
 # Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getArgumentBool("clang_mode", False)
 
-# Clang on Windows is always clang-cl for now.
+# Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
+# is changed to ClangCL from Visual Studio.
 clangcl_mode = False
 if win_target and not mingw_mode and clang_mode:
     clang_mode = False
@@ -280,7 +285,7 @@ compiler_version_mode = getArgumentBool("compiler_version", False)
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 
 # Low memory mode, compile using less memory if possible.
-low_memory_mode = getArgumentBool("low_memory", False)
+low_memory = getArgumentBool("low_memory", False)
 
 # Minimum version required on macOS.
 macos_minversion = getArgumentDefaulted("macos_minversion", "")
@@ -340,6 +345,8 @@ if "CC" in os.environ:
     # If the environment variable CC is set, use that.
     env["CC"] = os.path.expanduser(os.environ["CC"])
     env["CCVERSION"] = None
+
+    scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
 elif clangcl_mode:
     # If possible, add Clang directory from MSVC if available.
     addClangClPathFromMSVC(env=env, target_arch=target_arch)
@@ -351,11 +358,14 @@ elif clang_mode:
     env["CC"] = "clang"
     env["CCVERSION"] = None
 
+enableExperimentalSettings(env, experimental)
+
 # On Windows, in case MSVC was not found and not previously forced, use the
 # winlibs MinGW64 as a download, and use it as a fallback.
 env = checkWindowsCompilerFound(
     env=env,
     target_arch=target_arch,
+    clang_mode=clang_mode,
     msvc_version=msvc_version,
     assume_yes_for_downloads=assume_yes_for_downloads,
 )
@@ -365,7 +375,7 @@ env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
 env.source_dir = source_dir
-env.low_memory = low_memory_mode
+env.low_memory = low_memory
 env.macos_minversion = macos_minversion
 
 # Various flavors could influence builds.
@@ -390,6 +400,12 @@ env.msvc_mode = win_target and not env.gcc_mode
 env.mingw_mode = win_target and env.gcc_mode
 env.clangcl_mode = clangcl_mode
 
+# Python specific modes have to influence some decisions
+env.nuitka_python = nuitka_python
+env.debian_python = debian_python
+env.msys2_mingw_python = msys2_mingw_python
+env.static_libpython = static_libpython
+
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
 switchFromGccToGpp(
     env=env,
@@ -397,13 +413,6 @@ switchFromGccToGpp(
 
 if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
     raiseNoCompilerFoundErrorExit()
-
-# Do we use C11 for source files, or pretend to be C++ as a workaround.
-env.c11_mode = enableC11Settings(
-    env=env,
-)
-
-scons_details_logger.info("Using C11 mode: %s" % env.c11_mode)
 
 no_import_lib = False
 
@@ -420,42 +429,13 @@ if show_scons_mode:
 setupScons(env, source_dir)
 
 # Set up C compiler settings.
-setupCCompiler(env)
-
-# Enable LTO for compiler.
-enableLtoSettings(
+setupCCompiler(
     env=env,
     lto_mode=lto_mode,
     pgo_mode=pgo_mode,
-    nuitka_python=nuitka_python,
-    debian_python=debian_python,
     job_count=job_count,
 )
 
-# Support details for real gcc, not clang.
-if env.gcc_mode and not env.clang_mode:
-    # Use link time optimizations so that gcc can help with optimization across
-    # files, but unfortunately at this time it seriously slows down the compiled
-    # code. This may be because it needs -O3 option to be effective.
-    if static_libpython and not env.lto_mode:
-        env.Append(CCFLAGS=["-fno-lto"])
-        env.Append(LINKFLAGS=["-fno-lto"])
-
-    # We don't care about that.
-    env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
-
-    # The var-tracking does not scale, disable it. Should we really need it, we
-    # can enable it. TODO: Does this cause a performance loss?
-    env.Append(CCFLAGS=["-fno-var-tracking"])
-
-    # This disables output of notes, e.g. on struct alignment layout changes
-    env.Append(CCFLAGS=["-fcompare-debug-second"])
-
-if env.gcc_mode and env.lto_mode:
-    if env.debug_mode:
-        env.Append(LINKFLAGS=["-Og"])
-    else:
-        env.Append(LINKFLAGS=["-O2" if env.lto_mode and not nuitka_python else "-O3"])
 
 # Avoid them as appearing to be different files. TODO: Find out which
 # clang version has this, clang-8 does not.
@@ -535,6 +515,7 @@ if env.debug_mode:
                 "/wd4702",
                 "/wd4189",
                 "/wd4211",
+                "/wd4115",
                 "/WX",
             ]
         )
@@ -547,9 +528,6 @@ if env.debug_mode:
 
 if full_compat_mode:
     env.Append(CPPDEFINES=["_NUITKA_FULL_COMPAT"])
-
-if experimental:
-    enableExperimentalSettings(env, experimental)
 
 if profile_mode:
     env.Append(CPPDEFINES=["_NUITKA_PROFILE"])
@@ -586,11 +564,6 @@ if win_target:
 
     if disable_console:
         env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
-
-    if env.msvc_mode:
-        # This is used for "GetCommandLineW" used in Windows code for Python3.
-        if python_version >= (3,) or onefile_temp_mode:
-            env.Append(LIBS=["Shell32"])
 
 if python_debug:
     env.Append(CPPDEFINES=["Py_DEBUG"])
@@ -644,7 +617,11 @@ def _detectPythonHeaderPath():
         # include path.
 
         candidates = [
-            os.path.join(python_prefix, "include", "python" + python_abi_version)
+            os.path.join(python_prefix, "include", "python" + python_abi_version),
+            # Haiku specific paths:
+            os.path.join(
+                python_prefix, "develop/headers", "python" + python_abi_version
+            ),
         ]
 
     for candidate in candidates:
@@ -708,7 +685,7 @@ if win_target:
     elif env.gcc_mode and static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
     else:
-        # Some non standard Pythons on Windows have this.
+        # Some non CPython flavors on Windows have this.
         def addWinLib():
             # Make sure to locate the Python link library from multiple potential
             # locations (installed vs. self-built).
@@ -735,7 +712,8 @@ if win_target:
             env.Append(LIBPATH=[win_lib_path])
             env.Append(LIBS=[win_lib_name])
 
-        addWinLib()
+        if not msys2_mingw_python:
+            addWinLib()
 elif not module_mode:
     # Add the python library path to the library path
     python_lib_path = os.path.join(python_prefix, "lib")
@@ -842,28 +820,6 @@ else:
         elif not env.clang_mode:
             env.Append(LINKFLAGS=["-s"])
 
-# When debugging, optimize less than when optimizing, when not remove
-# assertions.
-if env.debug_mode:
-    if env.clang_mode or (env.gcc_mode and env.gcc_version >= (4, 8)):
-        env.Append(CCFLAGS=["-Og"])
-    elif env.gcc_mode:
-        env.Append(CCFLAGS=["-O1"])
-    elif env.msvc_mode:
-        env.Append(CCFLAGS=["-O2"])
-else:
-    if env.gcc_mode:
-        env.Append(CCFLAGS=["-O2" if env.lto_mode and not nuitka_python else "-O3"])
-    elif env.msvc_mode:
-        env.Append(
-            CCFLAGS=[
-                "/Ox",  # Enable most speed optimization
-                "/GF",  # Eliminate duplicate strings.
-                "/Gy",  # Function level object storage, to allow removing unused ones
-            ]
-        )
-
-    env.Append(CPPDEFINES=["__NUITKA_NO_ASSERT__"])
 
 # MinGW for 64 bits needs this due to CPython bugs.
 if win_target and target_arch == "x86_64" and env.gcc_mode:
@@ -890,11 +846,7 @@ if macosx_target and not module_mode:
 
 addConstantBlobFile(
     env=env,
-    resource_desc=decideConstantsBlobResourceMode(
-        gcc_mode=env.gcc_mode,
-        clang_mode=env.clang_mode,
-        lto_mode=env.lto_mode,
-    ),
+    resource_desc=decideConstantsBlobResourceMode(env=env, module_mode=module_mode),
     source_dir=source_dir,
     target_arch=target_arch,
 )
@@ -1054,6 +1006,11 @@ def createBuildDefinitionsFile():
         build_definitions["NUITKA_FORCED_STDOUT_PATH"] = forced_stdout_path
     if forced_stderr_path:
         build_definitions["NUITKA_FORCED_STDERR_PATH"] = forced_stderr_path
+
+    build_definitions["NUITKA_MAIN_MODULE_NAME"] = main_module_name
+
+    if main_module_name != "__main__":
+        build_definitions["NUITKA_MAIN_PACKAGE_MODE"] = 1
 
     createDefinitionsFile(source_dir, "build_definitions.h", build_definitions)
 

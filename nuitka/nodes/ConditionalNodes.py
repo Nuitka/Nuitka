@@ -34,7 +34,7 @@ from .NodeMakingHelpers import (
     wrapStatementWithSideEffects,
 )
 from .OperatorNodesUnary import ExpressionOperationNot
-from .shapes.BuiltinTypeShapes import tshape_bool
+from .shapes.BuiltinTypeShapes import tshape_bool, tshape_unknown
 from .StatementNodes import StatementsSequence
 
 
@@ -53,6 +53,19 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
             },
             source_ref=source_ref,
         )
+
+    def getTypeShape(self):
+        yes_shape = self.subnode_expression_yes.getTypeShape()
+
+        if yes_shape is tshape_unknown:
+            return tshape_unknown
+        else:
+            no_shape = self.subnode_expression_no.getTypeShape()
+
+            if no_shape is yes_shape:
+                return no_shape
+            else:
+                return tshape_unknown
 
     def getBranches(self):
         return (self.subnode_expression_yes, self.subnode_expression_no)

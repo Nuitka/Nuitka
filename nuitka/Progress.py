@@ -36,13 +36,11 @@ tqdm = None
 
 
 class NuitkaProgessBar(object):
-    def __init__(self, stage, total, min_total, unit):
-        self.stage = stage
+    def __init__(self, iterable, stage, total, min_total, unit):
         self.total = total
 
         # The minimum may not be provided, then default to 0.
-        self.min_total = min_total or 0
-        self.unit = unit
+        self.min_total = min_total
 
         # No item under work yet.
         self.item = None
@@ -50,22 +48,24 @@ class NuitkaProgessBar(object):
         # No progress yet.
         self.progress = 0
 
-        # Render immediately with 0 progress.
-        self._reinit()
-
-    def _reinit(self):
-        # Note: Setting disable=None enables tty detection.
+        # Render immediately with 0 progress, and setting disable=None enables tty detection.
         self.tqdm = tqdm(
+            iterable=iterable,
             initial=self.progress,
-            total=max(self.total, self.min_total),
-            unit=self.unit,
+            total=max(self.total, self.min_total)
+            if self.min_total is not None
+            else None,
+            unit=unit,
             disable=None,
             leave=False,
             bar_format="{desc}{percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt}{postfix}",
         )
 
-        self.tqdm.set_description(self.stage)
+        self.tqdm.set_description(stage)
         self.setCurrent(self.item)
+
+    def __iter__(self):
+        return iter(self.tqdm)
 
     def updateTotal(self, total):
         if total != self.total:
@@ -97,33 +97,48 @@ class NuitkaProgessBar(object):
             yield
 
 
-def enableProgressBar():
-    global use_progress_bar  # singleton, pylint: disable=global-statement
+def _getTqdmModule():
     global tqdm  # singleton, pylint: disable=global-statement
 
-    if isWin32Windows():
-        colorama = importFromInlineCopy("colorama", must_exist=True)
-        colorama.init()
+    if tqdm:
+        return tqdm
+    elif tqdm is False:
+        return None
+    else:
+        tqdm = importFromInlineCopy("tqdm", must_exist=False)
 
-    tqdm = importFromInlineCopy("tqdm", must_exist=False)
+        if tqdm is None:
+            try:
+                # Cannot use import tqdm due to pylint bug.
+                import tqdm as tqdm_installed  # pylint: disable=I0021,import-error
 
-    if tqdm is None:
-        try:
-            # Cannot use import tqdm due to pylint bug.
-            import tqdm as tqdm_installed  # pylint: disable=I0021,import-error
+                tqdm = tqdm_installed
+            except ImportError:
+                # We handle the case without inline copy too, but it may be removed, e.g. on
+                # Debian it's only a recommended install, and not included that way.
+                pass
 
-            tqdm = tqdm_installed
-        except ImportError:
-            # We handle the case without inline copy too, but it may be removed, e.g. on
-            # Debian it's only a recommended install, and not included that way.
-            pass
+        if tqdm is None:
+            tqdm = False
+            return None
 
-    # Tolerate the absence ignore the progress bar
-    if tqdm is not None:
         tqdm = tqdm.tqdm
 
+        # Tolerate the absence ignore the progress bar
         tqdm.set_lock(RLock())
+
+        return tqdm
+
+
+def enableProgressBar():
+    global use_progress_bar  # singleton, pylint: disable=global-statement
+
+    if _getTqdmModule() is not None:
         use_progress_bar = True
+
+        if isWin32Windows():
+            colorama = importFromInlineCopy("colorama", must_exist=True)
+            colorama.init()
 
 
 def setupProgressBar(stage, unit, total, min_total=0):
@@ -132,6 +147,7 @@ def setupProgressBar(stage, unit, total, min_total=0):
 
     if use_progress_bar:
         Tracing.progress = NuitkaProgessBar(
+            iterable=None,
             stage=stage,
             total=total,
             min_total=min_total,
@@ -168,5 +184,18 @@ def closeProgressBar():
 
         Tracing.progress.close()
         Tracing.progress = None
+
+        return result
+
+
+def wrapWithProgressBar(iterable, stage, unit):
+    if tqdm is None:
+        return iterable
+    else:
+        result = NuitkaProgessBar(
+            iterable=iterable, unit=unit, stage=stage, total=None, min_total=None
+        )
+
+        Tracing.progress = result
 
         return result

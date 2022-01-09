@@ -53,7 +53,6 @@ if str is bytes:
     def iterItems(d):
         return d.iteritems()
 
-
 else:
 
     def iterItems(d):
@@ -133,6 +132,11 @@ try:
 except ImportError:
     GenericAlias = None
 
+try:
+    from types import UnionType
+except ImportError:
+    UnionType = None
+
 
 def getMetaClassBase(meta_class_prefix):
     """For Python2/3 compatible source, we create a base class that has the metaclass
@@ -170,7 +174,6 @@ if not hasattr(pkgutil, "ModuleInfo"):
         for item in pkgutil.iter_modules(path, prefix):
             yield ModuleInfo(*item)
 
-
 else:
     iter_modules = pkgutil.iter_modules
 
@@ -189,3 +192,4 @@ assert Iterable
 assert MutableSet
 assert subprocess
 assert GenericAlias or intern
+assert UnionType or intern

@@ -43,17 +43,22 @@
 #define SYSFLAG_UTF8 0
 #endif
 
+#ifndef NUITKA_MAIN_MODULE_NAME
+#define NUITKA_MAIN_MODULE_NAME "__main__"
+#endif
+
 #include <osdefs.h>
 #include <structseq.h>
 
 extern PyCodeObject *codeobj_main;
 
-/* For later use in "Py_GetArgcArgv" */
-static char **orig_argv;
-static int orig_argc;
+/* For later use in "Py_GetArgcArgv" we expose the needed value  */
 #if PYTHON_VERSION >= 0x300
-static wchar_t **argv_unicode;
+static wchar_t **orig_argv;
+#else
+static char **orig_argv;
 #endif
+static int orig_argc;
 
 #ifdef _NUITKA_STANDALONE
 
@@ -139,17 +144,15 @@ extern void _initCompiledFrameType();
 
 #include <locale.h>
 
-// Types of command line arguments are different between Python2/3.
-#if PYTHON_VERSION >= 0x300
-typedef wchar_t **argv_type_t;
-static argv_type_t convertCommandLineParameters(int argc, char **argv) {
-#if _WIN32
-    int new_argc;
-
-    argv_type_t result = CommandLineToArgvW(GetCommandLineW(), &new_argc);
-    assert(new_argc == argc);
-    return result;
+#ifdef _WIN32
+#define _NUITKA_NATIVE_WCHAR_ARGV 1
 #else
+#define _NUITKA_NATIVE_WCHAR_ARGV 0
+#endif
+
+// Types of command line arguments are different between Python2/3.
+#if PYTHON_VERSION >= 0x300 && _NUITKA_NATIVE_WCHAR_ARGV == 0
+static wchar_t **convertCommandLineParameters(int argc, char **argv) {
     // Originally taken from CPython3: There seems to be no sane way to use
     static wchar_t **argv_copy;
     argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t *) * argc);
@@ -174,10 +177,7 @@ static argv_type_t convertCommandLineParameters(int argc, char **argv) {
     free(oldloc);
 
     return argv_copy;
-#endif
 }
-#else
-typedef char **argv_type_t;
 #endif
 
 #ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
@@ -187,7 +187,7 @@ extern void SvcLaunchService();
 // Callback from Windows Service logic.
 DWORD WINAPI SvcStartPython(LPVOID lpParam) {
     if (lpParam == NULL) {
-        IMPORT_EMBEDDED_MODULE("__main__");
+        EXECUTE_MAIN_MODULE(NUITKA_MAIN_MODULE_NAME);
 
         // TODO: Log exception and call ReportSvcStatus
         if (ERROR_OCCURRED()) {
@@ -214,7 +214,11 @@ static long _wtoi(const wchar_t *value) { return wcstol(value, 0, 10); }
 
 // Parse the command line parameters and provide it to "sys" built-in module,
 // as well as decide if it's a multiprocessing usage.
-static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
+#if _NUITKA_NATIVE_WCHAR_ARGV == 0
+static void setCommandLineParameters(int argc, char **argv, bool initial) {
+#else
+static void setCommandLineParameters(int argc, wchar_t **argv, bool initial) {
+#endif
     if (initial) {
         /* We might need to handle special parameters from plugins that are
            very deeply woven into command line handling. These are right now
@@ -223,7 +227,7 @@ static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
            install and exit here too.
          */
         for (int i = 1; i < argc; i++) {
-#if PYTHON_VERSION < 0x300
+#if _NUITKA_NATIVE_WCHAR_ARGV == 0
             if ((strcmp(argv[i], "--multiprocessing-fork")) == 0 && (i + 1 < argc))
 #else
             if ((wcscmp(argv[i], L"--multiprocessing-fork")) == 0 && (i + 1 < argc))
@@ -233,13 +237,13 @@ static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
                 break;
             }
 
-#if PYTHON_VERSION < 0x300
+#if _NUITKA_NATIVE_WCHAR_ARGV == 0
             if ((strcmp(argv[i], "--multiprocessing-resource-tracker")) == 0 && (i + 1 < argc))
 #else
             if ((wcscmp(argv[i], L"--multiprocessing-resource-tracker")) == 0 && (i + 1 < argc))
 #endif
             {
-#if PYTHON_VERSION < 0x300
+#if _NUITKA_NATIVE_WCHAR_ARGV == 0
                 multiprocessing_resource_tracker_arg = PyInt_FromLong(atoi(argv[i + 1]));
 #else
                 multiprocessing_resource_tracker_arg = PyLong_FromLong(_wtoi(argv[i + 1]));
@@ -263,12 +267,6 @@ static void setCommandLineParameters(int argc, argv_type_t argv, bool initial) {
             }
 #endif
         }
-    }
-
-    if (initial) {
-        // Py_SetProgramName(argv[0]);
-    } else {
-        PySys_SetArgv(argc, argv);
     }
 }
 
@@ -391,24 +389,218 @@ static int HANDLE_PROGRAM_EXIT() {
     return exit_code;
 }
 
+static PyObject *EXECUTE_MAIN_MODULE(char const *module_name) {
+    NUITKA_INIT_PROGRAM_LATE(module_name);
+
+#if NUITKA_MAIN_PACKAGE_MODE
+    {
+        char const *w = module_name;
+
+        for (;;) {
+            char const *s = strchr(w, '.');
+
+            if (s == NULL) {
+                break;
+            }
+
+            w = s + 1;
+
+            char buffer[1024];
+            memset(buffer, 0, sizeof(buffer));
+            memcpy(buffer, module_name, s - module_name);
+
+            PyObject *result = IMPORT_EMBEDDED_MODULE(buffer);
+
+            if (ERROR_OCCURRED()) {
+                return result;
+            }
+        }
+    }
+#endif
+
+    return IMPORT_EMBEDDED_MODULE(module_name);
+}
+
+#if defined(_WIN32) && PYTHON_VERSION < 0x300
+static char **getCommandLineToArgvA(char *lpCmdline) {
+    char *s = lpCmdline;
+
+    int argc = 1;
+
+    if (*s == '"') {
+        s++;
+
+        while (*s != 0) {
+            if (*s++ == '"') {
+                break;
+            }
+        }
+    } else {
+        while (*s != 0 && *s != ' ' && *s != '\t') {
+            s++;
+        }
+    }
+
+    while (*s == ' ' || *s == '\t') {
+        s++;
+    }
+
+    if (*s != 0) {
+        argc++;
+    }
+
+    int quote_count = 0;
+    int slash_count = 0;
+
+    while (*s != 0) {
+        if ((*s == ' ' || *s == '\t') && quote_count == 0) {
+            while (*s == ' ' || *s == '\t') {
+                s++;
+            }
+
+            if (*s != 0) {
+                argc++;
+            }
+            slash_count = 0;
+        } else if (*s == '\\') {
+            slash_count++;
+            s++;
+        } else if (*s == '"') {
+            if ((slash_count & 1) == 0) {
+                quote_count++;
+            }
+
+            slash_count = 0;
+            s++;
+
+            while (*s == '"') {
+                quote_count++;
+                s++;
+            }
+
+            quote_count = quote_count % 3;
+
+            if (quote_count == 2) {
+                quote_count = 0;
+            }
+        } else {
+            slash_count = 0;
+            s++;
+        }
+    }
+
+    char **argv = (char **)malloc((argc + 1) * sizeof(char *) + (strlen(lpCmdline) + 1));
+    assert(argv);
+
+    char *cmdline = (char *)(argv + argc + 1);
+    strcpy(cmdline, lpCmdline);
+
+    argv[0] = cmdline;
+    argc = 1;
+
+    char *d = cmdline;
+
+    if (*d == '"') {
+        s = d + 1;
+
+        while (*s != 0) {
+            if (*s == '"') {
+                s++;
+                break;
+            }
+
+            *d++ = *s++;
+        }
+    } else {
+        while (*d && *d != ' ' && *d != '\t') {
+            d++;
+        }
+
+        s = d;
+
+        if (*s) {
+            s++;
+        }
+    }
+
+    *d++ = 0;
+
+    while (*s == ' ' || *s == '\t') {
+        s++;
+    }
+
+    if (*s == 0) {
+        argv[argc] = NULL;
+        return argv;
+    }
+
+    argv[argc++] = d;
+    quote_count = 0;
+    slash_count = 0;
+
+    while (*s != 0) {
+        if ((*s == ' ' || *s == '\t') && quote_count == 0) {
+            *d++ = 0;
+            slash_count = 0;
+
+            do {
+                s++;
+            } while (*s == ' ' || *s == '\t');
+
+            if (*s) {
+                argv[argc++] = d;
+            }
+
+        } else if (*s == '\\') {
+            *d++ = *s++;
+            slash_count++;
+        } else if (*s == '"') {
+            if ((slash_count & 1) == 0) {
+                d -= slash_count / 2;
+                quote_count++;
+            } else {
+                d = d - slash_count / 2 - 1;
+                *d++ = '"';
+            }
+            s++;
+            slash_count = 0;
+
+            while (*s == '"') {
+                if (++quote_count == 3) {
+                    *d++ = '"';
+                    quote_count = 0;
+                }
+                s++;
+            }
+            if (quote_count == 2)
+                quote_count = 0;
+        } else {
+            *d++ = *s++;
+            slash_count = 0;
+        }
+    }
+
+    *d = '\0';
+    argv[argc] = NULL;
+
+    return argv;
+}
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
-int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
-#if defined(__MINGW32__) && !defined(_W64)
-    /* MINGW32 */
-    int argc = _argc;
-    char **argv = _argv;
-#else
+int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     /* MSVC, MINGW64 */
     int argc = __argc;
-    char **argv = __argv;
-#endif
+    wchar_t **argv = __wargv;
+#else
+#if defined(_WIN32)
+int wmain(int argc, wchar_t **argv) {
 #else
 int main(int argc, char **argv) {
 #endif
+#endif
     NUITKA_PRINT_TIMING("main(): Entered.");
-
-    orig_argv = argv;
-    orig_argc = argc;
+    NUITKA_INIT_PROGRAM_EARLY(argc, argv);
 
 #ifdef __FreeBSD__
     /* 754 requires that FP exceptions run in "no stop" mode by default, and
@@ -485,18 +677,19 @@ int main(int argc, char **argv) {
 
     /* Initial command line handling only. */
 
-#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION >= 0x300 && _NUITKA_NATIVE_WCHAR_ARGV == 0
     NUITKA_PRINT_TRACE("main(): Calling convertCommandLineParameters.");
-    argv_unicode = convertCommandLineParameters(argc, argv);
-#endif
-
-    NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
-
-#if PYTHON_VERSION < 0x300
-    setCommandLineParameters(argc, argv, true);
+    orig_argv = convertCommandLineParameters(argc, argv);
+#elif PYTHON_VERSION < 0x300 && _NUITKA_NATIVE_WCHAR_ARGV == 1
+    orig_argv = getCommandLineToArgvA(GetCommandLineA());
 #else
-    setCommandLineParameters(argc, argv_unicode, true);
+orig_argv = argv;
 #endif
+    orig_argc = argc;
+
+    NUITKA_PRINT_TRACE("main(): Calling initial setCommandLineParameters.");
+
+    setCommandLineParameters(argc, argv, true);
 
     /* For Python installations that need the home set, we inject it back here. */
 #if defined(PYTHON_HOME_PATH)
@@ -587,13 +780,11 @@ int main(int argc, char **argv) {
     /* Set the command line parameters for run time usage. */
     NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
 
-#if PYTHON_VERSION < 0x300
     setCommandLineParameters(argc, argv, false);
-#else
-    setCommandLineParameters(argc, argv_unicode, false);
-#endif
 
-    /* Initialize the built-in module tricks used. */
+    PySys_SetArgv(argc, orig_argv);
+
+    /* Initialize the built-in module tricks used and builtin-type methods */
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinModule().");
     _initBuiltinModule();
 
@@ -664,21 +855,24 @@ int main(int argc, char **argv) {
     {
         PyObject *nul_filename = Nuitka_String_FromString("NUL:");
 
-        if (Nuitka_SysGetObject("stdin") == NULL) {
+        PyObject *sys_stdin = Nuitka_SysGetObject("stdin");
+        if (sys_stdin == NULL || sys_stdin == Py_None) {
             PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r", NULL);
 
             CHECK_OBJECT(stdin_file);
             Nuitka_SysSetObject("stdin", stdin_file);
         }
 
-        if (Nuitka_SysGetObject("stdout") == NULL) {
+        PyObject *sys_stdout = Nuitka_SysGetObject("stdout");
+        if (sys_stdout == NULL || sys_stdout == Py_None) {
             PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", NULL);
 
             CHECK_OBJECT(stdout_file);
             Nuitka_SysSetObject("stdout", stdout_file);
         }
 
-        if (Nuitka_SysGetObject("stderr") == NULL) {
+        PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
+        if (sys_stderr == NULL || sys_stderr == Py_None) {
             PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", NULL);
 
             CHECK_OBJECT(stderr_file);
@@ -702,7 +896,7 @@ int main(int argc, char **argv) {
             abort();
         }
 
-        PyObject *filename = PyUnicode_FromWideChar(filename_buffer, wcslen(filename_buffer));
+        PyObject *filename = NuitkaUnicode_FromWideChar(filename_buffer, -1);
 
         PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w", const_int_pos_1);
         if (unlikely(stdout_file == NULL)) {
@@ -727,7 +921,7 @@ int main(int argc, char **argv) {
             abort();
         }
 
-        PyObject *filename = PyUnicode_FromWideChar(filename_buffer, wcslen(filename_buffer));
+        PyObject *filename = NuitkaUnicode_FromWideChar(filename_buffer, -1);
 
         PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w", const_int_pos_1);
         if (unlikely(stderr_file == NULL)) {
@@ -793,7 +987,7 @@ int main(int argc, char **argv) {
 #ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
     if (unlikely(is_multiprocessing_fork)) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
-        IMPORT_EMBEDDED_MODULE("__parents_main__");
+        EXECUTE_MAIN_MODULE("__parents_main__");
 
         int exit_code = HANDLE_PROGRAM_EXIT();
 
@@ -803,7 +997,7 @@ int main(int argc, char **argv) {
         exit(exit_code);
     } else if (unlikely(multiprocessing_resource_tracker_arg != NULL)) {
         NUITKA_PRINT_TRACE("main(): Calling resource_tracker.");
-        PyObject *resource_tracker_module = IMPORT_EMBEDDED_MODULE("multiprocessing.resource_tracker");
+        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE("multiprocessing.resource_tracker");
 
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
 
@@ -828,16 +1022,16 @@ int main(int argc, char **argv) {
             }
         }
 #endif
-        PyDict_DelItem(PyImport_GetModuleDict(), const_str_plain___main__);
+        PyDict_DelItemString(PyImport_GetModuleDict(), NUITKA_MAIN_MODULE_NAME);
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
         NUITKA_PRINT_TRACE("main(): Calling plugin SvcLaunchService() entry point.");
         SvcLaunchService();
 #else
     /* Execute the "__main__" module. */
-    NUITKA_PRINT_TIMING("main(): Calling __main__.");
-    IMPORT_EMBEDDED_MODULE("__main__");
-    NUITKA_PRINT_TIMING("main(): Exited from __main__.");
+    NUITKA_PRINT_TIMING("main(): Calling " NUITKA_MAIN_MODULE_NAME ".");
+    EXECUTE_MAIN_MODULE(NUITKA_MAIN_MODULE_NAME);
+    NUITKA_PRINT_TIMING("main(): Exited from " NUITKA_MAIN_MODULE_NAME ".");
 
 #endif
 #ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
@@ -857,7 +1051,9 @@ int main(int argc, char **argv) {
     checkGlobalConstants();
 
     /* TODO: Walk over all loaded compiled modules, and make this kind of checks. */
+#if !NUITKA_MAIN_PACKAGE_MODE
     checkModuleConstants___main__();
+#endif
 
 #endif
 
@@ -889,7 +1085,8 @@ __attribute__((visibility("default")))
 #endif
 void Py_GetArgcArgv(int *argc, wchar_t ***argv) {
     *argc = orig_argc;
-    *argv = argv_unicode;
+
+    *argv = orig_argv;
 }
 
 #else

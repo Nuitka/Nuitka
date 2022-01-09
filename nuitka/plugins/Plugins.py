@@ -39,7 +39,6 @@ from nuitka.__past__ import basestring, iter_modules
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
-from nuitka.Errors import NuitkaPluginError
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPointOld
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
@@ -47,10 +46,9 @@ from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
     makePath,
     putTextFileContents,
-    relpath,
 )
 from nuitka.utils.Importing import importFileAsModule
-from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 
 from .PluginBase import NuitkaPluginBase, post_modules, pre_modules
 
@@ -258,26 +256,34 @@ class Plugins(object):
 
         result = []
 
-        for full_name in plugin.getImplicitImports(module):
-            if type(full_name) in (tuple, list):
-                raise NuitkaPluginError(
-                    "Plugin %r needs to be change to only return modules names, not %r"
-                    % (plugin, full_name)
-                )
+        def iterateModuleNames(value):
+            for v in value:
+                if type(v) in (tuple, list):
+                    plugin.sysexit(
+                        "Plugin %r needs to be change to only return modules names, not %r (for %s)"
+                        % (plugin.plugin_name, v, module.getFullName().asString())
+                    )
 
-            full_name = ModuleName(full_name)
+                if inspect.isgenerator(v):
+                    for w in iterateModuleNames(v):
+                        yield w
 
+                    return
+
+                if not checkModuleName(v):
+                    plugin.sysexit(
+                        "Plugin %r returned an invalid module name, not %r (for %s)"
+                        % (plugin, v, module.getFullName().asString())
+                    )
+
+                yield ModuleName(v)
+
+        for full_name in iterateModuleNames(plugin.getImplicitImports(module)):
             try:
-                _module_package, module_filename, _finding = Importing.findModule(
-                    importing=module,
+                _module_name, module_filename, _finding = Importing.locateModule(
                     module_name=full_name,
                     parent_package=None,
                     level=-1,
-                    warn=False,
-                )
-
-                module_filename = plugin.locateModule(
-                    importing=module, module_name=full_name
                 )
             except Exception:
                 plugin.warning(
@@ -306,7 +312,7 @@ class Plugins(object):
         return result
 
     @staticmethod
-    def _reportImplicitImports(implicit_imports, signal_change):
+    def _reportImplicitImports(plugin, module, implicit_imports, signal_change):
         from nuitka.importing import Recursion
         from nuitka.importing.Importing import getModuleNameAndKindFromFilename
 
@@ -325,14 +331,19 @@ class Plugins(object):
             if decision:
                 imported_module = Recursion.recurseTo(
                     signal_change=signal_change,
-                    module_package=full_name.getPackageName(),
+                    module_name=full_name,
                     module_filename=module_filename,
-                    module_relpath=relpath(module_filename),
                     module_kind=module_kind,
                     reason=reason,
                 )
 
-                addUsedModule(imported_module)
+                addUsedModule(
+                    module=imported_module,
+                    using_module=module,
+                    usage_tag="plugin:" + plugin.plugin_name,
+                    reason=reason,
+                    source_ref=module.source_ref,
+                )
 
     @classmethod
     def considerImplicitImports(cls, module, signal_change):
@@ -345,6 +356,8 @@ class Plugins(object):
                 )
 
             cls._reportImplicitImports(
+                plugin=plugin,
+                module=module,
                 implicit_imports=cls.implicit_imports_cache[key],
                 signal_change=signal_change,
             )
@@ -353,10 +366,22 @@ class Plugins(object):
         full_name = module.getFullName()
 
         if full_name in pre_modules:
-            addUsedModule(pre_modules[full_name])
+            addUsedModule(
+                pre_modules[full_name],
+                using_module=module,
+                usage_tag="plugins",
+                reason="Not yet propagated by plugins.",
+                source_ref=module.source_ref,
+            )
 
         if full_name in post_modules:
-            addUsedModule(post_modules[full_name])
+            addUsedModule(
+                module=post_modules[full_name],
+                using_module=module,
+                usage_tag="plugins",
+                reason="Not yet propagated by plugins.",
+                source_ref=module.source_ref,
+            )
 
     @staticmethod
     def onStandaloneDistributionFinished(dist_dir):
@@ -519,7 +544,7 @@ class Plugins(object):
                     os.path.dirname(module.getCompileTimeFilename()),
                     module_name.asPath() + ".py",
                 ),
-                module_package=module_name.getPackageName(),
+                module_name=module_name,
                 source_code=code,
                 is_top=False,
                 is_main=False,
@@ -708,44 +733,28 @@ class Plugins(object):
             plugin.onModuleCompleteSet(module_set)
 
     @staticmethod
-    def considerFailedImportReferrals(module_name):
-        for plugin in getActivePlugins():
-            new_module_name = plugin.considerFailedImportReferrals(module_name)
-
-            if new_module_name is not None:
-                return ModuleName(new_module_name)
-
-        return None
-
-    @staticmethod
-    def suppressUnknownImportWarning(importing, module_name):
+    def suppressUnknownImportWarning(importing, source_ref, module_name):
         """Let plugins decide whether to suppress import warnings for an unknown module.
 
         Notes:
             If all plugins return False or None, the return will be False, else True.
         Args:
             importing: the module which is importing "module_name"
+            source_ref: pointer to file source code or bytecode
             module_name: the module to be imported
         returns:
             True or False (default)
         """
-        if importing.isCompiledPythonModule() or importing.isPythonShlibModule():
-            importing_module = importing
-        else:
-            importing_module = importing.getParentModule()
-
         source_ref = importing.getSourceReference()
 
         for plugin in getActivePlugins():
-            if plugin.suppressUnknownImportWarning(
-                importing_module, module_name, source_ref
-            ):
+            if plugin.suppressUnknownImportWarning(importing, module_name, source_ref):
                 return True
 
         return False
 
     @staticmethod
-    def decideCompilation(module_name, source_ref):
+    def decideCompilation(module_name):
         """Let plugins decide whether to C compile a module or include as bytecode.
 
         Notes:
@@ -755,7 +764,7 @@ class Plugins(object):
             "compiled" (default) or "bytecode".
         """
         for plugin in getActivePlugins():
-            value = plugin.decideCompilation(module_name, source_ref)
+            value = plugin.decideCompilation(module_name)
 
             if value is not None:
                 assert value in ("compiled", "bytecode")

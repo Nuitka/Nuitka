@@ -29,9 +29,6 @@
 #include "nuitka/prelude.h"
 #endif
 
-// Note: Compiled functions do not use this, so we include it here.
-#include "structmember.h"
-
 static PyObject *Nuitka_Method_get__doc__(struct Nuitka_MethodObject *method, void *closure) {
     PyObject *result = method->m_function->m_doc;
 

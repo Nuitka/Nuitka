@@ -44,4 +44,4 @@ override_dh_auto_build:
 override_dh_auto_test:
 	# The RUN_TEST_PYTHON is not the one to execute tests, just the for the
 	# test runner.
-	$(RUN_TEST_PYTHON) ./tests/run-tests $(RUN_TEST_OPTIONS)
+	$(RUN_TEST_PYTHON) ./tests/run-tests --skip-reflection-test $(RUN_TEST_OPTIONS)

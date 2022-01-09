@@ -60,14 +60,43 @@ def makeIncludedDataFile(source_path, dest_path, reason):
     )
 
 
-def makeIncludedDataDirectory(source_path, dest_path, reason):
+IncludedDataDirectory = collections.namedtuple(
+    "IncludedDataDirectory",
+    (
+        "kind",
+        "source_path",
+        "dest_path",
+        "reason",
+        "ignore_dirs",
+        "ignore_filenames",
+        "ignore_suffixes",
+        "only_suffixes",
+        "normalize",
+    ),
+)
+
+
+def makeIncludedDataDirectory(
+    source_path,
+    dest_path,
+    reason,
+    ignore_dirs=(),
+    ignore_filenames=(),
+    ignore_suffixes=(),
+    only_suffixes=(),
+    normalize=True,
+):
     assert isRelativePath(dest_path), dest_path
 
-    return IncludedDataFile(
+    return IncludedDataDirectory(
         kind="data_dir",
         source_path=source_path,
         dest_path=dest_path,
-        data=None,
+        ignore_dirs=ignore_dirs,
+        ignore_filenames=ignore_filenames,
+        ignore_suffixes=ignore_suffixes,
+        only_suffixes=only_suffixes,
+        normalize=normalize,
         reason=reason,
     )
 

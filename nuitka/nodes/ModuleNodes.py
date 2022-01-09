@@ -26,17 +26,18 @@ import os
 from nuitka import Options, Variables
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing.Importing import (
-    findModule,
     getModuleNameAndKindFromFilename,
+    locateModule,
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import fromFilename
+from nuitka.tree.Operations import DetectUsedModules, visitTree
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
-from nuitka.utils.FileOperations import getFileContentByLine, relpath
+from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
 
 from .Checkers import checkStatementsSequenceOrNone
@@ -89,16 +90,14 @@ class PythonModuleBase(NodeBase):
         package = getModuleByName(package_name)
 
         if package_name is not None and package is None:
-            package_package, package_filename, finding = findModule(
-                importing=self,
+            _package_name, package_filename, finding = locateModule(
                 module_name=package_name,
                 parent_package=None,
                 level=1,
-                warn=python_version < 0x300,
             )
 
-            # TODO: Temporary, if we can't find the package for Python3.3 that
-            # is semi-OK, maybe.
+            # If we can't find the package for Python3.3 that is semi-OK, it might be in a
+            # namespace package, these have no init code.
             if python_version >= 0x300 and not package_filename:
                 return ()
 
@@ -123,9 +122,8 @@ class PythonModuleBase(NodeBase):
                     signal_change=self.trace_collection.signalChange
                     if hasattr(self, "trace_collection")
                     else None,
-                    module_package=package_package,
+                    module_name=package_name,
                     module_filename=package_filename,
-                    module_relpath=relpath(package_filename),
                     module_kind="py",
                     reason="Containing package of '%s'." % self.getFullName(),
                 )
@@ -133,7 +131,13 @@ class PythonModuleBase(NodeBase):
         if package:
             from nuitka.ModuleRegistry import addUsedModule
 
-            addUsedModule(package)
+            addUsedModule(
+                package,
+                using_module=self,
+                usage_tag="package",
+                reason="Containing package",
+                source_ref=self.source_ref,
+            )
 
     def getCodeName(self):
         # Abstract method, pylint: disable=no-self-use
@@ -279,6 +283,8 @@ class CompiledPythonModule(
         self.locals_scope = getLocalsDictHandle(
             self.module_dict_name, "module_dict", self
         )
+
+        self.used_modules = OrderedSet()
 
     @staticmethod
     def isCompiledPythonModule():
@@ -446,16 +452,18 @@ class CompiledPythonModule(
         self.setChild("functions", functions)
 
     def startTraversal(self):
-        self.used_modules = OrderedSet()
+        self.used_modules = None
         self.active_functions = OrderedSet()
 
     def restartTraversal(self):
         self.visited_functions = set()
 
-    def addUsedModule(self, key):
-        self.used_modules.add(key)
-
     def getUsedModules(self):
+        if self.used_modules is None:
+            visitor = DetectUsedModules()
+            visitTree(tree=self, visitor=visitor)
+            self.used_modules = visitor.getUsedModules()
+
         return self.used_modules
 
     def addUsedFunction(self, function_body):
@@ -515,7 +523,12 @@ class CompiledPythonModule(
 
         old_collection = self.trace_collection
 
-        self.trace_collection = TraceCollectionModule(self)
+        self.trace_collection = TraceCollectionModule(
+            self,
+            old_collection.getVeryTrustedModuleVariables()
+            if old_collection is not None
+            else {},
+        )
 
         module_body = self.subnode_body
 
@@ -529,9 +542,31 @@ class CompiledPythonModule(
 
         self.attemptRecursion()
 
+        # We determine the trusted module variable for use on next turnaround to provide functions with traces for them.
+        very_trusted_module_variables = {}
+        for module_variable in self.locals_scope.getLocalsRelevantVariables():
+            very_trusted_node = self.trace_collection.getVariableCurrentTrace(
+                module_variable
+            ).getAttributeNodeVeryTrusted()
+            if very_trusted_node is not None:
+                very_trusted_module_variables[module_variable] = very_trusted_node
+
+        if self.trace_collection.updateVeryTrustedModuleVariables(
+            very_trusted_module_variables
+        ):
+            self.trace_collection.signalChange(
+                tags="trusted_module_variables",
+                message="Trusting module variable(s) '%s'"
+                % ",".join(
+                    variable.getName()
+                    for variable in self.trace_collection.getVeryTrustedModuleVariables()
+                ),
+                source_ref=self.source_ref,
+            )
+
         # Finalize locals scopes previously determined for removal in last pass.
         self.trace_collection.updateVariablesFromCollection(
-            old_collection, self.source_ref
+            old_collection=old_collection, source_ref=self.source_ref
         )
 
         # Indicate if this is pass 1 for the module as return value.
@@ -620,6 +655,35 @@ class CompiledPythonModule(
 
     def getLocalsScope(self):
         return self.locals_scope
+
+    def getRuntimePackageValue(self):
+        # Do not want to get asked for now.
+        assert not Options.shallMakeModule()
+
+        if self.isCompiledPythonPackage():
+            return self.getFullName().asString()
+
+        value = self.getFullName().getPackageName()
+
+        if value is not None:
+            return value.asString()
+
+        if self.isMainModule():
+            if self.main_added:
+                return ""
+            else:
+                return None
+        else:
+            return None
+
+    def getRuntimeNameValue(self):
+        # Do not want to get asked for now.
+        assert not Options.shallMakeModule()
+
+        if self.isMainModule() and Options.hasPythonFlagPackageMode():
+            return "__main__"
+        else:
+            return self.getFullName().asString()
 
 
 class CompiledPythonPackage(CompiledPythonModule):
@@ -729,17 +793,21 @@ class UncompiledPythonPackage(UncompiledPythonModule):
 
 
 class PythonMainModule(CompiledPythonModule):
+    """Main module of a program, typically "__main__" but can be inside a package too."""
+
     kind = "PYTHON_MAIN_MODULE"
 
     __slots__ = ("main_added", "early_modules")
 
-    def __init__(self, main_added, mode, future_spec, source_ref):
-        # Is this one from a "__main__.py" file.
+    def __init__(self, module_name, main_added, mode, future_spec, source_ref):
+        assert not Options.shallMakeModule()
+
+        # Is this one from a "__main__.py" file
         self.main_added = main_added
 
         CompiledPythonModule.__init__(
             self,
-            module_name=ModuleName("__main__"),
+            module_name=module_name,
             is_top=True,
             mode=mode,
             future_spec=future_spec,
@@ -751,6 +819,7 @@ class PythonMainModule(CompiledPythonModule):
     def getDetails(self):
         return {
             "filename": self.source_ref.getFilename(),
+            "module_name": self.module_name,
             "main_added": self.main_added,
             "mode": self.mode,
         }
@@ -763,6 +832,7 @@ class PythonMainModule(CompiledPythonModule):
         result = cls(
             main_added=args["main_added"] == "True",
             mode=args["mode"],
+            module_name=ModuleName(args["module_name"]),
             future_spec=future_spec,
             source_ref=source_ref,
         )
@@ -830,7 +900,20 @@ class PythonMainModule(CompiledPythonModule):
         from nuitka.ModuleRegistry import addUsedModule
 
         for early_module in self.early_modules:
-            addUsedModule(early_module)
+            if early_module.isTechnical():
+                usage_tag = "technical"
+                reason = "Module needed for initializing Python"
+            else:
+                usage_tag = "stdlib"
+                reason = "Part of standard library"
+
+            addUsedModule(
+                module=early_module,
+                using_module=self,
+                usage_tag=usage_tag,
+                reason=reason,
+                source_ref=self.source_ref,
+            )
 
 
 class PythonShlibModule(PythonModuleBase):
@@ -878,7 +961,6 @@ class PythonShlibModule(PythonModuleBase):
         """Read the .pyi file if present and scan for dependencies."""
 
         # Complex stuff, pylint: disable=too-many-branches,too-many-statements
-
         if self.used_modules is None:
             pyi_filename = self.getPyIFilename()
 
@@ -909,8 +991,25 @@ class PythonShlibModule(PythonModuleBase):
 
                             if origin_name == ".":
                                 origin_name = self.getFullName()
+                            else:
+                                dot_count = 0
+                                while origin_name.startswith("."):
+                                    origin_name = origin_name[1:]
+                                    dot_count += 1
 
-                            # TODO: Might want to add full relative import handling.
+                                if dot_count > 0:
+                                    if origin_name:
+                                        origin_name = (
+                                            self.getFullName()
+                                            .getRelativePackageName(level=dot_count + 1)
+                                            .getChildNamed(origin_name)
+                                        )
+                                    else:
+                                        origin_name = (
+                                            self.getFullName().getRelativePackageName(
+                                                level=dot_count + 1
+                                            )
+                                        )
 
                             if origin_name != self.getFullName():
                                 pyi_deps.add(origin_name)

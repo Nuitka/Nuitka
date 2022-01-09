@@ -113,7 +113,7 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
 
 {% if dict_operation_version_presence %}
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        def wrapExpressionDictOperation{{attribute_name_class}}({{formatArgs(dict_operation_args)}} source_ref):
+        def wrapExpressionDictOperation{{attribute_name_class}}({{formatArgs(dict_operation_args, starting=True, finishing=False)}} source_ref):
 {% if python3_operation_name %}
             if str is bytes:
                 from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}
@@ -196,7 +196,7 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
 
 {% if str_operation_version_presence %}
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        def wrapExpressionStrOperation{{attribute_name_class}}({{formatArgs(str_operation_args)}} source_ref):
+        def wrapExpressionStrOperation{{attribute_name_class}}({{formatArgs(str_operation_args, starting=True, finishing=False)}} source_ref):
 {% if python3_operation_name %}
             if str is bytes:
                 from .StrNodes import ExpressionStrOperation{{attribute_name_class}}

@@ -43,7 +43,28 @@ from .SconsUtils import (
 )
 
 
-def enableC11Settings(env):
+def _detectWindowsSDK(env):
+    # Check if there is a WindowsSDK installed.
+    if env.msvc_mode or env.clangcl_mode:
+        if "WindowsSDKVersion" not in env:
+            if "WindowsSDKVersion" in os.environ:
+                windows_sdk_version = os.environ["WindowsSDKVersion"].rstrip("\\")
+            else:
+                windows_sdk_version = None
+        else:
+            windows_sdk_version = env["WindowsSDKVersion"]
+
+        if not windows_sdk_version:
+            scons_logger.sysexit(
+                "Error, the Windows SDK must be installed in Visual Studio."
+            )
+
+        scons_details_logger.info("Using Windows SDK '%s'." % windows_sdk_version)
+
+        env.windows_sdk_version = tuple(int(x) for x in windows_sdk_version.split("."))
+
+
+def _enableC11Settings(env):
     """Decide if C11 mode can be used and enable the C compile flags for it.
 
     Args:
@@ -56,10 +77,11 @@ def enableC11Settings(env):
     if env.clangcl_mode:
         c11_mode = True
     elif env.msvc_mode:
-        c11_mode = False
-
-        # TODO: Once it includes updated Windows SDK, we could use C11 mode with it.
-        # float(env.get("MSVS_VERSION", "0")) >= 14.2
+        # TODO: Make this experimental mode the default.
+        c11_mode = (
+            env.windows_sdk_version >= (10, 0, 19041, 0)
+            and "msvc_c11" in env.experimental_flags
+        )
     elif env.clang_mode:
         c11_mode = True
     elif env.gcc_mode and env.gcc_version >= (5,):
@@ -73,19 +95,22 @@ def enableC11Settings(env):
         elif env.msvc_mode:
             env.Append(CCFLAGS=["/std:c11"])
 
-    return c11_mode
+    if env.msvc_mode and c11_mode:
+        # Windows SDK shows this even in non-debug mode in C11 mode.
+        env.Append(CCFLAGS=["/wd5105"])
+
+    scons_details_logger.info("Using C11 mode: %s" % c11_mode)
+
+    env.c11_mode = c11_mode
 
 
-def enableLtoSettings(
+def _enableLtoSettings(
     env,
     lto_mode,
     pgo_mode,
-    nuitka_python,
-    debian_python,
     job_count,
 ):
-    # This is driven by many branches on purpose and has a lot of things
-    # to deal with for LTO checks and flags, pylint: disable=too-many-branches,too-many-statements
+    # This is driven by branches on purpose and pylint: disable=too-many-branches
 
     orig_lto_mode = lto_mode
 
@@ -101,11 +126,11 @@ def enableLtoSettings(
     elif env.msvc_mode and getMsvcVersion(env) >= 14:
         lto_mode = True
         reason = "known to be supported"
-    elif nuitka_python:
+    elif env.nuitka_python:
         lto_mode = True
         reason = "known to be supported (Nuitka-Python)"
     elif (
-        debian_python
+        env.debian_python
         and env.gcc_mode
         and not env.clang_mode
         and env.gcc_version >= (6,)
@@ -115,6 +140,9 @@ def enableLtoSettings(
     elif env.gcc_mode and env.the_cc_name == "gnu-cc":
         lto_mode = True
         reason = "known to be supported (CondaCC)"
+    elif env.gcc_mode and env.mingw_mode and env.gcc_version >= (11, 2):
+        lto_mode = True
+        reason = "known to be supported (new MinGW64)"
     else:
         lto_mode = False
         reason = "not known to be supported"
@@ -144,11 +172,6 @@ version for lto mode (>= 4.6). Disabled."""
             # Need to tell the linker these things are OK.
             env.Append(LINKFLAGS=["-fpartial-inlining", "-freorder-functions"])
 
-        if env.debug_mode:
-            env.Append(LINKFLAGS=["-Og"])
-        else:
-            env.Append(LINKFLAGS=["-O3" if nuitka_python or env.mingw_mode else "-O2"])
-
     # Tell compiler to use link time optimization for MSVC
     if env.msvc_mode and lto_mode:
         env.Append(CCFLAGS=["/GL"])
@@ -168,13 +191,19 @@ version for lto mode (>= 4.6). Disabled."""
     _enablePgoSettings(env, pgo_mode)
 
 
-def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_downloads):
+def checkWindowsCompilerFound(
+    env, target_arch, clang_mode, msvc_version, assume_yes_for_downloads
+):
     """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
 
     if os.name == "nt":
         # On Windows, in case MSVC was not found and not previously forced, use the
         # winlibs MinGW64 as a download, and use it as a fallback.
         compiler_path = getExecutablePath(env["CC"], env=env)
+
+        scons_details_logger.info(
+            "Checking usability of %r from %r" % (compiler_path, env["CC"])
+        )
 
         # Drop wrong arch compiler, most often found by scans. There might be wrong gcc or cl on the PATH.
         if compiler_path is not None:
@@ -226,7 +255,10 @@ def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_dow
                 gcc_version = myDetectVersion(env, compiler_path)
 
                 min_version = (11, 2)
-                if gcc_version is not None and gcc_version < min_version:
+                if gcc_version is not None and (
+                    gcc_version < min_version
+                    or "force-winlibs-gcc" in env.experimental_flags
+                ):
                     scons_logger.info(
                         "Too old gcc %r (%r < %r) ignored!"
                         % (compiler_path, gcc_version, min_version)
@@ -237,8 +269,12 @@ def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_dow
                     env["CC"] = None
 
         if compiler_path is None and msvc_version is None:
-            # This will succeed to find "gcc.exe" when conda install m2w64-gcc has
-            # been done.
+            scons_details_logger.info(
+                "No usable C compiler, attempt fallback to winlibs gcc."
+            )
+
+            # This will download "gcc.exe" (and "clang.exe") when all others have been
+            # rejected and MSVC is not enforced.
             compiler_path = getCachedDownloadedMinGW64(
                 target_arch=target_arch,
                 assume_yes_for_downloads=assume_yes_for_downloads,
@@ -251,7 +287,8 @@ def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_dow
                 target_arch=target_arch,
             )
 
-            env["CC"] = compiler_path
+            if clang_mode:
+                env["CC"] = os.path.join(os.path.dirname(compiler_path), "clang.exe")
 
         if env["CC"] is None:
             raiseNoCompilerFoundErrorExit()
@@ -259,15 +296,19 @@ def checkWindowsCompilerFound(env, target_arch, msvc_version, assume_yes_for_dow
     return env
 
 
-def decideConstantsBlobResourceMode(gcc_mode, clang_mode, lto_mode):
+def decideConstantsBlobResourceMode(env, module_mode):
     if "NUITKA_RESOURCE_MODE" in os.environ:
         resource_mode = os.environ["NUITKA_RESOURCE_MODE"]
         reason = "user provided"
     elif os.name == "nt":
         resource_mode = "win_resource"
         reason = "default for Windows"
-    elif lto_mode and gcc_mode and not clang_mode:
-        resource_mode = "linker"
+    elif env.lto_mode and env.gcc_mode and not env.clang_mode:
+        if module_mode:
+            resource_mode = "code"
+        else:
+            resource_mode = "linker"
+
         reason = "default for lto gcc with --lto bugs for incbin"
     else:
         # All is done already, this is for most platforms.
@@ -412,9 +453,23 @@ def enableExperimentalSettings(env, experimental_flags):
             else:
                 env.Append(CPPDEFINES=["_NUITKA_EXPERIMENTAL_%s" % experiment])
 
+    env.experimental_flags = experimental_flags
 
-def setupCCompiler(env):
-    # Many things to deal with, pylint: disable=too-many-branches
+
+def setupCCompiler(env, lto_mode, pgo_mode, job_count):
+    # This is driven by many branches on purpose and has a lot of things
+    # to deal with for LTO checks and flags, pylint: disable=too-many-branches,too-many-statements
+
+    # Enable LTO for compiler.
+    _enableLtoSettings(
+        env=env,
+        lto_mode=lto_mode,
+        pgo_mode=pgo_mode,
+        job_count=job_count,
+    )
+
+    _detectWindowsSDK(env)
+    _enableC11Settings(env)
 
     if env.gcc_mode:
         # Support for gcc and clang, restricting visibility as much as possible.
@@ -464,28 +519,15 @@ def setupCCompiler(env):
         # Windows XP
         env.Append(CPPDEFINES=["_WIN32_WINNT=0x0501"])
 
+    # Unicode entry points for programs.
+    if env.mingw_mode:
+        env.Append(LINKFLAGS=["-municode"])
+
     # Detect the gcc version
     if env.gcc_mode and not env.clang_mode:
         env.gcc_version = myDetectVersion(env, env.the_compiler)
     else:
         env.gcc_version = None
-
-    # Check if there is a WindowsSDK installed.
-    if env.msvc_mode or env.clangcl_mode:
-        if "WindowsSDKVersion" not in env:
-            if "WindowsSDKVersion" in os.environ:
-                windows_sdk_version = os.environ["WindowsSDKVersion"].rstrip("\\")
-            else:
-                windows_sdk_version = None
-        else:
-            windows_sdk_version = env["WindowsSDKVersion"]
-
-        scons_details_logger.info("Using Windows SDK %r." % windows_sdk_version)
-
-        if not windows_sdk_version:
-            scons_logger.sysexit(
-                "Error, the Windows SDK must be installed in Visual Studio."
-            )
 
     # Older g++ complains about aliasing with Py_True and Py_False, but we don't
     # care.
@@ -521,6 +563,67 @@ def setupCCompiler(env):
     # itself, while we do not need it really.
     if env.gcc_mode and not env.clang_mode and env.gcc_version >= (6,):
         env.Append(CCFLAGS=["-Wno-misleading-indentation"])
+
+    # Disable output of notes, e.g. on struct alignment layout changes for
+    # some arches, we don't care.
+    if env.gcc_mode and not env.clang_mode:
+        env.Append(CCFLAGS=["-fcompare-debug-second"])
+
+    # Prevent using LTO when told not to use it, causes errors with some
+    # static link libraries.
+    if (
+        env.gcc_mode
+        and not env.clang_mode
+        and env.static_libpython
+        and not env.lto_mode
+    ):
+        env.Append(CCFLAGS=["-fno-lto"])
+        env.Append(LINKFLAGS=["-fno-lto"])
+
+    # Set optimization level for gcc and clang in LTO mode
+    if env.gcc_mode and env.lto_mode:
+        if env.debug_mode:
+            env.Append(LINKFLAGS=["-Og"])
+        else:
+            # For LTO with static libpython combined, there are crashes with Python core
+            # being inlined, so we must refrain from that. On Windows there is no such
+            # thing, and Nuitka-Python is not affected.
+            env.Append(
+                LINKFLAGS=[
+                    "-O3"
+                    if env.nuitka_python or os.name == "nt" or not env.static_libpython
+                    else "-O2"
+                ]
+            )
+
+    # When debugging, optimize less than when optimizing, when not remove
+    # assertions.
+    if env.debug_mode:
+        if env.clang_mode or (env.gcc_mode and env.gcc_version >= (4, 8)):
+            env.Append(CCFLAGS=["-Og"])
+        elif env.gcc_mode:
+            env.Append(CCFLAGS=["-O1"])
+        elif env.msvc_mode:
+            env.Append(CCFLAGS=["-O2"])
+    else:
+        if env.gcc_mode:
+            env.Append(
+                CCFLAGS=[
+                    "-O3"
+                    if env.nuitka_python or os.name == "nt" or not env.static_libpython
+                    else "-O2"
+                ]
+            )
+        elif env.msvc_mode:
+            env.Append(
+                CCFLAGS=[
+                    "/Ox",  # Enable most speed optimization
+                    "/GF",  # Eliminate duplicate strings.
+                    "/Gy",  # Function level object storage, to allow removing unused ones
+                ]
+            )
+
+        env.Append(CPPDEFINES=["__NUITKA_NO_ASSERT__"])
 
 
 def _enablePgoSettings(env, pgo_mode):

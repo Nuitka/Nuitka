@@ -148,7 +148,7 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
-    def isEscapeOrUnknownTrace():
+    def isEscapeOrUnknownOrUninitTrace():
         return False
 
     @staticmethod
@@ -176,6 +176,18 @@ class ValueTraceBase(object):
 
     @staticmethod
     def hasShapeDictionaryExact():
+        return False
+
+    @staticmethod
+    def hasShapeStrExact():
+        return False
+
+    @staticmethod
+    def hasShapeUnicodeExact():
+        return False
+
+    @staticmethod
+    def hasShapeTupleExact():
         return False
 
     @staticmethod
@@ -233,6 +245,10 @@ class ValueTraceUninit(ValueTraceUnassignedBase):
     def isUninitTrace():
         return True
 
+    @staticmethod
+    def isEscapeOrUnknownOrUninitTrace():
+        return True
+
 
 class ValueTraceDeleted(ValueTraceUnassignedBase):
     """Trace caused by a deletion."""
@@ -285,8 +301,8 @@ class ValueTraceInitStarArgs(ValueTraceInit):
         return tshape_tuple
 
     @staticmethod
-    def hasShapeDictionaryExact():
-        return False
+    def hasShapeTupleExact():
+        return True
 
 
 class ValueTraceInitStarDict(ValueTraceInit):
@@ -301,9 +317,6 @@ class ValueTraceInitStarDict(ValueTraceInit):
 
 class ValueTraceUnknown(ValueTraceBase):
     __slots__ = ()
-
-    def __init__(self, owner, previous):
-        ValueTraceBase.__init__(self, owner=owner, previous=previous)
 
     @staticmethod
     def getTypeShape():
@@ -331,7 +344,7 @@ class ValueTraceUnknown(ValueTraceBase):
         return True
 
     @staticmethod
-    def isEscapeOrUnknownTrace():
+    def isEscapeOrUnknownOrUninitTrace():
         return True
 
     @staticmethod
@@ -394,7 +407,7 @@ class ValueTraceEscaped(ValueTraceUnknown):
         return True
 
     @staticmethod
-    def isEscapeOrUnknownTrace():
+    def isEscapeOrUnknownOrUninitTrace():
         return True
 
     def getAttributeNode(self):
@@ -455,6 +468,12 @@ class ValueTraceAssign(ValueTraceBase):
     def hasShapeDictionaryExact(self):
         return self.assign_node.subnode_source.hasShapeDictionaryExact()
 
+    def hasShapeStrExact(self):
+        return self.assign_node.subnode_source.hasShapeStrExact()
+
+    def hasShapeUnicodeExact(self):
+        return self.assign_node.subnode_source.hasShapeUnicodeExact()
+
     def getTruthValue(self):
         return self.assign_node.subnode_source.getTruthValue()
 
@@ -494,6 +513,18 @@ class ValueTraceMergeBase(ValueTraceBase):
             for previous in self.previous:
                 previous.addNameUsage()
 
+    def addUsage(self):
+        self.usage_count += 1
+
+        # Only do it once.
+        if self.usage_count == 1:
+            for trace in self.previous:
+                trace.addMergeUsage()
+
+    def addMergeUsage(self):
+        self.addUsage()
+        self.merge_usage_count += 1
+
 
 class ValueTraceMerge(ValueTraceMergeBase):
     """Merge of two or more traces.
@@ -507,9 +538,6 @@ class ValueTraceMerge(ValueTraceMergeBase):
 
     def __init__(self, traces):
         ValueTraceMergeBase.__init__(self, owner=traces[0].owner, previous=traces)
-
-        for trace in traces:
-            trace.addMergeUsage()
 
     def __repr__(self):
         return "<ValueTraceMerge of {previous}>".format(previous=self.previous)
@@ -562,9 +590,6 @@ class ValueTraceMerge(ValueTraceMergeBase):
 
         return True
 
-    def addUsage(self):
-        self.usage_count += 1
-
     def hasShapeDictionaryExact(self):
         return all(previous.hasShapeDictionaryExact() for previous in self.previous)
 
@@ -604,8 +629,6 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
     def __init__(self, loop_node, previous, type_shapes):
         # Note: That previous is being added to later.
         ValueTraceMergeBase.__init__(self, owner=previous.owner, previous=(previous,))
-
-        previous.addMergeUsage()
 
         self.loop_node = loop_node
         self.type_shapes = type_shapes

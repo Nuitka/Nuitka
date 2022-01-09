@@ -27,7 +27,7 @@ from types import BuiltinFunctionType
 from nuitka.Builtins import builtin_type_names
 from nuitka.PythonVersions import python_version
 
-from .__past__ import GenericAlias, iterItems, long, unicode, xrange
+from .__past__ import GenericAlias, UnionType, iterItems, long, unicode, xrange
 from .Builtins import (
     builtin_anon_names,
     builtin_anon_value_list,
@@ -193,6 +193,8 @@ def isConstant(constant):
         return True
     elif constant_type is GenericAlias:
         return True
+    elif constant_type is UnionType:
+        return True
     elif constant is sys.version_info:
         return True
     else:
@@ -245,6 +247,8 @@ def isMutable(constant):
         return False
     elif constant_type is GenericAlias:
         return isMutable(constant.__origin__) or isMutable(constant.__args__)
+    elif constant_type is UnionType:
+        return False
     elif constant is sys.version_info:
         return False
     else:

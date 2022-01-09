@@ -15,15 +15,48 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-"""Ability to restart Nuitka, needed for removing site module effects and using Python PGO after compile."""
+"""Ability to restart Nuitka, needed for removing site module effects and using Python PGO after compile.
+
+Note: This avoids imports at all costs, such that initial startup doesn't do more
+than necessary.
+"""
 
 import os
 import sys
 
-from nuitka import Options
-from nuitka.PythonVersions import python_version
 
-from .Execution import callExecProcess
+def callExecProcess(args):
+    """Do exec in a portable way preserving exit code.
+
+    On Windows, unfortunately there is no real exec, so we have to spawn
+    a new process instead.
+    """
+
+    # On Windows os.execl does not work properly
+    if os.name == "nt":
+        import subprocess
+
+        args = list(args)
+        del args[1]
+
+        try:
+            # Context manager is not available on all Python versions, pylint: disable=consider-using-with
+            process = subprocess.Popen(args=args)
+            process.communicate()
+            # No point in cleaning up, pylint: disable=protected-access
+            try:
+                os._exit(process.returncode)
+            except OverflowError:
+                # Seems negative values go wrong otherwise,
+                # see https://bugs.python.org/issue28474
+                os._exit(process.returncode - 2 ** 32)
+        except KeyboardInterrupt:
+            # There was a more relevant stack trace already, so abort this
+            # right here, pylint: disable=protected-access
+            os._exit(2)
+    else:
+        # The star arguments is the API of execl
+        os.execl(*args)
 
 
 def reExecuteNuitka(pgo_filename):
@@ -31,7 +64,7 @@ def reExecuteNuitka(pgo_filename):
     # libraries.
     args = [sys.executable, sys.executable]
 
-    if python_version >= 0x370 and sys.flags.utf8_mode:
+    if sys.version_info >= (3, 7) and sys.flags.utf8_mode:
         args += ["-X", "utf8"]
 
     if "nuitka.__main__" in sys.modules:
@@ -46,14 +79,11 @@ def reExecuteNuitka(pgo_filename):
         os.path.abspath(sys.modules["nuitka"].__path__[0])
     )
 
-    if Options.is_nuitka_run:
-        args.append("--run")
-
     if pgo_filename is not None:
         args.append("--pgo-python-input=%s" % pgo_filename)
 
     # Same arguments as before.
-    args += sys.argv[1:] + list(Options.getMainArgs())
+    args += sys.argv[1:]
 
     os.environ["NUITKA_PYTHONPATH"] = repr(sys.path)
 
@@ -73,9 +103,8 @@ def reExecuteNuitka(pgo_filename):
 
         os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
 
-    os.environ["NUITKA_SITE_FLAG"] = (
-        str(sys.flags.no_site) if not Options.hasPythonFlagNoSite() else "1"
-    )
+    if sys.flags.no_site:
+        os.environ["NUITKA_NOSITE_FLAG"] = "1"
 
     os.environ["PYTHONHASHSEED"] = "0"
 

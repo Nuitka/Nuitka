@@ -22,8 +22,8 @@ Here the small things that fit nowhere else and don't deserve their own module.
 """
 
 import os
-import platform
 import sys
+from contextlib import contextmanager
 
 
 def getOS():
@@ -57,6 +57,8 @@ def getLinuxDistribution():
         return None, None
 
     if _linux_distribution_info is None:
+        import platform
+
         # pylint: disable=I0021,deprecated-method,no-member
         try:
             result = platform.dist()[0]
@@ -70,9 +72,9 @@ def getLinuxDistribution():
 
                 for line in getFileContentByLine("/etc/os-release"):
                     if line.startswith("ID="):
-                        result = line[3:]
+                        result = line[3:].strip('"')
                     if line.startswith("VERSION="):
-                        version = line[8:]
+                        version = line[8:].strip('"')
 
             if result is None:
                 from .Execution import check_output
@@ -97,6 +99,15 @@ def getLinuxDistribution():
         _linux_distribution_info = result.title(), version
 
     return _linux_distribution_info
+
+
+def getWindowsRelease():
+    if getOS() != "Windows":
+        return None
+
+    import platform
+
+    return platform.release()
 
 
 def isDebianBasedLinux():
@@ -224,3 +235,25 @@ def getUserName():
     import pwd  # pylint: disable=I0021,import-error
 
     return pwd.getpwuid(os.getuid())[0]
+
+
+@contextmanager
+def withNoDeprecationWarning():
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+        # These do not inherit from DeprecationWarning by some decision we
+        # are not to care about.
+        if "pkg_resources" in sys.modules:
+            try:
+                from pkg_resources import PkgResourcesDeprecationWarning
+            except ImportError:
+                pass
+            else:
+                warnings.filterwarnings(
+                    "ignore", category=PkgResourcesDeprecationWarning
+                )
+
+        yield

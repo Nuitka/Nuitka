@@ -19,34 +19,26 @@
 """
 import os
 
-from nuitka import Options
 from nuitka.freezer.IncludedDataFiles import makeIncludedDataDirectory
-from nuitka.plugins.PluginBase import NuitkaPluginBase
-
-
-def _isGiModule(module):
-    full_name = module.getFullName()
-    return full_name == "gi"
+from nuitka.plugins.PluginBase import NuitkaPluginBase, standalone_only
 
 
 class NuitkaPluginGi(NuitkaPluginBase):
     plugin_name = "gi"
-    plugin_desc = "Support for GI dependencies"
-
-    @classmethod
-    def isRelevant(cls):
-        """This method is called one time only to check, whether the plugin might make sense at all.
-
-        Returns:
-            True if this is a standalone compilation.
-        """
-        return Options.isStandaloneMode()
+    plugin_desc = "Support for GI typelib dependency"
 
     @staticmethod
+    def isAlwaysEnabled():
+        """Request to be always enabled."""
+
+        return True
+
+    @staticmethod
+    @standalone_only
     def createPreModuleLoadCode(module):
         """Add typelib search path"""
 
-        if _isGiModule(module):
+        if module.getFullName() == "gi":
             code = r"""
 import os
 if not os.environ.get("GI_TYPELIB_PATH="):
@@ -54,9 +46,10 @@ if not os.environ.get("GI_TYPELIB_PATH="):
 
             return code, "Set typelib search path"
 
+    @standalone_only
     def considerDataFiles(self, module):
         """Copy typelib files from the default installation path"""
-        if _isGiModule(module):
+        if module.getFullName() == "gi":
             path = self.queryRuntimeInformationMultiple(
                 info_name="gi_info",
                 setup_codes="import gi; from gi.repository import GObject",
@@ -75,32 +68,29 @@ if not os.environ.get("GI_TYPELIB_PATH="):
                 reason="typelib files for gi modules",
             )
 
+    @staticmethod
+    def getImplicitImports(module):
+        full_name = module.getFullName()
 
-class NuitkaPluginDetectorGi(NuitkaPluginBase):
-    """Only used if plugin is NOT activated
+        if full_name == "gi.overrides":
+            yield "gi.overrides.Gtk"
+            yield "gi.overrides.Gdk"
+            yield "gi.overrides.GLib"
+            yield "gi.overrides.GObject"
+        elif full_name == "gi._gi":
+            yield "gi._error"
+        elif full_name == "gi._gi_cairo":
+            yield "cairo"
 
-    Notes:
-         We are given the chance to issue a warning if we think we may be required.
-    """
+    @standalone_only
+    def getExtraDlls(self, module):
+        if module.getFullName() == "gi._gi":
+            gtk_dll_path = self.locateDLL("gtk-3")
 
-    detector_for = NuitkaPluginGi
+            if gtk_dll_path is None:
+                gtk_dll_path = self.locateDLL("gtk-3-0")
 
-    @classmethod
-    def isRelevant(cls):
-        """Check whether plugin might be required.
-        Returns:
-            True if this is a standalone compilation.
-        """
-        return Options.isStandaloneMode()
-
-    def onModuleDiscovered(self, module):
-        """This method checks whether gi is required.
-        Notes:
-            For this we check whether its first name part is gi relevant.
-        Args:
-            module: the module object
-        Returns:
-            None
-        """
-        if module.getFullName() == "gi":
-            self.warnUnusedPlugin("Missing gi support.")
+            if gtk_dll_path is not None:
+                yield self.makeDllEntryPoint(
+                    gtk_dll_path, os.path.basename(gtk_dll_path), None
+                )

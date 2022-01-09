@@ -78,7 +78,7 @@ class NuitkaPluginTensorflow(NuitkaPluginBase):
 
         return "\n".join(source_lines)
 
-    def decideCompilation(self, module_name, source_ref):
+    def decideCompilation(self, module_name):
         """Include major packages as bytecode.
 
         Notes:

@@ -227,6 +227,7 @@ def main():
     expect_failure = hasArg("expect_failure")
     python_debug = hasArg("python_debug")
     module_mode = hasArg("--module")
+    coverage_mode = hasArg("coverage")
     two_step_execution = hasArg("two_step_execution")
     binary_python_path = hasArg("binary_python_path")
     keep_python_path = hasArg("keep_python_path")
@@ -237,11 +238,11 @@ def main():
     remove_binary = not hasArg("--keep-binary")
     standalone_mode = hasArg("--standalone")
     onefile_mode = hasArg("--onefile")
-    no_site = hasArg("no_site")
+    no_site = hasArg("no_site") or coverage_mode
+    report = hasArgValue("--report")
     nofollow_imports = hasArg("recurse_none") or hasArg("--nofollow-imports")
     follow_imports = hasArg("recurse_all") or hasArg("--follow-imports")
     timing = hasArg("timing")
-    coverage_mode = hasArg("coverage")
     original_file = hasArg("original_file") or hasArg(
         "--file-reference-choice=original"
     )
@@ -257,6 +258,7 @@ def main():
     output_dir = hasArgValue("--output-dir", None)
     include_packages = hasArgValues("--include-package")
     include_modules = hasArgValues("--include-module")
+    python_flag_m = hasArg("--python-flag=-m")
 
     plugins_enabled = []
     for count, arg in reversed(tuple(enumerate(args))):
@@ -372,28 +374,32 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if module_name.endswith(".py"):
             module_name = module_name[:-3]
 
+        cpython_cmd = [
+            os.environ["PYTHON"],
+            "-c",
+            "import sys; sys.path.append(%s); import %s"
+            % (repr(os.path.dirname(filename)), module_name),
+        ]
+
         if no_warnings:
-            cpython_cmd = [
-                os.environ["PYTHON"],
+            cpython_cmd[1:1] = [
                 "-W",
                 "ignore",
-                "-c",
-                "import sys; sys.path.append(%s); import %s"
-                % (repr(os.path.dirname(filename)), module_name),
             ]
-        else:
-            cpython_cmd = [
-                os.environ["PYTHON"],
-                "-c",
-                "import sys; sys.path.append(%s); import %s"
-                % (repr(os.path.dirname(filename)), module_name),
+    else:
+        cpython_cmd = [os.environ["PYTHON"]]
+
+        if no_warnings:
+            cpython_cmd[1:1] = [
+                "-W",
+                "ignore",
             ]
 
-    else:
-        if no_warnings:
-            cpython_cmd = [os.environ["PYTHON"], "-W", "ignore", filename]
+        if python_flag_m:
+            cpython_cmd += ["-m", os.path.basename(filename)]
+            os.chdir(os.path.dirname(filename))
         else:
-            cpython_cmd = [os.environ["PYTHON"], filename]
+            cpython_cmd.append(filename)
 
     if no_site:
         cpython_cmd.insert(1, "-S")
@@ -447,6 +453,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     if noprefer_source:
         extra_options.append("--no-prefer-source")
 
+    if python_flag_m:
+        extra_options.append("--python-flag=-m")
+
     if coverage_mode:
         # Coverage modules hates Nuitka to re-execute, and so we must avoid
         # that.
@@ -468,6 +477,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     if keep_python_path or binary_python_path:
         extra_options.append("--execute-with-pythonpath")
+
+    if report:
+        extra_options.append("--report=%s" % report)
 
     if nofollow_imports:
         extra_options.append("--nofollow-imports")
@@ -657,6 +669,8 @@ Stderr was:
 
                 exit_nuitka = exit_nuitka1
                 stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
+                stdout_nuitka2 = b"not run due to compilation error:\n" + stdout_nuitka1
+                stderr_nuitka2 = stderr_nuitka1
             else:
                 # No execution second step for coverage mode.
                 if comparison_mode:
@@ -715,7 +729,11 @@ Stderr was:
 
         def makeComparisons(trace_result):
             exit_code_stdout = compareOutput(
-                "stdout", stdout_cpython, stdout_nuitka, ignore_warnings, syntax_errors
+                "stdout",
+                stdout_cpython,
+                stdout_nuitka2 if two_step_execution else stdout_nuitka,
+                ignore_warnings,
+                syntax_errors,
             )
 
             if ignore_stderr:
@@ -724,7 +742,7 @@ Stderr was:
                 exit_code_stderr = compareOutput(
                     "stderr",
                     stderr_cpython,
-                    stderr_nuitka,
+                    stderr_nuitka2 if two_step_execution else stderr_nuitka,
                     ignore_warnings,
                     syntax_errors,
                 )

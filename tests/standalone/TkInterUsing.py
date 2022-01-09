@@ -21,6 +21,9 @@
 
 """
 
+# nuitka-project: --standalone
+# nuitka-project: --enable-plugin=tk-inter
+
 from __future__ import print_function
 
 # Python3 changed module name.

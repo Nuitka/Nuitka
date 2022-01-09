@@ -383,7 +383,11 @@ def changeFilenameExtension(path, extension):
 
 
 def hasFilenameExtension(path, extensions):
-    """Has a filename one of the given extensions."""
+    """Has a filename one of the given extensions.
+
+    Note: The extensions should be normalized, i.e. lower case and will match other
+    cases where the file system does that on a platform.
+    """
 
     extension = getFilenameExtension(path)
 

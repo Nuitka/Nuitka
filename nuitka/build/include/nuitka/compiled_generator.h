@@ -54,9 +54,9 @@ typedef enum {
 // generator object instance of which there can be many for each code.
 struct Nuitka_GeneratorObject {
     /* Python object folklore: */
-    PyObject_VAR_HEAD;
+    PyObject_VAR_HEAD
 
-    PyObject *m_name;
+        PyObject *m_name;
 
     // TODO: Only to make traceback for non-started throw
     PyObject *m_module;
@@ -94,6 +94,9 @@ struct Nuitka_GeneratorObject {
 #if PYTHON_VERSION >= 0x300
     PyObject *m_returned;
 #endif
+
+    // A kind of uuid for the generator object, used in comparisons.
+    long m_counter;
 
     /* The heap of generator objects at run time. */
     void *m_heap_storage;

@@ -50,7 +50,6 @@ catching and passing in exceptions raised.
 """
 import marshal
 import os
-import sys
 
 from nuitka import (
     ModuleRegistry,
@@ -96,7 +95,10 @@ from nuitka.nodes.ExceptionNodes import (
 )
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
-from nuitka.nodes.ImportNodes import makeExpressionAbsoluteImportNode
+from nuitka.nodes.ImportNodes import (
+    isHardModuleWithoutSideEffect,
+    makeExpressionImportModuleFixed,
+)
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleAttributeNodes import (
     ExpressionModuleAttributeFileRef,
@@ -134,7 +136,6 @@ from nuitka.Tracing import (
     unusual_logger,
 )
 from nuitka.utils import MemoryUsage
-from nuitka.utils.FileOperations import splitPath
 from nuitka.utils.ModuleNames import ModuleName
 
 from . import SyntaxErrors
@@ -228,7 +229,6 @@ if str is not bytes:
             variable_name=mangleName(node.id, provider),
             source_ref=source_ref,
         )
-
 
 else:
 
@@ -774,7 +774,7 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
         if is_main and not Options.hasPythonFlagNoSite():
             statements.append(
                 StatementExpressionOnly(
-                    expression=makeExpressionAbsoluteImportNode(
+                    expression=makeExpressionImportModuleFixed(
                         module_name="site", source_ref=source_ref
                     ),
                     source_ref=source_ref,
@@ -782,9 +782,12 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
             )
 
             for path_imported_name in getPthImportedPackages():
+                if isHardModuleWithoutSideEffect(path_imported_name):
+                    continue
+
                 statements.append(
                     StatementExpressionOnly(
-                        expression=makeExpressionAbsoluteImportNode(
+                        expression=makeExpressionImportModuleFixed(
                             module_name=path_imported_name, source_ref=source_ref
                         ),
                         source_ref=source_ref,
@@ -932,8 +935,14 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
         assert False
 
 
-def decideCompilationMode(is_top, module_name, source_ref):
-    result = Plugins.decideCompilation(module_name, source_ref)
+def decideCompilationMode(is_top, module_name, for_pgo):
+    """Decide the compilation mode for a module.
+
+    module_name - The module to decide compilation mode for.
+    for_pgo - consider PGO information or not
+    """
+
+    result = Plugins.decideCompilation(module_name)
 
     # Cannot change mode of __main__ to bytecode, that is not going
     # to work currently.
@@ -948,7 +957,7 @@ required to compiled."""
         result = "compiled"
 
     # Plugins need to win over PGO, as they might know it better
-    if result is None:
+    if result is None and not for_pgo:
         result = decideCompilationFromPGO(module_name=module_name)
 
     # Default if neither plugins nor PGO have expressed an opinion
@@ -958,103 +967,10 @@ required to compiled."""
     return result
 
 
-def _decideModuleSourceRef(filename, package, is_shlib, is_top, is_main, is_fake):
-    # Many branches due to the many cases
-    # pylint: disable=too-many-branches
-
-    assert package is None or type(package) is ModuleName
-    assert filename is not None
-
-    is_namespace = False
-    is_package = False
-
-    if is_main and os.path.isdir(filename):
-        source_filename = os.path.join(filename, "__main__.py")
-
-        if not os.path.isfile(source_filename):
-            sys.stderr.write(
-                "%s: can't find '__main__' module in '%s'\n"
-                % (os.path.basename(sys.argv[0]), filename)
-            )
-            sys.exit(2)
-
-        filename = source_filename
-
-        main_added = True
-    else:
-        main_added = False
-
-    if is_fake:
-        source_filename = filename
-
-        source_ref = SourceCodeReferences.fromFilename(filename=filename)
-
-        module_name = is_fake
-
-    elif os.path.isfile(filename):
-        source_filename = filename
-
-        source_ref = SourceCodeReferences.fromFilename(filename=filename)
-
-        if is_main:
-            module_name = ModuleName("__main__")
-        else:
-            # Derive module name from filename.
-            module_name = os.path.basename(filename)
-            if is_shlib:
-                module_name = module_name.split(".")[0]
-            elif module_name.endswith(".py"):
-                module_name = module_name[:-3]
-
-            if "." in module_name:
-                general.sysexit(
-                    "Error, '%s' is not a proper python module name.\n" % module_name
-                )
-
-            module_name = ModuleName.makeModuleNameInPackage(module_name, package)
-    elif Importing.isPackageDir(filename):
-        is_package = True
-
-        if is_top:
-            module_name = splitPath(filename)[-1]
-        else:
-            module_name = os.path.basename(filename)
-
-        module_name = ModuleName.makeModuleNameInPackage(module_name, package)
-
-        source_filename = os.path.join(filename, "__init__.py")
-
-        if not os.path.isfile(source_filename):
-            source_ref = SourceCodeReferences.fromFilename(
-                filename=filename
-            ).atInternal()
-            is_namespace = True
-        else:
-            source_ref = SourceCodeReferences.fromFilename(
-                filename=os.path.abspath(source_filename)
-            )
-
-    else:
-        sys.stderr.write(
-            "%s: can't open file '%s'.\n" % (os.path.basename(sys.argv[0]), filename)
-        )
-        sys.exit(2)
-
-    return (
-        module_name,
-        main_added,
-        is_package,
-        is_namespace,
-        source_ref,
-        source_filename,
-    )
-
-
 def _createModule(
     module_name,
     source_code,
     source_ref,
-    package,
     is_shlib,
     is_namespace,
     is_package,
@@ -1064,14 +980,16 @@ def _createModule(
 ):
     # Many details due to the caching done here.
     # pylint: disable=too-many-locals
-    assert package is None or type(package) is ModuleName
 
     if is_shlib:
         result = PythonShlibModule(module_name=module_name, source_ref=source_ref)
     elif is_main:
         result = PythonMainModule(
             main_added=main_added,
-            mode=decideCompilationMode(False, module_name, source_ref),
+            module_name=module_name,
+            mode=decideCompilationMode(
+                is_top=is_top, module_name=module_name, for_pgo=False
+            ),
             future_spec=None,
             source_ref=source_ref,
         )
@@ -1080,7 +998,9 @@ def _createModule(
     elif is_namespace:
         result = createNamespacePackage(module_name, is_top, source_ref)
     else:
-        mode = decideCompilationMode(is_top, module_name, source_ref)
+        mode = decideCompilationMode(
+            is_top=is_top, module_name=module_name, for_pgo=False
+        )
 
         if (
             mode == "bytecode"
@@ -1109,12 +1029,10 @@ def _createModule(
             for used_module_name in getCachedImportedModulesNames(
                 module_name=module_name, source_code=source_code
             ):
-                (_module_package, module_filename, _finding,) = Importing.findModule(
-                    importing=result,
+                (_module_name, module_filename, _finding,) = Importing.locateModule(
                     module_name=used_module_name,
                     parent_package=None,
-                    level=-1,
-                    warn=False,
+                    level=0,
                 )
 
                 used_modules.add((used_module_name, os.path.relpath(module_filename)))
@@ -1172,13 +1090,22 @@ def createModuleTree(module, source_ref, ast_tree, is_main):
         )
 
 
-def buildMainModuleTree(filename, package, is_main):
+def buildMainModuleTree(filename, is_main):
     # Detect to be frozen modules if any, so we can consider to not follow
     # to them.
 
+    if is_main:
+        # TODO: Doesn't work for deeply nested packages at all.
+        if Options.hasPythonFlagPackageMode():
+            module_name = ModuleName(os.path.basename(filename) + ".__main__")
+        else:
+            module_name = ModuleName("__main__")
+    else:
+        module_name = Importing.getModuleNameAndKindFromFilename(filename)[0]
+
     module, _added = buildModule(
+        module_name=module_name,
         module_filename=filename,
-        module_package=package,
         source_code=None,
         is_top=True,
         is_main=is_main,
@@ -1200,8 +1127,6 @@ def buildMainModuleTree(filename, package, is_main):
 
 
 def _makeModuleBodyFromSyntaxError(exc, module_name, module_filename):
-    assert module_name != "markupsafe._speedups", module_filename
-
     if module_filename not in Importing.warned_about:
         Importing.warned_about.add(module_filename)
 
@@ -1265,8 +1190,8 @@ Cannot follow import to import module '%r' ('%r') because code is too complex.""
 
 
 def buildModule(
+    module_name,
     module_filename,
-    module_package,
     source_code,
     is_top,
     is_main,
@@ -1274,23 +1199,30 @@ def buildModule(
     is_fake,
     hide_syntax_error,
 ):
-    # Many details to deal with, pylint: disable=too-many-locals
-
+    # Many details to deal with, pylint: disable=too-many-branches,too-many-locals
     (
-        module_name,
         main_added,
         is_package,
         is_namespace,
         source_ref,
         source_filename,
-    ) = _decideModuleSourceRef(
+    ) = Importing.decideModuleSourceRef(
         filename=module_filename,
-        package=module_package,
-        is_top=is_top,
+        module_name=module_name,
         is_main=is_main,
-        is_shlib=is_shlib,
         is_fake=is_fake,
+        logger=general,
     )
+
+    if Options.hasPythonFlagPackageMode():
+        if is_top and Options.shallMakeModule():
+            optimization_logger.warning(
+                "Python flag -m (package_mode) has no effect in module mode, it's only for executables."
+            )
+        elif is_main and not main_added:
+            optimization_logger.warning(
+                "Python flag -m (package_mode) only works on packages with '__main__.py'."
+            )
 
     # Read source code if necessary. Might give a SyntaxError due to not being proper
     # encoded source.
@@ -1349,7 +1281,6 @@ def buildModule(
 
     module = _createModule(
         module_name=module_name,
-        package=module_package,
         source_code=source_code,
         source_ref=source_ref,
         is_top=is_top,

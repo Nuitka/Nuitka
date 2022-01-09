@@ -37,9 +37,9 @@ def main():
 
     check_mode = "--check" in sys.argv
 
-    # Only real master releases so far.
+    # Only real main releases so far.
     if not check_mode:
-        assert branch_name == "master", branch_name
+        assert branch_name == "main", branch_name
         assert "pre" not in nuitka_version and "rc" not in nuitka_version
 
     my_print("Working on Nuitka %r." % nuitka_version, style="blue")

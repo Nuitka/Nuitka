@@ -18,7 +18,7 @@ license, requirements, credits, etc.
 Nuitka is **the** Python compiler. It is written in Python. It is a
 seamless replacement or extension to the Python interpreter and compiles
 **every** construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8,
-3.9 have, when itself run with that Python version.
+3.9, 3.10 have, when itself run with that Python version.
 
 It then executes uncompiled code and compiled code together in an
 extremely compatible manner.
@@ -67,7 +67,7 @@ Requirements
    -  On Windows the ``clang-cl`` compiler on Windows can be used if
       provided by the Visual Studio installer.
 
--  Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9
+-  Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10
 
    .. admonition:: For Python 3.3/3.4 and *only* those, we need other Python version as a *compile time* dependency.
 
@@ -199,10 +199,10 @@ Installation
 ============
 
 For most systems, there will be packages on the `download page
-<http://www.nuitka.net/pages/download.html>`__ of Nuitka. But you can
-also install it from source code as described above, but also like any
-other Python program it can be installed via the normal ``python
-setup.py install`` routine.
+<https://nuitka.net/doc/download.html>`__ of Nuitka. But you can also
+install it from source code as described above, but also like any other
+Python program it can be installed via the normal ``python setup.py
+install`` routine.
 
 License
 =======
@@ -522,15 +522,40 @@ Nuitka.
 
 .. code:: python
 
-   # For setup.py
+   # For setup.py if not you't use other build systems:
    setup(
       ...,
       command_options={
          'nuitka': {
             # boolean option, e.g. if you cared for C commands
             '--show-scons': True,
-            # options with values, e.g. enable a plugin of Nuitka
+            # options without value, e.g. enforce using Clang
+            '--clang': ("setup.py", None),
+            # options with single values, e.g. enable a plugin of Nuitka
             '--enable-plugin': 'anti-bloat',
+            # options with several values, e.g. avoiding including modules
+            '--nofollow-import-to' : ["*.tests", "*.distutils"],
+         }
+      },
+   )
+
+   # For setup.py with other build systems:
+   # The tuple nature of the arguments is required by the dark nature of
+   # "setuptools" and plugins to it, that insist on full compatibility,
+   # e.g. "setuptools_rust"
+
+   setup(
+      ...,
+      command_options={
+         'nuitka': {
+            # boolean option, e.g. if you cared for C commands
+            '--show-scons': ("setup.py", True),
+            # options without value, e.g. enforce using Clang
+            '--clang': ("setup.py", None),
+            # options with single values, e.g. enable a plugin of Nuitka
+            '--enable-plugin': ("setup.py", 'anti-bloat'),
+            # options with several values, e.g. avoiding including modules
+            '--nofollow-import-to' : ("setup.py", ["*.tests", "*.distutils"]),
          }
       },
    )
@@ -969,11 +994,11 @@ versions:
 
 When using MingGW64, you'll need the following redist versions:
 
-+------------------+-------------+-------------------------+
-| MingGW64 version | Redist Year | CPython                 |
-+==================+=============+=========================+
-| 8.1.0            | 2015        | 3.5, 3.6, 3.7, 3.8, 3.9 |
-+------------------+-------------+-------------------------+
++------------------+-------------+-------------------------------+
+| MingGW64 version | Redist Year | CPython                       |
++==================+=============+===============================+
+| 8.1.0            | 2015        | 3.5, 3.6, 3.7, 3.8, 3.9, 3.10 |
++------------------+-------------+-------------------------------+
 
 Once the corresponding runtime libraries are installed on the target
 system, you may remove all ``api-ms-crt-*.dll`` files from your Nuitka
@@ -1036,12 +1061,12 @@ Follow me on Twitter
 ====================
 
 Nuitka announcements and interesting stuff is pointed to on the Twitter
-account, but obviously with no details. `@KayHayen
+account, but obviously with not too many details. `@KayHayen
 <https://twitter.com/KayHayen>`_.
 
-I will not answer Nuitka issues via Twitter though, rather make
-occasional polls, and give important announcements, as well as low-level
-posts about development ongoing.
+.. raw:: html
+
+   <a href="https://twitter.com/KayHayen?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-show-count="false">Follow @KayHayen</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 Report issues or bugs
 =====================
@@ -1096,7 +1121,7 @@ complete the project in all minor and major ways.
 The development of Nuitka occurs in git. We currently have these 3
 branches:
 
--  ``master``
+-  ``main``
 
    This branch contains the stable release to which only hotfixes for
    bugs will be done. It is supposed to work at all times and is

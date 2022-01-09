@@ -67,6 +67,9 @@ class ExpressionAttributeLookupFixedCapitalize(ExpressionAttributeLookupFixedBas
 attribute_classes["capitalize"] = ExpressionAttributeLookupFixedCapitalize
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_capitalize_spec
+
+
 class ExpressionAttributeLookupStrCapitalize(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedCapitalize
 ):
@@ -81,7 +84,25 @@ class ExpressionAttributeLookupStrCapitalize(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationCapitalize is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationCapitalize(source_ref):
+            from .StrNodes import ExpressionStrOperationCapitalize
+
+            return ExpressionStrOperationCapitalize(
+                str_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationCapitalize,
+            builtin_spec=str_capitalize_spec,
+        )
+
+        return result, "new_expression", "Call to 'capitalize' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrCapitalize)
@@ -461,6 +482,9 @@ class ExpressionAttributeLookupFixedDecode(ExpressionAttributeLookupFixedBase):
 attribute_classes["decode"] = ExpressionAttributeLookupFixedDecode
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_decode_spec
+
+
 class ExpressionAttributeLookupStrDecode(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedDecode
 ):
@@ -475,7 +499,43 @@ class ExpressionAttributeLookupStrDecode(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationDecode is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationDecode(encoding, errors, source_ref):
+            if errors is not None:
+                from .StrNodes import ExpressionStrOperationDecode3
+
+                return ExpressionStrOperationDecode3(
+                    str_arg=self.subnode_expression,
+                    encoding=encoding,
+                    errors=errors,
+                    source_ref=source_ref,
+                )
+            elif encoding is not None:
+                from .StrNodes import ExpressionStrOperationDecode2
+
+                return ExpressionStrOperationDecode2(
+                    str_arg=self.subnode_expression,
+                    encoding=encoding,
+                    source_ref=source_ref,
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationDecode1
+
+                return ExpressionStrOperationDecode1(
+                    str_arg=self.subnode_expression, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationDecode,
+            builtin_spec=str_decode_spec,
+        )
+
+        return result, "new_expression", "Call to 'decode' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrDecode)
@@ -519,6 +579,9 @@ class ExpressionAttributeLookupFixedEncode(ExpressionAttributeLookupFixedBase):
 attribute_classes["encode"] = ExpressionAttributeLookupFixedEncode
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_encode_spec
+
+
 class ExpressionAttributeLookupStrEncode(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedEncode
 ):
@@ -533,7 +596,43 @@ class ExpressionAttributeLookupStrEncode(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationEncode is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationEncode(encoding, errors, source_ref):
+            if errors is not None:
+                from .StrNodes import ExpressionStrOperationEncode3
+
+                return ExpressionStrOperationEncode3(
+                    str_arg=self.subnode_expression,
+                    encoding=encoding,
+                    errors=errors,
+                    source_ref=source_ref,
+                )
+            elif encoding is not None:
+                from .StrNodes import ExpressionStrOperationEncode2
+
+                return ExpressionStrOperationEncode2(
+                    str_arg=self.subnode_expression,
+                    encoding=encoding,
+                    source_ref=source_ref,
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationEncode1
+
+                return ExpressionStrOperationEncode1(
+                    str_arg=self.subnode_expression, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationEncode,
+            builtin_spec=str_encode_spec,
+        )
+
+        return result, "new_expression", "Call to 'encode' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrEncode)
@@ -577,6 +676,9 @@ class ExpressionAttributeLookupFixedEndswith(ExpressionAttributeLookupFixedBase)
 attribute_classes["endswith"] = ExpressionAttributeLookupFixedEndswith
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_endswith_spec
+
+
 class ExpressionAttributeLookupStrEndswith(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedEndswith
 ):
@@ -591,7 +693,47 @@ class ExpressionAttributeLookupStrEndswith(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationEndswith is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationEndswith(suffix, start, end, source_ref):
+            if end is not None:
+                from .StrNodes import ExpressionStrOperationEndswith4
+
+                return ExpressionStrOperationEndswith4(
+                    str_arg=self.subnode_expression,
+                    suffix=suffix,
+                    start=start,
+                    end=end,
+                    source_ref=source_ref,
+                )
+            elif start is not None:
+                from .StrNodes import ExpressionStrOperationEndswith3
+
+                return ExpressionStrOperationEndswith3(
+                    str_arg=self.subnode_expression,
+                    suffix=suffix,
+                    start=start,
+                    source_ref=source_ref,
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationEndswith2
+
+                return ExpressionStrOperationEndswith2(
+                    str_arg=self.subnode_expression,
+                    suffix=suffix,
+                    source_ref=source_ref,
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationEndswith,
+            builtin_spec=str_endswith_spec,
+        )
+
+        return result, "new_expression", "Call to 'endswith' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrEndswith)
@@ -693,6 +835,9 @@ class ExpressionAttributeLookupFixedFind(ExpressionAttributeLookupFixedBase):
 attribute_classes["find"] = ExpressionAttributeLookupFixedFind
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_find_spec
+
+
 class ExpressionAttributeLookupStrFind(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedFind
 ):
@@ -707,7 +852,45 @@ class ExpressionAttributeLookupStrFind(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationFind is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationFind(sub, start, end, source_ref):
+            if end is not None:
+                from .StrNodes import ExpressionStrOperationFind4
+
+                return ExpressionStrOperationFind4(
+                    str_arg=self.subnode_expression,
+                    sub=sub,
+                    start=start,
+                    end=end,
+                    source_ref=source_ref,
+                )
+            elif start is not None:
+                from .StrNodes import ExpressionStrOperationFind3
+
+                return ExpressionStrOperationFind3(
+                    str_arg=self.subnode_expression,
+                    sub=sub,
+                    start=start,
+                    source_ref=source_ref,
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationFind2
+
+                return ExpressionStrOperationFind2(
+                    str_arg=self.subnode_expression, sub=sub, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationFind,
+            builtin_spec=str_find_spec,
+        )
+
+        return result, "new_expression", "Call to 'find' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrFind)
@@ -1095,6 +1278,9 @@ class ExpressionAttributeLookupFixedIndex(ExpressionAttributeLookupFixedBase):
 attribute_classes["index"] = ExpressionAttributeLookupFixedIndex
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_index_spec
+
+
 class ExpressionAttributeLookupStrIndex(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIndex
 ):
@@ -1109,7 +1295,45 @@ class ExpressionAttributeLookupStrIndex(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIndex is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationIndex(sub, start, end, source_ref):
+            if end is not None:
+                from .StrNodes import ExpressionStrOperationIndex4
+
+                return ExpressionStrOperationIndex4(
+                    str_arg=self.subnode_expression,
+                    sub=sub,
+                    start=start,
+                    end=end,
+                    source_ref=source_ref,
+                )
+            elif start is not None:
+                from .StrNodes import ExpressionStrOperationIndex3
+
+                return ExpressionStrOperationIndex3(
+                    str_arg=self.subnode_expression,
+                    sub=sub,
+                    start=start,
+                    source_ref=source_ref,
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationIndex2
+
+                return ExpressionStrOperationIndex2(
+                    str_arg=self.subnode_expression, sub=sub, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIndex,
+            builtin_spec=str_index_spec,
+        )
+
+        return result, "new_expression", "Call to 'index' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIndex)
@@ -1153,6 +1377,9 @@ class ExpressionAttributeLookupFixedIsalnum(ExpressionAttributeLookupFixedBase):
 attribute_classes["isalnum"] = ExpressionAttributeLookupFixedIsalnum
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_isalnum_spec
+
+
 class ExpressionAttributeLookupStrIsalnum(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIsalnum
 ):
@@ -1167,7 +1394,25 @@ class ExpressionAttributeLookupStrIsalnum(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIsalnum is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationIsalnum(source_ref):
+            from .StrNodes import ExpressionStrOperationIsalnum
+
+            return ExpressionStrOperationIsalnum(
+                str_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIsalnum,
+            builtin_spec=str_isalnum_spec,
+        )
+
+        return result, "new_expression", "Call to 'isalnum' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsalnum)
@@ -1211,6 +1456,9 @@ class ExpressionAttributeLookupFixedIsalpha(ExpressionAttributeLookupFixedBase):
 attribute_classes["isalpha"] = ExpressionAttributeLookupFixedIsalpha
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_isalpha_spec
+
+
 class ExpressionAttributeLookupStrIsalpha(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIsalpha
 ):
@@ -1225,7 +1473,25 @@ class ExpressionAttributeLookupStrIsalpha(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIsalpha is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationIsalpha(source_ref):
+            from .StrNodes import ExpressionStrOperationIsalpha
+
+            return ExpressionStrOperationIsalpha(
+                str_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIsalpha,
+            builtin_spec=str_isalpha_spec,
+        )
+
+        return result, "new_expression", "Call to 'isalpha' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsalpha)
@@ -1385,6 +1651,9 @@ class ExpressionAttributeLookupFixedIsdigit(ExpressionAttributeLookupFixedBase):
 attribute_classes["isdigit"] = ExpressionAttributeLookupFixedIsdigit
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_isdigit_spec
+
+
 class ExpressionAttributeLookupStrIsdigit(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIsdigit
 ):
@@ -1399,7 +1668,25 @@ class ExpressionAttributeLookupStrIsdigit(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIsdigit is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationIsdigit(source_ref):
+            from .StrNodes import ExpressionStrOperationIsdigit
+
+            return ExpressionStrOperationIsdigit(
+                str_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIsdigit,
+            builtin_spec=str_isdigit_spec,
+        )
+
+        return result, "new_expression", "Call to 'isdigit' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsdigit)
@@ -1501,6 +1788,9 @@ class ExpressionAttributeLookupFixedIslower(ExpressionAttributeLookupFixedBase):
 attribute_classes["islower"] = ExpressionAttributeLookupFixedIslower
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_islower_spec
+
+
 class ExpressionAttributeLookupStrIslower(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIslower
 ):
@@ -1515,7 +1805,25 @@ class ExpressionAttributeLookupStrIslower(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIslower is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationIslower(source_ref):
+            from .StrNodes import ExpressionStrOperationIslower
+
+            return ExpressionStrOperationIslower(
+                str_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIslower,
+            builtin_spec=str_islower_spec,
+        )
+
+        return result, "new_expression", "Call to 'islower' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIslower)
@@ -1675,6 +1983,9 @@ class ExpressionAttributeLookupFixedIsspace(ExpressionAttributeLookupFixedBase):
 attribute_classes["isspace"] = ExpressionAttributeLookupFixedIsspace
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_isspace_spec
+
+
 class ExpressionAttributeLookupStrIsspace(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIsspace
 ):
@@ -1689,7 +2000,25 @@ class ExpressionAttributeLookupStrIsspace(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIsspace is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationIsspace(source_ref):
+            from .StrNodes import ExpressionStrOperationIsspace
+
+            return ExpressionStrOperationIsspace(
+                str_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIsspace,
+            builtin_spec=str_isspace_spec,
+        )
+
+        return result, "new_expression", "Call to 'isspace' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsspace)
@@ -1733,6 +2062,9 @@ class ExpressionAttributeLookupFixedIstitle(ExpressionAttributeLookupFixedBase):
 attribute_classes["istitle"] = ExpressionAttributeLookupFixedIstitle
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_istitle_spec
+
+
 class ExpressionAttributeLookupStrIstitle(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIstitle
 ):
@@ -1747,7 +2079,25 @@ class ExpressionAttributeLookupStrIstitle(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIstitle is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationIstitle(source_ref):
+            from .StrNodes import ExpressionStrOperationIstitle
+
+            return ExpressionStrOperationIstitle(
+                str_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIstitle,
+            builtin_spec=str_istitle_spec,
+        )
+
+        return result, "new_expression", "Call to 'istitle' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIstitle)
@@ -1791,6 +2141,9 @@ class ExpressionAttributeLookupFixedIsupper(ExpressionAttributeLookupFixedBase):
 attribute_classes["isupper"] = ExpressionAttributeLookupFixedIsupper
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_isupper_spec
+
+
 class ExpressionAttributeLookupStrIsupper(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIsupper
 ):
@@ -1805,7 +2158,25 @@ class ExpressionAttributeLookupStrIsupper(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIsupper is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationIsupper(source_ref):
+            from .StrNodes import ExpressionStrOperationIsupper
+
+            return ExpressionStrOperationIsupper(
+                str_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIsupper,
+            builtin_spec=str_isupper_spec,
+        )
+
+        return result, "new_expression", "Call to 'isupper' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsupper)
@@ -2407,6 +2778,9 @@ class ExpressionAttributeLookupFixedLower(ExpressionAttributeLookupFixedBase):
 attribute_classes["lower"] = ExpressionAttributeLookupFixedLower
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_lower_spec
+
+
 class ExpressionAttributeLookupStrLower(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedLower
 ):
@@ -2421,7 +2795,25 @@ class ExpressionAttributeLookupStrLower(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationLower is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationLower(source_ref):
+            from .StrNodes import ExpressionStrOperationLower
+
+            return ExpressionStrOperationLower(
+                str_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationLower,
+            builtin_spec=str_lower_spec,
+        )
+
+        return result, "new_expression", "Call to 'lower' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrLower)
@@ -2797,122 +3189,6 @@ class ExpressionAttributeLookupDictPopitem(
 attribute_typed_classes.add(ExpressionAttributeLookupDictPopitem)
 
 
-class ExpressionAttributeLookupFixedRemoveprefix(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'removeprefix' of an object.
-
-    Typically code like: source.removeprefix
-    """
-
-    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_REMOVEPREFIX"
-    attribute_name = "removeprefix"
-
-    def computeExpression(self, trace_collection):
-        subnode_expression = self.subnode_expression
-
-        if str is not bytes and subnode_expression.hasShapeStrExact():
-            result = ExpressionAttributeLookupStrRemoveprefix(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'removeprefix' on str shape resolved.",
-            )
-
-        return subnode_expression.computeExpressionAttribute(
-            lookup_node=self,
-            attribute_name="removeprefix",
-            trace_collection=trace_collection,
-        )
-
-    def mayRaiseException(self, exception_type):
-        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
-            exception_type=exception_type, attribute_name="removeprefix"
-        )
-
-
-attribute_classes["removeprefix"] = ExpressionAttributeLookupFixedRemoveprefix
-
-
-class ExpressionAttributeLookupStrRemoveprefix(
-    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedRemoveprefix
-):
-    """Attribute Removeprefix lookup on a str.
-
-    Typically code like: some_str.removeprefix
-    """
-
-    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_REMOVEPREFIX"
-    attribute_name = "removeprefix"
-
-    def computeExpression(self, trace_collection):
-        return self, None, None
-
-    # No computeExpressionCall as str operation ExpressionStrOperationRemoveprefix is not yet implemented
-
-
-attribute_typed_classes.add(ExpressionAttributeLookupStrRemoveprefix)
-
-
-class ExpressionAttributeLookupFixedRemovesuffix(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'removesuffix' of an object.
-
-    Typically code like: source.removesuffix
-    """
-
-    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_REMOVESUFFIX"
-    attribute_name = "removesuffix"
-
-    def computeExpression(self, trace_collection):
-        subnode_expression = self.subnode_expression
-
-        if str is not bytes and subnode_expression.hasShapeStrExact():
-            result = ExpressionAttributeLookupStrRemovesuffix(
-                expression=subnode_expression, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Attribute lookup 'removesuffix' on str shape resolved.",
-            )
-
-        return subnode_expression.computeExpressionAttribute(
-            lookup_node=self,
-            attribute_name="removesuffix",
-            trace_collection=trace_collection,
-        )
-
-    def mayRaiseException(self, exception_type):
-        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
-            exception_type=exception_type, attribute_name="removesuffix"
-        )
-
-
-attribute_classes["removesuffix"] = ExpressionAttributeLookupFixedRemovesuffix
-
-
-class ExpressionAttributeLookupStrRemovesuffix(
-    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedRemovesuffix
-):
-    """Attribute Removesuffix lookup on a str.
-
-    Typically code like: some_str.removesuffix
-    """
-
-    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_STR_REMOVESUFFIX"
-    attribute_name = "removesuffix"
-
-    def computeExpression(self, trace_collection):
-        return self, None, None
-
-    # No computeExpressionCall as str operation ExpressionStrOperationRemovesuffix is not yet implemented
-
-
-attribute_typed_classes.add(ExpressionAttributeLookupStrRemovesuffix)
-
-
 class ExpressionAttributeLookupFixedReplace(ExpressionAttributeLookupFixedBase):
     """Looking up an attribute value 'replace' of an object.
 
@@ -2951,6 +3227,9 @@ class ExpressionAttributeLookupFixedReplace(ExpressionAttributeLookupFixedBase):
 attribute_classes["replace"] = ExpressionAttributeLookupFixedReplace
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_replace_spec
+
+
 class ExpressionAttributeLookupStrReplace(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedReplace
 ):
@@ -2965,7 +3244,39 @@ class ExpressionAttributeLookupStrReplace(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationReplace is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationReplace(old, new, count, source_ref):
+            if count is not None:
+                from .StrNodes import ExpressionStrOperationReplace4
+
+                return ExpressionStrOperationReplace4(
+                    str_arg=self.subnode_expression,
+                    old=old,
+                    new=new,
+                    count=count,
+                    source_ref=source_ref,
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationReplace3
+
+                return ExpressionStrOperationReplace3(
+                    str_arg=self.subnode_expression,
+                    old=old,
+                    new=new,
+                    source_ref=source_ref,
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationReplace,
+            builtin_spec=str_replace_spec,
+        )
+
+        return result, "new_expression", "Call to 'replace' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrReplace)
@@ -3009,6 +3320,9 @@ class ExpressionAttributeLookupFixedRfind(ExpressionAttributeLookupFixedBase):
 attribute_classes["rfind"] = ExpressionAttributeLookupFixedRfind
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_rfind_spec
+
+
 class ExpressionAttributeLookupStrRfind(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedRfind
 ):
@@ -3023,7 +3337,45 @@ class ExpressionAttributeLookupStrRfind(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationRfind is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationRfind(sub, start, end, source_ref):
+            if end is not None:
+                from .StrNodes import ExpressionStrOperationRfind4
+
+                return ExpressionStrOperationRfind4(
+                    str_arg=self.subnode_expression,
+                    sub=sub,
+                    start=start,
+                    end=end,
+                    source_ref=source_ref,
+                )
+            elif start is not None:
+                from .StrNodes import ExpressionStrOperationRfind3
+
+                return ExpressionStrOperationRfind3(
+                    str_arg=self.subnode_expression,
+                    sub=sub,
+                    start=start,
+                    source_ref=source_ref,
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationRfind2
+
+                return ExpressionStrOperationRfind2(
+                    str_arg=self.subnode_expression, sub=sub, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationRfind,
+            builtin_spec=str_rfind_spec,
+        )
+
+        return result, "new_expression", "Call to 'rfind' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrRfind)
@@ -3067,6 +3419,9 @@ class ExpressionAttributeLookupFixedRindex(ExpressionAttributeLookupFixedBase):
 attribute_classes["rindex"] = ExpressionAttributeLookupFixedRindex
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_rindex_spec
+
+
 class ExpressionAttributeLookupStrRindex(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedRindex
 ):
@@ -3081,7 +3436,45 @@ class ExpressionAttributeLookupStrRindex(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationRindex is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationRindex(sub, start, end, source_ref):
+            if end is not None:
+                from .StrNodes import ExpressionStrOperationRindex4
+
+                return ExpressionStrOperationRindex4(
+                    str_arg=self.subnode_expression,
+                    sub=sub,
+                    start=start,
+                    end=end,
+                    source_ref=source_ref,
+                )
+            elif start is not None:
+                from .StrNodes import ExpressionStrOperationRindex3
+
+                return ExpressionStrOperationRindex3(
+                    str_arg=self.subnode_expression,
+                    sub=sub,
+                    start=start,
+                    source_ref=source_ref,
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationRindex2
+
+                return ExpressionStrOperationRindex2(
+                    str_arg=self.subnode_expression, sub=sub, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationRindex,
+            builtin_spec=str_rindex_spec,
+        )
+
+        return result, "new_expression", "Call to 'rindex' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrRindex)
@@ -3262,6 +3655,9 @@ class ExpressionAttributeLookupFixedRsplit(ExpressionAttributeLookupFixedBase):
 attribute_classes["rsplit"] = ExpressionAttributeLookupFixedRsplit
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_rsplit_spec
+
+
 class ExpressionAttributeLookupStrRsplit(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedRsplit
 ):
@@ -3276,7 +3672,41 @@ class ExpressionAttributeLookupStrRsplit(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationRsplit is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationRsplit(sep, maxsplit, source_ref):
+            if maxsplit is not None:
+                from .StrNodes import ExpressionStrOperationRsplit3
+
+                return ExpressionStrOperationRsplit3(
+                    str_arg=self.subnode_expression,
+                    sep=sep,
+                    maxsplit=maxsplit,
+                    source_ref=source_ref,
+                )
+            elif sep is not None:
+                from .StrNodes import ExpressionStrOperationRsplit2
+
+                return ExpressionStrOperationRsplit2(
+                    str_arg=self.subnode_expression, sep=sep, source_ref=source_ref
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationRsplit1
+
+                return ExpressionStrOperationRsplit1(
+                    str_arg=self.subnode_expression, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationRsplit,
+            builtin_spec=str_rsplit_spec,
+        )
+
+        return result, "new_expression", "Call to 'rsplit' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrRsplit)
@@ -3497,6 +3927,9 @@ class ExpressionAttributeLookupFixedSplit(ExpressionAttributeLookupFixedBase):
 attribute_classes["split"] = ExpressionAttributeLookupFixedSplit
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_split_spec
+
+
 class ExpressionAttributeLookupStrSplit(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedSplit
 ):
@@ -3511,7 +3944,41 @@ class ExpressionAttributeLookupStrSplit(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationSplit is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationSplit(sep, maxsplit, source_ref):
+            if maxsplit is not None:
+                from .StrNodes import ExpressionStrOperationSplit3
+
+                return ExpressionStrOperationSplit3(
+                    str_arg=self.subnode_expression,
+                    sep=sep,
+                    maxsplit=maxsplit,
+                    source_ref=source_ref,
+                )
+            elif sep is not None:
+                from .StrNodes import ExpressionStrOperationSplit2
+
+                return ExpressionStrOperationSplit2(
+                    str_arg=self.subnode_expression, sep=sep, source_ref=source_ref
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationSplit1
+
+                return ExpressionStrOperationSplit1(
+                    str_arg=self.subnode_expression, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationSplit,
+            builtin_spec=str_split_spec,
+        )
+
+        return result, "new_expression", "Call to 'split' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrSplit)
@@ -3613,6 +4080,9 @@ class ExpressionAttributeLookupFixedStartswith(ExpressionAttributeLookupFixedBas
 attribute_classes["startswith"] = ExpressionAttributeLookupFixedStartswith
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_startswith_spec
+
+
 class ExpressionAttributeLookupStrStartswith(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedStartswith
 ):
@@ -3627,7 +4097,47 @@ class ExpressionAttributeLookupStrStartswith(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationStartswith is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationStartswith(prefix, start, end, source_ref):
+            if end is not None:
+                from .StrNodes import ExpressionStrOperationStartswith4
+
+                return ExpressionStrOperationStartswith4(
+                    str_arg=self.subnode_expression,
+                    prefix=prefix,
+                    start=start,
+                    end=end,
+                    source_ref=source_ref,
+                )
+            elif start is not None:
+                from .StrNodes import ExpressionStrOperationStartswith3
+
+                return ExpressionStrOperationStartswith3(
+                    str_arg=self.subnode_expression,
+                    prefix=prefix,
+                    start=start,
+                    source_ref=source_ref,
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationStartswith2
+
+                return ExpressionStrOperationStartswith2(
+                    str_arg=self.subnode_expression,
+                    prefix=prefix,
+                    source_ref=source_ref,
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationStartswith,
+            builtin_spec=str_startswith_spec,
+        )
+
+        return result, "new_expression", "Call to 'startswith' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrStartswith)
@@ -3757,6 +4267,9 @@ class ExpressionAttributeLookupFixedSwapcase(ExpressionAttributeLookupFixedBase)
 attribute_classes["swapcase"] = ExpressionAttributeLookupFixedSwapcase
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_swapcase_spec
+
+
 class ExpressionAttributeLookupStrSwapcase(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedSwapcase
 ):
@@ -3771,7 +4284,25 @@ class ExpressionAttributeLookupStrSwapcase(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationSwapcase is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationSwapcase(source_ref):
+            from .StrNodes import ExpressionStrOperationSwapcase
+
+            return ExpressionStrOperationSwapcase(
+                str_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationSwapcase,
+            builtin_spec=str_swapcase_spec,
+        )
+
+        return result, "new_expression", "Call to 'swapcase' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrSwapcase)
@@ -3815,6 +4346,9 @@ class ExpressionAttributeLookupFixedTitle(ExpressionAttributeLookupFixedBase):
 attribute_classes["title"] = ExpressionAttributeLookupFixedTitle
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_title_spec
+
+
 class ExpressionAttributeLookupStrTitle(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedTitle
 ):
@@ -3829,7 +4363,25 @@ class ExpressionAttributeLookupStrTitle(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationTitle is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationTitle(source_ref):
+            from .StrNodes import ExpressionStrOperationTitle
+
+            return ExpressionStrOperationTitle(
+                str_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationTitle,
+            builtin_spec=str_title_spec,
+        )
+
+        return result, "new_expression", "Call to 'title' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrTitle)
@@ -4024,6 +4576,9 @@ class ExpressionAttributeLookupFixedUpper(ExpressionAttributeLookupFixedBase):
 attribute_classes["upper"] = ExpressionAttributeLookupFixedUpper
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_upper_spec
+
+
 class ExpressionAttributeLookupStrUpper(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedUpper
 ):
@@ -4038,7 +4593,25 @@ class ExpressionAttributeLookupStrUpper(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationUpper is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationUpper(source_ref):
+            from .StrNodes import ExpressionStrOperationUpper
+
+            return ExpressionStrOperationUpper(
+                str_arg=self.subnode_expression, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationUpper,
+            builtin_spec=str_upper_spec,
+        )
+
+        return result, "new_expression", "Call to 'upper' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrUpper)

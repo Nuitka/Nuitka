@@ -35,6 +35,7 @@ from nuitka.Bytecodes import compileSourceToBytecode
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing import ImportCache
+from nuitka.importing.Importing import locateModule
 from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
     isStandardLibraryPath,
@@ -53,7 +54,6 @@ from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
     copyFileWithPermissions,
-    copyTree,
     getDirectoryRealPath,
     getFileContentByLine,
     getFileContents,
@@ -82,7 +82,11 @@ from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
 
 from .DependsExe import detectDLLsWithDependencyWalker
-from .IncludedDataFiles import IncludedDataFile, makeIncludedDataFile
+from .IncludedDataFiles import (
+    IncludedDataDirectory,
+    IncludedDataFile,
+    makeIncludedDataFile,
+)
 
 
 def loadCodeObjectData(precompiled_filename):
@@ -266,6 +270,10 @@ print("\\n".join(sorted(
 
     # Don't let errors here go unnoticed.
     if exit_code != 0:
+        # An error by the user pressing CTRL-C should not lead to the below output.
+        if b"KeyboardInterrupt" in stderr:
+            general.sysexit("Pressed CTRL-C while detecting early imports.")
+
         general.warning("There is a problem with detecting imports, CPython said:")
         for line in stderr.split(b"\n"):
             printError(line)
@@ -890,9 +898,9 @@ def getPackageSpecificDLLDirectories(package_name):
     scan_dirs = OrderedSet()
 
     if package_name is not None:
-        from nuitka.importing.Importing import findModule
-
-        package_dir = findModule(None, package_name, None, 0, False)[1]
+        package_dir = locateModule(
+            module_name=package_name, parent_package=None, level=0
+        )[1]
 
         if os.path.isdir(package_dir):
             scan_dirs.add(package_dir)
@@ -916,13 +924,7 @@ def getScanDirectories(package_name, original_dir):
     scan_dirs = [sys.prefix]
 
     if package_name is not None:
-        from nuitka.importing.Importing import findModule
-
-        package_dir = findModule(None, package_name, None, 0, False)[1]
-
-        if os.path.isdir(package_dir):
-            scan_dirs.append(package_dir)
-            scan_dirs.extend(getSubDirectories(package_dir))
+        scan_dirs.extend(getPackageSpecificDLLDirectories(package_name))
 
     if original_dir is not None:
         scan_dirs.append(original_dir)
@@ -1355,10 +1357,8 @@ different from
 
 def _handleDataFile(dist_dir, tracer, included_datafile):
     """Handle a data file."""
-    if not isinstance(included_datafile, IncludedDataFile):
-        tracer.sysexit(
-            "Error, cannot only include 'IncludedDataFile' objects in plugins."
-        )
+    if not isinstance(included_datafile, (IncludedDataFile, IncludedDataDirectory)):
+        tracer.sysexit("Error, cannot only include 'IncludedData*' objects in plugins.")
 
     if included_datafile.kind == "empty_dirs":
         tracer.info(
@@ -1396,10 +1396,27 @@ def _handleDataFile(dist_dir, tracer, included_datafile):
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
         makePath(os.path.dirname(dest_path))
 
-        copied = copyTree(included_datafile.source_path, dest_path)
+        copied = []
+
+        for filename in getFileList(
+            included_datafile.source_path,
+            ignore_dirs=included_datafile.ignore_dirs,
+            ignore_filenames=included_datafile.ignore_filenames,
+            ignore_suffixes=included_datafile.ignore_suffixes,
+            only_suffixes=included_datafile.only_suffixes,
+            normalize=included_datafile.normalize,
+        ):
+            filename_relative = os.path.relpath(filename, included_datafile.source_path)
+
+            filename_dest = os.path.join(dest_path, filename_relative)
+            makePath(os.path.dirname(filename_dest))
+
+            copyFileWithPermissions(source_path=filename, dest_path=filename_dest)
+
+            copied.append(filename_relative)
 
         tracer.info(
-            "Included data dir %r with %d files due to %s."
+            "Included data dir %r with %d files due to: %s."
             % (
                 included_datafile.dest_path,
                 len(copied),

@@ -61,7 +61,7 @@ branch_name = checkBranchName()
 
 if (
     branch_name.startswith("release")
-    or branch_name == "master"
+    or branch_name == "main"
     or branch_name.startswith("hotfix/")
 ):
     if nuitka_version.count(".") == 2:

@@ -23,6 +23,7 @@
 #include "nuitka/freelists.h"
 
 // Needed for offsetof
+#include "structmember.h"
 #include <stddef.h>
 
 // tp_descr_get slot, bind a function to an object.
@@ -323,6 +324,17 @@ static PyObject *Nuitka_Function_get_globals(struct Nuitka_FunctionObject *funct
     return result;
 }
 
+#if PYTHON_VERSION >= 0x3a0
+static int Nuitka_Function_set_builtins(struct Nuitka_FunctionObject *function, PyObject *value) {
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "readonly attribute");
+    return -1;
+}
+
+static PyObject *Nuitka_Function_get_builtins(struct Nuitka_FunctionObject *function) {
+    return LOOKUP_SUBSCRIPT(PyModule_GetDict(function->m_module), const_str_plain___builtins__);
+}
+#endif
+
 static int Nuitka_Function_set_module(struct Nuitka_FunctionObject *object, PyObject *value) {
     if (object->m_dict == NULL) {
         object->m_dict = PyDict_New();
@@ -387,7 +399,9 @@ static PyGetSetDef Nuitka_Function_getset[] = {
 #if PYTHON_VERSION >= 0x300
     {(char *)"__kwdefaults__", (getter)Nuitka_Function_get_kwdefaults, (setter)Nuitka_Function_set_kwdefaults, NULL},
     {(char *)"__annotations__", (getter)Nuitka_Function_get_annotations, (setter)Nuitka_Function_set_annotations, NULL},
-
+#endif
+#if PYTHON_VERSION >= 0x3a0
+    {(char *)"__builtins__", (getter)Nuitka_Function_get_builtins, (setter)Nuitka_Function_set_builtins, NULL},
 #endif
     {NULL}};
 
@@ -566,6 +580,106 @@ void _initCompiledFunctionType(void) {
     assert(Nuitka_Function_Type.tp_subclasses != PyFunction_Type.tp_subclasses || PyFunction_Type.tp_cache == NULL);
     assert(Nuitka_Function_Type.tp_weaklist != PyFunction_Type.tp_weaklist);
     assert(Nuitka_Function_Type.tp_del != PyFunction_Type.tp_del || PyFunction_Type.tp_del == NULL);
+#if PYTHON_VERSION >= 0x340
+    assert(Nuitka_Function_Type.tp_finalize != PyFunction_Type.tp_finalize || PyFunction_Type.tp_finalize == NULL);
+#endif
+
+    // Make sure we don't miss out on attributes we are not having or should not have.
+#ifndef __NUITKA_NO_ASSERT__
+    for (struct PyGetSetDef *own = &Nuitka_Function_getset[0]; own->name != NULL; own++) {
+        bool found = false;
+
+        for (struct PyGetSetDef *related = PyFunction_Type.tp_getset; related->name != NULL; related++) {
+            if (strcmp(related->name, own->name) == 0) {
+                found = true;
+            }
+        }
+
+        if (found == false) {
+            if (strcmp(own->name, "__doc__") == 0) {
+                // We do that one differently right now.
+                continue;
+            }
+#if PYTHON_VERSION < 0x300
+            if (strcmp(own->name, "func_doc") == 0) {
+                // We do that one differently right now.
+                continue;
+            }
+#endif
+
+            if (strcmp(own->name, "__globals__") == 0) {
+                // We do that one differently right now.
+                continue;
+            }
+
+#if PYTHON_VERSION < 0x300
+            if (strcmp(own->name, "func_globals") == 0) {
+                // We do that one differently right now.
+                continue;
+            }
+#endif
+
+#if PYTHON_VERSION >= 0x3a0
+            if (strcmp(own->name, "__builtins__") == 0) {
+                // We do that one differently right now.
+                continue;
+            }
+#endif
+
+            if (strcmp(own->name, "__module__") == 0) {
+                // We do that one differently right now.
+                continue;
+            }
+
+            if (strcmp(own->name, "__closure__") == 0) {
+                // We have to do that differently, because we do not keep this around until
+                // needed, and we make it read-only
+                continue;
+            }
+
+#if PYTHON_VERSION < 0x300
+            if (strcmp(own->name, "func_closure") == 0) {
+                // We have to do that differently, because we do not keep this around until
+                // needed, and we make it read-only
+                continue;
+            }
+#endif
+
+            PRINT_FORMAT("Not found in uncompiled type: %s\n", own->name);
+            NUITKA_CANNOT_GET_HERE("Type problem");
+        }
+    }
+
+    for (struct PyGetSetDef *related = PyFunction_Type.tp_getset; related->name != NULL; related++) {
+        bool found = false;
+
+        for (struct PyGetSetDef *own = &Nuitka_Function_getset[0]; own->name != NULL; own++) {
+            if (strcmp(related->name, own->name) == 0) {
+                found = true;
+            }
+        }
+
+        if (found == false) {
+            PRINT_FORMAT("Not found in compiled type: %s\n", related->name);
+            NUITKA_CANNOT_GET_HERE("Type problem");
+        }
+    }
+
+    for (struct PyMemberDef *related = PyFunction_Type.tp_members; related->name != NULL; related++) {
+        bool found = false;
+
+        for (struct PyGetSetDef *own = &Nuitka_Function_getset[0]; own->name != NULL; own++) {
+            if (strcmp(related->name, own->name) == 0) {
+                found = true;
+            }
+        }
+
+        if (found == false) {
+            PRINT_FORMAT("Not found in compiled type: %s\n", related->name);
+            NUITKA_CANNOT_GET_HERE("Type problem");
+        }
+    }
+#endif
 
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
     // TODO: Move this to a __nuitka__ module maybe

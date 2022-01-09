@@ -78,14 +78,8 @@ Also:
 
 -  Like every compiler, Nuitka cannot always decide, whether a script
    will **actually execute** an *import* statement. This knowledge must
-   be provided by you via specifying plugins.
-
-In `this
-<https://github.com/Nuitka/NUITKA-Utilities/tree/master/hinted-compilation>`_
-repository folder you find help to address the above points of caution.
-These tools provide *runtime information* of your program to the Nuitka
-compiler, such that all required plugins are activated automatically,
-and only used packages are included.
+   be provided by you, e.g. with PGO information that is going to be
+   supported.
 
 ***********************************
  List of Optional Standard Plugins

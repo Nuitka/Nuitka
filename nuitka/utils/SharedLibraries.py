@@ -20,6 +20,7 @@
 """
 
 import os
+import re
 import sys
 
 from nuitka import Options
@@ -32,7 +33,7 @@ from .Execution import (
     executeToolChecked,
     withEnvironmentVarOverriden,
 )
-from .FileOperations import withMadeWritableFileMode
+from .FileOperations import getFileList, withMadeWritableFileMode
 from .Utils import isAlpineLinux, isMacOS, isWin32Windows
 from .WindowsResources import (
     RT_MANIFEST,
@@ -480,3 +481,29 @@ def detectBinaryMinMacOS(binary_filename):
             return line.split("minos ", 1)[1]
 
     return None
+
+
+_re_anylib = re.compile(r"^.*(\.(?:dll|so(?:\..*)|dylib))$", re.IGNORECASE)
+
+
+def locateDLLsInDirectory(directory):
+    """Locate all DLLs in a folder
+
+    Returns:
+        list of (filename, filename_relative, dll_extension)
+    """
+
+    # This needs to be done a bit more manually, because DLLs on Linux can have no
+    # defined suffix, cannot use e.g. only_suffixes for this.
+    result = []
+
+    for filename in getFileList(path=directory):
+        filename_relative = os.path.relpath(filename, start=directory)
+
+        # TODO: Might want to be OS specific on what to match.
+        match = _re_anylib.match(filename_relative)
+
+        if match:
+            result.append((filename, filename_relative, match.group(1)))
+
+    return result

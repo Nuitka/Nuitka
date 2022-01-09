@@ -17,12 +17,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import matplotlib
+""" Test using matplotlib, should actually do something with it. """
+
+import matplotlib  # pylint:disable=unused-import
 
 # nuitka-skip-unless-imports: matplotlib
 
 # nuitka-project: --standalone
-# nuitka-project: --enable-plugin=numpy
 
 # Make sure, the usual bad ones are not included with anti-bloat.
 

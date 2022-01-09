@@ -26,8 +26,8 @@ make others possible.
 import inspect
 
 from nuitka import ModuleRegistry, Options, Variables
-from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.importing import ImportCache
+from nuitka.importing.Recursion import considerUsedModules
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Progress import (
     closeProgressBar,
@@ -101,8 +101,6 @@ def optimizeCompiledPythonModule(module):
             # print("Compute module")
             with withChangeIndicationsTo(signalChange):
                 scopes_were_incomplete = module.computeModule()
-        except NuitkaForbiddenImportEncounter as e:
-            optimization_logger.sysexit("Error, forbidden import '%s' encountered." % e)
         except SystemExit:
             raise
         except BaseException:
@@ -153,7 +151,7 @@ def optimizeCompiledPythonModule(module):
             % (module.getFullName(), memory_watch.asStr())
         )
 
-    Plugins.considerImplicitImports(module=module, signal_change=signalChange)
+    considerUsedModules(module=module, signal_change=signalChange)
 
     return touched
 
@@ -166,11 +164,7 @@ def optimizeUncompiledPythonModule(module):
         )
     )
 
-    for used_module_name, used_module_path in module.getUsedModules():
-        used_module = ImportCache.getImportedModuleByNameAndPath(
-            used_module_name, used_module_path
-        )
-        ModuleRegistry.addUsedModule(used_module)
+    considerUsedModules(module=module, signal_change=signalChange)
 
     package_name = full_name.getPackageName()
 
@@ -182,7 +176,13 @@ def optimizeUncompiledPythonModule(module):
         except KeyError:
             pass
         else:
-            ModuleRegistry.addUsedModule(used_module)
+            ModuleRegistry.addUsedModule(
+                module=used_module,
+                using_module=module,
+                usage_tag="package",
+                reason="Package of %s" % module.getFullName(),
+                source_ref=module.source_ref,
+            )
 
     Plugins.considerImplicitImports(module=module, signal_change=signalChange)
 

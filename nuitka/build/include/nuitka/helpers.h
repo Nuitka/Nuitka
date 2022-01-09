@@ -53,9 +53,9 @@
 // dictionary.
 typedef struct {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    PyObject *md_dict;
+        PyObject *md_dict;
 } PyModuleObject;
 
 // Generated code helpers, used in static helper codes:
@@ -106,6 +106,7 @@ extern void stopProfiling(void);
 #include "nuitka/helper/boolean.h"
 #include "nuitka/helper/dictionaries.h"
 #include "nuitka/helper/mappings.h"
+#include "nuitka/helper/operations_builtin_types.h"
 #include "nuitka/helper/sets.h"
 #include "nuitka/helper/strings.h"
 
@@ -476,5 +477,7 @@ NUITKA_MAY_BE_UNUSED static void forceGC() {
 extern PyObject *Py_SysVersionInfo;
 
 #include "nuitka/python_pgo.h"
+
+extern PyObject *MAKE_UNION_TYPE(PyObject *args);
 
 #endif

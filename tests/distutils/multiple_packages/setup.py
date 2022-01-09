@@ -19,18 +19,24 @@
 #
 from setuptools import setup
 
-#This is a list of files to install, and where
-#(relative to the 'root' dir, where setup.py is)
-#You could be more specific.
+# This is a list of files to install, and where
+# (relative to the 'root' dir, where setup.py is)
+# You could be more specific.
 setup(
-    name = "multiple_packages_example",
-    version = "101",
-    packages = ['some_package','some_package_a','some_package_b','other_package','other_package_a'],
-    py_modules = ["main_module"],
-    scripts = ["runner"],
-    description = "hello",
-    author = "Tommy",
-    author_email = "email@someplace.com",
-    url = "whatever",
-    long_description = """Really long text here.""",
+    name="multiple_packages_example",
+    version="101",
+    packages=[
+        "some_package",
+        "some_package_a",
+        "some_package_b",
+        "other_package",
+        "other_package_a",
+    ],
+    py_modules=["main_module"],
+    scripts=["runner"],
+    description="hello",
+    author="Nobody really",
+    author_email="email@someplace.com",
+    url="whatever",
+    long_description="""Really long text here.""",
 )

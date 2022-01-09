@@ -106,7 +106,7 @@ class NodeCheckMetaClass(ABCMeta):
             NodeCheckMetaClass.kinds[kind] = cls
             NodeCheckMetaClass.kinds[name] = cls
 
-            kind_to_name_part = "".join([x.title() for x in kind.split("_")])
+            kind_to_name_part = "".join([x.capitalize() for x in kind.split("_")])
             assert name.endswith(kind_to_name_part), (name, kind_to_name_part)
 
             # Automatically add checker methods for everything to the common

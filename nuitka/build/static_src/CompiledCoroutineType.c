@@ -49,6 +49,8 @@ static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine
                                         PyObject *exception_type, PyObject *exception_value,
                                         PyTracebackObject *exception_tb);
 
+static long Nuitka_Coroutine_tp_hash(struct Nuitka_CoroutineObject *coroutine) { return coroutine->m_counter; }
+
 static PyObject *Nuitka_Coroutine_get_name(struct Nuitka_CoroutineObject *coroutine) {
     CHECK_OBJECT(coroutine);
 
@@ -486,7 +488,7 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
 #if _DEBUG_COROUTINE
             PRINT_COROUTINE_STATUS("finishing from yield", coroutine);
             PRINT_COROUTINE_STRING("closing", closing ? "(closing) " : "(not closing) ");
-            PRINT_STRING("-> finishing sets status_Finished\n");
+            PRINT_STRING("-> finishing coroutine sets status_Finished\n");
             PRINT_COROUTINE_VALUE("return_value", coroutine->m_returned);
             PRINT_CURRENT_EXCEPTION();
             PRINT_NEW_LINE();
@@ -997,13 +999,14 @@ static PyObject *Nuitka_Coroutine_tp_repr(struct Nuitka_CoroutineObject *corouti
 static long Nuitka_Coroutine_tp_traverse(struct Nuitka_CoroutineObject *coroutine, visitproc visit, void *arg) {
     CHECK_OBJECT(coroutine);
 
-    // TODO: Identify the impact of not visiting owned objects like module and
-    // frame.
+    // TODO: Identify the impact of not visiting owned objects like module
     Py_VISIT(coroutine->m_yieldfrom);
 
     for (Py_ssize_t i = 0; i < coroutine->m_closure_given; i++) {
         Py_VISIT(coroutine->m_closure[i]);
     }
+
+    Py_VISIT(coroutine->m_frame);
 
     return 0;
 }
@@ -1042,9 +1045,20 @@ static PyObject *Nuitka_Coroutine_await(struct Nuitka_CoroutineObject *coroutine
 }
 
 #if PYTHON_VERSION >= 0x3a0
-static PySendResult _Nuitka_Coroutine_amsend(struct Nuitka_CoroutineObject *asyncgen, PyObject *arg,
+static PySendResult _Nuitka_Coroutine_amsend(struct Nuitka_CoroutineObject *coroutine, PyObject *arg,
                                              PyObject **result) {
-    return _Nuitka_Coroutine_sendR(asyncgen, arg, false, NULL, NULL, NULL, result);
+#if _DEBUG_COROUTINE
+    PRINT_COROUTINE_STATUS("Enter", coroutine);
+#endif
+
+    PySendResult res = _Nuitka_Coroutine_sendR(coroutine, arg, false, NULL, NULL, NULL, result);
+
+#if _DEBUG_COROUTINE
+    PRINT_COROUTINE_STATUS("Leave", coroutine);
+    PRINT_COROUTINE_VALUE("result", *result);
+    PRINT_NEW_LINE();
+#endif
+    return res;
 }
 #endif
 
@@ -1161,7 +1175,7 @@ static PyAsyncMethods Nuitka_Coroutine_as_async = {
     0                                  /* am_anext */
 #if PYTHON_VERSION >= 0x3a0
     ,
-    (sendfunc)_Nuitka_Coroutine_amsend /* am_anext */
+    (sendfunc)_Nuitka_Coroutine_amsend /* am_send */
 #endif
 
 };
@@ -1179,7 +1193,7 @@ PyTypeObject Nuitka_Coroutine_Type = {
     0,                                                                  /* tp_as_number */
     0,                                                                  /* tp_as_sequence */
     0,                                                                  /* tp_as_mapping */
-    0,                                                                  /* tp_hash */
+    (hashfunc)Nuitka_Coroutine_tp_hash,                                 /* tp_hash */
     0,                                                                  /* tp_call */
     0,                                                                  /* tp_str */
     PyObject_GenericGetAttr,                                            /* tp_getattro */
@@ -1434,6 +1448,9 @@ PyObject *Nuitka_Coroutine_New(coroutine_code code, PyObject *module, PyObject *
     result->m_exc_state.exc_traceback = NULL;
 #endif
 
+    static long Nuitka_Coroutine_counter = 0;
+    result->m_counter = Nuitka_Coroutine_counter++;
+
     Nuitka_GC_Track(result);
     return (PyObject *)result;
 }
@@ -1570,9 +1587,9 @@ PyObject *ASYNC_AWAIT(PyObject *awaitable, int await_kind) {
 /* Our "aiter" wrapper clone */
 struct Nuitka_AIterWrapper {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    PyObject *aw_aiter;
+        PyObject *aw_aiter;
 };
 
 static PyObject *Nuitka_AIterWrapper_tp_repr(struct Nuitka_AIterWrapper *aw) {
@@ -1816,6 +1833,39 @@ PyObject *ASYNC_ITERATOR_NEXT(PyObject *value) {
 
 static void _initCompiledCoroutineTypes(void) {
     PyType_Ready(&Nuitka_Coroutine_Type);
+
+    // Be a paranoid subtype of uncompiled function, we want nothing shared.
+    assert(Nuitka_Coroutine_Type.tp_doc != PyCoro_Type.tp_doc || PyCoro_Type.tp_doc == NULL);
+    assert(Nuitka_Coroutine_Type.tp_traverse != PyCoro_Type.tp_traverse);
+    assert(Nuitka_Coroutine_Type.tp_clear != PyCoro_Type.tp_clear || PyCoro_Type.tp_clear == NULL);
+    assert(Nuitka_Coroutine_Type.tp_richcompare != PyCoro_Type.tp_richcompare || PyCoro_Type.tp_richcompare == NULL);
+    assert(Nuitka_Coroutine_Type.tp_weaklistoffset != PyCoro_Type.tp_weaklistoffset);
+    assert(Nuitka_Coroutine_Type.tp_iter != PyCoro_Type.tp_iter || PyCoro_Type.tp_iter == NULL);
+    assert(Nuitka_Coroutine_Type.tp_iternext != PyCoro_Type.tp_iternext || PyCoro_Type.tp_iternext == NULL);
+    assert(Nuitka_Coroutine_Type.tp_methods != PyCoro_Type.tp_methods);
+    assert(Nuitka_Coroutine_Type.tp_members != PyCoro_Type.tp_members);
+    assert(Nuitka_Coroutine_Type.tp_getset != PyCoro_Type.tp_getset);
+#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
+    assert(Nuitka_Coroutine_Type.tp_base != PyCoro_Type.tp_base);
+#endif
+    assert(Nuitka_Coroutine_Type.tp_dict != PyCoro_Type.tp_dict);
+    assert(Nuitka_Coroutine_Type.tp_descr_get != PyCoro_Type.tp_descr_get || PyCoro_Type.tp_descr_get == NULL);
+
+    assert(Nuitka_Coroutine_Type.tp_descr_set != PyCoro_Type.tp_descr_set || PyCoro_Type.tp_descr_set == NULL);
+    assert(Nuitka_Coroutine_Type.tp_dictoffset != PyCoro_Type.tp_dictoffset || PyCoro_Type.tp_dictoffset == 0);
+    // TODO: These get changed and into the same thing, not sure what to compare against, project something
+    // assert(Nuitka_Generator_Type.tp_init != PyCoro_Type.tp_init || PyCoro_Type.tp_init == NULL);
+    // assert(Nuitka_Generator_Type.tp_alloc != PyCoro_Type.tp_alloc || PyCoro_Type.tp_alloc == NULL);
+    // assert(Nuitka_Generator_Type.tp_new != PyCoro_Type.tp_new || PyCoro_Type.tp_new == NULL);
+    // assert(Nuitka_Generator_Type.tp_free != PyCoro_Type.tp_free || PyCoro_Type.tp_free == NULL);
+    assert(Nuitka_Coroutine_Type.tp_bases != PyCoro_Type.tp_bases);
+    assert(Nuitka_Coroutine_Type.tp_mro != PyCoro_Type.tp_mro);
+    assert(Nuitka_Coroutine_Type.tp_cache != PyCoro_Type.tp_cache || PyCoro_Type.tp_cache == NULL);
+    assert(Nuitka_Coroutine_Type.tp_subclasses != PyCoro_Type.tp_subclasses || PyCoro_Type.tp_cache == NULL);
+    assert(Nuitka_Coroutine_Type.tp_weaklist != PyCoro_Type.tp_weaklist);
+    assert(Nuitka_Coroutine_Type.tp_del != PyCoro_Type.tp_del || PyCoro_Type.tp_del == NULL);
+    assert(Nuitka_Coroutine_Type.tp_finalize != PyCoro_Type.tp_finalize || PyCoro_Type.tp_finalize == NULL);
+
     PyType_Ready(&Nuitka_CoroutineWrapper_Type);
 
 #if PYTHON_VERSION >= 0x352

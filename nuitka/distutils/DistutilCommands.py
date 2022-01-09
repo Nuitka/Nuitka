@@ -26,8 +26,16 @@ import sys
 
 import wheel.bdist_wheel  # pylint: disable=I0021,import-error,no-name-in-module
 
+from nuitka.__past__ import Iterable, unicode
+from nuitka.containers.oset import OrderedSet
+from nuitka.importing.Importing import (
+    decideModuleSourceRef,
+    locateModule,
+    setMainScriptDirectory,
+)
 from nuitka.Tracing import wheel_logger
 from nuitka.utils.Execution import check_call
+from nuitka.utils.ModuleNames import ModuleName
 
 
 def setupNuitkaDistutilsCommands(dist, keyword, value):
@@ -44,46 +52,38 @@ def setupNuitkaDistutilsCommands(dist, keyword, value):
     dist.cmdclass["bdist_wheel"] = bdist_nuitka
 
 
-class PyPackage(object):
-    """
-    Called by _find_to_build, represents a py_package to be built by _build
-    """
-
-    def __init__(self, module_name, related_packages=()):
-        self.module_name = module_name  # string
-        self.related_packages = related_packages  # tuple/list
-
-    def __str__(self):
-        return self.__class__.__name__ + "(module_name=%s, related_packages=%s)" % (
-            self.module_name,
-            self.related_packages,
-        )
-
-
-class PyModule(object):
-    """
-    Called by _find_to_build, represents a py_module to be built by _build
-    """
-
-    def __init__(self, module_name, related_modules=()):
-        self.module_name = module_name  # string
-        self.related_modules = related_modules  # tuple/list
-
-    def __str__(self):
-        return self.__class__.__name__ + "(module_name=%s, related_modules=%s)" % (
-            self.module_name,
-            self.related_modules,
-        )
-
-
 # Class name enforced by distutils, must match the command name.
 # Required by distutils, used as command name, pylint: disable=invalid-name
 class build(distutils.command.build.build):
 
     # pylint: disable=attribute-defined-outside-init
     def run(self):
-        self.compile_packages = self.distribution.packages or ()
-        self.py_modules = self.distribution.py_modules or ()
+        wheel_logger.info(
+            "Specified packages: %s." % self.distribution.packages, style="blue"
+        )
+        wheel_logger.info(
+            "Specified modules: %s." % self.distribution.py_modules, style="blue"
+        )
+
+        self.compile_packages = self.distribution.packages or []
+        self.py_modules = self.distribution.py_modules or []
+
+        # Determine
+        self.script_module_names = OrderedSet()
+        if self.distribution.entry_points is not None:
+            for group, script_specs in self.distribution.entry_points.items():
+                for script_spec in script_specs:
+                    try:
+                        script_module_name = (
+                            script_spec.split("=", 1)[1].strip().split(":")[0]
+                        )
+                    except Exception as e:  # Catch all the things, pylint: disable=broad-except
+                        wheel_logger.info(
+                            "Problem parsing '%s' script specification in '%s' due to %s"
+                            % (script_spec, group, e)
+                        )
+
+                    self.script_module_names.add(ModuleName(script_module_name))
 
         if not self.compile_packages and not self.py_modules:
             wheel_logger.sysexit(
@@ -98,7 +98,7 @@ class build(distutils.command.build.build):
     def _find_to_build(self):
         """
         Helper for _build
-        Returns list containing PyPackage or PyModule instances.
+        Returns list containing bool (is_package) and module_names
 
         Algorithm for finding distinct packages:
         1) Take minimum package
@@ -110,34 +110,51 @@ class build(distutils.command.build.build):
 
         builds = []
 
-        py_packages = self.compile_packages[:]
-        py_modules = self.py_modules[:]
+        # Namespace packages can use / rather than dots.
+        py_packages = [
+            ModuleName(m.replace("/", ".")) for m in sorted(set(self.compile_packages))
+        ]
+        py_modules = [ModuleName(m) for m in sorted(set(self.py_modules))]
+
+        for script_module_name in self.script_module_names:
+            script_module_filename = locateModule(
+                module_name=script_module_name, parent_package=None, level=0
+            )[1]
+
+            # Decide package or module.
+            (
+                _main_added,
+                is_package,
+                _is_namespace,
+                _source_ref,
+                _source_filename,
+            ) = decideModuleSourceRef(
+                filename=script_module_filename,
+                module_name=script_module_name,
+                is_main=False,
+                is_fake=False,
+                logger=wheel_logger,
+            )
+
+            if is_package:
+                py_packages.append(script_module_name)
+            else:
+                py_modules.append(script_module_name)
+
+        # Plain modules if they are not in packages to build.
+        builds.extend(
+            (False, current_module)
+            for current_module in py_modules
+            if not current_module.hasOneOfNamespaces(py_packages)
+        )
 
         while py_packages:
             current_package = min(py_packages)
-            related = [
-                p
-                for p in py_packages
-                if p == current_package or p.startswith(current_package + ".")
+
+            py_packages = [
+                p for p in py_packages if not p.hasNamespace(current_package)
             ]
-
-            builds.append(PyPackage(current_package, related_packages=related))
-
-            for p in related:
-                py_packages.remove(p)
-
-        while py_modules:
-            current_module = min(py_modules)
-            related = [
-                m
-                for m in py_modules
-                if m == current_module or m.startswith(current_module + ".")
-            ]
-
-            builds.append(PyModule(current_module, related_modules=related))
-
-            for m in related:
-                py_modules.remove(m)
+            builds.append((True, current_package))
 
         return builds
 
@@ -146,12 +163,6 @@ class build(distutils.command.build.build):
 
         # Nuitka wants the main package by filename, probably we should stop
         # needing that.
-        from nuitka.__past__ import Iterable, unicode
-        from nuitka.importing.Importing import (
-            findModule,
-            setMainScriptDirectory,
-        )
-        from nuitka.utils.ModuleNames import ModuleName
 
         old_dir = os.getcwd()
         os.chdir(build_lib)
@@ -159,15 +170,14 @@ class build(distutils.command.build.build):
         # Search in the build directory preferably.
         setMainScriptDirectory(os.path.abspath(old_dir))
 
-        to_builds = self._find_to_build()
-        for to_build in to_builds:
-            package, main_filename, finding = findModule(
-                importing=None,
-                module_name=ModuleName(to_build.module_name),
+        for is_package, module_name in self._find_to_build():
+            module_name, main_filename, finding = locateModule(
+                module_name=module_name,
                 parent_package=None,
                 level=0,
-                warn=False,
             )
+
+            package = module_name.getPackageName()
 
             # Check expectations, e.g. do not compile built-in modules.
             assert finding == "absolute", finding
@@ -188,17 +198,11 @@ class build(distutils.command.build.build):
                 "--remove-output",
             ]
 
-            if type(to_build) is PyPackage:
-                command += (
-                    "--include-package=%s" % package_name.replace("/", ".")
-                    for package_name in to_build.related_packages
-                )
+            if is_package:
+                command.append("--include-package=%s" % module_name)
 
-            else:  # type(to_build) is PyModule
-                command += (
-                    "--include-module=%s" % module_name
-                    for module_name in to_build.related_modules
-                )
+            else:
+                command.append("--include-module=%s" % module_name)
 
             # Process any extra options from setuptools
             if "nuitka" in self.distribution.command_options:
@@ -206,6 +210,14 @@ class build(distutils.command.build.build):
                     "nuitka"
                 ].items():
                     option = "--" + option.lstrip("-")
+
+                    if (
+                        type(value) is tuple
+                        and len(value) == 2
+                        and value[0] == "setup.py"
+                    ):
+                        value = value[1]
+
                     if value is None:
                         command.append(option)
                     elif isinstance(value, bool):
@@ -223,10 +235,13 @@ class build(distutils.command.build.build):
 
             # Adding traces for clarity
             wheel_logger.info(
-                "Building: '%s' with command %r" % (to_build, command), style="blue"
+                "Building: '%s' with command %r" % (module_name.asString(), command),
+                style="blue",
             )
             check_call(command, cwd=build_lib)
-            wheel_logger.info("Finished compilation of '%s'." % to_build, style="green")
+            wheel_logger.info(
+                "Finished compilation of '%s'." % module_name.asString(), style="green"
+            )
 
             for root, _, filenames in os.walk(build_lib):
                 for filename in filenames:

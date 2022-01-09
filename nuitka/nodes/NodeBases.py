@@ -144,10 +144,9 @@ class NodeBase(NodeMetaClassBase):
         return result
 
     def getParent(self):
-        """Parent of the node. Every node except modules have to have a parent."""
+        """Parent of the node. Every node except modules has to have a parent."""
 
         if self.parent is None and not self.isCompiledPythonModule():
-            # print self.getVisitableNodesNamed()
             assert False, (self, self.source_ref)
 
         return self.parent

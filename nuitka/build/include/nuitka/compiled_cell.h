@@ -28,10 +28,10 @@ static inline bool Nuitka_Cell_Check(PyObject *object) { return Py_TYPE(object) 
 
 struct Nuitka_CellObject {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    /* Content of the cell or NULL when empty */
-    PyObject *ob_ref;
+        /* Content of the cell or NULL when empty */
+        PyObject *ob_ref;
 };
 
 // Create cell with out value, and with or without reference given.

@@ -15,7 +15,7 @@ from nuitka.Tracing import my_print
 
 def main():
     branch_name = checkBranchName()
-    assert branch_name == "master"
+    assert branch_name == "main"
 
     createReleaseDocumentation()
     assert os.system("python setup.py sdist --formats=gztar") == 0

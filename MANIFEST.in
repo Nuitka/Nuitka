@@ -40,7 +40,8 @@ include tests/programs/pkgutil_usage/package/DATA_FILE.txt
 recursive-include tests/optimizations *.py
 recursive-include tests/standalone *.py
 recursive-include tests/onefile *.py
+recursive-include tests/reflected *.py
 recursive-include tests/plugins *.py
 
-# Templates for code generation.
-recursive-include nuitka/codegen/templates *.j2
+# C templates for code generation.
+recursive-include nuitka/codegen/templates_c *.j2

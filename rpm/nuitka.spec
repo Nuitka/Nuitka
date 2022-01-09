@@ -132,25 +132,47 @@ then
 fi
 
 %check
+
+echo "Environment variables during build:"
 env
+
+echo "OS information during build:"
+if [ -f /etc/os-release ]
+then
+    cat /etc/os-release
+else
+    echo "No /etc/os-release file found"
+fi
+
+if [ -x "$(command -v lsb_release)" ]
+then
+    lsb_release -a
+else
+    echo "No lsb_release binary found"
+fi
+
 
 python2=`which python2 || true`
 
 if [ "$python2" != "" ]
 then
+    echo "Nuitka Version information"
+    $python2 -m nuitka.__main__ --version
     echo "Basic compilation test of empty module:"
     $python2 -m nuitka.__main__ --module --show-scons --run tests/basics/Empty.py
     echo "Basic compilation test of empty program:"
     $python2 -m nuitka.__main__ --show-scons --run tests/basics/Empty.py
 
-    $python2 ./tests/run-tests
+    $python2 ./tests/run-tests --skip-reflection-test
 else
+    echo "Nuitka Version information"
+    python3 -m nuitka --version
     echo "Basic compilation test of empty module:"
     python3 -m nuitka --module --show-scons --run tests/basics/Empty.py
     echo "Basic compilation test of empty program:"
     python3 -m nuitka --show-scons --run tests/basics/Empty.py
 
-    python3 ./tests/run-tests
+    python3 ./tests/run-tests --skip-reflection-test
 fi
 
 %install

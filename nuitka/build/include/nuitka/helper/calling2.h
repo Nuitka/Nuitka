@@ -15,7 +15,13 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-/* WARNING, this code is GENERATED. Modify the template CodeTemplateCallsPositional.j2 instead! */
+/* WARNING, this code is GENERATED. Modify the template CodeTemplateCallsPositional.c.j2 instead! */
+
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 extern PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called);
 extern PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg);
 extern PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args);
@@ -88,6 +94,10 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS10_KWSPLIT(PyObject *called, PyObject *c
                                                    PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_POSARGS10_KWSPLIT(PyObject *called, PyObject *pos_args, PyObject *const *kw_values,
                                                       PyObject *kw_names);
+extern PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyObject *called, PyObject *arg);
+extern PyObject *CALL_METHODDESCR_WITH_ARGS2(PyObject *called, PyObject *const *args);
+extern PyObject *CALL_METHODDESCR_WITH_ARGS3(PyObject *called, PyObject *const *args);
+extern PyObject *CALL_METHODDESCR_WITH_ARGS4(PyObject *called, PyObject *const *args);
 extern PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attr_name);
 extern PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyObject *arg);
 extern PyObject *CALL_METHOD_WITH_ARGS2(PyObject *source, PyObject *attr_name, PyObject *const *args);

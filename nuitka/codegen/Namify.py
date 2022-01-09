@@ -30,7 +30,7 @@ import re
 import sys
 from types import BuiltinFunctionType
 
-from nuitka.__past__ import GenericAlias, long, unicode, xrange
+from nuitka.__past__ import GenericAlias, UnionType, long, unicode, xrange
 from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
 from nuitka.Tracing import general
 
@@ -181,6 +181,8 @@ def namifyConstant(constant):
             namifyConstant(constant.__origin__),
             namifyConstant(constant.__args__),
         )
+    elif constant_type is UnionType:
+        return "uniontype_%s" % namifyConstant(constant.__args__)
     elif constant is sys.version_info:
         return "sys_version_info"
     else:

@@ -34,10 +34,12 @@ extern void PGO_Finalize();
 
 // When a module is entered.
 extern void PGO_onModuleEntered(char const *module_name);
-// When a module is exit.
+// When a module is exited.
 extern void PGO_onModuleExit(char const *module_name, bool had_error);
 
 extern void PGO_onProbePassed(char const *module_name, char const *probe_id, uint32_t probe_arg);
+
+extern void PGO_onTechnicalModule(char const *module_name);
 
 #else
 

@@ -1,5 +1,9 @@
-# Speed up Nuitka by having this available.
-orderedset == 2.0.3 ; python_version >= '3.4' or os.name != "nt"
+# Speed up Nuitka by having this available. On Windows, installing on 2.7 is not
+# working easily, and 3.10 has issues on everything but Linux, but definitely on
+# macOS and Windows.
+orderedset == 2.0.3 ; os.name != "nt" and sys.platform != "darwin"
+orderedset == 2.0.3 ; os.name == "nt" and python_version >= '3.4' and python_version <= "3.9"
+orderedset == 2.0.3 ; sys.platform == "darwin" and python_version <= "3.9"
 
 # Make testing more reliable on Python2 with timeout features added.
 subprocess32 == 3.5.4 ; python_version == '2.7'
@@ -14,7 +18,7 @@ Pygments == 2.10.0 ; python_version >= '3.7'
 rstcheck == 3.3.1 ; python_version == '2.7' or python_version >= '3.7'
 
 # Autoformat needs
-black == 21.9b0 ; python_version >= '3.7'
+black == 21.12b0 ; python_version >= '3.7'
 toml >= 0.10.1 ; python_version >= '3.7'
 isort == 5.9.3 ; python_version >= '3.7'
 yamllint == 1.26.3 ; python_version >= '3.7'

@@ -40,6 +40,8 @@ allowed_tags = (
     "var_usage",
     # Detected module variable to be read only.
     "read_only_mvar",
+    # Trusting module variables in functions.
+    "trusted_module_variables",
     # New built-in reference detected.
     "new_builtin_ref",
     # New built-in call detected.

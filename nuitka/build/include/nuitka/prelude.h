@@ -93,6 +93,10 @@ extern _PyRuntimeState _PyRuntime;
 #include <internal/pycore_runtime.h>
 #endif
 
+#if PYTHON_VERSION >= 0x3a0
+#include <internal/pycore_unionobject.h>
+#endif
+
 // TODO: Might be useful too, allows access to Python configuration.
 // #include <internal/pycore_initconfig.h>
 
@@ -359,6 +363,8 @@ extern PyObject **global_constants;
 #define const_str_plain___module__ global_constants[11]
 // '__class__'
 #define const_str_plain___class__ global_constants[12]
+// '__class_getitem__'
+#define const_str_plain___class_getitem__ global_constants[12]
 // '__name__'
 #define const_str_plain___name__ global_constants[13]
 // '__main__'
@@ -525,6 +531,13 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #else
 #define DECODE(x) assert(x)
 #define UNTRANSLATE(x) (x)
+#endif
+
+#if _NUITKA_EXPERIMENTAL_INIT_PROGRAM
+#include "nuitka_init_program.h"
+#else
+#define NUITKA_INIT_PROGRAM_EARLY(argc, argv)
+#define NUITKA_INIT_PROGRAM_LATE(module_name)
 #endif
 
 #endif

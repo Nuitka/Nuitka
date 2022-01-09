@@ -61,7 +61,7 @@ def checkBranchName():
     nuitka_version = getNuitkaVersion()
 
     assert branch_name in (
-        "master",
+        "main",
         "develop",
         "factory",
         "release/" + nuitka_version,
@@ -76,7 +76,7 @@ def getBranchCategory(branch_name):
 
     if (
         branch_name.startswith("release")
-        or branch_name == "master"
+        or branch_name == "main"
         or branch_name.startswith("hotfix/")
     ):
         category = "stable"

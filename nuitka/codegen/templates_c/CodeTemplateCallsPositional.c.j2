@@ -15,11 +15,12 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
+{% from 'HelperObjectTools.c.j2' import CHECK_OBJECTS %}
 {% if args_count == 0 %}
 PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
 {% elif args_count == 1 and not has_tuple_arg %}
 PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
-    PyObject **args = &arg; // For easier code compatibility.
+    PyObject *const *args = &arg; // For easier code compatibility.
 {% else %}
 {% if has_tuple_arg %}
 PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}(PyObject *called, PyObject *pos_args) {
@@ -31,9 +32,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 {% endif %}
 {% endif %}
     CHECK_OBJECT(called);
-{% if args_count != 0 %}
-    CHECK_OBJECTS(args, {{args_count}});
-{% endif %}
+    {{ CHECK_OBJECTS(args, args_count) }}
 
     if (Nuitka_Function_Check(called)) {
         if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -44,7 +43,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
         PyObject *result;
 
         if (function->m_args_simple && {{args_count}} == function->m_args_positional_count){
-{% if args_count != 0 %}
+{% if args_count == 1 %}
+            Py_INCREF(args[0]);
+{% elif args_count > 1 %}
             for (Py_ssize_t i = 0; i < {{args_count}}; i++) {
                 Py_INCREF(args[i]);
             }
@@ -122,7 +123,10 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
                 python_pars[0] = method->m_object;
                 Py_INCREF(method->m_object);
 
-{% if args_count != 0 %}
+{% if args_count == 1 %}
+                python_pars[1] = args[0];
+                Py_INCREF(args[0]);
+{% elif args_count > 1 %}
                 for (Py_ssize_t i = 0; i < {{args_count}}; i++) {
                     python_pars[i + 1] = args[i];
                     Py_INCREF(args[i]);

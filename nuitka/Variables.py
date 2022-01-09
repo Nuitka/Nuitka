@@ -187,6 +187,10 @@ class Variable(getMetaClassBase("Variable")):
     def removeTrace(self, variable_trace):
         self.traces.remove(variable_trace)
 
+    def getTraces(self):
+        """For debugging only"""
+        return self.traces
+
     def updateUsageState(self):
         writers = set()
         users = set()

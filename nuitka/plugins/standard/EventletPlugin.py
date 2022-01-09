@@ -35,9 +35,7 @@ class NuitkaPluginEventlet(NuitkaPluginBase):
         full_name = module.getFullName()
 
         if full_name == "eventlet":
-            for dns_module_name in self.locateModules(module, "dns"):
-                yield dns_module_name
-
+            yield self.locateModules("dns")
             yield "eventlet.hubs"
 
         elif full_name == "eventlet.hubs":
@@ -49,6 +47,6 @@ class NuitkaPluginEventlet(NuitkaPluginBase):
             yield "eventlet.hubs.selects"
             yield "eventlet.hubs.timer"
 
-    def decideCompilation(self, module_name, source_ref):
+    def decideCompilation(self, module_name):
         if module_name.hasNamespace("dns"):
             return "bytecode"

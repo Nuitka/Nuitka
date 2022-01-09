@@ -45,6 +45,7 @@ from nuitka.utils.Utils import (
     getArchitecture,
     getLinuxDistribution,
     getOS,
+    getWindowsRelease,
     isLinux,
     isPosixWindows,
 )
@@ -96,6 +97,9 @@ def _getVersionInformationValues():
 
     if isLinux():
         yield "Distribution: %s %s" % getLinuxDistribution()
+
+    if getOS() == "Windows":
+        yield "WindowsRelease: %s" % getWindowsRelease()
 
 
 parser = OptionParser(
@@ -188,7 +192,7 @@ enforces a specific mode. These are options that also exist to standard
 Python executable. Currently supported: "-S" (alias "no_site"),
 "static_hashes" (do not use hash randomization), "no_warnings" (do not
 give Python runtime warnings), "-O" (alias "no_asserts"), "no_docstrings"
-(do not use docstrings). Default empty.""",
+(do not use docstrings), and "-m".  Default empty.""",
 )
 
 parser.add_option(
@@ -228,7 +232,8 @@ parser.add_option(
     default=False,
     help="""\
 Allow Nuitka to download external code if necessary, e.g. dependency
-walker, ccache, and even gcc on Windows.""",
+walker, ccache, and even gcc on Windows. To disable, redirect input
+from nul device, e.g. "</dev/null" or "<NUL:". Default is to prompt.""",
 )
 
 
@@ -609,12 +614,13 @@ Enable vmprof based profiling of time spent. Not working currently. Defaults to 
 )
 
 debug_group.add_option(
-    "--graph",
+    "--internal-graph",
     action="store_true",
     dest="graph",
     default=False,
     help="""\
-Create graph of optimization process. Defaults to off.""",
+Create graph of optimization process internals, do not use for whole programs, but only
+for small test cases. Defaults to off.""",
 )
 
 debug_group.add_option(
@@ -935,6 +941,15 @@ tracing_group.add_option(
     default=None,
     help="""\
 Where to output --show-modules, should be a filename. Default is standard output.""",
+)
+
+tracing_group.add_option(
+    "--report",
+    action="store",
+    dest="compilation_report_filename",
+    default=None,
+    help="""\
+Report module inclusion in an XML output file. Default is off.""",
 )
 
 tracing_group.add_option(
@@ -1346,13 +1361,16 @@ def _expandProjectArg(arg, filename_arg, for_eval):
         "MAIN_DIRECTORY": wrap(os.path.dirname(filename_arg) or "."),
     }
 
-    if getOS() != "Linux":
-        dist_info = "N/A", "0"
-    else:
+    if isLinux():
         dist_info = getLinuxDistribution()
+    else:
+        dist_info = "N/A", "0"
 
     values["Linux_Distribution_Name"] = dist_info[0]
     values["Linux_Distribution_Version"] = dist_info[1]
+
+    if getOS() == "Windows":
+        values["WindowsRelease"] = getWindowsRelease()
 
     arg = arg.format(**values)
 
@@ -1361,9 +1379,6 @@ def _expandProjectArg(arg, filename_arg, for_eval):
 
 def _getProjectOptions(logger, filename_arg, module_mode):
     # Complex stuff, pylint: disable=too-many-branches,too-many-locals
-    # Do it only once.
-    if os.environ.get("NUITKA_REEXECUTION", "0") == "1":
-        return
 
     if os.path.isdir(filename_arg):
         if module_mode:

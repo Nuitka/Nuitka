@@ -211,8 +211,7 @@ static PyObject *Nuitka_CapsuleNew(void *pointer) {
 
 #if PYTHON_VERSION >= 0x300
 typedef struct {
-    PyObject_HEAD;
-    void *pointer;
+    PyObject_HEAD void *pointer;
     const char *name;
     void *context;
     PyCapsule_Destructor destructor;
@@ -239,6 +238,20 @@ static void _initDeepCopy() {
 #if PYTHON_VERSION >= 0x390
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&Py_GenericAliasType,
                    Nuitka_CapsuleNew((void *)DEEP_COPY_GENERICALIAS));
+#endif
+
+#if PYTHON_VERSION >= 0x3a0
+    {
+        PyObject *args[2] = {(PyObject *)&PyFloat_Type, (PyObject *)&PyTuple_Type};
+        PyObject *args_tuple = MAKE_TUPLE(args, 2);
+        PyObject *union_value = MAKE_UNION_TYPE(args_tuple);
+
+        PyDict_SetItem(_deep_copy_dispatch, (PyObject *)Py_TYPE(union_value), _deep_noop);
+
+        Py_DECREF(union_value);
+        Py_DECREF(args_tuple);
+    }
+
 #endif
 
 #if PYTHON_VERSION < 0x300

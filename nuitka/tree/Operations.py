@@ -22,6 +22,9 @@ You can visit a scope, a tree (module), or every scope of a tree (module).
 
 """
 
+from nuitka.containers.oset import OrderedSet
+from nuitka.Tracing import general
+
 
 def visitTree(tree, visitor):
     visitor.onEnterNode(tree)
@@ -51,3 +54,49 @@ class VisitorNoopMixin(object):
 
     def onLeaveNode(self, node):
         """Overloaded for operation after the node children were done."""
+
+
+class DetectUsedModules(VisitorNoopMixin):
+    def __init__(self):
+        self.used_modules = OrderedSet()
+
+    def onEnterNode(self, node):
+        try:
+            self._onEnterNode(node)
+        except Exception:
+            general.my_print(
+                "Problem with %r at %s"
+                % (node, node.getSourceReference().getAsString())
+            )
+            raise
+
+    def _onEnterNode(self, node):
+        if node.isExpressionBuiltinImport():
+
+            for (
+                used_module_name,
+                used_module_filename,
+                finding,
+                level,
+            ) in node.getUsedModules():
+                self.used_modules.add(
+                    (
+                        used_module_name,
+                        used_module_filename,
+                        finding,
+                        level,
+                        node.source_ref,
+                    )
+                )
+        elif (
+            node.isExpressionImportModuleHard()
+            or node.isExpressionImportModuleNameHard()
+            or node.isExpressionImportModuleFixed()
+        ):
+            used_module_name, used_module_filename, finding = node.getUsedModule()
+            self.used_modules.add(
+                (used_module_name, used_module_filename, finding, 0, node.source_ref)
+            )
+
+    def getUsedModules(self):
+        return self.used_modules

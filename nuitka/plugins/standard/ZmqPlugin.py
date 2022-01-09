@@ -24,7 +24,6 @@ import re
 import shutil
 
 from nuitka import Options
-from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import getFileList
 from nuitka.utils.Importing import getSharedLibrarySuffix
@@ -80,6 +79,8 @@ class NuitkaPluginZmq(NuitkaPluginBase):
 
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "zmq" and Options.isStandaloneMode():
+            # TODO: Make the anti-bloat engine to this.
+
             if "_delvewheel_init_patch" in source_code:
                 match = re.search(
                     r"(def _delvewheel_init_patch_(.*?)\(\):\n.*?_delvewheel_init_patch_\2\(\))",
@@ -100,7 +101,7 @@ class NuitkaPluginZmq(NuitkaPluginBase):
 
                 # Fake the __file__ to the proper value.
                 exec_globals = {
-                    "__file__": self.locateModule(None, module_name) + "\\__init__.py",
+                    "__file__": self.locateModule(module_name) + "\\__init__.py",
                     "add_dll_directory": self._add_dll_directory,
                 }
 
@@ -110,7 +111,7 @@ class NuitkaPluginZmq(NuitkaPluginBase):
     def getExtraDlls(self, module):
         if module.getFullName() == "zmq" and self.dll_directory is not None:
             for dll_filename in getFileList(self.dll_directory):
-                yield makeDllEntryPoint(
+                yield self.makeDllEntryPoint(
                     source_path=dll_filename,
                     dest_path=os.path.join(
                         "pyzmq.libs", os.path.basename(dll_filename)

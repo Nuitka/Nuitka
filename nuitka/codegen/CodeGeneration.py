@@ -30,6 +30,7 @@ from nuitka.nodes.AttributeNodesGenerated import (
     attribute_classes,
     attribute_typed_classes,
 )
+from nuitka.nodes.StrNodes import getStrOperationClasses
 from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.CStrings import encodePythonStringToC
 
@@ -441,7 +442,7 @@ def generateFunctionBodyCode(function_body, context):
     return function_code, function_decl
 
 
-def generateModuleCode(module, data_filename):
+def _generateModuleCode(module, data_filename):
     # As this not only creates all modules, but also functions, it deals
     # also with its functions.
 
@@ -502,6 +503,13 @@ def generateModuleCode(module, data_filename):
         ),
         context=context,
     )
+
+
+def generateModuleCode(module, data_filename):
+    try:
+        return _generateModuleCode(module=module, data_filename=data_filename)
+    except KeyboardInterrupt:
+        raise KeyboardInterrupt("Interrupted while working on", module)
 
 
 def generateHelpersCode():
@@ -638,6 +646,7 @@ addExpressionDispatchDict(
         "EXPRESSION_CONSTANT_TYPE_SUBSCRIPTABLE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_BYTEARRAY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_GENERIC_ALIAS": generateConstantGenericAliasCode,
+        "EXPRESSION_CONSTANT_UNION_TYPE": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SYS_VERSION_INFO_REF": generateConstantSysVersionInfoCode,
         "EXPRESSION_CONDITIONAL": generateConditionalCode,
         "EXPRESSION_CONDITIONAL_OR": generateConditionalAndOrCode,
@@ -678,15 +687,6 @@ addExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_POP3": generateDictOperationPop3Code,
         "EXPRESSION_DICT_OPERATION_UPDATE2": generateDictOperationUpdate2Code,
         "EXPRESSION_DICT_OPERATION_UPDATE3": generateDictOperationUpdate3Code,
-        "EXPRESSION_STR_OPERATION_JOIN": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_PARTITION": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_RPARTITION": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_STRIP1": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_LSTRIP1": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_RSTRIP1": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_STRIP2": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_LSTRIP2": generateStrOperationCode,
-        "EXPRESSION_STR_OPERATION_RSTRIP2": generateStrOperationCode,
         "EXPRESSION_FUNCTION_CREATION": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
         "EXPRESSION_FUNCTION_ERROR_STR": generateFunctionErrorStrCode,
@@ -789,6 +789,11 @@ addExpressionDispatchDict(
 addExpressionDispatchDict(
     dict((cls.kind, generateAttributeLookupCode) for cls in attribute_typed_classes)
 )
+
+addExpressionDispatchDict(
+    dict((cls.kind, generateStrOperationCode) for cls in getStrOperationClasses())
+)
+
 
 setStatementDispatchDict(
     {

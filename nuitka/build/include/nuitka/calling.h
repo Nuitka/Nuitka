@@ -18,6 +18,37 @@
 #ifndef __NUITKA_CALLING_H__
 #define __NUITKA_CALLING_H__
 
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
+// Also used in generated helper code.
+NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_CheckFunctionResult(PyObject *result) {
+    if (result == NULL) {
+        if (unlikely(!ERROR_OCCURRED())) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "NULL result without error from call");
+        }
+
+        return NULL;
+    } else {
+        // Some buggy C functions do this, and Nuitka inner workings can get
+        // upset from it.
+        if (unlikely(DROP_ERROR_OCCURRED())) {
+            Py_DECREF(result);
+
+#if PYTHON_VERSION < 0x3a0
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "result with error set from call");
+#else
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "result with exception set from call");
+#endif
+            return NULL;
+        }
+
+        return result;
+    }
+}
+
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION(PyObject *function_object, PyObject *positional_args,
                                                     PyObject *named_args) {
     // Not allowed to enter with an error set. This often catches leaked errors from
@@ -44,23 +75,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION(PyObject *function_object, P
 
     Py_LeaveRecursiveCall();
 
-    if (result == NULL) {
-        if (unlikely(!ERROR_OCCURRED())) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "NULL result without error in CALL_FUNCTION");
-        }
-
-        return NULL;
-    } else {
-        // Some buggy C functions do this, and Nuitka inner workings can get
-        // upset from it.
-        if (unlikely(DROP_ERROR_OCCURRED())) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "result with error set");
-
-            return NULL;
-        }
-
-        return result;
-    }
+    return Nuitka_CheckFunctionResult(result);
 }
 
 // Function call variant with no arguments provided at all.
@@ -80,28 +95,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS(PyObject *funct
 }
 
 #include "nuitka/helper/calling2.h"
-
-// Also used in generated helper code.
-NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_CheckFunctionResult(PyObject *result) {
-    if (result == NULL) {
-        if (unlikely(!ERROR_OCCURRED())) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "NULL result without error from call");
-        }
-
-        return NULL;
-    } else {
-        // Some buggy C functions do this, and Nuitka inner workings can get
-        // upset from it.
-        if (unlikely(DROP_ERROR_OCCURRED())) {
-            Py_DECREF(result);
-
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "result with error set from call");
-            return NULL;
-        }
-
-        return result;
-    }
-}
 
 // For exception test formatting and call code mostly.
 extern char const *GET_CALLABLE_NAME(PyObject *object);

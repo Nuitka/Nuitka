@@ -27,6 +27,16 @@
 
 #include "nuitka/prelude.h"
 
+#include "HelpersBuiltinTypeMethods.c"
+
+void _initBuiltinTypeMethods() {
+#if PYTHON_VERSION < 0x300
+    _initStrBuiltinMethods();
+#endif
+    _initUnicodeBuiltinMethods();
+    _initDictBuiltinMethods();
+}
+
 #include "HelpersBuiltin.c"
 #include "HelpersClasses.c"
 #include "HelpersDictionaries.c"
@@ -1607,12 +1617,16 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
 #endif
 
 PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
+    CHECK_OBJECT(dirname);
+    CHECK_OBJECT(filename);
+
     static PyObject *sep_object = NULL;
 
     if (sep_object == NULL) {
         static char const sep[2] = {SEP, 0};
         sep_object = Nuitka_String_FromString(sep);
     }
+    CHECK_OBJECT(sep_object);
 
     // Avoid string APIs, so str, unicode doesn't matter for input.
     PyObject *result = PyNumber_Add(dirname, sep_object);
@@ -1782,7 +1796,7 @@ static PyObject *getBinaryDirectoryObject() {
 #if PYTHON_VERSION >= 0x300
 #ifdef _WIN32
     wchar_t const *bin_directory = getBinaryDirectoryWideChars();
-    binary_directory = PyUnicode_FromWideChar(bin_directory, wcslen(bin_directory));
+    binary_directory = NuitkaUnicode_FromWideChar(bin_directory, -1);
 #else
     binary_directory = PyUnicode_DecodeFSDefault(getBinaryDirectoryHostEncoded());
 #endif
@@ -1885,6 +1899,7 @@ static char const *getDllDirectory() {
 static void _initDeepCopy();
 
 void _initBuiltinModule() {
+    _initBuiltinTypeMethods();
     _initDeepCopy();
 
 #if _NUITKA_MODULE
@@ -2014,6 +2029,30 @@ void _initSlotIternext() {
     default_iternext = Py_TYPE(r)->tp_iternext;
 
     Py_DECREF(r);
+}
+#endif
+
+#if PYTHON_VERSION >= 0x3a0
+PyObject *MAKE_UNION_TYPE(PyObject *args) {
+    assert(PyTuple_CheckExact(args));
+    assert(PyTuple_GET_SIZE(args) > 1);
+
+    CHECK_OBJECT_DEEP(args);
+
+    PyObject *result = NULL;
+
+    for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(args); i++) {
+        PyObject *value = PyTuple_GET_ITEM(args, i);
+
+        if (result == NULL) {
+            assert(i == 0);
+            result = value;
+        } else {
+            result = PyNumber_InPlaceBitor(result, value);
+        }
+    }
+
+    return result;
 }
 #endif
 

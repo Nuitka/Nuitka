@@ -27,7 +27,7 @@
 extern PyObject *IMPORT_HARD___FUTURE__(void);
 /* C helper for hard import of module "_frozen_importlib" import. */
 
-#if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x350
+#if PYTHON_VERSION >= 0x300
 extern PyObject *IMPORT_HARD__FROZEN_IMPORTLIB(void);
 #endif
 /* C helper for hard import of module "_frozen_importlib_external" import. */

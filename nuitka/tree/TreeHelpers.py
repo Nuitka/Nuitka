@@ -523,7 +523,8 @@ def makeStatementsSequence(statements, allow_none, source_ref):
 
     if statements:
         return StatementsSequence(
-            statements=mergeStatements(statements), source_ref=source_ref
+            statements=mergeStatements(statements, allow_none=allow_none),
+            source_ref=source_ref,
         )
     else:
         return None

@@ -26,17 +26,20 @@ The base class will serve as documentation. And it will point to examples of
 it being used.
 """
 
+import inspect
 import os
-import pkgutil
 import shutil
 import sys
 from collections import namedtuple
 
 from nuitka.__past__ import getMetaClassBase
+from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
+from nuitka.Options import isStandaloneMode
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.FileOperations import makePath
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
 
 pre_modules = {}
 post_modules = {}
@@ -168,17 +171,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
-
-    def considerFailedImportReferrals(self, module_name):
-        """Provide a dictionary of fallback imports for modules that failed to import.
-
-        Args:
-            module_name: name of module
-        Returns:
-            dict
-        """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
-        return None
 
     def onModuleSourceCode(self, module_name, source_code):
         """Inspect or modify source code.
@@ -323,7 +315,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         """
 
     @staticmethod
-    def locateModule(importing, module_name):
+    def locateModule(module_name):
         """Provide a filename / -path for a to-be-imported module.
 
         Args:
@@ -332,42 +324,60 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         Returns:
             filename for module
         """
-        from nuitka.importing import Importing
 
-        _module_package, module_filename, _finding = Importing.findModule(
-            importing=importing,
-            module_name=ModuleName(module_name),
-            parent_package=None,
-            level=-1,
-            warn=False,
+        from nuitka.importing.Importing import locateModule
+
+        _module_name, module_filename, _finding = locateModule(
+            module_name=ModuleName(module_name), parent_package=None, level=0
         )
 
         return module_filename
 
-    def locateModules(self, importing, module_name):
+    @staticmethod
+    def locateModules(module_name):
         """Provide a filename / -path for a to-be-imported module.
 
         Args:
-            importing: module object that asked for it (tracing only)
             module_name: (str or ModuleName) full name of module
-            warn: (bool) True if required module
         Returns:
             list of ModuleName
         """
-        module_path = self.locateModule(importing, module_name)
 
-        result = []
+        from nuitka.importing.Importing import locateModules
 
-        def _scanModules(path, prefix):
-            for module_info in pkgutil.walk_packages((path,), prefix=prefix + "."):
-                result.append(ModuleName(module_info[1]))
+        return locateModules(module_name)
 
-                if module_info[2]:
-                    _scanModules(module_info[1], module_name + module_info[1])
+    @classmethod
+    def locateDLL(cls, dll_name):
+        """Locate a DLL by name."""
+        return locateDLL(dll_name)
 
-        _scanModules(module_path, module_name)
+    @classmethod
+    def locateDLLsInDirectory(cls, directory):
+        """Locate all DLLs in a folder
 
-        return result
+        Returns:
+            list of (filename, filename_relative, dll_extension)
+        """
+        return locateDLLsInDirectory(directory)
+
+    @classmethod
+    def makeDllEntryPoint(cls, source_path, dest_path, package_name):
+        """Create an entry point, as expected to be provided by getExtraDlls."""
+        return makeDllEntryPoint(
+            source_path=source_path, dest_path=dest_path, package_name=package_name
+        )
+
+    def reportFileCount(self, module_name, count, section=None):
+        if count:
+            msg = "Found %d %s DLLs from '%s' %sinstallation." % (
+                count,
+                "file" if count < 2 else "files",
+                "" if not section else section,
+                module_name.asString(),
+            )
+
+            self.info(msg)
 
     def considerExtraDlls(self, dist_dir, module):
         """Provide a tuple of names of binaries to be included.
@@ -379,9 +389,8 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             tuple
         """
         # TODO: This should no longer be here, as this API is obsolete, pylint: disable=unused-argument
-
         for included_entry_point in self.getExtraDlls(module):
-            # Copy to the dist directory, which normally should not be our task, but is for now.
+            # Copy to the dist directory, which normally should not be a plugin task, but is for now.
             makePath(os.path.dirname(included_entry_point.dest_path))
 
             shutil.copyfile(
@@ -504,7 +513,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
-    def decideCompilation(self, module_name, source_ref):
+    def decideCompilation(self, module_name):
         """Decide whether to compile a module (or just use its bytecode).
 
         Notes:
@@ -514,10 +523,9 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
 
         Args:
             module_name: name of module
-            source_ref: ???
 
         Returns:
-            "compiled" or "bytecode" or None (default)
+            "compiled" or "bytecode" or None (no opinion, use by default)
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
@@ -616,6 +624,8 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     _runtime_information_cache = {}
 
     def queryRuntimeInformationMultiple(self, info_name, setup_codes, values):
+        info_name = self.plugin_name + "_" + info_name
+
         if info_name in self._runtime_information_cache:
             return self._runtime_information_cache[info_name]
 
@@ -721,3 +731,22 @@ def replaceTriggerModule(old, new):
 
     if found is not None:
         post_modules[found] = new
+
+
+import functools
+
+
+def standalone_only(func):
+    """For plugins that have functionality that should be done in standalone mode only."""
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        if isStandaloneMode():
+            return func(*args, **kwargs)
+        else:
+            if inspect.isgeneratorfunction(func):
+                return ()
+            else:
+                return None
+
+    return wrapped

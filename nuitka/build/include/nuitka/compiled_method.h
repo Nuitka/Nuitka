@@ -31,9 +31,9 @@
 
 struct Nuitka_MethodObject {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    struct Nuitka_FunctionObject *m_function;
+        struct Nuitka_FunctionObject *m_function;
 
     PyObject *m_weakrefs;
 

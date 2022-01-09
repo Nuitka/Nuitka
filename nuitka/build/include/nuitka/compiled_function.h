@@ -35,9 +35,9 @@ typedef PyObject *(*function_impl_code)(struct Nuitka_FunctionObject const *, Py
 // instance of which there can be many for each code.
 struct Nuitka_FunctionObject {
     /* Python object folklore: */
-    PyObject_VAR_HEAD;
+    PyObject_VAR_HEAD
 
-    PyObject *m_name;
+        PyObject *m_name;
 
     PyObject *m_module;
     PyObject *m_doc;

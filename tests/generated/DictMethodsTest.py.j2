@@ -62,7 +62,7 @@ unhashable = []
 {% set operation_id = "check%s%s" % (dict_method_name.title(), (""if loop.index == 0 else loop.index)) %}
 
 def {{operation_id}}(cond, **kwargs):
-    # First value, which we expect to be compile time computed.
+    # First value type, which we expect to be compile time recognized.
 
     try:
         x = kwargs.{{dict_method_name}}({{method_args}})

@@ -24,7 +24,7 @@ able to execute them without creating the argument dictionary at all.
 """
 
 from nuitka.Constants import isMutable
-from nuitka.utils.Jinja2 import getTemplate
+from nuitka.utils.Jinja2 import getTemplateC
 
 from .CodeHelpers import (
     generateChildExpressionCode,
@@ -1046,17 +1046,17 @@ max_quick_call = 10
 
 
 def getQuickCallCode(args_count, has_tuple_arg):
-    template = getTemplate("nuitka.codegen", "CodeTemplateCallsPositional.j2")
+    template = getTemplateC("nuitka.codegen", "CodeTemplateCallsPositional.c.j2")
     return template.render(args_count=args_count, has_tuple_arg=has_tuple_arg)
 
 
 def getQuickMethodCallCode(args_count):
-    template = getTemplate("nuitka.codegen", "CodeTemplateCallsMethodPositional.j2")
+    template = getTemplateC("nuitka.codegen", "CodeTemplateCallsMethodPositional.c.j2")
     return template.render(args_count=args_count)
 
 
 def getQuickMixedCallCode(args_count, has_tuple_arg, has_dict_values):
-    template = getTemplate("nuitka.codegen", "CodeTemplateCallsMixed.j2")
+    template = getTemplateC("nuitka.codegen", "CodeTemplateCallsMixed.c.j2")
 
     return template.render(
         args_count=args_count,
@@ -1065,8 +1065,26 @@ def getQuickMixedCallCode(args_count, has_tuple_arg, has_dict_values):
     )
 
 
+def getQuickMethodDescrCallCode(args_count):
+    template = getTemplateC(
+        "nuitka.codegen", "CodeTemplateCallsPositionalMethodDescr.c.j2"
+    )
+
+    return template.render(
+        args_count=args_count,
+    )
+
+
 def getTemplateCodeDeclaredFunction(code):
-    return "extern " + code.splitlines()[0].replace(" {", ";")
+    return "extern " + code.strip().splitlines()[0].strip().replace(" {", ";").replace(
+        " {", ";"
+    ).replace("static ", "").replace("inline ", "").replace(
+        "HEDLEY_NEVER_INLINE ", ""
+    ).replace(
+        "__BINARY", "BINARY"
+    ).replace(
+        "_BINARY", "BINARY"
+    )
 
 
 def getCallsCode():

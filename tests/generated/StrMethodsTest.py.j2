@@ -1,0 +1,85 @@
+{#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Python test originally created or extracted from other peoples work. The #}
+{#     parts from me are licensed as below. It is at least Free Software where  #}
+{#     it's copied from other people. In these cases, that will normally be     #}
+{#     indicated.                                                               #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#         http://www.apache.org/licenses/LICENSE-2.0                           #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+
+
+# This test does check operations in optimizable and not optimizable forms
+# to check for proper errors, exceptions, etc.
+
+from __future__ import print_function
+
+# Function to hide type because it is not seen through
+def forgetType(value):
+    return value
+
+
+{% for str_method_name in str_method_names %}
+
+{% if str_method_name in ("capitalize", "upper", "lower", "swapcase", "title", "isalnum", "isalpha", "isdigit", "islower", "isupper", "isspace", "istitle") %}
+{% set method_arg_variants = [""] %}
+{% elif "partition" in str_method_name or "strip" in str_method_name %}
+{% set method_arg_variants = ["'a'", "1", "None"] %}
+{% elif "split" in str_method_name %}
+{% set method_arg_variants = ["", "1", "'a'", "None", "'a', 'b'", "'a', 1", "None, 1"] %}
+{% elif str_method_name == "join"  %}
+{% set method_arg_variants = ["['a', 1]", "None", "1", "['a', 'b']"] %}
+{% elif str_method_name == "replace"  %}
+{% set method_arg_variants = ["'a', 1", "'a', 'b'"] %}
+{% elif str_method_name in ("encode", "decode") %}
+{% set method_arg_variants = ["", "'a'", "'a', 'utf8'"] %}
+{% elif "find" in str_method_name or "index" in str_method_name or "with" in str_method_name %}
+{% set method_arg_variants = ["1", "'a'", "'a', 'b'", "'a', 'b', 'c'"] %}
+{% else %}
+{% set method_arg_variants = ["", "1", "'a'", "'a', 'b'", "'a', 'b', 'c'"] %}
+{% endif %}
+
+{% for method_args in method_arg_variants %}
+
+{% set left_1 = "'some_value'" %}
+{% set left_2 = "'other_value'" %}
+
+{% set operation_id = "check%s%s" % (str_method_name.title(), (""if loop.index == 0 else loop.index)) %}
+
+def {{operation_id}}(cond):
+    # First value type, which we expect to be compile time computed.
+    try:
+        # We expect this to be compile time error checked still.
+        x = "static_value".{{str_method_name}}({{method_args}})
+    except Exception as e: # pylint: disable=broad-except
+        print("str.{{str_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) compile time occurred:", repr(e))
+    else:
+        print("str.{{str_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) compile time result:", type(x), x)
+
+    # Now the branch may make things less clear for mixed types and
+    # also require the operation to be checked at run time.
+    left = {{left_1}} if cond else {{left_2}}
+
+    try:
+        # We expect this to be compile time error checked still.
+        x = left.{{str_method_name}}({{method_args}})
+    except Exception as e: # pylint: disable=broad-except
+        print("str.{{str_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) runtime occurred:", repr(e))
+    else:
+        print("str.{{str_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) runtime result:", type(x), x)
+
+{{operation_id}}(1)
+{{operation_id}}(0)
+
+{% endfor %}
+{% endfor %}

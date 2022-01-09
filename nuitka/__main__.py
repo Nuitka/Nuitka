@@ -22,11 +22,11 @@ directory and then compiles that to either an executable or an extension module
 or package, that can contain all used modules too.
 """
 
-# Import as little as possible initially, because we might be re-executing
-# soon.
+# Note: This avoids imports at all costs, such that initial startup doesn't do more
+# than necessary, until re-execution has been decided.
+
 import os
 import sys
-import warnings
 
 
 def main():
@@ -54,11 +54,6 @@ def main():
             if os.path.dirname(os.path.abspath(__file__)) != path_element
         ]
 
-    # We don't care, and these are triggered by run time calculations of "range" and
-    # others, while on python2.7 they are disabled by default.
-
-    warnings.simplefilter("ignore", DeprecationWarning)
-
     # We will run with the Python configuration as specified by the user, if it does
     # not match, we restart ourselves with matching configuration.
     needs_reexec = False
@@ -74,23 +69,23 @@ def main():
     if os.environ.get("PYTHONHASHSEED", "-1") != "0":
         needs_reexec = True
 
-    # For re-execution, we might not have done this.
-    from nuitka import Options  # isort:skip
-
     # In case we need to re-execute.
     if needs_reexec:
-        Options.parseArgs(will_reexec=True)
-
-        # TODO: If that's the only usage of Options, why do it at all, could start
-        # directly, and recognize the re-execution in the second run.
-        if not Options.isAllowedToReexecute():
-            sys.exit("Error, not allowed to re-execute, but that would be needed.")
-
         from nuitka.utils.ReExecute import reExecuteNuitka  # isort:skip
 
+        # Does not return
         reExecuteNuitka(pgo_filename=None)
 
-    Options.parseArgs(will_reexec=False)
+    # We don't care about deprecations in any version, and these are triggered
+    # by run time calculations of "range" and others, while on python2.7 they
+    # are disabled by default.
+    import warnings
+
+    warnings.simplefilter("ignore", DeprecationWarning)
+
+    from nuitka import Options  # isort:skip
+
+    Options.parseArgs()
 
     Options.commentArgs()
 

@@ -28,14 +28,13 @@ not start anew, but reuse what we already found out about it.
 import os
 
 from nuitka.plugins.Plugins import Plugins
-from nuitka.utils.FileOperations import relpath
 
 imported_modules = {}
 imported_by_name = {}
 
 
 def addImportedModule(imported_module):
-    module_filename = relpath(imported_module.getFilename())
+    module_filename = os.path.abspath(imported_module.getFilename())
 
     if os.path.basename(module_filename) == "__init__.py":
         module_filename = os.path.dirname(module_filename)
@@ -54,14 +53,6 @@ def addImportedModule(imported_module):
     assert not imported_module.isMainModule()
 
 
-def isImportedModuleByPath(module_relpath):
-    for key in imported_modules:
-        if key[0] == module_relpath:
-            return True
-
-    return False
-
-
 def isImportedModuleByName(full_name):
     return full_name in imported_by_name
 
@@ -70,29 +61,15 @@ def getImportedModuleByName(full_name):
     return imported_by_name[full_name]
 
 
-def getImportedModuleByNameAndPath(full_name, module_relpath):
-    if module_relpath is None:
+def getImportedModuleByNameAndPath(full_name, module_filename):
+    if module_filename is None:
         # pyi deps only
         return getImportedModuleByName(full_name)
 
-    if os.path.basename(module_relpath) == "__init__.py":
-        module_relpath = os.path.dirname(module_relpath)
+    if os.path.basename(module_filename) == "__init__.py":
+        module_filename = os.path.dirname(module_filename)
 
-    return imported_modules[module_relpath, full_name]
-
-
-def getImportedModuleByPath(module_relpath, module_package):
-    for key, module in imported_modules.items():
-        if key[0] == module_relpath:
-            if (
-                module.getCompileTimeFilename().endswith("__init__.py")
-                and module.getFullName().getPackageName() != module_package
-            ):
-                continue
-
-            return module
-
-    raise KeyError(module_relpath)
+    return imported_modules[module_filename, full_name]
 
 
 def replaceImportedModule(old, new):

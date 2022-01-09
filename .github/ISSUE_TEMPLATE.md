@@ -1,24 +1,26 @@
-Before submitting an Issue, please review the [Issue Guidelines](https://github.com/kayhayen/Nuitka/blob/master/CONTRIBUTING.md#submitting-an-issue).
+Before submitting an Issue, please review the [Issue Guidelines](https://github.com/kayhayen/Nuitka/blob/develop/CONTRIBUTING.md#submitting-an-issue).
 
 * Please check whether the bug was already reported or fixed.
 
 * Please check out if the develop version of Nuitka works better for you.
 
-  Download source, packages [from here](https://nuitka.net/pages/download.html)
+  Download source, packages [from here](https://nuitka.net/doc/download.html)
   where you will also find instructions how to do it via pip.
 
 If you want to post a problem/bug, to help us understand and resolve your issue
 please check that you have provided at least the information below, and discard
 up to here:
 
-* Nuitka version, full Python version and Platform (Windows, OSX, Linux ...)
+* Nuitka version, full Python version, flavor, OS, etc. as output by this
+  command (it does more than you think, and we are adding more all the time):
 
   > python -m nuitka --version
 
+
 * How did you install Nuitka and Python
 
-  Did you use pip, anaconda, deb, rpm, from source, in a virtualenv or not,
-  this is very important usually.
+  Did you use pip, anaconda, deb, rpm, from source, git clone, then install into
+  a virtualenv or not, this is very important usually.
 
 * The specific PyPI names and versions
 
@@ -52,8 +54,8 @@ up to here:
 
 * Consider getting commercial support
 
-  [Nuitka commercial](https://nuitka.net/pages/commercial.html) offers subscriptions and priority
-  support. This can help accelerate your problem solution.
+  [Nuitka commercial](https://nuitka.net/doc/commercial.html) offers subscriptions and priority
+  support. This will accelerate your problem solution and helps to sustain Nuitka development.
 
 Some things are not welcome, please consider it.
 

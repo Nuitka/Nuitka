@@ -21,8 +21,10 @@
 
 """
 
+import contextlib
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -45,6 +47,7 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
+    openTextFile,
     putTextFileContents,
     renameFile,
     withPreserveFileMode,
@@ -127,9 +130,10 @@ def _checkRequiredVersion(tool, tool_call):
     for line in version_output.splitlines():
         line = line.strip()
 
-        if line.startswith(
-            ("black, version", "python -m black, version", "__main__.py, version ")
-        ):
+        if line.startswith(("black, ", "python -m black,", "__main__.py, ")):
+            if "(" in line:
+                line = line[: line.rfind("(")].strip()
+
             actual_version = line.split()[-1]
             break
         if line.startswith("VERSION "):
@@ -380,7 +384,21 @@ def _cleanupImportSortOrder(filename):
         putTextFileContents(filename, contents=contents)
 
 
+_extra_rst_keywords = b"post", b"youtube", b"grid"
+
+
 def _cleanupRstFmt(filename):
+    updated_contents = contents = getFileContents(filename, mode="rb")
+
+    for keyword in _extra_rst_keywords:
+        updated_contents = updated_contents.replace(
+            b".. %s::" % keyword, b".. raw:: %s" % keyword
+        )
+
+    if updated_contents != contents:
+        with open(filename, "wb") as out_file:
+            out_file.write(updated_contents)
+
     rstfmt_call = _getPythonBinaryCall("rstfmt")
 
     check_call(
@@ -393,12 +411,16 @@ def _cleanupRstFmt(filename):
 
     cleanupWindowsNewlines(filename)
 
-    with open(filename, "rb") as f:
-        contents = f.read()
+    contents = getFileContents(filename, mode="rb")
 
     # Enforce choice between "bash" and "sh" for code directive. Use bash as
     # more people will know it.
     updated_contents = contents.replace(b".. code:: sh\n", b".. code:: bash\n")
+
+    for keyword in _extra_rst_keywords:
+        updated_contents = updated_contents.replace(
+            b".. raw:: %s" % keyword, b".. %s::" % keyword
+        )
 
     lines = []
     inside = False
@@ -487,12 +509,14 @@ def _shouldNotFormatCode(filename):
         return True
     elif (
         "tests" in parts
-        and not "basics" in parts
+        and "basics" not in parts
         and "programs" not in parts
         and "commercial" not in parts
+        and "distutils" not in parts
     ):
         return parts[-1] not in (
             "run_all.py",
+            "setup.py",
             "compile_itself.py",
             "update_doctest_generated.py",
             "compile_itself.py",
@@ -548,9 +572,6 @@ def autoformat(
 
     filename = os.path.normpath(filename)
     effective_filename = os.path.normpath(effective_filename)
-
-    if trace:
-        my_print("Consider", filename, end=": ")
 
     is_python = isPythonFile(filename, effective_filename)
 
@@ -637,10 +658,10 @@ def autoformat(
         if old_code != getFileContents(tmp_filename, "rb"):
 
             if check_only:
-                my_print("FAIL.", style="red")
+                my_print("%s: FAIL." % filename, style="red")
             else:
                 if trace:
-                    my_print("Updated.")
+                    my_print("Updated %s." % filename)
 
                 with withPreserveFileMode(filename):
                     if git_stage:
@@ -653,11 +674,33 @@ def autoformat(
                         renameFile(tmp_filename, filename)
 
             changed = True
-        else:
-            if trace:
-                my_print("OK.")
 
         return changed
     finally:
         if os.path.exists(tmp_filename):
             os.unlink(tmp_filename)
+
+
+@contextlib.contextmanager
+def withFileOpenedAndAutoformatted(filename):
+    my_print("Creating %r ..." % filename)
+
+    tmp_filename = filename + ".tmp"
+    with openTextFile(tmp_filename, "w") as output:
+        yield output
+
+    autoformat(
+        filename=tmp_filename, git_stage=None, effective_filename=filename, trace=False
+    )
+
+    # No idea why, but this helps.
+    if os.name == "nt":
+        autoformat(
+            filename=tmp_filename,
+            git_stage=None,
+            effective_filename=filename,
+            trace=False,
+        )
+
+    shutil.copy(tmp_filename, filename)
+    os.unlink(tmp_filename)

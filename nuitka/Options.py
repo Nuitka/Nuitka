@@ -31,12 +31,12 @@ from nuitka.OptionParsing import isPyenvPython, parseOptions
 from nuitka.PythonFlavors import (
     isAnacondaPython,
     isDebianPackagePython,
+    isMSYS2MingwPython,
     isNuitkaPython,
     isUninstalledPython,
 )
 from nuitka.PythonVersions import (
     getSupportedPythonVersions,
-    python_version,
     python_version_str,
 )
 from nuitka.utils.Execution import getExecutablePath
@@ -69,8 +69,8 @@ is_fullcompat = None
 is_report_missing = None
 
 
-def parseArgs(will_reexec):
-    """Parse the command line arguments, with the knowledge if Nuitka will re-execute itself.
+def parseArgs():
+    """Parse the command line arguments
 
     :meta private:
     """
@@ -102,15 +102,20 @@ def parseArgs(will_reexec):
     if options.quiet or int(os.environ.get("NUITKA_QUIET", "0")):
         Tracing.setQuiet()
 
-    if not will_reexec and not shallDumpBuiltTreeXML():
+    if not shallDumpBuiltTreeXML():
         Tracing.options_logger.info(
             "Used command line options: %s" % " ".join(sys.argv[1:])
         )
 
-    if options.progress_bar and not will_reexec:
+    if os.environ.get("NUITKA_REEXECUTION") and not isAllowedToReexecute():
+        Tracing.general.sysexit(
+            "Error, not allowed to re-execute, but that has happened."
+        )
+
+    if options.progress_bar:
         Progress.enableProgressBar()
 
-    if options.verbose_output and not will_reexec:
+    if options.verbose_output:
         Tracing.optimization_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
             openTextFile(options.verbose_output, "w", encoding="utf8")
@@ -120,7 +125,7 @@ def parseArgs(will_reexec):
 
     Tracing.optimization_logger.is_quiet = not options.verbose
 
-    if options.show_inclusion_output and not will_reexec:
+    if options.show_inclusion_output:
         Tracing.inclusion_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
             openTextFile(options.show_inclusion_output, "w", encoding="utf8")
@@ -387,14 +392,10 @@ standalone where there is a sane default used inside the dist folder."""
             "Error, static libpython is not found or not supported for this Python installation."
         )
 
-    if (
-        not will_reexec
-        and shallUseStaticLibPython()
-        and getSystemStaticLibPythonPath() is None
-    ):
+    if shallUseStaticLibPython() and getSystemStaticLibPythonPath() is None:
         Tracing.options_logger.sysexit(
             """Error, usable static libpython is not found for this Python installation. You \
-might be missing required '-dev' packages. Disable with --static-libpython=no" if you don't \
+might be missing required packages. Disable with --static-libpython=no" if you don't \
 want to install it."""
         )
 
@@ -422,7 +423,7 @@ def commentArgs():
     :meta private:
 
     """
-    # A ton of cases to consider, pylint: disable=too-many-branches
+    # A ton of cases to consider, pylint: disable=too-many-branches,too-many-statements
 
     # Inform the user about potential issues with the running version. e.g. unsupported
     # version.
@@ -478,6 +479,11 @@ def commentArgs():
                 "Requesting Windows specific compilers has no effect on other platforms."
             )
 
+    if isMingw64() and getMsvcVersion():
+        Tracing.options_logger.sysexit(
+            "Requesting both Windows specific compilers makes no sense."
+        )
+
     if isOnefileMode():
         standalone_mode = "onefile"
     elif isStandaloneMode():
@@ -501,6 +507,24 @@ def commentArgs():
         Tracing.options_logger.warning(
             "Following no imports is unlikely to work for %s mode and should not be specified."
             % standalone_mode
+        )
+
+    if (
+        not shallDumpBuiltTreeXML()
+        and not standalone_mode
+        and not options.follow_all
+        and not options.follow_none
+        and not options.follow_modules
+        and not options.follow_stdlib
+        and not options.include_modules
+        and not options.include_packages
+        and not options.include_extra
+        and not options.follow_not_modules
+    ):
+        Tracing.options_logger.warning(
+            """You did not specify to follow or include anything but main %s. Check options and \
+make sure that is intended."""
+            % ("module" if shallMakeModule() else "program")
         )
 
     if options.dependency_tool:
@@ -805,40 +829,39 @@ def _shallUseStaticLibPython():
     # return driven, pylint: disable=too-many-return-statements
 
     if shallMakeModule():
-        return False
+        return False, "not used in module mode"
 
     if options.static_libpython == "auto":
         # Nuitka-Python is good to to static linking.
         if isNuitkaPython():
-            return True
+            return True, "Nuitka-Python is broken."
 
-        # Debian packages with Python2 are usable, Python3 will follow eventually maybe.
+        # Debian packages with are usable if the OS is new enough
         from nuitka.utils.StaticLibraries import (
             isDebianSuitableForStaticLinking,
         )
 
         if (
-            python_version < 0x300
-            and isDebianPackagePython()
+            isDebianPackagePython()
             and isDebianSuitableForStaticLinking()
             and not isPythonDebug()
         ):
-            return True
+            return True, "Nuitka on Debian-Python needs package '%s' installed." % (
+                "python2-dev" if str is bytes else "python3-dev"
+            )
 
-        if isWin32Windows() and os.path.exists(
-            os.path.join(sys.prefix, "etc/config.site")
-        ):
-            return True
+        if isMSYS2MingwPython():
+            return True, "Nuitka on MSYS2 needs package 'python-devel' installed."
 
         # For Anaconda default to trying static lib python library, which
         # normally is just not available or if it is even unusable.
-        if isAnacondaPython() and not isMacOS():
-            return True
+        if isAnacondaPython() and not isMacOS() and not isWin32Windows():
+            return True, "Nuitka on Anaconda needs package 'libpython' installed."
 
         if isPyenvPython():
-            return True
+            return True, "Nuitka on pyenv should not use '--enable-shared'."
 
-    return options.static_libpython == "yes"
+    return options.static_libpython == "yes", None
 
 
 def shallUseStaticLibPython():
@@ -851,7 +874,18 @@ def shallUseStaticLibPython():
     global _shall_use_static_lib_python  # singleton, pylint: disable=global-statement
 
     if _shall_use_static_lib_python is None:
-        _shall_use_static_lib_python = _shallUseStaticLibPython()
+        _shall_use_static_lib_python, reason = _shallUseStaticLibPython()
+
+        if _shall_use_static_lib_python and reason:
+            static_libpython = getSystemStaticLibPythonPath()
+
+            if not static_libpython:
+                Tracing.options_logger.sysexit(
+                    """\
+Automatic detection of static libpython failed. %s Disable with '--static-libpython=no' if you don't \
+want to install it."""
+                    % reason
+                )
 
     return _shall_use_static_lib_python
 
@@ -911,7 +945,7 @@ def isClang():
 def isMingw64():
     """:returns: bool derived from ``--mingw64``, available only on Windows, otherwise false"""
     if isWin32Windows():
-        return options.mingw64
+        return options.mingw64 or isMSYS2MingwPython()
     else:
         return None
 
@@ -1212,6 +1246,8 @@ _python_flags = None
 
 def _getPythonFlags():
     """*list*, values of ``--python-flag``"""
+    # There is many flags, pylint: disable=too-many-branches
+
     # singleton, pylint: disable=global-statement
     global _python_flags
 
@@ -1242,6 +1278,8 @@ def _getPythonFlags():
                     _python_flags.add("no_asserts")
                 elif part in ("no_annotations", "noannotations"):
                     _python_flags.add("no_annotations")
+                elif part in ("-m", "package_mode"):
+                    _python_flags.add("package_mode")
                 else:
                     Tracing.options_logger.sysexit("Unsupported python flag %r." % part)
 
@@ -1288,6 +1326,12 @@ def hasPythonFlagNoRandomization():
     """*bool* = "no_randomization", "-R", "static_hashes" in python flags given"""
 
     return "no_randomization" in _getPythonFlags()
+
+
+def hasPythonFlagPackageMode():
+    """*bool* = "package_mode", "-m" in python flags given"""
+
+    return "package_mode" in _getPythonFlags()
 
 
 def shallFreezeAllStdlib():
@@ -1421,3 +1465,8 @@ def shallPersistModifications():
 def isLowMemory():
     """*bool* low memory usage requested"""
     return options.low_memory
+
+
+def getCompilationReportFilename():
+    """*str* filename to write XML report of compilation to"""
+    return options.compilation_report_filename

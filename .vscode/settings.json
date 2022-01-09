@@ -13,6 +13,7 @@
         "**/__pycache__": true,
         "**/*.orig": true,
         "**/*.tmp": true,
+        "tests/reflected/nuitka": true,
         "tests/distutils/venv_*": true,
         "build" : true,
     },
@@ -34,7 +35,8 @@
         "type_traits": "c",
         "utility": "c",
         "memory": "c",
-        "onefilesplashscreen.cpp": "cpp"
+        "onefilesplashscreen.cpp": "cpp",
+        "compare": "c"
     },
     "python.linting.pylintArgs": ["--disable=I0011,I0012,no-init,bad-whitespace,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none",
         "--method-rgx=[a-z_][a-zA-Z0-9_]{2,40}$",

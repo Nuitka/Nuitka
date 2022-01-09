@@ -275,7 +275,7 @@ def generateDictOperationGet2Code(to_name, expression, emit, context):
     ) as value_name:
         emit(
             renderTemplateFromString(
-                r"""\
+                r"""
 {% if expression.known_hashable_key %}
 %(value_name)s = DICT_GET_ITEM0(%(dict_name)s, %(key_name)s);
 if (%(value_name)s == NULL) {
@@ -285,7 +285,6 @@ if (%(value_name)s == NULL && !ERROR_OCCURRED()) {
 {% endif %}
     %(value_name)s = Py_None;
 }
-
 """,
                 expression=expression,
             )
@@ -318,7 +317,7 @@ def generateDictOperationGet3Code(to_name, expression, emit, context):
     ) as value_name:
         emit(
             renderTemplateFromString(
-                r"""\
+                r"""
 {% if expression.known_hashable_key %}
 %(value_name)s = DICT_GET_ITEM1(%(dict_name)s, %(key_name)s);
 if (%(value_name)s == NULL) {
@@ -437,7 +436,7 @@ def generateDictOperationUpdate3Code(to_name, expression, emit, context):
     if expression.subnode_iterable is not None:
         emit(
             renderTemplateFromString(
-                r"""\
+                r"""
 {% if has_keys_attribute == None %}
 if (HAS_ATTR_BOOL(%(iterable_name)s, const_str_plain_keys)){
     %(res_name)s = PyDict_Merge(%(dict_name)s, %(iterable_name)s, 1);

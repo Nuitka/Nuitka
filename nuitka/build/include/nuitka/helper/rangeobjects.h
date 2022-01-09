@@ -35,9 +35,9 @@ extern PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step);
 /* Python3 range objects */
 struct _rangeobject3 {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    PyObject *start;
+        PyObject *start;
     PyObject *stop;
     PyObject *step;
     PyObject *length;
@@ -53,9 +53,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *PyRange_Step(PyObject *range) { return ((s
 
 struct _rangeobject2 {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    long start;
+        long start;
     long step;
     long len;
 };

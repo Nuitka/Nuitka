@@ -24,21 +24,24 @@ from __future__ import print_function
 
 import sys
 
-print("Hello world!")
-print("I am thinking of myself as", __name__, "module has", sys.modules[__name__])
-print(
-    "My package value is",
-    repr(__package__),
-    "module has",
-    repr(sys.modules[__name__].__package__),
-)
-print("Try to import from module in main package:")
+# There is a fake module with just "__name__" for package mode created by CPython.
+real_name = __name__
 
-for_import = "something"
+print("Hello world!")
+print("I am thinking of myself as __name__", repr(__name__))
+print("Module object has __name__", repr(sys.modules[real_name].__name__))
+print("My package value is", repr(__package__))
+if not __package__:
+    print("Module has package value", repr(sys.modules[real_name].__package__))
+    print("Module repr", sys.modules[real_name])
+print("__file__", __file__)
+
+print("Try to import from module in main package:")
+for_import = "something from __main__"
 
 try:
     from . import for_import as value
 
-    print(value)
+    print("Imported", value)
 except (ImportError, SystemError, ValueError) as e:
     print("Gave exception:", e)

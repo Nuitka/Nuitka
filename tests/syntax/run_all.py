@@ -62,7 +62,12 @@ def main():
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
-            extra_flags = ["expect_failure", "remove_output", "syntax_errors"]
+            extra_flags = [
+                "expect_failure",
+                "remove_output",
+                "syntax_errors",
+                "--nofollow-imports",
+            ]
 
             compareWithCPython(
                 dirname=None,

@@ -59,7 +59,6 @@ if python_version < 0x300:
                 source_ref=source_ref,
             )
 
-
 else:
 
     class ExpressionBuiltinOpen(

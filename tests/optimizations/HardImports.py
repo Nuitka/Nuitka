@@ -1,13 +1,15 @@
 #     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
 #
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
+#     Python test originally created or extracted from other peoples work. The
+#     parts from me are licensed as below. It is at least Free Software where
+#     it's copied from other people. In these cases, that will normally be
+#     indicated.
 #
 #     Licensed under the Apache License, Version 2.0 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#         http://www.apache.org/licenses/LICENSE-2.0
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,13 +17,19 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Base for all finalization modules
-
-Provides a class that all finalization visitors should inherit from.
-"""
-
-from nuitka.tree import Operations
+import sys
+import os
 
 
-class FinalizationVisitorBase(Operations.VisitorNoopMixin):
-    pass
+def sysAttributes():
+    return (
+        sys.version_info,
+        sys.version_info[0],
+        sys.version_info.major,
+        sys.version,
+        sys.platform,
+        sys.maxsize,
+    )
+
+def osAttributes():
+    return os.name

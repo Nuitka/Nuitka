@@ -32,16 +32,37 @@ from abc import abstractmethod
 import nuitka.codegen.ComparisonCodes
 import nuitka.codegen.HelperDefinitions
 import nuitka.codegen.Namify
-from nuitka.__past__ import getMetaClassBase
+import nuitka.specs.BuiltinDictOperationSpecs
+import nuitka.specs.BuiltinStrOperationSpecs
+import nuitka.specs.BuiltinUnicodeOperationSpecs
+from nuitka.__past__ import getMetaClassBase, long
+from nuitka.codegen.CallCodes import (
+    getQuickCallCode,
+    getQuickMethodCallCode,
+    getQuickMethodDescrCallCode,
+    getQuickMixedCallCode,
+    getTemplateCodeDeclaredFunction,
+    max_quick_call,
+)
 from nuitka.nodes.ImportNodes import hard_modules
-from nuitka.utils.Jinja2 import getTemplate
+from nuitka.utils.Jinja2 import getTemplateC
 
-from .Common import withFileOpenedAndAutoformatted, writeline
+from .Common import (
+    formatArgs,
+    getMethodVariations,
+    python2_dict_methods,
+    python2_str_methods,
+    python2_unicode_methods,
+    python3_dict_methods,
+    python3_str_methods,
+    withFileOpenedAndAutoformatted,
+    writeline,
+)
 
 
-def getDoExtensionUsingTemplate(template_name):
-    return getTemplate(
-        package_name=__package__,
+def getDoExtensionUsingTemplateC(template_name):
+    return getTemplateC(
+        package_name="nuitka.codegen",
         template_subdir="templates_c",
         template_name=template_name,
         extensions=("jinja2.ext.do",),
@@ -162,6 +183,15 @@ class TypeDescBase(getMetaClassBase("Type")):
             type_name,
             "object",
         )
+
+    @classmethod
+    def getTypeCheckExactExpression(cls, operand):
+        if cls.type_name == "str":
+            return "PyStr_CheckExact(%s)" % operand
+        elif cls.type_name == "dict":
+            return "PyDict_CheckExact(%s)" % operand
+        else:
+            assert False, cls
 
     @classmethod
     def getIntCheckExpression(cls, operand):
@@ -304,7 +334,8 @@ class TypeDescBase(getMetaClassBase("Type")):
                 operand + "->tp_as_sequence->" + slot,
             )
         elif slot == "tp_richcompare":
-            # Try to detect fallbacks
+            # Try to detect fallbacks, this needs version specific management
+            # for at least "LONG", maybe others.
 
             assert self is object_desc, self
             return "RICHCOMPARE(%s)" % operand
@@ -388,8 +419,8 @@ return %(return_value)s;""" % {
                 "operator": operator,
                 "left_type2": "%s" if left is object_desc else left.getTypeName2(),
                 "right_type2": "%s" if right is object_desc else right.getTypeName2(),
-                "left_type3": "%s" if left is object_desc else left.getTypeName2(),
-                "right_type3": "%s" if right is object_desc else right.getTypeName2(),
+                "left_type3": "%s" if left is object_desc else left.getTypeName3(),
+                "right_type3": "%s" if right is object_desc else right.getTypeName3(),
                 "args": args,
                 "return_value": self.getExceptionResultIndicatorValue(),
             }
@@ -746,7 +777,7 @@ return %(return_value)s;""" % {
         if cls.type_name in ("object", "long"):
             if str is bytes:
                 # Cannot put "L" in Jinja code for constant value.
-                value = long(value)  # pylint: disable=undefined-variable
+                value = long(value)
 
             # The only on we surely know right now.
             assert value == 0
@@ -829,15 +860,9 @@ class ConcreteTypeBase(TypeDescBase):
     def getCheckValueCode(self, operand):
         return """\
 CHECK_OBJECT(%(operand)s);
-assert(%(type_name)s_CheckExact(%(operand)s));
-#if PYTHON_VERSION < 0x300
-assert(%(is_newstyle)sNEW_STYLE_NUMBER(%(operand)s));
-#endif""" % {
+assert(%(type_name)s_CheckExact(%(operand)s));""" % {
             "operand": operand,
             "type_name": self.getTypeValueExpression(operand)[1:].split("_")[0],
-            "is_newstyle": ""
-            if self.getNewStyleNumberTypeCheckExpression(operand) == "1"
-            else "!",
         }
 
     @abstractmethod
@@ -944,8 +969,7 @@ class UnicodeDesc(ConcreteTypeBase):
     def getCheckValueCode(cls, operand):
         return """\
 CHECK_OBJECT(%(operand)s);
-assert(PyUnicode_CheckExact(%(operand)s));
-assert(NEW_STYLE_NUMBER(%(operand)s));""" % {
+assert(PyUnicode_CheckExact(%(operand)s));""" % {
             "operand": operand
         }
 
@@ -958,6 +982,10 @@ assert(NEW_STYLE_NUMBER(%(operand)s));""" % {
             return slot == "nb_remainder"
         elif slot.startswith("sq_"):
             return "ass" not in slot and "inplace" not in slot
+        elif slot == "tp_richcompare":
+            return True
+        elif slot == "tp_compare":
+            return True
         else:
             assert False, slot
 
@@ -1159,8 +1187,24 @@ class LongDesc(ConcreteTypeBase):
             return slot != "nb_matrix_multiply"
         elif slot.startswith("sq_"):
             return False
-        else:
+        elif slot == "tp_richcompare":
             assert False
+            # For Python3 it's there though
+            return False
+        elif slot == "tp_compare":
+            # For Python2 it's tp_compare though
+            return True
+        else:
+            assert False, slot
+
+    def getSlotValueExpression(self, operand, slot):
+        # Python2 long does have "tp_compare", Python3 does have "tp_richcompare",
+        # therefore create code that makes this a conditional expression on the
+        # Python version
+        if slot == "tp_richcompare":
+            return "(PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(%s))" % operand
+
+        return ConcreteTypeBase.getSlotValueExpression(self, operand=operand, slot=slot)
 
     @classmethod
     def getNewStyleNumberTypeCheckExpression(cls, operand):
@@ -1454,21 +1498,23 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
         return
 
     if left in (int_desc, clong_desc):
-        template = getDoExtensionUsingTemplate("HelperOperationComparisonInt.c.j2")
-    # elif left == long_desc:
-    #     template = getDoExtensionUsingTemplate("HelperOperationComparisonLong.c.j2")
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonInt.c.j2")
+    elif left == long_desc:
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonLong.c.j2")
     elif left == float_desc:
-        template = getDoExtensionUsingTemplate("HelperOperationComparisonFloat.c.j2")
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonFloat.c.j2")
     elif left == tuple_desc:
-        template = getDoExtensionUsingTemplate("HelperOperationComparisonTuple.c.j2")
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonTuple.c.j2")
     elif left == list_desc:
-        template = getDoExtensionUsingTemplate("HelperOperationComparisonList.c.j2")
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonList.c.j2")
     # elif left == set_desc:
     #     template = env.get_template("HelperOperationComparisonSet.c.j2")
     elif left == bytes_desc:
-        template = getDoExtensionUsingTemplate("HelperOperationComparisonBytes.c.j2")
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonBytes.c.j2")
     elif left == str_desc:
-        template = getDoExtensionUsingTemplate("HelperOperationComparisonStr.c.j2")
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonStr.c.j2")
+    elif left == unicode_desc:
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonUnicode.c.j2")
     else:
         return
 
@@ -1495,7 +1541,7 @@ def makeMulRepeatCode(target, left, right, emit):
     if key in mul_repeats:
         return
 
-    template = getDoExtensionUsingTemplate("HelperOperationMulRepeatSlot.c.j2")
+    template = getDoExtensionUsingTemplateC("HelperOperationMulRepeatSlot.c.j2")
 
     code = template.render(target=target, left=left, right=right)
 
@@ -1668,16 +1714,7 @@ def makeHelperOperations(
         )
 
         emit_c(code)
-        emit_h(
-            "extern "
-            + code.splitlines()[0]
-            .replace(" {", ";")
-            .replace("static ", "")
-            .replace("inline ", "")
-            .replace("HEDLEY_NEVER_INLINE ", "")
-            .replace("__BINARY", "BINARY")
-            .replace("_BINARY", "BINARY")
-        )
+        emit_h(getTemplateCodeDeclaredFunction(code))
 
         if python_requirement:
             emit("#endif")
@@ -1761,7 +1798,7 @@ def makeHelperComparisons(
         )
 
         emit_c(code)
-        emit_h("extern " + code.splitlines()[0].replace(" {", ";"))
+        emit_h(getTemplateCodeDeclaredFunction(code))
 
         if python_requirement:
             emit("#endif")
@@ -1792,9 +1829,9 @@ def makeHelpersComparisonOperation(operand, op_code):
         nuitka.codegen.ComparisonCodes, "specialized_cmp_helpers_set"
     )
 
-    template = getDoExtensionUsingTemplate("HelperOperationComparison.c.j2")
+    template = getDoExtensionUsingTemplateC("HelperOperationComparison.c.j2")
 
-    filename_c = "nuitka/build/static_src/HelpersComparison%s.c" % op_code.title()
+    filename_c = "nuitka/build/static_src/HelpersComparison%s.c" % op_code.capitalize()
     filename_h = "nuitka/build/include/nuitka/helper/comparisons_%s.h" % op_code.lower()
 
     with withFileOpenedAndAutoformatted(filename_c) as output_c:
@@ -1835,9 +1872,11 @@ def makeHelpersBinaryOperation(operand, op_code):
         nuitka.codegen.HelperDefinitions, "specialized_%s_helpers_set" % op_code.lower()
     )
 
-    template = getDoExtensionUsingTemplate("HelperOperationBinary.c.j2")
+    template = getDoExtensionUsingTemplateC("HelperOperationBinary.c.j2")
 
-    filename_c = "nuitka/build/static_src/HelpersOperationBinary%s.c" % op_code.title()
+    filename_c = (
+        "nuitka/build/static_src/HelpersOperationBinary%s.c" % op_code.capitalize()
+    )
     filename_h = (
         "nuitka/build/include/nuitka/helper/operations_binary_%s.h" % op_code.lower()
     )
@@ -1882,9 +1921,11 @@ def makeHelpersInplaceOperation(operand, op_code):
         "specialized_i%s_helpers_set" % op_code.lower(),
     )
 
-    template = getDoExtensionUsingTemplate("HelperOperationInplace.c.j2")
+    template = getDoExtensionUsingTemplateC("HelperOperationInplace.c.j2")
 
-    filename_c = "nuitka/build/static_src/HelpersOperationInplace%s.c" % op_code.title()
+    filename_c = (
+        "nuitka/build/static_src/HelpersOperationInplace%s.c" % op_code.capitalize()
+    )
     filename_h = (
         "nuitka/build/include/nuitka/helper/operations_inplace_%s.h" % op_code.lower()
     )
@@ -1927,7 +1968,7 @@ def makeHelpersImportHard():
     filename_c = "nuitka/build/static_src/HelpersImportHard.c"
     filename_h = "nuitka/build/include/nuitka/helper/import_hard.h"
 
-    template = getDoExtensionUsingTemplate("HelperImportHard.c.j2")
+    template = getDoExtensionUsingTemplateC("HelperImportHard.c.j2")
 
     with withFileOpenedAndAutoformatted(filename_c) as output_c:
         with withFileOpenedAndAutoformatted(filename_h) as output_h:
@@ -1961,7 +2002,7 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
     emit()
 
     if module_name == "_frozen_importlib":
-        python_requirement = "PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x350"
+        python_requirement = "PYTHON_VERSION >= 0x300"
     elif module_name == "_frozen_importlib_external":
         python_requirement = "PYTHON_VERSION >= 0x350"
     else:
@@ -1975,23 +2016,13 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
     )
 
     emit_c(code)
-    emit_h("extern " + code.splitlines()[0].replace(" {", ";"))
+    emit_h(getTemplateCodeDeclaredFunction(code))
 
     if python_requirement:
         emit("#endif")
 
 
 def makeHelperCalls():
-    # Many cases, pylint: disable=too-many-locals
-
-    from nuitka.codegen.CallCodes import (
-        getQuickCallCode,
-        getQuickMethodCallCode,
-        getQuickMixedCallCode,
-        getTemplateCodeDeclaredFunction,
-        max_quick_call,
-    )
-
     filename_c = "nuitka/build/static_src/HelpersCalling2.c"
     filename_h = "nuitka/build/include/nuitka/helper/calling2.h"
 
@@ -1999,6 +2030,7 @@ def makeHelperCalls():
         with withFileOpenedAndAutoformatted(filename_h) as output_h:
 
             def emit_h(*args):
+                assert args[0] != "extern "
                 writeline(output_h, *args)
 
             def emit_c(*args):
@@ -2008,11 +2040,13 @@ def makeHelperCalls():
                 emit_h(*args)
                 emit_c(*args)
 
-            template = getTemplate("nuitka.codegen", "CodeTemplateCallsPositional.j2")
+            template = getTemplateC(
+                "nuitka.codegen", "CodeTemplateCallsPositional.c.j2"
+            )
 
             emitGenerationWarning(emit, template.name)
 
-            emitIDE(emit_c)
+            emitIDE(emit)
 
             for args_count in range(max_quick_call + 1):
                 code = getQuickCallCode(args_count=args_count, has_tuple_arg=False)
@@ -2026,7 +2060,7 @@ def makeHelperCalls():
                     emit_c(code)
                     emit_h(getTemplateCodeDeclaredFunction(code))
 
-            template = getTemplate("nuitka.codegen", "CodeTemplateCallsMixed.j2")
+            template = getTemplateC("nuitka.codegen", "CodeTemplateCallsMixed.c.j2")
 
             # Only keywords, but not positional arguments, via split args.
             code = getQuickMixedCallCode(
@@ -2054,9 +2088,11 @@ def makeHelperCalls():
                         emit_c(code)
                         emit_h(getTemplateCodeDeclaredFunction(code))
 
-            template = getTemplate(
-                "nuitka.codegen", "CodeTemplateCallsMethodPositional.j2"
-            )
+            for args_count in range(1, 5):
+                code = getQuickMethodDescrCallCode(args_count=args_count)
+
+                emit_c(code)
+                emit_h(getTemplateCodeDeclaredFunction(code))
 
             for args_count in range(max_quick_call + 1):
                 code = getQuickMethodCallCode(args_count=args_count)
@@ -2065,8 +2101,263 @@ def makeHelperCalls():
                 emit_h(getTemplateCodeDeclaredFunction(code))
 
 
+def _makeHelperBuiltinTypeAttributes(
+    type_prefix,
+    type_name,
+    python2_methods,
+    python3_methods,
+    emit_c,
+):
+    def getVarName(method_name):
+        return "%s_builtin_%s" % (type_prefix, method_name)
+
+    for method_name in sorted(set(python2_methods + python3_methods)):
+        if method_name in python2_methods and method_name not in python3_methods:
+            emit_c("#if PYTHON_VERSION < 0x300")
+            needs_endif = True
+        elif method_name not in python2_methods and method_name in python3_methods:
+            emit_c("#if PYTHON_VERSION >= 0x300")
+            needs_endif = True
+        else:
+            needs_endif = False
+
+        emit_c("static PyObject *%s = NULL;" % getVarName(method_name))
+
+        if needs_endif:
+            emit_c("#endif")
+
+    if not python3_methods:
+        emit_c("#if PYTHON_VERSION < 0x300")
+
+    emit_c("static void _init%sBuiltinMethods() {" % type_prefix.capitalize())
+    for method_name in sorted(set(python2_methods + python3_methods)):
+        if method_name in python2_methods and method_name not in python3_methods:
+            emit_c("#if PYTHON_VERSION < 0x300")
+            needs_endif = True
+        elif method_name not in python2_methods and method_name in python3_methods:
+            emit_c("#if PYTHON_VERSION >= 0x300")
+            needs_endif = True
+        else:
+            needs_endif = False
+
+        emit_c(
+            '%s = PyObject_GetAttrString((PyObject *)&%s, "%s");'
+            % (getVarName(method_name), type_name, method_name)
+        )
+
+        if needs_endif:
+            emit_c("#endif")
+
+    emit_c("}")
+
+    if not python3_methods:
+        emit_c("#endif")
+
+
+generate_builtin_type_operations = [
+    # TODO: For these, we would need an implementation for adding/deleting dictionary values. That
+    # has turned out to be too hard so far and these are very good friends, not doing hashing
+    # multiple times when reading and writing, so can't do it unless we add something for the
+    # Nuitka-Python eventually.
+    (
+        "tshape_dict",
+        dict_desc,
+        nuitka.specs.BuiltinDictOperationSpecs,
+        ("pop", "setdefault"),
+    ),
+    # TODO: These are very complex things using stringlib in Python, that we do not have easy access to,
+    # but we might one day for Nuitka-Python expose it for the static linking of it and then we
+    # could in fact call these directly.
+    (
+        "tshape_str",
+        str_desc,
+        nuitka.specs.BuiltinStrOperationSpecs,
+        (
+            "strip",
+            "rstrip",
+            "lstrip",
+            "partition",
+            "rpartition",
+            "find",
+            "rfind",
+            "index",
+            "rindex",
+            "capitalize",
+            "upper",
+            "lower",
+            "swapcase",
+            "title",
+            "isalnum",
+            "isalpha",
+            "isdigit",
+            "islower",
+            "isupper",
+            "isspace",
+            "istitle",
+            "split",
+            "rsplit",
+            "startswith",
+            "endswith",
+            "replace",
+            "encode",
+            "decode",
+        ),
+    ),
+    # TODO: This is using Python2 spec module for Python3 strings, that will be a problem down the
+    # road, when version specifics come in.
+    (
+        "tshape_unicode",
+        unicode_desc,
+        nuitka.specs.BuiltinUnicodeOperationSpecs,
+        (
+            "strip",
+            "rstrip",
+            "lstrip",
+            "find",
+            "rfind",
+            "index",
+            "rindex",
+            "capitalize",
+            "upper",
+            "lower",
+            "swapcase",
+            "title",
+            "isalnum",
+            "isalpha",
+            "isdigit",
+            "islower",
+            "isupper",
+            "isspace",
+            "istitle",
+            "split",
+            "rsplit",
+            "startswith",
+            "endswith",
+            "replace",
+            "encode",
+        ),
+    ),
+]
+
+
+def makeHelperBuiltinTypeMethods():
+    # Many details, pylint: disable=too-many-locals
+    filename_c = "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
+    filename_h = "nuitka/build/include/nuitka/helper/operations_builtin_types.h"
+    with withFileOpenedAndAutoformatted(filename_c) as output_c:
+        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+
+            def emit_h(*args):
+                writeline(output_h, *args)
+
+            def emit_c(*args):
+                writeline(output_c, *args)
+
+            def emit(*args):
+                emit_h(*args)
+                emit_c(*args)
+
+            emitIDE(emit)
+
+            _makeHelperBuiltinTypeAttributes(
+                "str",
+                "PyString_Type",
+                python2_str_methods,
+                (),
+                emit_c,
+            )
+            _makeHelperBuiltinTypeAttributes(
+                "unicode",
+                "PyUnicode_Type",
+                python2_unicode_methods,
+                python3_str_methods,
+                emit_c,
+            )
+            _makeHelperBuiltinTypeAttributes(
+                "dict",
+                "PyDict_Type",
+                python2_dict_methods,
+                python3_dict_methods,
+                emit_c,
+            )
+
+            template = getDoExtensionUsingTemplateC("HelperBuiltinMethodOperation.c.j2")
+
+            for (
+                shape_name,
+                type_desc,
+                spec_module,
+                method_names,
+            ) in generate_builtin_type_operations:
+                if type_desc.python_requirement:
+                    emit("#if %s" % type_desc.python_requirement)
+
+                for method_name in sorted(method_names):
+                    (
+                        present,
+                        arg_names,
+                        arg_name_mapping,
+                        arg_counts,
+                    ) = getMethodVariations(
+                        spec_module=spec_module,
+                        shape_name=shape_name,
+                        method_name=method_name,
+                        must_exist=True,
+                    )
+
+                    assert present, method_name
+
+                    def formatArgumentDeclaration(arg_types, arg_names, starting):
+                        return formatArgs(
+                            [
+                                arg_type.getVariableDecl(arg_name)
+                                for arg_type, arg_name in zip(arg_types, arg_names)
+                            ],
+                            starting=starting,
+                        )
+
+                    # Function is used immediately in same loop, pylint: disable=cell-var-from-loop
+                    def replaceArgNameForC(arg_name):
+                        if arg_name in arg_name_mapping:
+                            arg_name = arg_name_mapping[arg_name]
+
+                        if arg_name in ("default", "new"):
+                            return arg_name + "_value"
+                        else:
+                            return arg_name
+
+                    for arg_count in arg_counts:
+                        variant_args = [
+                            replaceArgNameForC(arg_name)
+                            for arg_name in arg_names[:arg_count]
+                        ]
+
+                        code = template.render(
+                            object_desc=object_desc,
+                            builtin_type=type_desc,
+                            builtin_arg_name=type_desc.type_name,
+                            method_name=method_name,
+                            api_suffix=str(arg_count + 1)
+                            if len(arg_counts) > 1
+                            else "",
+                            arg_names=variant_args,
+                            arg_types=[object_desc] * len(variant_args),
+                            formatArgumentDeclaration=formatArgumentDeclaration,
+                            zip=zip,
+                            len=len,
+                            name=template.name,
+                        )
+
+                        emit_c(code)
+                        emit_h(getTemplateCodeDeclaredFunction(code))
+                if type_desc.python_requirement:
+                    emit("#endif")
+
+
 def main():
+
     # Cover many things once first, then cover all for quicker turnaround during development.
+    makeHelperBuiltinTypeMethods()
     makeHelpersComparisonOperation("==", "EQ")
     makeHelpersBinaryOperation("+", "ADD")
     makeHelpersInplaceOperation("+", "ADD")

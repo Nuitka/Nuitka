@@ -58,9 +58,7 @@ from nuitka.Tracing import (
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
     checkWindowsCompilerFound,
-    enableC11Settings,
     enableExperimentalSettings,
-    enableLtoSettings,
     setupCCompiler,
     switchFromGccToGpp,
 )
@@ -149,17 +147,21 @@ unstripped_mode = getArgumentBool("unstripped_mode", False)
 # data.
 target_arch = ARGUMENTS["target_arch"]
 
+# MinGW compiler mode, optional and interesting to Windows only.
+mingw_mode = getArgumentBool("mingw_mode", False)
+
 # Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getArgumentBool("clang_mode", False)
 
-# Clang on Windows is always clang-cl for now.
+# For the msys2 python, we can know a few things, it's not Win32 entirely.
+msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
+
+# Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
+# is changed to ClangCL from Visual Studio.
 clangcl_mode = False
-if win_target and clang_mode:
+if win_target and not (mingw_mode or msys2_mingw_python) and clang_mode:
     clang_mode = False
     clangcl_mode = True
-
-# MinGW compiler mode, optional and interesting to Windows only.
-mingw_mode = getArgumentBool("mingw_mode", False)
 
 # Show scons mode, output information about Scons operation
 show_scons_mode = getArgumentBool("show_scons", False)
@@ -269,6 +271,8 @@ if "CC" in os.environ:
     # If the environment variable CC is set, use that.
     env["CC"] = os.path.expanduser(os.environ["CC"])
     env["CCVERSION"] = None
+
+    scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
 elif clangcl_mode:
     # If possible, add Clang directory from MSVC if available.
     addClangClPathFromMSVC(env=env, target_arch=target_arch)
@@ -279,11 +283,14 @@ elif clang_mode:
     env["CC"] = "clang"
     env["CCVERSION"] = None
 
+enableExperimentalSettings(env, experimental)
+
 # On Windows, in case MSVC was not found and not previously forced, use the
 # winlibs MinGW64 as a download, and use it as a fallback.
 env = checkWindowsCompilerFound(
     env=env,
     target_arch=target_arch,
+    clang_mode=clang_mode,
     msvc_version=msvc_version,
     assume_yes_for_downloads=assume_yes_for_downloads,
 )
@@ -313,6 +320,13 @@ env.msvc_mode = win_target and not env.gcc_mode
 env.mingw_mode = win_target and env.gcc_mode
 env.clangcl_mode = clangcl_mode
 
+# Python specific modes have to influence some decisions, but not
+# for Onefile.
+env.nuitka_python = False
+env.debian_python = False
+env.msys2_mingw_python = False
+env.static_libpython = None
+
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
 switchFromGccToGpp(
     env=env,
@@ -320,13 +334,6 @@ switchFromGccToGpp(
 
 if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
     raiseNoCompilerFoundErrorExit()
-
-# Do we use C11 for source files, or pretend to be C++ as a workaround.
-env.c11_mode = enableC11Settings(
-    env=env,
-)
-
-scons_details_logger.info("Using C11 mode: %s" % env.c11_mode)
 
 if show_scons_mode:
     my_print("Scons: Compiler used", end=" ")
@@ -341,15 +348,10 @@ if show_scons_mode:
 setupScons(env, source_dir)
 
 # Set up C compiler settings.
-setupCCompiler(env)
-
-# Enable LTO for compiler.
-enableLtoSettings(
+setupCCompiler(
     env=env,
     lto_mode=lto_mode,
     pgo_mode="no",  # TODO: Have this here too, decompression might benefit.
-    nuitka_python=False,
-    debian_python=False,
     job_count=job_count,
 )
 
@@ -420,8 +422,6 @@ if debug_mode:
         # Disable warnings, the first 3 are for Python headers, maybe not needed.
         env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610", "/wd4996"])
 
-enableExperimentalSettings(env, experimental)
-
 if trace_mode:
     env.Append(CPPDEFINES=["_NUITKA_TRACE"])
 
@@ -485,25 +485,6 @@ else:
     if env.gcc_mode:
         if not env.clang_mode:
             env.Append(LINKFLAGS=["-s"])
-
-# When debugging, optimize less than when optimizing, when not remove
-# assertions.
-if debug_mode:
-    if env.gcc_mode or env.msvc_mode:
-        env.Append(CCFLAGS=["-O2"])
-else:
-    if env.gcc_mode:
-        env.Append(CCFLAGS=["-O3"])
-    elif env.msvc_mode:
-        env.Append(
-            CCFLAGS=[
-                "/Ox",  # Enable most speed optimization
-                "/GF",  # Eliminate duplicate strings.
-                "/Gy",  # Function level object storage, to allow removing unused ones
-            ]
-        )
-
-    env.Append(CPPDEFINES=["__NUITKA_NO_ASSERT__"])
 
 # Tell compiler to create a program.
 if env.msvc_mode:

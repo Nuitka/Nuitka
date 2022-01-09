@@ -27,6 +27,7 @@ import ast
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementAssignmentVariableName,
+    StatementReleaseVariable,
 )
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeCheck,
@@ -47,7 +48,8 @@ from nuitka.nodes.TypeMatchNodes import (
 from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
-from .ReformulationBooleanExpressions import makeAndNode
+from .ReformulationBooleanExpressions import makeAndNode, makeOrNode
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import buildNode, buildStatementsNode, makeStatementsSequence
 
 
@@ -65,465 +67,455 @@ def _makeMatchComparison(left, right, source_ref):
     )
 
 
-def buildMatchNode(provider, node, source_ref):
-    """Python3.10 or higher, match statements."""
+def _buildCaseBodyCode(provider, case, source_ref):
+    guard_condition = buildNode(
+        provider=provider,
+        node=case.guard,
+        source_ref=source_ref,
+        allow_none=True,
+    )
 
-    # Many details to work with, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    body_code = buildStatementsNode(provider, case.body, source_ref)
 
-    temp_scope = provider.allocateTempScope("match_statement")
+    return body_code, guard_condition
 
-    subject_node = buildNode(provider, node.subject, source_ref)
 
-    tmp_subject = provider.allocateTempVariable(temp_scope, "subject")
-    tmp_case_cls = provider.allocateTempVariable(temp_scope, "cls")
+def _buildMatchAs(provider, variable_name, source_value, source_ref):
+    assert "." not in variable_name, variable_name
+    assert "!" not in variable_name, variable_name
 
-    cases = []
+    return StatementAssignmentVariableName(
+        provider=provider,
+        variable_name=variable_name,
+        source=source_value,
+        source_ref=source_ref,
+    )
 
-    # TODO: Release in a try/finally
-    result = [
-        StatementAssignmentVariable(
-            variable=tmp_subject,
-            source=subject_node,
-            source_ref=subject_node.getSourceReference(),
+
+def _buildMatchValue(provider, against, pattern, source_ref):
+    if type(pattern) is ast.MatchValue:
+        right = buildNode(provider, pattern.value, source_ref)
+    else:
+        right = makeConstantRefNode(constant=pattern.value, source_ref=source_ref)
+
+    return _makeMatchComparison(
+        left=against,
+        right=right,
+        source_ref=source_ref,
+    )
+
+
+def _buildMatchSequence(provider, pattern, against, source_ref):
+    # Many cases due to recursion, pylint: disable=too-many-locals
+
+    conditions = [
+        ExpressionMatchTypeCheckSequence(
+            value=against.makeClone(),
+            source_ref=source_ref,
         )
     ]
 
-    for case in node.cases:
-        # TODO: What is that.
-        assert case.guard is None, case
+    assignments = []
 
-        assert case.__class__ is ast.match_case, case
+    min_length = len(
+        tuple(
+            seq_pattern
+            for seq_pattern in pattern.patterns
+            if seq_pattern.__class__ is not ast.MatchStar
+        )
+    )
 
-        pattern = case.pattern
+    if min_length:
+        exact = all(
+            seq_pattern.__class__ is not ast.MatchStar
+            for seq_pattern in pattern.patterns
+        )
 
-        if pattern.__class__ is ast.MatchClass:
-            # TODO: What is that
-            assert not pattern.patterns
-
-            cls_node = buildNode(provider, pattern.cls, source_ref)
-
-            prepare = StatementAssignmentVariable(
-                variable=tmp_case_cls,
-                source=cls_node,
-                source_ref=cls_node.getSourceReference(),
-            )
-
-            assert len(pattern.kwd_attrs) == len(pattern.kwd_patterns), ast.dump(
-                pattern
-            )
-
-            conditions = [
-                ExpressionBuiltinIsinstance(
-                    instance=ExpressionTempVariableRef(
-                        variable=tmp_subject, source_ref=source_ref
-                    ),
-                    classes=ExpressionTempVariableRef(
-                        variable=tmp_case_cls, source_ref=source_ref
-                    ),
+        # TODO: Could special case "1" with truth check.
+        conditions.append(
+            makeComparisonExpression(
+                left=ExpressionBuiltinLen(
+                    value=against.makeClone(),
                     source_ref=source_ref,
-                )
-            ]
-
-            assignments = []
-
-            kwd_attr = kwd_pattern = None
-
-            for kwd_attr, kwd_pattern in zip(pattern.kwd_attrs, pattern.kwd_patterns):
-                assert type(kwd_attr) is str
-
-                # TODO: Maybe move this to first things, CPython checks first all.
-                conditions.append(
-                    ExpressionAttributeCheck(
-                        expression=ExpressionTempVariableRef(
-                            variable=tmp_subject, source_ref=source_ref
-                        ),
-                        attribute_name=kwd_attr,
-                        source_ref=source_ref,
-                    )
-                )
-
-                if kwd_pattern.__class__ is ast.MatchValue:
-                    conditions.append(
-                        _makeMatchComparison(
-                            left=makeExpressionAttributeLookup(
-                                expression=ExpressionTempVariableRef(
-                                    variable=tmp_subject, source_ref=source_ref
-                                ),
-                                attribute_name=kwd_attr,
-                                source_ref=source_ref,
-                            ),
-                            right=buildNode(provider, kwd_pattern.value, source_ref),
-                            source_ref=source_ref,
-                        )
-                    )
-                elif kwd_pattern.__class__ is ast.MatchSingleton:
-                    conditions.append(
-                        _makeMatchComparison(
-                            left=makeExpressionAttributeLookup(
-                                expression=ExpressionTempVariableRef(
-                                    variable=tmp_subject, source_ref=source_ref
-                                ),
-                                attribute_name=kwd_attr,
-                                source_ref=source_ref,
-                            ),
-                            right=makeConstantRefNode(
-                                constant=kwd_pattern.value, source_ref=source_ref
-                            ),
-                            source_ref=source_ref,
-                        )
-                    )
-                elif kwd_pattern.__class__ is ast.MatchAs:
-                    variable_name = kwd_pattern.name
-
-                    assert "." not in variable_name, variable_name
-                    assert "!" not in variable_name, variable_name
-
-                    assignments.append(
-                        StatementAssignmentVariableName(
-                            provider=provider,
-                            variable_name=variable_name,
-                            source=makeExpressionAttributeLookup(
-                                expression=ExpressionTempVariableRef(
-                                    variable=tmp_subject, source_ref=source_ref
-                                ),
-                                attribute_name=kwd_attr,
-                                source_ref=source_ref,
-                            ),
-                            source_ref=source_ref,
-                        )
-                    )
-                else:
-                    assert False, ast.dump(kwd_pattern)
-
-            del kwd_attr, kwd_pattern
-
-            branch_code = buildStatementsNode(provider, case.body, source_ref)
-            cases.append((prepare, conditions, assignments, branch_code))
-
-        elif pattern.__class__ is ast.MatchMapping:
-            prepare = None
-
-            conditions = [
-                ExpressionMatchTypeCheckMapping(
-                    value=ExpressionTempVariableRef(
-                        variable=tmp_subject, source_ref=source_ref
-                    ),
-                    source_ref=source_ref,
-                )
-            ]
-
-            assignments = []
-
-            assert len(pattern.keys) == len(pattern.patterns), ast.dump(pattern)
-
-            key = kwd_pattern = None
-
-            for key, kwd_pattern in zip(pattern.keys, pattern.patterns):
-                conditions.append(
-                    ExpressionSubscriptCheck(
-                        expression=ExpressionTempVariableRef(
-                            variable=tmp_subject, source_ref=source_ref
-                        ),
-                        subscript=makeConstantRefNode(
-                            constant=key.value, source_ref=source_ref
-                        ),
-                        source_ref=source_ref,
-                    )
-                )
-
-                if kwd_pattern.__class__ is ast.MatchValue:
-                    conditions.append(
-                        _makeMatchComparison(
-                            left=ExpressionSubscriptLookup(
-                                expression=ExpressionTempVariableRef(
-                                    variable=tmp_subject, source_ref=source_ref
-                                ),
-                                subscript=makeConstantRefNode(
-                                    constant=key.value, source_ref=source_ref
-                                ),
-                                source_ref=source_ref,
-                            ),
-                            right=buildNode(provider, kwd_pattern.value, source_ref),
-                            source_ref=source_ref,
-                        )
-                    )
-                elif kwd_pattern.__class__ is ast.MatchSingleton:
-                    conditions.append(
-                        _makeMatchComparison(
-                            left=ExpressionSubscriptLookup(
-                                expression=ExpressionTempVariableRef(
-                                    variable=tmp_subject, source_ref=source_ref
-                                ),
-                                subscript=makeConstantRefNode(
-                                    constant=key.value, source_ref=source_ref
-                                ),
-                                source_ref=source_ref,
-                            ),
-                            right=makeConstantRefNode(
-                                constant=kwd_pattern.value, source_ref=source_ref
-                            ),
-                            source_ref=source_ref,
-                        )
-                    )
-                elif kwd_pattern.__class__ is ast.MatchAs:
-                    variable_name = kwd_pattern.name
-
-                    assert "." not in variable_name, variable_name
-                    assert "!" not in variable_name, variable_name
-
-                    assignments.append(
-                        StatementAssignmentVariableName(
-                            provider=provider,
-                            variable_name=variable_name,
-                            source=ExpressionSubscriptLookup(
-                                expression=ExpressionTempVariableRef(
-                                    variable=tmp_subject, source_ref=source_ref
-                                ),
-                                subscript=makeConstantRefNode(
-                                    constant=key.value, source_ref=source_ref
-                                ),
-                                source_ref=source_ref,
-                            ),
-                            source_ref=source_ref,
-                        )
-                    )
-                else:
-                    assert False, ast.dump(kwd_pattern)
-
-            del key, pattern
-
-            branch_code = buildStatementsNode(provider, case.body, source_ref)
-            cases.append((prepare, conditions, assignments, branch_code))
-
-        elif pattern.__class__ is ast.MatchSequence:
-            prepare = None
-
-            conditions = [
-                ExpressionMatchTypeCheckSequence(
-                    value=ExpressionTempVariableRef(
-                        variable=tmp_subject, source_ref=source_ref
-                    ),
-                    source_ref=source_ref,
-                )
-            ]
-
-            assignments = []
-
-            min_length = len(
-                tuple(
-                    seq_pattern
-                    for seq_pattern in pattern.patterns
-                    if seq_pattern.__class__ is not ast.MatchStar
-                )
+                ),
+                right=makeConstantRefNode(constant=min_length, source_ref=source_ref),
+                comparator="Eq" if exact else "GtE",
+                source_ref=source_ref,
             )
+        )
 
-            if min_length:
-                exact = all(
-                    seq_pattern.__class__ is not ast.MatchStar
-                    for seq_pattern in pattern.patterns
-                )
+    star_pos = None
 
-                # TODO: Could special case "1" with truth check.
-                conditions.append(
-                    makeComparisonExpression(
-                        left=ExpressionBuiltinLen(
-                            value=ExpressionTempVariableRef(
-                                variable=tmp_subject, source_ref=source_ref
-                            ),
-                            source_ref=source_ref,
-                        ),
-                        right=makeConstantRefNode(
-                            constant=min_length, source_ref=source_ref
-                        ),
-                        comparator="Eq" if exact else "GtE",
-                        source_ref=source_ref,
-                    )
-                )
+    count = seq_pattern = None
 
-            star_pos = None
+    for count, seq_pattern in enumerate(pattern.patterns):
+        # offset from the start.
+        if star_pos is None:
+            offset = count
+        else:
+            # offset from the end.
+            offset = -(len(pattern.patterns) - count)
 
-            count = seq_pattern = None
+        if seq_pattern.__class__ is ast.MatchStar:
+            variable_name = seq_pattern.name
 
-            for count, seq_pattern in enumerate(pattern.patterns):
-                # offset from the start.
-                if star_pos is None:
-                    offset = count
-                else:
-                    # offset from the end.
-                    offset = -(len(pattern.patterns) - count)
-
-                if seq_pattern.__class__ is ast.MatchValue:
-                    conditions.append(
-                        _makeMatchComparison(
-                            left=ExpressionSubscriptLookup(
-                                expression=ExpressionTempVariableRef(
-                                    variable=tmp_subject, source_ref=source_ref
-                                ),
-                                subscript=makeConstantRefNode(
-                                    constant=offset, source_ref=source_ref
-                                ),
-                                source_ref=source_ref,
-                            ),
-                            right=buildNode(provider, seq_pattern.value, source_ref),
-                            source_ref=source_ref,
-                        )
-                    )
-                elif seq_pattern.__class__ is ast.MatchSingleton:
-                    conditions.append(
-                        _makeMatchComparison(
-                            left=ExpressionSubscriptLookup(
-                                expression=ExpressionTempVariableRef(
-                                    variable=tmp_subject, source_ref=source_ref
-                                ),
-                                subscript=makeConstantRefNode(
-                                    constant=offset, source_ref=source_ref
-                                ),
-                                source_ref=source_ref,
-                            ),
-                            right=makeConstantRefNode(
-                                constant=seq_pattern.value, source_ref=source_ref
-                            ),
-                            source_ref=source_ref,
-                        )
-                    )
-                elif seq_pattern.__class__ is ast.MatchAs:
-                    variable_name = seq_pattern.name
-
-                    assert "." not in variable_name, variable_name
-                    assert "!" not in variable_name, variable_name
-
-                    assignments.append(
-                        StatementAssignmentVariableName(
-                            provider=provider,
-                            variable_name=variable_name,
-                            source=ExpressionSubscriptLookup(
-                                expression=ExpressionTempVariableRef(
-                                    variable=tmp_subject, source_ref=source_ref
-                                ),
-                                subscript=makeConstantRefNode(
-                                    constant=offset, source_ref=source_ref
-                                ),
-                                source_ref=source_ref,
-                            ),
-                            source_ref=source_ref,
-                        )
-                    )
-                elif seq_pattern.__class__ is ast.MatchStar:
-                    variable_name = seq_pattern.name
-
-                    assert "." not in variable_name, variable_name
-                    assert "!" not in variable_name, variable_name
-
-                    star_pos = count
-
-                    # Last one
-                    if star_pos == len(pattern.patterns):
-                        slice_value = slice(count)
-                    else:
-                        slice_value = slice(
-                            count, -(len(pattern.patterns) - (count + 1))
-                        )
-
-                    assignments.append(
-                        StatementAssignmentVariableName(
-                            provider=provider,
-                            variable_name=variable_name,
-                            source=ExpressionSubscriptLookup(
-                                expression=ExpressionTempVariableRef(
-                                    variable=tmp_subject, source_ref=source_ref
-                                ),
-                                subscript=makeConstantRefNode(
-                                    constant=slice_value, source_ref=source_ref
-                                ),
-                                source_ref=source_ref,
-                            ),
-                            source_ref=source_ref,
-                        )
-                    )
-
-                else:
-                    assert False, ast.dump(seq_pattern)
-
-            del count, seq_pattern
-
-            branch_code = buildStatementsNode(provider, case.body, source_ref)
-            cases.append((prepare, conditions, assignments, branch_code))
-
-        elif pattern.__class__ is ast.MatchAs:
-            # default match only current with or without a name assigned. TODO: This ought to only
-            # happen once, Python raises it, we do not yet: SyntaxError: name capture 'var' makes
-            # remaining patterns unreachable
-            if pattern.name is None:
-                # case _:
-                # Assigns to nothing and should be last one in a match statement, anything
-                # after that will be syntax error.
-                branch_code = buildStatementsNode(provider, case.body, source_ref)
-
-                cases.append(
-                    (
-                        None,
-                        None,
-                        None,
-                        branch_code,
-                    )
-                )
-            else:
-                # case var:
-                # Assigns to var and should be last one in a match statement, anything
-                # after that will be syntax error.
-                variable_name = pattern.name
-
+            if variable_name is not None:
                 assert "." not in variable_name, variable_name
                 assert "!" not in variable_name, variable_name
 
-                assignment = StatementAssignmentVariableName(
-                    provider=provider,
-                    variable_name=variable_name,
-                    source=ExpressionTempVariableRef(
-                        variable=tmp_subject, source_ref=source_ref
-                    ),
-                    source_ref=source_ref,
-                )
+                star_pos = count
 
-                branch_code = buildStatementsNode(provider, case.body, source_ref)
+                # Last one
+                if star_pos == len(pattern.patterns):
+                    slice_value = slice(count)
+                else:
+                    slice_value = slice(count, -(len(pattern.patterns) - (count + 1)))
 
-                cases.append(
-                    (
-                        None,
-                        None,
-                        (assignment,),
-                        branch_code,
+                assignments.append(
+                    StatementAssignmentVariableName(
+                        provider=provider,
+                        variable_name=variable_name,
+                        source=ExpressionSubscriptLookup(
+                            expression=against.makeClone(),
+                            subscript=makeConstantRefNode(
+                                constant=slice_value, source_ref=source_ref
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        source_ref=source_ref,
                     )
                 )
-
         else:
-            assert False, ast.dump(case)
+            item_conditions, item_assignments = _buildMatch(
+                provider=provider,
+                pattern=seq_pattern,
+                against=ExpressionSubscriptLookup(
+                    expression=against.makeClone(),
+                    subscript=makeConstantRefNode(
+                        constant=offset, source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
 
-    match_statement = None
+            if item_conditions:
+                conditions.extend(item_conditions)
 
-    for prepare, conditions, assignments, branch_code in reversed(cases):
-        code = makeStatementsSequence(
+            if item_assignments:
+                assignments.extend(item_assignments)
+
+    return conditions, assignments
+
+
+def _buildMatchMapping(provider, pattern, against, source_ref):
+    conditions = [
+        ExpressionMatchTypeCheckMapping(
+            value=against.makeClone(),
+            source_ref=source_ref,
+        )
+    ]
+
+    assignments = []
+
+    assert len(pattern.keys) == len(pattern.patterns), ast.dump(pattern)
+
+    key = kwd_pattern = None
+
+    for key, kwd_pattern in zip(pattern.keys, pattern.patterns):
+        conditions.append(
+            ExpressionSubscriptCheck(
+                expression=against.makeClone(),
+                subscript=makeConstantRefNode(
+                    constant=key.value, source_ref=source_ref
+                ),
+                source_ref=source_ref,
+            )
+        )
+
+        item_against = ExpressionSubscriptLookup(
+            expression=against.makeClone(),
+            subscript=makeConstantRefNode(constant=key.value, source_ref=source_ref),
+            source_ref=source_ref,
+        )
+
+        item_conditions, item_assignments = _buildMatch(
+            provider=provider,
+            against=item_against,
+            pattern=kwd_pattern,
+            source_ref=source_ref,
+        )
+
+        if item_conditions:
+            conditions.extend(item_conditions)
+
+        if item_assignments:
+            assignments.extend(item_assignments)
+
+    return conditions, assignments
+
+
+def _buildMatchClass(provider, pattern, against, source_ref):
+    # TODO: What is that when set.
+    assert not pattern.patterns
+
+    cls_node = buildNode(provider, pattern.cls, source_ref)
+
+    assert len(pattern.kwd_attrs) == len(pattern.kwd_patterns), ast.dump(pattern)
+
+    conditions = [
+        ExpressionBuiltinIsinstance(
+            instance=against.makeClone(),
+            classes=cls_node,
+            source_ref=source_ref,
+        )
+    ]
+
+    assignments = []
+
+    assert len(pattern.kwd_attrs) == len(pattern.kwd_patterns), ast.dump(pattern)
+
+    for key, kwd_pattern in zip(pattern.kwd_attrs, pattern.kwd_patterns):
+        conditions.append(
+            ExpressionAttributeCheck(
+                expression=against.makeClone(),
+                attribute_name=key,
+                source_ref=source_ref,
+            )
+        )
+
+        item_conditions, item_assignments = _buildMatch(
+            provider=provider,
+            against=makeExpressionAttributeLookup(
+                expression=against.makeClone(),
+                attribute_name=key,
+                source_ref=source_ref,
+            ),
+            pattern=kwd_pattern,
+            source_ref=source_ref,
+        )
+
+        if item_conditions:
+            conditions.extend(item_conditions)
+
+        if item_assignments:
+            assignments.extend(item_assignments)
+
+    return conditions, assignments
+
+
+def _buildMatch(provider, pattern, against, source_ref):
+    if pattern.__class__ is ast.MatchOr:
+        or_condition_list = []
+        for or_pattern in pattern.patterns:
+            or_conditions, or_assignments = _buildMatch(
+                provider=provider,
+                pattern=or_pattern,
+                against=against,
+                source_ref=source_ref,
+            )
+            assert not or_assignments
+
+            or_condition_list.append(
+                makeAndNode(values=or_conditions, source_ref=source_ref)
+            )
+
+        condition = makeOrNode(values=or_condition_list, source_ref=source_ref)
+        conditions = (condition,)
+        assignments = None
+
+    elif pattern.__class__ is ast.MatchClass:
+        conditions, assignments = _buildMatchClass(
+            provider=provider, pattern=pattern, against=against, source_ref=source_ref
+        )
+    elif pattern.__class__ is ast.MatchMapping:
+        conditions, assignments = _buildMatchMapping(
+            provider=provider,
+            pattern=pattern,
+            against=against,
+            source_ref=source_ref,
+        )
+
+    elif pattern.__class__ is ast.MatchSequence:
+        conditions, assignments = _buildMatchSequence(
+            provider=provider,
+            pattern=pattern,
+            against=against,
+            source_ref=source_ref,
+        )
+
+    elif pattern.__class__ is ast.MatchAs:
+        conditions = None
+
+        # default match only current with or without a name assigned. TODO: This ought to only
+        # happen once, Python raises it, we do not yet: SyntaxError: name capture 'var' makes
+        # remaining patterns unreachable
+        if pattern.name is None:
+            # case _:
+            # Assigns to nothing and should be last one in a match statement, anything
+            # after that will be syntax error.
+            assignments = None
+        else:
+            # case var:
+            # Assigns to var and should be last one in a match statement, anything
+            # after that will be syntax error.
+            assignment = _buildMatchAs(
+                provider=provider,
+                variable_name=pattern.name,
+                source_value=against,
+                source_ref=source_ref,
+            )
+            assignments = (assignment,)
+
+    elif pattern.__class__ is ast.MatchValue or pattern.__class__ is ast.MatchSingleton:
+        conditions = [
+            _buildMatchValue(
+                provider=provider,
+                against=against,
+                pattern=pattern,
+                source_ref=source_ref,
+            )
+        ]
+
+        assignments = None
+
+    else:
+        assert False, ast.dump(pattern)
+
+    return conditions, assignments
+
+
+def _buildCase(provider, case, tmp_subject, source_ref):
+    assert case.__class__ is ast.match_case, case
+
+    pattern = case.pattern
+
+    against = ExpressionTempVariableRef(variable=tmp_subject, source_ref=source_ref)
+
+    conditions, assignments = _buildMatch(
+        provider=provider,
+        pattern=pattern,
+        against=against,
+        source_ref=source_ref,
+    )
+
+    branch_code, guard = _buildCaseBodyCode(provider, case, source_ref)
+    return (conditions, assignments, guard, branch_code)
+
+
+def buildMatchNode(provider, node, source_ref):
+    """Python3.10 or higher, match statements."""
+
+    subject_node = buildNode(provider, node.subject, source_ref)
+
+    temp_scope = provider.allocateTempScope("match_statement")
+
+    # The value matched against, must be released in the end.
+    tmp_subject = provider.allocateTempVariable(temp_scope, "subject")
+
+    # Indicator variable, will end up with C bool type, and need not be released.
+    tmp_indicator_variable = provider.allocateTempVariable(
+        temp_scope=temp_scope, name="indicator", temp_type="bool"
+    )
+
+    cases = []
+
+    for case in node.cases:
+        cases.append(
+            _buildCase(
+                provider=provider,
+                case=case,
+                tmp_subject=tmp_subject,
+                source_ref=source_ref,
+            )
+        )
+
+    case_statements = []
+
+    for case in cases:
+        conditions, assignments, guard, branch_code = case
+
+        # Set indicator variable at end of branch code, unless it's last branch
+        # where there would be no usage of it.
+        if case is not cases[-1]:
+            branch_code = makeStatementsSequence(
+                statements=(
+                    branch_code,
+                    StatementAssignmentVariable(
+                        variable=tmp_indicator_variable,
+                        source=makeConstantRefNode(
+                            constant=True, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                ),
+                allow_none=True,
+                source_ref=source_ref,
+            )
+
+        if guard is not None:
+            branch_code = makeStatementConditional(
+                condition=guard,
+                yes_branch=branch_code,
+                no_branch=None,
+                source_ref=source_ref,
+            )
+
+        del guard
+
+        branch_code = makeStatementsSequence(
             statements=(assignments, branch_code),
             allow_none=True,
             source_ref=source_ref,
         )
 
+        del assignments
+
         if conditions is not None:
-            code = makeStatementConditional(
+            branch_code = makeStatementConditional(
                 condition=makeAndNode(values=conditions, source_ref=source_ref),
-                yes_branch=code,
-                no_branch=match_statement,
+                yes_branch=branch_code,
+                no_branch=None,
                 source_ref=source_ref,
             )
 
-        match_statement = makeStatementsSequence(
-            statements=(prepare, code),
-            allow_none=True,
-            source_ref=source_ref,
-        )
+        del conditions
 
-    result.append(match_statement)
+        if case is not cases[0]:
+            statement = makeStatementConditional(
+                condition=makeComparisonExpression(
+                    comparator="Is",
+                    left=ExpressionTempVariableRef(
+                        variable=tmp_indicator_variable, source_ref=source_ref
+                    ),
+                    right=makeConstantRefNode(constant=False, source_ref=source_ref),
+                    source_ref=source_ref,
+                ),
+                yes_branch=branch_code,
+                no_branch=None,
+                source_ref=source_ref,
+            )
+        else:
+            statement = branch_code
+
+        case_statements.append(statement)
 
     return makeStatementsSequence(
-        statements=result, allow_none=False, source_ref=source_ref
+        statements=(
+            StatementAssignmentVariable(
+                variable=tmp_subject,
+                source=subject_node,
+                source_ref=subject_node.getSourceReference(),
+            ),
+            makeTryFinallyStatement(
+                provider=provider,
+                tried=case_statements,
+                final=StatementReleaseVariable(
+                    variable=tmp_indicator_variable, source_ref=source_ref
+                ),
+                source_ref=source_ref,
+            ),
+        ),
+        allow_none=False,
+        source_ref=source_ref,
     )

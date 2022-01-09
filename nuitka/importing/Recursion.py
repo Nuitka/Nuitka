@@ -23,21 +23,25 @@ import glob
 import os
 
 from nuitka import ModuleRegistry, Options
+from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.importing import ImportCache, Importing, StandardLibrary
+from nuitka.ModuleRegistry import addUsedModule, getRootTopModule
 from nuitka.pgo.PGO import decideInclusionFromPGO
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import recursion_logger
-from nuitka.utils.FileOperations import listDir, relpath
+from nuitka.utils.FileOperations import listDir
 from nuitka.utils.ModuleNames import ModuleName
 
+from .Importing import getModuleNameAndKindFromFilename
 
-def _recurseTo(module_package, module_filename, module_kind):
+
+def _recurseTo(module_name, module_filename, module_kind):
     from nuitka.tree import Building
 
     module, is_added = Building.buildModule(
         module_filename=module_filename,
-        module_package=module_package,
+        module_name=module_name,
         source_code=None,
         is_top=False,
         is_main=False,
@@ -51,20 +55,17 @@ def _recurseTo(module_package, module_filename, module_kind):
     return module, is_added
 
 
-def recurseTo(
-    signal_change, module_package, module_filename, module_relpath, module_kind, reason
-):
-    if ImportCache.isImportedModuleByPath(module_relpath):
-        try:
-            module = ImportCache.getImportedModuleByPath(module_relpath, module_package)
-        except KeyError:
-            module = None
-    else:
+def recurseTo(signal_change, module_name, module_filename, module_kind, reason):
+    try:
+        module = ImportCache.getImportedModuleByNameAndPath(
+            module_name, module_filename
+        )
+    except KeyError:
         module = None
 
     if module is None:
         module, added_flag = _recurseTo(
-            module_package=module_package,
+            module_name=module_name,
             module_filename=module_filename,
             module_kind=module_kind,
         )
@@ -80,6 +81,15 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
     # pylint: disable=too-many-branches,too-many-return-statements
     if module_name == "__main__":
         return False, "Main program is not followed to a second time."
+
+    # In -m mode, when including the package, do not duplicate main program.
+    if (
+        Options.hasPythonFlagPackageMode()
+        and not Options.shallMakeModule()
+        and module_name.getBasename() == "__main__"
+    ):
+        if module_name.getPackageName() == getRootTopModule().getRuntimePackageValue():
+            return False, "Main program is already included in package mode."
 
     plugin_decision = Plugins.onModuleEncounter(
         module_filename=module_filename,
@@ -101,13 +111,21 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
     is_stdlib = StandardLibrary.isStandardLibraryPath(module_filename)
 
     if not is_stdlib or Options.shallFollowStandardLibrary():
-        pgo_decision = decideInclusionFromPGO(
-            module_name=module_name,
-            module_kind=module_kind,
-        )
+        # TODO: Bad placement of this function or should PGO also know about
+        # bytecode modules loaded or not.
+        from nuitka.tree.Building import decideCompilationMode
 
-        if pgo_decision is not None:
-            return pgo_decision, "PGO based decision"
+        if (
+            decideCompilationMode(is_top=False, module_name=module_name, for_pgo=True)
+            == "compiled"
+        ):
+            pgo_decision = decideInclusionFromPGO(
+                module_name=module_name,
+                module_kind=module_kind,
+            )
+
+            if pgo_decision is not None:
+                return pgo_decision, "PGO based decision"
 
     no_case, reason = module_name.matchesToShellPatterns(
         patterns=Options.getShallFollowInNoCase()
@@ -156,19 +174,16 @@ def considerFilename(module_filename):
         module_filename = os.path.abspath(module_filename)
 
         module_name = os.path.basename(module_filename)
-        module_relpath = relpath(module_filename)
 
-        return module_filename, module_relpath, module_name
+        return module_filename, module_name
     elif module_filename.endswith(".py"):
         module_name = os.path.basename(module_filename)[:-3]
-        module_relpath = relpath(module_filename)
 
-        return module_filename, module_relpath, module_name
+        return module_filename, module_name
     elif module_filename.endswith(".pyw"):
         module_name = os.path.basename(module_filename)[:-4]
-        module_relpath = relpath(module_filename)
 
-        return module_filename, module_relpath, module_name
+        return module_filename, module_name
     else:
         return None
 
@@ -206,13 +221,10 @@ def checkPluginSinglePath(plugin_filename, module_package):
         )
 
         if decision:
-            module_relpath = relpath(plugin_filename)
-
             module = recurseTo(
                 signal_change=None,
                 module_filename=plugin_filename,
-                module_relpath=module_relpath,
-                module_package=module_package,
+                module_name=module_name,
                 module_kind=module_kind,
                 reason=reason,
             )
@@ -326,3 +338,58 @@ def checkPluginFilenamePattern(pattern):
 
     if not found:
         recursion_logger.warning("Didn't match any files against pattern %r." % pattern)
+
+
+def considerUsedModules(module, signal_change):
+    for (
+        used_module_name,
+        used_module_filename,
+        finding,
+        level,
+        source_ref,
+    ) in module.getUsedModules():
+        if finding == "not-found":
+            Importing.warnAbout(
+                importing=module,
+                source_ref=source_ref,
+                module_name=used_module_name,
+                level=level,
+            )
+
+        try:
+            if used_module_filename is None:
+                continue
+
+            _module_name, module_kind = getModuleNameAndKindFromFilename(
+                used_module_filename
+            )
+
+            decision, reason = decideRecursion(
+                module_filename=used_module_filename,
+                module_name=used_module_name,
+                module_kind=module_kind,
+            )
+
+            if decision:
+                used_module = recurseTo(
+                    signal_change=signal_change,
+                    module_name=used_module_name,
+                    module_filename=used_module_filename,
+                    module_kind=module_kind,
+                    reason=reason,
+                )
+
+                addUsedModule(
+                    module=used_module,
+                    using_module=module,
+                    usage_tag="import",
+                    reason=reason,
+                    source_ref=source_ref,
+                )
+        except NuitkaForbiddenImportEncounter as e:
+            recursion_logger.sysexit(
+                "Error, forbidden import of '%s' in module '%s' encountered."
+                % (e, module.getFullName().asString())
+            )
+
+    Plugins.considerImplicitImports(module=module, signal_change=signal_change)

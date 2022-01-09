@@ -42,9 +42,9 @@ sys.path.insert(
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
-    getMainProgramFilename,
     my_print,
     reportSkip,
+    scanDirectoryForTestCaseFolders,
     setup,
     withPythonPathChange,
 )
@@ -60,15 +60,7 @@ def main():
 
     extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
 
-    for filename in sorted(os.listdir(".")):
-        if (
-            not os.path.isdir(filename)
-            or filename.endswith(".build")
-            or filename.endswith(".dist")
-        ):
-            continue
-
-        filename = os.path.relpath(filename)
+    for filename, filename_main in scanDirectoryForTestCaseFolders("."):
 
         # For these, we expect that they will fail.
         expected_errors = [
@@ -93,6 +85,8 @@ def main():
         # Allowed with Python3, name imports can be module imports
         if python_version < (3,):
             expected_errors.append("named_imports")
+
+        extra_variant = []
 
         if filename not in expected_errors:
             extra_flags = ["expect_success"]
@@ -125,6 +119,10 @@ def main():
             extra_flags.append("--file-reference-choice=original")
         else:
             extra_flags.append("--file-reference-choice=runtime")
+
+        # Run it as a package and also as directory.
+        if filename == "package_program":
+            extra_variant.append("--python-flag=-m")
 
         # Cannot include the files with syntax errors, these would then become
         # ImportError, but that's not the test. In all other cases, use two
@@ -167,8 +165,6 @@ def main():
         if active:
             my_print("Consider output of recursively compiled program:", filename)
 
-            filename_main = getMainProgramFilename(filename)
-
             extra_python_path = [
                 os.path.abspath(os.path.join(filename, entry))
                 for entry in os.listdir(filename)
@@ -186,6 +182,16 @@ def main():
                     search_mode=search_mode,
                     needs_2to3=False,
                 )
+
+                if extra_variant:
+                    my_print("Extra variation %r." % extra_variant)
+                    compareWithCPython(
+                        dirname=filename,
+                        filename=filename_main,
+                        extra_flags=extra_flags + extra_variant,
+                        search_mode=search_mode,
+                        needs_2to3=False,
+                    )
 
     search_mode.finish()
 

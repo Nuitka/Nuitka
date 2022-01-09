@@ -31,14 +31,8 @@ static inline bool _BINARY_OPERATION_MULT_INT_INT_INPLACE(PyObject **operand1, P
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -60,14 +54,8 @@ static inline bool _BINARY_OPERATION_MULT_INT_INT_INPLACE(PyObject **operand1, P
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     const long a = PyInt_AS_LONG(*operand1);
     const long b = PyInt_AS_LONG(operand2);
@@ -318,9 +306,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(PyObject **operand1
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -350,14 +335,8 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(PyObject **operand1
 
         CHECK_OBJECT(*operand1);
         assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(*operand1));
-#endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
         const long a = PyInt_AS_LONG(*operand1);
         const long b = PyInt_AS_LONG(operand2);
@@ -614,9 +593,6 @@ static inline bool _BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(PyObject **operand1
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
 
     if (Py_REFCNT(*operand1) == 1) {
@@ -647,14 +623,8 @@ static inline bool _BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(PyObject **operand1
 
         CHECK_OBJECT(*operand1);
         assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(*operand1));
-#endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
         const long a = PyInt_AS_LONG(*operand1);
         const long b = PyInt_AS_LONG(operand2);
@@ -728,14 +698,8 @@ static inline bool _BINARY_OPERATION_MULT_LONG_LONG_INPLACE(PyObject **operand1,
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -960,9 +924,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_LONG_INPLACE(PyObject **operand
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -1201,9 +1162,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_OBJECT_INPLACE(PyObject **operand
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
 
     if (Py_REFCNT(*operand1) == 1) {
@@ -1257,14 +1215,8 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_FLOAT_INPLACE(PyObject **operand
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -1285,14 +1237,8 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_FLOAT_INPLACE(PyObject **operand
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     double a = PyFloat_AS_DOUBLE(*operand1);
     double b = PyFloat_AS_DOUBLE(operand2);
@@ -1506,9 +1452,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_FLOAT_INPLACE(PyObject **operan
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -1537,14 +1480,8 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_FLOAT_INPLACE(PyObject **operan
 
         CHECK_OBJECT(*operand1);
         assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(*operand1));
-#endif
         CHECK_OBJECT(operand2);
         assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
         double a = PyFloat_AS_DOUBLE(*operand1);
         double b = PyFloat_AS_DOUBLE(operand2);
@@ -1764,9 +1701,6 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(PyObject **operan
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
 
     if (Py_REFCNT(*operand1) == 1) {
@@ -1796,14 +1730,8 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(PyObject **operan
 
         CHECK_OBJECT(*operand1);
         assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(*operand1));
-#endif
         CHECK_OBJECT(operand2);
         assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
         double a = PyFloat_AS_DOUBLE(*operand1);
         double b = PyFloat_AS_DOUBLE(operand2);
@@ -1843,9 +1771,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_STR_INPLACE(PyObject **operand1
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyString_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -2023,9 +1948,6 @@ static inline bool _BINARY_OPERATION_MULT_STR_OBJECT_INPLACE(PyObject **operand1
 
     CHECK_OBJECT(*operand1);
     assert(PyString_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
 
     if (Py_REFCNT(*operand1) == 1) {
@@ -2180,14 +2102,8 @@ static inline bool _BINARY_OPERATION_MULT_INT_STR_INPLACE(PyObject **operand1, P
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyString_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -2294,14 +2210,8 @@ static inline bool _BINARY_OPERATION_MULT_STR_INT_INPLACE(PyObject **operand1, P
 
     CHECK_OBJECT(*operand1);
     assert(PyString_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -2404,14 +2314,8 @@ static inline bool _BINARY_OPERATION_MULT_LONG_STR_INPLACE(PyObject **operand1, 
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyString_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -2524,14 +2428,8 @@ static inline bool _BINARY_OPERATION_MULT_STR_LONG_INPLACE(PyObject **operand1, 
 
     CHECK_OBJECT(*operand1);
     assert(PyString_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -2640,7 +2538,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_UNICODE_INPLACE(PyObject **oper
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyUnicode_CheckExact(operand2));
-    assert(NEW_STYLE_NUMBER(operand2));
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -2820,7 +2717,6 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_OBJECT_INPLACE(PyObject **oper
 
     CHECK_OBJECT(*operand1);
     assert(PyUnicode_CheckExact(*operand1));
-    assert(NEW_STYLE_NUMBER(*operand1));
     CHECK_OBJECT(operand2);
 
     if (Py_REFCNT(*operand1) == 1) {
@@ -2974,12 +2870,8 @@ static inline bool _BINARY_OPERATION_MULT_INT_UNICODE_INPLACE(PyObject **operand
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyUnicode_CheckExact(operand2));
-    assert(NEW_STYLE_NUMBER(operand2));
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -3086,12 +2978,8 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_INT_INPLACE(PyObject **operand
 
     CHECK_OBJECT(*operand1);
     assert(PyUnicode_CheckExact(*operand1));
-    assert(NEW_STYLE_NUMBER(*operand1));
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -3194,12 +3082,8 @@ static inline bool _BINARY_OPERATION_MULT_LONG_UNICODE_INPLACE(PyObject **operan
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyUnicode_CheckExact(operand2));
-    assert(NEW_STYLE_NUMBER(operand2));
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -3319,12 +3203,8 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_LONG_INPLACE(PyObject **operan
 
     CHECK_OBJECT(*operand1);
     assert(PyUnicode_CheckExact(*operand1));
-    assert(NEW_STYLE_NUMBER(*operand1));
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -3436,9 +3316,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_TUPLE_INPLACE(PyObject **operan
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -3614,9 +3491,6 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_OBJECT_INPLACE(PyObject **operan
 
     CHECK_OBJECT(*operand1);
     assert(PyTuple_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
 
     if (Py_REFCNT(*operand1) == 1) {
@@ -3770,14 +3644,8 @@ static inline bool _BINARY_OPERATION_MULT_INT_TUPLE_INPLACE(PyObject **operand1,
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -3884,14 +3752,8 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_INT_INPLACE(PyObject **operand1,
 
     CHECK_OBJECT(*operand1);
     assert(PyTuple_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -3993,14 +3855,8 @@ static inline bool _BINARY_OPERATION_MULT_LONG_TUPLE_INPLACE(PyObject **operand1
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -4119,14 +3975,8 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_LONG_INPLACE(PyObject **operand1
 
     CHECK_OBJECT(*operand1);
     assert(PyTuple_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -4238,9 +4088,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_LIST_INPLACE(PyObject **operand
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyList_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -4416,9 +4263,6 @@ static inline bool _BINARY_OPERATION_MULT_LIST_OBJECT_INPLACE(PyObject **operand
 
     CHECK_OBJECT(*operand1);
     assert(PyList_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
 
     if (Py_REFCNT(*operand1) == 1) {
@@ -4572,14 +4416,8 @@ static inline bool _BINARY_OPERATION_MULT_INT_LIST_INPLACE(PyObject **operand1, 
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyList_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -4686,14 +4524,8 @@ static inline bool _BINARY_OPERATION_MULT_LIST_INT_INPLACE(PyObject **operand1, 
 
     CHECK_OBJECT(*operand1);
     assert(PyList_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -4795,14 +4627,8 @@ static inline bool _BINARY_OPERATION_MULT_LONG_LIST_INPLACE(PyObject **operand1,
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyList_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -4921,14 +4747,8 @@ static inline bool _BINARY_OPERATION_MULT_LIST_LONG_INPLACE(PyObject **operand1,
 
     CHECK_OBJECT(*operand1);
     assert(PyList_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -5041,9 +4861,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_BYTES_INPLACE(PyObject **operan
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyBytes_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -5221,9 +5038,6 @@ static inline bool _BINARY_OPERATION_MULT_BYTES_OBJECT_INPLACE(PyObject **operan
 
     CHECK_OBJECT(*operand1);
     assert(PyBytes_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
 
     if (Py_REFCNT(*operand1) == 1) {
@@ -5378,14 +5192,8 @@ static inline bool _BINARY_OPERATION_MULT_LONG_BYTES_INPLACE(PyObject **operand1
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyBytes_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -5535,14 +5343,8 @@ static inline bool _BINARY_OPERATION_MULT_BYTES_LONG_INPLACE(PyObject **operand1
 
     CHECK_OBJECT(*operand1);
     assert(PyBytes_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(!NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -5688,14 +5490,8 @@ static inline bool _BINARY_OPERATION_MULT_INT_LONG_INPLACE(PyObject **operand1, 
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -5796,14 +5592,8 @@ static inline bool _BINARY_OPERATION_MULT_LONG_INT_INPLACE(PyObject **operand1, 
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -5904,14 +5694,8 @@ static inline bool _BINARY_OPERATION_MULT_INT_FLOAT_INPLACE(PyObject **operand1,
 
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -6012,14 +5796,8 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_INT_INPLACE(PyObject **operand1,
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -6119,14 +5897,8 @@ static inline bool _BINARY_OPERATION_MULT_LONG_FLOAT_INPLACE(PyObject **operand1
 
     CHECK_OBJECT(*operand1);
     assert(PyLong_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -6229,14 +6001,8 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_LONG_INPLACE(PyObject **operand1
 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(*operand1));
-#endif
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-    assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
     if (Py_REFCNT(*operand1) == 1) {
         // We more or less own the operand, so we might re-use its storage and
@@ -6358,14 +6124,8 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_OBJECT_INPLACE(PyObject **opera
 
         CHECK_OBJECT(*operand1);
         assert(PyInt_CheckExact(*operand1));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(*operand1));
-#endif
         CHECK_OBJECT(operand2);
         assert(PyInt_CheckExact(operand2));
-#if PYTHON_VERSION < 0x300
-        assert(NEW_STYLE_NUMBER(operand2));
-#endif
 
         const long a = PyInt_AS_LONG(*operand1);
         const long b = PyInt_AS_LONG(operand2);

@@ -147,9 +147,8 @@ class StatementAssignmentVariable(StatementChildHavingBase):
     def __init__(self, source, variable, source_ref, version=None):
         assert source is not None, source_ref
 
-        if variable is not None:
-            if version is None:
-                version = variable.allocateTargetNumber()
+        if version is None:
+            version = variable.allocateTargetNumber()
 
         self.variable = variable
         self.variable_version = version
@@ -291,9 +290,6 @@ Assignment raises exception in assigned value, removed assignment.""",
             )
 
         variable = self.variable
-
-        # Not allowed anymore at this point.
-        assert variable is not None
 
         # Assigning from and to the same variable, can be optimized away
         # immediately, there is no point in doing it. Exceptions are of course
@@ -720,7 +716,7 @@ class StatementReleaseVariable(StatementBase):
                     None,
                     "new_statements",
                     "Original parameter variable value of '%s' is not released."
-                    % self.variable.getDescription(),
+                    % self.variable.getName(),
                 )
 
         self.variable_trace = trace_collection.getVariableCurrentTrace(self.variable)

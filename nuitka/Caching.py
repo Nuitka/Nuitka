@@ -91,7 +91,7 @@ def writeImportedModulesNamesToCache(module_name, source_code, used_modules):
     cache_name = makeCacheName(module_name, source_code)
 
     with openTextFile(_getCacheFilename(cache_name, "txt"), "w") as modules_cache_file:
-        for used_module_name, _filename in used_modules:
+        for used_module_name, _filename, _finding, _level, _source_ref in used_modules:
             modules_cache_file.write(used_module_name.asString() + "\n")
 
 
