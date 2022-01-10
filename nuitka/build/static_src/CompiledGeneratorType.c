@@ -1464,27 +1464,23 @@ PyTypeObject Nuitka_Generator_Type = {
     Nuitka_Generator_methods,                            /* tp_methods */
     NULL,                                                /* tp_members */
     Nuitka_Generator_getsetlist,                         /* tp_getset */
-#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
-    &PyGen_Type, /* tp_base */
-#else
-    0, /* tp_base */
-#endif
-    0, /* tp_dict */
-    0, /* tp_descr_get */
-    0, /* tp_descr_set */
-    0, /* tp_dictoffset */
-    0, /* tp_init */
-    0, /* tp_alloc */
-    0, /* tp_new */
-    0, /* tp_free */
-    0, /* tp_is_gc */
-    0, /* tp_bases */
-    0, /* tp_mro */
-    0, /* tp_cache */
-    0, /* tp_subclasses */
-    0, /* tp_weaklist */
-    0, /* tp_del */
-    0  /* tp_version_tag */
+    0,                                                   /* tp_base */
+    0,                                                   /* tp_dict */
+    0,                                                   /* tp_descr_get */
+    0,                                                   /* tp_descr_set */
+    0,                                                   /* tp_dictoffset */
+    0,                                                   /* tp_init */
+    0,                                                   /* tp_alloc */
+    0,                                                   /* tp_new */
+    0,                                                   /* tp_free */
+    0,                                                   /* tp_is_gc */
+    0,                                                   /* tp_bases */
+    0,                                                   /* tp_mro */
+    0,                                                   /* tp_cache */
+    0,                                                   /* tp_subclasses */
+    0,                                                   /* tp_weaklist */
+    0,                                                   /* tp_del */
+    0                                                    /* tp_version_tag */
 #if PYTHON_VERSION >= 0x340
     ,
     (destructor)Nuitka_Generator_tp_finalizer /* tp_finalize */
@@ -1499,6 +1495,11 @@ static void _initCompiledAsyncgenTypes();
 #endif
 
 void _initCompiledGeneratorType(void) {
+
+#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
+    Nuitka_Generator_Type.tp_base = &PyGen_Type;
+#endif
+
     PyType_Ready(&Nuitka_Generator_Type);
 
     // Be a paranoid subtype of uncompiled function, we want nothing shared.

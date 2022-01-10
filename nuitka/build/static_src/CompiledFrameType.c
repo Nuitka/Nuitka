@@ -540,16 +540,15 @@ PyTypeObject Nuitka_Frame_Type = {
     Nuitka_Frame_methods,                    // tp_methods
     Nuitka_Frame_memberlist,                 // tp_members
     Nuitka_Frame_getsetlist,                 // tp_getset
-#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
-    &PyFrame_Type, // tp_base
-#else
-    0, // tp_base
-#endif
-
-    0, // tp_dict
+    0,                                       // tp_base
+    0,                                       // tp_dict
 };
 
 void _initCompiledFrameType(void) {
+#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
+    Nuitka_Frame_Type.tp_base = &PyFrame_Type;
+#endif
+
     PyType_Ready(&Nuitka_Frame_Type);
 
     // These are to be used interchangeably. Make sure that's true.

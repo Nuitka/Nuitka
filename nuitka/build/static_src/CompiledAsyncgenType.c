@@ -1094,28 +1094,24 @@ PyTypeObject Nuitka_Asyncgen_Type = {
     Nuitka_Asyncgen_methods,                                            /* tp_methods */
     Nuitka_Asyncgen_members,                                            /* tp_members */
     Nuitka_Asyncgen_getsetlist,                                         /* tp_getset */
-#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
-    &PyAsyncGen_Type, /* tp_base */
-#else
-    0, /* tp_base */
-#endif
-    0,                                       /* tp_dict */
-    0,                                       /* tp_descr_get */
-    0,                                       /* tp_descr_set */
-    0,                                       /* tp_dictoffset */
-    0,                                       /* tp_init */
-    0,                                       /* tp_alloc */
-    0,                                       /* tp_new */
-    0,                                       /* tp_free */
-    0,                                       /* tp_is_gc */
-    0,                                       /* tp_bases */
-    0,                                       /* tp_mro */
-    0,                                       /* tp_cache */
-    0,                                       /* tp_subclasses */
-    0,                                       /* tp_weaklist */
-    0,                                       /* tp_del */
-    0,                                       /* tp_version_tag */
-    (destructor)Nuitka_Asyncgen_tp_finalize, /* tp_finalize */
+    0,                                                                  /* tp_base */
+    0,                                                                  /* tp_dict */
+    0,                                                                  /* tp_descr_get */
+    0,                                                                  /* tp_descr_set */
+    0,                                                                  /* tp_dictoffset */
+    0,                                                                  /* tp_init */
+    0,                                                                  /* tp_alloc */
+    0,                                                                  /* tp_new */
+    0,                                                                  /* tp_free */
+    0,                                                                  /* tp_is_gc */
+    0,                                                                  /* tp_bases */
+    0,                                                                  /* tp_mro */
+    0,                                                                  /* tp_cache */
+    0,                                                                  /* tp_subclasses */
+    0,                                                                  /* tp_weaklist */
+    0,                                                                  /* tp_del */
+    0,                                                                  /* tp_version_tag */
+    (destructor)Nuitka_Asyncgen_tp_finalize,                            /* tp_finalize */
 
 };
 
@@ -2126,6 +2122,11 @@ static PyObject *Nuitka_AsyncgenAthrow_New(struct Nuitka_AsyncgenObject *asyncge
 }
 
 static void _initCompiledAsyncgenTypes(void) {
+
+#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
+    Nuitka_Asyncgen_Type.tp_base = &PyAsyncGen_Type;
+#endif
+
     PyType_Ready(&Nuitka_Asyncgen_Type);
 
     // Be a paranoid subtype of uncompiled function, we want nothing shared.

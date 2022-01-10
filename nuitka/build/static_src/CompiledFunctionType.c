@@ -15,6 +15,10 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
+// Compiled function type.
+
+// The backbone of the integration into CPython. Try to behave as well as normal
+// functions and built-in functions, or even better.
 
 #include "nuitka/prelude.h"
 
@@ -519,27 +523,23 @@ PyTypeObject Nuitka_Function_Type = {
     Nuitka_Function_methods,                            /* tp_methods */
     0,                                                  /* tp_members */
     Nuitka_Function_getset,                             /* tp_getset */
-#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
-    &PyFunction_Type, /* tp_base */
-#else
-    0,                                                    /* tp_base */
-#endif
-    0,                                              /* tp_dict */
-    Nuitka_Function_descr_get,                      /* tp_descr_get */
-    0,                                              /* tp_descr_set */
-    offsetof(struct Nuitka_FunctionObject, m_dict), /* tp_dictoffset */
-    0,                                              /* tp_init */
-    0,                                              /* tp_alloc */
-    0,                                              /* tp_new */
-    0,                                              /* tp_free */
-    0,                                              /* tp_is_gc */
-    0,                                              /* tp_bases */
-    0,                                              /* tp_mro */
-    0,                                              /* tp_cache */
-    0,                                              /* tp_subclasses */
-    0,                                              /* tp_weaklist */
-    0,                                              /* tp_del */
-    0                                               /* tp_version_tag */
+    0,                                                  /* tp_base */
+    0,                                                  /* tp_dict */
+    Nuitka_Function_descr_get,                          /* tp_descr_get */
+    0,                                                  /* tp_descr_set */
+    offsetof(struct Nuitka_FunctionObject, m_dict),     /* tp_dictoffset */
+    0,                                                  /* tp_init */
+    0,                                                  /* tp_alloc */
+    0,                                                  /* tp_new */
+    0,                                                  /* tp_free */
+    0,                                                  /* tp_is_gc */
+    0,                                                  /* tp_bases */
+    0,                                                  /* tp_mro */
+    0,                                                  /* tp_cache */
+    0,                                                  /* tp_subclasses */
+    0,                                                  /* tp_weaklist */
+    0,                                                  /* tp_del */
+    0                                                   /* tp_version_tag */
 #if PYTHON_VERSION >= 0x340
     ,
     0 /* tp_finalizer */
@@ -547,6 +547,10 @@ PyTypeObject Nuitka_Function_Type = {
 };
 
 void _initCompiledFunctionType(void) {
+#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
+    Nuitka_Function_Type.tp_base = &PyFunction_Type;
+#endif
+
     PyType_Ready(&Nuitka_Function_Type);
 
     // Be a paranoid subtype of uncompiled function, we want nothing shared.

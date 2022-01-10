@@ -1210,28 +1210,24 @@ PyTypeObject Nuitka_Coroutine_Type = {
     Nuitka_Coroutine_methods,                                           /* tp_methods */
     Nuitka_Coroutine_members,                                           /* tp_members */
     Nuitka_Coroutine_getsetlist,                                        /* tp_getset */
-#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
-    &PyCoro_Type, /* tp_base */
-#else
-    0, /* tp_base */
-#endif
-    0,                                        /* tp_dict */
-    0,                                        /* tp_descr_get */
-    0,                                        /* tp_descr_set */
-    0,                                        /* tp_dictoffset */
-    0,                                        /* tp_init */
-    0,                                        /* tp_alloc */
-    0,                                        /* tp_new */
-    0,                                        /* tp_free */
-    0,                                        /* tp_is_gc */
-    0,                                        /* tp_bases */
-    0,                                        /* tp_mro */
-    0,                                        /* tp_cache */
-    0,                                        /* tp_subclasses */
-    0,                                        /* tp_weaklist */
-    0,                                        /* tp_del */
-    0,                                        /* tp_version_tag */
-    (destructor)Nuitka_Coroutine_tp_finalize, /* tp_finalize */
+    0,                                                                  /* tp_base */
+    0,                                                                  /* tp_dict */
+    0,                                                                  /* tp_descr_get */
+    0,                                                                  /* tp_descr_set */
+    0,                                                                  /* tp_dictoffset */
+    0,                                                                  /* tp_init */
+    0,                                                                  /* tp_alloc */
+    0,                                                                  /* tp_new */
+    0,                                                                  /* tp_free */
+    0,                                                                  /* tp_is_gc */
+    0,                                                                  /* tp_bases */
+    0,                                                                  /* tp_mro */
+    0,                                                                  /* tp_cache */
+    0,                                                                  /* tp_subclasses */
+    0,                                                                  /* tp_weaklist */
+    0,                                                                  /* tp_del */
+    0,                                                                  /* tp_version_tag */
+    (destructor)Nuitka_Coroutine_tp_finalize,                           /* tp_finalize */
 };
 
 static void Nuitka_CoroutineWrapper_tp_dealloc(struct Nuitka_CoroutineWrapperObject *cw) {
@@ -1832,6 +1828,10 @@ PyObject *ASYNC_ITERATOR_NEXT(PyObject *value) {
 }
 
 static void _initCompiledCoroutineTypes(void) {
+#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
+    Nuitka_Coroutine_Type.tp_base = &PyCoro_Type;
+#endif
+
     PyType_Ready(&Nuitka_Coroutine_Type);
 
     // Be a paranoid subtype of uncompiled function, we want nothing shared.
