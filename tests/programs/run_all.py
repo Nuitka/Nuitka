@@ -122,7 +122,9 @@ def main():
 
         # Run it as a package and also as directory.
         if filename == "package_program":
-            extra_variant.append("--python-flag=-m")
+            # Not really supported for 2.6
+            if python_version >= (2, 7):
+                extra_variant.append("--python-flag=-m")
 
         # Cannot include the files with syntax errors, these would then become
         # ImportError, but that's not the test. In all other cases, use two
