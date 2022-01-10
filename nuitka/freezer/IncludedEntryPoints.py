@@ -25,10 +25,9 @@ added, and whose dependencies will also be included.
 
 import collections
 import os
-import shutil
 
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
-from nuitka.utils.FileOperations import isRelativePath, makePath
+from nuitka.utils.FileOperations import copyFile, isRelativePath, makePath
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -132,7 +131,7 @@ def addShlibEntryPoint(module):
     if not os.path.isdir(target_dir):
         makePath(target_dir)
 
-    shutil.copyfile(module.getFilename(), target_filename)
+    copyFile(module.getFilename(), target_filename)
 
     standalone_entry_points.append(
         makeExtensionModuleEntryPoint(

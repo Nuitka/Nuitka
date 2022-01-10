@@ -26,7 +26,6 @@ import hashlib
 import marshal
 import os
 import pkgutil
-import shutil
 import sys
 
 from nuitka import Options, SourceCodeReferences
@@ -53,6 +52,7 @@ from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
+    copyFile,
     copyFileWithPermissions,
     getDirectoryRealPath,
     getFileContentByLine,
@@ -1289,7 +1289,7 @@ different from
 
         # Sometimes DLL dependencies were copied there already.
         if not os.path.exists(target_path):
-            shutil.copyfile(dll_filename, target_path)
+            copyFile(dll_filename, target_path)
 
         dll_map.append((dll_filename, dll_name))
 

@@ -36,9 +36,10 @@ from contextlib import contextmanager
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     WindowsError,
     basestring,
+    raw_input,
 )
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import my_print, options_logger
+from nuitka.Tracing import general, my_print, options_logger
 
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
@@ -558,7 +559,7 @@ def renameFile(source_filename, dest_filename):
     try:
         os.rename(source_filename, dest_filename)
     except OSError:
-        shutil.copyfile(source_filename, dest_filename)
+        copyFile(source_filename, dest_filename)
         os.unlink(source_filename)
 
     os.chmod(dest_filename, old_stat.st_mode)
@@ -600,6 +601,35 @@ def copyFileWithPermissions(source_path, dest_path):
         source_mode = os.stat(source_path).st_mode
         shutil.copy(source_path, dest_path)
         os.chmod(dest_path, source_mode)
+
+
+def copyFile(source_path, dest_path):
+    """Improved version of shutil.copy
+
+    This handles errors with a chance to correct them, e.g. on Windows, files might be
+    locked by running program or virus checkers.
+    """
+
+    while 1:
+        try:
+            shutil.copyfile(source_path, dest_path)
+        except PermissionError as e:
+            if e.errno != errno.EACCES:
+                raise
+
+            general.warning("Problem copying file %s:" % e)
+
+            try:
+                reply = raw_input("Retry? (YES/no) ") or "yes"
+            except EOFError:
+                reply = "no"
+
+            if reply.upper() == "YES":
+                continue
+
+            raise
+
+        break
 
 
 def getWindowsDrive(path):

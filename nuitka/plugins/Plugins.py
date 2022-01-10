@@ -29,7 +29,6 @@ The base class in PluginBase will serve as documentation of available.
 
 import inspect
 import os
-import shutil
 from optparse import OptionConflictError, OptionGroup
 
 import nuitka.plugins.commercial
@@ -44,6 +43,7 @@ from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
+    copyFile,
     makePath,
     putTextFileContents,
 )
@@ -443,7 +443,7 @@ class Plugins(object):
 
                     makePath(os.path.dirname(extra_dll.dest_path))
 
-                    shutil.copyfile(extra_dll.source_path, extra_dll.dest_path)
+                    copyFile(extra_dll.source_path, extra_dll.dest_path)
 
                     if extra_dll.executable:
                         addFileExecutablePermission(extra_dll.dest_path)

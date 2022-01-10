@@ -46,6 +46,7 @@ from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import getNullInput, withEnvironmentVarsOverriden
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
+    copyFile,
     deleteFile,
     getFileContents,
     getFileList,
@@ -147,7 +148,7 @@ exec -a $ARGV0 $APPDIR/%s \"$@\""""
     assert icon_paths
     extension = os.path.splitext(icon_paths[0])[1].lower()
 
-    shutil.copyfile(icon_paths[0], getResultBasepath() + extension)
+    copyFile(icon_paths[0], getResultBasepath() + extension)
 
     putTextFileContents(
         getResultBasepath() + ".desktop",

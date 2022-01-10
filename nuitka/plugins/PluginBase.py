@@ -28,7 +28,6 @@ it being used.
 
 import inspect
 import os
-import shutil
 import sys
 from collections import namedtuple
 
@@ -37,7 +36,7 @@ from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.Options import isStandaloneMode
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
-from nuitka.utils.FileOperations import makePath
+from nuitka.utils.FileOperations import copyFile, makePath
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
 
@@ -393,9 +392,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             # Copy to the dist directory, which normally should not be a plugin task, but is for now.
             makePath(os.path.dirname(included_entry_point.dest_path))
 
-            shutil.copyfile(
-                included_entry_point.source_path, included_entry_point.dest_path
-            )
+            copyFile(included_entry_point.source_path, included_entry_point.dest_path)
 
             yield included_entry_point
 

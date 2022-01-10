@@ -27,7 +27,6 @@ in comparisons.
 
 import hashlib
 import os
-import shutil
 import sys
 from optparse import OptionParser
 
@@ -44,6 +43,7 @@ from nuitka.tools.testing.Constructs import generateConstructCases
 from nuitka.tools.testing.Valgrind import runValgrind
 from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import (
+    copyFile,
     getFileContentByLine,
     getFileContents,
     putTextFileContents,
@@ -105,7 +105,7 @@ def main():
     needs_2to3 = decideNeeds2to3(test_case)
 
     if options.target_dir:
-        shutil.copyfile(
+        copyFile(
             test_case, os.path.join(options.target_dir, os.path.basename(test_case))
         )
 
@@ -161,7 +161,7 @@ def main():
 
         # We want to compile under the same filename to minimize differences, and
         # then copy the resulting files afterwards.
-        shutil.copyfile(test_case_1, case_name)
+        copyFile(test_case_1, case_name)
 
         check_call(nuitka_call)
 
@@ -179,7 +179,7 @@ def main():
             os.path.basename(test_case_1).replace(".py", exe_suffix),
         )
 
-        shutil.copyfile(test_case_2, os.path.basename(test_case))
+        copyFile(test_case_2, os.path.basename(test_case))
 
         check_call(nuitka_call)
 
