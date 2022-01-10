@@ -76,7 +76,11 @@ def _addActivePlugin(plugin_class, args, force=False):
     else:
         plugin_args = {}
 
-    plugin_instance = plugin_class(**plugin_args)
+    try:
+        plugin_instance = plugin_class(**plugin_args)
+    except TypeError as e:
+        plugin_class.sysexit("Problem initializing plugin: %s" % e)
+
     assert isinstance(plugin_instance, NuitkaPluginBase), plugin_instance
 
     active_plugins[plugin_name] = plugin_instance
@@ -996,6 +1000,20 @@ def loadPlugins():
 
         # now enable standard plugins
         loadStandardPluginClasses()
+
+
+def addStandardPluginCommandlineOptions(parser, data_files_tags):
+    loadPlugins()
+
+    for (_plugin_name, (plugin_class, _plugin_detector)) in sorted(
+        plugin_name2plugin_classes.items()
+    ):
+        if plugin_class.isAlwaysEnabled():
+            _addPluginCommandLineOptions(
+                parser=parser,
+                plugin_class=plugin_class,
+                data_files_tags=data_files_tags,
+            )
 
 
 def activatePlugins():

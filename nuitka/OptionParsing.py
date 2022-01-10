@@ -1314,8 +1314,11 @@ def _considerPluginOptions(logger):
     # Cyclic dependency on plugins during parsing of command line.
     from nuitka.plugins.Plugins import (
         addPluginCommandLineOptions,
+        addStandardPluginCommandlineOptions,
         addUserPluginCommandLineOptions,
     )
+
+    addStandardPluginCommandlineOptions(parser=parser, data_files_tags=data_files_tags)
 
     for arg in sys.argv[1:]:
         if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
