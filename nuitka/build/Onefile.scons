@@ -58,7 +58,7 @@ from nuitka.Tracing import (
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
     checkWindowsCompilerFound,
-    enableExperimentalSettings,
+    reportCCompiler,
     setupCCompiler,
     switchFromGccToGpp,
 )
@@ -260,6 +260,7 @@ env = createEnvironment(
     mingw_mode=mingw_mode,
     msvc_version=msvc_version,
     target_arch=target_arch,
+    experimental=experimental,
 )
 
 scons_details_logger.info("Initial CC: %r" % env.get("CC"))
@@ -282,8 +283,6 @@ elif clang_mode:
 
     env["CC"] = "clang"
     env["CCVERSION"] = None
-
-enableExperimentalSettings(env, experimental)
 
 # On Windows, in case MSVC was not found and not previously forced, use the
 # winlibs MinGW64 as a download, and use it as a fallback.
@@ -346,6 +345,10 @@ if show_scons_mode:
 
 # Set build directory and scons general settings.
 setupScons(env, source_dir)
+
+# Report the C compiler used.
+reportCCompiler(env, "Onefile")
+
 
 # Set up C compiler settings.
 setupCCompiler(
