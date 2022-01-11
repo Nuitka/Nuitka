@@ -382,13 +382,7 @@ def setCommonOptions(options):
         options["mingw_mode"] = "true"
 
     if Options.getMsvcVersion():
-        msvc_version = Options.getMsvcVersion()
-
-        msvc_version = msvc_version.replace("exp", "Exp")
-        if "." not in msvc_version and msvc_version != "latest":
-            msvc_version += ".0"
-
-        options["msvc_version"] = msvc_version
+        options["msvc_version"] = Options.getMsvcVersion()
 
     if Options.shallDisableCCacheUsage():
         options["disable_ccache"] = asBoolStr(True)

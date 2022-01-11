@@ -484,6 +484,15 @@ def commentArgs():
             "Requesting both Windows specific compilers makes no sense."
         )
 
+    if getMsvcVersion() and getMsvcVersion() not in ("list", "latest"):
+        if getMsvcVersion().count(".") != 1 or not all(
+            x.isdigit() for x in getMsvcVersion().split(".")
+        ):
+            Tracing.options_logger.sysexit(
+                "For --msvc only values 'latest', 'info', and 'X.Y' values are allowed, but not %r."
+                % getMsvcVersion()
+            )
+
     if isOnefileMode():
         standalone_mode = "onefile"
     elif isStandaloneMode():

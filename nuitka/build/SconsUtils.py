@@ -143,6 +143,13 @@ def createEnvironment(mingw_mode, msvc_version, target_arch, experimental):
 
     args = {}
 
+    if msvc_version == "list":
+        import SCons.Tool.MSCommon.vc  # pylint: disable=I0021,import-error
+
+        scons_logger.sysexit(
+            "Installed MSVC versions are %s."
+            % ",".join(repr(v) for v in SCons.Tool.MSCommon.vc.get_installed_vcs()),
+        )
     # If we are on Windows, and MinGW is not enforced, lets see if we can
     # find "cl.exe", and if we do, disable automatic scan.
     if (

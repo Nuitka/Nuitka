@@ -755,11 +755,11 @@ c_compiler_group.add_option(
     default=None,
     help="""\
 Enforce the use of specific MSVC version on Windows. Allowed values
-are e.g. "14.2" (MSVC 2019), specify an illegal value for a list of
-installed compilers, or use "latest". Notice that only latest
-MSVC is really supported, and you can use "latest" to enforce that.
+are e.g. "14.3" (MSVC 2022) and other MSVC version numbers, specify
+"list" for a list of installed compilers, or use "latest".
 
-Defaults to MSVC on Windows being used if installed, otherwise MinGW64.""",
+Defaults to latest MSVC being used if installed, otherwise MinGW64
+is used.""",
 )
 
 c_compiler_group.add_option(
