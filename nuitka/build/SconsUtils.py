@@ -118,7 +118,27 @@ def getArgumentList(option_name, default=None):
         return []
 
 
-def createEnvironment(mingw_mode, msvc_version, target_arch):
+def _enableExperimentalSettings(env, experimental_flags):
+    for experimental_flag in experimental_flags:
+        if experimental_flag:
+            if "=" in experimental_flag:
+                experiment, value = experimental_flag.split("=", 1)
+            else:
+                experiment = experimental_flag
+                value = None
+
+            # Allowing for nice names on command line, but using identifiers for C.
+            experiment = experiment.upper().replace("-", "_")
+
+            if value:
+                env.Append(CPPDEFINES=[("_NUITKA_EXPERIMENTAL_%s" % experiment, value)])
+            else:
+                env.Append(CPPDEFINES=["_NUITKA_EXPERIMENTAL_%s" % experiment])
+
+    env.experimental_flags = experimental_flags
+
+
+def createEnvironment(mingw_mode, msvc_version, target_arch, experimental):
     from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
     args = {}
@@ -146,7 +166,7 @@ def createEnvironment(mingw_mode, msvc_version, target_arch):
         # Everything else should use default, that is MSVC tools, but not MinGW64.
         tools = ["default"]
 
-    return Environment(
+    env = Environment(
         # We want the outside environment to be passed through.
         ENV=os.environ,
         # Extra tools configuration for scons.
@@ -161,6 +181,10 @@ def createEnvironment(mingw_mode, msvc_version, target_arch):
         MSVC_VERSION=msvc_version if msvc_version != "latest" else None,
         **args
     )
+
+    _enableExperimentalSettings(env, experimental)
+
+    return env
 
 
 def decodeData(data):

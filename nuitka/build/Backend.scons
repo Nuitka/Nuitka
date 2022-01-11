@@ -62,8 +62,8 @@ from .SconsCompilerSettings import (
     addConstantBlobFile,
     checkWindowsCompilerFound,
     decideConstantsBlobResourceMode,
-    enableExperimentalSettings,
     enableWindowsStackSize,
+    reportCCompiler,
     setupCCompiler,
     switchFromGccToGpp,
 )
@@ -334,6 +334,7 @@ env = createEnvironment(
     mingw_mode=mingw_mode,
     msvc_version=msvc_version,
     target_arch=target_arch,
+    experimental=experimental,
 )
 
 scons_details_logger.info("Initial CC: %r" % env.get("CC"))
@@ -358,8 +359,6 @@ elif clang_mode:
     env["CC"] = "clang"
     env["CCVERSION"] = None
 
-enableExperimentalSettings(env, experimental)
-
 # On Windows, in case MSVC was not found and not previously forced, use the
 # winlibs MinGW64 as a download, and use it as a fallback.
 env = checkWindowsCompilerFound(
@@ -382,8 +381,6 @@ env.macos_minversion = macos_minversion
 env.anaconda_python = getArgumentBool("anaconda_python", False)
 env.pyenv_python = getArgumentBool("pyenv_python", False)
 env.apple_python = getArgumentBool("pyenv_python", False)
-
-scons_logger.info("Backend C compiler: %s (%s)." % (env.the_compiler, env.the_cc_name))
 
 # Requested or user provided, detect if it's clang even from environment
 if "clang" in env.the_cc_name and "-cl" not in env.the_cc_name:
@@ -427,6 +424,9 @@ if show_scons_mode:
 
 # Set build directory and scons general settings.
 setupScons(env, source_dir)
+
+# Report the C compiler used.
+reportCCompiler(env, "Backend")
 
 # Set up C compiler settings.
 setupCCompiler(

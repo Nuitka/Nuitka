@@ -110,7 +110,7 @@ def _enableLtoSettings(
     pgo_mode,
     job_count,
 ):
-    # This is driven by branches on purpose and pylint: disable=too-many-branches
+    # This is driven by branches on purpose and pylint: disable=too-many-branches,too-many-statements
 
     orig_lto_mode = lto_mode
 
@@ -140,6 +140,9 @@ def _enableLtoSettings(
     elif env.gcc_mode and env.the_cc_name == "gnu-cc":
         lto_mode = True
         reason = "known to be supported (CondaCC)"
+    elif env.mingw_mode and env.clang_mode:
+        lto_mode = False
+        reason = "known to not be supported (new MinGW64 Clang)"
     elif env.gcc_mode and env.mingw_mode and env.gcc_version >= (11, 2):
         lto_mode = True
         reason = "known to be supported (new MinGW64)"
@@ -285,6 +288,7 @@ def checkWindowsCompilerFound(
                 mingw_mode=True,
                 msvc_version=None,
                 target_arch=target_arch,
+                experimental=env.experimental_flags,
             )
 
             if clang_mode:
@@ -434,26 +438,6 @@ def enableWindowsStackSize(env, target_arch):
 
     if env.mingw_mode:
         env.Append(LINKFLAGS=["-Wl,--stack,%d" % stack_size])
-
-
-def enableExperimentalSettings(env, experimental_flags):
-    for experimental_flag in experimental_flags:
-        if experimental_flag:
-            if "=" in experimental_flag:
-                experiment, value = experimental_flag.split("=", 1)
-            else:
-                experiment = experimental_flag
-                value = None
-
-            # Allowing for nice names on command line, but using identifiers for C.
-            experiment = experiment.upper().replace("-", "_")
-
-            if value:
-                env.Append(CPPDEFINES=[("_NUITKA_EXPERIMENTAL_%s" % experiment, value)])
-            else:
-                env.Append(CPPDEFINES=["_NUITKA_EXPERIMENTAL_%s" % experiment])
-
-    env.experimental_flags = experimental_flags
 
 
 def setupCCompiler(env, lto_mode, pgo_mode, job_count):
@@ -734,3 +718,16 @@ version (>= 5.3)."""
             scons_logger.sysexit(
                 "Error, your gcc is too old for C11 support, and no related g++ to workaround that is found."
             )
+
+
+def reportCCompiler(env, context):
+    cc_output = env.the_cc_name
+
+    if env.the_cc_name == "cl":
+        cc_output = "%s %s" % (env.the_cc_name, getMsvcVersionString(env))
+    else:
+        cc_output = env.the_cc_name
+
+    scons_logger.info(
+        "%s C compiler: %s (%s)." % (context, env.the_compiler, cc_output)
+    )

@@ -2,11 +2,6 @@
  Nuitka User Manual
 ####################
 
-.. image:: doc/images/Nuitka-Logo-Symbol.png
-   :alt: Nuitka Logo
-
-.. contents::
-
 **********
  Overview
 **********
@@ -1063,10 +1058,6 @@ Follow me on Twitter
 Nuitka announcements and interesting stuff is pointed to on the Twitter
 account, but obviously with not too many details. `@KayHayen
 <https://twitter.com/KayHayen>`_.
-
-.. raw:: html
-
-   <a href="https://twitter.com/KayHayen?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-show-count="false">Follow @KayHayen</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 Report issues or bugs
 =====================

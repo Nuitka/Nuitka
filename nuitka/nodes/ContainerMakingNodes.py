@@ -74,6 +74,8 @@ class ExpressionMakeSequenceBase(
     def computeExpression(self, trace_collection):
         elements = self.subnode_elements
 
+        are_constants = True
+
         for count, element in enumerate(elements):
             if element.willRaiseException(BaseException):
                 result = wrapExpressionWithSideEffects(
@@ -82,9 +84,11 @@ class ExpressionMakeSequenceBase(
 
                 return result, "new_raise", "Sequence creation raises exception"
 
-        for element in elements:
-            if not element.isCompileTimeConstant():
-                return self, None, None
+            if are_constants and not element.isCompileTimeConstant():
+                are_constants = False
+
+        if are_constants is False:
+            return self, None, None
 
         simulator = self.getSimulator()
         assert simulator is not None
@@ -286,6 +290,49 @@ class ExpressionMakeSet(ExpressionSetShapeExactMixin, ExpressionMakeSequenceBase
     def getIterationMinLength():
         # Hashing and equality may consume elements of the produced set.
         return 1
+
+    def computeExpression(self, trace_collection):
+        # For sets, we need to consider
+
+        elements = self.subnode_elements
+
+        are_constants = True
+        are_hashable = True
+
+        for count, element in enumerate(elements):
+            if element.willRaiseException(BaseException):
+                result = wrapExpressionWithSideEffects(
+                    side_effects=elements[:count], new_node=element, old_node=self
+                )
+
+                return result, "new_raise", "Sequence creation raises exception"
+
+            if are_constants and not element.isCompileTimeConstant():
+                are_constants = False
+
+            if are_hashable and not element.isKnownToBeHashable():
+                are_hashable = False
+
+            if not are_hashable and not are_constants:
+                break
+
+        if not are_constants:
+            if not are_hashable:
+                trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        simulator = self.getSimulator()
+        assert simulator is not None
+
+        return trace_collection.getCompileTimeComputationResult(
+            node=self,
+            computation=lambda: simulator(
+                element.getCompileTimeConstant() for element in elements
+            ),
+            description="%s with constant arguments." % simulator.__name__.capitalize(),
+            user_provided=True,
+        )
 
     def mayRaiseException(self, exception_type):
         for element in self.subnode_elements:

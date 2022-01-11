@@ -153,3 +153,7 @@ kivymd:
 seedir.printing:
   patterns:
     - "words.txt"
+
+pygsheets:
+  dirs:
+    - "data"
