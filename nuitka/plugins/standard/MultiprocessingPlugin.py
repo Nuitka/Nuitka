@@ -53,6 +53,10 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
         return not Options.shallMakeModule()
 
     @staticmethod
+    def isAlwaysEnabled():
+        return True
+
+    @staticmethod
     def getPreprocessorSymbols():
         return {"_NUITKA_PLUGIN_MULTIPROCESSING_ENABLED": "1"}
 
@@ -112,8 +116,12 @@ if str is bytes:
 Monkey patching "multiprocessing" for compiled methods.""",
             )
 
-    def onModuleInitialSet(self):
-        from nuitka.tree.Building import buildModule
+    @staticmethod
+    def createFakeModuleDependency(module):
+        full_name = module.getFullName()
+
+        if full_name != "multiprocessing":
+            return
 
         # First, build the module node and then read again from the
         # source code.
@@ -138,21 +146,12 @@ __import__("multiprocessing.spawn").spawn.freeze_support()"""
 __import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
 __import__("multiprocessing.forking").forking.freeze_support()"""
 
-        multiprocessing_main_module, _added = buildModule(
-            module_filename=root_module.getCompileTimeFilename(),
-            module_name=module_name,
-            source_code=source_code,
-            is_top=False,
-            is_main=False,
-            is_shlib=False,
-            is_fake=module_name,
-            hide_syntax_error=False,
+        yield (
+            module_name,
+            source_code,
+            root_module.getCompileTimeFilename(),
+            "Autoenable multiprocessing freeze support",
         )
-
-        if multiprocessing_main_module.getCompilationMode() == "bytecode":
-            multiprocessing_main_module.setSourceCode(source_code)
-
-        yield multiprocessing_main_module
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         # Enforce recursion in to multiprocessing for accelerated mode, which
@@ -175,16 +174,3 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
             )
 
         return source_code
-
-
-class NuitkaPluginDetectorMultiprocessingWorkarounds(NuitkaPluginBase):
-    detector_for = NuitkaPluginMultiprocessingWorkarounds
-
-    @classmethod
-    def isRelevant(cls):
-        return not Options.shallMakeModule()
-
-    def checkModuleSourceCode(self, module_name, source_code):
-        if module_name == "__main__":
-            if "multiprocessing" in source_code:
-                self.warnUnusedPlugin("Multiprocessing workarounds for compiled code.")

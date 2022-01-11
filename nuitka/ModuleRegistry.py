@@ -203,6 +203,14 @@ def getModuleInclusionInfos():
     return active_modules_info
 
 
+def getModuleInclusionInfoByName(module_name):
+    for module, info in active_modules_info.items():
+        if module.getFullName() == module_name:
+            return info
+
+    return None
+
+
 def removeDoneModule(module):
     done_modules.remove(module)
 

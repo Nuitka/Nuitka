@@ -50,7 +50,12 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 
-from .PluginBase import NuitkaPluginBase, post_modules, pre_modules
+from .PluginBase import (
+    NuitkaPluginBase,
+    makeTriggerModuleName,
+    postload_trigger_name,
+    preload_trigger_name,
+)
 
 # Maps plugin name to plugin instances.
 active_plugins = OrderedDict()
@@ -59,6 +64,11 @@ plugin_options = {}
 plugin_datatag2pluginclasses = {}
 plugin_values = {}
 user_plugins = OrderedSet()
+
+# Trigger modules
+pre_modules = {}
+post_modules = {}
+fake_modules = {}
 
 
 def _addActivePlugin(plugin_class, args, force=False):
@@ -387,6 +397,16 @@ class Plugins(object):
                 source_ref=module.source_ref,
             )
 
+        if full_name in fake_modules:
+            for fake_module, plugin, reason in fake_modules[full_name]:
+                addUsedModule(
+                    module=fake_module,
+                    using_module=module,
+                    usage_tag="plugins",
+                    reason=reason,
+                    source_ref=module.source_ref,
+                )
+
     @staticmethod
     def onStandaloneDistributionFinished(dist_dir):
         """Let plugins postprocess the distribution folder in standalone mode"""
@@ -523,7 +543,7 @@ class Plugins(object):
 
         Args:
             module: the module object (serves as dict key)
-            trigger_name: string ("-preload"/"-postload")
+            trigger_name: string ("preload"/"postload")
             code: the code string
 
         Returns
@@ -532,7 +552,7 @@ class Plugins(object):
 
         from nuitka.tree.Building import buildModule
 
-        module_name = ModuleName(module.getFullName() + trigger_name)
+        module_name = makeTriggerModuleName(module.getFullName(), trigger_name)
 
         # In debug mode, put the files in the build folder, so they can be looked up easily.
         if Options.is_debug and "HIDE_SOURCE" not in flags:
@@ -568,6 +588,9 @@ class Plugins(object):
 
     @classmethod
     def onModuleDiscovered(cls, module):
+        # We offer plugins many ways to provide extra stuff
+        # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+
         full_name = module.getFullName()
 
         def _untangleLoadDesc(descs):
@@ -589,8 +612,21 @@ class Plugins(object):
 
                     yield plugin, code, reason, flags
 
+        def _untangleFakeDesc(descs):
+            if descs and inspect.isgenerator(descs):
+                descs = tuple(descs)
+
+            if descs:
+                if type(descs[0]) not in (tuple, list):
+                    descs = [descs]
+
+                for desc in descs:
+                    assert len(desc) == 4, desc
+                    yield plugin, desc[0], desc[1], desc[2], desc[3]
+
         preload_descs = []
         postload_descs = []
+        fake_descs = []
 
         for plugin in getActivePlugins():
             plugin.onModuleDiscovered(module)
@@ -600,6 +636,9 @@ class Plugins(object):
             )
             postload_descs.extend(
                 _untangleLoadDesc(descs=plugin.createPostModuleLoadCode(module))
+            )
+            fake_descs.extend(
+                _untangleFakeDesc(descs=plugin.createFakeModuleDependency(module))
             )
 
         if preload_descs:
@@ -622,7 +661,7 @@ class Plugins(object):
 
                 pre_modules[full_name] = cls._createTriggerLoadedModule(
                     module=module,
-                    trigger_name="-preLoad",
+                    trigger_name=preload_trigger_name,
                     code="\n\n".join(total_code),
                     flags=total_flags,
                 )
@@ -647,10 +686,38 @@ class Plugins(object):
 
                 post_modules[full_name] = cls._createTriggerLoadedModule(
                     module=module,
-                    trigger_name="-postLoad",
+                    trigger_name=postload_trigger_name,
                     code="\n\n".join(total_code),
                     flags=total_flags,
                 )
+
+        if fake_descs:
+            fake_modules[full_name] = []
+
+            from nuitka.tree.Building import buildModule
+
+            for (
+                plugin,
+                fake_module_name,
+                source_code,
+                fake_filename,
+                reason,
+            ) in fake_descs:
+                fake_module, _added = buildModule(
+                    module_filename=fake_filename,
+                    module_name=fake_module_name,
+                    source_code=source_code,
+                    is_top=False,
+                    is_main=False,
+                    is_shlib=False,
+                    is_fake=fake_module_name,
+                    hide_syntax_error=False,
+                )
+
+                if fake_module.getCompilationMode() == "bytecode":
+                    fake_module.setSourceCode(source_code)
+
+                fake_modules[full_name].append((fake_module, plugin, reason))
 
     @staticmethod
     def onModuleSourceCode(module_name, source_code):
@@ -1199,3 +1266,30 @@ def getPluginOptions(plugin_name):
         result[option.dest] = arg_value
 
     return result
+
+
+def replaceTriggerModule(old, new):
+    """Replace a trigger module with another form if it. For use in bytecode demotion."""
+
+    found = None
+    for key, value in pre_modules.items():
+        if value is old:
+            found = key
+            break
+
+    if found is not None:
+        pre_modules[found] = new
+
+    found = None
+    for key, value in post_modules.items():
+        if value is old:
+            found = key
+            break
+
+    if found is not None:
+        post_modules[found] = new
+
+
+def isTriggerModule(module):
+    """Decide of a module is a trigger module."""
+    return module in pre_modules.values() or module in post_modules.values()

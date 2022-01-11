@@ -43,6 +43,10 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         "Patch stupid imports out of widely used library modules source codes."
     )
 
+    @staticmethod
+    def isAlwaysEnabled():
+        return True
+
     def __init__(
         self,
         noinclude_setuptools_mode,

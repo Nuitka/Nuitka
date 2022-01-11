@@ -33,6 +33,7 @@ from collections import namedtuple
 
 from nuitka.__past__ import getMetaClassBase
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
+from nuitka.ModuleRegistry import getModuleInclusionInfoByName
 from nuitka.Options import isStandaloneMode
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
@@ -40,10 +41,15 @@ from nuitka.utils.FileOperations import copyFile, makePath
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
 
-pre_modules = {}
-post_modules = {}
-
 warned_unused_plugins = set()
+
+# Trigger names for shared use.
+postload_trigger_name = "postLoad"
+preload_trigger_name = "preLoad"
+
+
+def makeTriggerModuleName(module_name, trigger_name):
+    return ModuleName(module_name + "-" + trigger_name)
 
 
 class NuitkaPluginBase(getMetaClassBase("Plugin")):
@@ -258,6 +264,42 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         """
         # Virtual method, pylint: disable=unused-argument
         return None
+
+    @staticmethod
+    def createFakeModuleDependency(module):
+        """Create module to depend on.
+
+        Notes:
+            Called by @onModuleDiscovered.
+
+        Args:
+            module: the module object
+
+        Returns:
+            None (does not apply, default)
+            tuple (code, reason)
+            tuple (code, reason, flags)
+        """
+        # Virtual method, pylint: disable=unused-argument
+        return None
+
+    @staticmethod
+    def hasPreModuleLoadCode(module_name):
+        return (
+            getModuleInclusionInfoByName(
+                makeTriggerModuleName(module_name, preload_trigger_name)
+            )
+            is not None
+        )
+
+    @staticmethod
+    def hasPostModuleLoadCode(module_name):
+        return (
+            getModuleInclusionInfoByName(
+                makeTriggerModuleName(module_name, postload_trigger_name)
+            )
+            is not None
+        )
 
     def onModuleDiscovered(self, module):
         """Called with a module to be loaded.
@@ -704,30 +746,6 @@ except ImportError:
     @classmethod
     def sysexit(cls, message):
         plugins_logger.sysexit(cls.plugin_name + ": " + message)
-
-
-def isTriggerModule(module):
-    return module in pre_modules.values() or module in post_modules.values()
-
-
-def replaceTriggerModule(old, new):
-    found = None
-    for key, value in pre_modules.items():
-        if value is old:
-            found = key
-            break
-
-    if found is not None:
-        pre_modules[found] = new
-
-    found = None
-    for key, value in post_modules.items():
-        if value is old:
-            found = key
-            break
-
-    if found is not None:
-        post_modules[found] = new
 
 
 import functools

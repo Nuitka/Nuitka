@@ -30,7 +30,11 @@ from nuitka.importing.ImportCache import (
 )
 from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Plugins import (
+    Plugins,
+    isTriggerModule,
+    replaceTriggerModule,
+)
 from nuitka.Tracing import inclusion_logger
 
 
@@ -83,8 +87,6 @@ def demoteCompiledModuleToBytecode(module):
     if isImportedModuleByName(full_name):
         replaceImportedModule(old=module, new=uncompiled_module)
     replaceRootModule(old=module, new=uncompiled_module)
-
-    from nuitka.plugins.PluginBase import isTriggerModule, replaceTriggerModule
 
     if isTriggerModule(module):
         replaceTriggerModule(old=module, new=uncompiled_module)
