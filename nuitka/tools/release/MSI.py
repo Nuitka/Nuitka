@@ -44,7 +44,7 @@ def makeMsiCompatibleFilename(filename):
     filename = filename.replace("Nuitka32", "Nuitka")
     filename = filename.replace("Nuitka64", "Nuitka")
 
-    parts = [filename, "py" + sys.version[:3].replace(".", ""), "msi"]
+    parts = [filename, "py" + sys.version_info[0] + sys.version_info[1], "msi"]
 
     return ".".join(parts)
 
