@@ -29,3 +29,10 @@ phonenumbers.data:
 srsly.msgpack._packer:
   depends:
     - "srsly.msgpack.util"
+
+# TODO: In --follow-stdlib mode this is relevant, because we should actually
+# also follow modules that are needed for technical reasons only, then we could
+# see it and optimize it away potentially.
+locale:
+  depends:
+    - "_bootlocale"
