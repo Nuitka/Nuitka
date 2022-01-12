@@ -54,7 +54,12 @@ def getLocalsDictHandle(locals_name, kind, owner):
     # Duplicates are bad and cannot be tolerated.
     if locals_name in locals_dict_handles:
         raise NuitkaOptimizationError(
-            locals_name, kind, owner, locals_dict_handles[locals_name]
+            locals_name,
+            kind,
+            owner.getFullName(),
+            owner.getCompileTimeFilename(),
+            locals_dict_handles[locals_name].owner.getFullName(),
+            locals_dict_handles[locals_name].owner.getCompileTimeFilename(),
         )
 
     locals_dict_handles[locals_name] = getLocalsDictType(kind)(
