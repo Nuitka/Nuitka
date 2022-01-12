@@ -247,14 +247,14 @@ Optimization
    used sometimes for code needed to be compile time computed, to e.g.
    detect imports.
 
+   Same goes for ``endswith`` and ``startswith``, the later is e.g.
+   popular with ``sys.platform`` checks, and can remove a lot of code
+   from compilation with them now being decided at compile time.
+
    .. note::
 
-      Status
-
-      The ``endswith`` and ``startswith`` functions are missing and
-      would also be relatively important, otherwise the important ones
-      seem covered. With time we will achieve "all" of them, but that
-      may not happen in this release.
+      A few ``str`` methods are still missing, with time we will achieve
+      all of them, but this will take time.
 
 -  Added trust for ``sys.builtin_module_names`` as well. The ``os``
    module is using it to make platform determinations.
