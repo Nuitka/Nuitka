@@ -509,6 +509,11 @@ def commentArgs():
             % standalone_mode
         )
 
+    if options.follow_stdlib and not standalone_mode:
+        Tracing.options_logger.warning(
+            "Following imports to stdlib is unlikely to work without --standalone/--onefile and should not be specified."
+        )
+
     if (
         not shallDumpBuiltTreeXML()
         and not standalone_mode
