@@ -384,7 +384,7 @@ def _cleanupImportSortOrder(filename):
         putTextFileContents(filename, contents=contents)
 
 
-_extra_rst_keywords = b"post", b"youtube", b"grid"
+_extra_rst_keywords = b"asciinema", b"postlist", b"post", b"youtube", b"grid"
 
 
 def _cleanupRstFmt(filename):
@@ -478,6 +478,7 @@ def _cleanupClangFormat(filename):
     if not clang_format_path and getOS() == "Windows":
         with withEnvironmentPathAdded(
             "PATH",
+            r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\bin",
             r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\Llvm\bin",
             r"C:\Program Files\LLVM\bin",
         ):
