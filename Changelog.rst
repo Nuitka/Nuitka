@@ -10,6 +10,51 @@ Nuitka blog.
  Nuitka Release 0.6.20 (Draft)
 *******************************
 
+Bug Fixes
+=========
+
+-  Fix, ``set`` creation wasn't annotating its possible exception exit
+   from hashing values and is not as free of side effects as ``list``
+   and ``tuple`` creations are. Fixed in 0.6.19.1 already.
+
+-  Windows: Fix, experimental options got lost when switching from MSVC
+   to MinGW64, making them have no effect. Fixed in 0.6.19.1 already.
+
+-  Windows: Fix, Clang from MinGW64 doesn't support LTO at this time,
+   default to ``no`` for it. Fixed in 0.6.19.1 already.
+
+-  Debian: Fix, failed to detect Debian unstable as suitable for
+   linking, it doesn't have the release number. Fixed in 0.6.19.1
+   already.
+
+-  Standalone: Added data files for ``pygsheets`` package.
+
+-  Fix, paths from plugin related file paths need to be made absolute
+   before used internally, otherwise the cache can fail to deduplicate
+   them. Fixed in 0.6.19.2 already.
+
+-  Python3: With gcc before 5, e.g. on CentOS 7, where we switch to
+   using ``g++``, the gcc version checks could crash. Fixed in 0.6.19.2
+   already.
+
+-  Windows: Disable MinGW64 wildcard expansion for command line
+   arguments. This was breaking command lines with arguments like
+   ``--filename *.txt``, which under ``cmd.exe`` are left alone by the
+   shell, and are to be expanded by the program. Fixed in 0.6.19.2
+   already.
+
+-  Standalone: Added missing implicit dependency needed for
+   ``--follow-stdlib`` with Python for some uses of the ``locale``
+   module. Fixed in 0.6.19.2 already.
+
+Organisational
+==============
+
+-  Report the MSVC version in Scons output during compilation.
+
+Summary
+=======
+
 This release is not done yet.
 
 ***********************
