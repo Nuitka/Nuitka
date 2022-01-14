@@ -471,10 +471,10 @@ that.
    output for the details of these and check the section "Good Looks".
 
 Again, on Windows, for the temporary file directory, by default the user
-one is used, however this is overridable with a path specification given
-in ``--windows-onefile-tempdir-spec=%TEMP%\\onefile_%PID%_%TIME%`` which
-is the default and asserts that the temporary directories created cannot
-collide.
+one is used, however this can be overridden with a path specification
+given in ``--windows-onefile-tempdir-spec=%TEMP%\\onefile_%PID%_%TIME%``
+which is the default and asserts that the temporary directories created
+cannot collide.
 
 Currently these expanded tokens are available:
 
@@ -661,9 +661,9 @@ from it. There are several options you can explore here:
 Ask Nuitka to use less memory
 -----------------------------
 
-There is a dedicated option ``--low-memory`` which influces decisions of
-Nuitka, such that it avoids high usage of memory during compilation at
-the cost of increased compile time.
+There is a dedicated option ``--low-memory`` which influences decisions
+of Nuitka, such that it avoids high usage of memory during compilation
+at the cost of increased compile time.
 
 Avoid 32 bit C compiler/assembler memory limits
 -----------------------------------------------
@@ -723,7 +723,7 @@ Missing data files in standalone
 ================================
 
 If your program fails to file data, it can cause all kinds of different
-behaviours, e.g. a package might complain it is not the right version,
+behaviors, e.g. a package might complain it is not the right version,
 because a ``VERSION`` file check defaulted to unknown. The absence of
 icon files or help texts, may raise strange errors.
 
@@ -757,7 +757,7 @@ Nuitka will have to learn effective caching to deal with this in the
 future. Right now, you will have to deal with huge compilation times for
 these.
 
-For now, a major weapon in fighting dependency creap should be applied,
+For now, a major weapon in fighting dependency creep should be applied,
 namely the ``anti-bloat`` plugin, which offers interesting abilities,
 that can be put to use and block unneeded imports, giving an error for
 where they occur. Use it e.g. like this ``--enable-plugin=anti-bloat
@@ -821,8 +821,8 @@ The comments must be a start of line, and indentation is to be used, to
 end a conditional block, much like in Python. There are currently no
 other keywords than the used ones demonstrated above.
 
-You can put abitrary Python expressions there, and if you wanted to e.g.
-access a version information of a package, you could simply use
+You can put arbitrary Python expressions there, and if you wanted to
+e.g. access a version information of a package, you could simply use
 ``__import__("module_name").__version__`` if that would be required to
 e.g. enable or disable certain Nuitka settings. The only thing Nuitka
 does that makes this not Python expressions, is expanding ``{variable}``
@@ -963,7 +963,7 @@ external dependencies to Visual C Runtime libraries. Nuitka tries to
 ship those dependent DLLs by copying them from your system.
 
 Beginning with Microsoft Windows 10, Microsoft ships ``ucrt.dll``
-(Universal C Runtime libraries) which rehook calls to
+(Universal C Runtime libraries) which handles calls to
 ``api-ms-crt-*.dll``.
 
 With earlier Windows platforms (and wine/ReactOS), you should consider
@@ -1020,7 +1020,7 @@ pystone results
 
 The results are the top value from this kind of output, running pystone
 1000 times and taking the minimal value. The idea is that the fastest
-run is most meanigful, and eliminates usage spikes.
+run is most meaningful, and eliminates usage spikes.
 
 .. code:: bash
 
@@ -1588,5 +1588,3 @@ readable to human, but easily used to generate PDF or HTML documents.
 
 You will find the current version at:
 https://nuitka.net/doc/user-manual.html
-
-And the current PDF under: https://nuitka.net/doc/README.pdf
