@@ -6,7 +6,7 @@
  Nuitka Namesake
 *****************
 
-The most credits are deserved by my everloving and forgiving wife, who
+The most credits are deserved by my ever loving and forgiving wife, who
 bares with me for spending literally all my spare and other time
 thinking of Nuitka.
 
@@ -69,7 +69,7 @@ The order is sorted by time.
 
 -  Andrew Leech: Submitted github pull request to allow using "-m
    nuitka" to call the compiler. Also pull request to improve
-   "bist_nuitka" and to do the registration.
+   ``bist_nuitka`` and to do the registration.
 
 -  Paweł K: Submitted github pull request to remove glibc from
    standalone distribution, saving size and improving robustness
