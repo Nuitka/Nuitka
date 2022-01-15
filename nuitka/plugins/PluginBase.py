@@ -450,6 +450,21 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    def onCopiedDLL(self, dll_filename):
+        """Chance for a plugin to modify DLLs after copy, e.g. to compress it, remove attributes, etc.
+
+        Args:
+            dll_filename: the filename of the DLL
+
+        Notes:
+            Do not remove or add any files in this method, this will not work well, there
+            is e.g. getExtraDLLs API to add things. This is only for post processing as
+            described above.
+
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def getModuleSpecificDllPaths(self, module_name):
         """Provide a list of directories, where DLLs should be searched for this package (or module).
 

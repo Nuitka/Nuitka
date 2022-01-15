@@ -1078,7 +1078,7 @@ def detectBinaryDLLs(
         assert False, Utils.getOS()
 
 
-_unfound_dlls = set()
+_not_found_dlls = set()
 
 
 def detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache):
@@ -1100,13 +1100,13 @@ def detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache)
 
         for dll_filename in sorted(tuple(used_dlls)):
             if not os.path.isfile(dll_filename):
-                if _unfound_dlls:
+                if _not_found_dlls:
                     general.warning(
                         "Dependency '%s' could not be found, you might need to copy it manually."
                         % dll_filename
                     )
 
-                    _unfound_dlls.add(dll_filename)
+                    _not_found_dlls.add(dll_filename)
 
                 used_dlls.remove(dll_filename)
 
@@ -1178,26 +1178,13 @@ ms_runtime_dlls = (
 )
 
 
-def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
-    # This is terribly complex, because we check the list of used DLLs
-    # trying to avoid duplicates, and detecting errors with them not
-    # being binary identical, so we can report them. And then of course
-    # we also need to handle OS specifics.
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
-
-    used_dlls = detectUsedDLLs(
-        source_dir=source_dir,
-        standalone_entry_points=standalone_entry_points,
-        use_cache=not Options.shallNotUseDependsExeCachedResults()
-        and not Options.getWindowsDependencyTool() == "depends.exe",
-        update_cache=not Options.shallNotStoreDependsExeCachedResults()
-        and not Options.getWindowsDependencyTool() == "depends.exe",
-    )
-
+def _removeDuplicateDlls(used_dlls):
+    # Many things to consider, pylint: disable=too-many-branches
     removed_dlls = set()
     warned_about = set()
 
-    # Fist make checks and remove some.
+    # Fist make checks and remove some, in loops we copy the items so we can remove
+    # the used_dll list freely.
     for dll_filename1, sources1 in tuple(iterItems(used_dlls)):
         if dll_filename1 in removed_dlls:
             continue
@@ -1286,6 +1273,8 @@ different from
             del used_dlls[dll_filename2]
             removed_dlls.add(dll_filename2)
 
+
+def _copyUsedDlls(dist_dir, used_dlls):
     dll_map = []
 
     for dll_filename, sources in iterItems(used_dlls):
@@ -1293,7 +1282,8 @@ different from
 
         target_path = os.path.join(dist_dir, dll_name)
 
-        # Sometimes DLL dependencies were copied there already.
+        # Sometimes DLL dependencies were copied there already. TODO: That should
+        # actually become disallowed with plugins no longer seeing that folder.
         if not os.path.exists(target_path):
             copyFile(dll_filename, target_path)
 
@@ -1304,6 +1294,26 @@ different from
                 "Included used shared library '%s' (used by %s)."
                 % (dll_filename, ", ".join(sources))
             )
+
+    return dll_map
+
+
+def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
+    # This is complex, because we also need to handle OS specifics.
+    # pylint: disable=too-many-branches
+
+    used_dlls = detectUsedDLLs(
+        source_dir=source_dir,
+        standalone_entry_points=standalone_entry_points,
+        use_cache=not Options.shallNotUseDependsExeCachedResults()
+        and not Options.getWindowsDependencyTool() == "depends.exe",
+        update_cache=not Options.shallNotStoreDependsExeCachedResults()
+        and not Options.getWindowsDependencyTool() == "depends.exe",
+    )
+
+    _removeDuplicateDlls(used_dlls=used_dlls)
+
+    dll_map = _copyUsedDlls(dist_dir=dist_dir, used_dlls=used_dlls)
 
     if Utils.isMacOS():
         # For macOS, the binary and the DLLs needs to be changed to reflect
@@ -1359,6 +1369,8 @@ different from
 
             for _original_path, dll_filename in dll_map:
                 removeSxsFromDLL(os.path.join(dist_dir, dll_filename))
+
+    Plugins.onCopiedDLLs(dist_dir=dist_dir, used_dlls=used_dlls)
 
 
 def _handleDataFile(dist_dir, tracer, included_datafile):

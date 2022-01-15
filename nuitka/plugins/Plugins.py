@@ -34,7 +34,7 @@ from optparse import OptionConflictError, OptionGroup
 import nuitka.plugins.commercial
 import nuitka.plugins.standard
 from nuitka import Options, OutputDirectories
-from nuitka.__past__ import basestring, iter_modules
+from nuitka.__past__ import basestring, iter_modules, iterItems
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
@@ -405,6 +405,15 @@ class Plugins(object):
                     usage_tag="plugins",
                     reason=reason,
                     source_ref=module.source_ref,
+                )
+
+    @staticmethod
+    def onCopiedDLLs(dist_dir, used_dlls):
+        """Lets the plugins modify copied DLLs on disk."""
+        for dll_filename, _sources in iterItems(used_dlls):
+            for plugin in getActivePlugins():
+                plugin.onCopiedDLL(
+                    os.path.join(dist_dir, os.path.basename(dll_filename))
                 )
 
     @staticmethod
