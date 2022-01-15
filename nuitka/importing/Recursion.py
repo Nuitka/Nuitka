@@ -200,6 +200,9 @@ def isSameModulePath(path1, path2):
 def checkPluginSinglePath(plugin_filename, module_package):
     # Many branches, for the decision is very complex, pylint: disable=too-many-branches
 
+    # The importing wants these to be unique.
+    plugin_filename = os.path.abspath(plugin_filename)
+
     if Options.isShowInclusion():
         recursion_logger.info(
             "Checking detail plug-in path '%s' '%s':"
@@ -291,8 +294,6 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
 
 def checkPluginPath(plugin_filename, module_package):
-    plugin_filename = os.path.normpath(plugin_filename)
-
     if Options.isShowInclusion():
         recursion_logger.info(
             "Checking top level plug-in path %s %s" % (plugin_filename, module_package)
