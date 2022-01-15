@@ -508,10 +508,8 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
         env.Append(LINKFLAGS=["-municode"])
 
     # Detect the gcc version
-    if env.gcc_mode and not env.clang_mode:
+    if env.gcc_version is None and env.gcc_mode and not env.clang_mode:
         env.gcc_version = myDetectVersion(env, env.the_compiler)
-    else:
-        env.gcc_version = None
 
     # Older g++ complains about aliasing with Py_True and Py_False, but we don't
     # care.

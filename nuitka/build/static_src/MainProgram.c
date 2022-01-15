@@ -587,6 +587,11 @@ static char **getCommandLineToArgvA(char *lpCmdline) {
 }
 #endif
 
+// Disable wild card expansion for MinGW64.
+#if defined(__MINGW64__) || defined(__MINGW32__)
+int _dowildcard = 0;
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     /* MSVC, MINGW64 */
