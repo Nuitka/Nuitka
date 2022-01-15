@@ -54,7 +54,7 @@ def readPGOInputFile(input_filename):
     with open(input_filename, "rb") as input_file:
         header = input_file.read(7)
 
-        if header != "KAY.PGO":
+        if header != b"KAY.PGO":
             pgo_logger.sysexit(
                 "Error, file '%s' is not a valid PGO input for this version of Nuitka."
                 % input_filename
@@ -63,7 +63,7 @@ def readPGOInputFile(input_filename):
         input_file.seek(-7, os.SEEK_END)
         header = input_file.read(7)
 
-        if header != "YAK.PGO":
+        if header != b"YAK.PGO":
             pgo_logger.sysexit(
                 "Error, file '%s' was not completed correctly." % input_filename
             )
