@@ -50,7 +50,11 @@ from nuitka.Tracing import general, inclusion_logger, printError
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
+from nuitka.utils.Execution import (
+    executeProcess,
+    executeToolChecked,
+    withEnvironmentPathAdded,
+)
 from nuitka.utils.FileOperations import (
     areSamePaths,
     copyFile,
@@ -74,6 +78,7 @@ from nuitka.utils.SharedLibraries import (
     getPyWin32Dir,
     getSharedLibraryRPATH,
     getWindowsDLLVersion,
+    otool_usage,
     removeSxsFromDLL,
     setSharedLibraryRPATH,
 )
@@ -781,10 +786,12 @@ def _detectBinaryPathDLLsMacOS(
             package_name=package_name, python_rpath=None, original_dir=original_dir
         )
     ):
-        # TODO: Check exit code, should never fail.
-        stdout, _stderr, _exit_code = executeProcess(
-            command=("otool", "-L", binary_filename)
+        stdout = executeToolChecked(
+            logger=inclusion_logger,
+            command=("otool", "-L", binary_filename),
+            absence_message=otool_usage,
         )
+
     system_paths = (
         "/usr/lib/",
         "/System/Library/Frameworks/",
@@ -813,6 +820,7 @@ def _detectBinaryPathDLLsMacOS(
         paths=result,
         keep_unresolved=keep_unresolved,
     )
+
     return resolved_result
 
 

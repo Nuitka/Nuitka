@@ -88,7 +88,7 @@ def locateDLL(dll_name):
         # TODO: Could cache ldconfig output
         output = executeToolChecked(
             logger=postprocessing_logger,
-            command=["/sbin/ldconfig", "-p"],
+            command=("/sbin/ldconfig", "-p"),
             absence_message=_ldconfig_usage,
         )
 
@@ -228,7 +228,7 @@ _readelf_usage = "The 'readelf' is used to analyse dependencies on ELF using sys
 def _getSharedLibraryRPATHElf(filename):
     output = executeToolChecked(
         logger=postprocessing_logger,
-        command=["readelf", "-d", filename],
+        command=("readelf", "-d", filename),
         absence_message=_readelf_usage,
     )
 
@@ -244,7 +244,7 @@ def _getSharedLibraryRPATHElf(filename):
     return None
 
 
-_otool_usage = (
+otool_usage = (
     "The 'otool' is used to analyse dependencies on macOS and required to be found."
 )
 
@@ -252,8 +252,8 @@ _otool_usage = (
 def _getSharedLibraryRPATHDarwin(filename):
     output = executeToolChecked(
         logger=postprocessing_logger,
-        command=["otool", "-l", filename],
-        absence_message=_otool_usage,
+        command=("otool", "-l", filename),
+        absence_message=otool_usage,
     )
 
     cmd = b""
@@ -289,7 +289,7 @@ def getSharedLibraryRPATH(filename):
 def _removeSharedLibraryRPATHElf(filename):
     executeToolChecked(
         logger=postprocessing_logger,
-        command=["chrpath", "-d", filename],
+        command=("chrpath", "-d", filename),
         absence_message="""\
 Error, needs 'chrpath' on your system, due to 'RPATH' settings in used shared
 libraries that need to be removed.""",
@@ -316,7 +316,7 @@ def _setSharedLibraryRPATHElf(filename, rpath):
     with withEnvironmentVarOverriden("LANG", "C"):
         executeToolChecked(
             logger=postprocessing_logger,
-            command=["patchelf", "--set-rpath", rpath, filename],
+            command=("patchelf", "--set-rpath", rpath, filename),
             stderr_filter=_filterPatchelfErrorOutput,
             absence_message="""\
 Error, needs 'patchelf' on your system, due to 'RPATH' settings that need to be
@@ -341,7 +341,7 @@ _installnametool_usage = "The 'install_name_tool' is used to make binaries porta
 def _removeSharedLibraryRPATHDarwin(filename, rpath):
     executeToolChecked(
         logger=postprocessing_logger,
-        command=["install_name_tool", "-delete_rpath", rpath, filename],
+        command=("install_name_tool", "-delete_rpath", rpath, filename),
         absence_message=_installnametool_usage,
         stderr_filter=_filterInstallNameToolErrorOutput,
     )
@@ -356,7 +356,7 @@ def _setSharedLibraryRPATHDarwin(filename, rpath):
 
         executeToolChecked(
             logger=postprocessing_logger,
-            command=["install_name_tool", "-add_rpath", rpath, filename],
+            command=("install_name_tool", "-add_rpath", rpath, filename),
             absence_message=_installnametool_usage,
             stderr_filter=_filterInstallNameToolErrorOutput,
         )

@@ -309,6 +309,7 @@ def getNullInput():
 def executeToolChecked(logger, command, absence_message, stderr_filter=None):
     """Execute external tool, checking for success and no error outputs, returning result."""
 
+    command = list(command)
     tool = command[0]
 
     if not isExecutableCommand(tool):

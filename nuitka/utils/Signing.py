@@ -43,7 +43,7 @@ def removeMacOSCodeSignature(filename):
     with withMadeWritableFileMode(filename):
         executeToolChecked(
             logger=postprocessing_logger,
-            command=["codesign", "--remove-signature", "--all-architectures", filename],
+            command=("codesign", "--remove-signature", "--all-architectures", filename),
             absence_message=_macos_codesign_usage,
         )
 
