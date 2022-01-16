@@ -495,6 +495,12 @@ def _detectEarlyImports():
             if encoding_name in encoding_names:
                 encoding_names.remove(encoding_name)
 
+    # Not for startup.
+    if "bz2_codec" in encoding_names:
+        encoding_names.remove("bz2_codec")
+    if "idna" in encoding_names:
+        encoding_names.remove("idna")
+
     import_code = ";".join(
         "import encodings.%s" % encoding_name
         for encoding_name in sorted(encoding_names)
