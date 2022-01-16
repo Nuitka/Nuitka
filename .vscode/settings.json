@@ -78,6 +78,7 @@
         "appdirs",
         "bytecode",
         "ccache",
+        "clangcl",
         "clcache",
         "conda",
         "ctypes",
@@ -87,12 +88,15 @@
         "elif",
         "EPEL",
         "girepository",
+        "Hayen",
+        "hotfixes",
         "isort",
         "libc",
         "libpython",
         "lxml",
         "metaclass",
         "MSVC",
+        "msys",
         "nofollow",
         "Nuitka",
         "onefile",
@@ -112,6 +116,7 @@
         "traceback",
         "tracebacks",
         "ucrt",
-        "uncompiled"
+        "uncompiled",
+        "zstandard"
     ],
 }

@@ -999,8 +999,8 @@ it, e.g. adding more resources, and then preventing operations randomly
 due to holding locks. Make sure to exclude your compilation stage from
 these services.
 
-Windows standalone program redistribuation
-==========================================
+Windows standalone program redistribution
+=========================================
 
 Whether compiling with MingW or MSVC, the standalone programs have
 external dependencies to Visual C Runtime libraries. Nuitka tries to

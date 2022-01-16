@@ -23,7 +23,7 @@ import subprocess
 import sys
 
 from nuitka.Options import isExperimental
-from nuitka.utils.Execution import withEnvironmentVarsOverriden
+from nuitka.utils.Execution import withEnvironmentVarsOverridden
 
 
 def runDataComposer(source_dir):
@@ -42,7 +42,7 @@ def runDataComposer(source_dir):
 
     blob_filename = getConstantBlobFilename(source_dir)
 
-    with withEnvironmentVarsOverriden(mapping):
+    with withEnvironmentVarsOverridden(mapping):
         subprocess.check_call(
             [
                 sys.executable,

@@ -877,7 +877,7 @@ class Plugins(object):
                     assert type(value) is dict, value
 
                     # We order per plugin, but from the plugins, lets just take a dict
-                    # and achieve determism by ordering the defines by name.
+                    # and achieve determinism by ordering the defines by name.
                     for key, value in sorted(value.items()):
                         # False alarm, pylint: disable=I0021,unsupported-assignment-operation
                         cls.preprocessor_symbols[key] = value
@@ -895,7 +895,7 @@ class Plugins(object):
                 assert type(value) is dict
 
                 # We order per plugin, but from the plugins, lets just take a dict
-                # and achieve determism by ordering the files by name.
+                # and achieve determinism by ordering the files by name.
                 for key, value in sorted(value.items()):
                     if not key.startswith("nuitka_"):
                         key = "plugin." + plugin.plugin_name + "." + key

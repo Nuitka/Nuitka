@@ -248,7 +248,7 @@ def withEnvironmentVarOverriden(env_var_name, value):
 
 
 @contextmanager
-def withEnvironmentVarsOverriden(mapping):
+def withEnvironmentVarsOverridden(mapping):
     """Change multiple environment variables and restore them after context."""
 
     old_values = {}

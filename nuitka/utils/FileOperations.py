@@ -18,7 +18,7 @@
 """ Utils for file and directory operations.
 
 This provides enhanced and more error resilient forms of standard
-stuff. It will also frequently add sorting for determism.
+stuff. It will also frequently add sorting for determinism.
 
 """
 

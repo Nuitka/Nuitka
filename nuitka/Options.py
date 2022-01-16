@@ -780,7 +780,7 @@ def isUnstripped():
 
     A binary is called stripped when debug information is not present, an
     unstripped when it is present. For profiling and debugging it will be
-    necessary, but it doesn*t enable debug checks like ``--debug`` does.
+    necessary, but it doesn't enable debug checks like ``--debug`` does.
 
     Passed to Scons as ``unstripped_mode`` to it can ask the linker to
     include symbol information.

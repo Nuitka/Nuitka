@@ -286,7 +286,7 @@ def _runOnefileScons(quiet, onefile_compression):
         onefile_env_values["ONEFILE_PRODUCT"] = version_resources["ProductName"]
         onefile_env_values["ONEFILE_VERSION"] = effective_version
 
-    with withEnvironmentVarsOverriden(onefile_env_values):
+    with withEnvironmentVarsOverridden(onefile_env_values):
         result = SconsInterface.runScons(
             options=options, quiet=quiet, scons_filename="Onefile.scons"
         )

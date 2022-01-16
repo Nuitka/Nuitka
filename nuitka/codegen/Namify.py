@@ -148,7 +148,7 @@ def namifyConstant(constant):
 
                 return "list_" + result + "_list"
             except ExceptionCannotNamify:
-                general.warning("Couldn't namify '%r'" % value)
+                general.warning("Couldn't namify '%r'" % constant)
 
                 return "list_" + _digest(repr(constant))
     elif constant_type is bytearray:
