@@ -99,12 +99,14 @@ def main():
             "cpython_cache",
             # To understand what is slow.
             "timing",
+            # The onefile can warn about zstandard not being installed.
+            "ignore_warnings",
         ]
 
         if filename == "KeyboardInteruptTest.py":
             if getOS() == "Darwin":
                 reportSkip(
-                    "Exit code from KeybaordInterrupt on macOS is not yet good.",
+                    "Exit code from KeyboardInterrupt on macOS is not yet good.",
                     ".",
                     filename,
                 )

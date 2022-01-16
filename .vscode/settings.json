@@ -81,6 +81,7 @@
         "clangcl",
         "clcache",
         "conda",
+        "cpython",
         "ctypes",
         "devel",
         "distutils",

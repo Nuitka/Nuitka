@@ -20,7 +20,6 @@
 """
 
 import collections
-import hashlib
 from abc import abstractmethod
 from contextlib import contextmanager
 
@@ -29,6 +28,7 @@ from nuitka.__past__ import getMetaClassBase, iterItems
 from nuitka.Constants import isMutable
 from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.PythonVersions import python_version
+from nuitka.utils.Hashing import getStringHash
 from nuitka.utils.InstanceCounters import (
     counted_del,
     counted_init,
@@ -336,19 +336,8 @@ class CodeObjectsMixin(object):
 
         return self.code_objects[key]
 
-    if python_version < 0x300:
-
-        def _calcHash(self, key):
-            hash_value = hashlib.md5("-".join(str(s) for s in key))
-
-            return hash_value.hexdigest()
-
-    else:
-
-        def _calcHash(self, key):
-            hash_value = hashlib.md5("-".join(str(s) for s in key).encode("utf8"))
-
-            return hash_value.hexdigest()
+    def _calcHash(self, key):
+        return getStringHash("-".join(str(s) for s in key))
 
 
 class PythonContextBase(getMetaClassBase("Context")):

@@ -768,8 +768,10 @@ int main(int argc, char **argv) {
 #endif
     stream_end_pos = getPosition();
 
-    unsigned long long start_pos = readSizeValue();
+    unsigned long long payload_size = readSizeValue();
+    unsigned long long start_pos = stream_end_pos - payload_size;
 
+    // printf("Payload size at %lld\n", payload_size);
     // printf("Start at %lld\n", start_pos);
     // printf("Start at %ld\n", (LONG)start_pos);
 
