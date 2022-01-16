@@ -35,6 +35,9 @@ class Hash(object):
 
     def updateFromValues(self, *values):
         for value in values:
+            if type(value) is int:
+                value = str(int)
+
             if type(value) is str:
                 if str is not bytes:
                     value = value.encode("utf8")
@@ -71,3 +74,10 @@ def getFileContentsHash(filename, as_string=True):
         return result.asHexDigest()
     else:
         return result.asDigest()
+
+
+def getStringHash(value):
+    result = Hash()
+    result.updateFromValues(value)
+
+    return result.asHexDigest()

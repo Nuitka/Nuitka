@@ -21,7 +21,6 @@ Initially this deals with preserving compiled module state after bytecode demoti
 such that it allows to restore it directly.
 """
 
-import hashlib
 import os
 
 from nuitka import Options
@@ -33,6 +32,7 @@ from nuitka.utils.FileOperations import (
     makePath,
     openTextFile,
 )
+from nuitka.utils.Hashing import Hash, getStringHash
 from nuitka.utils.Importing import getAllModuleSuffixes
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -47,13 +47,6 @@ def _getCacheFilename(module_name, extension):
     return os.path.join(_getCacheDir(), "%s.%s" % (module_name, extension))
 
 
-def getSourceCodeHash(source_code):
-    if str is not bytes:
-        source_code = source_code.encode("utf8")
-
-    return hashlib.md5(source_code).hexdigest()
-
-
 def makeCacheName(module_name, source_code):
     module_importables_hash = getModuleImportableFilesHash(module_name)
 
@@ -62,7 +55,7 @@ def makeCacheName(module_name, source_code):
         + "@"
         + module_importables_hash
         + "@"
-        + getSourceCodeHash(source_code)
+        + getStringHash(source_code)
     )
 
 
@@ -105,19 +98,14 @@ def getModuleImportableFilesHash(full_name):
 
     all_suffixes = getAllModuleSuffixes()
 
-    result_hash = hashlib.md5()
+    result_hash = Hash()
 
-    for count, path in enumerate(paths):
+    for path in paths:
         if not os.path.isdir(path):
             continue
 
         for fullname, filename in listDir(path):
             if isPackageDir(fullname) or filename.endswith(all_suffixes):
-                entry = "%s:%s" % (count, filename)
+                result_hash.updateFromValues(filename, b"\0")
 
-                if str is not bytes:
-                    entry = entry.encode("utf8")
-
-                result_hash.update(entry)
-
-    return result_hash.hexdigest()
+    return result_hash.asHexDigest()
