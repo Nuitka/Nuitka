@@ -276,6 +276,3 @@ class NuitkaPluginDetectorNumpy(NuitkaPluginBase):
                 "Numpy support for at least '%s'."
                 % module_name.getTopLevelPackageName()
             )
-
-
-# TODO: Move to its own file
