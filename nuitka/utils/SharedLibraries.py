@@ -348,12 +348,18 @@ def _removeSharedLibraryRPATHDarwin(filename, rpath):
 
 
 def _setSharedLibraryRPATHDarwin(filename, rpath):
-    executeToolChecked(
-        logger=postprocessing_logger,
-        command=["install_name_tool", "-add_rpath", rpath, filename],
-        absence_message=_installnametool_usage,
-        stderr_filter=_filterInstallNameToolErrorOutput,
-    )
+    old_rpath = getSharedLibraryRPATH(filename)
+
+    with withMadeWritableFileMode(filename):
+        if old_rpath is not None:
+            _removeSharedLibraryRPATHDarwin(filename=filename, rpath=old_rpath)
+
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=["install_name_tool", "-add_rpath", rpath, filename],
+            absence_message=_installnametool_usage,
+            stderr_filter=_filterInstallNameToolErrorOutput,
+        )
 
 
 def removeSharedLibraryRPATH(filename):

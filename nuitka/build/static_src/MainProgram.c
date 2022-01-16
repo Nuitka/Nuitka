@@ -207,11 +207,6 @@ static bool is_multiprocessing_fork = false;
 // This is a multiprocessing resource tracker.
 static PyObject *multiprocessing_resource_tracker_arg = NULL;
 
-// Platform compat
-#if !defined(_WIN32) && PYTHON_VERSION >= 0x300
-static long _wtoi(const wchar_t *value) { return wcstol(value, 0, 10); }
-#endif
-
 // Parse the command line parameters and provide it to "sys" built-in module,
 // as well as decide if it's a multiprocessing usage.
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0

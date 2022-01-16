@@ -231,6 +231,14 @@ Should scipy, sklearn or skimage when used be not included with numpy, Default i
         if self.include_scipy and module_name in sklearn_mods:
             return True, "Needed by sklearn"
 
+    # TODO: This should be done with anti-bloat, but it's not yet on by default
+    # and this is for a hotfix.
+    def onModuleSourceCode(self, module_name, source_code):
+        if module_name == "numpy.core.overrides":
+            source_code = source_code.replace("public_api.__code__ = ", "")
+
+        return source_code
+
 
 class NuitkaPluginDetectorNumpy(NuitkaPluginBase):
     """Only used if plugin is NOT activated.
