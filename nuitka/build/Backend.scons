@@ -189,7 +189,7 @@ disable_console = getArgumentBool("disable_console", False)
 # Windows might be running a Python whose DLL we have to use.
 uninstalled_python = getArgumentBool("uninstalled_python", False)
 
-# Unstriped mode: Do not remove debug symbols.
+# Unstripped mode: Do not remove debug symbols.
 unstripped_mode = getArgumentBool("unstripped_mode", False)
 
 # Target arch, uses for compiler choice and quick linking of constants binary

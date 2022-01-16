@@ -135,7 +135,7 @@ win_target = os.name == "nt"
 # Windows subsystem mode: Disable console for windows builds.
 disable_console = getArgumentBool("disable_console", False)
 
-# Unstriped mode: Do not remove debug symbols.
+# Unstripped mode: Do not remove debug symbols.
 unstripped_mode = getArgumentBool("unstripped_mode", False)
 
 # Target arch, uses for compiler choice and quick linking of constants binary

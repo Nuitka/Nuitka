@@ -26,7 +26,7 @@ nicely.
 
 Note: This will *not* degrade performance:
 .IP
-\f(CW$ nuitka \-\-unstriped \-\-recurse\-all some_program.py\fR
+\f(CW$ nuitka \-\-unstripped \-\-recurse\-all some_program.py\fR
 .PP
 Compile a Python program "some_program.py" and the modules it uses to an executable "some_program.exe". Perform all kinds of checks about correctness of the generated
 C and run\-time checks.
