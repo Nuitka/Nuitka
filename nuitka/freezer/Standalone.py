@@ -31,6 +31,7 @@ import sys
 
 from nuitka import Options, SourceCodeReferences
 from nuitka.__past__ import iterItems
+from nuitka.build.SconsUtils import readSconsReport
 from nuitka.Bytecodes import compileSourceToBytecode
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
@@ -56,7 +57,6 @@ from nuitka.utils.FileOperations import (
     copyFileWithPermissions,
     getDirectoryRealPath,
     getFileContentByLine,
-    getFileContents,
     getFileList,
     getSubDirectories,
     haveSameFileContents,
@@ -874,7 +874,13 @@ def _getCacheFilename(
         # Normalize main program name for caching as well, but need to use the
         # scons information to distinguish different compilers, so we use
         # different libs there.
-        hashed_value = getFileContents(os.path.join(source_dir, "scons-report.txt"))
+
+        # Ignore values, that are variable per compilation.
+        hashed_value = "".join(
+            key + value
+            for key, value in iterItems(readSconsReport(source_dir=source_dir))
+            if key not in ("CLCACHE_STATS",)
+        )
     else:
         hashed_value = original_filename
 

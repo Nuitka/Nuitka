@@ -41,10 +41,13 @@ def makeMsiCompatibleFilename(filename):
     ):
         filename = filename.replace("-py" + supported_version, "")
 
+    # Python 3.10 does funny things
+    filename = filename.replace("-py3.1", "")
+
     filename = filename.replace("Nuitka32", "Nuitka")
     filename = filename.replace("Nuitka64", "Nuitka")
 
-    parts = [filename, "py" + sys.version_info[0] + sys.version_info[1], "msi"]
+    parts = [filename, "py%s%s" % (sys.version_info[0], sys.version_info[1]), "msi"]
 
     return ".".join(parts)
 

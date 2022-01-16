@@ -51,17 +51,20 @@ def _getExecutablePath(filename, search_path):
     for path_element in path_elements:
         path_element = path_element.strip('"')
 
-        full = os.path.join(path_element, filename)
+        full = os.path.join(os.path.expanduser(path_element), filename)
 
         if os.path.exists(full):
             return full
 
 
-def getExecutablePath(filename):
+def getExecutablePath(filename, extra_dir=None):
     """Find an execute in PATH environment."""
 
     # Search in PATH environment.
     search_path = os.environ.get("PATH", "")
+
+    if extra_dir is not None:
+        search_path = extra_dir + os.pathsep + search_path
 
     key = (filename, search_path)
     if key not in _executable_command_cache:
