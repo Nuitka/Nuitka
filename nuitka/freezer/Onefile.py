@@ -390,6 +390,8 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
     if isWin32Windows():
         executePostProcessingResources(manifest=None, onefile=True)
 
+    Plugins.onBootstrapBinary(onefile_output_filename)
+
     runOnefileCompressor(
         compressor_python=compressor_python,
         dist_dir=dist_dir,

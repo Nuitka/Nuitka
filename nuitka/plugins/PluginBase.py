@@ -537,6 +537,18 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def onBootstrapBinary(self, filename):
+        """Called after successfully creating a bootstrap binary, but without payload.
+
+        Args:
+            filename: the created bootstrap binary, will be modified later
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def onFinalResult(self, filename):
         """Called after successfully finishing a compilation.
 

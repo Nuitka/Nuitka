@@ -429,6 +429,12 @@ class Plugins(object):
             plugin.onStandaloneDistributionFinished(filename)
 
     @staticmethod
+    def onBootstrapBinary(filename):
+        """Let plugins add to bootstrap binary in some way"""
+        for plugin in getActivePlugins():
+            plugin.onBootstrapBinary(filename)
+
+    @staticmethod
     def onFinalResult(filename):
         """Let plugins add to final binary in some way"""
         for plugin in getActivePlugins():

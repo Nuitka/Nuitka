@@ -141,12 +141,13 @@ def attachOnefilePayload(
                 )
             )
 
-        # add padding to have the start position at a double world boundary
-        # this is needed on windows so that a possible certificate immediately
-        # follows the start position
-        pad = output_file.tell() % 8
-        if pad != 0:
-            output_file.write(bytes(8 - pad))
+        if isWin32Windows():
+            # add padding to have the start position at a double world boundary
+            # this is needed on windows so that a possible certificate immediately
+            # follows the start position
+            pad = output_file.tell() % 8
+            if pad != 0:
+                output_file.write(bytes(8 - pad))
 
         output_file.seek(0, 2)
         end_pos = output_file.tell()
