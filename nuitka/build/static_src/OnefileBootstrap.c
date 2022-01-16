@@ -128,7 +128,10 @@ static void fatalErrorAttachedData() { fatalError("Error, couldn't decode attach
 
 static void fatalErrorMemory() { fatalError("Error, couldn't allocate memory."); }
 
+// TODO: Make use of this on other platforms as well.
+#if defined(_WIN32)
 static void fatalErrorChild() { fatalError("Error, couldn't launch child."); }
+#endif
 
 #if defined(_WIN32)
 static void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size) {
