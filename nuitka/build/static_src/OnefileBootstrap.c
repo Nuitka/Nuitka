@@ -906,12 +906,12 @@ int main(int argc, char **argv) {
 
     PROCESS_INFORMATION pi;
 
-    bool_res = CreateProcessW(first_filename,           // application name
-                              GetCommandLineW(),        // command line
-                              NULL,                     // process attributes
-                              NULL,                     // thread attributes
-                              FALSE,                    // inherit handles
-                              CREATE_NEW_PROCESS_GROUP, // creation flags
+    bool_res = CreateProcessW(first_filename,        // application name
+                              GetCommandLineW(),     // command line
+                              NULL,                  // process attributes
+                              NULL,                  // thread attributes
+                              FALSE,                 // inherit handles
+                              NORMAL_PRIORITY_CLASS, // creation flags
                               NULL, NULL, &si, &pi);
 
     NUITKA_PRINT_TIMING("ONEFILE: Started slave process.");
