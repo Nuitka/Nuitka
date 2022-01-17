@@ -459,3 +459,8 @@ feedparser.html:
     "def goahead(self, i):": "'def goahead(self, end):'"
     "goahead.__code__ = sgmllib.SGMLParser.goahead.__code__": "'pass'"
     "__parse_starttag.__code__ = sgmllib.SGMLParser.parse_starttag.__code__": "'pass'"
+
+certifi.core:
+  description: "avoid using importlib.resources without need"
+  replacements:
+    "from importlib.resources import path as get_path, read_text": "'raise ImportError'"
