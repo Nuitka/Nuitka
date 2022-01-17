@@ -103,7 +103,7 @@ def main():
             "ignore_warnings",
         ]
 
-        if filename == "KeyboardInteruptTest.py":
+        if filename == "KeyboardInterruptTest.py":
             if getOS() == "Darwin":
                 reportSkip(
                     "Exit code from KeyboardInterrupt on macOS is not yet good.",
@@ -152,7 +152,7 @@ def main():
 
         binary_filename = filename[:-3] + (".exe" if os.name == "nt" else ".bin")
 
-        if filename == "KeyboardInteruptTest.py":
+        if filename == "KeyboardInterruptTest.py":
             continue
 
         # Then use "strace" on the result.
