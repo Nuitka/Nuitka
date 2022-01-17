@@ -87,7 +87,7 @@ def checkNoPermissionError(output):
 def _getCPythonResults(cpython_cmd, send_kill):
     stop_watch = StopWatch()
 
-    # Try a coupile of times for permission denied, on Windows it can
+    # Try a compile of times for permission denied, on Windows it can
     # be transient.
     for _i in range(5):
         stop_watch.start()
