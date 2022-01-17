@@ -73,7 +73,7 @@ from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
     addClangClPathFromMSVC,
     addToPATH,
-    changeKeyboardInteruptToErrorExit,
+    changeKeyboardInterruptToErrorExit,
     createDefinitionsFile,
     createEnvironment,
     getArgumentBool,
@@ -1045,7 +1045,7 @@ enableSpawnMonitoring(
 
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit as the
 # scons traceback is not going to be very interesting to us.
-changeKeyboardInteruptToErrorExit()
+changeKeyboardInterruptToErrorExit()
 
 # Check if ccache is installed, and complain if it is not.
 if env.gcc_mode and not disable_ccache:

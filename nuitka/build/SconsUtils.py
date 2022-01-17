@@ -248,7 +248,7 @@ def getExecutablePath(filename, env):
     return None
 
 
-def changeKeyboardInteruptToErrorExit():
+def changeKeyboardInterruptToErrorExit():
     def signalHandler(
         signal, frame
     ):  # pylint: disable=redefined-outer-name,unused-argument
