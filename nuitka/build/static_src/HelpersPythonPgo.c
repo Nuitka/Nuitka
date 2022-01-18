@@ -58,7 +58,7 @@ static void PGO_writeString(char const *value) {
     fwrite(&id, sizeof(id), 1, pgo_output);
 }
 
-void PGO_Initialize() {
+void PGO_Initialize(void) {
     // We expect an environment variable to guide us to where the PGO information
     // shall be written to.
     char const *output_filename = getenv("NUITKA_PGO_OUTPUT");
@@ -81,7 +81,7 @@ void PGO_Initialize() {
     PGO_ProbeNameMappings = malloc(PGO_ProbeNameMappings_size * sizeof(char const *));
 }
 
-void PGO_Finalize() {
+void PGO_Finalize(void) {
     PGO_writeString("END");
 
     uint32_t offset = (uint32_t)ftell(pgo_output);

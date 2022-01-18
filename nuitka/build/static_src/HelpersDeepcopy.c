@@ -223,7 +223,7 @@ typedef struct {
 #define Nuitka_CapsuleGetPointer(capsule) (PyCObject_AsVoidPtr(capsule))
 #endif
 
-static void _initDeepCopy() {
+static void _initDeepCopy(void) {
     _deep_copy_dispatch = PyDict_New();
     _deep_noop = Py_None;
 

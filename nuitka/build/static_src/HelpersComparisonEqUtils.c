@@ -34,7 +34,7 @@ python_initproc default_tp_init_wrapper;
 static cmpfunc default_tp_compare;
 #endif
 
-void _initSlotCompare() {
+void _initSlotCompare(void) {
     // Create a class with "__cmp__" attribute, to get a hand at the default
     // implementation of tp_compare. It's not part of the API and with shared
     // libraries it's not accessible. The name does not matter, nor does the

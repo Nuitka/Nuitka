@@ -50,7 +50,7 @@ extern PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyOb
 #endif
 
 #if PYTHON_VERSION >= 0x300
-extern PyObject *getImportLibBootstrapModule();
+extern PyObject *getImportLibBootstrapModule(void);
 #endif
 
 // Replacement for PyImport_GetModule working across all versions and less checks.

@@ -353,7 +353,7 @@ def addConstantBlobFile(env, resource_desc, source_dir, target_arch):
 
 INCBIN(constant_bin, "__constants.bin");
 
-unsigned char const *getConstantsBlobData() {
+unsigned char const *getConstantsBlobData(void) {
     return constant_bin_data;
 }
 """,

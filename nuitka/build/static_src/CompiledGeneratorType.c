@@ -135,7 +135,7 @@ static void Nuitka_Generator_release_closure(struct Nuitka_GeneratorObject *gene
 #if PYTHON_VERSION >= 0x300
 
 // Note: Shared with coroutines and asyncgen code.
-static PyObject *ERROR_GET_STOP_ITERATION_VALUE() {
+static PyObject *ERROR_GET_STOP_ITERATION_VALUE(void) {
     assert(PyErr_ExceptionMatches(PyExc_StopIteration));
 
     PyObject *exception_type, *exception_value;

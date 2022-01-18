@@ -261,7 +261,7 @@ static PyMethodDef _method_def_builtin_isinstance_replacement = {
 
 extern PyModuleObject *builtin_module;
 
-void patchBuiltinModule() {
+void patchBuiltinModule(void) {
 #if defined(_NUITKA_MODULE)
     static bool init_done = false;
 
@@ -333,7 +333,7 @@ static PyObject *Nuitka_type_tp_richcompare(PyObject *a, PyObject *b, int op) {
     return original_PyType_tp_richcompare(a, b, op);
 }
 
-void patchTypeComparison() {
+void patchTypeComparison(void) {
     if (original_PyType_tp_richcompare == NULL) {
         original_PyType_tp_richcompare = PyType_Type.tp_richcompare;
         PyType_Type.tp_richcompare = Nuitka_type_tp_richcompare;

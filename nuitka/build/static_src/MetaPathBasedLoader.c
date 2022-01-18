@@ -327,7 +327,7 @@ static PyObject *_getImportingSuffixesByPriority(int kind) {
 }
 #endif
 
-static PyObject *getExtensionModuleSuffixesByPriority() {
+static PyObject *getExtensionModuleSuffixesByPriority(void) {
     static PyObject *result = NULL;
 
     if (result == NULL) {
@@ -1190,7 +1190,7 @@ static PyObject *_path_unfreezer_iter_modules(struct Nuitka_LoaderObject *self, 
 
 #if PYTHON_VERSION >= 0x300
 // Used in module template too, therefore exported.
-PyObject *getImportLibBootstrapModule() {
+PyObject *getImportLibBootstrapModule(void) {
     static PyObject *importlib = NULL;
     if (importlib == NULL) {
         importlib = PyImport_ImportModule("importlib._bootstrap");

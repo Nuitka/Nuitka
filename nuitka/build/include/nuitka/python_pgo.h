@@ -27,10 +27,10 @@
 #if _NUITKA_PGO_PYTHON
 
 // Initialize PGO data collection.
-extern void PGO_Initialize();
+extern void PGO_Initialize(void);
 
 // At end of program, write tables.
-extern void PGO_Finalize();
+extern void PGO_Finalize(void);
 
 // When a module is entered.
 extern void PGO_onModuleEntered(char const *module_name);

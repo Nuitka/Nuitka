@@ -2129,7 +2129,7 @@ def _makeHelperBuiltinTypeAttributes(
     if not python3_methods:
         emit_c("#if PYTHON_VERSION < 0x300")
 
-    emit_c("static void _init%sBuiltinMethods() {" % type_prefix.capitalize())
+    emit_c("static void _init%sBuiltinMethods(void) {" % type_prefix.capitalize())
     for method_name in sorted(set(python2_methods + python3_methods)):
         if method_name in python2_methods and method_name not in python3_methods:
             emit_c("#if PYTHON_VERSION < 0x300")

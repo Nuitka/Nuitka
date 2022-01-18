@@ -29,7 +29,7 @@
 #error "No support for splash screens with MinGW64 yet, only works with MSVC. Somebody please make it portable."
 #endif
 
-IStream *createImageStream() {
+IStream *createImageStream(void) {
 
     // Load the resource with image data
     HRSRC res_handle = FindResource(NULL, MAKEINTRESOURCE(27), RT_RCDATA);
@@ -190,7 +190,7 @@ HWND splash_window = 0;
 static wchar_t splash_indicator_path[4096] = {0};
 bool splash_active = false;
 
-static void initSplashScreen() {
+static void initSplashScreen(void) {
     CoInitialize(NULL);
     IStream *image_stream = createImageStream();
     if (image_stream == NULL) {
@@ -223,14 +223,14 @@ static void initSplashScreen() {
     splash_active = true;
 }
 
-static void closeSplashScreen() {
+static void closeSplashScreen(void) {
     if (splash_window) {
         DestroyWindow(splash_window);
         splash_window = 0;
     }
 }
 
-static bool checkSplashScreen() {
+static bool checkSplashScreen(void) {
     if (splash_active) {
         if (!PathFileExistsW(splash_indicator_path)) {
             closeSplashScreen();

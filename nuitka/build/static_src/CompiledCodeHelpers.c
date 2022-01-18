@@ -29,7 +29,7 @@
 
 #include "HelpersBuiltinTypeMethods.c"
 
-void _initBuiltinTypeMethods() {
+static void _initBuiltinTypeMethods(void) {
 #if PYTHON_VERSION < 0x300
     _initStrBuiltinMethods();
 #endif
@@ -945,7 +945,7 @@ void PRINT_TRACEBACK(PyTracebackObject *traceback) {
 }
 #endif
 
-PyObject *GET_STDOUT() {
+PyObject *GET_STDOUT(void) {
     PyObject *result = Nuitka_SysGetObject("stdout");
 
     if (unlikely(result == NULL)) {
@@ -956,7 +956,7 @@ PyObject *GET_STDOUT() {
     return result;
 }
 
-PyObject *GET_STDERR() {
+PyObject *GET_STDERR(void) {
     PyObject *result = Nuitka_SysGetObject("stderr");
 
     if (unlikely(result == NULL)) {
@@ -1641,7 +1641,7 @@ PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
 #if defined(_NUITKA_EXE)
 
 #ifndef _WIN32
-char const *getBinaryDirectoryHostEncoded() {
+char const *getBinaryDirectoryHostEncoded(void) {
     static char binary_directory[MAXPATHLEN + 1];
     static bool init_done = false;
 
@@ -1717,7 +1717,7 @@ static void stripFilenameW(wchar_t *path) {
 }
 #endif
 
-wchar_t const *getBinaryDirectoryWideChars() {
+wchar_t const *getBinaryDirectoryWideChars(void) {
     static wchar_t binary_directory[MAXPATHLEN + 1];
     static bool init_done = false;
 
@@ -1757,7 +1757,7 @@ wchar_t const *getBinaryDirectoryWideChars() {
 }
 
 #if defined(_WIN32) && PYTHON_VERSION < 0x300
-char const *getBinaryDirectoryHostEncoded() {
+char const *getBinaryDirectoryHostEncoded(void) {
     static char *binary_directory = NULL;
 
     if (binary_directory != NULL) {
@@ -1782,7 +1782,7 @@ char const *getBinaryDirectoryHostEncoded() {
 }
 #endif
 
-static PyObject *getBinaryDirectoryObject() {
+static PyObject *getBinaryDirectoryObject(void) {
     static PyObject *binary_directory = NULL;
 
     if (binary_directory != NULL) {
@@ -1829,7 +1829,7 @@ PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
 
 #if defined(_WIN32)
 /* Small helper function to get current DLL handle. */
-static HMODULE getDllModuleHandle() {
+static HMODULE getDllModuleHandle(void) {
     static HMODULE hm = NULL;
 
     if (hm == NULL) {
@@ -1863,7 +1863,7 @@ static void stripFilenameA(char *path) {
 }
 #endif
 
-static char const *getDllDirectory() {
+static char const *getDllDirectory(void) {
 #if defined(_WIN32)
     static char path[MAXPATHLEN + 1];
     path[0] = '\0';
@@ -1896,9 +1896,9 @@ static char const *getDllDirectory() {
 }
 #endif
 
-static void _initDeepCopy();
+static void _initDeepCopy(void);
 
-void _initBuiltinModule() {
+void _initBuiltinModule(void) {
     _initBuiltinTypeMethods();
     _initDeepCopy();
 
@@ -1983,7 +1983,7 @@ NUITKA_DEFINE_BUILTIN(long)
 NUITKA_DEFINE_BUILTIN(range);
 #endif
 
-void _initBuiltinOriginalValues() {
+void _initBuiltinOriginalValues(void) {
     NUITKA_ASSIGN_BUILTIN(type);
     NUITKA_ASSIGN_BUILTIN(len);
     NUITKA_ASSIGN_BUILTIN(range);
@@ -2007,7 +2007,7 @@ volatile int _Py_Ticker = _Py_CheckInterval;
 #if PYTHON_VERSION >= 0x270
 iternextfunc default_iternext;
 
-void _initSlotIternext() {
+void _initSlotIternext(void) {
     PyObject *pos_args = PyTuple_New(1);
     PyTuple_SET_ITEM(pos_args, 0, (PyObject *)&PyBaseObject_Type);
     Py_INCREF(&PyBaseObject_Type);

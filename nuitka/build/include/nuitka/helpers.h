@@ -424,11 +424,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME0(PyObject *module) {
 }
 
 // Get the binary directory was wide characters.
-extern wchar_t const *getBinaryDirectoryWideChars();
+extern wchar_t const *getBinaryDirectoryWideChars(void);
 
 #if !defined(_WIN32) || PYTHON_VERSION < 0x300
 // Get the binary directory, translated to native path
-extern char const *getBinaryDirectoryHostEncoded();
+extern char const *getBinaryDirectoryHostEncoded(void);
 #endif
 
 #if _NUITKA_STANDALONE
@@ -469,7 +469,7 @@ extern PyObject *DEEP_COPY_TUPLE(PyObject *value);
 extern PyObject *DEEP_COPY_SET(PyObject *value);
 
 // Force a garbage collection, for debugging purposes.
-NUITKA_MAY_BE_UNUSED static void forceGC() {
+NUITKA_MAY_BE_UNUSED static void forceGC(void) {
     PyObject_CallObject(PyObject_GetAttrString(PyImport_ImportModule("gc"), "collect"), NULL);
 }
 

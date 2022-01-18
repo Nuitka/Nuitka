@@ -58,7 +58,7 @@ unsigned char const *constant_bin = NULL;
 #endif
 
 #if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
-extern unsigned const char *getConstantsBlobData();
+extern unsigned const char *getConstantsBlobData(void);
 #endif
 
 // No Python runtime yet, need to do this manually.

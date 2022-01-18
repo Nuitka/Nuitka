@@ -73,7 +73,7 @@ static struct _frozen const *old_frozen = NULL;
 #endif
 #endif
 
-static void prepareStandaloneEnvironment() {
+static void prepareStandaloneEnvironment(void) {
     // Tell the CPython library to use our pre-compiled modules as frozen
     // modules. This for those modules/packages like "encoding" that will be
     // loaded during "Py_Initialize" already, for the others they may be
@@ -122,7 +122,7 @@ static void prepareStandaloneEnvironment() {
 #endif
 }
 
-static void restoreStandaloneEnvironment() {
+static void restoreStandaloneEnvironment(void) {
     /* Make sure to use the optimal value for standalone mode only. */
 #if PYTHON_VERSION < 0x300
     PySys_SetPath((char *)getBinaryDirectoryHostEncoded());
@@ -276,7 +276,7 @@ static void unsetenv(char const *name) { SetEnvironmentVariableA(name, NULL); }
 #endif
 
 #if _DEBUG_REFCOUNTS
-static void PRINT_REFCOUNTS() {
+static void PRINT_REFCOUNTS(void) {
     PRINT_STRING("REFERENCE counts at program end:\n");
     PRINT_STRING("active | allocated | released\n");
     PRINT_FORMAT("Compiled Coroutines: %d | %d | %d\n", count_active_Nuitka_Coroutine_Type,
@@ -351,7 +351,7 @@ DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
 }
 #endif
 
-static int HANDLE_PROGRAM_EXIT() {
+static int HANDLE_PROGRAM_EXIT(void) {
     int exit_code;
 
     if (ERROR_OCCURRED()) {

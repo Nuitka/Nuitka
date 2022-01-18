@@ -136,7 +136,7 @@ static PyObject *str_builtin_upper = NULL;
 static PyObject *str_builtin_zfill = NULL;
 #endif
 #if PYTHON_VERSION < 0x300
-static void _initStrBuiltinMethods() {
+static void _initStrBuiltinMethods(void) {
 #if PYTHON_VERSION < 0x300
     str_builtin_capitalize = PyObject_GetAttrString((PyObject *)&PyString_Type, "capitalize");
 #endif
@@ -313,7 +313,7 @@ static PyObject *unicode_builtin_title = NULL;
 static PyObject *unicode_builtin_translate = NULL;
 static PyObject *unicode_builtin_upper = NULL;
 static PyObject *unicode_builtin_zfill = NULL;
-static void _initUnicodeBuiltinMethods() {
+static void _initUnicodeBuiltinMethods(void) {
     unicode_builtin_capitalize = PyObject_GetAttrString((PyObject *)&PyUnicode_Type, "capitalize");
 #if PYTHON_VERSION >= 0x300
     unicode_builtin_casefold = PyObject_GetAttrString((PyObject *)&PyUnicode_Type, "casefold");
@@ -407,7 +407,7 @@ static PyObject *dict_builtin_viewkeys = NULL;
 #if PYTHON_VERSION < 0x300
 static PyObject *dict_builtin_viewvalues = NULL;
 #endif
-static void _initDictBuiltinMethods() {
+static void _initDictBuiltinMethods(void) {
     dict_builtin_clear = PyObject_GetAttrString((PyObject *)&PyDict_Type, "clear");
     dict_builtin_copy = PyObject_GetAttrString((PyObject *)&PyDict_Type, "copy");
     dict_builtin_fromkeys = PyObject_GetAttrString((PyObject *)&PyDict_Type, "fromkeys");
