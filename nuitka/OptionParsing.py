@@ -109,9 +109,9 @@ parser = OptionParser(
 
 parser.add_option(
     "--module",
-    action="store_false",
-    dest="executable",
-    default=True,
+    action="store_true",
+    dest="module_mode",
+    default=False,
     help="""\
 Create an extension module executable instead of a program. Defaults to off.""",
 )

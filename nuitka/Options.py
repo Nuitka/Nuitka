@@ -147,7 +147,7 @@ def parseArgs():
     # only for this machine, recursing to all modules, and even including the
     # standard library.
     if options.is_standalone:
-        if not options.executable:
+        if options.module_mode:
             Tracing.options_logger.sysexit(
                 """\
 Error, conflicting options, cannot make standalone module, only executable.
@@ -645,7 +645,7 @@ def getFileReferenceMode():
 
 def shallMakeModule():
     """:returns: bool derived from ``--module``"""
-    return not options.executable
+    return options.module_mode
 
 
 def shallCreatePyiFile():
