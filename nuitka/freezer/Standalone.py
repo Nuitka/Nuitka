@@ -270,6 +270,8 @@ print("\\n".join(sorted(
             command=(sys.executable, "-s", "-S", "-v", tmp_filename),
             env=dict(os.environ, PYTHONIOENCODING="utf-8"),
         )
+
+        assert type(stderr) is bytes
     finally:
         os.unlink(tmp_filename)
 
@@ -389,7 +391,7 @@ print("\\n".join(sorted(
 _excluded_stdlib_modules = ["__main__.py", "__init__.py", "antigravity.py"]
 
 if os.name != "nt":
-    # On posix systems, and posix Python veriants on Windows, this won't
+    # On posix systems, and posix Python variants on Windows, this won't
     # work.
     _excluded_stdlib_modules.append("wintypes.py")
     _excluded_stdlib_modules.append("cp65001.py")
@@ -494,7 +496,7 @@ def _detectEarlyImports():
     ]
 
     if os.name != "nt":
-        # On posix systems, and posix Python veriants on Windows, these won't
+        # On posix systems, and posix Python variants on Windows, these won't
         # work and fail to import.
         for encoding_name in ("mbcs", "cp65001", "oem"):
             if encoding_name in encoding_names:
