@@ -503,10 +503,15 @@ def _detectEarlyImports():
                 encoding_names.remove(encoding_name)
 
     # Not for startup.
-    if "bz2_codec" in encoding_names:
-        encoding_names.remove("bz2_codec")
-    if "idna" in encoding_names:
-        encoding_names.remove("idna")
+    for non_locale_encoding in (
+        "bz2_codec",
+        "idna",
+        "base64_codec",
+        "hex_codec",
+        "rot_13",
+    ):
+        if non_locale_encoding in encoding_names:
+            encoding_names.remove(non_locale_encoding)
 
     import_code = ";".join(
         "import encodings.%s" % encoding_name
