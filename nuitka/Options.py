@@ -43,6 +43,7 @@ from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
     isPathExecutable,
     openTextFile,
+    relpath,
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
@@ -146,6 +147,41 @@ def parseArgs():
     # Provide a tempdir spec implies onefile tempdir, even on Linux.
     if options.onefile_tempdir_spec:
         options.is_onefile_tempdir = True
+
+        if os.path.normpath(options.onefile_tempdir_spec) == ".":
+            Tracing.options_logger.sysexit(
+                """\
+Error, using '.' as a value for '--onefile-tempdir-spec' is not supported,
+you cannot unpack the onefile payload into the same directory as the binary,
+as that would overwrite it and cause locking issues as well."""
+            )
+
+        if options.onefile_tempdir_spec.count("%") % 2 != 0:
+            Tracing.options_logger.warning(
+                """Unmatched '%%' is suspicious for '--onefile-tempdir-spec' and may
+not do what you want it to do: '%s'"""
+                % options.onefile_tempdir_spec
+            )
+
+        if options.onefile_tempdir_spec.count("%") == 0:
+            Tracing.options_logger.warning(
+                """Not using any variables for '--onefile-tempdir-spec' should only be
+done if your program absolutely needs to be in the same path always: '%s'"""
+                % options.onefile_tempdir_spec
+            )
+
+        if os.path.isabs(options.onefile_tempdir_spec):
+            Tracing.options_logger.warning(
+                """Using an absolute path should be avoided unless you are targeting a
+very well known environment: '%s'"""
+                % options.onefile_tempdir_spec
+            )
+        elif relpath(options.onefile_tempdir_spec):
+            Tracing.options_logger.warning(
+                """Using an relative path above the executable should be avoided unless you are targeting a
+very well known environment: '%s'"""
+                % options.onefile_tempdir_spec
+            )
 
     # Standalone mode implies an executable, not importing "site" module, which is
     # only for this machine, recursing to all modules, and even including the

@@ -1119,6 +1119,7 @@ windows_group.add_option(
 
 windows_group.add_option(
     "--windows-onefile-tempdir-spec",
+    "--onefile-tempdir-spec",
     action="store",
     dest="onefile_tempdir_spec",
     metavar="ONEFILE_TEMPDIR_SPEC",
