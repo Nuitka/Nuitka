@@ -861,10 +861,12 @@ def _resolveBinaryPathDLLsMacOS(original_dir, binary_filename, paths, keep_unres
 
 
 def _detectBinaryRPathsMacOS(original_dir, binary_filename):
-    # TODO: Check exit code, should never fail.
-    stdout, _stderr, _exit_code = executeProcess(
-        command=("otool", "-l", binary_filename)
+    stdout = executeToolChecked(
+        logger=inclusion_logger,
+        command=("otool", "-l", binary_filename),
+        absence_message=otool_usage,
     )
+
     lines = stdout.split(b"\n")
 
     result = set()
@@ -877,10 +879,12 @@ def _detectBinaryRPathsMacOS(original_dir, binary_filename):
 
             line = line.split("path ", 1)[1]
             line = line.split(" (offset", 1)[0]
+
             if line.startswith("@loader_path"):
                 line = os.path.join(original_dir, line[13:])
             elif line.startswith("@executable_path"):
                 continue
+
             result.add(line)
 
     return result
