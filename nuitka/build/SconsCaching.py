@@ -102,7 +102,7 @@ def _injectCcache(env, cc_path, python_prefix, target_arch, assume_yes_for_downl
                 ccache_binary = getCachedDownload(
                     url=url,
                     is_arch_specific=False,
-                    specifity=url.rsplit("/", 2)[1],
+                    specificity=url.rsplit("/", 2)[1],
                     flatten=True,
                     binary="ccache.exe",
                     message="Nuitka will make use of ccache to speed up repeated compilation.",
@@ -120,7 +120,7 @@ def _injectCcache(env, cc_path, python_prefix, target_arch, assume_yes_for_downl
                     ccache_binary = getCachedDownload(
                         url=url,
                         is_arch_specific=False,
-                        specifity=url.rsplit("/", 2)[1],
+                        specificity=url.rsplit("/", 2)[1],
                         flatten=True,
                         binary="ccache",
                         message="Nuitka will make use of ccache to speed up repeated compilation.",

@@ -97,7 +97,7 @@ def _getAppImageToolPath(for_operation, assume_yes_for_downloads):
         is_arch_specific=getArchitecture(),
         binary=appimagetool_url.rsplit("/", 1)[1],
         flatten=True,
-        specifity=appimagetool_url.rsplit("/", 2)[1],
+        specificity=appimagetool_url.rsplit("/", 2)[1],
         message="""\
 Nuitka will make use of AppImage (https://appimage.org/) tool
 to combine Nuitka dist folder to onefile binary.""",
