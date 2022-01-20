@@ -64,6 +64,7 @@ from nuitka.utils.FileOperations import (
     getFileList,
     getSubDirectories,
     haveSameFileContents,
+    isPathBelow,
     listDir,
     makePath,
     putTextFileContents,
@@ -799,12 +800,6 @@ def _detectBinaryPathDLLsMacOS(
             absence_message=otool_usage,
         )
 
-    system_paths = (
-        "/usr/lib/",
-        "/System/Library/Frameworks/",
-        "/System/Library/PrivateFrameworks/",
-    )
-
     result = OrderedSet()
 
     for line in stdout.split(b"\n")[1:]:
@@ -815,10 +810,16 @@ def _detectBinaryPathDLLsMacOS(
             continue
 
         filename = line.split(" (", 1)[0].strip()
-        for w in system_paths:
-            if filename.startswith(w):
-                break
-        else:
+
+        # Ignore dependency from system paths.
+        if not isPathBelow(
+            path=(
+                "/usr/lib/",
+                "/System/Library/Frameworks/",
+                "/System/Library/PrivateFrameworks/",
+            ),
+            filename=filename,
+        ):
             result.add(filename)
 
     resolved_result = _resolveBinaryPathDLLsMacOS(

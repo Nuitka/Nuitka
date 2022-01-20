@@ -640,7 +640,19 @@ def getWindowsDrive(path):
 
 
 def isPathBelow(path, filename):
-    """Is a path inside of a given directory path."""
+    """Is a path inside of a given directory path
+
+    Args:
+        path: location to be below
+        filename: candidate being checked
+    """
+    if type(path) in (tuple, list):
+        for p in path:
+            if isPathBelow(path=p, filename=filename):
+                return True
+
+        return False
+
     path = os.path.abspath(path)
     filename = os.path.abspath(filename)
 
