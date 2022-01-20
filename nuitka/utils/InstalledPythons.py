@@ -168,7 +168,7 @@ def _findPythons(python_version):
 
     candidate = getExecutablePath("python" + python_version)
     if candidate is not None:
-        InstalledPython(python_exe=candidate, python_version=python_version)
+        result.add(InstalledPython(python_exe=candidate, python_version=python_version))
 
     return result
 
