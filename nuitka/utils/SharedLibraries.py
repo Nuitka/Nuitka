@@ -31,7 +31,7 @@ from nuitka.Tracing import inclusion_logger, postprocessing_logger
 from .Execution import (
     executeProcess,
     executeToolChecked,
-    withEnvironmentVarOverriden,
+    withEnvironmentVarOverridden,
 )
 from .FileOperations import getFileList, withMadeWritableFileMode
 from .Utils import isAlpineLinux, isMacOS, isWin32Windows
@@ -84,7 +84,7 @@ def locateDLL(dll_name):
             name=dll_name, paths=["/lib", "/usr/lib", "/usr/local/lib"]
         )
 
-    with withEnvironmentVarOverriden("LANG", "C"):
+    with withEnvironmentVarOverridden("LANG", "C"):
         # TODO: Could cache ldconfig output
         output = executeToolChecked(
             logger=postprocessing_logger,
@@ -313,7 +313,7 @@ def _setSharedLibraryRPATHElf(filename, rpath):
     # case seems to use rpaths for executables.
 
     # patchelf --set-rpath "$ORIGIN/path/to/library" <executable>
-    with withEnvironmentVarOverriden("LANG", "C"):
+    with withEnvironmentVarOverridden("LANG", "C"):
         executeToolChecked(
             logger=postprocessing_logger,
             command=("patchelf", "--set-rpath", rpath, filename),

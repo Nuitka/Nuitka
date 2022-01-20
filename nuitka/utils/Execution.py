@@ -178,7 +178,7 @@ def withEnvironmentPathAdded(env_var_name, *paths):
 
 
 @contextmanager
-def withEnvironmentVarOverriden(env_var_name, value):
+def withEnvironmentVarOverridden(env_var_name, value):
     """Change an environment and restore it after context."""
 
     if env_var_name in os.environ:

@@ -31,7 +31,7 @@ from nuitka.__past__ import subprocess
 from nuitka.utils.Execution import (
     callProcess,
     isExecutableCommand,
-    withEnvironmentVarOverriden,
+    withEnvironmentVarOverridden,
 )
 from nuitka.utils.Utils import getOS
 
@@ -83,7 +83,7 @@ Error, needs 'strace' on your system to scan used libraries."""
 
         # Ensure executable is not polluted with third party stuff,
         # tests may fail otherwise due to unexpected libs being loaded
-        with withEnvironmentVarOverriden("LD_PRELOAD", None):
+        with withEnvironmentVarOverridden("LD_PRELOAD", None):
             tracing_command = args[0] if args[0] != "sudo" else args[1]
 
             process = subprocess.Popen(

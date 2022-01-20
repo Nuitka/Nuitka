@@ -110,6 +110,7 @@
         "Organisational",
         "otool",
         "patchelf",
+        "Pickler",
         "Podman",
         "POSIX",
         "pyenv",

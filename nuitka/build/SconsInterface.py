@@ -273,7 +273,7 @@ def runScons(options, quiet, scons_filename):
         Tracing.flushStandardOutputs()
 
         # Call scons, make sure to pass on quiet setting.
-        with Execution.withEnvironmentVarOverriden(
+        with Execution.withEnvironmentVarOverridden(
             "NUITKA_QUIET", "1" if Tracing.is_quiet else "0"
         ):
             result = subprocess.call(scons_command, shell=False, cwd=source_dir)

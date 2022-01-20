@@ -70,7 +70,7 @@ from nuitka.tree import SyntaxErrors
 from nuitka.utils import InstanceCounters, MemoryUsage
 from nuitka.utils.Execution import (
     callProcess,
-    withEnvironmentVarOverriden,
+    withEnvironmentVarOverridden,
     wrapCommandForDebuggerForExec,
 )
 from nuitka.utils.FileOperations import (
@@ -468,7 +468,7 @@ def _runCPgoBinary():
     if _wasMsvcMode():
         msvc_pgc_filename = _deleteMsvcPGOFiles(pgo_mode="generate")
 
-        with withEnvironmentVarOverriden(
+        with withEnvironmentVarOverridden(
             "PATH",
             getSconsReportValue(
                 source_dir=OutputDirectories.getSourceDirectoryPath(), key="PATH"
@@ -501,7 +501,7 @@ def _runPythonPgoBinary():
 
     pgo_filename = OutputDirectories.getPgoRunInputFilename()
 
-    with withEnvironmentVarOverriden("NUITKA_PGO_OUTPUT", pgo_filename):
+    with withEnvironmentVarOverridden("NUITKA_PGO_OUTPUT", pgo_filename):
         _exit_code = _runPgoBinary()
 
     if not os.path.exists(pgo_filename):
