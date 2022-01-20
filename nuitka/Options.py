@@ -139,6 +139,10 @@ def parseArgs():
     if options.is_onefile:
         options.is_standalone = True
 
+    # Standalone implies no_site build
+    if options.is_standalone:
+        options.python_flags.insert(0, "no_site")
+
     # Provide a tempdir spec implies onefile tempdir, even on Linux.
     if options.onefile_tempdir_spec:
         options.is_onefile_tempdir = True
@@ -1272,6 +1276,9 @@ def _getPythonFlags():
             for part in parts.split(","):
                 if part in ("-S", "nosite", "no_site"):
                     _python_flags.add("no_site")
+                elif part in ("site"):
+                    if "no_site" in _python_flags:
+                        _python_flags.remove("no_site")
                 elif part in (
                     "-R",
                     "static_hashes",
