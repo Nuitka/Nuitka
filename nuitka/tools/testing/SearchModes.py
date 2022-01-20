@@ -59,6 +59,9 @@ class SearchModeBase(object):
 
     @classmethod
     def _match(cls, dirname, filename, candidate):
+        # Circular dependency.
+        from .Common import getStartDir
+
         parts = [dirname, filename]
 
         while None in parts:
@@ -77,11 +80,9 @@ class SearchModeBase(object):
             path.rsplit(".", 1)[0].replace("Test", ""),
         )
 
-        candidate2 = os.path.relpath(
-            candidate, os.path.dirname(sys.modules["__main__"].__file__)
+        return candidate.rstrip("/") in candidates or areSamePaths(
+            os.path.join(getStartDir(), candidate), filename
         )
-
-        return candidate.rstrip("/") in candidates or candidate2 in candidates
 
     def exit(self, message):
         # Virtual method, pylint: disable=no-self-use

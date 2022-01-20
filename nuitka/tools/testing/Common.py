@@ -81,9 +81,19 @@ def check_result(*popenargs, **kwargs):
         return True
 
 
+_start_dir = None
+
+
 def goMainDir():
+    global _start_dir  # singleton, pylint: disable=global-statement
+    _start_dir = os.getcwd()
+
     # Go its own directory, to have it easy with path knowledge.
     os.chdir(os.path.dirname(os.path.abspath(sys.modules["__main__"].__file__)))
+
+
+def getStartDir():
+    return _start_dir
 
 
 _python_version_str = None
