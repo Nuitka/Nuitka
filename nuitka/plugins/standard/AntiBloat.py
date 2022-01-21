@@ -305,7 +305,8 @@ which can and should be a top level package and then one choice, "error",
                 body[:] = replacement.body
 
             self.info(
-                "Updated '%s' function '%s'." % (module_name.asString(), function_name)
+                "Updated module '%s' function '%s'."
+                % (module_name.asString(), function_name)
             )
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):

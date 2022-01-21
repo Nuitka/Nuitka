@@ -16,10 +16,6 @@
 #     limitations under the License.
 #
 """ Test that checks that accelerated mode usage of multiprocessing works too. """
-# nuitka-project-if: {OS} == "Windows":
-#    nuitka-project: --enable-plugin=multiprocessing
-# nuitka-project-if: {OS} != "Windows":
-#    nuitka-project: --disable-plugin=multiprocessing
 
 from multiprocessing import freeze_support
 

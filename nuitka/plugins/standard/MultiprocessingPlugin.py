@@ -25,7 +25,10 @@ The issue applies to accelerated and standalone mode alike.
 """
 
 from nuitka import Options
-from nuitka.ModuleRegistry import getRootTopModule
+from nuitka.ModuleRegistry import (
+    getModuleInclusionInfoByName,
+    getRootTopModule,
+)
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
@@ -55,10 +58,6 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     @staticmethod
     def isAlwaysEnabled():
         return True
-
-    @staticmethod
-    def getPreprocessorSymbols():
-        return {"_NUITKA_PLUGIN_MULTIPROCESSING_ENABLED": "1"}
 
     @staticmethod
     def createPreModuleLoadCode(module):
@@ -174,3 +173,8 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
             )
 
         return source_code
+
+    @staticmethod
+    def getPreprocessorSymbols():
+        if getModuleInclusionInfoByName("__parents_main__"):
+            return {"_NUITKA_PLUGIN_MULTIPROCESSING_ENABLED": "1"}
