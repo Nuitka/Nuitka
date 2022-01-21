@@ -1335,6 +1335,8 @@ def _getPythonFlags():
                     _python_flags.add("no_asserts")
                 elif part in ("no_annotations", "noannotations"):
                     _python_flags.add("no_annotations")
+                elif part in ("unbuffered", "-u"):
+                    _python_flags.add("unbuffered")
                 elif part in ("-m", "package_mode"):
                     _python_flags.add("package_mode")
                 else:
@@ -1383,6 +1385,12 @@ def hasPythonFlagNoRandomization():
     """*bool* = "no_randomization", "-R", "static_hashes" in python flags given"""
 
     return "no_randomization" in _getPythonFlags()
+
+
+def hasPythonFlagUnbuffered():
+    """*bool* = "package_mode", "-m" in python flags given"""
+
+    return "unbuffered" in _getPythonFlags()
 
 
 def hasPythonFlagPackageMode():

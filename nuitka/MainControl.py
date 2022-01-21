@@ -42,6 +42,7 @@ from nuitka.Options import (
     getPythonPgoInput,
     hasPythonFlagNoAsserts,
     hasPythonFlagNoWarnings,
+    hasPythonFlagUnbuffered,
 )
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import executePostProcessing
@@ -633,6 +634,9 @@ def runSconsBackend(quiet):
 
     if python_version >= 0x370 and sys.flags.utf8_mode:
         options["python_sysflag_utf8"] = asBoolStr(True)
+
+    if hasPythonFlagUnbuffered():
+        options["python_sysflag_unbuffered"] = asBoolStr(True)
 
     abiflags = getPythonABI()
     if abiflags:

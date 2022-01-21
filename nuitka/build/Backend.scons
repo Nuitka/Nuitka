@@ -272,6 +272,9 @@ python_sysflag_no_randomization = getArgumentBool(
     "python_sysflag_no_randomization", False
 )
 
+# python_sysflag_unbuffered
+python_sysflag_unbuffered = getArgumentBool("python_sysflag_unbuffered", False)
+
 # Preprocessor defines from plugins
 cpp_defines = getArgumentList("cpp_defines", "")
 link_dirs = getArgumentList("link_dirs", "")
@@ -1001,6 +1004,8 @@ def createBuildDefinitionsFile():
     build_definitions["SYSFLAG_NO_RANDOMIZATION"] = (
         1 if python_sysflag_no_randomization else 0
     )
+
+    build_definitions["SYSFLAG_UNBUFFERED"] = 1 if python_sysflag_unbuffered else 0
 
     if forced_stdout_path:
         build_definitions["NUITKA_FORCED_STDOUT_PATH"] = forced_stdout_path
