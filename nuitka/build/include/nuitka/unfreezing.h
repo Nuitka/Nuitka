@@ -21,7 +21,7 @@
 /* Modes for loading modules, can be compiled, external shared library, or
  * bytecode. */
 #define NUITKA_COMPILED_MODULE 0
-#define NUITKA_SHLIB_FLAG 1
+#define NUITKA_EXTENSION_MODULE_FLAG 1
 #define NUITKA_PACKAGE_FLAG 2
 #define NUITKA_BYTECODE_FLAG 4
 

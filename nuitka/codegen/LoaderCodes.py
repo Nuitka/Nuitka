@@ -46,7 +46,7 @@ from .templates.CodeTemplatesLoader import (
     template_metapath_loader_body,
     template_metapath_loader_bytecode_module_entry,
     template_metapath_loader_compiled_module_entry,
-    template_metapath_loader_shlib_module_entry,
+    template_metapath_loader_extension_module_entry,
 )
 
 
@@ -73,10 +73,10 @@ def getModuleMetapathLoaderEntryCode(module, bytecode_accessor):
             "size": len(code_data),
             "flags": " | ".join(flags) or "0",
         }
-    elif module.isPythonShlibModule():
-        flags.append("NUITKA_SHLIB_FLAG")
+    elif module.isPythonExtensionModule():
+        flags.append("NUITKA_EXTENSION_MODULE_FLAG")
 
-        return template_metapath_loader_shlib_module_entry % {
+        return template_metapath_loader_extension_module_entry % {
             "module_name": module_c_name,
             "flags": " | ".join(flags) or "0",
         }

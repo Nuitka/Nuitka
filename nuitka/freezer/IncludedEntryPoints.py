@@ -97,7 +97,7 @@ def makeDllEntryPointOld(source_path, dest_path, package_name):
 
 def makeExtensionModuleEntryPoint(source_path, dest_path, package_name):
     return makeIncludedEntryPoint(
-        "shlib",
+        "extension",
         source_path=source_path,
         dest_path=dest_path,
         package_name=package_name,
@@ -120,7 +120,7 @@ def setMainEntryPoint(binary_filename):
     standalone_entry_points.insert(0, entry_point)
 
 
-def addShlibEntryPoint(module):
+def addExtensionModuleEntryPoint(module):
     target_filename = os.path.join(
         getStandaloneDirectoryPath(), module.getFullName().asPath()
     )

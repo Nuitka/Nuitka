@@ -587,7 +587,7 @@ class Plugins(object):
                 source_code=code,
                 is_top=False,
                 is_main=False,
-                is_shlib=False,
+                is_extension=False,
                 is_fake=module_name,
                 hide_syntax_error=False,
             )
@@ -724,7 +724,7 @@ class Plugins(object):
                     source_code=source_code,
                     is_top=False,
                     is_main=False,
-                    is_shlib=False,
+                    is_extension=False,
                     is_fake=fake_module_name,
                     hide_syntax_error=False,
                 )

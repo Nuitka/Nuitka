@@ -324,7 +324,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         Args:
             module_filename: filename
             module_name: full module name
-            module_kind: one of "py", "shlib" (shared library)
+            module_kind: one of "py", "extension" (shared library)
         Returns:
             True or False
         """

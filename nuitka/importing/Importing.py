@@ -128,7 +128,7 @@ def getModuleNameAndKindFromFilename(module_filename):
                 module_name = ModuleName(
                     os.path.basename(module_filename)[: -len(suffix)]
                 )
-                module_kind = "shlib"
+                module_kind = "extension"
 
                 break
         else:

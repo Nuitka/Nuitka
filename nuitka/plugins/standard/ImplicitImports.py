@@ -1173,7 +1173,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     def getImplicitImports(self, module):
         full_name = module.getFullName()
 
-        if module.isPythonShlibModule():
+        if module.isPythonExtensionModule():
             for used_module in module.getUsedModules():
                 yield used_module[0]
 

@@ -31,8 +31,8 @@ from nuitka.build.DataComposerInterface import runDataComposer
 from nuitka.build.SconsUtils import getSconsReportValue
 from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.freezer.IncludedEntryPoints import (
+    addExtensionModuleEntryPoint,
     addIncludedEntryPoints,
-    addShlibEntryPoint,
     getStandaloneEntryPoints,
     setMainEntryPoint,
 )
@@ -246,7 +246,7 @@ def pickSourceFilenames(source_dir, modules):
 
     # First pass, check for collisions.
     for module in modules:
-        if module.isPythonShlibModule():
+        if module.isPythonExtensionModule():
             continue
 
         _base_filename, collision_filename = _getModuleFilenames(module)
@@ -265,7 +265,7 @@ def pickSourceFilenames(source_dir, modules):
     # Second pass, this time sorted, so we get deterministic results. We will
     # apply an "@1"/"@2",... to disambiguate the filenames.
     for module in sorted(modules, key=lambda x: x.getFullName()):
-        if module.isPythonShlibModule():
+        if module.isPythonExtensionModule():
             continue
 
         base_filename, collision_filename = _getModuleFilenames(module)
@@ -348,8 +348,8 @@ def makeSourceDirectory():
                 inclusion_logger.info(
                     "Included compiled module '%s'." % module.getFullName()
                 )
-        elif module.isPythonShlibModule():
-            addShlibEntryPoint(module)
+        elif module.isPythonExtensionModule():
+            addExtensionModuleEntryPoint(module)
 
             if Options.isShowInclusion():
                 inclusion_logger.info(

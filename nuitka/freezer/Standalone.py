@@ -41,7 +41,7 @@ from nuitka.importing.StandardLibrary import (
     isStandardLibraryPath,
 )
 from nuitka.nodes.ModuleNodes import (
-    PythonShlibModule,
+    PythonExtensionModule,
     makeUncompiledPythonModule,
 )
 from nuitka.plugins.Plugins import Plugins
@@ -207,7 +207,7 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
     module_names.add(module_name)
 
 
-def _detectedShlibFile(filename, module_name):
+def _detectedExtensionModule(filename, module_name):
     # That is not a shared library, but looks like one.
     if module_name == "__main__":
         return
@@ -220,10 +220,12 @@ def _detectedShlibFile(filename, module_name):
 
     source_ref = SourceCodeReferences.fromFilename(filename=filename)
 
-    shlib_module = PythonShlibModule(module_name=module_name, source_ref=source_ref)
+    extension_module = PythonExtensionModule(
+        module_name=module_name, source_ref=source_ref
+    )
 
-    ModuleRegistry.addRootModule(shlib_module)
-    ImportCache.addImportedModule(shlib_module)
+    ModuleRegistry.addRootModule(extension_module)
+    ImportCache.addImportedModule(extension_module)
 
     module_names.add(module_name)
 
@@ -347,7 +349,7 @@ print("\\n".join(sorted(
                         if module_name == "decimal":
                             module_name = ModuleName("_decimal")
 
-                    detections.append((module_name, 2, "shlib", filename))
+                    detections.append((module_name, 2, "extension", filename))
             elif origin == b"dynamically":
                 # Shared library in early load, happens on RPM based systems and
                 # or self compiled Python installations.
@@ -359,7 +361,7 @@ print("\\n".join(sorted(
                 if not isStandardLibraryPath(filename):
                     continue
 
-                detections.append((module_name, 1, "shlib", filename))
+                detections.append((module_name, 1, "extension", filename))
 
     for module_name, _prio, kind, filename in sorted(detections):
         if kind == "precompiled":
@@ -378,8 +380,8 @@ print("\\n".join(sorted(
                 user_provided=user_provided,
                 technical=technical,
             )
-        elif kind == "shlib":
-            _detectedShlibFile(filename=filename, module_name=module_name)
+        elif kind == "extension":
+            _detectedExtensionModule(filename=filename, module_name=module_name)
         else:
             assert False, kind
 

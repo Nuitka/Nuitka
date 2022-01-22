@@ -107,8 +107,8 @@ from nuitka.nodes.ModuleAttributeNodes import (
 from nuitka.nodes.ModuleNodes import (
     CompiledPythonModule,
     CompiledPythonPackage,
+    PythonExtensionModule,
     PythonMainModule,
-    PythonShlibModule,
     makeUncompiledPythonModule,
 )
 from nuitka.nodes.NodeMakingHelpers import (
@@ -971,7 +971,7 @@ def _createModule(
     module_name,
     source_code,
     source_ref,
-    is_shlib,
+    is_extension,
     is_namespace,
     is_package,
     is_top,
@@ -981,8 +981,8 @@ def _createModule(
     # Many details due to the caching done here.
     # pylint: disable=too-many-locals
 
-    if is_shlib:
-        result = PythonShlibModule(module_name=module_name, source_ref=source_ref)
+    if is_extension:
+        result = PythonExtensionModule(module_name=module_name, source_ref=source_ref)
     elif is_main:
         result = PythonMainModule(
             main_added=main_added,
@@ -1109,7 +1109,7 @@ def buildMainModuleTree(filename, is_main):
         source_code=None,
         is_top=True,
         is_main=is_main,
-        is_shlib=False,
+        is_extension=False,
         is_fake=False,
         hide_syntax_error=False,
     )
@@ -1195,7 +1195,7 @@ def buildModule(
     source_code,
     is_top,
     is_main,
-    is_shlib,
+    is_extension,
     is_fake,
     hide_syntax_error,
 ):
@@ -1226,7 +1226,7 @@ def buildModule(
 
     # Read source code if necessary. Might give a SyntaxError due to not being proper
     # encoded source.
-    if source_filename is not None and not is_namespace and not is_shlib:
+    if source_filename is not None and not is_namespace and not is_extension:
         try:
             # For fake modules, source is provided directly.
             if source_code is None:
@@ -1285,7 +1285,7 @@ def buildModule(
         source_ref=source_ref,
         is_top=is_top,
         is_main=is_main,
-        is_shlib=is_shlib,
+        is_extension=is_extension,
         is_namespace=is_namespace,
         is_package=is_package,
         main_added=main_added,

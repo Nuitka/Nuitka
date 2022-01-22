@@ -916,8 +916,8 @@ class PythonMainModule(CompiledPythonModule):
             )
 
 
-class PythonShlibModule(PythonModuleBase):
-    kind = "PYTHON_SHLIB_MODULE"
+class PythonExtensionModule(PythonModuleBase):
+    kind = "PYTHON_EXTENSION_MODULE"
 
     __slots__ = ("used_modules",)
 

@@ -187,7 +187,7 @@ def optimizeUncompiledPythonModule(module):
     Plugins.considerImplicitImports(module=module, signal_change=signalChange)
 
 
-def optimizeShlibModule(module):
+def optimizeExtensionModule(module):
     # Pick up parent package if any.
     module.attemptRecursion()
 
@@ -200,8 +200,8 @@ def optimizeModule(module):
     global tag_set
     tag_set = TagSet()
 
-    if module.isPythonShlibModule():
-        optimizeShlibModule(module)
+    if module.isPythonExtensionModule():
+        optimizeExtensionModule(module)
         changed = False
     elif module.isCompiledPythonModule():
         changed = optimizeCompiledPythonModule(module)

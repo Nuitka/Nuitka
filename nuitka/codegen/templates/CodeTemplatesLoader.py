@@ -23,7 +23,7 @@
 template_metapath_loader_compiled_module_entry = """\
 {%(module_name)s, modulecode_%(module_identifier)s, 0, 0, %(flags)s},"""
 
-template_metapath_loader_shlib_module_entry = """\
+template_metapath_loader_extension_module_entry = """\
 {%(module_name)s, NULL, 0, 0, %(flags)s},"""
 
 template_metapath_loader_bytecode_module_entry = """\

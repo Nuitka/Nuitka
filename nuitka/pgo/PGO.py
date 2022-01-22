@@ -122,7 +122,7 @@ def decideInclusionFromPGO(module_name, module_kind):
 
     # At this time, we do not yet detect the loading of extension modules,
     # but of course we could and should do that.
-    if module_kind == "shlib":
+    if module_kind == "extension":
         return None
 
     if module_name in _module_entries:

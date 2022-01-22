@@ -45,7 +45,7 @@ def _recurseTo(module_name, module_filename, module_kind):
         source_code=None,
         is_top=False,
         is_main=False,
-        is_shlib=module_kind == "shlib",
+        is_extension=module_kind == "extension",
         is_fake=False,
         hide_syntax_error=True,
     )
@@ -100,7 +100,7 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
     if plugin_decision is not None:
         return plugin_decision
 
-    if module_kind == "shlib":
+    if module_kind == "extension":
         if Options.isStandaloneMode():
             return True, "Extension module needed for standalone mode."
         else:
@@ -283,7 +283,7 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
                 elif module.isCompiledPythonModule():
                     ModuleRegistry.addRootModule(module)
-                elif module.isPythonShlibModule():
+                elif module.isPythonExtensionModule():
                     if Options.isStandaloneMode():
                         ModuleRegistry.addRootModule(module)
 
