@@ -19,7 +19,11 @@
 
 This exposes the choices made by the user. Defaults will be applied here, and
 some handling of defaults.
+
 """
+
+# These are for use in option values.
+# spell-checker: ignore uiaccess,noannotations,nodocstrings,noasserts,nowarnings,norandomization,etherium
 
 import os
 import shlex

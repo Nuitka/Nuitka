@@ -725,10 +725,6 @@ def callExecPython(args, clean_path, add_path):
         else:
             os.environ["PYTHONPATH"] = Options.getOutputDir()
 
-    # We better flush these, "os.execl" won't do it anymore.
-    sys.stdout.flush()
-    sys.stderr.flush()
-
     # Add the main arguments, previous separated.
     args += Options.getPositionalArgs()[1:] + Options.getMainArgs()
 
