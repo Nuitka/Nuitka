@@ -122,7 +122,7 @@ def optimizeCompiledPythonModule(module):
 
             if unchanged_count == 1 and pass_count == 1:
                 optimization_logger.info_fileoutput(
-                    "No changed, but retrying one more time.",
+                    "Not changed, but retrying one more time.",
                     other_logger=progress_logger,
                 )
                 continue
