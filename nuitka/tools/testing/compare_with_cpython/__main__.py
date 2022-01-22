@@ -810,7 +810,7 @@ Stderr was:
             nuitka_cmd.insert(len(nuitka_cmd) - 1, "--debugger")
 
             with withPythonPathChange(nuitka_package_dir):
-                executeProcess(command=nuitka_cmd, needs_stdin=True)
+                executeProcess(command=nuitka_cmd, stdin=True)
 
         exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
 

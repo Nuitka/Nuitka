@@ -256,25 +256,23 @@ print("\\n".join(sorted(
         "import sys; sys.path = %s; sys.real_prefix = sys.prefix;" % repr(reduced_path)
     ) + command
 
-    import tempfile
+    if python_version >= 0x300:
+        command = command.encode("utf8")
 
-    tmp_file, tmp_filename = tempfile.mkstemp()
+    _stdout, stderr, exit_code = executeProcess(
+        command=(
+            sys.executable,
+            "-s",
+            "-S",
+            "-v",
+            "-c",
+            "import sys;exec(sys.stdin.read())",
+        ),
+        stdin=command,
+        env=dict(os.environ, PYTHONIOENCODING="utf-8"),
+    )
 
-    try:
-        if python_version >= 0x300:
-            command = command.encode("utf8")
-        os.write(tmp_file, command)
-        os.close(tmp_file)
-
-        # TODO: Check exit code, should never fail.
-        _stdout, stderr, exit_code = executeProcess(
-            command=(sys.executable, "-s", "-S", "-v", tmp_filename),
-            env=dict(os.environ, PYTHONIOENCODING="utf-8"),
-        )
-
-        assert type(stderr) is bytes
-    finally:
-        os.unlink(tmp_filename)
+    assert type(stderr) is bytes
 
     # Don't let errors here go unnoticed.
     if exit_code != 0:

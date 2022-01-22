@@ -342,15 +342,16 @@ def executeToolChecked(logger, command, absence_message, stderr_filter=None):
     return stdout
 
 
-def executeProcess(
-    command, env=None, needs_stdin=False, shell=False, external_cwd=False
-):
+def executeProcess(command, env=None, stdin=False, shell=False, external_cwd=False):
     if not env:
         env = os.environ
 
+    # Note: Empty string should also be allowed for stdin, therefore check for
+    # default "False" and "None" precisely.
+
     process = subprocess.Popen(
         command,
-        stdin=subprocess.PIPE if needs_stdin else getNullInput(),
+        stdin=subprocess.PIPE if stdin not in (False, None) else getNullInput(),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         shell=shell,
@@ -361,7 +362,14 @@ def executeProcess(
         cwd=getExternalUsePath(os.getcwd()) if external_cwd else None,
     )
 
-    stdout, stderr = process.communicate()
+    if stdin is True:
+        process_input = None
+    elif stdin is not False:
+        process_input = stdin
+    else:
+        process_input = None
+
+    stdout, stderr = process.communicate(input=process_input)
     exit_code = process.wait()
 
     return stdout, stderr, exit_code

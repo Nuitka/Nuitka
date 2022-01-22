@@ -119,6 +119,7 @@
         "pyside",
         "pystone",
         "PYTHONHASHSEED",
+        "PYTHONIOENCODING",
         "PYTHONPATH",
         "redist",
         "RPATH",
