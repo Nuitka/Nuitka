@@ -102,7 +102,22 @@ def _getVersionInformationValues():
         yield "WindowsRelease: %s" % getWindowsRelease()
 
 
-parser = OptionParser(
+class OurOptionParser(OptionParser):
+    def _process_long_opt(self, rargs, values):
+        arg = rargs[0]
+
+        if "=" not in arg:
+            opt = self._match_long_opt(arg)
+            option = self._long_opt[opt]
+            if option.takes_value():
+                self.error(
+                    "The '%s' option requires an argument with '%s='." % (opt, opt)
+                )
+
+        return OptionParser._process_long_opt(self, rargs, values)
+
+
+parser = OurOptionParser(
     usage=usage,
     version="\n".join(_getVersionInformationValues()),
 )
