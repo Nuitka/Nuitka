@@ -72,6 +72,7 @@ is_debug = None
 is_nondebug = None
 is_fullcompat = None
 is_report_missing = None
+is_verbose = None
 
 
 def parseArgs():
@@ -81,7 +82,8 @@ def parseArgs():
     """
     # singleton with many cases checking the options right away.
     # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements
-    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat, is_report_missing
+    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug
+    global is_fullcompat, is_report_missing, is_verbose
 
     if os.name == "nt":
         # Windows store Python's don't allow looking at the python, catch that.
@@ -127,6 +129,8 @@ def parseArgs():
         )
 
         options.verbose = True
+
+    is_verbose = options.verbose
 
     Tracing.optimization_logger.is_quiet = not options.verbose
 

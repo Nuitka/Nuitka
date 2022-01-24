@@ -50,10 +50,6 @@ from .BytecodeDemotion import demoteCompiledModuleToBytecode
 from .Tags import TagSet
 from .TraceCollections import withChangeIndicationsTo
 
-_progress = Options.isShowProgress()
-_is_verbose = Options.isVerbose()
-
-
 tag_set = None
 
 
@@ -62,7 +58,7 @@ def signalChange(tags, source_ref, message):
     if message is not None:
         # Try hard to not call a delayed evaluation of node descriptions.
 
-        if _is_verbose:
+        if Options.is_verbose:
             optimization_logger.info(
                 "{source_ref} : {tags} : {message}".format(
                     source_ref=source_ref.getAsString(),
@@ -86,7 +82,7 @@ def optimizeCompiledPythonModule(module):
 
     touched = False
 
-    if _progress and Options.isShowMemory():
+    if Options.isShowProgress() and Options.isShowMemory():
         memory_watch = MemoryWatch()
 
     # Temporary workaround, since we do some optimization based on the last pass results
@@ -143,7 +139,7 @@ def optimizeCompiledPythonModule(module):
         # Otherwise we did stuff, so note that for return value.
         touched = True
 
-    if _progress and Options.isShowMemory():
+    if Options.isShowProgress() and Options.isShowMemory():
         memory_watch.finish()
 
         memory_logger.info(
@@ -226,13 +222,14 @@ def _restartProgress():
         "PASS %d:" % pass_count, other_logger=progress_logger
     )
 
-    setupProgressBar(
-        stage="PASS %d" % pass_count,
-        unit="module",
-        total=ModuleRegistry.getRemainingModulesCount()
-        + ModuleRegistry.getDoneModulesCount(),
-        min_total=last_total,
-    )
+    if not Options.is_verbose or optimization_logger.isFileOutput():
+        setupProgressBar(
+            stage="PASS %d" % pass_count,
+            unit="module",
+            total=ModuleRegistry.getRemainingModulesCount()
+            + ModuleRegistry.getDoneModulesCount(),
+            min_total=last_total,
+        )
 
 
 def _traceProgressModuleStart(current_module):
@@ -246,16 +243,14 @@ after that.""".format(
         other_logger=progress_logger,
     )
 
-    # Progress bar and spammy tracing don't go along.
-    if not _is_verbose:
-        reportProgressBar(
-            item=current_module.getFullName(),
-            total=ModuleRegistry.getRemainingModulesCount()
-            + ModuleRegistry.getDoneModulesCount(),
-            update=False,
-        )
+    reportProgressBar(
+        item=current_module.getFullName(),
+        total=ModuleRegistry.getRemainingModulesCount()
+        + ModuleRegistry.getDoneModulesCount(),
+        update=False,
+    )
 
-    if _progress and Options.isShowMemory():
+    if Options.isShowProgress() and Options.isShowMemory():
         output = "Memory usage {memory}:".format(
             memory=getHumanReadableProcessMemoryUsage()
         )

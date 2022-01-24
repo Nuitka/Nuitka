@@ -72,8 +72,6 @@ from .NodeMakingHelpers import (
 )
 from .shapes.BuiltinTypeShapes import tshape_function
 
-_is_verbose = Options.isVerbose()
-
 
 class MaybeLocalVariableUsage(Exception):
     pass
@@ -815,8 +813,10 @@ class ExpressionFunctionPureBody(ExpressionFunctionBody):
             for function_body in self.trace_collection.getUsedFunctions():
                 trace_collection.onUsedFunction(function_body)
 
+            return
+
         def mySignal(tag, source_ref, change_desc):
-            if _is_verbose:
+            if Options.is_verbose:
                 optimization_logger.info(
                     "{source_ref} : {tags} : {message}".format(
                         source_ref=source_ref.getAsString(),

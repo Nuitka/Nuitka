@@ -332,6 +332,25 @@ class CollectionStartpointMixin(CollectionUpdateMixin):
 
             self.markActiveVariableAsEscaped(variable)
 
+    def onUsedFunction(self, function_body):
+        owning_module = function_body.getParentModule()
+
+        # Make sure the owning module is added to the used set. This is most
+        # important for helper functions, or modules, which otherwise have
+        # become unused.
+        addUsedModule(
+            module=owning_module,
+            using_module=None,
+            usage_tag="function",
+            reason="Function %s" % self.name,
+            source_ref=owning_module.source_ref,
+        )
+
+        needs_visit = owning_module.addUsedFunction(function_body)
+
+        if needs_visit:
+            function_body.computeFunctionRaw(self)
+
 
 class TraceCollectionBase(object):
     """This contains for logic for maintaining active traces.
@@ -459,25 +478,6 @@ class TraceCollectionBase(object):
     def signalChange(tags, source_ref, message):
         # This is monkey patched from another module. pylint: disable=I0021,not-callable
         signalChange(tags, source_ref, message)
-
-    def onUsedFunction(self, function_body):
-        owning_module = function_body.getParentModule()
-
-        # Make sure the owning module is added to the used set. This is most
-        # important for helper functions, or modules, which otherwise have
-        # become unused.
-        addUsedModule(
-            module=owning_module,
-            using_module=None,
-            usage_tag="function",
-            reason="Function %s" % self.name,
-            source_ref=owning_module.source_ref,
-        )
-
-        needs_visit = owning_module.addUsedFunction(function_body)
-
-        if needs_visit:
-            function_body.computeFunctionRaw(self)
 
     @staticmethod
     def mustAlias(a, b):
@@ -928,6 +928,9 @@ class TraceCollectionBase(object):
     def getVeryTrustedModuleVariables(self):
         return self.parent.getVeryTrustedModuleVariables()
 
+    def onUsedFunction(self, function_body):
+        return self.parent.onUsedFunction(function_body)
+
 
 class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
     __slots__ = ("variable_traces",)
@@ -1068,6 +1071,8 @@ class TraceCollectionPureFunction(TraceCollectionFunction):
 
     def onUsedFunction(self, function_body):
         self.used_functions.add(function_body)
+
+        TraceCollectionFunction.onUsedFunction(self, function_body=function_body)
 
 
 class TraceCollectionModule(CollectionStartpointMixin, TraceCollectionBase):
