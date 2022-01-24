@@ -36,3 +36,7 @@ srsly.msgpack._packer:
 locale:
   depends:
     - "_bootlocale"
+
+anyio._core._eventloop:
+  depends:
+    - "anyio._backends._asyncio"
