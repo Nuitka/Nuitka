@@ -40,6 +40,9 @@ def main():
 
     stdout_osc = check_output(args=osc_cmd)
 
+    if str is not bytes:
+        stdout_osc = stdout_osc.decode("utf8")
+
     # Response is really a CSV file, so use that for parsing.
     csvfile = StringIO(stdout_osc)
     osc_reader = csv.reader(csvfile, delimiter=";")
@@ -48,14 +51,14 @@ def main():
 
     bad = ("failed", "unresolvable", "broken", "blocked")
 
-    titles = osc_reader.next()[1:]
+    titles = next(osc_reader)[1:]
 
     # Nuitka (follow git main branch)
-    row1 = osc_reader.next()
+    row1 = next(osc_reader)
     # Nuitka-Unstable (follow git develop branch)
-    row2 = osc_reader.next()
+    row2 = next(osc_reader)
     # Nuitka-Experimental (follow git factory branch)
-    row3 = osc_reader.next()
+    row3 = next(osc_reader)
 
     problems = []
 
