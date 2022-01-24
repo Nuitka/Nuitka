@@ -81,3 +81,10 @@ def getStringHash(value):
     result.updateFromValues(value)
 
     return result.asHexDigest()
+
+
+def getHashFromValues(*values):
+    result = Hash()
+    result.updateFromValues(*values)
+
+    return result.asHexDigest()
