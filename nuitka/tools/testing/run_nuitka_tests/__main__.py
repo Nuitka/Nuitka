@@ -691,7 +691,7 @@ def main():
         else:
             os.environ["PYTHON"] = getInstalledPythonVersion(
                 intended_version, must_exist=True
-            )
+            ).getPythonExe()
 
         if options.basic_tests:
             my_print(
