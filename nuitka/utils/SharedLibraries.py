@@ -28,11 +28,7 @@ from nuitka.__past__ import unicode
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
-from .Execution import (
-    executeProcess,
-    executeToolChecked,
-    withEnvironmentVarOverridden,
-)
+from .Execution import executeToolChecked, withEnvironmentVarOverridden
 from .FileOperations import getFileList, withMadeWritableFileMode
 from .Utils import isAlpineLinux, isMacOS, isWin32Windows
 from .WindowsResources import (
@@ -450,6 +446,9 @@ def getPyWin32Dir():
             return candidate
 
 
+_binary_minos_cache = {}
+
+
 def detectBinaryMinMacOS(binary_filename):
     """Detect the minimum required macOS version of a binary.
 
@@ -460,33 +459,40 @@ def detectBinaryMinMacOS(binary_filename):
         str - minimum OS version that the binary will run on
 
     """
+    binary_filename = os.path.abspath(binary_filename)
 
-    stdout, _stderr, exit_code = executeProcess(["otool", "-l", binary_filename])
+    if binary_filename not in _binary_minos_cache:
+        minos_version = None
 
-    if exit_code != 0:
-        postprocessing_logger.sysexit(
-            "Unexpected failure to execute otool -l '%s'." % binary_filename
+        stdout = executeToolChecked(
+            logger=postprocessing_logger,
+            command=("otool", "-l", binary_filename),
+            absence_message=otool_usage,
         )
 
-    lines = stdout.split(b"\n")
+        lines = stdout.split(b"\n")
 
-    for i, line in enumerate(lines):
-        # Form one, used by CPython builds.
-        if line.endswith(b"cmd LC_VERSION_MIN_MACOSX"):
-            line = lines[i + 2]
-            if str is not bytes:
-                line = line.decode("utf8")
+        for i, line in enumerate(lines):
+            # Form one, used by CPython builds.
+            if line.endswith(b"cmd LC_VERSION_MIN_MACOSX"):
+                line = lines[i + 2]
+                if str is not bytes:
+                    line = line.decode("utf8")
 
-            return line.split("version ", 1)[1]
+                minos_version = line.split("version ", 1)[1]
+                break
 
-        # Form two, used by Apple Python builds.
-        elif line.strip().startswith(b"minos"):
-            if str is not bytes:
-                line = line.decode("utf8")
+            # Form two, used by Apple Python builds.
+            if line.strip().startswith(b"minos"):
+                if str is not bytes:
+                    line = line.decode("utf8")
 
-            return line.split("minos ", 1)[1]
+                minos_version = line.split("minos ", 1)[1]
+                break
 
-    return None
+        _binary_minos_cache[binary_filename] = minos_version
+
+    return _binary_minos_cache[binary_filename]
 
 
 _re_anylib = re.compile(r"^.*(\.(?:dll|so(?:\..*)|dylib))$", re.IGNORECASE)

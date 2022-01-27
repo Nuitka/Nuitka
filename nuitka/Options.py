@@ -34,6 +34,7 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import isPyenvPython, parseOptions
 from nuitka.PythonFlavors import (
     isAnacondaPython,
+    isApplePython,
     isDebianPackagePython,
     isMSYS2MingwPython,
     isNuitkaPython,
@@ -447,9 +448,9 @@ might be missing required packages. Disable with --static-libpython=no" if you d
 want to install it."""
         )
 
-    if isStandaloneMode() and isMacOS() and sys.executable.startswith("/usr/bin/"):
+    if isStandaloneMode() and isApplePython():
         Tracing.options_logger.sysexit(
-            "Error, Apple Python from macOS is not supported, use e.g. CPython instead."
+            "Error, for standalone mode, Apple Python from macOS is not supported, use e.g. CPython instead."
         )
 
     if isStandaloneMode() and isLinux() and getExecutablePath("patchelf") is None:

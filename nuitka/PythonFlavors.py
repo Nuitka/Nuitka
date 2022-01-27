@@ -68,9 +68,31 @@ def isAnacondaPython():
 
 
 def isApplePython():
-    return isMacOS() and isPathBelowOrSameAs(
-        path="/usr/bin/", filename=getSystemPrefixPath()
-    )
+    if not isMacOS():
+        return False
+
+    # Python2 on 10.15 or higher
+    if "+internal-os" in sys.version:
+        return True
+
+    # Older macOS had that
+    if isPathBelowOrSameAs(path="/usr/bin/", filename=getSystemPrefixPath()):
+        return True
+    # Newer macOS has that
+    if isPathBelowOrSameAs(
+        path="/Library/Developer/CommandLineTools/", filename=getSystemPrefixPath()
+    ):
+        return True
+
+    # Xcode has that on macOS, we consider it an Apple Python for now, it might
+    # be more usable than Apple Python, we but we delay that.
+    if isPathBelowOrSameAs(
+        path="/Applications/Xcode.app/Contents/Developer/",
+        filename=getSystemPrefixPath(),
+    ):
+        return True
+
+    return False
 
 
 def isPyenvPython():
