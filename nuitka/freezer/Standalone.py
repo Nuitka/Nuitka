@@ -83,7 +83,7 @@ from nuitka.utils.SharedLibraries import (
     removeSxsFromDLL,
     setSharedLibraryRPATH,
 )
-from nuitka.utils.Signing import removeMacOSCodeSignature
+from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
 
@@ -1358,15 +1358,6 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
                 original_location=original_path,
             )
 
-        # Remove code signature from CPython installed library
-        candidate = os.path.join(
-            dist_dir,
-            "Python",
-        )
-
-        if os.path.exists(candidate):
-            removeMacOSCodeSignature(candidate)
-
     # Remove or update rpath settings.
     if Utils.getOS() in ("Linux", "Darwin"):
         # For Linux, the "rpath" of libraries may be an issue and must be
@@ -1386,6 +1377,18 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
 
         for _original_path, dll_filename in dll_map:
             setSharedLibraryRPATH(os.path.join(dist_dir, dll_filename), "$ORIGIN")
+
+    if Utils.isMacOS():
+        addMacOSCodeSignature(
+            filenames=[
+                standalone_entry_point.dest_path
+                for standalone_entry_point in standalone_entry_points
+            ]
+            + [
+                os.path.join(dist_dir, dll_filename)
+                for original_path, dll_filename in dll_map
+            ]
+        )
 
     if Utils.isWin32Windows():
         if python_version < 0x300:

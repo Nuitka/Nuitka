@@ -518,16 +518,29 @@ def putTextFileContents(filename, contents, encoding=None):
 
 
 @contextmanager
-def withPreserveFileMode(filename):
-    old_mode = os.stat(filename).st_mode
+def withPreserveFileMode(filenames):
+    if type(filenames) is str:
+        filenames = [filenames]
+
+    old_modes = {}
+    for filename in filenames:
+        old_modes[filename] = os.stat(filename).st_mode
+
     yield
-    os.chmod(filename, old_mode)
+
+    for filename in filenames:
+        os.chmod(filename, old_modes[filename])
 
 
 @contextmanager
-def withMadeWritableFileMode(filename):
-    with withPreserveFileMode(filename):
-        os.chmod(filename, int("644", 8))
+def withMadeWritableFileMode(filenames):
+    if type(filenames) is str:
+        filenames = [filenames]
+
+    with withPreserveFileMode(filenames):
+        for filename in filenames:
+            os.chmod(filename, int("644", 8))
+
         yield
 
 
