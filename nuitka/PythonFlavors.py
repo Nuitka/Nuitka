@@ -95,6 +95,19 @@ def isApplePython():
     return False
 
 
+def isHomebrewPython():
+    if not isMacOS():
+        return False
+
+    if "HOMEBREW_PREFIX" not in os.environ:
+        return False
+
+    if isPathBelowOrSameAs(
+        path=os.environ["HOMEBREW_PREFIX"], filename=getSystemPrefixPath()
+    ):
+        return True
+
+
 def isPyenvPython():
     if isWin32Windows():
         return False
