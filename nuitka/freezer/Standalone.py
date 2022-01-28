@@ -57,7 +57,6 @@ from nuitka.utils.Execution import (
 )
 from nuitka.utils.FileOperations import (
     areSamePaths,
-    copyFile,
     copyFileWithPermissions,
     getDirectoryRealPath,
     getFileContentByLine,
@@ -76,11 +75,11 @@ from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
+    copyDllFile,
     getPyWin32Dir,
     getSharedLibraryRPATH,
     getWindowsDLLVersion,
     otool_usage,
-    removeSxsFromDLL,
     setSharedLibraryRPATH,
 )
 from nuitka.utils.Signing import addMacOSCodeSignature
@@ -1300,7 +1299,7 @@ different from
             removed_dlls.add(dll_filename2)
 
 
-def _copyUsedDlls(dist_dir, used_dlls):
+def _copyDllsUsed(dist_dir, used_dlls):
     dll_map = []
 
     for dll_filename, sources in iterItems(used_dlls):
@@ -1311,7 +1310,7 @@ def _copyUsedDlls(dist_dir, used_dlls):
         # Sometimes DLL dependencies were copied there already. TODO: That should
         # actually become disallowed with plugins no longer seeing that folder.
         if not os.path.exists(target_path):
-            copyFile(dll_filename, target_path)
+            copyDllFile(source_path=dll_filename, dest_path=target_path)
 
         dll_map.append((dll_filename, dll_name))
 
@@ -1324,7 +1323,7 @@ def _copyUsedDlls(dist_dir, used_dlls):
     return dll_map
 
 
-def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
+def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
     # This is complex, because we also need to handle OS specifics.
     # pylint: disable=too-many-branches
 
@@ -1339,7 +1338,7 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
 
     _removeDuplicateDlls(used_dlls=used_dlls)
 
-    dll_map = _copyUsedDlls(dist_dir=dist_dir, used_dlls=used_dlls)
+    dll_map = _copyDllsUsed(dist_dir=dist_dir, used_dlls=used_dlls)
 
     if Utils.isMacOS():
         # For macOS, the binary and the DLLs needs to be changed to reflect
@@ -1389,15 +1388,6 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
                 for original_path, dll_filename in dll_map
             ]
         )
-
-    if Utils.isWin32Windows():
-        if python_version < 0x300:
-            # For Win32, we might have to remove SXS paths
-            for standalone_entry_point in standalone_entry_points[1:]:
-                removeSxsFromDLL(standalone_entry_point.dest_path)
-
-            for _original_path, dll_filename in dll_map:
-                removeSxsFromDLL(os.path.join(dist_dir, dll_filename))
 
     Plugins.onCopiedDLLs(dist_dir=dist_dir, used_dlls=used_dlls)
 

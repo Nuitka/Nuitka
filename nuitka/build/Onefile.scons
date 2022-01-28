@@ -193,7 +193,11 @@ onefile_compression = getArgumentBool("onefile_compression", False)
 onefile_splash_screen = getArgumentBool("onefile_splash_screen", False)
 
 # Minimum version required on macOS.
-macos_minversion = getArgumentDefaulted("macos_minversion", "")
+macos_min_version = getArgumentDefaulted("macos_min_version", "")
+
+# Target arch for macOS.
+macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
+
 
 if getArgumentBool("progress_bar", True) and not show_scons_mode:
     enableSconsProgressBar()
@@ -295,7 +299,8 @@ env.standalone_mode = True  # We are only used in this case.
 env.debug_mode = debug_mode
 env.source_dir = source_dir
 env.low_memory = False  # Never a concern in this case.
-env.macos_minversion = macos_minversion
+env.macos_min_version = macos_min_version
+env.macos_target_arch = macos_target_arch
 
 # Requested or user provided, detect if it's clang even from environment
 if "clang" in env.the_cc_name and "-cl" not in env.the_cc_name:

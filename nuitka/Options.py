@@ -505,7 +505,7 @@ def commentArgs():
 
     # TODO: Not all of these are usable with MSYS2 really, split those off.
     if getOS() != "Windows":
-        # Too many Windows specific options clearly, pylint: disable=too-many-boolean-expressions
+        # Too many Windows specific options clearly
         if (
             getWindowsIconExecutablePath()
             or shallAskForWindowsAdminRights()
@@ -517,7 +517,6 @@ def commentArgs():
             or getForcedStderrPath()  # not yet for other platforms
             or getForcedStdoutPath()
             or getWindowsSplashScreen()
-            or getIntendedPythonArch()
         ):
             Tracing.options_logger.warning(
                 "Using Windows specific options has no effect on other platforms."
@@ -1061,15 +1060,6 @@ def isRemoveBuildDir():
     return options.remove_build and not options.generate_c_only
 
 
-def getIntendedPythonArch():
-    """:returns: str, one of ``"x86"``, ``"x86_64"`` or ``None``
-
-    Notes: This is only available on Windows, on other platforms
-    it will be `None`
-    """
-    return options.python_arch if isWin32Windows() else None
-
-
 experimental = set()
 
 
@@ -1282,6 +1272,22 @@ def getWindowsCompanyName():
 def getWindowsProductName():
     """*str* name of the product to use"""
     return options.windows_product_name
+
+
+def getMacOSTargetArch():
+    """:returns: str enum ("universal", "arm64", "x86_64") derived from ``--macos-target-arch`` value"""
+    macos_target_arch = options.macos_target_arch
+
+    if options.macos_target_arch is None:
+        if isStandaloneMode():
+            macos_target_arch = "universal"
+        else:
+            macos_target_arch = "native"
+
+    if macos_target_arch == "native":
+        macos_target_arch = getArchitecture()
+
+    return macos_target_arch
 
 
 def shallCreateAppBundle():

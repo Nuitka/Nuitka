@@ -29,7 +29,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
 from .Execution import executeToolChecked, withEnvironmentVarOverridden
-from .FileOperations import getFileList, withMadeWritableFileMode
+from .FileOperations import copyFile, getFileList, withMadeWritableFileMode
 from .Utils import isAlpineLinux, isMacOS, isWin32Windows
 from .WindowsResources import (
     RT_MANIFEST,
@@ -125,7 +125,7 @@ def getSxsFromDLL(filename, with_data=False):
     )
 
 
-def removeSxsFromDLL(filename):
+def _removeSxsFromDLL(filename):
     """Remove the Windows DLL SxS manifest.
 
     Args:
@@ -519,3 +519,60 @@ def locateDLLsInDirectory(directory):
             result.append((filename, filename_relative, match.group(1)))
 
     return result
+
+
+_lipo_usage = (
+    "The 'lipo' tool from XCode is used to manage universal binaries on macOS platform."
+)
+_file_usage = "The 'file' tool is used to detect macOS file architectures."
+
+
+def makeMacOSThinBinary(filename):
+    file_output = executeToolChecked(
+        logger=postprocessing_logger,
+        command=("file", filename),
+        absence_message=_file_usage,
+    )
+
+    if str is not bytes:
+        file_output = file_output.decode("utf8")
+
+    assert file_output.startswith(filename + ":")
+    file_output = file_output[len(filename) + 1 :].splitlines()[0].strip()
+
+    macos_target_arch = Options.getMacOSTargetArch()
+
+    if "universal" in file_output:
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=(
+                "lipo",
+                "-thin",
+                macos_target_arch,
+                filename,
+                "-o",
+                filename + ".tmp",
+            ),
+            absence_message=_lipo_usage,
+        )
+
+        with withMadeWritableFileMode(filename):
+            os.unlink(filename)
+            os.rename(filename + ".tmp", filename)
+    elif macos_target_arch not in file_output:
+        postprocessing_logger.sysexit(
+            "Error, cannot use file '%s' (%s) to build arch '%s' result"
+            % (filename, file_output, macos_target_arch)
+        )
+
+
+def copyDllFile(source_path, dest_path):
+    """Copy an extension/DLL file making some adjustments on the way."""
+
+    copyFile(source_path=source_path, dest_path=dest_path)
+
+    if isWin32Windows() and python_version < 0x300:
+        _removeSxsFromDLL(dest_path)
+
+    if isMacOS() and Options.getMacOSTargetArch() != "universal":
+        makeMacOSThinBinary(dest_path)

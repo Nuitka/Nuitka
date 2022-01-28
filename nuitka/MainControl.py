@@ -94,7 +94,7 @@ from .build import SconsInterface
 from .codegen import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
 from .freezer.Onefile import packDistFolderToOnefile
-from .freezer.Standalone import copyUsedDLLs
+from .freezer.Standalone import copyDllsUsed
 from .optimizations.Optimization import optimizeModules
 from .pgo.PGO import readPGOInputFile
 from .Reports import writeCompilationReport
@@ -954,7 +954,7 @@ def main():
             for module in ModuleRegistry.getDoneModules():
                 addIncludedEntryPoints(Plugins.considerExtraDlls(dist_dir, module))
 
-            copyUsedDLLs(
+            copyDllsUsed(
                 source_dir=OutputDirectories.getSourceDirectoryPath(),
                 dist_dir=dist_dir,
                 standalone_entry_points=getStandaloneEntryPoints(),
@@ -992,10 +992,10 @@ def main():
             onefile=Options.isOnefileMode()
         )
 
-        if "macos_minversion" in options:
+        if "macos_min_version" in options:
             general.info(
                 "Created binary that runs on macOS %s (%s) or higher."
-                % (options["macos_minversion"], getArchitecture())
+                % (options["macos_min_version"], getArchitecture())
             )
 
         Plugins.onFinalResult(final_filename)

@@ -387,16 +387,22 @@ def setCommonOptions(options):
         options["link_libraries"] = ",".join(link_libraries)
 
     if Utils.isMacOS() and Options.isStandaloneMode():
-        macos_minversion = os.environ.get("MACOSX_DEPLOYMENT_TARGET")
-        if macos_minversion is None:
-            macos_minversion = detectBinaryMinMacOS(sys.executable)
+        macos_min_version = os.environ.get("MACOSX_DEPLOYMENT_TARGET")
+        if macos_min_version is None:
+            macos_min_version = detectBinaryMinMacOS(sys.executable)
 
-            if macos_minversion is None:
+            if macos_min_version is None:
                 Tracing.general.warning(
                     "Could not detect minimum macOS version for %r." % sys.executable
                 )
 
                 # Default, but not a good idea.
-                macos_minversion = "10.9"
+                macos_min_version = "10.9"
 
-        options["macos_minversion"] = macos_minversion
+        options["macos_min_version"] = macos_min_version
+
+    if Utils.isMacOS():
+        macos_target_arch = Options.getMacOSTargetArch()
+
+        if macos_target_arch != "universal":
+            options["macos_target_arch"] = macos_target_arch

@@ -173,20 +173,6 @@ parser.add_option(
     help=SUPPRESS_HELP,
 )
 
-
-if os.name == "nt":
-    parser.add_option(
-        "--python-arch",
-        action="store",
-        dest="python_arch",
-        choices=("x86", "x86_64"),
-        default=None,
-        help="""\
-Architecture of Python to use. One of "x86" or "x86_64".
-Defaults to what you run Nuitka with (currently "%s")."""
-        % (getArchitecture()),
-    )
-
 parser.add_option(
     "--python-debug",
     action="store_true",
@@ -1176,12 +1162,16 @@ parser.add_option_group(windows_group)
 macos_group = OptionGroup(parser, "macOS specific controls")
 
 macos_group.add_option(
-    "--macos-onefile-icon",
-    action="append",
-    dest="icon_path",
-    metavar="ICON_PATH",
-    default=[],
-    help="Add executable icon for binary to use. Can be given only one time. Defaults to Python icon if available.",
+    "--macos-target-arch",
+    action="store",
+    dest="macos_target_arch",
+    choices=("universal", "arm64", "x86_64"),
+    metavar="MACOS_TARGET_ARCH",
+    default=None,
+    help="""\
+What architectures is this to supposed to run on. Default and limit
+is what the running Python allows for. Default is "native" which is
+the architecture Python is running.""",
 )
 
 macos_group.add_option(
@@ -1204,6 +1194,16 @@ When compiling for macOS, create a bundle rather than a plain binary
 application. Currently experimental and incomplete. Currently this
 is the only way to unlock disabling of console.Defaults to off.""",
 )
+
+macos_group.add_option(
+    "--macos-onefile-icon",
+    action="append",
+    dest="icon_path",
+    metavar="ICON_PATH",
+    default=[],
+    help="Add executable icon for binary to use. Can be given only one time. Defaults to Python icon if available.",
+)
+
 
 macos_group.add_option(
     "--macos-signed-app-name",

@@ -27,9 +27,10 @@ import collections
 import os
 
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
-from nuitka.utils.FileOperations import copyFile, isRelativePath, makePath
+from nuitka.utils.FileOperations import isRelativePath, makePath
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.SharedLibraries import copyDllFile
 
 IncludedEntryPoint = collections.namedtuple(
     "IncludedEntryPoint",
@@ -131,7 +132,7 @@ def addExtensionModuleEntryPoint(module):
     if not os.path.isdir(target_dir):
         makePath(target_dir)
 
-    copyFile(module.getFilename(), target_filename)
+    copyDllFile(module.getFilename(), target_filename)
 
     standalone_entry_points.append(
         makeExtensionModuleEntryPoint(
