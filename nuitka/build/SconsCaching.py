@@ -156,11 +156,6 @@ def _injectCcache(env, cc_path, python_prefix, target_arch, assume_yes_for_downl
         scons_details_logger.info(
             "Providing real CC path '%s' via PATH extension." % cc_path
         )
-    else:
-        if isWin32Windows():
-            scons_logger.warning(
-                "Didn't find ccache for C level caching, follow Nuitka User Manual description."
-            )
 
 
 def enableCcache(

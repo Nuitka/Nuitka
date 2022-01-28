@@ -917,7 +917,7 @@ hang.
 Nuitka will pick up ``ccache`` if it's in found in system ``PATH``, and
 it will also be possible to provide if by setting
 ``NUITKA_CCACHE_BINARY`` to the full path of the binary, this is for use
-in CI systems.
+in CI systems where things might be non-standard.
 
 For the MSVC compilers and ClangCL setups, using the ``clcache`` is
 automatic and included in Nuitka.
