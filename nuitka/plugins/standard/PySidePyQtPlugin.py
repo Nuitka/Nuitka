@@ -1120,6 +1120,10 @@ class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
 Only PySide 6.1.2 or higher (or dev branch compiled), otherwise callbacks won't work."""
             )
 
+    def getModuleSpecificDllPaths(self, module_name):
+        if module_name.hasNamespace("PySide6"):
+            yield self.locateModule("shiboken6")
+
 
 class NuitkaPluginDetectorPySide6Plugins(NuitkaPluginBase):
     detector_for = NuitkaPluginPySide6Plugins
