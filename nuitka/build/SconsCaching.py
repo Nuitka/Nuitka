@@ -72,6 +72,7 @@ def _getCcacheGuessedPaths(python_prefix):
     elif isMacOS():
         # For macOS, we might find Homebrew ccache installed but not in PATH.
         yield "/usr/local/opt/ccache"
+        yield "/opt/homebrew/bin/ccache"
 
 
 def _injectCcache(env, cc_path, python_prefix, target_arch, assume_yes_for_downloads):
@@ -324,8 +325,22 @@ def checkCachingSuccess(source_dir):
                 if result in ("cache hit (direct)", "cache hit (preprocessed)"):
                     result = "cache hit"
 
+                # Newer ccache has these, but they duplicate:
+                if result in (
+                    "direct_cache_hit",
+                    "direct_cache_miss",
+                    "preprocessed_cache_hit",
+                    "preprocessed_cache_miss",
+                    "primary_storage_miss",
+                ):
+                    continue
+                if result == "primary_storage_hit":
+                    result = "cache hit"
+                if result == "cache_miss":
+                    result = "cache miss"
+
                 # Usage of incbin causes this for the constants blob integration.
-                if result == "unsupported code directive":
+                if result in ("unsupported code directive", "disabled"):
                     continue
 
                 counts[result] += 1
