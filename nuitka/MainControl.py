@@ -994,8 +994,8 @@ def main():
 
         if "macos_minversion" in options:
             general.info(
-                "Created binary that runs on macOS %s or higher."
-                % options["macos_minversion"]
+                "Created binary that runs on macOS %s (%s) or higher."
+                % (options["macos_minversion"], getArchitecture())
             )
 
         Plugins.onFinalResult(final_filename)
