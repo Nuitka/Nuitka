@@ -106,6 +106,7 @@ def _getVersionInformationValues():
 
 
 class OurOptionParser(OptionParser):
+    # spell-checker: ignore rargs
     def _process_long_opt(self, rargs, values):
         arg = rargs[0]
 

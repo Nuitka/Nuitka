@@ -257,7 +257,7 @@ print("\\n".join(sorted(
         "import sys; sys.path = %s; sys.real_prefix = sys.prefix;" % repr(reduced_path)
     ) + command
 
-    if python_version >= 0x300:
+    if str is not bytes:
         command = command.encode("utf8")
 
     _stdout, stderr, exit_code = executeProcess(

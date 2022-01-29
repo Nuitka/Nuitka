@@ -101,6 +101,7 @@
         "Kivy",
         "libc",
         "libpython",
+        "lldb",
         "lxml",
         "metaclass",
         "MSVC",
