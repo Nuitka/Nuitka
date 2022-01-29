@@ -448,10 +448,16 @@ might be missing required packages. Disable with --static-libpython=no" if you d
 want to install it."""
         )
 
-    if isStandaloneMode() and isApplePython():
-        Tracing.options_logger.sysexit(
-            "Error, for standalone mode, Apple Python from macOS is not supported, use e.g. CPython instead."
-        )
+    if isApplePython():
+        if isStandaloneMode():
+            Tracing.options_logger.sysexit(
+                "Error, for standalone mode, Apple Python from macOS is not supported, use e.g. CPython instead."
+            )
+
+        if str is bytes:
+            Tracing.options_logger.sysexit(
+                "Error, Apple Python 2.7 from macOS is not usable as per Apple decision, use e.g. CPython 2.7 instead."
+            )
 
     if isStandaloneMode() and isLinux() and getExecutablePath("patchelf") is None:
         Tracing.options_logger.sysexit(
