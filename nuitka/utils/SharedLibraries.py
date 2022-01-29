@@ -209,7 +209,7 @@ def getWindowsDLLVersion(filename):
     if not b:
         return (0, 0, 0, 0)
 
-    if not file_info.contents.dwSignature == 0xFEEF04BD:
+    if file_info.contents.dwSignature != 0xFEEF04BD:
         return (0, 0, 0, 0)
 
     ms = file_info.contents.dwFileVersionMS
@@ -382,12 +382,12 @@ def setSharedLibraryRPATH(filename, rpath):
 
     with withMadeWritableFileMode(filename):
         if isMacOS():
-            return _setSharedLibraryRPATHDarwin(filename, rpath)
+            _setSharedLibraryRPATHDarwin(filename, rpath)
         else:
-            return _setSharedLibraryRPATHElf(filename, rpath)
+            _setSharedLibraryRPATHElf(filename, rpath)
 
 
-def callInstallNameTool(filename, mapping, rpath):
+def callInstallNameTool(filename, mapping, id_path, rpath):
     """Update the macOS shared library information for a binary or shared library.
 
     Adds the rpath path name `rpath` in the specified `filename` Mach-O
@@ -397,6 +397,7 @@ def callInstallNameTool(filename, mapping, rpath):
     Args:
         filename - The file to be modified.
         mapping  - old_path, new_path pairs of values that should be changed
+        id_path  - Use this value for library id
         rpath    - Set this as an rpath if not None, delete if False
 
     Returns:
@@ -411,6 +412,9 @@ def callInstallNameTool(filename, mapping, rpath):
 
     if rpath is not None:
         command += ("-add_rpath", os.path.join(rpath, "."))
+
+    if id_path is not None:
+        command += ("-id", id_path)
 
     command.append(filename)
 

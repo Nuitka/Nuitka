@@ -781,6 +781,32 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     return sub_result
 
 
+def _parseOtoolListingOutput(output):
+    paths = OrderedSet()
+
+    for line in output.split(b"\n")[1:]:
+        if str is not bytes:
+            line = line.decode("utf8")
+
+        if not line:
+            continue
+
+        filename = line.split(" (", 1)[0].strip()
+
+        # Ignore dependency from system paths.
+        if not isPathBelow(
+            path=(
+                "/usr/lib/",
+                "/System/Library/Frameworks/",
+                "/System/Library/PrivateFrameworks/",
+            ),
+            filename=filename,
+        ):
+            paths.add(filename)
+
+    return paths
+
+
 def _detectBinaryPathDLLsMacOS(
     original_dir, binary_filename, package_name, keep_unresolved, recursive
 ):
@@ -796,29 +822,9 @@ def _detectBinaryPathDLLsMacOS(
             absence_message=otool_usage,
         )
 
-        paths = OrderedSet()
+        paths = _parseOtoolListingOutput(stdout)
 
-        for line in stdout.split(b"\n")[1:]:
-            if str is not bytes:
-                line = line.decode("utf8")
-
-            if not line:
-                continue
-
-            filename = line.split(" (", 1)[0].strip()
-
-            # Ignore dependency from system paths.
-            if not isPathBelow(
-                path=(
-                    "/usr/lib/",
-                    "/System/Library/Frameworks/",
-                    "/System/Library/PrivateFrameworks/",
-                ),
-                filename=filename,
-            ):
-                paths.add(filename)
-
-        resolved_result = _resolveBinaryPathDLLsMacOS(
+        had_self, resolved_result = _resolveBinaryPathDLLsMacOS(
             original_dir=original_dir,
             binary_filename=binary_filename,
             paths=paths,
@@ -829,20 +835,20 @@ def _detectBinaryPathDLLsMacOS(
             merged_result = OrderedDict(resolved_result)
 
             for sub_dll_filename in resolved_result:
-                merged_result.update(
-                    _detectBinaryPathDLLsMacOS(
-                        original_dir=original_dir,
-                        binary_filename=sub_dll_filename,
-                        package_name=package_name,
-                        recursive=True,
-                        keep_unresolved=True,
-                    )
+                _, sub_result = _detectBinaryPathDLLsMacOS(
+                    original_dir=original_dir,
+                    binary_filename=sub_dll_filename,
+                    package_name=package_name,
+                    recursive=True,
+                    keep_unresolved=True,
                 )
+
+                merged_result.update(sub_result)
 
             resolved_result = merged_result
 
     if keep_unresolved:
-        return resolved_result
+        return had_self, resolved_result
     else:
         return OrderedSet(resolved_result)
 
@@ -850,6 +856,8 @@ def _detectBinaryPathDLLsMacOS(
 def _resolveBinaryPathDLLsMacOS(
     original_dir, binary_filename, paths, package_specific_dirs
 ):
+    had_self = False
+
     result = OrderedDict()
 
     rpaths = _detectBinaryRPathsMacOS(original_dir, binary_filename)
@@ -870,11 +878,12 @@ def _resolveBinaryPathDLLsMacOS(
 
         # Some libraries depend on themselves.
         if areSamePaths(binary_filename, resolved_path):
+            had_self = True
             continue
 
         result[resolved_path] = path
 
-    return result
+    return had_self, result
 
 
 def _detectBinaryRPathsMacOS(original_dir, binary_filename):
@@ -1198,7 +1207,7 @@ def _fixupBinaryDLLPathsMacOS(
     if not dll_map:
         return
 
-    rpath_map = _detectBinaryPathDLLsMacOS(
+    had_self, rpath_map = _detectBinaryPathDLLsMacOS(
         original_dir=os.path.dirname(original_location),
         binary_filename=original_location,
         package_name=package_name,
@@ -1206,29 +1215,30 @@ def _fixupBinaryDLLPathsMacOS(
         recursive=False,
     )
 
-    if rpath_map:
-        mapping = []
+    mapping = []
 
-        for resolved_filename, rpath_filename in rpath_map.items():
-            resolved_filename = os.path.normpath(resolved_filename)
+    for resolved_filename, rpath_filename in rpath_map.items():
+        resolved_filename = os.path.normpath(resolved_filename)
 
-            dist_path = None
-            for (original_path, _package_name, dist_path) in dll_map:
-                if original_path == resolved_filename:
-                    break
+        dist_path = None
+        for (original_path, _package_name, dist_path) in dll_map:
+            if original_path == resolved_filename:
+                break
 
-            if dist_path is None:
-                inclusion_logger.sysexit(
-                    """\
+        if dist_path is None:
+            inclusion_logger.sysexit(
+                """\
 Error, problem with dependency scan of '%s' with '%s' please report the bug."""
-                    % (binary_filename, rpath_filename)
-                )
+                % (binary_filename, rpath_filename)
+            )
 
-            mapping.append((rpath_filename, "@executable_path/" + dist_path))
+        mapping.append((rpath_filename, "@executable_path/" + dist_path))
 
+    if mapping or had_self:
         callInstallNameTool(
             filename=binary_filename,
             mapping=mapping,
+            id_path=os.path.basename(binary_filename) if had_self else None,
             rpath=None,
         )
 

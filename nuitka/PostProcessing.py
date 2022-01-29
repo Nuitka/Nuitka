@@ -353,6 +353,7 @@ def executePostProcessing():
                     os.path.join(python_lib_path, python_dll_filename),
                 ),
             ),
+            id_path=None,
             rpath=python_lib_path,
         )
 
