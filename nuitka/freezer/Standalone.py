@@ -105,15 +105,14 @@ module_names = set()
 
 
 def _detectedPrecompiledFile(filename, module_name, result, user_provided, technical):
-    if filename.endswith(".pyc"):
-        if os.path.isfile(filename[:-1]):
-            return _detectedSourceFile(
-                filename=filename[:-1],
-                module_name=module_name,
-                result=result,
-                user_provided=user_provided,
-                technical=technical,
-            )
+    if filename.endswith(".pyc") and os.path.isfile(filename[:-1]):
+        return _detectedSourceFile(
+            filename=filename[:-1],
+            module_name=module_name,
+            result=result,
+            user_provided=user_provided,
+            technical=technical,
+        )
 
     if module_name in module_names:
         return
@@ -316,7 +315,7 @@ print("\\n".join(sorted(
                 detections.append((module_name, 3, "precompiled", filename))
             elif origin == b"from" and python_version < 0x300:
                 filename = parts[1][len(b"from ") :]
-                if python_version >= 0x300:  # For consistency, and maybe later reuse
+                if str is not bytes:  # For consistency, and maybe later reuse
                     filename = filename.decode("utf8")
 
                 # Do not leave standard library when freezing.
@@ -344,9 +343,8 @@ print("\\n".join(sorted(
                     # Python3 started lying in "__name__" for the "_decimal"
                     # calls itself "decimal", which then is wrong and also
                     # clashes with "decimal" proper
-                    if python_version >= 0x300:
-                        if module_name == "decimal":
-                            module_name = ModuleName("_decimal")
+                    if python_version >= 0x300 and module_name == "decimal":
+                        module_name = ModuleName("_decimal")
 
                     detections.append((module_name, 2, "extension", filename))
             elif origin == b"dynamically":
@@ -363,7 +361,9 @@ print("\\n".join(sorted(
                 detections.append((module_name, 1, "extension", filename))
 
     for module_name, _prio, kind, filename in sorted(detections):
-        if kind == "precompiled":
+        if kind == "extension":
+            _detectedExtensionModule(filename=filename, module_name=module_name)
+        elif kind == "precompiled":
             _detectedPrecompiledFile(
                 filename=filename,
                 module_name=module_name,
@@ -379,8 +379,6 @@ print("\\n".join(sorted(
                 user_provided=user_provided,
                 technical=technical,
             )
-        elif kind == "extension":
-            _detectedExtensionModule(filename=filename, module_name=module_name)
         else:
             assert False, kind
 
@@ -398,7 +396,7 @@ if os.name != "nt":
 
 
 def scanStandardLibraryPath(stdlib_dir):
-    # There is a lot of filtering here, done in branches, so there # is many of
+    # There is a lot of filtering here, done in branches, so there is many of
     # them, but that's acceptable, pylint: disable=too-many-branches,too-many-statements
 
     for root, dirs, filenames in os.walk(stdlib_dir):
