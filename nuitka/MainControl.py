@@ -992,7 +992,7 @@ def main():
             onefile=Options.isOnefileMode()
         )
 
-        if "macos_min_version" in options:
+        if Options.isStandaloneMode() and "macos_min_version" in options:
             general.info(
                 "Created binary that runs on macOS %s (%s) or higher."
                 % (options["macos_min_version"], getArchitecture())
