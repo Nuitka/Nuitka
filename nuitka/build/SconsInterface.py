@@ -386,23 +386,21 @@ def setCommonOptions(options):
     if link_libraries:
         options["link_libraries"] = ",".join(link_libraries)
 
-    if Utils.isMacOS() and Options.isStandaloneMode():
-        macos_min_version = os.environ.get("MACOSX_DEPLOYMENT_TARGET")
+    if Utils.isMacOS():
+        macos_min_version = detectBinaryMinMacOS(sys.executable)
+
         if macos_min_version is None:
-            macos_min_version = detectBinaryMinMacOS(sys.executable)
-
-            if macos_min_version is None:
-                Tracing.general.warning(
-                    "Could not detect minimum macOS version for %r." % sys.executable
-                )
-
-                # Default, but not a good idea.
-                macos_min_version = "10.9"
+            Tracing.general.sysexit(
+                "Could not detect minimum macOS version for %r." % sys.executable
+            )
 
         options["macos_min_version"] = macos_min_version
 
-    if Utils.isMacOS():
         macos_target_arch = Options.getMacOSTargetArch()
 
-        if macos_target_arch != "universal":
-            options["macos_target_arch"] = macos_target_arch
+        if macos_target_arch == "universal":
+            Tracing.general.sysexit(
+                "Cannot create universal macOS binaries (yet), please pick an arch and create two binaries."
+            )
+
+        options["macos_target_arch"] = macos_target_arch

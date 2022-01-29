@@ -497,19 +497,15 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
 
     # Support for macOS standalone backporting.
     if isMacOS():
-        if env.macos_min_version:
-            setEnvironmentVariable(
-                env, "MACOSX_DEPLOYMENT_TARGET", env.macos_min_version
-            )
+        setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_min_version)
 
-        if env.macos_target_arch:
-            target_flag = "--target=%s-apple-macos%s" % (
-                env.macos_target_arch,
-                env.macos_min_version or "10.9",
-            )
+        target_flag = "--target=%s-apple-macos%s" % (
+            env.macos_target_arch,
+            env.macos_min_version or "10.9",
+        )
 
-            env.Append(CCFLAGS=[target_flag])
-            env.Append(LINKFLAGS=[target_flag])
+        env.Append(CCFLAGS=[target_flag])
+        env.Append(LINKFLAGS=[target_flag])
 
     # The 32 bits MinGW does not default for API level properly, so help it.
     if env.mingw_mode:

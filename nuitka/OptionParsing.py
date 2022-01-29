@@ -1172,7 +1172,7 @@ macos_group.add_option(
     help="""\
 What architectures is this to supposed to run on. Default and limit
 is what the running Python allows for. Default is "native" which is
-the architecture Python is running.""",
+the architecture the Python is run with.""",
 )
 
 macos_group.add_option(

@@ -1282,13 +1282,7 @@ def getWindowsProductName():
 
 def getMacOSTargetArch():
     """:returns: str enum ("universal", "arm64", "x86_64") derived from ``--macos-target-arch`` value"""
-    macos_target_arch = options.macos_target_arch
-
-    if options.macos_target_arch is None:
-        if isStandaloneMode():
-            macos_target_arch = "universal"
-        else:
-            macos_target_arch = "native"
+    macos_target_arch = options.macos_target_arch or "native"
 
     if macos_target_arch == "native":
         macos_target_arch = getArchitecture()
