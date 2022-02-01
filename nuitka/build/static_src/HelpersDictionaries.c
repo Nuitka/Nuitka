@@ -790,8 +790,8 @@ PyObject *DICT_ITERITEMS(PyObject *dict) {
 #if PYTHON_VERSION < 0x270
     static PyTypeObject *dictiteritems_type = NULL;
 
-    if (unlikely(dictiteritems_type)) {
-        dictiteritems_type = Py_TYPE(PyObject_GetIter(PyObject_GetAttrString(const_dict_empty, "iteritems")));
+    if (unlikely(dictiteritems_type == NULL)) {
+        dictiteritems_type = Py_TYPE(CALL_FUNCTION_NO_ARGS(PyObject_GetAttrString(const_dict_empty, "iteritems")));
     }
 
     return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictiteritems_type, true);
@@ -806,8 +806,8 @@ PyObject *DICT_ITERKEYS(PyObject *dict) {
 #if PYTHON_VERSION < 0x270
     static PyTypeObject *dictiterkeys_type = NULL;
 
-    if (unlikely(dictiterkeys_type)) {
-        dictiterkeys_type = Py_TYPE(PyObject_GetIter(PyObject_GetAttrString(const_dict_empty, "iterkeys")));
+    if (unlikely(dictiterkeys_type == NULL)) {
+        dictiterkeys_type = Py_TYPE(CALL_FUNCTION_NO_ARGS(PyObject_GetAttrString(const_dict_empty, "iterkeys")));
     }
 
     return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictiterkeys_type, false);
@@ -822,8 +822,8 @@ PyObject *DICT_ITERVALUES(PyObject *dict) {
 #if PYTHON_VERSION < 0x270
     static PyTypeObject *dictitervalues_type = NULL;
 
-    if (unlikely(dictitervalues_type)) {
-        dictitervalues_type = Py_TYPE(PyObject_GetIter(PyObject_GetAttrString(const_dict_empty, "itervalues")));
+    if (unlikely(dictitervalues_type == NULL)) {
+        dictitervalues_type = Py_TYPE(CALL_FUNCTION_NO_ARGS(PyObject_GetAttrString(const_dict_empty, "itervalues")));
     }
 
     return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictitervalues_type, false);
