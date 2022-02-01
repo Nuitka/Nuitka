@@ -30,7 +30,11 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.Timing import TimerReport
 
 from .SconsCaching import runClCache
-from .SconsProgress import closeSconsProgressBar, updateSconsProgressBar
+from .SconsProgress import (
+    closeSconsProgressBar,
+    reportSlowCompilation,
+    updateSconsProgressBar,
+)
 from .SconsUtils import decodeData
 
 
@@ -77,10 +81,7 @@ def runProcessMonitored(cmdline, env):
     thread.join(60)
 
     if thread.is_alive():
-        scons_logger.info(
-            "Slow C compilation detected, used %.0fs so far, scalability problem."
-            % thread.timer_report.getTimer().getDelta()
-        )
+        reportSlowCompilation(cmdline, thread.timer_report.getTimer().getDelta())
 
     thread.join()
 
@@ -156,7 +157,6 @@ def getWindowsSpawnFunction(env, module_mode, source_files):
             data = _filterMsvcLinkOutput(
                 env=env, module_mode=module_mode, data=data, exit_code=rv
             )
-
         elif cmd in ("cl", "<clcache>"):
             # Skip forced output from cl.exe
             data = data[data.find(b"\r\n") + 2 :]
@@ -313,10 +313,7 @@ def runSpawnMonitored(sh, cmd, args, env):
     thread.join(60)
 
     if thread.is_alive():
-        scons_logger.info(
-            "Slow C compilation detected, used %.0fs so far, scalability problems."
-            % thread.timer_report.getTimer().getDelta()
-        )
+        reportSlowCompilation(cmd, thread.timer_report.getTimer().getDelta())
 
     thread.join()
 
