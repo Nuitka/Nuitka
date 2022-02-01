@@ -1017,12 +1017,12 @@ def getFileHashes(filePaths):
         while True:
             try:
                 with open(pipeName, "w+b") as f:
-                    f.write("\n".join(filePaths).encode("utf-8"))
+                    f.write("\n".join(filePaths).encode("utf8"))
                     f.write(b"\x00")
                     response = f.read()
                     if response.startswith(b"!"):
                         raise pickle.loads(response[1:-1])
-                    return response[:-1].decode("utf-8").splitlines()
+                    return response[:-1].decode("utf8").splitlines()
             except OSError as e:
                 if (
                     e.errno == errno.EINVAL
@@ -1035,7 +1035,14 @@ def getFileHashes(filePaths):
         return [getFileHash(filePath) for filePath in filePaths]
 
 
+_hash_cache = {}
+
 def getFileHash(filePath, additionalData=None):
+    key = (filePath, additionalData)
+
+    if key in _hash_cache:
+        return _hash_cache[key]
+
     hasher = HashAlgorithm()
     with open(filePath, "rb") as inFile:
         hasher.update(inFile.read())
@@ -1044,7 +1051,9 @@ def getFileHash(filePath, additionalData=None):
         # as long as we keep it fixed, otherwise hashes change.
         # The string should fit into ASCII, so UTF8 should not change anything
         hasher.update(additionalData.encode("UTF-8"))
-    return hasher.hexdigest()
+
+    _hash_cache[key] = hasher.hexdigest()
+    return _hash_cache[key]
 
 
 def getStringHash(dataString):
