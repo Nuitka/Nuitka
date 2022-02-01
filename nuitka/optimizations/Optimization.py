@@ -26,7 +26,6 @@ make others possible.
 import inspect
 
 from nuitka import ModuleRegistry, Options, Variables
-from nuitka.importing import ImportCache
 from nuitka.importing.Recursion import considerUsedModules
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Progress import (
@@ -161,24 +160,6 @@ def optimizeUncompiledPythonModule(module):
     )
 
     considerUsedModules(module=module, signal_change=signalChange)
-
-    package_name = full_name.getPackageName()
-
-    if package_name is not None:
-        # TODO: It's unclear why, but some standard library modules on older Python3
-        # seem to not have parent packages after the scan.
-        try:
-            used_module = ImportCache.getImportedModuleByName(package_name)
-        except KeyError:
-            pass
-        else:
-            ModuleRegistry.addUsedModule(
-                module=used_module,
-                using_module=module,
-                usage_tag="package",
-                reason="Package of %s" % module.getFullName(),
-                source_ref=module.source_ref,
-            )
 
     Plugins.considerImplicitImports(module=module, signal_change=signalChange)
 

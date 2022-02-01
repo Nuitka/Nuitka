@@ -27,7 +27,7 @@ from nuitka import Options
 from nuitka.importing.Importing import getPackageSearchPath, isPackageDir
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import (
-    getFileContents,
+    getFileContentByLine,
     listDir,
     makePath,
     openTextFile,
@@ -73,10 +73,8 @@ def getCachedImportedModulesNames(module_name, source_code):
     cache_name = makeCacheName(module_name, source_code)
 
     return [
-        ModuleName(line)
-        for line in getFileContents(_getCacheFilename(cache_name, "txt"))
-        .strip()
-        .split("\n")
+        (ModuleName(line.split(maxsplit=1)[-1]), int(line.split(maxsplit=1)[0]))
+        for line in getFileContentByLine(_getCacheFilename(cache_name, "txt"))
     ]
 
 
@@ -84,11 +82,14 @@ def writeImportedModulesNamesToCache(module_name, source_code, used_modules):
     cache_name = makeCacheName(module_name, source_code)
 
     with openTextFile(_getCacheFilename(cache_name, "txt"), "w") as modules_cache_file:
-        for used_module_name, _filename, _finding, _level, _source_ref in used_modules:
-            modules_cache_file.write(used_module_name.asString() + "\n")
+        for used_module_name, _filename, _finding, _level, source_ref in used_modules:
+            modules_cache_file.write(
+                "%d %s\n" % (source_ref.getLineNumber(), used_module_name.asString())
+            )
 
 
 def getModuleImportableFilesHash(full_name):
+    """Calculate hash value of packages importable for a module of this name."""
     package_name = full_name.getPackageName()
 
     paths = getPackageSearchPath(None)

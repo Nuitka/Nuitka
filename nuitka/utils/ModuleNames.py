@@ -91,6 +91,19 @@ class ModuleName(str):
 
         return self.splitModuleBasename()[0]
 
+    def getParentPackageNames(self):
+        """Yield parent packages in descending order."""
+        parent_packages = []
+
+        parent_package = self.getPackageName()
+        while parent_package is not None:
+            parent_packages.append(parent_package)
+
+            parent_package = parent_package.getPackageName()
+
+        for parent_package in reversed(parent_packages):
+            yield parent_package
+
     def getRelativePackageName(self, level):
         result = ".".join(self.asString().split(".")[: -level + 1])
 

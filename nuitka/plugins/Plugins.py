@@ -297,7 +297,7 @@ class Plugins(object):
                 _module_name, module_filename, _finding = Importing.locateModule(
                     module_name=full_name,
                     parent_package=None,
-                    level=-1,
+                    level=0,
                 )
             except Exception:
                 plugin.warning(

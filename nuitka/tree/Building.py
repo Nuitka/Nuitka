@@ -967,6 +967,52 @@ required to compiled."""
     return result
 
 
+def _loadUncompiledModuleFromCache(module_name, is_package, source_code, source_ref):
+    result = makeUncompiledPythonModule(
+        module_name=module_name,
+        filename=source_ref.getFilename(),
+        bytecode=demoteSourceCodeToBytecode(
+            module_name=module_name,
+            source_code=source_code,
+            filename=source_ref.getFilename(),
+        ),
+        user_provided=False,
+        technical=False,
+        is_package=is_package,
+    )
+
+    used_modules = OrderedSet()
+
+    for used_module_name, line_number in getCachedImportedModulesNames(
+        module_name=module_name, source_code=source_code
+    ):
+        general.info("Try to find module from cache %r" % used_module_name)
+
+        _module_name, module_filename, finding = Importing.locateModule(
+            module_name=used_module_name,
+            parent_package=None,
+            level=0,
+        )
+
+        assert _module_name == used_module_name
+
+        used_modules.add(
+            (
+                used_module_name,
+                module_filename,
+                finding,
+                0,
+                source_ref.atLineNumber(line_number),
+            )
+        )
+
+    # assert not is_package, (module_name, used_modules, result, result.getCompileTimeFilename())
+
+    result.setUsedModules(used_modules)
+
+    return result
+
+
 def _createModule(
     module_name,
     source_code,
@@ -978,9 +1024,6 @@ def _createModule(
     is_main,
     main_added,
 ):
-    # Many details due to the caching done here.
-    # pylint: disable=too-many-locals
-
     if is_extension:
         result = PythonExtensionModule(module_name=module_name, source_ref=source_ref)
     elif is_main:
@@ -1007,37 +1050,12 @@ def _createModule(
             and not is_top
             and hasCachedImportedModulesNames(module_name, source_code)
         ):
-
-            optimization_logger.info(
-                "'%s' is included as bytecode." % (module_name.asString())
-            )
-            result = makeUncompiledPythonModule(
+            result = _loadUncompiledModuleFromCache(
                 module_name=module_name,
-                filename=source_ref.getFilename(),
-                bytecode=demoteSourceCodeToBytecode(
-                    module_name=module_name,
-                    source_code=source_code,
-                    filename=source_ref.getFilename(),
-                ),
-                user_provided=False,
-                technical=False,
                 is_package=is_package,
+                source_code=source_code,
+                source_ref=source_ref,
             )
-
-            used_modules = OrderedSet()
-
-            for used_module_name in getCachedImportedModulesNames(
-                module_name=module_name, source_code=source_code
-            ):
-                (_module_name, module_filename, _finding,) = Importing.locateModule(
-                    module_name=used_module_name,
-                    parent_package=None,
-                    level=0,
-                )
-
-                used_modules.add((used_module_name, os.path.relpath(module_filename)))
-
-            result.setUsedModules(used_modules)
 
             # Not used anymore
             source_code = None

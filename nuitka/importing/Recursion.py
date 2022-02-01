@@ -33,7 +33,7 @@ from nuitka.Tracing import recursion_logger
 from nuitka.utils.FileOperations import listDir
 from nuitka.utils.ModuleNames import ModuleName
 
-from .Importing import getModuleNameAndKindFromFilename
+from .Importing import getModuleNameAndKindFromFilename, locateModule
 
 
 def _recurseTo(module_name, module_filename, module_kind):
@@ -341,6 +341,42 @@ def checkPluginFilenamePattern(pattern):
         recursion_logger.warning("Didn't match any files against pattern %r." % pattern)
 
 
+def _addParentPackageUsages(using_module, module_name, signal_change, source_ref):
+    for parent_package_name in module_name.getParentPackageNames():
+        _parent_package_name, parent_package_filename, _finding = locateModule(
+            module_name=parent_package_name, parent_package=None, level=0
+        )
+
+        assert parent_package_filename is not None, parent_package_name
+        assert _parent_package_name == parent_package_name
+
+        _parent_package_name, package_module_kind = getModuleNameAndKindFromFilename(
+            parent_package_filename
+        )
+
+        _decision, reason = decideRecursion(
+            module_filename=parent_package_filename,
+            module_name=parent_package_name,
+            module_kind=package_module_kind,
+        )
+
+        used_package_module = recurseTo(
+            signal_change=signal_change,
+            module_name=parent_package_name,
+            module_filename=parent_package_filename,
+            module_kind=package_module_kind,
+            reason=reason,
+        )
+
+        addUsedModule(
+            module=used_package_module,
+            using_module=using_module,
+            usage_tag="package",
+            reason=reason,
+            source_ref=source_ref,
+        )
+
+
 def considerUsedModules(module, signal_change):
     for (
         used_module_name,
@@ -372,6 +408,13 @@ def considerUsedModules(module, signal_change):
             )
 
             if decision:
+                _addParentPackageUsages(
+                    using_module=module,
+                    module_name=used_module_name,
+                    signal_change=signal_change,
+                    source_ref=source_ref,
+                )
+
                 used_module = recurseTo(
                     signal_change=signal_change,
                     module_name=used_module_name,
