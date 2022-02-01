@@ -690,7 +690,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     _runtime_information_cache = {}
 
     def queryRuntimeInformationMultiple(self, info_name, setup_codes, values):
-        info_name = self.plugin_name + "_" + info_name
+        info_name = self.plugin_name.replace("-", "_") + "_" + info_name
 
         if info_name in self._runtime_information_cache:
             return self._runtime_information_cache[info_name]

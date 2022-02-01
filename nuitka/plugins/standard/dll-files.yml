@@ -1,0 +1,7 @@
+---
+shapely.geos:
+  dlls:
+    - include_from_code:
+      setup_code: "import shapely.geos"
+      dll_filename_code: "shapely.geos._lgeos._name"
+      dest_path: "shapely"

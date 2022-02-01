@@ -23,8 +23,6 @@ to add to this and submit patches to make it more complete.
 """
 
 import fnmatch
-import os
-import sys
 
 from nuitka.__past__ import iter_modules
 from nuitka.containers.oset import OrderedSet
@@ -32,12 +30,11 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.SharedLibraries import getPyWin32Dir
-from nuitka.utils.Utils import getOS, isLinux, isMacOS, isWin32Windows
+from nuitka.utils.Utils import getOS, isMacOS, isWin32Windows
 from nuitka.utils.Yaml import parsePackageYaml
 
 
-class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
+class NuitkaPluginImplicitImports(NuitkaPluginBase):
     plugin_name = "implicit-imports"
 
     def __init__(self):
@@ -1205,82 +1202,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         # Do nothing by default.
         return source_code
 
-    def getExtraDlls(self, module):
-        full_name = module.getFullName()
-
-        if full_name == "uuid" and isLinux():
-            uuid_dll_path = self.locateDLL("uuid")
-
-            if uuid_dll_path is not None:
-                yield self.makeDllEntryPoint(
-                    uuid_dll_path, os.path.basename(uuid_dll_path), None
-                )
-        elif full_name == "iptc" and isLinux():
-            import iptc.util  # pylint: disable=I0021,import-error
-
-            xtwrapper_dll = iptc.util.find_library("xtwrapper")[0]
-            xtwrapper_dll_path = xtwrapper_dll._name  # pylint: disable=protected-access
-
-            yield self.makeDllEntryPoint(
-                xtwrapper_dll_path, os.path.basename(xtwrapper_dll_path), None
-            )
-        elif full_name == "coincurve._libsecp256k1" and isWin32Windows():
-            yield self.makeDllEntryPoint(
-                os.path.join(module.getCompileTimeDirectory(), "libsecp256k1.dll"),
-                os.path.join(full_name.getPackageName(), "libsecp256k1.dll"),
-                full_name.getPackageName(),
-            )
-        # TODO: This should be its own plugin.
-        elif (
-            full_name
-            in (
-                "pythoncom",
-                "win32api",
-                "win32clipboard",
-                "win32console",
-                "win32cred",
-                "win32crypt",
-                "win32event",
-                "win32evtlog",
-                "win32file",
-                "win32gui",
-                "win32help",
-                "win32inet",
-                "win32job",
-                "win32lz",
-                "win32net",
-                "win32pdh",
-                "win32pipe",
-                "win32print",
-                "win32process",
-                "win32profile",
-                "win32ras",
-                "win32security",
-                "win32service",
-                "win32trace",
-                "win32transaction",
-                "win32ts",
-                "win32wnet",
-            )
-            and isWin32Windows()
-        ):
-            pywin_dir = getPyWin32Dir()
-
-            if pywin_dir is not None:
-                for dll_name in "pythoncom", "pywintypes":
-
-                    pythoncom_filename = "%s%d%d.dll" % (
-                        dll_name,
-                        sys.version_info[0],
-                        sys.version_info[1],
-                    )
-                    pythoncom_dll_path = os.path.join(pywin_dir, pythoncom_filename)
-
-                    if os.path.exists(pythoncom_dll_path):
-                        yield self.makeDllEntryPoint(
-                            pythoncom_dll_path, pythoncom_filename, None
-                        )
-
     unworthy_namespaces = (
         "setuptools",  # Not performance relevant.
         "distutils",  # Not performance relevant.
@@ -1310,6 +1231,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "comtypes.gen",  # Not performance relevant and slow C compile
         "phonenumbers.geodata",  # Not performance relevant and slow C compile
         "site",  # Not performance relevant and problems with .pth files
+        "packaging",  # Not performance relevant.
+        "appdirs",  # Not performance relevant.
     )
 
     def decideCompilation(self, module_name):
