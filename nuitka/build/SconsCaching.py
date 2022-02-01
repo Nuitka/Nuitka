@@ -39,6 +39,7 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
+from .SconsProgress import updateSconsProgressBar
 from .SconsUtils import (
     getExecutablePath,
     getSconsReportValue,
@@ -219,7 +220,8 @@ def enableClcache(env, source_dir):
     setEnvironmentVariable(env, "CLCACHE_HIDE_OUTPUTS", "1")
 
     # Use the mode of clcache that is not dependent on MSVC filenames output
-    setEnvironmentVariable(env, "CLCACHE_NODIRECT", "1")
+    if "CLCACHE_NODIRECT" not in os.environ:
+        setEnvironmentVariable(env, "CLCACHE_NODIRECT", "1")
 
     # The clcache stats filename needs absolute path, otherwise it will not work.
     clcache_stats_filename = os.path.abspath(
@@ -377,6 +379,10 @@ def runClCache(args, env):
         scons_logger.sysexit("Error, cannot use Python2 for scons when using MSVC.")
 
     # The first argument is "<clcache>" and should not be used.
-    return runClCache(
+    result = runClCache(
         os.environ["CLCACHE_CL"], [arg.strip('"') for arg in args[1:]], env
     )
+
+    updateSconsProgressBar()
+
+    return result

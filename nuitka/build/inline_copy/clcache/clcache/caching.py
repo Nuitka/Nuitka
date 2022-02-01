@@ -1867,7 +1867,7 @@ def processSingleSource(compiler, cmdLine, sourceFile, objectFile, environment):
         assert objectFile is not None
         cache = Cache()
 
-        if "CLCACHE_NODIRECT" in os.environ:
+        if "CLCACHE_NODIRECT" in os.environ and os.environ["CLCACHE_NODIRECT"] != "0":
             return processNoDirect(cache, objectFile, compiler, cmdLine, environment)
         else:
             return processDirect(
