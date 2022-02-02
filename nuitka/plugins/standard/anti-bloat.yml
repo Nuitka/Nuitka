@@ -40,14 +40,13 @@ sklearn.utils._testing:
     "import pytest": "'raise ImportError'"
 
 matplotlib:
-  description: "remove pytest testing framework"
+  description: "remove setuptools and pytest testing framework reference"
   replacements:
     "test.__test__ = False": ""
+    '(root / ".git").exists()"': "'None'"
   change_function:
     "_init_tests": "'None'"
     "test": "'None'"
-  control_tags:
-    - "allow_ipython"
 
 matplotlib.backend_bases:
   description: "remove IPython reference"
