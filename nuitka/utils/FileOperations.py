@@ -587,15 +587,15 @@ def copyTree(source_path, dest_path):
 
     Notes:
         This must be used over `shutil.copytree` which has troubles
-        with existing directories.
+        with existing directories on some Python versions.
     """
     if python_version >= 0x380:
         # Python 3.8+ has dirs_exist_ok
         return shutil.copytree(source_path, dest_path, dirs_exist_ok=True)
-    else:
-        from distutils.dir_util import copy_tree
 
-        return copy_tree(source_path, dest_path)
+    from distutils.dir_util import copy_tree
+
+    return copy_tree(source_path, dest_path)
 
 
 def copyFileWithPermissions(source_path, dest_path):
