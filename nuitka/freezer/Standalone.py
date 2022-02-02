@@ -836,7 +836,7 @@ def _detectBinaryPathDLLsMacOS(
 
             for sub_dll_filename in resolved_result:
                 _, sub_result = _detectBinaryPathDLLsMacOS(
-                    original_dir=original_dir,
+                    original_dir=os.path.dirname(sub_dll_filename),
                     binary_filename=sub_dll_filename,
                     package_name=package_name,
                     recursive=True,
@@ -1220,10 +1220,11 @@ def _fixupBinaryDLLPathsMacOS(
     for resolved_filename, rpath_filename in rpath_map.items():
         resolved_filename = os.path.normpath(resolved_filename)
 
-        dist_path = None
         for (original_path, _package_name, dist_path) in dll_map:
             if original_path == resolved_filename:
                 break
+        else:
+            dist_path = None
 
         if dist_path is None:
             inclusion_logger.sysexit(
