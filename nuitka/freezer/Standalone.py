@@ -1199,7 +1199,7 @@ working with Python, report a Nuitka bug."""
 
 
 def _fixupBinaryDLLPathsMacOS(
-    binary_filename, package_name, dll_map, original_location
+    binary_filename, package_name, dll_map, duplicate_dlls, original_location
 ):
     """For macOS, the binary needs to be told to use relative DLL paths"""
 
@@ -1221,8 +1221,13 @@ def _fixupBinaryDLLPathsMacOS(
         resolved_filename = os.path.normpath(resolved_filename)
 
         for (original_path, _package_name, dist_path) in dll_map:
-            if original_path == resolved_filename:
+            if resolved_filename == original_path:
                 break
+
+            # Might have been a removed duplicate, check those too.
+            if original_path in duplicate_dlls.get(resolved_filename, ()):
+                break
+
         else:
             dist_path = None
 
@@ -1258,6 +1263,9 @@ def _removeDuplicateDlls(used_dlls):
     # Many things to consider, pylint: disable=too-many-branches
     removed_dlls = set()
     warned_about = set()
+
+    # Identical DLLs are interesting for DLL resolution on macOS at least.
+    duplicate_dlls = {}
 
     # Fist make checks and remove some, in loops we copy the items so we can remove
     # the used_dll list freely.
@@ -1296,6 +1304,9 @@ def _removeDuplicateDlls(used_dlls):
             if haveSameFileContents(dll_filename1, dll_filename2):
                 del used_dlls[dll_filename2]
                 removed_dlls.add(dll_filename2)
+
+                duplicate_dlls.setdefault(dll_filename1, []).append(dll_filename2)
+                duplicate_dlls.setdefault(dll_filename2, []).append(dll_filename1)
 
                 continue
 
@@ -1349,6 +1360,8 @@ different from
             del used_dlls[dll_filename2]
             removed_dlls.add(dll_filename2)
 
+    return duplicate_dlls
+
 
 def _copyDllsUsed(dist_dir, used_dlls):
     dll_map = []
@@ -1386,7 +1399,7 @@ def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
         and not Options.getWindowsDependencyTool() == "depends.exe",
     )
 
-    _removeDuplicateDlls(used_dlls=used_dlls)
+    duplicate_dlls = _removeDuplicateDlls(used_dlls=used_dlls)
 
     dll_map = _copyDllsUsed(dist_dir=dist_dir, used_dlls=used_dlls)
 
@@ -1399,6 +1412,7 @@ def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
                 binary_filename=standalone_entry_point.dest_path,
                 package_name=standalone_entry_point.package_name,
                 dll_map=dll_map,
+                duplicate_dlls=duplicate_dlls,
                 original_location=standalone_entry_point.source_path,
             )
 
@@ -1407,6 +1421,7 @@ def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
                 binary_filename=os.path.join(dist_dir, dll_filename),
                 package_name=package_name,
                 dll_map=dll_map,
+                duplicate_dlls=duplicate_dlls,
                 original_location=original_path,
             )
 
