@@ -222,6 +222,9 @@ def enableClcache(env, source_dir):
 
     setEnvironmentVariable(env, "CLCACHE_HIDE_OUTPUTS", "1")
 
+    # Use the mode of clcache that is not dependent on MSVC filenames output
+    setEnvironmentVariable(env, "CLCACHE_NODIRECT", "1")
+
     # The clcache stats filename needs absolute path, otherwise it will not work.
     clcache_stats_filename = os.path.abspath(
         os.path.join(source_dir, "clcache-stats.%d.txt" % os.getpid())

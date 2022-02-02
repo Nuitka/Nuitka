@@ -341,7 +341,7 @@ def addConstantBlobFile(env, resource_desc, source_dir, target_arch):
 
         putTextFileContents(
             constants_generated_filename,
-            contents="""\
+            contents=r"""
 #define INCBIN_PREFIX
 #define INCBIN_STYLE INCBIN_STYLE_SNAKE
 #define INCBIN_LOCAL
@@ -351,12 +351,13 @@ def addConstantBlobFile(env, resource_desc, source_dir, target_arch):
 
 #include "nuitka/incbin.h"
 
-INCBIN(constant_bin, "__constants.bin");
+INCBIN(constant_bin, "%(constants_bin_filename)s");
 
 unsigned char const *getConstantsBlobData(void) {
     return constant_bin_data;
 }
-""",
+"""
+            % {"constants_bin_filename": os.path.join(source_dir, "__constants.bin")},
         )
 
     elif resource_mode == "linker":
