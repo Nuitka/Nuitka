@@ -62,6 +62,7 @@ class NuitkaPluginTensorflow(NuitkaPluginBase):
         """
         if module_name != "tensorflow":
             return source_code
+
         source_lines = source_code.splitlines()
         found_insert = False
         for i, l in enumerate(source_lines):
@@ -74,7 +75,7 @@ class NuitkaPluginTensorflow(NuitkaPluginBase):
         if found_insert is True:
             self.info("Patched 'running-from-pip' path magic.")
         else:
-            self.sysexit("Did not find path magic code.")
+            self.sysexit("Did not find 'running-from-pip' path magic code.")
 
         return "\n".join(source_lines)
 

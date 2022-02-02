@@ -340,7 +340,12 @@ class UnknownExtra(ResolutionError):
 
 _provider_factories = {}
 
-PY_MAJOR = '{}.{}'.format(*sys.version_info)
+# Nuitka: That is to make it 2.6 compatible.
+try:
+   PY_MAJOR = '{}.{}'.format(*sys.version_info)
+except ValueError:
+   PY_MAHOR = '2.6'
+
 EGG_DIST = 3
 BINARY_DIST = 2
 SOURCE_DIST = 1

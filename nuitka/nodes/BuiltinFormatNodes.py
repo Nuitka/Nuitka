@@ -65,6 +65,14 @@ class ExpressionBuiltinFormat(
             self.subnode_format_spec = None
             format_spec = None
 
+        # TODO: Provide "__format__" slot based handling.
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         # Strings format themselves as what they are.
         if format_spec is None:
             if value.hasShapeStrOrUnicodeExact():
@@ -75,14 +83,6 @@ class ExpressionBuiltinFormat(
 Removed useless 'format' on '%s' value."""
                     % value.getTypeShape().getTypeName(),
                 )
-
-        # TODO: Provide "__format__" slot based handling.
-
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
-
-        # Any exception may be raised.
-        trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 

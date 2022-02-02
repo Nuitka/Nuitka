@@ -116,21 +116,21 @@ def genexprSend():
     try:
         z = next(x)
     except StopIteration as e:
-        print("Gave expected (3.10) StopIteration with text:", repr(e))
+        print("Gave expected (3.10.0/1 only) StopIteration with text:", repr(e))
     else:
         print("Next return value (pre 3.10)", z)
 
     try:
         y = x.send(3)
     except StopIteration as e:
-        print("Gave expected (3.10) StopIteration with text:", repr(e))
+        print("Gave expected (3.10.0/1 only) StopIteration with text:", repr(e))
     else:
         print("Send return value", y)
 
     try:
         print("And then next gave", next(x))
     except StopIteration as e:
-        print("Gave expected (3.10) StopIteration with text:", repr(e))
+        print("Gave expected (3.10.0/1 only) StopIteration with text:", repr(e))
 
     print("Throwing an exception to it.")
     try:
