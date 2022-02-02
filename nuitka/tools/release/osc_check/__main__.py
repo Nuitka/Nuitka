@@ -80,6 +80,10 @@ def main():
             ):
                 return False
 
+        # It makes building visible now, that's not an error of course.
+        if status == "building":
+            return False
+
         return True
 
     for count, title in enumerate(titles):
