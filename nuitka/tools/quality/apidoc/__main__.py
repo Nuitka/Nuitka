@@ -112,7 +112,7 @@ Default is %default.""",
     if options.upload:
         assert (
             os.system(
-                "rsync -avz --delete html/ --chown www-data root@nuitka.net:/var/www/apidoc/"
+                "rsync -avz --delete html/ --chown www-data root@ssh.nuitka.net:/var/www/apidoc/"
             )
             == 0
         )
