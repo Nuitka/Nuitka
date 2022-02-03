@@ -368,7 +368,7 @@ extern void checkModuleConstants___main__(void);
 extern void createMainModuleConstants(void);
 #endif
 
-// Unstreaming constants from a blob.
+// Deserialize constants from a blob.
 #include "nuitka/constants_blob.h"
 
 // Performance enhancements to Python types.
@@ -433,7 +433,7 @@ extern void setEarlyFrozenModulesFileAttribute(void);
  */
 extern PyObject *MAKE_RELATIVE_PATH(PyObject *relative);
 
-/* For concatenating two elemented path, typically a dirname and a filename.
+/* For concatenating two elements path, typically a dirname and a filename.
 
    We do this in a lot of helper code, and this is shared functionality.
 */

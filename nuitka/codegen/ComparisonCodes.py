@@ -130,8 +130,8 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         if left.getTypeShape() is tshape_bool and right.getTypeShape() is tshape_bool:
             type_name = "nuitka_bool"
 
-    left_name = context.allocateTempName("compexpr_left", type_name=type_name)
-    right_name = context.allocateTempName("compexpr_right", type_name=type_name)
+    left_name = context.allocateTempName("cmp_expr_left", type_name=type_name)
+    right_name = context.allocateTempName("cmp_expr_right", type_name=type_name)
 
     generateExpressionCode(
         to_name=left_name, expression=left, emit=emit, context=context
@@ -181,12 +181,6 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         )
     elif comparator in OperatorCodes.rich_comparison_codes:
         needs_check = expression.mayRaiseExceptionComparison()
-
-        # TODO: This is probably not really worth it, but we used to do it.
-        # if comparator == "Eq" and not context.mayRecurse():
-        #     suffix = "_NORECURSE"
-        # else:
-        #     suffix = ""
 
         helper = pickCodeHelper(
             prefix="RICH_COMPARE_xx",

@@ -46,6 +46,8 @@ from .PythonVersions import (
 def isNuitkaPython():
     """Is this our own fork of CPython named Nuitka-Python."""
 
+    # spell-checker: ignore nuitkapython
+
     if python_version >= 0x300:
         return sys.implementation.name == "nuitkapython"
     else:
