@@ -58,6 +58,43 @@ Bug Fixes
 -  Fix, wasn't checking the ``zstandard`` version and as a result could
    crash if too old versions of it. This is now checked.
 
+-  Windows: Fix, CTRL-C from a terminal was not propagated to child
+   processes on Windows. Fixed in 0.6.19.4 already.
+
+-  Standalone: With ``certifi`` and Python3.10 the
+   ``importlib.resource`` could trigger Virus scanner inflicted file
+   access errors. Fixed in 0.6.19.4 already.
+
+-  Python3.10: Reverted error back iteration past end of generator
+   change for Python 3.10.2 or higher to become compatible with that
+   too. Fixed in 0.6.19.5 already.
+
+-  Standalone: Added support for ``anyio`` and by proxy for Solana.
+   Fixed in 0.6.19.5 already.
+
+-  Fix, compilation with resource mode ``incbin`` and ``--debugger`` was
+   not working together. Fixed in 0.6.19.5 already.
+
+-  Fix, format optimization of known ``str`` objects was not properly
+   annotating its exception exit while being optimized away. Fixed in
+   0.6.19.5 already.
+
+-  Windows: Fix, ``clcache`` didn't work for non-standard encoding
+   source paths due to using th direct mode, where wrong filenames are
+   output by MSVC. Fixed in 0.6.19.5 already.
+
+-  Windows: Fix, ``ccache`` cannot handle source code paths for
+   non-standard encoding source paths. Fixed in 0.6.19.5 already.
+
+-  Python2.6: Fix, calls to ``iteritems`` and ``iterkeys`` on known
+   dictionary values could give wrong values. Fixed in 0.6.19.5 already.
+
+-  Fix, the value of ``__module__`` if set by the metaclass was
+   overwritten when creating types. Fixed in 0.6.19.6 already.
+
+-  Plugins: Add support for the latest version of ``pkg_resources`` that
+   has "vendored" even more packages. Fixed in 0.6.19.6 already.
+
 New Features
 ============
 
@@ -85,7 +122,7 @@ Optimization
 Organisational
 ==============
 
--  Added section to user manual that explains how to manually load
+-  Added section to User Manual that explains how to manually load
    files, such that it is cleaner and compatible code.
 
 -  Report the MSVC version in Scons output during compilation.
