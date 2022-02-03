@@ -23,7 +23,6 @@ Rich comparisons, "in", and "not in", also "is", and "is not", and the
 
 from nuitka.containers.oset import OrderedSet
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_bool
-from nuitka.Options import isExperimental
 
 from . import OperatorCodes
 from .CodeHelpers import generateExpressionCode, pickCodeHelper
@@ -259,10 +258,7 @@ def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
 
     res_name = context.getIntResName()
 
-    if isExperimental("function-base"):
-        emit("%s = PyObject_IsInstance(%s, %s);" % (res_name, inst_name, cls_name))
-    else:
-        emit("%s = Nuitka_IsInstance(%s, %s);" % (res_name, inst_name, cls_name))
+    emit("%s = PyObject_IsInstance(%s, %s);" % (res_name, inst_name, cls_name))
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,

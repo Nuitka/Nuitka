@@ -230,64 +230,6 @@ types._GeneratorWrapper = GeneratorWrapperEnhanced\
 }
 #endif
 
-#if !defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
-extern int Nuitka_IsInstance(PyObject *inst, PyObject *cls);
-extern PyObject *original_isinstance;
-
-static PyObject *_builtin_isinstance_replacement(PyObject *self, PyObject *args) {
-    PyObject *inst, *cls;
-
-    if (unlikely(PyArg_UnpackTuple(args, "isinstance", 2, 2, &inst, &cls) == 0)) {
-        return NULL;
-    }
-
-    int res = Nuitka_IsInstance(inst, cls);
-
-    if (unlikely(res < 0)) {
-        return NULL;
-    }
-
-    PyObject *result = BOOL_FROM(res != 0);
-    Py_INCREF(result);
-    return result;
-}
-
-#endif
-
-#if !defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
-static PyMethodDef _method_def_builtin_isinstance_replacement = {
-    "isinstance", (PyCFunction)_builtin_isinstance_replacement, METH_VARARGS, NULL};
-#endif
-
-extern PyModuleObject *builtin_module;
-
-void patchBuiltinModule(void) {
-#if defined(_NUITKA_MODULE)
-    static bool init_done = false;
-
-    if (init_done == true)
-        return;
-    init_done = true;
-#endif
-    CHECK_OBJECT(builtin_module);
-
-#if !defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
-    // Patch "inspect.isinstance" unless it is already patched.
-    original_isinstance = PyObject_GetAttrString((PyObject *)builtin_module, "isinstance");
-    CHECK_OBJECT(original_isinstance);
-
-    // Copy the doc attribute over, needed for "inspect.signature" at least.
-    if (PyCFunction_Check(original_isinstance)) {
-        _method_def_builtin_isinstance_replacement.ml_doc = ((PyCFunctionObject *)original_isinstance)->m_ml->ml_doc;
-    }
-
-    PyObject *builtin_isinstance_replacement = PyCFunction_New(&_method_def_builtin_isinstance_replacement, NULL);
-    CHECK_OBJECT(builtin_isinstance_replacement);
-
-    PyObject_SetAttrString((PyObject *)builtin_module, "isinstance", builtin_isinstance_replacement);
-#endif
-}
-
 static richcmpfunc original_PyType_tp_richcompare = NULL;
 
 static PyObject *Nuitka_type_tp_richcompare(PyObject *a, PyObject *b, int op) {

@@ -547,9 +547,7 @@ PyTypeObject Nuitka_Function_Type = {
 };
 
 void _initCompiledFunctionType(void) {
-#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
     Nuitka_Function_Type.tp_base = &PyFunction_Type;
-#endif
 
     PyType_Ready(&Nuitka_Function_Type);
 
@@ -565,9 +563,7 @@ void _initCompiledFunctionType(void) {
     assert(Nuitka_Function_Type.tp_methods != PyFunction_Type.tp_methods);
     assert(Nuitka_Function_Type.tp_members != PyFunction_Type.tp_members);
     assert(Nuitka_Function_Type.tp_getset != PyFunction_Type.tp_getset);
-#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
     assert(Nuitka_Function_Type.tp_base != PyFunction_Type.tp_base);
-#endif
     assert(Nuitka_Function_Type.tp_dict != PyFunction_Type.tp_dict);
     assert(Nuitka_Function_Type.tp_descr_get != PyFunction_Type.tp_descr_get);
 

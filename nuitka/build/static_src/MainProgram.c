@@ -851,9 +851,6 @@ orig_argv = argv;
     NUITKA_PRINT_TRACE("main(): Calling enhancePythonTypes().");
     enhancePythonTypes();
 
-    NUITKA_PRINT_TRACE("main(): Calling patchBuiltinModule().");
-    patchBuiltinModule();
-
     NUITKA_PRINT_TRACE("main(): Calling patchTypeComparison().");
     patchTypeComparison();
 

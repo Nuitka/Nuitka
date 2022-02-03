@@ -546,9 +546,7 @@ PyTypeObject Nuitka_Method_Type = {
 };
 
 void _initCompiledMethodType(void) {
-#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
     Nuitka_Method_Type.tp_base = &PyMethod_Type;
-#endif
 
     PyType_Ready(&Nuitka_Method_Type);
 

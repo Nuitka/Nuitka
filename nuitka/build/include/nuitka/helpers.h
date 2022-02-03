@@ -297,11 +297,6 @@ extern PyObject *BUILTIN_SUPER0(PyObject *type, PyObject *object);
 // For built-in built-in all() functionality.
 extern PyObject *BUILTIN_ALL(PyObject *value);
 
-#if !defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
-// The patched isinstance() functionality used for the built-in.
-extern int Nuitka_IsInstance(PyObject *inst, PyObject *cls);
-#endif
-
 // For built-in getattr() functionality.
 extern PyObject *BUILTIN_GETATTR(PyObject *object, PyObject *attribute, PyObject *default_value);
 
@@ -381,9 +376,6 @@ extern void enhancePythonTypes(void);
 
 // Setup meta path based loader if any.
 extern void setupMetaPathBasedLoader(void);
-
-// Replace built-in functions with ones that accept compiled types too.
-extern void patchBuiltinModule(void);
 
 /* Replace inspect functions with ones that handle compiles types too. */
 #if PYTHON_VERSION >= 0x300

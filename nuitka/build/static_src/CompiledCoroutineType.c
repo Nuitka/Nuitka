@@ -1828,9 +1828,7 @@ PyObject *ASYNC_ITERATOR_NEXT(PyObject *value) {
 }
 
 static void _initCompiledCoroutineTypes(void) {
-#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
     Nuitka_Coroutine_Type.tp_base = &PyCoro_Type;
-#endif
 
     PyType_Ready(&Nuitka_Coroutine_Type);
 
@@ -1842,22 +1840,21 @@ static void _initCompiledCoroutineTypes(void) {
     assert(Nuitka_Coroutine_Type.tp_weaklistoffset != PyCoro_Type.tp_weaklistoffset);
     assert(Nuitka_Coroutine_Type.tp_iter != PyCoro_Type.tp_iter || PyCoro_Type.tp_iter == NULL);
     assert(Nuitka_Coroutine_Type.tp_iternext != PyCoro_Type.tp_iternext || PyCoro_Type.tp_iternext == NULL);
+    assert(Nuitka_Coroutine_Type.tp_as_async != PyCoro_Type.tp_as_async || PyCoro_Type.tp_as_async == NULL);
     assert(Nuitka_Coroutine_Type.tp_methods != PyCoro_Type.tp_methods);
     assert(Nuitka_Coroutine_Type.tp_members != PyCoro_Type.tp_members);
     assert(Nuitka_Coroutine_Type.tp_getset != PyCoro_Type.tp_getset);
-#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
     assert(Nuitka_Coroutine_Type.tp_base != PyCoro_Type.tp_base);
-#endif
     assert(Nuitka_Coroutine_Type.tp_dict != PyCoro_Type.tp_dict);
     assert(Nuitka_Coroutine_Type.tp_descr_get != PyCoro_Type.tp_descr_get || PyCoro_Type.tp_descr_get == NULL);
 
     assert(Nuitka_Coroutine_Type.tp_descr_set != PyCoro_Type.tp_descr_set || PyCoro_Type.tp_descr_set == NULL);
     assert(Nuitka_Coroutine_Type.tp_dictoffset != PyCoro_Type.tp_dictoffset || PyCoro_Type.tp_dictoffset == 0);
     // TODO: These get changed and into the same thing, not sure what to compare against, project something
-    // assert(Nuitka_Generator_Type.tp_init != PyCoro_Type.tp_init || PyCoro_Type.tp_init == NULL);
-    // assert(Nuitka_Generator_Type.tp_alloc != PyCoro_Type.tp_alloc || PyCoro_Type.tp_alloc == NULL);
-    // assert(Nuitka_Generator_Type.tp_new != PyCoro_Type.tp_new || PyCoro_Type.tp_new == NULL);
-    // assert(Nuitka_Generator_Type.tp_free != PyCoro_Type.tp_free || PyCoro_Type.tp_free == NULL);
+    // assert(Nuitka_Coroutine_Type.tp_init != PyCoro_Type.tp_init || PyCoro_Type.tp_init == NULL);
+    // assert(Nuitka_Coroutine_Type.tp_alloc != PyCoro_Type.tp_alloc || PyCoro_Type.tp_alloc == NULL);
+    // assert(Nuitka_Coroutine_Type.tp_new != PyCoro_Type.tp_new || PyCoro_Type.tp_new == NULL);
+    // assert(Nuitka_Coroutine_Type.tp_free != PyCoro_Type.tp_free || PyCoro_Type.tp_free == NULL);
     assert(Nuitka_Coroutine_Type.tp_bases != PyCoro_Type.tp_bases);
     assert(Nuitka_Coroutine_Type.tp_mro != PyCoro_Type.tp_mro);
     assert(Nuitka_Coroutine_Type.tp_cache != PyCoro_Type.tp_cache || PyCoro_Type.tp_cache == NULL);
