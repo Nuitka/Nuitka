@@ -182,7 +182,8 @@ SignWith: D96ADCA1377F1CEB6B5103F11BFC33752912B99C
     # build only.
     assert (
         os.system(
-            "ssh root@ssh.nuitka.net mkdir -p /var/www/deb/%s/%s/" % (category, codename)
+            "ssh root@ssh.nuitka.net mkdir -p /var/www/deb/%s/%s/"
+            % (category, codename)
         )
         == 0
     )
