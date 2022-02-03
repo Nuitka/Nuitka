@@ -986,8 +986,6 @@ def _loadUncompiledModuleFromCache(module_name, is_package, source_code, source_
     for used_module_name, line_number in getCachedImportedModulesNames(
         module_name=module_name, source_code=source_code
     ):
-        general.info("Try to find module from cache %r" % used_module_name)
-
         _module_name, module_filename, finding = Importing.locateModule(
             module_name=used_module_name,
             parent_package=None,

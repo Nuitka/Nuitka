@@ -23,17 +23,12 @@ such that it allows to restore it directly.
 
 import os
 
-from nuitka import Options
 from nuitka.importing.Importing import getPackageSearchPath, isPackageDir
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.FileOperations import (
-    getFileContentByLine,
-    listDir,
-    makePath,
-    openTextFile,
-)
+from nuitka.utils.FileOperations import listDir, makePath
 from nuitka.utils.Hashing import Hash, getStringHash
 from nuitka.utils.Importing import getAllModuleSuffixes
+from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
 from nuitka.utils.ModuleNames import ModuleName
 
 
@@ -60,32 +55,54 @@ def makeCacheName(module_name, source_code):
 
 
 def hasCachedImportedModulesNames(module_name, source_code):
-    cache_name = makeCacheName(module_name, source_code)
+    result = getCachedImportedModulesNames(module_name, source_code)
 
-    # TODO: Disabled using cache results for now.
-    if not Options.isExperimental("bytecode-cache"):
-        return False
+    return result is not None
 
-    return os.path.exists(_getCacheFilename(cache_name, "txt"))
+
+# Bump this is format is changed or enhanced implementation might different ones.
+_cache_format_version = 2
 
 
 def getCachedImportedModulesNames(module_name, source_code):
     cache_name = makeCacheName(module_name, source_code)
+    cache_filename = _getCacheFilename(cache_name, "json")
+
+    if not os.path.exists(cache_filename):
+        return None
+
+    data = loadJsonFromFilename(cache_filename)
+
+    if data is None:
+        return None
+
+    if data.get("file_format_version") != _cache_format_version:
+        return None
+
+    if data["module_name"] != module_name:
+        return None
 
     return [
-        (ModuleName(line.split(maxsplit=1)[-1]), int(line.split(maxsplit=1)[0]))
-        for line in getFileContentByLine(_getCacheFilename(cache_name, "txt"))
+        (ModuleName(used_module_name), line_number)
+        for (used_module_name, line_number) in data["modules_used"]
     ]
 
 
 def writeImportedModulesNamesToCache(module_name, source_code, used_modules):
     cache_name = makeCacheName(module_name, source_code)
+    cache_filename = _getCacheFilename(cache_name, "json")
 
-    with openTextFile(_getCacheFilename(cache_name, "txt"), "w") as modules_cache_file:
-        for used_module_name, _filename, _finding, _level, source_ref in used_modules:
-            modules_cache_file.write(
-                "%d %s\n" % (source_ref.getLineNumber(), used_module_name.asString())
-            )
+    data = {
+        "file_format_version": _cache_format_version,
+        "module_name": module_name.asString(),
+        # We use a tuple, so preserve the order.
+        "modules_used": tuple(
+            (used_module_name.asString(), source_ref.getLineNumber())
+            for used_module_name, _filename, _finding, _level, source_ref in used_modules
+        ),
+    }
+
+    writeJsonToFilename(filename=cache_filename, contents=data)
 
 
 def getModuleImportableFilesHash(full_name):
