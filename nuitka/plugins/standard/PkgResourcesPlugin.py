@@ -119,6 +119,13 @@ sys.exit(%(module_name)s.%(main_name)s)
         if module_name == "importlib_resources._compat":
             return source_code.replace("path.exists()", "True")
 
+        # TODO: Move this to anti-bloat ones it becomes the default.
+        if module_name == "pkg_resources._vendor.jaraco.text":
+            return source_code.replace(
+                "lorem_ipsum: str = files(__name__).joinpath('Lorem ipsum.txt').read_text()",
+                "",
+            )
+
         # This one has strings with false matches, don't attempt those.
         if module_name == "setuptools.command.easy_install":
             return source_code

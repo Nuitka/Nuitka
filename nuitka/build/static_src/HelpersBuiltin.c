@@ -611,10 +611,13 @@ PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, 
 
     Py_DECREF(pos_args);
 
-    int res = PyObject_SetAttr(result, const_str_plain___module__, module_name);
+    if (HAS_ATTR_BOOL(result, const_str_plain___module__) == false) {
+        int res = SET_ATTRIBUTE(result, const_str_plain___module__, module_name);
 
-    if (res < 0) {
-        return NULL;
+        if (res < 0) {
+            Py_DECREF(result);
+            return NULL;
+        }
     }
 
     return result;

@@ -34,7 +34,8 @@ def main():
             (
                 "scp",
                 msi_filename,
-                "git@ssh.nuitka.net:/var/www/releases/" + os.path.basename(msi_filename),
+                "git@ssh.nuitka.net:/var/www/releases/"
+                + os.path.basename(msi_filename),
             ),
             shell=True,  # scan scp in PATH.
         )
