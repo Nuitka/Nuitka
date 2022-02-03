@@ -1426,15 +1426,10 @@ def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
             )
 
     # Remove or update rpath settings.
-    if Utils.getOS() in ("Linux", "Darwin"):
+    if Utils.getOS() == "Linux":
         # For Linux, the "rpath" of libraries may be an issue and must be
         # removed.
-        if Utils.isMacOS():
-            start = 0
-        else:
-            start = 1
-
-        for standalone_entry_point in standalone_entry_points[start:]:
+        for standalone_entry_point in standalone_entry_points[1:]:
             count = relpath(
                 path=standalone_entry_point.dest_path, start=dist_dir
             ).count(os.path.sep)
@@ -1446,6 +1441,8 @@ def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
             setSharedLibraryRPATH(os.path.join(dist_dir, dll_filename), "$ORIGIN")
 
     if Utils.isMacOS():
+        setSharedLibraryRPATH(standalone_entry_points[0].dest_path, "$ORIGIN")
+
         addMacOSCodeSignature(
             filenames=[
                 standalone_entry_point.dest_path
