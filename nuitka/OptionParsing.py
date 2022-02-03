@@ -34,6 +34,7 @@ from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 from nuitka.PythonFlavors import (
     isAnacondaPython,
     isApplePython,
+    isCPythonOfficialPackage,
     isDebianPackagePython,
     isHomebrewPython,
     isMSYS2MingwPython,
@@ -83,6 +84,8 @@ def _getPythonFlavor():
         return "MSYS2 Posix"
     elif isMSYS2MingwPython():
         return "MSYS2 MinGW"
+    elif isCPythonOfficialPackage():
+        return "CPython Official"
     else:
         return "Unknown"
 

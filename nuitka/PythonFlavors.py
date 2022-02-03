@@ -173,3 +173,15 @@ def isDebianPackagePython():
                 return False
             else:
                 return True
+
+
+def isCPythonOfficialPackage():
+    """Official CPython download, kind of hard to detect since self-compiled doesn't change much."""
+
+    # For macOS however, it's very knowable.
+    if isMacOS() and sys.executable.startswith(
+        "/Library/Frameworks/Python.framework/Versions/"
+    ):
+        return True
+
+    return False
