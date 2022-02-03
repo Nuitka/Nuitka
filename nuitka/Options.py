@@ -978,6 +978,15 @@ def shallTreatUninstalledPython():
     return isUninstalledPython()
 
 
+def shallCreateCmdFileForExecution():
+    """*bool* = derived from Python installation and modes
+
+    Notes: Most for accerated mode on Windows with uninstalled python, to
+    make sure they find their Python DLL.
+    """
+    return isWin32Windows() and shallTreatUninstalledPython()
+
+
 def isShowScons():
     """:returns: bool derived from ``--show-scons``"""
     return options.show_scons
