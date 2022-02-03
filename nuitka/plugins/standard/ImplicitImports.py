@@ -30,7 +30,6 @@ from nuitka.__past__ import iter_modules
 from nuitka.containers.oset import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
-from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import getPyWin32Dir
 from nuitka.utils.Utils import getOS, isLinux, isMacOS, isWin32Windows
@@ -947,6 +946,11 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pkg_resources._vendor.packaging.specifiers"
             yield "pkg_resources._vendor.packaging.requirements"
 
+        elif full_name == "pkg_resources._vendor.jaraco":
+            yield "pkg_resources._vendor.jaraco.text"
+            yield "pkg_resources._vendor.jaraco.functools"
+            yield "pkg_resources._vendor.jaraco.context"
+
         # TODO: Is this even true, or an artifact of how we handled requests.packages.urllib3 in the past.
         # urllib3 -------------------------------------------------------------
         elif full_name in ("urllib3", "requests_toolbelt._compat"):
@@ -1178,13 +1182,20 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield used_module[0]
 
         if full_name == "pkg_resources.extern":
-            for line in getFileContentByLine(module.getCompileTimeFilename()):
-                if line.startswith("names"):
-                    line = line.split("=")[-1].strip()
-                    parts = line.split(",")
+            # TODO: A package specific lookup of compile time "pkg_resources.extern" could
+            # be done here, but this might be simpler to hardcode for now. Once we have
+            # the infrastructure to ask a module that after optimization, we should do
+            # that instead, as it will not use a separate process.
+            for part in (
+                "packaging",
+                "pyparsing",
+                "appdirs",
+                "jaraco",
+                "importlib_resources",
+                "more_itertools",
+            ):
+                yield "pkg_resources._vendor." + part.strip("' ")
 
-                    for part in parts:
-                        yield "pkg_resources._vendor." + part.strip("' ")
         else:
             # create a flattened import set for full_name and yield from it
             for item in self.getImportsByFullname(full_name):
