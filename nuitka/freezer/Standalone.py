@@ -810,17 +810,22 @@ def _parseOtoolListingOutput(output):
 def _detectBinaryPathDLLsMacOS(
     original_dir, binary_filename, package_name, keep_unresolved, recursive
 ):
+    assert os.path.exists(binary_filename), binary_filename
+
     package_specific_dirs = _getLdLibraryPath(
         package_name=package_name, python_rpath=None, original_dir=original_dir
     )
 
     # This is recursive potentially and might add more and more.
     with withEnvironmentPathAdded("DYLD_LIBRARY_PATH", *package_specific_dirs):
-        stdout = executeToolChecked(
-            logger=inclusion_logger,
-            command=("otool", "-L", binary_filename),
-            absence_message=otool_usage,
-        )
+        try:
+            stdout = executeToolChecked(
+                logger=inclusion_logger,
+                command=("otool", "-L", binary_filename),
+                absence_message=otool_usage,
+            )
+        except SystemExit as e:
+            assert False, e
 
         paths = _parseOtoolListingOutput(stdout)
 
@@ -870,11 +875,18 @@ def _resolveBinaryPathDLLsMacOS(
                     resolved_path = os.path.normpath(os.path.join(rpath, path[7:]))
                     break
             else:
+                # This is only a guess, might be missing package specific directories.
                 resolved_path = os.path.join(original_dir, path[7:])
         elif path.startswith("@loader_path/"):
             resolved_path = os.path.join(original_dir, path[13:])
         else:
             resolved_path = path
+
+        if not os.path.exists(resolved_path):
+            inclusion_logger.sysexit(
+                "Error, failed to resolved path %s (for %s), please report the bug."
+                % (path, binary_filename)
+            )
 
         # Some libraries depend on themselves.
         if areSamePaths(binary_filename, resolved_path):

@@ -132,6 +132,7 @@
         "reexecute",
         "repr",
         "RPATH",
+        "rpaths",
         "Scons",
         "Setuptools",
         "stdlib",
