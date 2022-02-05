@@ -666,17 +666,25 @@ _linux_dll_ignore_list = (
     "libdrm.so",
 )
 
+_ld_library_cache = {}
+
 
 def _getLdLibraryPath(package_name, python_rpath, original_dir):
-    ld_library_path = OrderedSet()
-    if python_rpath:
-        ld_library_path.add(python_rpath)
-    ld_library_path.update(_getPackageSpecificDLLDirectories(package_name))
+    key = package_name, python_rpath, original_dir
 
-    if original_dir is not None:
-        ld_library_path.add(original_dir)
+    if key not in _ld_library_cache:
 
-    return ld_library_path
+        ld_library_path = OrderedSet()
+        if python_rpath:
+            ld_library_path.add(python_rpath)
+
+        ld_library_path.update(_getPackageSpecificDLLDirectories(package_name))
+        if original_dir is not None:
+            ld_library_path.add(original_dir)
+
+        _ld_library_cache[key] = ld_library_path
+
+    return _ld_library_cache[key]
 
 
 def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
@@ -808,6 +816,23 @@ def _parseOtoolListingOutput(output):
     return paths
 
 
+_otool_dependency_cache = {}
+
+
+def getOtoolDependencyOutput(filename, package_specific_dirs):
+    key = filename, tuple(package_specific_dirs), os.environ.get("DYLD_LIBRARY_PATH")
+
+    if key not in _otool_dependency_cache:
+        with withEnvironmentPathAdded("DYLD_LIBRARY_PATH", *package_specific_dirs):
+            _otool_dependency_cache[key] = executeToolChecked(
+                logger=inclusion_logger,
+                command=("otool", "-L", filename),
+                absence_message=otool_usage,
+            )
+
+    return _otool_dependency_cache[key]
+
+
 def _detectBinaryPathDLLsMacOS(
     original_dir, binary_filename, package_name, keep_unresolved, recursive
 ):
@@ -818,40 +843,36 @@ def _detectBinaryPathDLLsMacOS(
     )
 
     # This is recursive potentially and might add more and more.
-    with withEnvironmentPathAdded("DYLD_LIBRARY_PATH", *package_specific_dirs):
-        try:
-            stdout = executeToolChecked(
-                logger=inclusion_logger,
-                command=("otool", "-L", binary_filename),
-                absence_message=otool_usage,
+    stdout = getOtoolDependencyOutput(
+        filename=binary_filename,
+        package_specific_dirs=_getLdLibraryPath(
+            package_name=package_name, python_rpath=None, original_dir=original_dir
+        ),
+    )
+    paths = _parseOtoolListingOutput(stdout)
+
+    had_self, resolved_result = _resolveBinaryPathDLLsMacOS(
+        original_dir=original_dir,
+        binary_filename=binary_filename,
+        paths=paths,
+        package_specific_dirs=package_specific_dirs,
+    )
+
+    if recursive:
+        merged_result = OrderedDict(resolved_result)
+
+        for sub_dll_filename in resolved_result:
+            _, sub_result = _detectBinaryPathDLLsMacOS(
+                original_dir=os.path.dirname(sub_dll_filename),
+                binary_filename=sub_dll_filename,
+                package_name=package_name,
+                recursive=True,
+                keep_unresolved=True,
             )
-        except SystemExit as e:
-            assert False, e
 
-        paths = _parseOtoolListingOutput(stdout)
+            merged_result.update(sub_result)
 
-        had_self, resolved_result = _resolveBinaryPathDLLsMacOS(
-            original_dir=original_dir,
-            binary_filename=binary_filename,
-            paths=paths,
-            package_specific_dirs=package_specific_dirs,
-        )
-
-        if recursive:
-            merged_result = OrderedDict(resolved_result)
-
-            for sub_dll_filename in resolved_result:
-                _, sub_result = _detectBinaryPathDLLsMacOS(
-                    original_dir=os.path.dirname(sub_dll_filename),
-                    binary_filename=sub_dll_filename,
-                    package_name=package_name,
-                    recursive=True,
-                    keep_unresolved=True,
-                )
-
-                merged_result.update(sub_result)
-
-            resolved_result = merged_result
+        resolved_result = merged_result
 
     if keep_unresolved:
         return had_self, resolved_result
