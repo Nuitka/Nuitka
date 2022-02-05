@@ -244,13 +244,24 @@ otool_usage = (
     "The 'otool' is used to analyse dependencies on macOS and required to be found."
 )
 
+_otool_l_cache = {}
+
+
+def getOtoolListing(filename):
+    filename = os.path.abspath(filename)
+
+    if filename not in _otool_l_cache:
+        _otool_l_cache[filename] = executeToolChecked(
+            logger=postprocessing_logger,
+            command=("otool", "-l", filename),
+            absence_message=otool_usage,
+        )
+
+    return _otool_l_cache[filename]
+
 
 def _getSharedLibraryRPATHDarwin(filename):
-    output = executeToolChecked(
-        logger=postprocessing_logger,
-        command=("otool", "-l", filename),
-        absence_message=otool_usage,
-    )
+    output = getOtoolListing(filename)
 
     cmd = b""
     last_was_load_command = False
@@ -450,9 +461,6 @@ def getPyWin32Dir():
             return candidate
 
 
-_binary_minos_cache = {}
-
-
 def detectBinaryMinMacOS(binary_filename):
     """Detect the minimum required macOS version of a binary.
 
@@ -463,40 +471,33 @@ def detectBinaryMinMacOS(binary_filename):
         str - minimum OS version that the binary will run on
 
     """
-    binary_filename = os.path.abspath(binary_filename)
 
-    if binary_filename not in _binary_minos_cache:
-        minos_version = None
+    minos_version = None
 
-        stdout = executeToolChecked(
-            logger=postprocessing_logger,
-            command=("otool", "-l", binary_filename),
-            absence_message=otool_usage,
-        )
+    # This is cached, so we don't have to care about that.
+    stdout = getOtoolListing(binary_filename)
 
-        lines = stdout.split(b"\n")
+    lines = stdout.split(b"\n")
 
-        for i, line in enumerate(lines):
-            # Form one, used by CPython builds.
-            if line.endswith(b"cmd LC_VERSION_MIN_MACOSX"):
-                line = lines[i + 2]
-                if str is not bytes:
-                    line = line.decode("utf8")
+    for i, line in enumerate(lines):
+        # Form one, used by CPython builds.
+        if line.endswith(b"cmd LC_VERSION_MIN_MACOSX"):
+            line = lines[i + 2]
+            if str is not bytes:
+                line = line.decode("utf8")
 
-                minos_version = line.split("version ", 1)[1]
-                break
+            minos_version = line.split("version ", 1)[1]
+            break
 
-            # Form two, used by Apple Python builds.
-            if line.strip().startswith(b"minos"):
-                if str is not bytes:
-                    line = line.decode("utf8")
+        # Form two, used by Apple Python builds.
+        if line.strip().startswith(b"minos"):
+            if str is not bytes:
+                line = line.decode("utf8")
 
-                minos_version = line.split("minos ", 1)[1]
-                break
+            minos_version = line.split("minos ", 1)[1]
+            break
 
-        _binary_minos_cache[binary_filename] = minos_version
-
-    return _binary_minos_cache[binary_filename]
+    return minos_version
 
 
 _re_anylib = re.compile(r"^.*(\.(?:dll|so(?:\..*)|dylib))$", re.IGNORECASE)

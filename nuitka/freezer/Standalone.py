@@ -76,6 +76,7 @@ from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     copyDllFile,
+    getOtoolListing,
     getPyWin32Dir,
     getSharedLibraryRPATH,
     getWindowsDLLVersion,
@@ -869,7 +870,12 @@ def _resolveBinaryPathDLLsMacOS(
     rpaths.update(package_specific_dirs)
 
     for path in paths:
+        if path == os.path.basename(binary_filename):
+            # We ignore odd library that references itself without any path given.
+            continue
+
         if path.startswith("@rpath/"):
+            # Resolve rpath to just the ones given, first match.
             for rpath in rpaths:
                 if os.path.exists(os.path.join(rpath, path[7:])):
                     resolved_path = os.path.normpath(os.path.join(rpath, path[7:]))
@@ -884,7 +890,7 @@ def _resolveBinaryPathDLLsMacOS(
 
         if not os.path.exists(resolved_path):
             inclusion_logger.sysexit(
-                "Error, failed to resolved path %s (for %s), please report the bug."
+                "Error, failed to resolve DLL path %s (for %s), please report the bug."
                 % (path, binary_filename)
             )
 
@@ -899,11 +905,7 @@ def _resolveBinaryPathDLLsMacOS(
 
 
 def _detectBinaryRPathsMacOS(original_dir, binary_filename):
-    stdout = executeToolChecked(
-        logger=inclusion_logger,
-        command=("otool", "-l", binary_filename),
-        absence_message=otool_usage,
-    )
+    stdout = getOtoolListing(binary_filename)
 
     lines = stdout.split(b"\n")
 
