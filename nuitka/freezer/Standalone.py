@@ -45,6 +45,11 @@ from nuitka.nodes.ModuleNodes import (
     makeUncompiledPythonModule,
 )
 from nuitka.plugins.Plugins import Plugins
+from nuitka.Progress import (
+    closeProgressBar,
+    reportProgressBar,
+    setupProgressBar,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general, inclusion_logger, printError
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
@@ -1169,7 +1174,13 @@ def _detectBinaryDLLs(
 _not_found_dlls = set()
 
 
-def detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache):
+def _detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache):
+    setupProgressBar(
+        stage="Detecting used DLLs",
+        unit="DLL",
+        total=len(standalone_entry_points),
+    )
+
     def addDLLInfo(count, source_dir, original_filename, binary_filename, package_name):
         used_dlls = _detectBinaryDLLs(
             is_main_executable=count == 0,
@@ -1200,6 +1211,8 @@ working with Python, report a Nuitka bug."""
 
                 used_dlls.remove(dll_filename)
 
+        reportProgressBar(binary_filename)
+
         return binary_filename, package_name, used_dlls
 
     result = OrderedDict()
@@ -1229,6 +1242,8 @@ working with Python, report a Nuitka bug."""
                     result[dll_filename] = (package_name, [])
 
                 result[dll_filename][1].append(binary_filename)
+
+    closeProgressBar()
 
     return result
 
@@ -1399,12 +1414,20 @@ different from
 
 
 def _copyDllsUsed(dist_dir, used_dlls):
+    setupProgressBar(
+        stage="Copying used DLLs",
+        unit="DLL",
+        total=len(used_dlls),
+    )
+
     dll_map = []
 
     for dll_filename, (package_name, sources) in iterItems(used_dlls):
         dll_name = os.path.basename(dll_filename)
 
         target_path = os.path.join(dist_dir, dll_name)
+
+        reportProgressBar(target_path)
 
         # Sometimes DLL dependencies were copied there already. TODO: That should
         # actually become disallowed with plugins no longer seeing that folder.
@@ -1419,19 +1442,21 @@ def _copyDllsUsed(dist_dir, used_dlls):
                 % (dll_filename, ", ".join(sources))
             )
 
+    closeProgressBar()
+
     return dll_map
 
 
 def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
     # This is complex, because we also need to handle OS specifics.
 
-    used_dlls = detectUsedDLLs(
+    used_dlls = _detectUsedDLLs(
         source_dir=source_dir,
         standalone_entry_points=standalone_entry_points,
         use_cache=not Options.shallNotUseDependsExeCachedResults()
-        and not Options.getWindowsDependencyTool() == "depends.exe",
+        and Options.getWindowsDependencyTool() != "depends.exe",
         update_cache=not Options.shallNotStoreDependsExeCachedResults()
-        and not Options.getWindowsDependencyTool() == "depends.exe",
+        and Options.getWindowsDependencyTool() != "depends.exe",
     )
 
     duplicate_dlls = _removeDuplicateDlls(used_dlls=used_dlls)
