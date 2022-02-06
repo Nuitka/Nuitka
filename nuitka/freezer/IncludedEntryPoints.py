@@ -63,6 +63,8 @@ def makeDllEntryPoint(source_path, dest_path, package_name):
     assert type(source_path) not in (tuple, list)
     assert isRelativePath(dest_path), dest_path
 
+    assert os.path.exists(source_path), source_path
+
     dest_path = os.path.join(getStandaloneDirectoryPath(), dest_path)
 
     return makeIncludedEntryPoint(
@@ -74,6 +76,8 @@ def makeExeEntryPoint(source_path, dest_path, package_name):
     assert type(dest_path) not in (tuple, list)
     assert type(source_path) not in (tuple, list)
     assert isRelativePath(dest_path), dest_path
+
+    assert os.path.exists(source_path), source_path
 
     dest_path = os.path.join(getStandaloneDirectoryPath(), dest_path)
 
@@ -87,6 +91,8 @@ def makeExeEntryPoint(source_path, dest_path, package_name):
 
 
 def makeDllEntryPointOld(source_path, dest_path, package_name):
+    assert os.path.exists(source_path), source_path
+
     return makeIncludedEntryPoint(
         "dll",
         source_path=source_path,

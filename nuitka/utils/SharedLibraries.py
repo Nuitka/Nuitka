@@ -58,11 +58,15 @@ def locateDLL(dll_name):
     if dll_name is None:
         return None
 
+    # This happens on macOS.
+    if isMacOS() and not os.path.exists(dll_name):
+        return None
+
     if isWin32Windows():
-        return os.path.normpath(dll_name)
+        return os.path.abspath(dll_name)
 
     if isMacOS():
-        return dll_name
+        return os.path.abspath(dll_name)
 
     if os.path.sep in dll_name:
         # Use this from ctypes instead of rolling our own.
@@ -81,7 +85,7 @@ def locateDLL(dll_name):
         )
 
     with withEnvironmentVarOverridden("LANG", "C"):
-        # TODO: Could cache ldconfig output
+        # TODO: Could and probably should cache "ldconfig -p" output
         output = executeToolChecked(
             logger=postprocessing_logger,
             command=("/sbin/ldconfig", "-p"),
