@@ -399,7 +399,7 @@ import %(binding_name)s.QtCore
             return ModuleName(self.binding_name).getChildNamed(child_name)
 
     def getImplicitImports(self, module):
-        # Way too many indeed, pylint: disable=too-many-branches
+        # Way too many indeed, pylint: disable=too-many-branches,too-many-statements
 
         full_name = module.getFullName()
         top_level_package_name, child_name = full_name.splitPackageName()
@@ -520,6 +520,7 @@ import %(binding_name)s.QtCore
 
         if child_name in ("QtQuick", "QtQuickWidgets"):
             yield self._getChildNamed("QtQml")
+            yield self._getChildNamed("QtOpenGL")
 
         if child_name in ("QtQuickWidgets", "QtQml", "QtQuickControls2"):
             yield self._getChildNamed("QtQuick")
