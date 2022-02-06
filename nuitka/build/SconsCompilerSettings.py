@@ -501,7 +501,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
 
         target_flag = "--target=%s-apple-macos%s" % (
             env.macos_target_arch,
-            env.macos_min_version or "10.9",
+            env.macos_min_version,
         )
 
         env.Append(CCFLAGS=[target_flag])

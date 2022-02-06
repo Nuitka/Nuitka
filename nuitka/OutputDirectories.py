@@ -63,7 +63,7 @@ def getSourceDirectoryPath(onefile=False):
 
 
 def getStandaloneDistSuffix():
-    """Suffix to use for standalone distribition folder."""
+    """Suffix to use for standalone distribution folder."""
 
     if Options.shallCreateAppBundle():
         return ".app"

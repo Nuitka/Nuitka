@@ -86,7 +86,7 @@ from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
-from nuitka.utils.Utils import getArchitecture, getOS, isWin32Windows
+from nuitka.utils.Utils import getArchitecture, getOS, isMacOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from . import ModuleRegistry, Options, OutputDirectories, TreeXML
@@ -992,10 +992,10 @@ def main():
             onefile=Options.isOnefileMode()
         )
 
-        if Options.isStandaloneMode() and "macos_min_version" in options:
+        if Options.isStandaloneMode() and isMacOS():
             general.info(
                 "Created binary that runs on macOS %s (%s) or higher."
-                % (options["macos_min_version"], getArchitecture())
+                % (options["macos_min_version"], options["macos_target_arch"])
             )
 
         Plugins.onFinalResult(final_filename)
