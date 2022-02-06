@@ -287,7 +287,7 @@ import %(binding_name)s.QtCore
         """Get the path to the Qt webengine resources."""
         return os.path.join(self._getQtInformation().data_path, "resources")
 
-    def _getLibaryExecutablePath(self):
+    def _getLibraryExecutablePath(self):
         """Get the patch to Qt binaries."""
         return self._getQtInformation().library_executables_path
 
@@ -329,12 +329,10 @@ import %(binding_name)s.QtCore
                 yield qt_bin_dir
 
     def hasPluginFamily(self, family):
-        for plugin_dir in self.getQtPluginDirs():
-            if os.path.isdir(os.path.join(plugin_dir, family)):
-                return True
-
-        # TODO: Special case "xml".
-        return False
+        return any(
+            os.path.isdir(os.path.join(plugin_dir, family))
+            for plugin_dir in self.getQtPluginDirs()
+        )
 
     def _getQmlDirectory(self):
         for plugin_dir in self.getQtPluginDirs():
@@ -613,7 +611,7 @@ system Qt plugins, which may be from another Qt version.""",
             Code to insert and descriptive text (tuple), or (None, None).
         """
 
-        # This isonly relevant on standalone mode for Windows
+        # This is only relevant on standalone mode for Windows
         if not isStandaloneMode():
             return
 
@@ -627,7 +625,7 @@ if not path.startswith(__nuitka_binary_dir):
 """
             yield (
                 code,
-                "Adding binary folder to runtime 'PATH' environment variable for proper loading.",
+                "Adding binary folder to runtime 'PATH' environment variable for proper Qt loading.",
             )
 
     def considerDataFiles(self, module):
@@ -799,7 +797,7 @@ Prefix = .
             self.webengine_done_binaries = True  # prevent multiple copies
             self.info("Including QtWebEngine executable.")
 
-            qt_web_engine_dir = self._getLibaryExecutablePath()
+            qt_web_engine_dir = self._getLibraryExecutablePath()
 
             for filename, filename_relative in listDir(qt_web_engine_dir):
                 if filename_relative.startswith("QtWebEngineProcess"):
@@ -859,7 +857,7 @@ Prefix = .
                         """\
 Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encountered, preventing
 its use. As a result an "ImportError" might be given at run time. Uninstall it for full compatible
-behaviour with the uncompiled code to debug it."""
+behavior with the uncompiled code to debug it."""
                         % {
                             "unwanted": top_package_name,
                             "binding_name": self.binding_name,
