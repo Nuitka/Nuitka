@@ -121,9 +121,10 @@ numpy.testing._private.pytesttester:
 
 numpy.core.overrides:
   # see #1189, apparently an upstream problem hard to grasp
-  description: "workaround numpy issue with python flag 'no_docstrings' if used"
+  description: "workaround numpy issues with compiled code"
   replacements:
     "add_docstring(implementation, dispatcher.__doc__)": "'''add_docstring(implementation, dispatcher.__doc__ or '')'''"
+    "public_api.__code__ = ": ""
 
 scipy.stats.morestats:
   description: "remove numpy testing framework"
