@@ -75,6 +75,7 @@ from nuitka.utils.Execution import (
     wrapCommandForDebuggerForExec,
 )
 from nuitka.utils.FileOperations import (
+    changeFilenameExtension,
     deleteFile,
     getDirectoryRealPath,
     getExternalUsePath,
@@ -128,9 +129,13 @@ def _createNodeTree(filename):
 
     # Prepare the ".dist" directory, throwing away what was there before.
     if Options.isStandaloneMode():
-        standalone_dir = OutputDirectories.getStandaloneDirectoryPath()
+        standalone_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=False)
         removeDirectory(path=standalone_dir, ignore_errors=True)
-        makePath(standalone_dir)
+
+        if Options.shallCreateAppBundle():
+            removeDirectory(
+                path=changeFilenameExtension(standalone_dir, ".app"), ignore_errors=True
+            )
 
     # Delete result file, to avoid confusion with previous build and to
     # avoid locking issues after the build.

@@ -1292,7 +1292,7 @@ def getMacOSTargetArch():
 
 def shallCreateAppBundle():
     """*bool* shall create an application bundle"""
-    return options.macos_create_bundle
+    return options.macos_create_bundle and isMacOS()
 
 
 def getMacOSAppName():

@@ -62,30 +62,39 @@ def getSourceDirectoryPath(onefile=False):
     return result
 
 
-def getStandaloneDistSuffix():
+def _getStandaloneDistSuffix(bundle):
     """Suffix to use for standalone distribution folder."""
 
-    if Options.shallCreateAppBundle():
+    if bundle and Options.shallCreateAppBundle() and not Options.isOnefileMode():
         return ".app"
     else:
         return ".dist"
 
 
-def getStandaloneDirectoryPath():
+def getStandaloneDirectoryPath(bundle=True):
+    assert Options.isStandaloneMode()
+
     result = Options.getOutputPath(
         path=os.path.basename(
-            getTreeFilenameWithSuffix(_main_module, getStandaloneDistSuffix())
+            getTreeFilenameWithSuffix(_main_module, _getStandaloneDistSuffix(bundle))
         )
     )
 
-    if Options.shallCreateAppBundle():
+    if bundle and Options.shallCreateAppBundle() and not Options.isOnefileMode():
         result = os.path.join(result, "Contents", "MacOS")
 
     return result
 
 
 def getResultBasepath(onefile=False):
-    if Options.isStandaloneMode() and not onefile:
+    if Options.isOnefileMode() and onefile:
+        file_path = os.path.basename(getTreeFilenameWithSuffix(_main_module, ""))
+
+        if Options.shallCreateAppBundle():
+            file_path = os.path.join(file_path + ".app", "Contents", "MacOS", file_path)
+
+        return Options.getOutputPath(path=file_path)
+    elif Options.isStandaloneMode() and not onefile:
         return os.path.join(
             getStandaloneDirectoryPath(),
             os.path.basename(getTreeFilenameWithSuffix(_main_module, "")),
@@ -118,7 +127,11 @@ def getResultFullpath(onefile):
             result = output_filename
         elif getOS() == "Windows":
             result += ".exe"
-        elif not Options.isStandaloneMode() or onefile:
+        elif (
+            not Options.isStandaloneMode()
+            or onefile
+            and not Options.shallCreateAppBundle()
+        ):
             result += ".bin"
 
     return result

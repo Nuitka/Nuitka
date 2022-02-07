@@ -357,7 +357,7 @@ def executePostProcessing():
             rpath=python_lib_path,
         )
 
-    if isMacOS() and Options.shallCreateAppBundle():
+    if Options.shallCreateAppBundle():
         createPlistInfoFile(logger=postprocessing_logger, onefile=False)
 
     # Modules should not be executable, but Scons creates them like it, fix

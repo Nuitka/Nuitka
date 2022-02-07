@@ -48,11 +48,13 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.SharedLibraries import locateDLL
+from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.Utils import (
     getArchitecture,
     getOS,
     hasOnefileSupportedOS,
     isLinux,
+    isMacOS,
     isWin32Windows,
 )
 
@@ -168,22 +170,26 @@ Categories=Utility;"""
     stdout_file = openTextFile(stdout_filename, "wb")
     stderr_file = openTextFile(stderr_filename, "wb")
 
+    command = (
+        _getAppImageToolPath(
+            for_operation=True, assume_yes_for_downloads=assumeYesForDownloads()
+        ),
+        dist_dir,
+        "--comp",
+        "xz",
+        "-n",
+        onefile_output_filename,
+    )
+
+    stderr_file.write(b"Executed %r\n" % " ".join(command))
+
     # Starting the process while locked, so file handles are not duplicated, we
     # need fine grained control over process here, therefore we cannot use the
     # Execution.executeProcess() function without making it too complex and not
     # all Python versions allow using with, pylint: disable=consider-using-with
     # pylint: disable
     appimagetool_process = subprocess.Popen(
-        (
-            _getAppImageToolPath(
-                for_operation=True, assume_yes_for_downloads=assumeYesForDownloads()
-            ),
-            dist_dir,
-            "--comp",
-            "xz",
-            "-n",
-            onefile_output_filename,
-        ),
+        command,
         shell=False,
         stdin=getNullInput(),
         stdout=stdout_file,
@@ -391,6 +397,9 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
         executePostProcessingResources(manifest=None, onefile=True)
 
     Plugins.onBootstrapBinary(onefile_output_filename)
+
+    if isMacOS():
+        addMacOSCodeSignature(filenames=[onefile_output_filename])
 
     runOnefileCompressor(
         compressor_python=compressor_python,
