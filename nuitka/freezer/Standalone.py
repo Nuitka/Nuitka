@@ -39,6 +39,8 @@ from nuitka.importing.Importing import locateModule
 from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
     isStandardLibraryPath,
+    scanStandardLibraryPath,
+    stdlib_no_auto_inclusion_list,
 )
 from nuitka.nodes.ModuleNodes import (
     PythonExtensionModule,
@@ -216,6 +218,11 @@ def _detectedExtensionModule(filename, module_name):
     if module_name == "__main__":
         return
 
+    # Extension modules are not tracked outside of standalone
+    # mode.
+    if not Options.isStandaloneMode():
+        return
+
     # Cyclic dependency
     from nuitka import ModuleRegistry
 
@@ -366,7 +373,10 @@ print("\\n".join(sorted(
 
                 detections.append((module_name, 1, "extension", filename))
 
-    for module_name, _prio, kind, filename in sorted(detections):
+    for module_name, _priority, kind, filename in sorted(detections):
+        if module_name.hasOneOfNamespaces(*stdlib_no_auto_inclusion_list):
+            continue
+
         if kind == "extension":
             _detectedExtensionModule(filename=filename, module_name=module_name)
         elif kind == "precompiled":
@@ -389,109 +399,6 @@ print("\\n".join(sorted(
             assert False, kind
 
     return result
-
-
-# Some modules we want to exclude.
-_excluded_stdlib_modules = ["__main__.py", "__init__.py", "antigravity.py"]
-
-if os.name != "nt":
-    # On posix systems, and posix Python variants on Windows, this won't
-    # work.
-    _excluded_stdlib_modules.append("wintypes.py")
-    _excluded_stdlib_modules.append("cp65001.py")
-
-
-def scanStandardLibraryPath(stdlib_dir):
-    # There is a lot of filtering here, done in branches, so there is many of
-    # them, but that's acceptable, pylint: disable=too-many-branches,too-many-statements
-
-    for root, dirs, filenames in os.walk(stdlib_dir):
-        import_path = root[len(stdlib_dir) :].strip("/\\")
-        import_path = import_path.replace("\\", ".").replace("/", ".")
-
-        if import_path == "":
-            if "site-packages" in dirs:
-                dirs.remove("site-packages")
-            if "dist-packages" in dirs:
-                dirs.remove("dist-packages")
-            if "test" in dirs:
-                dirs.remove("test")
-            if "idlelib" in dirs:
-                dirs.remove("idlelib")
-            if "turtledemo" in dirs:
-                dirs.remove("turtledemo")
-
-            if "ensurepip" in filenames:
-                filenames.remove("ensurepip")
-            if "ensurepip" in dirs:
-                dirs.remove("ensurepip")
-
-            # Ignore "lib-dynload" and "lib-tk" and alike.
-            dirs[:] = [
-                dirname
-                for dirname in dirs
-                if not dirname.startswith("lib-")
-                if dirname != "Tools"
-                if not dirname.startswith("plat-")
-            ]
-
-        if import_path in (
-            "tkinter",
-            "importlib",
-            "ctypes",
-            "unittest",
-            "sqlite3",
-            "distutils",
-            "email",
-            "bsddb",
-        ):
-            if "test" in dirs:
-                dirs.remove("test")
-
-        if import_path == "distutils.command":
-            # Misbehaving and crashing while importing the world.
-            if "bdist_conda.py" in filenames:
-                filenames.remove("bdist_conda.py")
-
-        if import_path in ("lib2to3", "json", "distutils"):
-            if "tests" in dirs:
-                dirs.remove("tests")
-
-        if import_path == "asyncio":
-            if "test_utils.py" in filenames:
-                filenames.remove("test_utils.py")
-
-        if python_version >= 0x340 and Utils.isWin32Windows():
-            if import_path == "multiprocessing":
-                filenames.remove("popen_fork.py")
-                filenames.remove("popen_forkserver.py")
-                filenames.remove("popen_spawn_posix.py")
-
-        if python_version >= 0x300 and Utils.isPosixWindows():
-            if import_path == "curses":
-                filenames.remove("has_key.py")
-
-        if Utils.isNetBSD():
-            if import_path == "xml.sax":
-                filenames.remove("expatreader.py")
-
-        for filename in filenames:
-            if filename.endswith(".py") and filename not in _excluded_stdlib_modules:
-                module_name = filename[:-3]
-                if import_path == "":
-                    yield module_name
-                else:
-                    yield import_path + "." + module_name
-
-        if python_version >= 0x300:
-            if "__pycache__" in dirs:
-                dirs.remove("__pycache__")
-
-        for dirname in dirs:
-            if import_path == "":
-                yield dirname
-            else:
-                yield import_path + "." + dirname
 
 
 def _detectEarlyImports():
@@ -526,17 +433,18 @@ def _detectEarlyImports():
 
     # For Python3 we patch inspect without knowing if it is used.
     if python_version >= 0x300:
-        import_code += "import inspect;"
+        import_code += "import inspect;import importlib._bootstrap"
 
     result = _detectImports(command=import_code, user_provided=False, technical=True)
 
     if Options.shallFreezeAllStdlib():
         stdlib_modules = set()
 
-        # Scan the standard library paths (multiple in case of virtualenv.
+        # Scan the standard library paths (multiple in case of virtualenv).
         for stdlib_dir in getStandardLibraryPaths():
             for module_name in scanStandardLibraryPath(stdlib_dir):
-                stdlib_modules.add(module_name)
+                if not module_name.hasOneOfNamespaces(*stdlib_no_auto_inclusion_list):
+                    stdlib_modules.add(module_name)
 
         # Put here ones that should be imported first.
         first_ones = ("Tkinter",)
@@ -587,8 +495,13 @@ for imp in imports:
     for fail in failed:
         if fail in sys.modules:
             del sys.modules[fail]
-""" % sorted(
-            stdlib_modules, key=lambda name: (name not in first_ones, name)
+""" % (
+            tuple(
+                module_name.asString()
+                for module_name in sorted(
+                    stdlib_modules, key=lambda name: (name not in first_ones, name)
+                )
+            ),
         )
 
         early_names = [module.getFullName() for module in result]
@@ -609,6 +522,8 @@ def detectEarlyImports():
     from nuitka import ModuleRegistry
 
     early_modules = tuple(_detectEarlyImports())
+
+    # TODO: Return early_modules, then there is no cycle.
     for module in early_modules:
         ModuleRegistry.addUncompiledModule(module)
 

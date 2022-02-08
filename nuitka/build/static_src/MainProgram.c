@@ -60,8 +60,6 @@ static char **orig_argv;
 #endif
 static int orig_argc;
 
-#ifdef _NUITKA_STANDALONE
-
 #if _NUITKA_FROZEN > 0
 extern void copyFrozenModulesTo(struct _frozen *destination);
 
@@ -71,15 +69,13 @@ static struct _frozen *old_frozen = NULL;
 #else
 static struct _frozen const *old_frozen = NULL;
 #endif
-#endif
 
-static void prepareStandaloneEnvironment(void) {
+static void prepareFrozenModules(void) {
     // Tell the CPython library to use our pre-compiled modules as frozen
     // modules. This for those modules/packages like "encoding" that will be
     // loaded during "Py_Initialize" already, for the others they may be
     // compiled.
 
-#if _NUITKA_FROZEN > 0
     // The CPython library has some pre-existing frozen modules, we only append
     // to that.
     struct _frozen const *search = PyImport_FrozenModules;
@@ -98,7 +94,12 @@ static void prepareStandaloneEnvironment(void) {
     copyFrozenModulesTo(merged + pre_existing_count);
     old_frozen = PyImport_FrozenModules;
     PyImport_FrozenModules = merged;
+}
 #endif
+
+#ifdef _NUITKA_STANDALONE
+
+static void prepareStandaloneEnvironment(void) {
 
     /* Setup environment variables to tell CPython that we would like it to use
      * the provided binary directory as the place to look for DLLs and for
@@ -118,7 +119,6 @@ static void prepareStandaloneEnvironment(void) {
     NUITKA_PRINTF_TRACE("main(): Binary dir is %S\n", binary_directory);
 
     Py_SetPythonHome(binary_directory);
-
 #endif
 }
 
@@ -658,6 +658,10 @@ int main(int argc, char **argv) {
 
 #endif
 
+#if _NUITKA_FROZEN > 0
+    prepareFrozenModules();
+#endif
+
     /* Initialize CPython library environment. */
     Py_DebugFlag = 0;
 #if PYTHON_VERSION < 0x300
@@ -963,6 +967,14 @@ orig_argv = argv;
 #endif
 
 #ifdef _NUITKA_STANDALONE
+
+#if PYTHON_VERSION >= 0x300
+    // Make sure the importlib fully bootstraps as we couldn't load it with the
+    // standard loader.
+    PyObject *importlib_module = getImportLibBootstrapModule();
+    CHECK_OBJECT(importlib_module);
+#endif
+
     NUITKA_PRINT_TRACE("main(): Calling setEarlyFrozenModulesFileAttribute().");
 
     setEarlyFrozenModulesFileAttribute();

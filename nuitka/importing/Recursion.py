@@ -107,7 +107,7 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
             return False, "Extension module cannot be inspected."
 
     # PGO decisions are not overruling plugins, but all command line options, they are
-    # supposed to be applied alrealdy.
+    # supposed to be applied already.
     is_stdlib = StandardLibrary.isStandardLibraryPath(module_filename)
 
     if not is_stdlib or Options.shallFollowStandardLibrary():

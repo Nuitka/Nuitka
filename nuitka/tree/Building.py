@@ -68,6 +68,7 @@ from nuitka.freezer.Standalone import detectEarlyImports
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
+from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
 from nuitka.nodes.AttributeNodes import (
     StatementAssignmentAttribute,
@@ -956,6 +957,16 @@ required to compiled."""
         )
         result = "compiled"
 
+    # Include all of standard library as bytecode, for now. We need to identify
+    # which ones really need that.
+    if not is_top:
+        module_filename = Importing.locateModule(
+            module_name=module_name, parent_package=None, level=0
+        )[1]
+
+        if module_filename is not None and isStandardLibraryPath(module_filename):
+            result = "bytecode"
+
     # Plugins need to win over PGO, as they might know it better
     if result is None and not for_pgo:
         result = decideCompilationFromPGO(module_name=module_name)
@@ -1130,7 +1141,7 @@ def buildMainModuleTree(filename, is_main):
         hide_syntax_error=False,
     )
 
-    if Options.isStandaloneMode() and is_main:
+    if is_main and Options.isStandaloneMode():
         module.setEarlyModules(detectEarlyImports())
 
     # Main modules do not get added to the import cache, but plugins get to see it.

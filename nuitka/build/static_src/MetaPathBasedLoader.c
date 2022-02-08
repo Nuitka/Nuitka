@@ -1730,12 +1730,6 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 // This is called for the technical module imported early on during interpreter
 // into, to still get compatible "__file__" attributes.
 void setEarlyFrozenModulesFileAttribute(void) {
-#if PYTHON_VERSION >= 0x300
-    // Make sure the importlib fully bootstraps before doing this.
-    PyObject *importlib_module = getImportLibBootstrapModule();
-    CHECK_OBJECT(importlib_module);
-#endif
-
     PyObject *sys_modules = PyImport_GetModuleDict();
     Py_ssize_t ppos = 0;
     PyObject *key, *value;
