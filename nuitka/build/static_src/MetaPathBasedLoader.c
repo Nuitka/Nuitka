@@ -574,6 +574,24 @@ static PyObject *_path_unfreezer_get_data(PyObject *self, PyObject *args, PyObje
     return result;
 }
 
+#ifdef _WIN32
+static void setModuleFileValue(PyObject *module, wchar_t const *filename) {
+#else
+static void setModuleFileValue(PyObject *module, char const *filename) {
+#endif
+    if (HAS_ATTR_BOOL(module, const_str_plain___file__) == false) {
+#ifdef _WIN32
+        int res = SET_ATTRIBUTE(module, const_str_plain___file__, NuitkaUnicode_FromWideChar(filename, -1));
+#else
+        int res = SET_ATTRIBUTE(module, const_str_plain___file__, PyUnicode_FromString(filename));
+#endif
+        if (unlikely(res < 0)) {
+            // Might be refuted, which wouldn't be harmful.
+            CLEAR_ERROR_OCCURRED();
+        }
+    }
+}
+
 #if PYTHON_VERSION < 0x300
 typedef void (*entrypoint_t)(void);
 #else
@@ -744,6 +762,8 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
             return NULL;
         }
 
+        setModuleFileValue(module, filename);
+
         Nuitka_SetModule(full_name_obj, module);
         Py_DECREF(full_name_obj);
 
@@ -794,18 +814,7 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
 
     // Set filename attribute if not already set, in some branches we don't
     // do it, esp. not for older Python.
-    if (HAS_ATTR_BOOL(module, const_str_plain___file__) == false) {
-
-#ifdef _WIN32
-        int res = SET_ATTRIBUTE(module, const_str_plain___file__, NuitkaUnicode_FromWideChar(filename, -1));
-#else
-        int res = SET_ATTRIBUTE(module, const_str_plain___file__, PyUnicode_FromString(filename));
-#endif
-        if (unlikely(res < 0)) {
-            // Might be refuted, which wouldn't be harmful.
-            CLEAR_ERROR_OCCURRED();
-        }
-    }
+    setModuleFileValue(module, filename);
 
     // Call the standard import fix-ups for extension modules. Their interface
     // changed over releases.
@@ -911,11 +920,7 @@ static PyObject *loadModule(PyObject *module, PyObject *module_name,
 #endif
 
         // Set filename attribute before execution, some modules expect it early.
-#ifdef _WIN32
-        SET_ATTRIBUTE(module, const_str_plain___file__, NuitkaUnicode_FromWideChar(filename, -1));
-#else
-        SET_ATTRIBUTE(module, const_str_plain___file__, PyUnicode_FromString(filename));
-#endif
+        setModuleFileValue(module, filename);
 
         // Not used unfortunately. TODO: Check if we can make it so.
         Py_DECREF(module);
