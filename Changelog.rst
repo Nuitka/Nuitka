@@ -122,6 +122,11 @@ Optimization
 Organisational
 ==============
 
+-  There is now a `Discord server for Nuitka community
+   <https://discord.gg/nZ9hr9tUck>`__ where you can hang out with the
+   developers and ask questions. It is mirrored with the Gitter
+   community chat, but offers more features.
+
 -  Added section to User Manual that explains how to manually load
    files, such that it is cleaner and compatible code.
 
