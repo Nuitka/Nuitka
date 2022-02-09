@@ -190,6 +190,13 @@ pyclbr:
   change_function:
     "_main": "'(lambda: None)'"
 
+pydoc:
+  description: "remove module ability to display GUI with tkinter and topics data"
+  replacements:
+    "import pydoc_data.topics": "'raise ImportError'"
+  change_function:
+    "gui": "'(lambda : None)'"
+
 mimetypes:
   description: "remove module ability to run as a binary"
   change_function:
