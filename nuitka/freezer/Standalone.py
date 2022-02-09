@@ -17,9 +17,9 @@
 #
 """ Pack and copy files for standalone mode.
 
-This is still under heavy evolution, but expected to work for
-macOS, Windows, and Linux. Patches for other platforms are
-very welcome.
+This is expected to work for macOS, Windows, and Linux. Other things like
+FreeBSD are also very welcome, but might break with time and need your
+help.
 """
 
 import hashlib
@@ -38,9 +38,9 @@ from nuitka.importing import ImportCache
 from nuitka.importing.Importing import locateModule
 from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
+    isStandardLibraryNoAutoInclusionModule,
     isStandardLibraryPath,
     scanStandardLibraryPath,
-    stdlib_no_auto_inclusion_list,
 )
 from nuitka.nodes.ModuleNodes import (
     PythonExtensionModule,
@@ -213,7 +213,7 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
     module_names.add(module_name)
 
 
-def _detectedExtensionModule(filename, module_name):
+def _detectedExtensionModule(filename, module_name, result, technical):
     # That is not a shared library, but looks like one.
     if module_name == "__main__":
         return
@@ -223,22 +223,20 @@ def _detectedExtensionModule(filename, module_name):
     if not Options.isStandaloneMode():
         return
 
-    # Cyclic dependency
-    from nuitka import ModuleRegistry
-
-    if ModuleRegistry.hasRootModule(module_name):
+    # Avoid duplicates
+    if module_name in module_names:
         return
 
     source_ref = SourceCodeReferences.fromFilename(filename=filename)
 
     extension_module = PythonExtensionModule(
-        module_name=module_name, source_ref=source_ref
+        module_name=module_name, technical=technical, source_ref=source_ref
     )
 
-    ModuleRegistry.addRootModule(extension_module)
     ImportCache.addImportedModule(extension_module)
 
     module_names.add(module_name)
+    result.append(extension_module)
 
 
 def _detectImports(command, user_provided, technical):
@@ -374,11 +372,16 @@ print("\\n".join(sorted(
                 detections.append((module_name, 1, "extension", filename))
 
     for module_name, _priority, kind, filename in sorted(detections):
-        if module_name.hasOneOfNamespaces(*stdlib_no_auto_inclusion_list):
+        if isStandardLibraryNoAutoInclusionModule(module_name):
             continue
 
         if kind == "extension":
-            _detectedExtensionModule(filename=filename, module_name=module_name)
+            _detectedExtensionModule(
+                filename=filename,
+                module_name=module_name,
+                result=result,
+                technical=technical,
+            )
         elif kind == "precompiled":
             _detectedPrecompiledFile(
                 filename=filename,
@@ -443,7 +446,7 @@ def _detectEarlyImports():
         # Scan the standard library paths (multiple in case of virtualenv).
         for stdlib_dir in getStandardLibraryPaths():
             for module_name in scanStandardLibraryPath(stdlib_dir):
-                if not module_name.hasOneOfNamespaces(*stdlib_no_auto_inclusion_list):
+                if not isStandardLibraryNoAutoInclusionModule(module_name):
                     stdlib_modules.add(module_name)
 
         # Put here ones that should be imported first.
@@ -525,7 +528,8 @@ def detectEarlyImports():
 
     # TODO: Return early_modules, then there is no cycle.
     for module in early_modules:
-        ModuleRegistry.addUncompiledModule(module)
+        if module.isUncompiledPythonModule():
+            ModuleRegistry.addUncompiledModule(module)
 
     return early_modules
 

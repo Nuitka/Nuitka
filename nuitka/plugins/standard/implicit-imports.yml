@@ -48,3 +48,8 @@ encodings:
     - ".base64_codec"
     - ".hex_codec"
     - ".rot_13"
+
+pathlib:
+  depends:
+    - "ntpath"
+    - "posixpath"

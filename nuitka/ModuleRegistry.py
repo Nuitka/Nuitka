@@ -89,6 +89,8 @@ def replaceRootModule(old, new):
 
 
 def addUncompiledModule(module):
+    assert module.isUncompiledPythonModule(), module
+
     uncompiled_modules.add(module)
 
 

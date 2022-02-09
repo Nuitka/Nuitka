@@ -1034,7 +1034,9 @@ def _createModule(
     main_added,
 ):
     if is_extension:
-        result = PythonExtensionModule(module_name=module_name, source_ref=source_ref)
+        result = PythonExtensionModule(
+            module_name=module_name, technical=False, source_ref=source_ref
+        )
     elif is_main:
         result = PythonMainModule(
             main_added=main_added,

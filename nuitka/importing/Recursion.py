@@ -144,18 +144,21 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
     if Options.shallFollowNoImports():
         return (False, "Instructed by user to not follow at all.")
 
-    if is_stdlib:
-        return (
-            Options.shallFollowStandardLibrary(),
-            "Instructed by user to %sfollow to standard library."
-            % ("" if Options.shallFollowStandardLibrary() else "not "),
-        )
+    if is_stdlib and Options.shallFollowStandardLibrary():
+        return (True, "Instructed by user to follow to standard library.")
 
     if Options.shallFollowAllImports():
-        return (
-            True,
-            "Instructed by user to follow to all non-standard library modules.",
-        )
+        if is_stdlib:
+            if StandardLibrary.isStandardLibraryNoAutoInclusionModule(module_name):
+                return (
+                    True,
+                    "Instructed by user to follow all modules, including non-automatic standard library modules.",
+                )
+        else:
+            return (
+                True,
+                "Instructed by user to follow to all non-standard library modules.",
+            )
 
     # Means, we were not given instructions how to handle things.
     if extra_recursion:

@@ -919,11 +919,11 @@ class PythonMainModule(CompiledPythonModule):
 class PythonExtensionModule(PythonModuleBase):
     kind = "PYTHON_EXTENSION_MODULE"
 
-    __slots__ = ("used_modules",)
+    __slots__ = ("used_modules", "technical")
 
     avoid_duplicates = set()
 
-    def __init__(self, module_name, source_ref):
+    def __init__(self, module_name, technical, source_ref):
         PythonModuleBase.__init__(self, module_name=module_name, source_ref=source_ref)
 
         # That would be a mistake we just made.
@@ -937,6 +937,9 @@ class PythonExtensionModule(PythonModuleBase):
         assert self.getFullName() not in self.avoid_duplicates, self.getFullName()
         self.avoid_duplicates.add(self.getFullName())
 
+        # Required to startup
+        self.technical = technical
+
         self.used_modules = None
 
     def finalize(self):
@@ -947,6 +950,10 @@ class PythonExtensionModule(PythonModuleBase):
 
     def startTraversal(self):
         pass
+
+    def isTechnical(self):
+        """Must be present as it's used in CPython library initialization."""
+        return self.technical
 
     def getPyIFilename(self):
         """Get Python type description filename."""

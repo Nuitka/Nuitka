@@ -179,6 +179,7 @@ def scanStandardLibraryPath(stdlib_dir):
 
         if import_path in (
             "tkinter",
+            "Tkinter",
             "importlib",
             "ctypes",
             "unittest",
@@ -220,6 +221,7 @@ def scanStandardLibraryPath(stdlib_dir):
         for filename in filenames:
             if filename.endswith(".py") and filename not in _excluded_stdlib_modules:
                 module_name = filename[:-3]
+
                 if import_path == "":
                     yield ModuleName(module_name)
                 else:
@@ -236,4 +238,77 @@ def scanStandardLibraryPath(stdlib_dir):
                 yield ModuleName(import_path + "." + dirname)
 
 
-stdlib_no_auto_inclusion_list = ("multiprocessing",)
+_stdlib_no_auto_inclusion_list = (
+    # Avoid this to be included, implicit usages will be rare, but it triggers
+    # the Nuitka plugin "multiprocessing" that is always enabled.
+    "multiprocessing",
+    "_multiprocessing",
+    # Implicit usages of these will be rare, but it can have that costly extension module
+    "curses",
+    "_curses",
+    "_curses_panel",
+    "sqlite3",
+    "_sqlite3",
+    "dbm",
+    "_dbm",
+    "bdb",
+    "readline",
+    "unittest",
+    "pydoc",
+    "pydoc_data",
+    "profile",
+    "cProfile",
+    "optparse",
+    "pdb",
+    "site",
+    "sitecustomize",
+    "runpy",
+    "lib2to3",
+    "doctest",
+    "email",
+    "tabnanny",
+    "argparse",
+    "telnetlib",
+    "smtplib",
+    "nntplib",
+    "http",
+    "sunau",
+    "this",
+    # Distribution and bytecode related stuff
+    "plistlib",
+    "distutils",
+    "compileall",
+    "venv",
+    "py_compile",
+    # tkinter under all its names
+    "Tkinter",
+    "tkinter",
+    "_tkinter",
+    # lib-tk from Python2
+    "Tix",
+    "FixTk",
+    "ScrolledText",
+    "turtle",
+    "antigravity",
+    "Dialog",
+    "Tkdnd",
+    "tkMessageBox",
+    "tkSimpleDialog",
+    "Tkinter",
+    "tkFileDialog",
+    "Canvas",
+    "tkCommonDialog",
+    "Tkconstants",
+    "FileDialog",
+    "SimpleDialog",
+    "ttk",
+    "tkFont",
+    "tkColorChooser",
+)
+
+if not isWin32Windows():
+    _stdlib_no_auto_inclusion_list += ("ntpath",)
+
+
+def isStandardLibraryNoAutoInclusionModule(module_name):
+    return module_name.hasOneOfNamespaces(*_stdlib_no_auto_inclusion_list)
