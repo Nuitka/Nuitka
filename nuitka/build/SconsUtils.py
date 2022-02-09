@@ -336,7 +336,7 @@ def getSconsReportValue(source_dir, key):
     return readSconsReport(source_dir).get(key)
 
 
-def addClangClPathFromMSVC(env, target_arch):
+def addClangClPathFromMSVC(env):
     cl_exe = getExecutablePath("cl", env=env)
 
     if cl_exe is None:
@@ -344,9 +344,14 @@ def addClangClPathFromMSVC(env, target_arch):
             "Error, Visual Studio required for using ClangCL on Windows."
         )
 
-    clang_dir = cl_exe = os.path.join(cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm")
+    clang_dir = os.path.join(cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm")
 
-    if target_arch == "x86_64":
+    if (
+        getCompilerArch(
+            mingw_mode=False, msvc_mode=True, the_cc_name="cl.exe", compiler_path=cl_exe
+        )
+        == "pei-x86-64"
+    ):
         clang_dir = os.path.join(clang_dir, "x64", "bin")
     else:
         clang_dir = os.path.join(clang_dir, "bin")
@@ -549,32 +554,34 @@ _compiler_arch = {}
 
 
 def getCompilerArch(mingw_mode, msvc_mode, the_cc_name, compiler_path):
-    if mingw_mode:
-        if compiler_path not in _compiler_arch:
+    assert not mingw_mode or not msvc_mode
+
+    if compiler_path not in _compiler_arch:
+        if mingw_mode:
             _compiler_arch[compiler_path] = _getBinaryArch(
                 binary=compiler_path, mingw_mode=mingw_mode
             )
-    elif msvc_mode:
-        cmdline = [compiler_path]
+        elif msvc_mode:
+            cmdline = [compiler_path]
 
-        if "-cl" in the_cc_name:
-            cmdline.append("--version")
+            if "-cl" in the_cc_name:
+                cmdline.append("--version")
 
-        # The cl.exe without further args will give error
-        stdout, stderr, _rv = executeProcess(
-            command=cmdline,
-        )
+            # The cl.exe without further args will give error
+            stdout, stderr, _rv = executeProcess(
+                command=cmdline,
+            )
 
-        # The MSVC will output on error, while clang outputs in stdout and they
-        # use different names for arches.
-        if b"x86" in stderr or b"i686" in stdout:
-            _compiler_arch[compiler_path] = "pei-i386"
-        elif b"x64" in stderr or b"x86_64" in stdout:
-            _compiler_arch[compiler_path] = "pei-x86-64"
+            # The MSVC will output on error, while clang outputs in stdout and they
+            # use different names for arches.
+            if b"x64" in stderr or b"x86_64" in stdout:
+                _compiler_arch[compiler_path] = "pei-x86-64"
+            elif b"x86" in stderr or b"i686" in stdout:
+                _compiler_arch[compiler_path] = "pei-i386"
+            else:
+                assert False, (stdout, stderr)
         else:
-            assert False, (stdout, stderr)
-    else:
-        assert False, compiler_path
+            assert False, compiler_path
 
     return _compiler_arch[compiler_path]
 

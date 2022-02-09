@@ -222,7 +222,7 @@ def checkWindowsCompilerFound(
 
             if decision:
                 scons_logger.info(
-                    "Mismatch between Python binary (%r -> %r) and C compiler (%r -> %r) arches, ignored!"
+                    "Mismatch between Python binary (%r -> %r) and C compiler (%r -> %r) arches, that compiler is ignored!"
                     % (
                         os.environ["NUITKA_PYTHON_EXE_PATH"],
                         linker_arch,
