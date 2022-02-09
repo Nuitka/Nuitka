@@ -65,7 +65,10 @@ def getModuleMetapathLoaderEntryCode(module, bytecode_accessor):
         if is_package:
             flags.append("NUITKA_PACKAGE_FLAG")
 
-        accessor_code = bytecode_accessor.getBlobDataCode(code_data)
+        accessor_code = bytecode_accessor.getBlobDataCode(
+            data=code_data,
+            name="bytecode of module '%s'" % module.getFullName().asString(),
+        )
 
         return template_metapath_loader_bytecode_module_entry % {
             "module_name": module_c_name,
@@ -135,7 +138,10 @@ extern PyObject *modulecode_%(module_identifier)s(PyObject *, struct Nuitka_Meta
         if is_package:
             size = -size
 
-        accessor_code = bytecode_accessor.getBlobDataCode(code_data)
+        accessor_code = bytecode_accessor.getBlobDataCode(
+            data=code_data,
+            name="bytecode of module '%s'" % uncompiled_module.getFullName().asString(),
+        )
 
         frozen_defs.append(
             """\

@@ -81,11 +81,17 @@ class BuiltinSpecialValue(object):
 class BlobData(object):
     """Used to pickle bytes to become raw pointers."""
 
-    def __init__(self, data):
+    __slots__ = ("data", "name")
+
+    def __init__(self, data, name):
         self.data = data
+        self.name = name
 
     def getData(self):
         return self.data
+
+    def __repr__(self):
+        return "<nuitka.constants.Serialization.BlobData %s>" % self.name
 
 
 def _pickleAnonValues(pickler, value):
@@ -135,8 +141,8 @@ class ConstantStreamWriter(object):
         self.pickle.dump(constant_value)
         self.count += 1
 
-    def addBlobData(self, data):
-        self.pickle.dump(BlobData(data))
+    def addBlobData(self, data, name):
+        self.pickle.dump(BlobData(data, name))
         self.count += 1
 
     def close(self):
@@ -223,12 +229,12 @@ class ConstantAccessor(object):
         # TODO: Make it returning, more clear.
         return key
 
-    def getBlobDataCode(self, data):
+    def getBlobDataCode(self, data, name):
         key = "blob_" + namifyConstant(data)
 
         if key not in self.constants:
             self.constants.add(key)
-            self.constants_writer.addBlobData(data)
+            self.constants_writer.addBlobData(data=data, name=name)
 
         key = "%s[%d]" % (self.top_level_name, self.constants.index(key))
 
