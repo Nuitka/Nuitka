@@ -17,4 +17,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-print("4B4159".decode("hex"))
+""" Small Python2 only test that demonstrates the hex encoding to work. """
+
+print("4B4159".decode("hex")) # Should output "KAY"
