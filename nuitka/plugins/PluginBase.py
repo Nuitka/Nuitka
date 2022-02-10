@@ -411,10 +411,10 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
 
     def reportFileCount(self, module_name, count, section=None):
         if count:
-            msg = "Found %d %s DLLs from '%s' %sinstallation." % (
+            msg = "Found %d %s DLLs from %s%s installation." % (
                 count,
                 "file" if count < 2 else "files",
-                "" if not section else section,
+                "" if not section else (" '%s' " % section),
                 module_name.asString(),
             )
 
