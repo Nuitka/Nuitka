@@ -751,23 +751,30 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
 
         PyObject *full_name_obj = Nuitka_String_FromString(full_name);
 
-        PyObject *spec = createModuleSpec(full_name_obj, false);
+        PyObject *spec_value = createModuleSpec(full_name_obj, false);
 
-        module = PyModule_FromDefAndSpec(def, spec);
-        Py_DECREF(spec);
+        module = PyModule_FromDefAndSpec(def, spec_value);
 
         if (unlikely(module == NULL)) {
+            Py_DECREF(spec_value);
+
             PyErr_Format(PyExc_SystemError, "dynamic module '%s' not initialized properly from def", full_name);
 
             return NULL;
         }
 
+        SET_ATTRIBUTE(module, const_str_plain___spec__, spec_value);
         setModuleFileValue(module, filename);
+        PyObject_SetAttrString((PyObject *)spec_value, "origin", LOOKUP_ATTRIBUTE(module, const_str_plain___file__));
 
         Nuitka_SetModule(full_name_obj, module);
         Py_DECREF(full_name_obj);
 
+        SET_ATTRIBUTE(spec_value, const_str_plain__initializing, Py_True);
         int res = PyModule_ExecDef(module, def);
+        SET_ATTRIBUTE(spec_value, const_str_plain__initializing, Py_False);
+
+        Py_DECREF(spec_value);
 
         if (unlikely(res == -1)) {
             return NULL;
@@ -776,6 +783,14 @@ static PyObject *callIntoShlibModule(char const *full_name, const char *filename
         return module;
     } else {
         def = PyModule_GetDef(module);
+
+        // Set "__spec__" after load.
+        PyObject *full_name_obj = Nuitka_String_FromString(full_name);
+        PyObject *spec_value = createModuleSpec(full_name_obj, false);
+
+        SET_ATTRIBUTE(module, const_str_plain___spec__, spec_value);
+        setModuleFileValue(module, filename);
+        PyObject_SetAttrString((PyObject *)spec_value, "origin", LOOKUP_ATTRIBUTE(module, const_str_plain___file__));
 
         // Fixup __package__ after load. It seems some modules ignore _Py_PackageContext value.
         // so we patch it up here if it's None, but a package was specified.
@@ -919,13 +934,20 @@ static PyObject *loadModule(PyObject *module, PyObject *module_name,
 
 #endif
 
-        // Set filename attribute before execution, some modules expect it early.
-        setModuleFileValue(module, filename);
+        // Set "__spec__" and "__file__", some modules expect it early.
+#if PYTHON_VERSION >= 0x350
+        PyObject *spec_value = createModuleSpec(module_name, false);
 
-        // Not used unfortunately. TODO: Check if we can make it so.
-        Py_DECREF(module);
+        SET_ATTRIBUTE(module, const_str_plain___spec__, spec_value);
+#endif
+        setModuleFileValue(module, filename);
+#if PYTHON_VERSION >= 0x350
+        PyObject_SetAttrString((PyObject *)spec_value, "origin", LOOKUP_ATTRIBUTE(module, const_str_plain___file__));
+#endif
 
         callIntoShlibModule(entry->name, filename);
+
+        Py_DECREF(module);
     } else
 #endif
         if ((entry->flags & NUITKA_BYTECODE_FLAG) != 0) {
