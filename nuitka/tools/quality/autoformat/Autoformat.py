@@ -80,7 +80,7 @@ def cleanupWindowsNewlines(filename):
 
 def _cleanupTrailingWhitespace(filename):
     """Remove trailing white spaces from a file."""
-    source_lines = list(getFileContentByLine(filename))
+    source_lines = list(getFileContentByLine(filename, encoding="utf8"))
 
     clean_lines = [line.rstrip().replace("\t", "    ") for line in source_lines]
 
@@ -88,7 +88,7 @@ def _cleanupTrailingWhitespace(filename):
         del clean_lines[-1]
 
     if clean_lines != source_lines or (clean_lines and clean_lines[-1] != ""):
-        putTextFileContents(filename, contents=clean_lines)
+        putTextFileContents(filename, contents=clean_lines, encoding="utf8")
 
 
 def _getRequirementsContentsByLine():

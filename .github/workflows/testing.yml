@@ -25,23 +25,21 @@ jobs:
             - '3.10'
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
-      - uses: actions/checkout@v2
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0
 
-      - name: Use Python ${{ matrix.python_version }}
+      - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Install Nuitka dependencies
+      - name: 🧳 Install Nuitka and dependencies
         run: |
           sudo apt-get update
           sudo apt-get install chrpath gdb ccache libfuse2
           python -m pip install -r requirements-devel.txt
-
-      - name: Install Nuitka
-        run:
           python -m pip install .
 
       - name: Verbose scons output in compilation
