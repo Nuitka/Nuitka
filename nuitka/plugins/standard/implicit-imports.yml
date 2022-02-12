@@ -35,6 +35,14 @@ anyio._core._eventloop:
   depends:
     - "anyio._backends._asyncio"
 
+asyncpg.protocol.protocol:
+  depends:
+    - "asyncpg.pgproto.pgproto"
+
+asyncpg.pgproto.pgproto:
+  depends:
+    - "asyncpg.pgproto.exceptions"
+
 # TODO: In --follow-stdlib mode this is relevant, because we should actually
 # also follow modules that are needed for technical reasons only, then we could
 # see it and optimize it away potentially.
