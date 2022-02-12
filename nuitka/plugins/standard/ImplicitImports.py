@@ -39,6 +39,13 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
     def __init__(self):
         self.config = parsePackageYaml(__package__, "implicit-imports.yml")
 
+        for key in self.config.keys():
+            if "/" in key:
+                self.sysexit(
+                    "Error, invalid key in 'implicit-imports.yml' looks like a file path, not module name '%s'."
+                    % key
+                )
+
     @staticmethod
     def isAlwaysEnabled():
         return True
