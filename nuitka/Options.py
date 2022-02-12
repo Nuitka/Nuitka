@@ -1036,8 +1036,13 @@ def getMsvcVersion():
 
 
 def shallDisableCCacheUsage():
-    """:returns: bool derived from ``disable-ccache``"""
+    """:returns: bool derived from ``--disable-ccache``"""
     return options.disable_ccache
+
+
+def shallDisableBytecodeCacheUsage():
+    """:returns: bool derived from ``--disable-bytecode-cache``"""
+    return options.disable_bytecode_cache
 
 
 def shallDisableConsoleWindow():

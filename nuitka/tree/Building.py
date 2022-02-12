@@ -1059,6 +1059,7 @@ def _createModule(
         if (
             mode == "bytecode"
             and not is_top
+            and not Options.shallDisableBytecodeCacheUsage()
             and hasCachedImportedModulesNames(module_name, source_code)
         ):
             result = _loadUncompiledModuleFromCache(

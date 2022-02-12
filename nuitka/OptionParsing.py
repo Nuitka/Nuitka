@@ -501,6 +501,16 @@ parser.add_option_group(dump_group)
 codegen_group = OptionGroup(parser, "Code generation choices")
 
 codegen_group.add_option(
+    "--disable-bytecode-cache",
+    action="store_true",
+    dest="disable_bytecode_cache",
+    default=False,
+    help="""\
+Do not reuse dependency analysis results for modules, esp. from standard library,
+that are included as bytecode.""",
+)
+
+codegen_group.add_option(
     "--full-compat",
     action="store_false",
     dest="improved",
