@@ -842,7 +842,6 @@ typedef struct {
 static PyObject *_MAKE_DICT_VIEW(PyDictObject *dict, PyTypeObject *type) {
     CHECK_OBJECT((PyObject *)dict);
     assert(PyDict_CheckExact((PyObject *)dict));
-    assert(type->tp_iternext != NULL);
 
     dictviewobject *dv = PyObject_GC_New(dictviewobject, type);
 
