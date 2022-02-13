@@ -468,6 +468,9 @@ extern PyObject *DEEP_COPY_LIST(PyObject *value);
 extern PyObject *DEEP_COPY_TUPLE(PyObject *value);
 extern PyObject *DEEP_COPY_SET(PyObject *value);
 
+// UnionType, normally not accessible
+extern PyTypeObject *Nuitka_PyUnion_Type;
+
 // Force a garbage collection, for debugging purposes.
 NUITKA_MAY_BE_UNUSED static void forceGC() {
     PyObject_CallObject(PyObject_GetAttrString(PyImport_ImportModule("gc"), "collect"), NULL);

@@ -69,11 +69,6 @@ PIL.ImageShow:
   replacements:
     "from IPython.display import display as ipython_display": "'raise ImportError'"
 
-jinja2.defaults:
-  description: "remove jinja2 testing framework"
-  replacements:
-    "from .tests import TESTS as DEFAULT_TESTS": ""
-
 numpy.ctypeslib:
   description: "remove numpy.distutils references"
   context:
