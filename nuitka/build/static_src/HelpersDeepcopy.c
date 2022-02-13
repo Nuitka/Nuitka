@@ -223,6 +223,10 @@ typedef struct {
 #define Nuitka_CapsuleGetPointer(capsule) (PyCObject_AsVoidPtr(capsule))
 #endif
 
+#if PYTHON_VERSION >= 0x3a0
+PyTypeObject *Nuitka_PyUnion_Type;
+#endif
+
 static void _initDeepCopy(void) {
     _deep_copy_dispatch = PyDict_New();
     _deep_noop = Py_None;
@@ -246,7 +250,9 @@ static void _initDeepCopy(void) {
         PyObject *args_tuple = MAKE_TUPLE(args, 2);
         PyObject *union_value = MAKE_UNION_TYPE(args_tuple);
 
-        PyDict_SetItem(_deep_copy_dispatch, (PyObject *)Py_TYPE(union_value), _deep_noop);
+        Nuitka_PyUnion_Type = Py_TYPE(union_value);
+
+        PyDict_SetItem(_deep_copy_dispatch, (PyObject *)Nuitka_PyUnion_Type, _deep_noop);
 
         Py_DECREF(union_value);
         Py_DECREF(args_tuple);
