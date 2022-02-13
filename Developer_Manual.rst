@@ -69,37 +69,9 @@ well as private conversations or issue tracker.
  Version Numbers
 *****************
 
-For Nuitka we use a defensive version numbering system to indicate that
-it is not yet ready for everything. We have defined milestones and the
-version numbers should express which of these, we consider done.
-
--  So far:
-
-   Before milestone 1, we used ``0.1.x`` version numbers. After reaching
-   it, we used ``0.2.x`` version numbers.
-
-   Before milestone 2 and 3, we used ``0.3.x`` version numbers. After
-   almost reaching 3, and beginning with 4, we use "0.4.x" version
-   numbers. Due to an interface change, ``0.5.x`` version numbers are
-   being used.
-
-   Due to reaching type inference in code generation, even if only
-   starting, the ``0.6.x`` version numbers were started to be used. This
-   stage should allow quick progress in performance for individual
-   releases.
-
--  Future:
-
-   With ``ctypes`` bindings in a usable state it will be ``0.7.x``.
-
--  Final:
-
-   We will then round it up and call it Nuitka ``1.0`` when this works
-   as expected for a bunch of people. The plan is to reach this goal
-   during 2021. This is based on positive assumptions that may not hold
-   up though.
-
-Of course, all of this may be subject to change.
+For Nuitka we use semantic versioning, initially with a leading zero
+still, once we pass release ``0.9``, the scheme will indicate the ``10``
+through using ``1.0``.
 
 ***************
  Current State

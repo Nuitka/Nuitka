@@ -36,11 +36,11 @@ import re
 from setuptools import setup
 from setuptools.command import easy_install
 
-# TODO: We need a better solution for this, probably
-# error exit, once sys.exit is optimized for. This is
-# to avoid descending into Nuitka through distutils.
+# TODO: We need a better solution for this, probably error exit, once sys.exit
+# is optimized for. This is to avoid descending into Nuitka through distutils.
 if __name__ == "__main__":
     from nuitka.PythonFlavors import isMSYS2MingwPython
+    from nuitka.Version import getNuitkaMsiVersion, getNuitkaVersion
 
 scripts = []
 
@@ -49,38 +49,12 @@ if os.name == "nt" and not isMSYS2MingwPython():
     scripts += ["misc/nuitka.bat", "misc/nuitka-run.bat"]
 
 
-# Detect the version of Nuitka from its source directly. Without calling it, we
-# don't mean to pollute with ".pyc" files and similar effects.
-def detectVersion():
-    # Encoding is not needed, pylint: disable=unspecified-encoding
-
-    with open("nuitka/Version.py") as version_file:
-        (version_line,) = [line for line in version_file if line.startswith("Nuitka V")]
-
-        return version_line.split("V")[1].strip()
-
-
-version = detectVersion()
-
 # The MSI installer enforces a 3 digit version number, which is stupid, but no
 # way around it, so we map our number to it, in some way.
 if os.name == "nt" and "bdist_msi" in sys.argv:
-
-    # Pre-releases are always smaller, official releases get the "1".
-    middle = 1 if "rc" not in version else 0
-    version = version.replace("rc", "")
-    parts = version.split(".")
-    major, first, last = parts[:3]
-    hotfix = parts[3] if len(parts) > 3 else 0
-
-    version = ".".join(
-        "%s" % value
-        for value in (
-            int(major) * 10 + int(first),
-            middle,
-            int(last) * 10 + int(hotfix),
-        )
-    )
+    version = getNuitkaMsiVersion()
+else:
+    version = getNuitkaVersion()
 
 
 def findNuitkaPackages():

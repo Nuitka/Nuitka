@@ -20,7 +20,7 @@
 """
 
 version_string = """\
-Nuitka V0.6.20rc6
+Nuitka V0.7rc1
 Copyright (C) 2021 Kay Hayen."""
 
 
@@ -30,6 +30,32 @@ def getNuitkaVersion():
     This should not be used for >= comparisons directly.
     """
     return version_string.split()[1][1:]
+
+
+def getNuitkaVersionTuple():
+    """Return Nuitka version as a string.
+
+    This can also not be used for precise comparisons, last one might contain "rc"
+    """
+
+    version = getNuitkaVersion()
+
+    if "rc" in version:
+        rc_number = int(version[version.find("rc") + 2 :] or "0")
+        version = version[: version.find("rc")]
+
+        is_final = False
+    else:
+        rc_number = 0
+        is_final = True
+
+    result = version.split(".")
+    if len(result) == 2:
+        result.append("0")
+
+    result = [int(digit) for digit in result]
+    result.extend((is_final, rc_number))
+    return tuple(result)
 
 
 def getNuitkaVersionYear():
@@ -46,3 +72,18 @@ def getCommercialVersion():
         return None
     else:
         return Version.__version__
+
+
+def getNuitkaMsiVersion():
+    major, minor, micro, is_final, rc_number = getNuitkaVersionTuple()
+    # Pre-releases are always smaller, official releases get the "1".
+    middle = 1 if is_final else 0
+
+    return ".".join(
+        "%s" % value
+        for value in (
+            int(major) * 10 + int(minor),
+            middle,
+            int(micro) * 10 + int(rc_number),
+        )
+    )

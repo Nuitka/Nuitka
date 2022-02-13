@@ -140,7 +140,7 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
         if logging_info_re.match(line):
             continue
 
-        if line.startswith("Nuitka-Recursion:WARNING: Cannot follow import to module"):
+        if line.startswith("Nuitka-Inclusion:WARNING: Cannot follow import to module"):
             continue
         if line.startswith("Nuitka:WARNING: Cannot detect Linux distribution"):
             continue
