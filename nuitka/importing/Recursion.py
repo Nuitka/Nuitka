@@ -218,6 +218,12 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
     module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
 
+    if module_kind == "extension" and not Options.isStandaloneMode():
+        recursion_logger.warning(
+            "Cannot include '%s' unless using at least standalone mode."
+            % module_name.asString()
+        )
+
     if module_kind is not None:
         decision, reason = decideRecursion(
             module_filename=plugin_filename,

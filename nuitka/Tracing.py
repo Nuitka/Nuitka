@@ -252,7 +252,7 @@ class FileLogger(OurLogger):
 
 general = OurLogger("Nuitka")
 plugins_logger = OurLogger("Nuitka-Plugins")
-recursion_logger = OurLogger("Nuitka-Recursion")
+recursion_logger = OurLogger("Nuitka-Inclusion")
 progress_logger = OurLogger("Nuitka-Progress", quiet=True)
 memory_logger = OurLogger("Nuitka-Memory")
 dependencies_logger = OurLogger("Nuitka-Dependencies")
