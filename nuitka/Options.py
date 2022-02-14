@@ -58,6 +58,7 @@ from nuitka.utils.Utils import (
     getOS,
     hasOnefileSupportedOS,
     hasStandaloneSupportedOS,
+    isDebianBasedLinux,
     isFreeBSD,
     isLinux,
     isMacOS,
@@ -910,7 +911,8 @@ def _shallUseStaticLibPython():
         )
 
         if (
-            isDebianPackagePython()
+            isDebianBasedLinux()
+            and isDebianPackagePython()
             and isDebianSuitableForStaticLinking()
             and not isPythonDebug()
         ):
