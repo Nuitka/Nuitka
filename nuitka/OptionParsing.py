@@ -102,7 +102,7 @@ def _getVersionInformationValues():
     yield "Arch: %s" % getArchitecture()
 
     if isLinux():
-        yield "Distribution: %s %s" % getLinuxDistribution()
+        yield "Distribution: %s (based on %s) %s" % getLinuxDistribution()
 
     if getOS() == "Windows":
         yield "WindowsRelease: %s" % getWindowsRelease()
@@ -1399,10 +1399,11 @@ def _expandProjectArg(arg, filename_arg, for_eval):
     if isLinux():
         dist_info = getLinuxDistribution()
     else:
-        dist_info = "N/A", "0"
+        dist_info = "N/A", "N/A", "0"
 
     values["Linux_Distribution_Name"] = dist_info[0]
-    values["Linux_Distribution_Version"] = dist_info[1]
+    values["Linux_Distribution_Base"] = dist_info[1] or dist_info[0]
+    values["Linux_Distribution_Version"] = dist_info[2]
 
     if getOS() == "Windows":
         values["WindowsRelease"] = getWindowsRelease()

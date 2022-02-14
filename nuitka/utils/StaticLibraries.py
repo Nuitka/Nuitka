@@ -75,7 +75,7 @@ _static_lib_python_path = False
 
 
 def isDebianSuitableForStaticLinking():
-    dist_name, dist_version = getLinuxDistribution()
+    dist_name, _base, dist_version = getLinuxDistribution()
 
     if dist_name == "Debian":
         if dist_version is None:
@@ -84,8 +84,6 @@ def isDebianSuitableForStaticLinking():
         dist_version = tuple(int(x) for x in dist_version.split("."))
 
         return dist_version >= (10,)
-    elif dist_name == "Ubuntu":
-        return True
     else:
         # TODO: Needs implementing potentially, Mint etc. are based
         # on something that should be considered.
