@@ -561,6 +561,14 @@ def commentArgs():
             % getOS()
         )
 
+    if options.follow_all and shallMakeModule():
+        Tracing.optimization_logger.sysexit(
+            """\
+In module mode you must follow modules more selectively, and e.g. should \
+not include standard library or all foreign modules or else it will fail \
+to work. You can selectively add them with '--follow-import-to=name' though."""
+        )
+
     if options.follow_all and standalone_mode:
         Tracing.options_logger.info(
             "Following all imports is the default for %s mode and need not be specified."
