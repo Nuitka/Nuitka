@@ -31,6 +31,7 @@ from .Execution import (
     check_output,
     getExecutablePath,
 )
+from .FileOperations import getDirectoryRealPath
 from .Utils import isWin32Windows
 
 
@@ -117,6 +118,11 @@ def _getPythonInstallPathsWindows(python_version):
     candidate = r"c:\python%s\python.exe" % python_version.replace(".", "")
 
     if os.path.isfile(candidate):
+        candidate = os.path.join(
+            getDirectoryRealPath(os.path.dirname(candidate)),
+            os.path.basename(candidate),
+        )
+
         yield candidate
 
         seen.add(candidate)
