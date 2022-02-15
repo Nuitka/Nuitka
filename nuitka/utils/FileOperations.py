@@ -171,20 +171,30 @@ def isPathExecutable(path):
     return os.path.isfile(path) and os.access(path, os.X_OK)
 
 
+# Make sure we don't repeat this too much.
+_real_path_windows_cache = {}
+
+
 def _getRealPathWindows(path):
-    # Slow, because we are using an external process, we it's only for standalone and Python2,
+    # Slow, because we are using an external process, we use it's only for standalone and Python2,
     # which is slow already.
-    import subprocess
 
-    result = subprocess.check_output(
-        """powershell -NoProfile "Get-Item '%s' | Select-Object -ExpandProperty Target" """
-        % path
-    )
+    if path not in _real_path_windows_cache:
+        import subprocess
 
-    if str is not bytes:
-        result = result.decode("utf8")
+        result = subprocess.check_output(
+            """powershell -NoProfile "Get-Item '%s' | Select-Object -ExpandProperty Target" """
+            % path
+        )
 
-    return os.path.join(os.path.dirname(path), result.rstrip("\r\n"))
+        if str is not bytes:
+            result = result.decode("utf8")
+
+        _real_path_windows_cache[path] = os.path.join(
+            os.path.dirname(path), result.rstrip("\r\n")
+        )
+
+    return _real_path_windows_cache[path]
 
 
 def getDirectoryRealPath(path):
