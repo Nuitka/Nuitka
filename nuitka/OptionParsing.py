@@ -1267,6 +1267,15 @@ linux_group.add_option(
     help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to Python icon if available.",
 )
 
+linux_group.add_option(
+    "--linux-onefile-compression",
+    action="store",
+    dest="appimage_compression",
+    metavar="COMPRESSION",
+    default="gzip",
+    help="Compression method to use for Linux onefile builds. gzip (default): larger file but faster startup, xz: smaller file but slower startup."
+)
+
 parser.add_option_group(linux_group)
 
 plugin_group = OptionGroup(parser, "Plugin control")
