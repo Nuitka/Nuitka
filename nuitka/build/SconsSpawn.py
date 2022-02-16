@@ -118,7 +118,7 @@ def _filterMsvcLinkOutput(env, module_mode, data, exit_code):
 
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
-def getWindowsSpawnFunction(env, module_mode, source_files):
+def _getWindowsSpawnFunction(env, module_mode, source_files):
     def spawnWindowsCommand(
         sh, escape, cmd, args, os_env
     ):  # pylint: disable=unused-argument
@@ -322,22 +322,29 @@ def runSpawnMonitored(sh, cmd, args, env):
     return thread.getSpawnResult()
 
 
-def getWrappedSpawnFunction():
-    def spawnCommand(sh, escape, cmd, args, env):
+def _getWrappedSpawnFunction(env):
+    def spawnCommand(sh, escape, cmd, args, _env):
         # signature needed towards Scons core, pylint: disable=unused-argument
 
         # Avoid using ccache on binary constants blob, not useful and not working
         # with old ccache.
         if '"__constants_data.o"' in args or '"__constants_data.os"' in args:
-            env = dict(env)
-            env["CCACHE_DISABLE"] = "1"
+            _env = dict(_env)
+            _env["CCACHE_DISABLE"] = "1"
 
-        result, exception = runSpawnMonitored(sh, cmd, args, env)
+        result, exception = runSpawnMonitored(sh, cmd, args, _env)
 
         if exception:
             closeSconsProgressBar()
 
             raise exception
+
+        # Segmentation fault should give a clear error.
+        if result == -11:
+            scons_logger.sysexit(
+                "Error, the C compiler '%s' crashed with segfault. Consider upgrading it or using --clang option."
+                % env.the_compiler
+            )
 
         return result
 
@@ -346,8 +353,8 @@ def getWrappedSpawnFunction():
 
 def enableSpawnMonitoring(env, win_target, module_mode, source_files):
     if win_target:
-        env["SPAWN"] = getWindowsSpawnFunction(
+        env["SPAWN"] = _getWindowsSpawnFunction(
             env=env, module_mode=module_mode, source_files=source_files
         )
     else:
-        env["SPAWN"] = getWrappedSpawnFunction()
+        env["SPAWN"] = _getWrappedSpawnFunction(env=env)
