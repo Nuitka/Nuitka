@@ -25,7 +25,7 @@ import sys
 
 from nuitka import Options, OutputDirectories
 from nuitka.build import SconsInterface
-from nuitka.Options import assumeYesForDownloads, getIconPaths
+from nuitka.Options import assumeYesForDownloads, getIconPaths, options
 from nuitka.OutputDirectories import getResultBasepath, getResultFullpath
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import (
@@ -170,16 +170,26 @@ Categories=Utility;"""
     stdout_file = openTextFile(stdout_filename, "wb")
     stderr_file = openTextFile(stderr_filename, "wb")
 
-    command = (
-        _getAppImageToolPath(
-            for_operation=True, assume_yes_for_downloads=assumeYesForDownloads()
-        ),
-        dist_dir,
-        "--comp",
-        "xz",
-        "-n",
-        onefile_output_filename,
-    )
+    if options.appimage_compression == "xz" or options.appimage_compression == "gzip":
+        command = (
+            _getAppImageToolPath(
+                for_operation=True, assume_yes_for_downloads=assumeYesForDownloads()
+            ),
+            dist_dir,
+            "--comp",
+            options.appimage_compression,
+            "-n",
+            onefile_output_filename,
+        )
+    else:
+        command = (
+            _getAppImageToolPath(
+                for_operation=True, assume_yes_for_downloads=assumeYesForDownloads()
+            ),
+            dist_dir,
+            "-n",
+            onefile_output_filename,
+        )
 
     stderr_file.write(b"Executed %r\n" % " ".join(command))
 
