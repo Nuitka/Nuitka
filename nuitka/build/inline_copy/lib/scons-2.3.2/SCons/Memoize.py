@@ -227,7 +227,7 @@ class Memoized_Metaclass(type):
         for counter in cls_dict.get('memoizer_counters', []):
             method_name = counter.method_name
 
-            counter.name = cls.__name__ + '.' + method_name
+            counter.name = f'{cls.__name__}.{method_name}'
             counter.underlying_method = cls_dict[method_name]
 
             replacement_method = types.MethodType(counter, None, cls)

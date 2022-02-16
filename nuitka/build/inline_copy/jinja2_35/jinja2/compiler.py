@@ -8,6 +8,7 @@
     :copyright: (c) 2017 by the Jinja Team.
     :license: BSD, see LICENSE for more details.
 """
+
 from itertools import chain
 from copy import deepcopy
 from keyword import iskeyword as is_python_keyword
@@ -37,11 +38,7 @@ operators = {
 
 # what method to iterate over items do we want to use for dict iteration
 # in generated code?  on 2.x let's go with iteritems, on 3.x with items
-if hasattr(dict, 'iteritems'):
-    dict_item_iter = 'iteritems'
-else:
-    dict_item_iter = 'items'
-
+dict_item_iter = 'iteritems' if hasattr(dict, 'iteritems') else 'items'
 code_features = ['division']
 
 # does this python version support generator stops? (PEP 0479)
@@ -91,10 +88,7 @@ def has_safe_repr(value):
     if type(value) in (bool, int, float, complex, range_type, Markup) + string_types:
         return True
     if type(value) in (tuple, list, set, frozenset):
-        for item in value:
-            if not has_safe_repr(item):
-                return False
-        return True
+        return all(has_safe_repr(item) for item in value)
     elif type(value) is dict:
         for key, value in iteritems(value):
             if not has_safe_repr(key):
@@ -413,13 +407,10 @@ class CodeGenerator(NodeVisitor):
         error could occour.  The extra keyword arguments should be given
         as python dict.
         """
-        # if any of the given keyword arguments is a python keyword
-        # we have to make sure that no invalid call is created.
-        kwarg_workaround = False
-        for kwarg in chain((x.key for x in node.kwargs), extra_kwargs or ()):
-            if is_python_keyword(kwarg):
-                kwarg_workaround = True
-                break
+        kwarg_workaround = any(
+            is_python_keyword(kwarg)
+            for kwarg in chain((x.key for x in node.kwargs), extra_kwargs or ())
+        )
 
         for arg in node.args:
             self.write(', ')
@@ -491,10 +482,7 @@ class CodeGenerator(NodeVisitor):
 
     def leave_frame(self, frame, with_python_scope=False):
         if not with_python_scope:
-            undefs = []
-            for target, _ in iteritems(frame.symbols.loads):
-                undefs.append(target)
-            if undefs:
+            if undefs := [target for target, _ in iteritems(frame.symbols.loads)]:
                 self.writeline('%s = missing' % ' = '.join(undefs))
 
     def func(self, name):
@@ -537,10 +525,10 @@ class CodeGenerator(NodeVisitor):
             else:
                 args.append(frame.symbols.declare_parameter('caller'))
             macro_ref.accesses_caller = True
-        if 'kwargs' in undeclared and not 'kwargs' in skip_special_params:
+        if 'kwargs' in undeclared and 'kwargs' not in skip_special_params:
             args.append(frame.symbols.declare_parameter('kwargs'))
             macro_ref.accesses_kwargs = True
-        if 'varargs' in undeclared and not 'varargs' in skip_special_params:
+        if 'varargs' in undeclared and 'varargs' not in skip_special_params:
             args.append(frame.symbols.declare_parameter('varargs'))
             macro_ref.accesses_varargs = True
 
@@ -594,7 +582,7 @@ class CodeGenerator(NodeVisitor):
         """Return a human readable position for the node."""
         rv = 'line %d' % node.lineno
         if self.name is not None:
-            rv += ' in ' + repr(self.name)
+            rv += f' in {repr(self.name)}'
         return rv
 
     def dump_local_context(self, frame):
@@ -706,7 +694,7 @@ class CodeGenerator(NodeVisitor):
 
         # if we want a deferred initialization we cannot move the
         # environment into a local name
-        envenv = not self.defer_init and ', environment=environment' or ''
+        envenv = ', environment=environment' if not self.defer_init else ''
 
         # do we have an extends tag at all?  If not, we can save some
         # overhead by just not processing any inheritance code.
@@ -775,9 +763,15 @@ class CodeGenerator(NodeVisitor):
 
         # at this point we now have the blocks collected and can visit them too.
         for name, block in iteritems(self.blocks):
-            self.writeline('%s(context, missing=missing%s):' %
-                           (self.func('block_' + name), envenv),
-                           block, 1)
+            self.writeline(
+                (
+                    '%s(context, missing=missing%s):'
+                    % (self.func(f'block_{name}'), envenv)
+                ),
+                block,
+                1,
+            )
+
             self.indent()
             self.write_commons()
             # It's important that we do not make this frame a child of the
@@ -821,17 +815,13 @@ class CodeGenerator(NodeVisitor):
                 self.indent()
                 level += 1
 
-        if node.scoped:
-            context = self.derive_context(frame)
-        else:
-            context = self.get_context_ref()
-
+        context = self.derive_context(frame) if node.scoped else self.get_context_ref()
         if supports_yield_from and not self.environment.is_async and \
            frame.buffer is None:
             self.writeline('yield from context.blocks[%r][0](%s)' % (
                            node.name, context), node)
         else:
-            loop = self.environment.is_async and 'async for' or 'for'
+            loop = 'async for' if self.environment.is_async else 'for'
             self.writeline('%s event in context.blocks[%r][0](%s):' % (
                            loop, node.name, context), node)
             self.indent()
@@ -916,7 +906,7 @@ class CodeGenerator(NodeVisitor):
 
         skip_event_yield = False
         if node.with_context:
-            loop = self.environment.is_async and 'async for' or 'for'
+            loop = 'async for' if self.environment.is_async else 'for'
             self.writeline('%s event in template.root_render_func('
                            'template.new_context(context.get_all(), True, '
                            '%s)):' % (loop, self.dump_local_context(frame)))
@@ -924,14 +914,13 @@ class CodeGenerator(NodeVisitor):
             self.writeline('for event in (await '
                            'template._get_default_module_async())'
                            '._body_stream:')
+        elif supports_yield_from:
+            self.writeline('yield from template._get_default_module()'
+                           '._body_stream')
+            skip_event_yield = True
         else:
-            if supports_yield_from:
-                self.writeline('yield from template._get_default_module()'
-                               '._body_stream')
-                skip_event_yield = True
-            else:
-                self.writeline('for event in template._get_default_module()'
-                               '._body_stream:')
+            self.writeline('for event in template._get_default_module()'
+                           '._body_stream:')
 
         if not skip_event_yield:
             self.indent()
@@ -1206,7 +1195,7 @@ class CodeGenerator(NodeVisitor):
         with_frame = frame.inner()
         with_frame.symbols.analyze_node(node)
         self.enter_frame(with_frame)
-        for idx, (target, expr) in enumerate(izip(node.targets, node.values)):
+        for target, expr in izip(node.targets, node.values):
             self.newline()
             self.visit(target, with_frame)
             self.write(' = ')

@@ -30,25 +30,21 @@ def _indent(elem, level=0, more_sibs=False):
     i = "\n"
     if level:
         i += (level - 1) * "  "
-    num_kids = len(elem)
-    if num_kids:
+    if num_kids := len(elem):
         if not elem.text or not elem.text.strip():
-            elem.text = i + "  "
+            elem.text = f'{i}  '
             if level:
                 elem.text += "  "
-        count = 0
-        for kid in elem:
+        for count, kid in enumerate(elem):
             _indent(kid, level + 1, count < num_kids - 1)
-            count += 1
         if not elem.tail or not elem.tail.strip():
             elem.tail = i
             if more_sibs:
                 elem.tail += "  "
-    else:
-        if level and (not elem.tail or not elem.tail.strip()):
-            elem.tail = i
-            if more_sibs:
-                elem.tail += "  "
+    elif level and (not elem.tail or not elem.tail.strip()):
+        elem.tail = i
+        if more_sibs:
+            elem.tail += "  "
 
     return elem
 
@@ -76,7 +72,7 @@ try:
     def xml_tostring(tree, indent=True):
         if indent:
             _indent(tree)
-        elif not indent:
+        else:
             _dedent(tree)
 
         return xml_module.tostring(tree)

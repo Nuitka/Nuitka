@@ -127,16 +127,14 @@ def initialize_do_splitdrive():
         def splitdrive(p):
             if p[1:2] == ':':
                 return p[:2], p[2:]
-            if p[0:2] == '//':
+            if p[:2] == '//':
                 # Note that we leave a leading slash in the path
                 # because UNC paths are always absolute.
                 return '//', p[1:]
             return '', p
     else:
         def splitdrive(p):
-            if p[1:2] == ':':
-                return p[:2], p[2:]
-            return '', p
+            return (p[:2], p[2:]) if p[1:2] == ':' else ('', p)
     _my_splitdrive = splitdrive
 
     # Keep some commonly used values in global variables to skip to
@@ -253,14 +251,13 @@ def set_duplicate(duplicate):
         'copy' : _copy_func
     }
 
-    if not duplicate in Valid_Duplicates:
+    if duplicate not in Valid_Duplicates:
         raise SCons.Errors.InternalError("The argument of set_duplicate "
                                            "should be in Valid_Duplicates")
     global Link_Funcs
-    Link_Funcs = []
-    for func in duplicate.split('-'):
-        if link_dict[func]:
-            Link_Funcs.append(link_dict[func])
+    Link_Funcs = [
+        link_dict[func] for func in duplicate.split('-') if link_dict[func]
+    ]
 
 def LinkFunc(target, source, env):
     # Relative paths cause problems with symbolic links, so
@@ -384,10 +381,7 @@ class DiskChecker(object):
     def __call__(self, *args, **kw):
         return self.func(*args, **kw)
     def set(self, list):
-        if self.type in list:
-            self.func = self.do
-        else:
-            self.func = self.ignore
+        self.func = self.do if self.type in list else self.ignore
 
 def do_diskcheck_match(node, predicate, errorfmt):
     result = predicate()
@@ -412,13 +406,10 @@ def do_diskcheck_rcs(node, name):
     try:
         rcs_dir = node.rcs_dir
     except AttributeError:
-        if node.entry_exists_on_disk('RCS'):
-            rcs_dir = node.Dir('RCS')
-        else:
-            rcs_dir = None
+        rcs_dir = node.Dir('RCS') if node.entry_exists_on_disk('RCS') else None
         node.rcs_dir = rcs_dir
     if rcs_dir:
-        return rcs_dir.entry_exists_on_disk(name+',v')
+        return rcs_dir.entry_exists_on_disk(f'{name},v')
     return None
 
 def ignore_diskcheck_rcs(node, name):
@@ -428,13 +419,10 @@ def do_diskcheck_sccs(node, name):
     try:
         sccs_dir = node.sccs_dir
     except AttributeError:
-        if node.entry_exists_on_disk('SCCS'):
-            sccs_dir = node.Dir('SCCS')
-        else:
-            sccs_dir = None
+        sccs_dir = node.Dir('SCCS') if node.entry_exists_on_disk('SCCS') else None
         node.sccs_dir = sccs_dir
     if sccs_dir:
-        return sccs_dir.entry_exists_on_disk('s.'+name)
+        return sccs_dir.entry_exists_on_disk(f's.{name}')
     return None
 
 def ignore_diskcheck_sccs(node, name):
@@ -465,49 +453,51 @@ class EntryProxy(SCons.Util.Proxy):
 
     def __get_abspath(self):
         entry = self.get()
-        return SCons.Subst.SpecialAttrWrapper(entry.get_abspath(),
-                                             entry.name + "_abspath")
+        return SCons.Subst.SpecialAttrWrapper(
+            entry.get_abspath(), f'{entry.name}_abspath'
+        )
 
     def __get_filebase(self):
         name = self.get().name
-        return SCons.Subst.SpecialAttrWrapper(SCons.Util.splitext(name)[0],
-                                             name + "_filebase")
+        return SCons.Subst.SpecialAttrWrapper(
+            SCons.Util.splitext(name)[0], f'{name}_filebase'
+        )
 
     def __get_suffix(self):
         name = self.get().name
-        return SCons.Subst.SpecialAttrWrapper(SCons.Util.splitext(name)[1],
-                                             name + "_suffix")
+        return SCons.Subst.SpecialAttrWrapper(
+            SCons.Util.splitext(name)[1], f'{name}_suffix'
+        )
 
     def __get_file(self):
         name = self.get().name
-        return SCons.Subst.SpecialAttrWrapper(name, name + "_file")
+        return SCons.Subst.SpecialAttrWrapper(name, f'{name}_file')
 
     def __get_base_path(self):
         """Return the file's directory and file name, with the
         suffix stripped."""
         entry = self.get()
-        return SCons.Subst.SpecialAttrWrapper(SCons.Util.splitext(entry.get_path())[0],
-                                             entry.name + "_base")
+        return SCons.Subst.SpecialAttrWrapper(
+            SCons.Util.splitext(entry.get_path())[0], f'{entry.name}_base'
+        )
 
     def __get_posix_path(self):
         """Return the path with / as the path separator,
         regardless of platform."""
         if os_sep_is_slash:
             return self
-        else:
-            entry = self.get()
-            r = entry.get_path().replace(OS_SEP, '/')
-            return SCons.Subst.SpecialAttrWrapper(r, entry.name + "_posix")
+        entry = self.get()
+        r = entry.get_path().replace(OS_SEP, '/')
+        return SCons.Subst.SpecialAttrWrapper(r, f'{entry.name}_posix')
 
     def __get_windows_path(self):
         """Return the path with \ as the path separator,
         regardless of platform."""
         if OS_SEP == '\\':
             return self
-        else:
-            entry = self.get()
-            r = entry.get_path().replace(OS_SEP, '\\')
-            return SCons.Subst.SpecialAttrWrapper(r, entry.name + "_windows")
+        entry = self.get()
+        r = entry.get_path().replace(OS_SEP, '\\')
+        return SCons.Subst.SpecialAttrWrapper(r, f'{entry.name}_windows')
 
     def __get_srcnode(self):
         return EntryProxy(self.get().srcnode())
@@ -698,14 +688,10 @@ class Base(SCons.Node.Node):
         return self.rfile().exists()
 
     def getmtime(self):
-        st = self.stat()
-        if st: return st[stat.ST_MTIME]
-        else: return None
+        return st[stat.ST_MTIME] if (st := self.stat()) else None
 
     def getsize(self):
-        st = self.stat()
-        if st: return st[stat.ST_SIZE]
-        else: return None
+        return st[stat.ST_SIZE] if (st := self.stat()) else None
 
     def isdir(self):
         st = self.stat()
@@ -725,10 +711,7 @@ class Base(SCons.Node.Node):
             return 0                    # no symlinks
 
     def is_under(self, dir):
-        if self is dir:
-            return 1
-        else:
-            return self.dir.is_under(dir)
+        return 1 if self is dir else self.dir.is_under(dir)
 
     def set_local(self):
         self._local = 1
@@ -738,8 +721,7 @@ class Base(SCons.Node.Node):
         corresponding to its source file.  Otherwise, return
         ourself.
         """
-        srcdir_list = self.dir.srcdir_list()
-        if srcdir_list:
+        if srcdir_list := self.dir.srcdir_list():
             srcnode = srcdir_list[0].Entry(self.name)
             srcnode.must_be_same(self.__class__)
             return srcnode
@@ -1121,10 +1103,7 @@ class FS(LocalFS):
         self.max_drift = default_max_drift
 
         self.Top = None
-        if path is None:
-            self.pathTop = os.getcwd()
-        else:
-            self.pathTop = path
+        self.pathTop = os.getcwd() if path is None else path
         self.defaultDrive = _my_normcase(_my_splitdrive(self.pathTop)[0])
 
         self.Top = self.Dir(self.pathTop)
@@ -1145,10 +1124,7 @@ class FS(LocalFS):
         self.max_drift = max_drift
 
     def getcwd(self):
-        if hasattr(self, "_cwd"):
-           return self._cwd
-        else:
-           return "<no cwd>"
+        return self._cwd if hasattr(self, "_cwd") else "<no cwd>"
 
     def chdir(self, dir, change_os_dir=0):
         """Change the current working directory for lookups.
@@ -1215,7 +1191,7 @@ class FS(LocalFS):
         if not os_sep_is_slash:
             p = p.replace(OS_SEP, '/')
 
-        if p[0:1] == '#':
+        if p[:1] == '#':
             # There was an initial '#', so we strip it and override
             # whatever directory they may have specified with the
             # top-level SConstruct directory.
@@ -1234,10 +1210,7 @@ class FS(LocalFS):
             # structure similar to the one found on drive C:.
             if do_splitdrive:
                 drive, p = _my_splitdrive(p)
-                if drive:
-                    root = self.get_root(drive)
-                else:
-                    root = directory.root
+                root = self.get_root(drive) if drive else directory.root
             else:
                 root = directory.root
 
@@ -1248,10 +1221,7 @@ class FS(LocalFS):
             needs_normpath = needs_normpath_match(p)
 
             # The path is relative to the top-level SCons directory.
-            if p in ('', '.'):
-                p = directory.labspath
-            else:
-                p = directory.labspath + '/' + p
+            p = directory.labspath if p in ('', '.') else f'{directory.labspath}/{p}'
         else:
             if do_splitdrive:
                 drive, p = _my_splitdrive(p)
@@ -1270,7 +1240,7 @@ class FS(LocalFS):
 
             needs_normpath = needs_normpath_match(p)
 
-            if p[0:1] == '/':
+            if p[:1] == '/':
                 # Absolute path
                 root = self.get_root(drive)
             else:
@@ -1284,16 +1254,8 @@ class FS(LocalFS):
                 else:
                     directory = self._cwd
 
-                if p in ('', '.'):
-                    p = directory.labspath
-                else:
-                    p = directory.labspath + '/' + p
-
-                if drive:
-                    root = self.get_root(drive)
-                else:
-                    root = directory.root
-
+                p = directory.labspath if p in ('', '.') else f'{directory.labspath}/{p}'
+                root = self.get_root(drive) if drive else directory.root
         if needs_normpath is not None:
             # Normalize a pathname. Will return the same result for
             # equivalent paths.
@@ -1384,10 +1346,9 @@ class FS(LocalFS):
         the return value because this is really only used to process
         the command-line targets.
         """
-        targets = []
-        message = None
         fmt = "building associated VariantDir targets: %s"
         start_dir = dir
+        targets = []
         while dir:
             for bd in dir.variant_dirs:
                 if start_dir.is_under(bd):
@@ -1397,8 +1358,7 @@ class FS(LocalFS):
                 targets.append(self.Entry(p))
             tail = [dir.name] + tail
             dir = dir.up()
-        if targets:
-            message = fmt % ' '.join(map(str, targets))
+        message = fmt % ' '.join(map(str, targets)) if targets else None
         return targets, message
 
     def Glob(self, pathname, ondisk=True, source=True, strings=False, cwd=None):
@@ -1425,7 +1385,7 @@ class DirNodeInfo(SCons.Node.NodeInfoBase):
             if drive:
                 root = self.fs.get_root(drive)
         if not os.path.isabs(s):
-            s = top.labspath + '/' + s
+            s = f'{top.labspath}/{s}'
         return root._lookup_abs(s, Entry)
 
 class DirBuildInfo(SCons.Node.BuildInfoBase):
@@ -1574,12 +1534,8 @@ class Dir(Base):
         fname = '.'
         dir = self
         while dir:
-            for rep in dir.getRepositories():
-                result.append(rep.Dir(fname))
-            if fname == '.':
-                fname = dir.name
-            else:
-                fname = dir.name + OS_SEP + fname
+            result.extend(rep.Dir(fname) for rep in dir.getRepositories())
+            fname = dir.name if fname == '.' else dir.name + OS_SEP + fname
             dir = dir.up()
 
         self._memo['get_all_rdirs'] = list(result)
@@ -1587,7 +1543,7 @@ class Dir(Base):
         return result
 
     def addRepository(self, dir):
-        if dir != self and not dir in self.repositories:
+        if dir != self and dir not in self.repositories:
             self.repositories.append(dir)
             dir.tpath = '.'
             self.__clearRepositoryCache()
@@ -1628,7 +1584,7 @@ class Dir(Base):
         if self is other:
             result = '.'
 
-        elif not other in self.path_elements:
+        elif other not in self.path_elements:
             try:
                 other_dir = other.get_dir()
             except AttributeError:
@@ -1753,9 +1709,11 @@ class Dir(Base):
     def get_contents(self):
         """Return content signatures and names of all our children
         separated by new-lines. Ensure that the nodes are sorted."""
-        contents = []
-        for node in sorted(self.children(), key=lambda t: t.name):
-            contents.append('%s %s\n' % (node.get_csig(), node.name))
+        contents = [
+            '%s %s\n' % (node.get_csig(), node.name)
+            for node in sorted(self.children(), key=lambda t: t.name)
+        ]
+
         return ''.join(contents)
 
     def get_csig(self):
@@ -1778,10 +1736,7 @@ class Dir(Base):
         if self.builder is not MkdirBuilder and not self.exists():
             return 0
         up_to_date = SCons.Node.up_to_date
-        for kid in self.children():
-            if kid.get_state() > up_to_date:
-                return 0
-        return 1
+        return next((0 for kid in self.children() if kid.get_state() > up_to_date), 1)
 
     def rdir(self):
         if not self.exists():
@@ -1789,9 +1744,8 @@ class Dir(Base):
             for dir in self.dir.get_all_rdirs():
                 try: node = dir.entries[norm_name]
                 except KeyError: node = dir.dir_on_disk(self.name)
-                if node and node.exists() and \
-                    (isinstance(dir, Dir) or isinstance(dir, Entry)):
-                        return node
+                if node and node.exists() and isinstance(dir, (Dir, Entry)):
+                    return node
         return self
 
     def sconsign(self):
@@ -1805,9 +1759,7 @@ class Dir(Base):
     def srcnode(self):
         """Dir has a special need for srcnode()...if we
         have a srcdir attribute set, then that *is* our srcnode."""
-        if self.srcdir:
-            return self.srcdir
-        return Base.srcnode(self)
+        return self.srcdir or Base.srcnode(self)
 
     def get_timestamp(self):
         """Return the latest timestamp from among our children"""
@@ -1821,7 +1773,7 @@ class Dir(Base):
         return self.abspath + OS_SEP + name
 
     def entry_labspath(self, name):
-        return self.labspath + '/' + name
+        return f'{self.labspath}/{name}'
 
     def entry_path(self, name):
         return self.path + OS_SEP + name
@@ -1842,17 +1794,16 @@ class Dir(Base):
                 for entry in map(_my_normcase, entries):
                     d[entry] = True
             self.on_disk_entries = d
-        if sys.platform == 'win32' or sys.platform == 'cygwin':
-            name = _my_normcase(name)
-            result = d.get(name)
-            if result is None:
-                # Belt-and-suspenders for Windows:  check directly for
-                # 8.3 file names that don't show up in os.listdir().
-                result = os.path.exists(self.abspath + OS_SEP + name)
-                d[name] = result
-            return result
-        else:
+        if sys.platform not in ['win32', 'cygwin']:
             return name in d
+        name = _my_normcase(name)
+        result = d.get(name)
+        if result is None:
+            # Belt-and-suspenders for Windows:  check directly for
+            # 8.3 file names that don't show up in os.listdir().
+            result = os.path.exists(self.abspath + OS_SEP + name)
+            d[name] = result
+        return result
 
     memoizer_counters.append(SCons.Memoize.CountValue('srcdir_list'))
 
@@ -1911,9 +1862,10 @@ class Dir(Base):
                 pass
 
         def func(node):
-            if (isinstance(node, File) or isinstance(node, Entry)) and \
-               (node.is_derived() or node.exists()):
-                    return node
+            if isinstance(node, (File, Entry)) and (
+                (node.is_derived() or node.exists())
+            ):
+                return node
             return None
 
         norm_name = _my_normcase(filename)
@@ -2086,7 +2038,7 @@ class Dir(Base):
                     for name in disk_names:
                         # Add './' before disk filename so that '#' at
                         # beginning of filename isn't interpreted.
-                        name = './' + name
+                        name = f'./{name}'
                         node = dirEntry(name).disambiguate()
                         n = selfEntry(name)
                         if n.__class__ != node.__class__:
@@ -2231,7 +2183,7 @@ class RootDir(Dir):
         return self.abspath + name
 
     def entry_labspath(self, name):
-        return '/' + name
+        return f'/{name}'
 
     def entry_path(self, name):
         return self.path + name
@@ -2240,10 +2192,7 @@ class RootDir(Dir):
         return self.tpath + name
 
     def is_under(self, dir):
-        if self is dir:
-            return 1
-        else:
-            return 0
+        return 1 if self is dir else 0
 
     def up(self):
         return None
@@ -2270,7 +2219,7 @@ class FileNodeInfo(SCons.Node.NodeInfoBase):
             if drive:
                 root = self.fs.get_root(drive)
         if not os.path.isabs(s):
-            s = top.labspath + '/' + s
+            s = f'{top.labspath}/{s}'
         return root._lookup_abs(s, Entry)
 
 class FileBuildInfo(SCons.Node.BuildInfoBase):
@@ -2337,12 +2286,13 @@ class FileBuildInfo(SCons.Node.BuildInfoBase):
                 nodes.append(s)
             setattr(self, nattr, nodes)
     def format(self, names=0):
-        result = []
         bkids = self.bsources + self.bdepends + self.bimplicit
         bkidsigs = self.bsourcesigs + self.bdependsigs + self.bimplicitsigs
-        for bkid, bkidsig in zip(bkids, bkidsigs):
-            result.append(str(bkid) + ': ' +
-                          ' '.join(bkidsig.format(names=names)))
+        result = [
+            (f'{str(bkid)}: ' + ' '.join(bkidsig.format(names=names)))
+            for bkid, bkidsig in zip(bkids, bkidsigs)
+        ]
+
         result.append('%s [%s]' % (self.bactsig, self.bact))
         return '\n'.join(result)
 
@@ -2473,11 +2423,7 @@ class File(Base):
         except KeyError:
             pass
 
-        if self.rexists():
-            size = self.rfile().getsize()
-        else:
-            size = 0
-
+        size = self.rfile().getsize() if self.rexists() else 0
         self._memo['get_size'] = size
 
         return size
@@ -2490,11 +2436,7 @@ class File(Base):
         except KeyError:
             pass
 
-        if self.rexists():
-            timestamp = self.rfile().getmtime()
-        else:
-            timestamp = 0
-
+        timestamp = self.rfile().getmtime() if self.rexists() else 0
         self._memo['get_timestamp'] = timestamp
 
         return timestamp
@@ -2732,8 +2674,7 @@ class File(Base):
 
         ninfo = self.get_ninfo()
 
-        csig = self.get_max_drift_csig()
-        if csig:
+        if csig := self.get_max_drift_csig():
             ninfo.csig = csig
 
         ninfo.timestamp = self.get_timestamp()
@@ -3105,19 +3046,17 @@ class File(Base):
             if T: Trace(' not self.exists():')
             # The file doesn't exist locally...
             r = self.rfile()
-            if r != self:
-                # ...but there is one in a Repository...
-                if not self.changed(r):
-                    if T: Trace(' changed(%s):' % r)
-                    # ...and it's even up-to-date...
-                    if self._local:
-                        # ...and they'd like a local copy.
-                        e = LocalCopy(self, r, None)
-                        if isinstance(e, SCons.Errors.BuildError):
-                            raise
-                        self.store_info()
-                    if T: Trace(' 1\n')
-                    return 1
+            if r != self and not self.changed(r):
+                if T: Trace(' changed(%s):' % r)
+                # ...and it's even up-to-date...
+                if self._local:
+                    # ...and they'd like a local copy.
+                    e = LocalCopy(self, r, None)
+                    if isinstance(e, SCons.Errors.BuildError):
+                        raise
+                    self.store_info()
+                if T: Trace(' 1\n')
+                return 1
             self.changed()
             if T: Trace(' None\n')
             return None
@@ -3414,11 +3353,7 @@ def invalidate_node_memos(targets):
         try:
             entry.clear_memoized_values()
         except AttributeError:
-            # Not a Node object, try to look up Node by filename.  XXX
-            # This creates Node objects even for those filenames which
-            # do not correspond to an existing Node object.
-            node = get_default_fs().Entry(entry)
-            if node:
+            if node := get_default_fs().Entry(entry):
                 node.clear_memoized_values()
 
 # Local Variables:

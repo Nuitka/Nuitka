@@ -191,11 +191,10 @@ def closeProgressBar():
 def wrapWithProgressBar(iterable, stage, unit):
     if tqdm is None:
         return iterable
-    else:
-        result = NuitkaProgessBar(
-            iterable=iterable, unit=unit, stage=stage, total=None, min_total=None
-        )
+    result = NuitkaProgessBar(
+        iterable=iterable, unit=unit, stage=stage, total=None, min_total=None
+    )
 
-        Tracing.progress = result
+    Tracing.progress = result
 
-        return result
+    return result

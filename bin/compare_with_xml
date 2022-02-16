@@ -73,21 +73,23 @@ def compareOutput(kind, out1, out2):
     diff = difflib.unified_diff(
         makeDiffable(out1),
         makeDiffable(out2),
-        "{program} ({detail})".format(program="nuitka1 " + filename, detail=kind),
-        "{program} ({detail})".format(program="nuitka2 " + filename, detail=kind),
+        "{program} ({detail})".format(
+            program=f'nuitka1 {filename}', detail=kind
+        ),
+        "{program} ({detail})".format(
+            program=f'nuitka2 {filename}', detail=kind
+        ),
         fromdate,
         todate,
         n=3,
     )
 
-    result = list(diff)
 
-    if result:
-        for line in result:
-            my_print(line, end="\n" if not line.startswith("---") else "")
-        return 1
-    else:
+    if not (result := list(diff)):
         return 0
+    for line in result:
+        my_print(line, end="\n" if not line.startswith("---") else "")
+    return 1
 
 
 exit_code_stdout = compareOutput("stdout", stdout_nuitka1, stdout_nuitka2)
@@ -104,9 +106,7 @@ Exit codes {exit_nuitka1:d} ({nuitka1}) != {exit_nuitka2:d} ({nuitka2})""".forma
         )
     )
 
-exit_code = exit_code_stdout or exit_code_return
-
-if exit_code:
+if exit_code := exit_code_stdout or exit_code_return:
     sys.exit("Error, outputs differed.")
 
 my_print("OK, same outputs.")

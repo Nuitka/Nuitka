@@ -65,11 +65,7 @@ def compareConstants(a, b):
         if len(a) != len(b):
             return False
 
-        for ea, eb in zip(a, b):
-            if not compareConstants(ea, eb):
-                return False
-        return True
-
+        return all(compareConstants(ea, eb) for ea, eb in zip(a, b))
     if type(a) is dict:
         if len(a) != len(b):
             return False
@@ -146,19 +142,14 @@ def isConstant(constant):
                 return False
         return True
     elif constant_type in (tuple, list):
-        for element_value in constant:
-            if not isConstant(element_value):
-                return False
-        return True
+        return all(isConstant(element_value) for element_value in constant)
     elif constant_type is slice:
-        if (
-            not isConstant(constant.start)
-            or not isConstant(constant.stop)
-            or not isConstant(constant.step)
-        ):
-            return False
+        return bool(
+            isConstant(constant.start)
+            and isConstant(constant.stop)
+            and isConstant(constant.step)
+        )
 
-        return True
     elif constant_type in (
         str,
         unicode,
@@ -232,15 +223,9 @@ def isMutable(constant):
     elif constant_type in (dict, list, set, bytearray):
         return True
     elif constant_type is tuple:
-        for value in constant:
-            if isMutable(value):
-                return True
-        return False
+        return any(isMutable(value) for value in constant)
     elif constant_type is frozenset:
-        for value in constant:
-            if isMutable(value):
-                return True
-        return False
+        return any(isMutable(value) for value in constant)
     elif constant is Ellipsis:
         return False
     elif constant is NotImplemented:
@@ -285,15 +270,9 @@ def isHashable(constant):
     elif constant_type in (dict, list, set, slice, bytearray):
         return False
     elif constant_type is tuple:
-        for value in constant:
-            if not isHashable(value):
-                return False
-        return True
+        return all(isHashable(value) for value in constant)
     elif constant_type is frozenset:
-        for value in constant:
-            if not isHashable(value):
-                return False
-        return True
+        return all(isHashable(value) for value in constant)
     elif constant is Ellipsis:
         return True
     else:
@@ -352,12 +331,7 @@ def createConstantDict(keys, values):
 def isCompileTimeConstantValue(value):
     """Determine if a value will be usable at compile time."""
     # This needs to match code in makeCompileTimeConstantReplacementNode
-    if isConstant(value):
-        return True
-    elif type(value) is type:
-        return True
-    else:
-        return False
+    return bool(isConstant(value) or not isConstant(value) and type(value) is type)
 
 
 # Shared empty values, it would cost time to create them locally.

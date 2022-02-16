@@ -104,8 +104,6 @@ def is_undefined(obj):
 
 def consume(iterable):
     """Consumes an iterable without doing anything with it."""
-    for event in iterable:
-        pass
 
 
 def clear_caches():
@@ -170,7 +168,7 @@ def object_type_repr(obj):
     if obj.__class__.__module__ in ('__builtin__', 'builtins'):
         name = obj.__class__.__name__
     else:
-        name = obj.__class__.__module__ + '.' + obj.__class__.__name__
+        name = f'{obj.__class__.__module__}.{obj.__class__.__name__}'
     return '%s object' % name
 
 
@@ -208,8 +206,7 @@ def urlize(text, trim_url_limit=None, rel=None, target=None):
     target_attr = target and ' target="%s"' % escape(target) or ''
 
     for i, word in enumerate(words):
-        match = _punctuation_re.match(word)
-        if match:
+        if match := _punctuation_re.match(word):
             lead, middle, trail = match.groups()
             if middle.startswith('www.') or (
                 '@' not in middle and
@@ -227,8 +224,12 @@ def urlize(text, trim_url_limit=None, rel=None, target=None):
                middle.startswith('https://'):
                 middle = '<a href="%s"%s%s>%s</a>' % (middle,
                     rel_attr, target_attr, trim_url(middle))
-            if '@' in middle and not middle.startswith('www.') and \
-               not ':' in middle and _simple_email_re.match(middle):
+            if (
+                '@' in middle
+                and not middle.startswith('www.')
+                and ':' not in middle
+                and _simple_email_re.match(middle)
+            ):
                 middle = '<a href="mailto:%s">%s</a>' % (middle, middle)
             if lead + middle + trail != word:
                 words[i] = lead + middle + trail
@@ -274,7 +275,7 @@ def generate_lorem_ipsum(n=5, html=True, min=20, max=100):
         # ensure that the paragraph ends with a dot.
         p = u' '.join(p)
         if p.endswith(','):
-            p = p[:-1] + '.'
+            p = f'{p[:-1]}.'
         elif not p.endswith('.'):
             p += '.'
         result.append(p)
@@ -296,7 +297,7 @@ def unicode_urlencode(obj, charset='utf-8', for_qs=False):
         obj = text_type(obj)
     if isinstance(obj, text_type):
         obj = obj.encode(charset)
-    safe = not for_qs and b'/' or b''
+    safe = b'/' if not for_qs else b''
     rv = text_type(url_quote(obj, safe))
     if for_qs:
         rv = rv.replace('%20', '+')
@@ -358,11 +359,10 @@ class LRUCache(object):
         """
         self._wlock.acquire()
         try:
-            try:
-                return self[key]
-            except KeyError:
-                self[key] = default
-                return default
+            return self[key]
+        except KeyError:
+            self[key] = default
+            return default
         finally:
             self._wlock.release()
 
@@ -586,9 +586,8 @@ class Cycler(object):
 
     def next(self):
         """Goes one item ahead and returns it."""
-        rv = self.current
         self.pos = (self.pos + 1) % len(self.items)
-        return rv
+        return self.current
 
     __next__ = next
 

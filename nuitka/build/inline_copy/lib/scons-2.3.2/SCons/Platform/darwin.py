@@ -51,17 +51,14 @@ def generate(env):
     except:
         dirlist = []
 
-    for file in dirlist:
-        filelist.append('/etc/paths.d/'+file)
-
+    filelist.extend(f'/etc/paths.d/{file}' for file in dirlist)
     for file in filelist:
         if os.path.isfile(file):
-            f = open(file, 'r')
-            lines = f.readlines()
-            for line in lines:
-                if line:
-                    env.AppendENVPath('PATHOSX', line.strip('\n'))
-            f.close()
+            with open(file, 'r') as f:
+                lines = f.readlines()
+                for line in lines:
+                    if line:
+                        env.AppendENVPath('PATHOSX', line.strip('\n'))
 
 # Local Variables:
 # tab-width:4

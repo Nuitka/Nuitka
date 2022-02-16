@@ -380,7 +380,7 @@ def File(name, dbm_module=None):
     else:
         ForDirectory = DB
         DB_Name = name
-        if not dbm_module is None:
+        if dbm_module is not None:
             DB_Module = dbm_module
 
 # Local Variables:

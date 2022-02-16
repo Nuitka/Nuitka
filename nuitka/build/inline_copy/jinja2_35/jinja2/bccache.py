@@ -40,9 +40,7 @@ else:
             f.write(marshal.dumps(code))
 
     def marshal_load(f):
-        if isinstance(f, file):
-            return marshal.load(f)
-        return marshal.loads(f.read())
+        return marshal.load(f) if isinstance(f, file) else marshal.loads(f.read())
 
 
 bc_version = 3
@@ -167,7 +165,7 @@ class BytecodeCache(object):
         """Returns the unique hash key for this template name."""
         hash = sha1(name.encode('utf-8'))
         if filename is not None:
-            filename = '|' + filename
+            filename = f'|{filename}'
             if isinstance(filename, text_type):
                 filename = filename.encode('utf-8')
             hash.update(filename)

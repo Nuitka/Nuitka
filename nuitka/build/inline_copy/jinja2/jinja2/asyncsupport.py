@@ -173,9 +173,7 @@ def patch_all():
 
 
 async def auto_await(value):
-    if inspect.isawaitable(value):
-        return await value
-    return value
+    return await value if inspect.isawaitable(value) else value
 
 
 async def auto_aiter(iterable):

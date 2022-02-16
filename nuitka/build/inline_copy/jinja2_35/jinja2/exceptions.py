@@ -99,10 +99,9 @@ class TemplateSyntaxError(TemplateError):
 
         # otherwise attach some stuff
         location = 'line %d' % self.lineno
-        name = self.filename or self.name
-        if name:
+        if name := self.filename or self.name:
             location = 'File "%s", %s' % (name, location)
-        lines = [self.message, '  ' + location]
+        lines = [self.message, f'  {location}']
 
         # if the source is set, add the line to the output
         if self.source is not None:
@@ -111,7 +110,7 @@ class TemplateSyntaxError(TemplateError):
             except IndexError:
                 line = None
             if line:
-                lines.append('    ' + line.strip())
+                lines.append(f'    {line.strip()}')
 
         return u'\n'.join(lines)
 

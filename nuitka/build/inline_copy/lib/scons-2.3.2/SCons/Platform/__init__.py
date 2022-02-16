@@ -92,7 +92,7 @@ def platform_module(name = platform_default()):
     If the name is unspecified, we fetch the appropriate default for
     our execution environment.
     """
-    full_name = 'SCons.Platform.' + name
+    full_name = f'SCons.Platform.{name}'
     if full_name not in sys.modules:
         if os.name == 'java':
             eval(full_name)
@@ -170,9 +170,7 @@ class TempFileMunge(object):
         except ValueError:
             maxline = 2048
 
-        length = 0
-        for c in cmd:
-            length += len(c)
+        length = sum(len(c) for c in cmd)
         if length <= maxline:
             return self.cmd
 
@@ -223,16 +221,25 @@ class TempFileMunge(object):
         # purity get in the way of just being helpful, so we'll
         # reach into SCons.Action directly.
         if SCons.Action.print_actions:
-            print("Using tempfile "+native_tmp+" for command line:\n"+
-                  str(cmd[0]) + " " + " ".join(args))
+            print(
+                (
+                    (
+                        f'Using tempfile {native_tmp}'
+                        + " for command line:\n"
+                        + str(cmd[0])
+                    )
+                    + " "
+                )
+                + " ".join(args)
+            )
+
         return [ cmd[0], prefix + native_tmp + '\n' + rm, native_tmp ]
 
 def Platform(name = platform_default()):
     """Select a canned Platform specification.
     """
     module = platform_module(name)
-    spec = PlatformSpec(name, module.generate)
-    return spec
+    return PlatformSpec(name, module.generate)
 
 # Local Variables:
 # tab-width:4

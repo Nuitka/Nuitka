@@ -33,17 +33,15 @@ class Globber(object):
         except os.error as err:
             return
 
-        items = []
-        for name in names:
-            items.append(name)
-
+        items = list(names)
         yield top, items
 
         for name in items:
             new_path = _join_paths([top, name], sep=sep)
-            if followlinks or not self.islink(new_path):
-                for x in self.walk(new_path, followlinks):
-                    yield x
+            if followlinks:
+                yield from self.walk(new_path, followlinks)
+            elif not followlinks and not self.islink(new_path):
+                yield from self.walk(new_path, followlinks)
 
     def glob(self, pathname, with_matches=False, include_hidden=False, recursive=True,
              norm_paths=True, case_sensitive=True, sep=None):
@@ -143,19 +141,17 @@ class Globber(object):
         if sys.version_info[0] == 3:
             if isinstance(pattern, bytes):
                 dirname = bytes(os.curdir, 'ASCII')
-        else:
-            if isinstance(pattern, unicode) and not isinstance(dirname, unicode):
-                dirname = unicode(dirname, sys.getfilesystemencoding() or
-                                           sys.getdefaultencoding())
+        elif isinstance(pattern, unicode) and not isinstance(dirname, unicode):
+            dirname = unicode(dirname, sys.getfilesystemencoding() or
+                                       sys.getdefaultencoding())
 
         # If no magic, short-circuit, only check for existence
         if not has_magic(pattern):
             if pattern == '':
                 if self.isdir(dirname):
                     return [(pattern, ())]
-            else:
-                if self.exists(_join_paths([dirname, pattern], sep=sep)):
-                    return [(pattern, ())]
+            elif self.exists(_join_paths([dirname, pattern], sep=sep)):
+                return [(pattern, ())]
             return []
 
         if not dirname:

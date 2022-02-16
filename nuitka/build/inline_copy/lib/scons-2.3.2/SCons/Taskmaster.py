@@ -139,7 +139,7 @@ class Task(object):
 
     def trace_message(self, method, node, description='node'):
         fmt = '%-20s %s %s\n'
-        return fmt % (method + ':', description, self.tm.trace_node(node))
+        return fmt % (f'{method}:', description, self.tm.trace_node(node))
 
     def display(self, message):
         """
@@ -268,10 +268,9 @@ class Task(object):
         and the Taskmaster instance doesn't want to call
         the Node's callback methods.
         """
-        T = self.tm.trace
-        if T: T.write(self.trace_message('Task.executed_without_callbacks()',
-                                         self.node))
-
+        if T := self.tm.trace:
+            if T: T.write(self.trace_message('Task.executed_without_callbacks()',
+                                             self.node))
         for t in self.targets:
             if t.get_state() == NODE_EXECUTING:
                 for side_effect in t.side_effects:
@@ -292,10 +291,9 @@ class Task(object):
         or not the target was an actual built target or a source Node.
         """
         global print_prepare
-        T = self.tm.trace
-        if T: T.write(self.trace_message('Task.executed_with_callbacks()',
-                                         self.node))
-
+        if T := self.tm.trace:
+            if T: T.write(self.trace_message('Task.executed_with_callbacks()',
+                                             self.node))
         for t in self.targets:
             if t.get_state() == NODE_EXECUTING:
                 for side_effect in t.side_effects:
@@ -334,9 +332,8 @@ class Task(object):
         the executing state, it might also be invoked on up-to-date
         nodes when using Configure().
         """
-        T = self.tm.trace
-        if T: T.write(self.trace_message('Task.failed_stop()', self.node))
-
+        if T := self.tm.trace:
+            T.write(self.trace_message('Task.failed_stop()', self.node))
         # Invoke will_not_build() to clean-up the pending children
         # list.
         self.tm.will_not_build(self.targets, lambda n: n.set_state(NODE_FAILED))
@@ -361,9 +358,8 @@ class Task(object):
         the executing state, it might also be invoked on up-to-date
         nodes when using Configure().
         """
-        T = self.tm.trace
-        if T: T.write(self.trace_message('Task.failed_continue()', self.node))
-
+        if T := self.tm.trace:
+            T.write(self.trace_message('Task.failed_continue()', self.node))
         self.tm.will_not_build(self.targets, lambda n: n.set_state(NODE_FAILED))
 
     def make_ready_all(self):
@@ -373,9 +369,8 @@ class Task(object):
         This is used when the interface needs every target Node to be
         visited--the canonical example being the "scons -c" option.
         """
-        T = self.tm.trace
-        if T: T.write(self.trace_message('Task.make_ready_all()', self.node))
-
+        if T := self.tm.trace:
+            T.write(self.trace_message('Task.make_ready_all()', self.node))
         self.out_of_date = self.targets[:]
         for t in self.targets:
             t.disambiguate().set_state(NODE_EXECUTING)
@@ -1034,10 +1029,9 @@ class Taskmaster(object):
         desc = 'Found dependency cycle(s):\n'
         for node, cycle in nclist:
             if cycle:
-                desc = desc + "  " + " -> ".join(map(str, cycle)) + "\n"
+                desc = f'{desc}  ' + " -> ".join(map(str, cycle)) + "\n"
             else:
-                desc = desc + \
-                    "  Internal Error: no cycle found for node %s (%s) in state %s\n" %  \
+                desc += "  Internal Error: no cycle found for node %s (%s) in state %s\n" %  \
                     (node, repr(node), StateString[node.get_state()])
 
         raise SCons.Errors.UserError(desc)

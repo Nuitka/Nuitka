@@ -336,7 +336,7 @@ def executePostProcessing():
         and not Options.shallUseStaticLibPython()
     ):
         python_abi_version = python_version_str + getPythonABI()
-        python_dll_filename = "libpython" + python_abi_version + ".dylib"
+        python_dll_filename = f'libpython{python_abi_version}.dylib'
         python_lib_path = os.path.join(sys.prefix, "lib")
 
         # Note: For CPython and potentially others, the rpath for the Python
@@ -369,8 +369,9 @@ def executePostProcessing():
     if isWin32Windows() and Options.shallMakeModule():
         candidate = os.path.join(
             os.path.dirname(result_filename),
-            "lib" + os.path.basename(result_filename)[:-4] + ".a",
+            f'lib{os.path.basename(result_filename)[:-4]}.a',
         )
+
 
         if os.path.exists(candidate):
             os.unlink(candidate)
@@ -399,7 +400,7 @@ set PYTHONHOME=%(dll_directory)s
 
     # Create a ".pyi" file for created modules
     if Options.shallMakeModule() and Options.shallCreatePyiFile():
-        pyi_filename = OutputDirectories.getResultBasepath() + ".pyi"
+        pyi_filename = f'{OutputDirectories.getResultBasepath()}.pyi'
 
         putTextFileContents(
             filename=pyi_filename,

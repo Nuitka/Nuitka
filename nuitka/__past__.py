@@ -25,26 +25,19 @@ be a "in (str, unicode)" rather than making useless version checks.
 
 """
 
+
 import sys
 from abc import ABCMeta
 
-# pylint: disable=invalid-name,self-assigning-variable
-
 if str is bytes:
     import __builtin__ as builtins  # Python2 code, pylint: disable=import-error
+    long = long  # Python2 code, pylint: disable=undefined-variable
+    unicode = unicode  # Python2 code, pylint: disable=undefined-variable
 else:
     import builtins
 
-# Work around for CPython 3.x renaming "long" to "int".
-if str is bytes:
-    long = long  # Python2 code, pylint: disable=undefined-variable
-else:
     long = int
 
-# Work around for CPython 3.x renaming "unicode" to "str".
-if str is bytes:
-    unicode = unicode  # Python2 code, pylint: disable=undefined-variable
-else:
     unicode = str
 
 
@@ -73,19 +66,15 @@ if str is bytes:
     from urllib import (  # pylint: disable=I0021,import-error,no-name-in-module
         urlretrieve,
     )
-else:
-    from urllib.request import urlretrieve
-
-if str is bytes:
     from cStringIO import (  # Python2 code, pylint: disable=import-error
         StringIO,
     )
-else:
-    from io import StringIO
-
-if str is bytes:
     BytesIO = StringIO
 else:
+    from urllib.request import urlretrieve
+
+    from io import StringIO
+
     from io import BytesIO
 
 try:
@@ -94,7 +83,7 @@ except ImportError:
     # Lame replacement for functools.total_ordering, which does not exist on
     # Python2.6, this requires "<" and "=" and adds all other operations.
     def total_ordering(cls):
-        cls.__ne__ = lambda self, other: not self == other
+        cls.__ne__ = lambda self, other: self != other
         cls.__le__ = lambda self, other: self == other or self < other
         cls.__gt__ = lambda self, other: self != other and not self < other
         cls.__ge__ = lambda self, other: self == other and not self < other
@@ -105,12 +94,10 @@ except ImportError:
 if str is bytes:
     # Python2 only code, pylint: disable=deprecated-class,no-name-in-module
     from collections import Iterable, MutableSet
+    intern = intern  # Python2 code, pylint: disable=undefined-variable
 else:
     from collections.abc import Iterable, MutableSet
 
-if str is bytes:
-    intern = intern  # Python2 code, pylint: disable=undefined-variable
-else:
     intern = sys.intern
 
 if str is bytes:
@@ -146,9 +133,7 @@ def getMetaClassBase(meta_class_prefix):
     class MetaClass(ABCMeta):
         pass
 
-    MetaClassBase = MetaClass("%sMetaClassBase" % meta_class_prefix, (object,), {})
-
-    return MetaClassBase
+    return MetaClass("%sMetaClassBase" % meta_class_prefix, (object,), {})
 
 
 if str is bytes:

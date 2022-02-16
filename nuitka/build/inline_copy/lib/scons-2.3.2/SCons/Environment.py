@@ -383,12 +383,11 @@ class SubstitutionEnvironment(object):
     def _init_special(self):
         """Initial the dispatch tables for special handling of
         special construction variables."""
-        self._special_del = {}
-        self._special_del['SCANNERS'] = _del_SCANNERS
+        self._special_del = {'SCANNERS': _del_SCANNERS}
+        self._special_set = {
+            key: _set_reserved for key in reserved_construction_var_names
+        }
 
-        self._special_set = {}
-        for key in reserved_construction_var_names:
-            self._special_set[key] = _set_reserved
         for key in future_reserved_construction_var_names:
             self._special_set[key] = _set_future_reserved
         self._special_set['BUILDERS'] = _set_BUILDERS
@@ -403,8 +402,7 @@ class SubstitutionEnvironment(object):
         return cmp(self._dict, other._dict)
 
     def __delitem__(self, key):
-        special = self._special_del.get(key)
-        if special:
+        if special := self._special_del.get(key):
             special(self, key)
         else:
             del self._dict[key]
@@ -427,14 +425,10 @@ class SubstitutionEnvironment(object):
         # as newer versions of Python come out).
         if key in self._special_set_keys:
             self._special_set[key](self, key, value)
-        else:
-            # If we already have the entry, then it's obviously a valid
-            # key and we don't need to check.  If we do check, using a
-            # global, pre-compiled regular expression directly is more
-            # efficient than calling another function or a method.
-            if key not in self._dict \
+        elif key not in self._dict \
                and not _is_valid_var.match(key):
-                    raise SCons.Errors.UserError("Illegal construction variable `%s'" % key)
+            raise SCons.Errors.UserError("Illegal construction variable `%s'" % key)
+        else:
             self._dict[key] = value
 
     def get(self, key, default=None):
@@ -611,7 +605,9 @@ class SubstitutionEnvironment(object):
         Removes the specified function's MethodWrapper from the
         added_methods list, so we don't re-bind it when making a clone.
         """
-        self.added_methods = [dm for dm in self.added_methods if not dm.method is function]
+        self.added_methods = [
+            dm for dm in self.added_methods if dm.method is not function
+        ]
 
     def Override(self, overrides):
         """
@@ -825,7 +821,7 @@ class SubstitutionEnvironment(object):
             else:
                 if not orig:
                     orig = value
-                elif value:
+                else:
                     # Add orig and value.  The logic here was lifted from
                     # part of env.Append() (see there for a lot of comments
                     # about the order in which things are tried) and is
@@ -956,8 +952,8 @@ class Base(SubstitutionEnvironment):
 
         if platform is None:
             platform = self._dict.get('PLATFORM', None)
-            if platform is None:
-                platform = SCons.Platform.Platform()
+        if platform is None:
+            platform = SCons.Platform.Platform()
         if SCons.Util.is_String(platform):
             platform = SCons.Platform.Platform(platform)
         self._dict['PLATFORM'] = str(platform)
@@ -982,7 +978,7 @@ class Base(SubstitutionEnvironment):
         self.Replace(**kw)
         keys = list(kw.keys())
         if variables:
-            keys = keys + list(variables.keys())
+            keys += list(variables.keys())
             variables.Update(self)
 
         save = {}
@@ -998,8 +994,8 @@ class Base(SubstitutionEnvironment):
 
         if tools is None:
             tools = self._dict.get('TOOLS', None)
-            if tools is None:
-                tools = ['default']
+        if tools is None:
+            tools = ['default']
         apply_tools(self, tools, toolpath)
 
         # Now restore the passed-in and customized variables
@@ -1087,10 +1083,7 @@ class Base(SubstitutionEnvironment):
             # claim they can scan the same suffix, earlier scanners
             # in the list will overwrite later scanners, so that
             # the result looks like a "first match" to the user.
-            if not SCons.Util.is_List(scanners):
-                scanners = [scanners]
-            else:
-                scanners = scanners[:] # copy so reverse() doesn't mod original
+            scanners = [scanners] if not SCons.Util.is_List(scanners) else scanners[:]
             scanners.reverse()
             for scanner in scanners:
                 for k in scanner.get_skeys(self):
@@ -1303,9 +1296,8 @@ class Base(SubstitutionEnvironment):
                             else:
                                 tmp.append((i,))
                         dk = tmp
-                else:
-                    if not SCons.Util.is_List(dk):
-                        dk = [dk]
+                elif not SCons.Util.is_List(dk):
+                    dk = [dk]
                 if delete_existing:
                     dk = [x for x in dk if x not in val]
                 else:
@@ -1333,19 +1325,14 @@ class Base(SubstitutionEnvironment):
                             val = [(val,)]
                         if delete_existing:
                             dk = filter(lambda x, val=val: x not in val, dk)
-                            self._dict[key] = dk + val
                         else:
                             dk = [x for x in dk if x not in val]
-                            self._dict[key] = dk + val
-                    else:
-                        # By elimination, val is not a list.  Since dk is a
-                        # list, wrap val in a list first.
-                        if delete_existing:
-                            dk = filter(lambda x, val=val: x not in val, dk)
-                            self._dict[key] = dk + [val]
-                        else:
-                            if not val in dk:
-                                self._dict[key] = dk + [val]
+                        self._dict[key] = dk + val
+                    elif delete_existing:
+                        dk = filter(lambda x, val=val: x not in val, dk)
+                        self._dict[key] = dk + [val]
+                    elif val not in dk:
+                        self._dict[key] = dk + [val]
                 else:
                     if key == 'CPPDEFINES':
                         if SCons.Util.is_String(dk):
@@ -1353,10 +1340,7 @@ class Base(SubstitutionEnvironment):
                         elif SCons.Util.is_Dict(dk):
                             dk = dk.items()
                         if SCons.Util.is_String(val):
-                            if val in dk:
-                                val = []
-                            else:
-                                val = [val]
+                            val = [] if val in dk else [val]
                         elif SCons.Util.is_Dict(val):
                             tmp = []
                             for i,j in val.iteritems():
@@ -1402,9 +1386,11 @@ class Base(SubstitutionEnvironment):
         # Apply passed-in variables before the tools
         # so the tools can use the new variables
         kw = copy_non_reserved_keywords(kw)
-        new = {}
-        for key, value in kw.items():
-            new[key] = SCons.Subst.scons_subst_once(value, self, key)
+        new = {
+            key: SCons.Subst.scons_subst_once(value, self, key)
+            for key, value in kw.items()
+        }
+
         clone.Replace(**new)
 
         apply_tools(clone, tools, toolpath)
@@ -1487,8 +1473,8 @@ class Base(SubstitutionEnvironment):
         if not SCons.Util.is_List(progs):
             progs = [ progs ]
         for prog in progs:
-            path = self.WhereIs(prog)
-            if path: return prog
+            if path := self.WhereIs(prog):
+                return prog
         return None
 
     def Dictionary(self, *args):
@@ -1511,10 +1497,7 @@ class Base(SubstitutionEnvironment):
         """
         import pprint
         pp = pprint.PrettyPrinter(indent=2)
-        if key:
-            dict = self.Dictionary(key)
-        else:
-            dict = self.Dictionary()
+        dict = self.Dictionary(key) if key else self.Dictionary()
         return pp.pformat(dict)
 
     def FindIxes(self, paths, prefix, suffix):
@@ -1526,8 +1509,8 @@ class Base(SubstitutionEnvironment):
         suffix - construction variable for the suffix.
         """
 
-        suffix = self.subst('$'+suffix)
-        prefix = self.subst('$'+prefix)
+        suffix = self.subst(f'${suffix}')
+        prefix = self.subst(f'${prefix}')
 
         for path in paths:
             dir,name = os.path.split(str(path))
@@ -1719,9 +1702,8 @@ class Base(SubstitutionEnvironment):
                     if delete_existing:
                         dk = [x for x in dk if x not in val]
                         self._dict[key] = [val] + dk
-                    else:
-                        if not val in dk:
-                            self._dict[key] = [val] + dk
+                    elif val not in dk:
+                        self._dict[key] = [val] + dk
                 else:
                     if delete_existing:
                         dk = [x for x in dk if x not in val]
@@ -1755,11 +1737,11 @@ class Base(SubstitutionEnvironment):
         new_prefix - construction variable for the new prefix.
         new_suffix - construction variable for the new suffix.
         """
-        old_prefix = self.subst('$'+old_prefix)
-        old_suffix = self.subst('$'+old_suffix)
+        old_prefix = self.subst(f'${old_prefix}')
+        old_suffix = self.subst(f'${old_suffix}')
 
-        new_prefix = self.subst('$'+new_prefix)
-        new_suffix = self.subst('$'+new_suffix)
+        new_prefix = self.subst(f'${new_prefix}')
+        new_suffix = self.subst(f'${new_suffix}')
 
         dir,name = os.path.split(str(path))
         if name[:len(old_prefix)] == old_prefix:
@@ -1804,8 +1786,8 @@ class Base(SubstitutionEnvironment):
         elif SCons.Util.is_String(pathext):
             pathext = self.subst(pathext)
         prog = SCons.Util.CLVar(self.subst(prog)) # support "program --with-args"
-        path = SCons.Util.WhereIs(prog[0], path, pathext, reject)
-        if path: return path
+        if path := SCons.Util.WhereIs(prog[0], path, pathext, reject):
+            return path
         return None
 
     #######################################################################
@@ -1828,20 +1810,16 @@ class Base(SubstitutionEnvironment):
     def AddPreAction(self, files, action):
         nodes = self.arg2nodes(files, self.fs.Entry)
         action = SCons.Action.Action(action)
-        uniq = {}
-        for executor in [n.get_executor() for n in nodes]:
-            uniq[executor] = 1
-        for executor in uniq.keys():
+        uniq = {executor: 1 for executor in [n.get_executor() for n in nodes]}
+        for executor in uniq:
             executor.add_pre_action(action)
         return nodes
 
     def AddPostAction(self, files, action):
         nodes = self.arg2nodes(files, self.fs.Entry)
         action = SCons.Action.Action(action)
-        uniq = {}
-        for executor in [n.get_executor() for n in nodes]:
-            uniq[executor] = 1
-        for executor in uniq.keys():
+        uniq = {executor: 1 for executor in [n.get_executor() for n in nodes]}
+        for executor in uniq:
             executor.add_post_action(action)
         return nodes
 
@@ -1937,7 +1915,7 @@ class Base(SubstitutionEnvironment):
     def Configure(self, *args, **kw):
         nargs = [self]
         if args:
-            nargs = nargs + self.subst_list(args)[0]
+            nargs += self.subst_list(args)[0]
         nkw = self.subst_kw(kw)
         nkw['_depth'] = kw.get('_depth', 0) + 1
         try:
@@ -1975,10 +1953,7 @@ class Base(SubstitutionEnvironment):
         """
         s = self.subst(name)
         if SCons.Util.is_Sequence(s):
-            result=[]
-            for e in s:
-                result.append(self.fs.Dir(e, *args, **kw))
-            return result
+            return [self.fs.Dir(e, *args, **kw) for e in s]
         return self.fs.Dir(s, *args, **kw)
 
     def NoClean(self, *targets):
@@ -2004,10 +1979,7 @@ class Base(SubstitutionEnvironment):
         """
         s = self.subst(name)
         if SCons.Util.is_Sequence(s):
-            result=[]
-            for e in s:
-                result.append(self.fs.Entry(e, *args, **kw))
-            return result
+            return [self.fs.Entry(e, *args, **kw) for e in s]
         return self.fs.Entry(s, *args, **kw)
 
     def Environment(self, **kw):
@@ -2018,24 +1990,20 @@ class Base(SubstitutionEnvironment):
         """
         action = self.Action(action, *args, **kw)
         result = action([], [], self)
-        if isinstance(result, SCons.Errors.BuildError):
-            errstr = result.errstr
-            if result.filename:
-                errstr = result.filename + ': ' + errstr
-            sys.stderr.write("scons: *** %s\n" % errstr)
-            return result.status
-        else:
+        if not isinstance(result, SCons.Errors.BuildError):
             return result
+        errstr = result.errstr
+        if result.filename:
+            errstr = f'{result.filename}: {errstr}'
+        sys.stderr.write("scons: *** %s\n" % errstr)
+        return result.status
 
     def File(self, name, *args, **kw):
         """
         """
         s = self.subst(name)
         if SCons.Util.is_Sequence(s):
-            result=[]
-            for e in s:
-                result.append(self.fs.File(e, *args, **kw))
-            return result
+            return [self.fs.File(e, *args, **kw) for e in s]
         return self.fs.File(s, *args, **kw)
 
     def FindFile(self, file, dirs):
@@ -2048,10 +2016,7 @@ class Base(SubstitutionEnvironment):
 
     def GetBuildPath(self, files):
         result = list(map(str, self.arg2nodes(files, self.fs.Entry)))
-        if SCons.Util.is_List(files):
-            return result
-        else:
-            return result[0]
+        return result if SCons.Util.is_List(files) else result[0]
 
     def Glob(self, pattern, ondisk=True, source=False, strings=False):
         return self.fs.Glob(self.subst(pattern), ondisk, source, strings)

@@ -180,16 +180,14 @@ def get_args(cls, dist, header=None):
         header = cls.get_header()
 
     for type_ in "console", "gui":
-        group = type_ + "_scripts"
+        group = f'{type_}_scripts'
 
         for name, _ep in dist.get_entry_map(group).items():
             script_text = runner_script_template
 
-            args = cls._get_script_args(  # pylint: disable=protected-access
+            yield from cls._get_script_args(  # pylint: disable=protected-access
                 type_, name, header, script_text
             )
-            for res in args:
-                yield res
 
 
 try:
@@ -224,18 +222,14 @@ def get_script_args(dist, executable=os.path.normpath(sys.executable), wininst=F
                 else:
                     hdr = header
                 yield (name + ext, hdr + script_text, "t", [name + x for x in old])
-                yield (
-                    name + ".exe",
-                    easy_install.get_win_launcher(launcher_type),
-                    "b",  # write in binary mode
-                )
+                yield (f'{name}.exe', easy_install.get_win_launcher(launcher_type), "b")
                 if not easy_install.is_64bit():
                     # install a manifest for the launcher to prevent Windows
                     #  from detecting it as an installer (which it will for
                     #  launchers like easy_install.exe). Consider only
                     #  adding a manifest for launchers detected as installers.
                     #  See Distribute #143 for details.
-                    m_name = name + ".exe.manifest"
+                    m_name = f'{name}.exe.manifest'
                     yield (m_name, easy_install.load_launcher_manifest(name), "t")
             else:
                 # On other platforms, we assume the right thing to do is to

@@ -110,7 +110,7 @@ def SharedObjectEmitter(target, source, env):
 
 def SharedFlagChecker(source, target, env):
     same = env.subst('$STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME')
-    if same == '0' or same == '' or same == 'False':
+    if same in ['0', '', 'False']:
         for src in source:
             try:
                 shared = src.attributes.shared
@@ -158,14 +158,10 @@ LdModuleLinkAction = SCons.Action.Action("$LDMODULECOM", "$LDMODULECOMSTR")
 ActionFactory = SCons.Action.ActionFactory
 
 def get_paths_str(dest):
-    # If dest is a list, we need to manually call str() on each element
-    if SCons.Util.is_List(dest):
-        elem_strs = []
-        for element in dest:
-            elem_strs.append('"' + str(element) + '"')
-        return '[' + ', '.join(elem_strs) + ']'
-    else:
+    if not SCons.Util.is_List(dest):
         return '"' + str(dest) + '"'
+    elem_strs = ['"' + str(element) + '"' for element in dest]
+    return '[' + ', '.join(elem_strs) + ']'
 
 def chmod_func(dest, mode):
     SCons.Node.FS.invalidate_node_memos(dest)
@@ -296,9 +292,7 @@ def _concat_ixes(prefix, list, suffix, env):
         if isinstance(x, SCons.Node.FS.File):
             result.append(x)
             continue
-        x = str(x)
-        if x:
-
+        if x := str(x):
             if prefix:
                 if prefix[-1] == ' ':
                     result.append(prefix[:-1])
@@ -378,13 +372,13 @@ def processDefines(defs):
                 continue
             elif SCons.Util.is_List(d) or isinstance(d, tuple):
                 if len(d) >= 2:
-                    l.append(str(d[0]) + '=' + str(d[1]))
+                    l.append(f'{str(d[0])}={str(d[1])}')
                 else:
                     l.append(str(d[0]))
             elif SCons.Util.is_Dict(d):
                 for macro,value in d.iteritems():
                     if value is not None:
-                        l.append(str(macro) + '=' + str(value))
+                        l.append(f'{str(macro)}={str(value)}')
                     else:
                         l.append(str(macro))
             elif SCons.Util.is_String(d):
@@ -403,7 +397,7 @@ def processDefines(defs):
             if v is None:
                 l.append(str(k))
             else:
-                l.append(str(k) + '=' + str(v))
+                l.append(f'{str(k)}={str(v)}')
     else:
         l = [str(defs)]
     return l
@@ -457,8 +451,7 @@ class Variable_Method_Caller(object):
         variable = self.variable
         while frame:
             if variable in frame.f_locals:
-                v = frame.f_locals[variable]
-                if v:
+                if v := frame.f_locals[variable]:
                     method = getattr(v, self.method)
                     return method(*args, **kw)
             frame = frame.f_back

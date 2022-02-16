@@ -42,9 +42,7 @@ class NuitkaNodeError(NuitkaErrorBase):
                 else:
                     parts.append(str(arg))
 
-            parts.append("")
-            parts.append("The above information should be included in a bug report.")
-
+            parts.extend(("", "The above information should be included in a bug report."))
             return "\n".join(parts)
         except Exception as e:  # Catch all the things, pylint: disable=broad-except
             return "<NuitkaNodeError failed with %r>" % e

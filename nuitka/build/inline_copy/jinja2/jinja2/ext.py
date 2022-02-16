@@ -36,7 +36,7 @@ class ExtensionRegistry(type):
 
     def __new__(cls, name, bases, d):
         rv = type.__new__(cls, name, bases, d)
-        rv.identifier = rv.__module__ + '.' + rv.__name__
+        rv.identifier = f'{rv.__module__}.{rv.__name__}'
         return rv
 
 
@@ -483,8 +483,7 @@ def extract_from_ast(node, gettext_functions=GETTEXT_FUNCTIONS,
             else:
                 strings.append(None)
 
-        for arg in node.kwargs:
-            strings.append(None)
+        strings.extend(None for _ in node.kwargs)
         if node.dyn_args is not None:
             strings.append(None)
         if node.dyn_kwargs is not None:
@@ -495,10 +494,7 @@ def extract_from_ast(node, gettext_functions=GETTEXT_FUNCTIONS,
             if not strings:
                 continue
         else:
-            if len(strings) == 1:
-                strings = strings[0]
-            else:
-                strings = tuple(strings)
+            strings = strings[0] if len(strings) == 1 else tuple(strings)
         yield node.lineno, node.node.name, strings
 
 

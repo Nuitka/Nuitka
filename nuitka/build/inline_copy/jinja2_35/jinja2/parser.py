@@ -127,7 +127,7 @@ class Parser(object):
         pop_tag = True
         try:
             if token.value in _statement_keywords:
-                return getattr(self, 'parse_' + self.stream.current.value)()
+                return getattr(self, f'parse_{self.stream.current.value}')()
             if token.value == 'call':
                 return self.parse_call_block()
             if token.value == 'filter':
@@ -192,9 +192,7 @@ class Parser(object):
         self.stream.expect('name:in')
         iter = self.parse_tuple(with_condexpr=False,
                                 extra_end_rules=('name:recursive',))
-        test = None
-        if self.stream.skip_if('name:if'):
-            test = self.parse_expression()
+        test = self.parse_expression() if self.stream.skip_if('name:if') else None
         recursive = self.stream.skip_if('name:recursive')
         body = self.parse_statements(('name:endfor', 'name:else'))
         if next(self.stream).value == 'endfor':
@@ -266,7 +264,7 @@ class Parser(object):
                       'underscore instead.')
 
         node.body = self.parse_statements(('name:endblock',), drop_needle=True)
-        self.stream.skip_if('name:' + node.name)
+        self.stream.skip_if(f'name:{node.name}')
         return node
 
     def parse_extends(self):
@@ -428,19 +426,14 @@ class Parser(object):
         the optional `with_condexpr` parameter is set to `False` conditional
         expressions are not parsed.
         """
-        if with_condexpr:
-            return self.parse_condexpr()
-        return self.parse_or()
+        return self.parse_condexpr() if with_condexpr else self.parse_or()
 
     def parse_condexpr(self):
         lineno = self.stream.current.lineno
         expr1 = self.parse_or()
         while self.stream.skip_if('name:if'):
             expr2 = self.parse_or()
-            if self.stream.skip_if('name:else'):
-                expr3 = self.parse_condexpr()
-            else:
-                expr3 = None
+            expr3 = self.parse_condexpr() if self.stream.skip_if('name:else') else None
             expr1 = nodes.CondExpr(expr2, expr1, expr3, lineno=lineno)
             lineno = self.stream.current.lineno
         return expr1
@@ -668,10 +661,8 @@ class Parser(object):
     def parse_postfix(self, node):
         while 1:
             token_type = self.stream.current.type
-            if token_type == 'dot' or token_type == 'lbracket':
+            if token_type in ['dot', 'lbracket']:
                 node = self.parse_subscript(node)
-            # calls are valid both after postfix expressions (getattr
-            # and getitem) as well as filters and tests
             elif token_type == 'lparen':
                 node = self.parse_call(node)
             else:

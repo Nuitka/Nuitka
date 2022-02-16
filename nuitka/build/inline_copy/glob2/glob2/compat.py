@@ -78,10 +78,8 @@ def lru_cache(maxsize=100, typed=False):
         if maxsize == 0:
 
             def wrapper(*args, **kwds):
-                # no caching, just do a statistics update after a successful call
-                result = user_function(*args, **kwds)
                 stats[MISSES] += 1
-                return result
+                return user_function(*args, **kwds)
 
         elif maxsize is None:
 

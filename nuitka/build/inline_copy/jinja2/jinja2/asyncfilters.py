@@ -10,8 +10,7 @@ async def auto_to_seq(value):
         async for item in value:
             seq.append(item)
     else:
-        for item in value:
-            seq.append(item)
+        seq.extend(iter(value))
     return seq
 
 

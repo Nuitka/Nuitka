@@ -26,10 +26,7 @@ class Symbols(object):
 
     def __init__(self, parent=None, level=None):
         if level is None:
-            if parent is None:
-                level = 0
-            else:
-                level = parent.level + 1
+            level = 0 if parent is None else parent.level + 1
         self.level = level
         self.parent = parent
         self.refs = {}
@@ -141,7 +138,7 @@ class Symbols(object):
         rv = set()
         node = self
         while node is not None:
-            for target, (instr, _) in iteritems(self.loads):
+            for target, (instr, _) in iteritems(node.loads):
                 if instr == VAR_LOAD_PARAMETER:
                     rv.add(target)
             node = node.parent

@@ -212,7 +212,7 @@ def spawn(sh, escape, cmd, args, env):
 # that we add.
 def escape(x):
     if x[-1] == '\\':
-        x = x + '\\'
+        x = f'{x}\\'
     return '"' + x + '"'
 
 # Get the windows system directory name
@@ -257,9 +257,7 @@ def get_program_files_dir():
             val, tok = SCons.Util.RegQueryValueEx(k, 'ProgramFilesDir')
         except SCons.Util.RegError:
             val = ''
-            pass
-
-    if val == '':
+    if not val:
         # A reasonable default if we can't read the registry
         # (Actually, it's pretty reasonable even if we can :-)
         val = os.path.join(os.path.dirname(get_system_root()),"Program Files")
@@ -350,13 +348,13 @@ def generate(env):
         if 'PATHEXT' in os.environ:
             tmp_pathext = os.environ['PATHEXT']
         cmd_interp = SCons.Util.WhereIs('cmd', tmp_path, tmp_pathext)
-        if not cmd_interp:
-            cmd_interp = SCons.Util.WhereIs('command', tmp_path, tmp_pathext)
+    if not cmd_interp:
+        cmd_interp = SCons.Util.WhereIs('command', tmp_path, tmp_pathext)
 
     if not cmd_interp:
         cmd_interp = env.Detect('cmd')
-        if not cmd_interp:
-            cmd_interp = env.Detect('command')
+    if not cmd_interp:
+        cmd_interp = env.Detect('command')
 
 
     if 'ENV' not in env:
@@ -372,16 +370,14 @@ def generate(env):
     # Weigh the impact carefully before adding other variables to this list.
     import_env = [ 'SystemDrive', 'SystemRoot', 'TEMP', 'TMP' ]
     for var in import_env:
-        v = os.environ.get(var)
-        if v:
+        if v := os.environ.get(var):
             env['ENV'][var] = v
 
     if 'COMSPEC' not in env['ENV']:
-        v = os.environ.get("COMSPEC")
-        if v:
+        if v := os.environ.get("COMSPEC"):
             env['ENV']['COMSPEC'] = v
 
-    env.AppendENVPath('PATH', get_system_root() + '\System32')
+    env.AppendENVPath('PATH', f'{get_system_root()}\\System32')
 
     env['ENV']['PATHEXT'] = '.COM;.EXE;.BAT;.CMD'
     env['OBJPREFIX']      = ''

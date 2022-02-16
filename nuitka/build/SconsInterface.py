@@ -75,15 +75,14 @@ def _getSconsBinaryCall():
             "ignore",  # Disable Python warnings in case of debug Python.
             getExternalUsePath(inline_path),
         ]
-    else:
-        scons_path = Execution.getExecutablePath("scons")
+    scons_path = Execution.getExecutablePath("scons")
 
-        if scons_path is not None:
-            return [scons_path]
-        else:
-            Tracing.scons_logger.sysexit(
-                "Error, the inline copy of scons is not present, nor a scons binary in the PATH."
-            )
+    if scons_path is not None:
+        return [scons_path]
+    else:
+        Tracing.scons_logger.sysexit(
+            "Error, the inline copy of scons is not present, nor a scons binary in the PATH."
+        )
 
 
 def _getPythonForSconsExePath():
@@ -371,19 +370,16 @@ def setCommonOptions(options):
     if Options.getLtoMode() != "auto":
         options["lto_mode"] = Options.getLtoMode()
 
-    cpp_defines = Plugins.getPreprocessorSymbols()
-    if cpp_defines:
+    if cpp_defines := Plugins.getPreprocessorSymbols():
         options["cpp_defines"] = ",".join(
             "%s%s%s" % (key, "=" if value else "", value or "")
             for key, value in cpp_defines.items()
         )
 
-    link_dirs = Plugins.getExtraLinkDirectories()
-    if link_dirs:
+    if link_dirs := Plugins.getExtraLinkDirectories():
         options["link_dirs"] = ",".join(link_dirs)
 
-    link_libraries = Plugins.getExtraLinkLibraries()
-    if link_libraries:
+    if link_libraries := Plugins.getExtraLinkLibraries():
         options["link_libraries"] = ",".join(link_libraries)
 
     if Utils.isMacOS():

@@ -97,7 +97,7 @@ class Value(SCons.Node.Node):
         ###TODO: something reasonable about universal newlines
         contents = str(self.value)
         for kid in self.children(None):
-            contents = contents + kid.get_contents()
+            contents += kid.get_contents()
         return contents
 
     get_contents = get_text_contents    ###TODO should return 'bytes' value

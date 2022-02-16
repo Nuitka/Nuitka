@@ -85,11 +85,12 @@ def filter(names, pat, norm_paths=True, case_sensitive=True, sep=None):
     result = []
     pat = _norm_paths(pat, norm_paths, sep)
     match = _compile_pattern(pat, case_sensitive)
-    for name in names:
-        m = match(_norm_paths(name, norm_paths, sep))
-        if m:
-            result.append((name,
-                           tuple(_norm_paths(p, norm_paths, sep) for p in m.groups())))
+    result.extend(
+        (name, tuple(_norm_paths(p, norm_paths, sep) for p in m.groups()))
+        for name in names
+        if (m := match(_norm_paths(name, norm_paths, sep)))
+    )
+
     return result
 
 
@@ -113,29 +114,29 @@ def translate(pat):
     res = ''
     while i < n:
         c = pat[i]
-        i = i+1
+        i += 1
         if c == '*':
-            res = res + '(.*)'
+            res += '(.*)'
         elif c == '?':
-            res = res + '(.)'
+            res += '(.)'
         elif c == '[':
             j = i
             if j < n and pat[j] == '!':
-                j = j+1
+                j += 1
             if j < n and pat[j] == ']':
-                j = j+1
+                j += 1
             while j < n and pat[j] != ']':
-                j = j+1
+                j += 1
             if j >= n:
-                res = res + '\\['
+                res += '\\['
             else:
                 stuff = pat[i:j].replace('\\','\\\\')
                 i = j+1
                 if stuff[0] == '!':
-                    stuff = '^' + stuff[1:]
+                    stuff = f'^{stuff[1:]}'
                 elif stuff[0] == '^':
-                    stuff = '\\' + stuff
+                    stuff = f'\\{stuff}'
                 res = '%s([%s])' % (res, stuff)
         else:
-            res = res + re.escape(c)
-    return '(?ms)' + res + '\Z'
+            res += re.escape(c)
+    return f'(?ms){res}\\Z'

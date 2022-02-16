@@ -46,14 +46,13 @@ from .SconsUtils import (
 def _detectWindowsSDK(env):
     # Check if there is a WindowsSDK installed.
     if env.msvc_mode or env.clangcl_mode:
-        if "WindowsSDKVersion" not in env:
-            if "WindowsSDKVersion" in os.environ:
-                windows_sdk_version = os.environ["WindowsSDKVersion"].rstrip("\\")
-            else:
-                windows_sdk_version = None
-        else:
+        if "WindowsSDKVersion" in env:
             windows_sdk_version = env["WindowsSDKVersion"]
 
+        elif "WindowsSDKVersion" in os.environ:
+            windows_sdk_version = os.environ["WindowsSDKVersion"].rstrip("\\")
+        else:
+            windows_sdk_version = None
         if not windows_sdk_version:
             scons_logger.sysexit(
                 "Error, the Windows SDK must be installed in Visual Studio."
@@ -308,11 +307,7 @@ def decideConstantsBlobResourceMode(env, module_mode):
         resource_mode = "win_resource"
         reason = "default for Windows"
     elif env.lto_mode and env.gcc_mode and not env.clang_mode:
-        if module_mode:
-            resource_mode = "code"
-        else:
-            resource_mode = "linker"
-
+        resource_mode = "code" if module_mode else "linker"
         reason = "default for lto gcc with --lto bugs for incbin"
     else:
         # All is done already, this is for most platforms.
@@ -429,11 +424,7 @@ unsigned char constant_bin_data[] =\n{\n
 
 def enableWindowsStackSize(env, target_arch):
     # Stack size 4MB or 8MB, we might need more than the default 1MB.
-    if target_arch == "x86_64":
-        stack_size = 1024 * 1204 * 8
-    else:
-        stack_size = 1024 * 1204 * 4
-
+    stack_size = 1024 * 1204 * 8 if target_arch == "x86_64" else 1024 * 1204 * 4
     if env.msvc_mode:
         env.Append(LINKFLAGS=["/STACK:%d" % stack_size])
 

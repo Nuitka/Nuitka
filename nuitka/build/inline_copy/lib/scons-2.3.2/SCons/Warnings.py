@@ -212,10 +212,7 @@ def process_warn_strings(arguments):
     """
 
     def _capitalize(s):
-        if s[:5] == "scons":
-            return "SCons" + s[5:]
-        else:
-            return s.capitalize()
+        return f'SCons{s[5:]}' if s[:5] == "scons" else s.capitalize()
 
     for arg in arguments:
 

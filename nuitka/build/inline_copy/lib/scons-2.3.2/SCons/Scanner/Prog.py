@@ -35,8 +35,7 @@ def ProgramScanner(**kw):
     """Return a prototype Scanner instance for scanning executable
     files for static-lib dependencies"""
     kw['path_function'] = SCons.Scanner.FindPathDirs('LIBPATH')
-    ps = SCons.Scanner.Base(scan, "ProgramScanner", **kw)
-    return ps
+    return SCons.Scanner.Base(scan, "ProgramScanner", **kw)
 
 def scan(node, env, libpath = ()):
     """
@@ -50,11 +49,7 @@ def scan(node, env, libpath = ()):
     except KeyError:
         # There are no LIBS in this environment, so just return a null list:
         return []
-    if SCons.Util.is_String(libs):
-        libs = libs.split()
-    else:
-        libs = SCons.Util.flatten(libs)
-
+    libs = libs.split() if SCons.Util.is_String(libs) else SCons.Util.flatten(libs)
     try:
         prefix = env['LIBPREFIXES']
         if not SCons.Util.is_List(prefix):
@@ -71,9 +66,7 @@ def scan(node, env, libpath = ()):
 
     pairs = []
     for suf in map(env.subst, suffix):
-        for pref in map(env.subst, prefix):
-            pairs.append((pref, suf))
-
+        pairs.extend((pref, suf) for pref in map(env.subst, prefix))
     result = []
 
     if callable(libpath):
@@ -86,8 +79,7 @@ def scan(node, env, libpath = ()):
             lib = env.subst(lib)
             for pref, suf in pairs:
                 l = adjustixes(lib, pref, suf)
-                l = find_file(l, libpath, verbose=print_find_libs)
-                if l:
+                if l := find_file(l, libpath, verbose=print_find_libs):
                     result.append(l)
         else:
             result.append(lib)

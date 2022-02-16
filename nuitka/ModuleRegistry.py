@@ -69,11 +69,7 @@ def getRootTopModule():
 
 
 def hasRootModule(module_name):
-    for module in root_modules:
-        if module.getFullName() == module_name:
-            return True
-
-    return False
+    return any(module.getFullName() == module_name for module in root_modules)
 
 
 def replaceRootModule(old, new):
@@ -117,10 +113,9 @@ def _normalizeModuleFilename(filename):
         suffix = ".cpython-%d.pyc" % (python_version // 10)
 
         if filename.endswith(suffix):
-            filename = filename[: -len(suffix)] + ".py"
-    else:
-        if filename.endswith(".pyc"):
-            filename = filename[:-3] + ".py"
+            filename = f'{filename[: -len(suffix)]}.py'
+    elif filename.endswith(".pyc"):
+        filename = f'{filename[:-3]}.py'
 
     if os.path.basename(filename) == "__init__.py":
         filename = os.path.dirname(filename)
@@ -129,15 +124,18 @@ def _normalizeModuleFilename(filename):
 
 
 def getUncompiledModule(module_name, module_filename):
-    for uncompiled_module in uncompiled_modules:
-        if module_name == uncompiled_module.getFullName():
-            if areSamePaths(
+    return next(
+        (
+            uncompiled_module
+            for uncompiled_module in uncompiled_modules
+            if module_name == uncompiled_module.getFullName()
+            and areSamePaths(
                 _normalizeModuleFilename(module_filename),
                 _normalizeModuleFilename(uncompiled_module.filename),
-            ):
-                return uncompiled_module
-
-    return None
+            )
+        ),
+        None,
+    )
 
 
 def removeUncompiledModule(module):
@@ -151,14 +149,12 @@ def startTraversal():
 
     active_modules = OrderedSet(root_modules)
 
-    active_modules_info = {}
-    for root_module in root_modules:
-        active_modules_info[root_module] = ActiveModuleInfo(
+    active_modules_info = {root_module: ActiveModuleInfo(
             using_module=None,
             usage_tag="root_module",
             reason="Root module",
             source_ref=None,
-        )
+        ) for root_module in root_modules}
     done_modules = set()
 
     for active_module in active_modules:
@@ -180,13 +176,12 @@ def addUsedModule(module, using_module, usage_tag, reason, source_ref):
 
 
 def nextModule():
-    if active_modules:
-        result = active_modules.pop()
-        done_modules.add(result)
-
-        return result
-    else:
+    if not active_modules:
         return None
+    result = active_modules.pop()
+    done_modules.add(result)
+
+    return result
 
 
 def getRemainingModulesCount():
@@ -206,11 +201,14 @@ def getModuleInclusionInfos():
 
 
 def getModuleInclusionInfoByName(module_name):
-    for module, info in active_modules_info.items():
-        if module.getFullName() == module_name:
-            return info
-
-    return None
+    return next(
+        (
+            info
+            for module, info in active_modules_info.items()
+            if module.getFullName() == module_name
+        ),
+        None,
+    )
 
 
 def removeDoneModule(module):
@@ -227,13 +225,12 @@ def getModuleFromCodeName(code_name):
 
 
 def getOwnerFromCodeName(code_name):
-    if "$$$" in code_name:
-        module_code_name, _function_code_name = code_name.split("$$$", 1)
-
-        module = getModuleFromCodeName(module_code_name)
-        return module.getFunctionFromCodeName(code_name)
-    else:
+    if "$$$" not in code_name:
         return getModuleFromCodeName(code_name)
+    module_code_name, _function_code_name = code_name.split("$$$", 1)
+
+    module = getModuleFromCodeName(module_code_name)
+    return module.getFunctionFromCodeName(code_name)
 
 
 def getModuleByName(module_name):
@@ -245,8 +242,11 @@ def getModuleByName(module_name):
         if module.getFullName() == module_name:
             return module
 
-    for module in uncompiled_modules:
-        if module.getFullName() == module_name:
-            return module
-
-    return None
+    return next(
+        (
+            module
+            for module in uncompiled_modules
+            if module.getFullName() == module_name
+        ),
+        None,
+    )

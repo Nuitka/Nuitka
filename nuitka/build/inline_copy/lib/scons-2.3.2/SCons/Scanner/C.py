@@ -98,8 +98,8 @@ class SConsCPPScannerWrapper(object):
                               cpppath = path,
                               dict = dictify_CPPDEFINES(env))
         result = cpp(node)
+        fmt = "No dependency generated for file: %s (included from: %s) -- file not found"
         for included, includer in cpp.missing:
-            fmt = "No dependency generated for file: %s (included from: %s) -- file not found"
             SCons.Warnings.warn(SCons.Warnings.DependencyWarning,
                                 fmt % (included, includer))
         return result
@@ -113,17 +113,12 @@ def CScanner():
     """Return a prototype Scanner instance for scanning source files
     that use the C pre-processor"""
 
-    # Here's how we would (or might) use the CPP scanner code above that
-    # knows how to evaluate #if/#ifdef/#else/#elif lines when searching
-    # for #includes.  This is commented out for now until we add the
-    # right configurability to let users pick between the scanners.
-    #return SConsCPPScannerWrapper("CScanner", "CPPPATH")
-
-    cs = SCons.Scanner.ClassicCPP("CScanner",
-                                  "$CPPSUFFIXES",
-                                  "CPPPATH",
-                                  '^[ \t]*#[ \t]*(?:include|import)[ \t]*(<|")([^>"]+)(>|")')
-    return cs
+    return SCons.Scanner.ClassicCPP(
+        "CScanner",
+        "$CPPSUFFIXES",
+        "CPPPATH",
+        '^[ \t]*#[ \t]*(?:include|import)[ \t]*(<|")([^>"]+)(>|")',
+    )
 
 # Local Variables:
 # tab-width:4

@@ -196,7 +196,7 @@ class OurLogger(object):
         self.my_print("FATAL: %s" % message, style="red", file=sys.stderr)
 
         traceback.print_exc()
-        self.sysexit("FATAL:" + repr(exception), exit_code=exit_code)
+        self.sysexit(f'FATAL:{repr(exception)}', exit_code=exit_code)
 
     def isQuiet(self):
         return is_quiet or self.is_quiet

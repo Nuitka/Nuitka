@@ -85,15 +85,9 @@ class TSObject(object):
         n = self.func()
         return getattr(n, attr)
     def __str__(self):
-        n = self.func()
-        if n:
-            return str(n)
-        return ''
+        return str(n) if (n := self.func()) else ''
     def __repr__(self):
-        n = self.func()
-        if n:
-            return repr(n)
-        return ''
+        return repr(n) if (n := self.func()) else ''
 
 def rfile(node):
     """
@@ -509,19 +503,11 @@ class Executor(object):
                 pass
 
         if node:
-            # TODO:  better way to do this (it's a linear search,
-            # but it may not be critical path)?
-            sourcelist = []
-            for b in self.batches:
-                if node in b.targets:
-                    sourcelist = b.sources
-                    break
+            sourcelist = next((b.sources for b in self.batches if node in b.targets), [])
         else:
             sourcelist = self.get_all_sources()
         if ignore:
-            idict = {}
-            for i in ignore:
-                idict[i] = 1
+            idict = {i: 1 for i in ignore}
             sourcelist = [s for s in sourcelist if s not in idict]
 
         memo_dict[key] = sourcelist

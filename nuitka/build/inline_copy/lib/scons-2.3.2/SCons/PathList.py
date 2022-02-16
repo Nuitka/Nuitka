@@ -108,10 +108,7 @@ class _PathList(object):
             except (AttributeError, TypeError):
                 type = TYPE_OBJECT
             else:
-                if index == -1:
-                    type = TYPE_STRING_NO_SUBST
-                else:
-                    type = TYPE_STRING_SUBST
+                type = TYPE_STRING_NO_SUBST if index == -1 else TYPE_STRING_SUBST
             pl.append((type, p))
 
         self.pathlist = tuple(pl)
@@ -135,8 +132,7 @@ class _PathList(object):
                 elif value:
                     result.append(value)
             elif type == TYPE_OBJECT:
-                value = node_conv(value)
-                if value:
+                if value := node_conv(value):
                     result.append(value)
             elif value:
                 result.append(value)

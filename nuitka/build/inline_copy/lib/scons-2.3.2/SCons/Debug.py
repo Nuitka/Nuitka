@@ -49,10 +49,7 @@ def logInstanceCreation(instance, name=None):
     tracked_classes[name].append(weakref.ref(instance))
 
 def string_to_classes(s):
-    if s == '*':
-        return sorted(tracked_classes.keys())
-    else:
-        return s.split()
+    return sorted(tracked_classes.keys()) if s == '*' else s.split()
 
 def fetchLoggedInstances(classes="*"):
     classnames = string_to_classes(classes)
@@ -180,11 +177,7 @@ def func_shorten(func_tuple):
 
 
 TraceFP = {}
-if sys.platform == 'win32':
-    TraceDefault = 'con'
-else:
-    TraceDefault = '/dev/tty'
-
+TraceDefault = 'con' if sys.platform == 'win32' else '/dev/tty'
 TimeStampDefault = None
 StartTime = time.time()
 PreviousTime = StartTime

@@ -92,7 +92,7 @@ def CachePushFunc(target, source, env):
 
     cd.CacheDebug('CachePush(%s):  pushing to %s\n', t, cachefile)
 
-    tempfile = cachefile+'.tmp'+str(os.getpid())
+    tempfile = f'{cachefile}.tmp{str(os.getpid())}'
     errfmt = "Unable to copy %s to cache. Cache file is %s"
 
     if not fs.isdir(cachedir):
@@ -151,7 +151,7 @@ class CacheDir(object):
             self.debugFP.write(fmt % (target, os.path.split(cachefile)[1]))
 
     def is_enabled(self):
-        return (cache_enabled and not self.path is None)
+        return cache_enabled and self.path is not None
 
     def is_readonly(self):
         return cache_readonly
@@ -200,9 +200,8 @@ class CacheDir(object):
             if CacheRetrieveSilent(node, [], env, execute=1) == 0:
                 node.build(presub=0, execute=0)
                 return True
-        else:
-            if CacheRetrieve(node, [], env, execute=1) == 0:
-                return True
+        elif CacheRetrieve(node, [], env, execute=1) == 0:
+            return True
 
         return False
 

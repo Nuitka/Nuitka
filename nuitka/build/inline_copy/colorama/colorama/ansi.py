@@ -13,7 +13,7 @@ def code_to_chars(code):
     return CSI + str(code) + 'm'
 
 def set_title(title):
-    return OSC + '2;' + title + BEL
+    return f'{OSC}2;{title}{BEL}'
 
 def clear_screen(mode=2):
     return CSI + str(mode) + 'J'

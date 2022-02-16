@@ -119,9 +119,8 @@ _null = _Null
 
 def match_splitext(path, suffixes = []):
     if suffixes:
-        matchsuf = [S for S in suffixes if path[-len(S):] == S]
-        if matchsuf:
-            suf = max([(len(_f),_f) for _f in matchsuf])[1]
+        if matchsuf := [S for S in suffixes if path[-len(S) :] == S]:
+            suf = max((len(_f),_f) for _f in matchsuf)[1]
             return [path[:-len(suf)], path[-len(suf):]]
     return SCons.Util.splitext(path)
 
@@ -193,8 +192,7 @@ class DictEmitter(SCons.Util.Selector):
     returned.
     """
     def __call__(self, target, source, env):
-        emitter = SCons.Util.Selector.__call__(self, env, source)
-        if emitter:
+        if emitter := SCons.Util.Selector.__call__(self, env, source):
             target, source = emitter(target, source, env)
         return (target, source)
 
@@ -275,7 +273,7 @@ def Builder(**kw):
 
     result = BuilderBase(**kw)
 
-    if not composite is None:
+    if composite is not None:
         result = CompositeBuilder(result, composite)
 
     return result
@@ -292,7 +290,7 @@ def _node_errors(builder, env, tlist, slist):
         if t.side_effect:
             raise UserError("Multiple ways to build the same target were specified for: %s" % t)
         if t.has_explicit_builder():
-            if not t.env is None and not t.env is env:
+            if t.env is not None and t.env is not env:
                 action = t.builder.action
                 t_contents = action.get_contents(tlist, slist, t.env)
                 contents = action.get_contents(tlist, slist, env)
@@ -315,9 +313,8 @@ def _node_errors(builder, env, tlist, slist):
                 msg = "Multiple ways to build the same target were specified for: %s  (from %s and from %s)" % (t, list(map(str, t.sources)), list(map(str, slist)))
                 raise UserError(msg)
 
-    if builder.single_source:
-        if len(slist) > 1:
-            raise UserError("More than one source given for single-source builder: targets=%s sources=%s" % (list(map(str,tlist)), list(map(str,slist))))
+    if builder.single_source and len(slist) > 1:
+        raise UserError("More than one source given for single-source builder: targets=%s sources=%s" % (list(map(str,tlist)), list(map(str,slist))))
 
 class EmitterProxy(object):
     """This is a callable class that can act as a
@@ -417,7 +414,7 @@ class BuilderBase(object):
         if name:
             self.name = name
         self.executor_kw = {}
-        if not chdir is _null:
+        if chdir is not _null:
             self.executor_kw['chdir'] = chdir
         self.is_explicit = is_explicit
 
@@ -453,10 +450,7 @@ class BuilderBase(object):
     def splitext(self, path, env=None):
         if not env:
             env = self.env
-        if env:
-            suffixes = self.src_suffixes(env)
-        else:
-            suffixes = []
+        suffixes = self.src_suffixes(env) if env else []
         return match_splitext(path, suffixes)
 
     def _adjustixes(self, files, pre, suf, ensure_suffix=False):
@@ -542,10 +536,10 @@ class BuilderBase(object):
 
         if self.single_source and len(source) > 1 and target is None:
             result = []
-            if target is None: target = [None]*len(source)
+            target = [None]*len(source)
             for tgt, src in zip(target, source):
-                if not tgt is None: tgt = [tgt]
-                if not src is None: src = [src]
+                if tgt is not None: tgt = [tgt]
+                if src is not None: src = [src]
                 result.extend(self._execute(env, tgt, src, overwarn))
             return SCons.Node.NodeList(result)
 
@@ -633,8 +627,8 @@ class BuilderBase(object):
         return self._execute(env, target, source, OverrideWarner(kw), ekw)
 
     def adjust_suffix(self, suff):
-        if suff and not suff[0] in [ '.', '_', '$' ]:
-            return '.' + suff
+        if suff and suff[0] not in ['.', '_', '$']:
+            return f'.{suff}'
         return suff
 
     def get_prefix(self, env, sources=[]):
@@ -723,10 +717,7 @@ class BuilderBase(object):
 
         def match_src_suffix(name, src_suffixes=src_suffixes, lengths=lengths):
             node_suffixes = [name[-l:] for l in lengths]
-            for suf in src_suffixes:
-                if suf in node_suffixes:
-                    return suf
-            return None
+            return next((suf for suf in src_suffixes if suf in node_suffixes), None)
 
         result = []
         for s in SCons.Util.flatten(source):
@@ -830,10 +821,8 @@ class BuilderBase(object):
         (This value isn't cached because there may be changes in a
         src_builder many levels deep that we can't see.)
         """
-        sdict = {}
         suffixes = self.subst_src_suffixes(env)
-        for s in suffixes:
-            sdict[s] = 1
+        sdict = {s: 1 for s in suffixes}
         for builder in self.get_src_builders(env):
             for s in builder.src_suffixes(env):
                 if s not in sdict:

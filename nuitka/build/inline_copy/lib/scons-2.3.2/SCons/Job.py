@@ -367,66 +367,66 @@ else:
             self.maxjobs = num
 
         def start(self):
-            """Start the job. This will begin pulling tasks from the
+           """Start the job. This will begin pulling tasks from the
             taskmaster and executing them, and return when there are no
             more tasks. If a task fails to execute (i.e. execute() raises
             an exception), then the job will stop."""
 
-            jobs = 0
+           jobs = 0
 
-            while True:
+           while True:
                 # Start up as many available tasks as we're
                 # allowed to.
-                while jobs < self.maxjobs:
-                    task = self.taskmaster.next_task()
-                    if task is None:
-                        break
+              while jobs < self.maxjobs:
+                 task = self.taskmaster.next_task()
+                 if task is None:
+                     break
 
-                    try:
-                        # prepare task for execution
-                        task.prepare()
-                    except:
-                        task.exception_set()
-                        task.failed()
-                        task.postprocess()
+                 try:
+                    # prepare task for execution
+                    task.prepare()
+                 except:
+                     task.exception_set()
+                     task.failed()
+                     task.postprocess()
+                 else:
+                    if task.needs_execute():
+                       # dispatch task
+                       self.tp.put(task)
+                       jobs += 1
                     else:
-                        if task.needs_execute():
-                            # dispatch task
-                            self.tp.put(task)
-                            jobs = jobs + 1
-                        else:
-                            task.executed()
-                            task.postprocess()
+                       task.executed()
+                       task.postprocess()
 
-                if not task and not jobs: break
+              if not task and not jobs: break
 
                 # Let any/all completed tasks finish up before we go
                 # back and put the next batch of tasks on the queue.
-                while True:
-                    task, ok = self.tp.get()
-                    jobs = jobs - 1
+              while True:
+                 task, ok = self.tp.get()
+                 jobs -= 1
 
-                    if ok:
-                        task.executed()
-                    else:
-                        if self.interrupted():
-                            try:
-                                raise SCons.Errors.BuildError(
-                                    task.targets[0], errstr=interrupt_msg)
-                            except:
-                                task.exception_set()
+                 if ok:
+                     task.executed()
+                 else:
+                     if self.interrupted():
+                         try:
+                             raise SCons.Errors.BuildError(
+                                 task.targets[0], errstr=interrupt_msg)
+                         except:
+                             task.exception_set()
 
-                        # Let the failed() callback function arrange
-                        # for the build to stop if that's appropriate.
-                        task.failed()
+                     # Let the failed() callback function arrange
+                     # for the build to stop if that's appropriate.
+                     task.failed()
 
-                    task.postprocess()
+                 task.postprocess()
 
-                    if self.tp.resultsQueue.empty():
-                        break
+                 if self.tp.resultsQueue.empty():
+                     break
 
-            self.tp.cleanup()
-            self.taskmaster.cleanup()
+           self.tp.cleanup()
+           self.taskmaster.cleanup()
 
 # Local Variables:
 # tab-width:4

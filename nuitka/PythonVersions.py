@@ -56,15 +56,15 @@ def getSupportedPythonVersionStr():
 
 
 def _getPythonVersion():
-    big, major, minor = sys.version_info[0:3]
+    big, major, minor = sys.version_info[:3]
 
     return big * 256 + major * 16 + min(15, minor)
 
 
 python_version = _getPythonVersion()
 
-python_version_full_str = ".".join(str(s) for s in sys.version_info[0:3])
-python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
+python_version_full_str = ".".join(str(s) for s in sys.version_info[:3])
+python_version_str = ".".join(str(s) for s in sys.version_info[:2])
 
 
 def getErrorMessageExecWithNestedFunction():
@@ -129,10 +129,7 @@ def needsSetLiteralReverseInsertion():
 
 
 def needsDuplicateArgumentColOffset():
-    if python_version < 0x353:
-        return False
-    else:
-        return True
+    return python_version >= 0x353
 
 
 def getRunningPythonDLLPath():
@@ -170,14 +167,14 @@ def getTargetPythonDLLPath():
 
     if dll_path.endswith("_d.dll"):
         if not isPythonDebug():
-            dll_path = dll_path[:-6] + ".dll"
+            dll_path = f'{dll_path[:-6]}.dll'
 
         if not os.path.exists(dll_path):
             sys.exit("Error, cannot switch to non-debug Python, not installed.")
 
     else:
         if isPythonDebug():
-            dll_path = dll_path[:-4] + "_d.dll"
+            dll_path = f'{dll_path[:-4]}_d.dll'
 
         if not os.path.exists(dll_path):
             sys.exit("Error, cannot switch to debug Python, not installed.")
@@ -199,9 +196,7 @@ def isStaticallyLinkedPython():
         # about that anyway.
         return False
 
-    result = sysconfig.get_config_var("Py_ENABLE_SHARED") == 0
-
-    return result
+    return sysconfig.get_config_var("Py_ENABLE_SHARED") == 0
 
 
 def getPythonABI():
@@ -211,9 +206,10 @@ def getPythonABI():
         # Cyclic dependency here.
         from nuitka.Options import isPythonDebug
 
-        if isPythonDebug() or hasattr(sys, "getobjects"):
-            if not abiflags.startswith("d"):
-                abiflags = "d" + abiflags
+        if (
+            isPythonDebug() or hasattr(sys, "getobjects")
+        ) and not abiflags.startswith("d"):
+            abiflags = f'd{abiflags}'
     else:
         abiflags = ""
 
@@ -311,7 +307,9 @@ def getImportlibSubPackages():
         import importlib
         import pkgutil
 
-        for module_info in pkgutil.walk_packages(importlib.__path__):
-            result.append(module_info[1])
+        result.extend(
+            module_info[1]
+            for module_info in pkgutil.walk_packages(importlib.__path__)
+        )
 
     return result

@@ -104,11 +104,12 @@ def _getBuiltinNames():
     if "__spec__" in names:
         names.remove("__spec__")
 
-    warnings = []
+    warnings = [
+        builtin_name
+        for builtin_name in names
+        if builtin_name.endswith("Warning")
+    ]
 
-    for builtin_name in names:
-        if builtin_name.endswith("Warning"):
-            warnings.append(builtin_name)
 
     for builtin_name in warnings:
         names.remove(builtin_name)
@@ -117,7 +118,7 @@ def _getBuiltinNames():
 
 
 builtin_names, builtin_warnings = _getBuiltinNames()
-builtin_named_values = dict((getattr(builtins, x), x) for x in builtin_names)
+builtin_named_values = {getattr(builtins, x): x for x in builtin_names}
 builtin_named_values_list = tuple(builtin_named_values)
 
 assert type in builtin_named_values
@@ -133,11 +134,12 @@ builtin_all_names = builtin_names + builtin_exception_names + builtin_warnings
 
 
 def getBuiltinTypeNames():
-    result = []
+    result = [
+        builtin_name
+        for builtin_name in builtin_names
+        if isinstance(getattr(builtins, builtin_name), type)
+    ]
 
-    for builtin_name in builtin_names:
-        if isinstance(getattr(builtins, builtin_name), type):
-            result.append(builtin_name)
 
     return tuple(sorted(result))
 

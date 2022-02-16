@@ -114,12 +114,7 @@ class SourceCodeReference(object):
         Avoids useless copies, by returning an internal object again if
         it is already internal.
         """
-        if not self.isInternal():
-            result = self._clone(self.line)
-
-            return result
-        else:
-            return self
+        return self._clone(self.line) if not self.isInternal() else self
 
     def atLineNumber(self, line):
         """Make a reference to the same file, but different line.
@@ -130,20 +125,16 @@ class SourceCodeReference(object):
 
         assert type(line) is int, line
 
-        if self.line != line:
-            return self._clone(line)
-        else:
-            return self
+        return self._clone(line) if self.line != line else self
 
     def atColumnNumber(self, column):
         assert type(column) is int, column
 
-        if self.column != column:
-            result = self._clone(self.line)
-            result.column = column
-            return result
-        else:
+        if self.column == column:
             return self
+        result = self._clone(self.line)
+        result.column = column
+        return result
 
     def getLineNumber(self):
         return self.line

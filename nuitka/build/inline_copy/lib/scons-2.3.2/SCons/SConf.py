@@ -88,7 +88,7 @@ def SetCacheMode(mode):
     elif mode == "cache":
         cache_mode = CACHE
     else:
-        raise ValueError("SCons.SConf.SetCacheMode: Unknown mode " + mode)
+        raise ValueError(f'SCons.SConf.SetCacheMode: Unknown mode {mode}')
 
 progress_display = SCons.Util.display # will be overwritten by SCons.Script
 def SetProgressDisplay(display):
@@ -104,27 +104,23 @@ _ac_config_hs   = {}  # all config.h files created in this build
 sconf_global = None   # current sconf object
 
 def _createConfigH(target, source, env):
-    t = open(str(target[0]), "w")
-    defname = re.sub('[^A-Za-z0-9_]', '_', str(target[0]).upper())
-    t.write("""#ifndef %(DEFNAME)s_SEEN
+    with open(str(target[0]), "w") as t:
+        defname = re.sub('[^A-Za-z0-9_]', '_', str(target[0]).upper())
+        t.write("""#ifndef %(DEFNAME)s_SEEN
 #define %(DEFNAME)s_SEEN
 
 """ % {'DEFNAME' : defname})
-    t.write(source[0].get_contents())
-    t.write("""
+        t.write(source[0].get_contents())
+        t.write("""
 #endif /* %(DEFNAME)s_SEEN */
 """ % {'DEFNAME' : defname})
-    t.close()
 
 def _stringConfigH(target, source, env):
-    return "scons: Configure: creating " + str(target[0])
+    return f'scons: Configure: creating {str(target[0])}'
 
 
 def NeedConfigHBuilder():
-    if len(_ac_config_hs) == 0:
-       return False
-    else:
-       return True
+    return len(_ac_config_hs) != 0
 
 def CreateConfigHBuilder(env):
     """Called if necessary just before the building targets phase begins."""
@@ -163,9 +159,8 @@ class ConfigureCacheError(SConfError):
 
 # define actions for building text files
 def _createSource( target, source, env ):
-    fd = open(str(target[0]), "w")
-    fd.write(source[0].get_contents())
-    fd.close()
+    with open(str(target[0]), "w") as fd:
+        fd.write(source[0].get_contents())
 def _stringSource( target, source, env ):
     return (str(target[0]) + ' <-\n  |' +
             source[0].get_contents().replace( '\n', "\n  |" ) )
@@ -226,7 +221,7 @@ class SConfBuildTask(SCons.Taskmaster.AlwaysTask):
     """
     def display(self, message):
         if sconf_global.logstream:
-            sconf_global.logstream.write("scons: Configure: " + message + "\n")
+            sconf_global.logstream.write(f'scons: Configure: {message}' + "\n")
 
     def display_cached_string(self, bi):
         """
@@ -237,8 +232,12 @@ class SConfBuildTask(SCons.Taskmaster.AlwaysTask):
             SCons.Warnings.warn(SConfWarning,
               "The stored build information has an unexpected class: %s" % bi.__class__)
         else:
-            self.display("The original builder output was:\n" +
-                         ("  |" + str(bi.string)).replace("\n", "\n  |"))
+            self.display(
+                (
+                    "The original builder output was:\n"
+                    + f'  |{str(bi.string)}'.replace("\n", "\n  |")
+                )
+            )
 
     def failed(self):
         # check, if the reason was a ConfigureDryRunError or a
@@ -476,9 +475,7 @@ class SConfBase(object):
             define_str = "#define %s %s" % (name, value)
         else:
             define_str = "#define %s" % name
-        lines.append(define_str)
-        lines.append('')
-
+        lines.extend((define_str, ''))
         self.config_h_text = self.config_h_text + '\n'.join(lines)
 
     def BuildNodes(self, nodes):
@@ -520,8 +517,7 @@ class SConfBase(object):
             jobs.run()
             for n in nodes:
                 state = n.get_state()
-                if (state != SCons.Node.executed and
-                    state != SCons.Node.up_to_date):
+                if state not in [SCons.Node.executed, SCons.Node.up_to_date]:
                     # the node could not be built. we return 0 in this case
                     ret = 0
         finally:
@@ -566,7 +562,7 @@ class SConfBase(object):
 
         nodesToBeBuilt = []
 
-        f = "conftest_" + str(_ac_build_counter)
+        f = f'conftest_{str(_ac_build_counter)}'
         pref = self.env.subst( builder.builder.prefix )
         suff = self.env.subst( builder.builder.suffix )
         target = self.confdir.File(pref + f + suff)
@@ -596,11 +592,7 @@ class SConfBase(object):
             self.env['SPAWN'] = save_spawn
 
         _ac_build_counter = _ac_build_counter + 1
-        if result:
-            self.lastTarget = nodes[0]
-        else:
-            self.lastTarget = None
-
+        self.lastTarget = nodes[0] if result else None
         return result
 
     def TryAction(self, action, text = None, extension = ""):
@@ -641,15 +633,15 @@ class SConfBase(object):
         is saved in self.lastTarget (for further processing).
         """
         ok = self.TryLink(text, extension)
-        if( ok ):
+        if ok:
             prog = self.lastTarget
             pname = prog.path
-            output = self.confdir.File(os.path.basename(pname)+'.out')
+            output = self.confdir.File(f'{os.path.basename(pname)}.out')
             node = self.env.Command(output, prog, [ [ pname, ">", "${TARGET}"] ])
             ok = self.BuildNodes(node)
-            if ok:
-                outputStr = output.get_contents()
-                return( 1, outputStr)
+        if ok:
+            outputStr = output.get_contents()
+            return( 1, outputStr)
         return (0, "")
 
     class TestWrapper(object):
@@ -684,10 +676,9 @@ class SConfBase(object):
         if dryrun:
             if not os.path.isdir( dirName ):
                 raise ConfigureDryRunError(dirName)
-        else:
-            if not os.path.isdir( dirName ):
-                os.makedirs( dirName )
-                node._exists = 1
+        elif not os.path.isdir( dirName ):
+            os.makedirs( dirName )
+            node._exists = 1
 
     def _startup(self):
         """Private method. Set up logstream, and set the environment
@@ -751,7 +742,7 @@ class SConfBase(object):
         self.env.Replace( BUILDERS=blds )
         self.active = 0
         sconf_global = None
-        if not self.config_h is None:
+        if self.config_h is not None:
             _ac_config_hs[self.config_h] = self.config_h_text
         self.env.fs = self.lastEnvFs
 
@@ -882,10 +873,10 @@ class CheckContext(object):
             # We assume that Display is called twice for each test here
             # once for the Checking for ... message and once for the result.
             # The self.sconf.cached flag can only be set between those calls
-            msg = "(cached) " + msg
+            msg = f'(cached) {msg}'
             self.sconf.cached = 0
         progress_display(msg, append_newline=0)
-        self.Log("scons: Configure: " + msg + "\n")
+        self.Log(f'scons: Configure: {msg}' + "\n")
 
     def Log(self, msg):
         if self.sconf.logstream is not None:
@@ -895,16 +886,15 @@ class CheckContext(object):
 
 
 def SConf(*args, **kw):
-    if kw.get(build_type, True):
-        kw['_depth'] = kw.get('_depth', 0) + 1
-        for bt in build_types:
-            try:
-                del kw[bt]
-            except KeyError:
-                pass
-        return SConfBase(*args, **kw)
-    else:
+    if not kw.get(build_type, True):
         return SCons.Util.Null()
+    kw['_depth'] = kw.get('_depth', 0) + 1
+    for bt in build_types:
+        try:
+            del kw[bt]
+        except KeyError:
+            pass
+    return SConfBase(*args, **kw)
 
 
 def CheckFunc(context, function_name, header = None, language = None):
@@ -937,15 +927,13 @@ def createIncludesFromHeaders(headers, leaveLast, include_quotes = '""'):
     # statements from the specified header (list)
     if not SCons.Util.is_List(headers):
         headers = [headers]
-    l = []
     if leaveLast:
         lastHeader = headers[-1]
         headers = headers[:-1]
     else:
         lastHeader = None
-    for s in headers:
-        l.append("#include %s%s%s\n"
-                 % (include_quotes[0], s, include_quotes[1]))
+    l = ["#include %s%s%s\n"
+                 % (include_quotes[0], s, include_quotes[1]) for s in headers]
     return ''.join(l), lastHeader
 
 def CheckHeader(context, header, include_quotes = '<>', language = None):

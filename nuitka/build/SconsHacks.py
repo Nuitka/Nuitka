@@ -119,8 +119,7 @@ def _myDetectVersion(env, clvar):
 
     line = line.strip()
 
-    match = re.findall(r"[0-9]+(?:\.[0-9]+)+", line)
-    if match:
+    if match := re.findall(r"[0-9]+(?:\.[0-9]+)+", line):
         version = match[0]
     else:
         # gcc 8 or higher

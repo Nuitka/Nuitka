@@ -21,6 +21,7 @@
 
 """
 
+
 import os
 import sys
 
@@ -99,7 +100,7 @@ if os.path.exists("deb_dist"):
 
 for filename in os.listdir("."):
     if filename.endswith(".tar.gz"):
-        new_name = filename[:-7] + "+ds.tar.gz"
+        new_name = f'{filename[:-7]}+ds.tar.gz'
 
         cleanupTarfileForDebian(filename, new_name)
 
@@ -129,13 +130,13 @@ assert os.system("lintian --pedantic dist/deb_dist/*.changes") == 0
 os.system("cp dist/deb_dist/*.deb dist/")
 
 for filename in os.listdir("dist/deb_dist"):
-    if os.path.isdir("dist/deb_dist/" + filename):
-        shutil.rmtree("dist/deb_dist/" + filename)
+    if os.path.isdir(f'dist/deb_dist/{filename}'):
+        shutil.rmtree(f'dist/deb_dist/{filename}')
 
 # Sign the result files. The Debian binary package was copied here.
 for filename in os.listdir("dist"):
-    if os.path.isfile("dist/" + filename):
-        assert os.system("chmod 644 dist/" + filename) == 0
+    if os.path.isfile(f'dist/{filename}'):
+        assert os.system(f'chmod 644 dist/{filename}') == 0
         assert (
             os.system("gpg --local-user 2912B99C --detach-sign dist/" + filename) == 0
         )

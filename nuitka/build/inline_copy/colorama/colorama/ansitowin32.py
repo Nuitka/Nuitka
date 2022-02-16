@@ -8,9 +8,7 @@ from .winterm import WinTerm, WinColor, WinStyle
 from .win32 import windll, winapi_test
 
 
-winterm = None
-if windll is not None:
-    winterm = WinTerm()
+winterm = WinTerm() if windll is not None else None
 
 
 class StreamWrapper(object):
@@ -42,9 +40,12 @@ class StreamWrapper(object):
 
     def isatty(self):
         stream = self.__wrapped
-        if 'PYCHARM_HOSTED' in os.environ:
-            if stream is not None and (stream is sys.__stdout__ or stream is sys.__stderr__):
-                return True
+        if (
+            'PYCHARM_HOSTED' in os.environ
+            and stream is not None
+            and (stream is sys.__stdout__ or stream is sys.__stderr__)
+        ):
+            return True
         try:
             stream_isatty = stream.isatty
         except AttributeError:
@@ -210,7 +211,7 @@ class AnsiToWin32(object):
                 params = params + (1,)
         else:
             params = tuple(int(p) for p in paramstring.split(';') if len(p) != 0)
-            if len(params) == 0:
+            if not params:
                 # defaults:
                 if command in 'JKm':
                     params = (0,)
@@ -247,12 +248,11 @@ class AnsiToWin32(object):
             start, end = match.span()
             text = text[:start] + text[end:]
             paramstring, command = match.groups()
-            if command == BEL:
-                if paramstring.count(";") == 1:
-                    params = paramstring.split(";")
-                    # 0 - change title and icon (we will only change title)
-                    # 1 - change icon (we don't support this)
-                    # 2 - change title
-                    if params[0] in '02':
-                        winterm.set_title(params[1])
+            if command == BEL and paramstring.count(";") == 1:
+                params = paramstring.split(";")
+                # 0 - change title and icon (we will only change title)
+                # 1 - change icon (we don't support this)
+                # 2 - change title
+                if params[0] in '02':
+                    winterm.set_title(params[1])
         return text

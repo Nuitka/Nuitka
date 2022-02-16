@@ -8,6 +8,7 @@
     :copyright: (c) 2017 by the Jinja Team.
     :license: BSD, see LICENSE for more details.
 """
+
 from jinja2._compat import range_type
 from jinja2.utils import generate_lorem_ipsum, Cycler, Joiner, Namespace
 
@@ -53,4 +54,4 @@ DEFAULT_POLICIES = {
 
 
 # export all constants
-__all__ = tuple(x for x in locals().keys() if x.isupper())
+__all__ = tuple(x for x in locals() if x.isupper())

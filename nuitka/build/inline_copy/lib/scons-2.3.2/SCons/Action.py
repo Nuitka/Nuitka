@@ -152,10 +152,10 @@ else:
             if op >= HAVE_ARGUMENT:
                 if op != SET_LINENO:
                     result.append(code[i:i+3])
-                i = i+3
+                i += 3
             else:
                 result.append(c)
-                i = i+1
+                i += 1
         return ''.join(result)
 
 strip_quotes = re.compile('^[\'"](.*)[\'"]$')
@@ -233,11 +233,8 @@ def _code_contents(code):
     recompilations from moving a Python function.
     """
 
-    contents = []
+    contents = ["%s,%s" % (code.co_argcount, len(code.co_varnames))]
 
-    # The code contents depends on the number of local variables
-    # but not their actual names.
-    contents.append("%s,%s" % (code.co_argcount, len(code.co_varnames)))
     try:
         contents.append(",%s,%s" % (len(code.co_cellvars), len(code.co_freevars)))
     except AttributeError:
@@ -262,7 +259,7 @@ def _code_contents(code):
 
 
     # The code contents depends on its actual code!!!
-    contents.append(',(' + str(remove_set_lineno_codes(code.co_code)) + ')')
+    contents.append(f',({str(remove_set_lineno_codes(code.co_code))})')
 
     return ''.join(contents)
 
@@ -305,16 +302,17 @@ def _actionAppend(act1, act2):
         return a2
     if a2 is None:
         return a1
-    if isinstance(a1, ListAction):
-        if isinstance(a2, ListAction):
-            return ListAction(a1.list + a2.list)
-        else:
-            return ListAction(a1.list + [ a2 ])
+    if not isinstance(a1, ListAction):
+        return (
+            ListAction([a1] + a2.list)
+            if isinstance(a2, ListAction)
+            else ListAction([a1, a2])
+        )
+
+    if isinstance(a2, ListAction):
+        return ListAction(a1.list + a2.list)
     else:
-        if isinstance(a2, ListAction):
-            return ListAction([ a1 ] + a2.list)
-        else:
-            return ListAction([ a1, a2 ])
+        return ListAction(a1.list + [ a2 ])
 
 def _do_create_keywords(args, kw):
     """This converts any arguments after the action argument into
@@ -366,15 +364,11 @@ def _do_create_action(act, kw):
             del kw['generator']
         except KeyError:
             gen = 0
-        if gen:
-            action_type = CommandGeneratorAction
-        else:
-            action_type = FunctionAction
+        action_type = CommandGeneratorAction if gen else FunctionAction
         return action_type(act, kw)
 
     if is_String(act):
-        var=SCons.Util.get_environment_var(act)
-        if var:
+        if var := SCons.Util.get_environment_var(act):
             # This looks like a string that is purely an Environment
             # variable reference, like "$FOO" or "${FOO}".  We do
             # something special here...we lazily evaluate the contents
@@ -389,7 +383,7 @@ def _do_create_action(act, kw):
         # reprocess them via _do_create_list_action.
         return _do_create_list_action(commands, kw)
     # Catch a common error case with a nice message:
-    if isinstance(act, int) or isinstance(act, float):
+    if isinstance(act, (int, float)):
         raise TypeError("Don't know how to create an Action from a number (%s)"%act)
     # Else fail silently (???)
     return None
@@ -439,9 +433,13 @@ class ActionBase(object):
         # we duplicate this check here.
         vl = self.get_varlist(target, source, env)
         if is_String(vl): vl = (vl,)
-        for v in vl:
-            # do the subst this way to ignore $(...$) parts:
-            result.append(env.subst_target_source('${'+v+'}', SCons.Subst.SUBST_SIG, target, source))
+        result.extend(
+            env.subst_target_source(
+                '${' + v + '}', SCons.Subst.SUBST_SIG, target, source
+            )
+            for v in vl
+        )
+
         return ''.join(result)
 
     def __add__(self, other):
@@ -532,8 +530,8 @@ class _ActionAction(ActionBase):
 
         if presub is _null:
             presub = self.presub
-            if presub is _null:
-                presub = print_actions_presub
+        if presub is _null:
+            presub = print_actions_presub
         if exitstatfunc is _null: exitstatfunc = self.exitstatfunc
         if show is _null:  show = print_actions
         if execute is _null:  execute = execute_actions
@@ -585,8 +583,7 @@ class _ActionAction(ActionBase):
             try:
                 stat = self.execute(target, source, env, executor=executor)
                 if isinstance(stat, SCons.Errors.BuildError):
-                    s = exitstatfunc(stat.status)
-                    if s:
+                    if s := exitstatfunc(stat.status):
                         stat.status = s
                     else:
                         stat = s
@@ -704,10 +701,9 @@ class CommandAction(_ActionAction):
         if SCons.Debug.track_instances: logInstanceCreation(self, 'Action.CommandAction')
 
         _ActionAction.__init__(self, **kw)
-        if is_List(cmd):
-            if list(filter(is_List, cmd)):
-                raise TypeError("CommandAction should be given only " \
-                      "a single command")
+        if is_List(cmd) and list(filter(is_List, cmd)):
+            raise TypeError("CommandAction should be given only " \
+                  "a single command")
         self.cmd_list = cmd
 
     def __str__(self):
@@ -823,10 +819,7 @@ class CommandAction(_ActionAction):
         """
         from SCons.Subst import SUBST_SIG
         cmd = self.cmd_list
-        if is_List(cmd):
-            cmd = ' '.join(map(str, cmd))
-        else:
-            cmd = str(cmd)
+        cmd = ' '.join(map(str, cmd)) if is_List(cmd) else str(cmd)
         if executor:
             return env.subst_target_source(cmd, SUBST_SIG, executor=executor)
         else:
@@ -847,11 +840,9 @@ class CommandAction(_ActionAction):
         for cmd_line in cmd_list:
             if cmd_line:
                 d = str(cmd_line[0])
-                m = strip_quotes.match(d)
-                if m:
+                if m := strip_quotes.match(d):
                     d = m.group(1)
-                d = env.WhereIs(d)
-                if d:
+                if d := env.WhereIs(d):
                     res.append(env.fs.File(d))
         return res
 
@@ -955,15 +946,12 @@ class LazyAction(CommandGeneratorAction, CommandAction):
 
     def get_parent_class(self, env):
         c = env.get(self.var)
-        if is_String(c) and not '\n' in c:
+        if is_String(c) and '\n' not in c:
             return CommandAction
         return CommandGeneratorAction
 
     def _generate_cache(self, env):
-        if env:
-            c = env.get(self.var, '')
-        else:
-            c = ''
+        c = env.get(self.var, '') if env else ''
         gen_cmd = Action(c, **self.gen_kw)
         if not gen_cmd:
             raise SCons.Errors.UserError("$%s value %s cannot be used to create an Action." % (self.var, repr(c)))
@@ -1113,9 +1101,7 @@ class ListAction(ActionBase):
     def __init__(self, actionlist):
         if SCons.Debug.track_instances: logInstanceCreation(self, 'Action.ListAction')
         def list_of_actions(x):
-            if isinstance(x, ActionBase):
-                return x
-            return Action(x)
+            return x if isinstance(x, ActionBase) else Action(x)
         self.list = list(map(list_of_actions, actionlist))
         # our children will have had any varlist
         # applied; we don't need to do it again
@@ -1145,9 +1131,17 @@ class ListAction(ActionBase):
             target = executor.get_all_targets()
             source = executor.get_all_sources()
         for act in self.list:
-            stat = act(target, source, env, exitstatfunc, presub,
-                       show, execute, chdir, executor)
-            if stat:
+            if stat := act(
+                target,
+                source,
+                env,
+                exitstatfunc,
+                presub,
+                show,
+                execute,
+                chdir,
+                executor,
+            ):
                 return stat
         return 0
 
@@ -1198,9 +1192,7 @@ class ActionCaller(object):
         # If s is a list, recursively apply subst()
         # to every element in the list
         if is_List(s):
-            result = []
-            for elem in s:
-                result.append(self.subst(elem, target, source, env))
+            result = [self.subst(elem, target, source, env) for elem in s]
             return self.parent.convert(result)
 
         # Special-case hack:  Let a custom function wrapped in an
@@ -1216,10 +1208,10 @@ class ActionCaller(object):
         return [self.subst(x, target, source, env) for x in self.args]
 
     def subst_kw(self, target, source, env):
-        kw = {}
-        for key in self.kw.keys():
-            kw[key] = self.subst(self.kw[key], target, source, env)
-        return kw
+        return {
+            key: self.subst(self.kw[key], target, source, env)
+            for key in self.kw.keys()
+        }
 
     def __call__(self, target, source, env, executor=None):
         args = self.subst_args(target, source, env)
@@ -1250,8 +1242,7 @@ class ActionFactory(object):
 
     def __call__(self, *args, **kw):
         ac = ActionCaller(self, args, kw)
-        action = Action(ac, strfunction=ac.strfunction)
-        return action
+        return Action(ac, strfunction=ac.strfunction)
 
 # Local Variables:
 # tab-width:4

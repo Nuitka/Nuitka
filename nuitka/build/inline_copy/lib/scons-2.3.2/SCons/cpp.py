@@ -87,7 +87,7 @@ del op_list
 override = {
     'if'                        : 'if(?!def)',
 }
-l = [override.get(x, x) for x in Table.keys()]
+l = [override.get(x, x) for x in Table]
 
 
 # Turn the list of expressions into one big honkin' regular expression
@@ -202,13 +202,10 @@ class FunctionEvaluator(object):
         # corresponding values in this "call."  We'll use this when we
         # eval() the expansion so that arguments will get expanded to
         # the right values.
-        locals = {}
-        for k, v in zip(self.args, values):
-            locals[k] = v
-
+        locals = dict(zip(self.args, values))
         parts = []
         for s in self.expansion:
-            if not s in self.args:
+            if s not in self.args:
                 s = repr(s)
             parts.append(s)
         statement = ' + '.join(parts)
@@ -267,7 +264,7 @@ class PreProcessor(object):
             'scons_current_file'    : self.scons_current_file
         }
         for op in Table.keys():
-            d[op] = getattr(self, 'do_' + op)
+            d[op] = getattr(self, f'do_{op}')
         self.default_table = d
 
     # Controlling methods.
@@ -370,10 +367,7 @@ class PreProcessor(object):
         """
         fname = t[2]
         for d in self.searchpath[t[1]]:
-            if d == os.curdir:
-                f = fname
-            else:
-                f = os.path.join(d, fname)
+            f = fname if d == os.curdir else os.path.join(d, fname)
             if os.path.isfile(f):
                 return f
         return None
@@ -508,8 +502,7 @@ class PreProcessor(object):
         Default handling of a #include line.
         """
         t = self.resolve_include(t)
-        include_file = self.find_include_file(t)
-        if include_file:
+        if include_file := self.find_include_file(t):
             #print "include_file =", include_file
             self.result.append(include_file)
             contents = self.read_file(include_file)
@@ -546,7 +539,7 @@ class PreProcessor(object):
         where FILE is a #define somewhere else.
         """
         s = t[1]
-        while not s[0] in '<"':
+        while s[0] not in '<"':
             #print "s =", s
             try:
                 s = self.cpp_namespace[s]

@@ -77,20 +77,17 @@ def compileSourceToBytecode(source_code, filename):
                 _removeDocFromBody(node)
 
     if str is bytes:
-        bytecode = compile(
+        return compile(
             tree,
             filename=filename,
             mode="exec",
             dont_inherit=True,
         )
-    else:
-        # Let the handling of __debug__ happen within compile built-in.
-        optimize = 0
-        if hasPythonFlagNoAsserts():
-            optimize = 1
-
-        bytecode = compile(
-            tree, filename=filename, mode="exec", dont_inherit=True, optimize=optimize
-        )
-
-    return bytecode
+    optimize = 1 if hasPythonFlagNoAsserts() else 0
+    return compile(
+        tree,
+        filename=filename,
+        mode="exec",
+        dont_inherit=True,
+        optimize=optimize,
+    )

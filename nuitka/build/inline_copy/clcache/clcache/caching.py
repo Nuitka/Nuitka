@@ -117,14 +117,13 @@ def childDirectories(path, absolute=True):
 
 
 def normalizeBaseDir(baseDir):
-    if baseDir:
-        baseDir = os.path.normcase(baseDir)
-        if baseDir.endswith(os.path.sep):
-            baseDir = baseDir[0:-1]
-        return baseDir
-    else:
+    if not baseDir:
         # Converts empty string to None
         return None
+    baseDir = os.path.normcase(baseDir)
+    if baseDir.endswith(os.path.sep):
+        baseDir = baseDir[:-1]
+    return baseDir
 
 
 def getCachedCompilerConsoleOutput(path):
@@ -186,7 +185,7 @@ class ManifestSection(object):
         self.lock = CacheLock.forPath(self.manifestSectionDir)
 
     def manifestPath(self, manifestHash):
-        return os.path.join(self.manifestSectionDir, manifestHash + ".json")
+        return os.path.join(self.manifestSectionDir, f'{manifestHash}.json')
 
     def manifestFiles(self):
         return filesBeneath(self.manifestSectionDir)
@@ -300,10 +299,14 @@ class ManifestRepository(object):
         for k in sorted(arguments.keys()):
             if k in argumentsWithPaths:
                 commandLine.extend(
-                    ["/" + k + collapseBasedirInCmdPath(arg) for arg in arguments[k]]
+                    [
+                        f'/{k}{collapseBasedirInCmdPath(arg)}'
+                        for arg in arguments[k]
+                    ]
                 )
+
             else:
-                commandLine.extend(["/" + k + arg for arg in arguments[k]])
+                commandLine.extend([f'/{k}{arg}' for arg in arguments[k]])
 
         commandLine.extend(collapseBasedirInCmdPath(arg) for arg in inputFiles)
 
@@ -358,7 +361,7 @@ class CacheLock(object):
     WAIT_TIMEOUT_CODE = 0x00000102
 
     def __init__(self, mutexName, timeoutMs):
-        self._mutexName = u"Local\\" + mutexName
+        self._mutexName = f'Local\\{mutexName}'
         self._mutex = None
         self._timeoutMs = timeoutMs
 
@@ -434,7 +437,7 @@ class CompilerArtifactsSection(object):
     def setEntry(self, key, artifacts):
         cacheEntryDir = self.cacheEntryDir(key)
         # Write new files to a temporary directory
-        tempEntryDir = cacheEntryDir + ".new"
+        tempEntryDir = f'{cacheEntryDir}.new'
         # Remove any possible left-over in tempEntryDir from previous executions
         rmtree(tempEntryDir, ignore_errors=True)
         ensureDirectoryExists(tempEntryDir)
@@ -1012,27 +1015,26 @@ def getCompilerHash(compilerBinary):
 
 
 def getFileHashes(filePaths):
-    if "CLCACHE_SERVER" in os.environ:
-        pipeName = r"\\.\pipe\clcache_srv"
-        while True:
-            try:
-                with open(pipeName, "w+b") as f:
-                    f.write("\n".join(filePaths).encode("utf8"))
-                    f.write(b"\x00")
-                    response = f.read()
-                    if response.startswith(b"!"):
-                        raise pickle.loads(response[1:-1])
-                    return response[:-1].decode("utf8").splitlines()
-            except OSError as e:
-                if (
-                    e.errno == errno.EINVAL
-                    and windll.kernel32.GetLastError() == ERROR_PIPE_BUSY
-                ):
-                    windll.kernel32.WaitNamedPipeW(pipeName, NMPWAIT_WAIT_FOREVER)
-                else:
-                    raise
-    else:
+    if "CLCACHE_SERVER" not in os.environ:
         return [getFileHash(filePath) for filePath in filePaths]
+    pipeName = r"\\.\pipe\clcache_srv"
+    while True:
+        try:
+            with open(pipeName, "w+b") as f:
+                f.write("\n".join(filePaths).encode("utf8"))
+                f.write(b"\x00")
+                response = f.read()
+                if response.startswith(b"!"):
+                    raise pickle.loads(response[1:-1])
+                return response[:-1].decode("utf8").splitlines()
+        except OSError as e:
+            if (
+                e.errno == errno.EINVAL
+                and windll.kernel32.GetLastError() == ERROR_PIPE_BUSY
+            ):
+                windll.kernel32.WaitNamedPipeW(pipeName, NMPWAIT_WAIT_FOREVER)
+            else:
+                raise
 
 
 _hash_cache = {}
@@ -1064,29 +1066,28 @@ def getStringHash(dataString):
 
 def expandBasedirPlaceholder(path):
     baseDir = normalizeBaseDir(os.environ.get("CLCACHE_BASEDIR"))
-    if path.startswith(BASEDIR_REPLACEMENT):
-        if not baseDir:
-            print(
-                "No CLCACHE_BASEDIR set, but found relative path " + path,
-                file=sys.stderr,
-            )
-            sys.exit(1)
-        return path.replace(BASEDIR_REPLACEMENT, baseDir, 1)
-    else:
+    if not path.startswith(BASEDIR_REPLACEMENT):
         return path
+    if not baseDir:
+        print(
+            f'No CLCACHE_BASEDIR set, but found relative path {path}',
+            file=sys.stderr,
+        )
+
+        sys.exit(1)
+    return path.replace(BASEDIR_REPLACEMENT, baseDir, 1)
 
 
 def collapseBasedirToPlaceholder(path):
     baseDir = normalizeBaseDir(os.environ.get("CLCACHE_BASEDIR"))
     if baseDir is None:
         return path
+    assert path == os.path.normcase(path)
+    assert baseDir == os.path.normcase(baseDir)
+    if path.startswith(baseDir):
+        return path.replace(baseDir, BASEDIR_REPLACEMENT, 1)
     else:
-        assert path == os.path.normcase(path)
-        assert baseDir == os.path.normcase(baseDir)
-        if path.startswith(baseDir):
-            return path.replace(baseDir, BASEDIR_REPLACEMENT, 1)
-        else:
-            return path
+        return path
 
 
 def ensureDirectoryExists(path):
@@ -1115,7 +1116,7 @@ def copyOrLink(srcFilePath, dstFilePath, writeCache=False):
     # If hardlinking fails for some reason (or it's not enabled), just
     # fall back to moving bytes around. Always to a temporary path first to
     # lower the chances of corrupting it.
-    tempDst = dstFilePath + ".tmp"
+    tempDst = f'{dstFilePath}.tmp'
 
     if "CLCACHE_COMPRESS" in os.environ:
         if "CLCACHE_COMPRESSLEVEL" in os.environ:
@@ -1207,10 +1208,9 @@ class CommandLineTokenizer(object):
             self._pos += 1
             numBackslashes += 1
 
-        followedByDoubleQuote = (
+        if followedByDoubleQuote := (
             self._pos < len(self._content) and self._content[self._pos] == '"'
-        )
-        if followedByDoubleQuote:
+        ):
             self._token += "\\" * (numBackslashes // 2)
             if numBackslashes % 2 == 0:
                 self._pos -= 1
@@ -1285,7 +1285,7 @@ class Argument(object):
         return len(self.name)
 
     def __str__(self):
-        return "/" + self.name
+        return f'/{self.name}'
 
     def __eq__(self, other):
         return type(self) == type(other) and self.name == other.name
@@ -1365,11 +1365,14 @@ class CommandLineAnalyzer(object):
 
     @staticmethod
     def _getParameterizedArgumentType(cmdLineArgument):
-        # Sort by length to handle prefixes
-        for arg in CommandLineAnalyzer.argumentsWithParameterSorted:
-            if cmdLineArgument.startswith(arg.name, 1):
-                return arg
-        return None
+        return next(
+            (
+                arg
+                for arg in CommandLineAnalyzer.argumentsWithParameterSorted
+                if cmdLineArgument.startswith(arg.name, 1)
+            ),
+            None,
+        )
 
     @staticmethod
     def parseArgumentsAndInputFiles(cmdline):
@@ -1472,9 +1475,10 @@ class CommandLineAnalyzer(object):
         if objectFiles is None:
             # Generate from .c/.cpp filenames
             objectFiles = [
-                os.path.join(prefix, basenameWithoutExtension(f)) + ".obj"
+                f'{os.path.join(prefix, basenameWithoutExtension(f))}.obj'
                 for f, _ in inputFiles
             ]
+
 
         printTraceStatement("Compiler source files: {}".format(inputFiles))
         printTraceStatement("Compiler object file: {}".format(objectFiles))
@@ -1699,11 +1703,10 @@ def createManifestEntry(manifestHash, includePaths):
 def run(cache, compiler, compiler_args, env):
     printTraceStatement("Found real compiler binary at '{0!s}'".format(compiler))
 
-    if "CLCACHE_DISABLE" in os.environ:
-        exit_code, out, err = invokeRealCompiler(compiler, compiler_args, env)
-        return exit_code, [out], [err]
-    else:
+    if "CLCACHE_DISABLE" not in os.environ:
         return processCompileRequest(cache, compiler, compiler_args, env)
+    exit_code, out, err = invokeRealCompiler(compiler, compiler_args, env)
+    return exit_code, [out], [err]
 
 
 cache = None
@@ -1799,7 +1802,7 @@ def processCompileRequest(cache, compiler, args, env):
 def filterSourceFiles(
     cmdLine, sourceFiles
 ):
-    setOfSources = set(sourceFile for sourceFile, _ in sourceFiles)
+    setOfSources = {sourceFile for sourceFile, _ in sourceFiles}
     skippedArgs = ("/Tc", "/Tp", "-Tp", "-Tc")
     return (
         arg

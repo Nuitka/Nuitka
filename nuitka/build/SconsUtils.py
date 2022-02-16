@@ -87,12 +87,11 @@ def getArgumentDefaulted(name, default):
 
 def getArgumentInt(option_name, default=None):
     """Small helper for boolean mode flags."""
-    if default is None:
-        value = scons_arguments[option_name]
-    else:
-        value = int(scons_arguments.get(option_name, default))
-
-    return value
+    return (
+        scons_arguments[option_name]
+        if default is None
+        else int(scons_arguments.get(option_name, default))
+    )
 
 
 def getArgumentBool(option_name, default=None):
@@ -112,10 +111,7 @@ def getArgumentList(option_name, default=None):
     else:
         value = scons_arguments.get(option_name, default)
 
-    if value:
-        return value.split(",")
-    else:
-        return []
+    return value.split(",") if value else []
 
 
 def _enableExperimentalSettings(env, experimental_flags):
@@ -229,11 +225,7 @@ def getExecutablePath(filename, env):
 
     # Either look at the initial "PATH" as given from the outside or look at the
     # current environment.
-    if env is None:
-        search_path = os.environ["PATH"]
-    else:
-        search_path = env._dict["ENV"]["PATH"]  # pylint: disable=protected-access
-
+    search_path = os.environ["PATH"] if env is None else env._dict["ENV"]["PATH"]
     # Now check in each path element, much like the shell will.
     path_elements = search_path.split(os.pathsep)
 
@@ -297,7 +289,7 @@ def writeSconsReport(env, source_dir):
 
             # TODO: For these kinds of prints, maybe have our own method of doing them
             # rather than print, or maybe just json or something similar.
-            print(key + "=" + value, file=report_file)
+            print(f'{key}={value}', file=report_file)
 
         print("gcc_mode=%s" % env.gcc_mode, file=report_file)
         print("clang_mode=%s" % env.clang_mode, file=report_file)
@@ -502,28 +494,27 @@ def getMsvcVersion(env):
 
 
 def _getBinaryArch(binary, mingw_mode):
-    if "linux" in sys.platform or mingw_mode:
-        assert os.path.exists(binary), binary
-
-        command = ["objdump", "-f", binary]
-
-        try:
-            data, _err, rv = executeProcess(command)
-        except OSError:
-            return None
-
-        if rv != 0:
-            return None
-
-        if str is not bytes:
-            data = decodeData(data)
-
-        for line in data.splitlines():
-            if " file format " in line:
-                return line.split(" file format ")[-1]
-    else:
+    if "linux" not in sys.platform and not mingw_mode:
         # TODO: Missing for macOS, FreeBSD, other Linux
         return None
+    assert os.path.exists(binary), binary
+
+    command = ["objdump", "-f", binary]
+
+    try:
+        data, _err, rv = executeProcess(command)
+    except OSError:
+        return None
+
+    if rv != 0:
+        return None
+
+    if str is not bytes:
+        data = decodeData(data)
+
+    for line in data.splitlines():
+        if " file format " in line:
+            return line.split(" file format ")[-1]
 
 
 _linker_arch_determined = False
@@ -536,10 +527,7 @@ def getLinkerArch(target_arch, mingw_mode):
 
     if not _linker_arch_determined:
         if win_target:
-            if target_arch == "x86_64":
-                _linker_arch = "pei-x86-64"
-            else:
-                _linker_arch = "pei-i386"
+            _linker_arch = "pei-x86-64" if target_arch == "x86_64" else "pei-i386"
         else:
             _linker_arch = _getBinaryArch(
                 binary=os.environ["NUITKA_PYTHON_EXE_PATH"], mingw_mode=mingw_mode

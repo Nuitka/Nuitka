@@ -105,9 +105,8 @@ def _filterMsvcLinkOutput(env, module_mode, data, exit_code):
 
     # The linker will say generating code at the end, due to localization
     # we don't know.
-    if env.lto_mode and exit_code == 0:
-        if len(data.split(b"\r\n")) == 2:
-            data = b""
+    if env.lto_mode and exit_code == 0 and len(data.split(b"\r\n")) == 2:
+        data = b""
 
     if env.pgo_mode == "use" and exit_code == 0:
         # Very spammy, partially in native language for PGO link.
@@ -135,10 +134,7 @@ def getWindowsSpawnFunction(env, module_mode, source_files):
         # For quoted arguments that end in a backslash, things don't work well
         # this is a workaround for it.
         def removeTrailingSlashQuote(arg):
-            if arg.endswith(r"\""):
-                return arg[:-1] + '\\"'
-            else:
-                return arg
+            return arg[:-1] + '\\"' if arg.endswith(r"\"") else arg
 
         newargs = " ".join(removeTrailingSlashQuote(arg) for arg in args[1:])
         cmdline = cmd + " " + newargs

@@ -63,21 +63,15 @@ else:
 # (Yeah, yeah, YAGNI...)
 def containsAny(str, set):
     """Check whether sequence str contains ANY of the items in set."""
-    for c in set:
-        if c in str: return 1
-    return 0
+    return next((1 for c in set if c in str), 0)
 
 def containsAll(str, set):
     """Check whether sequence str contains ALL of the items in set."""
-    for c in set:
-        if c not in str: return 0
-    return 1
+    return next((0 for c in set if c not in str), 1)
 
 def containsOnly(str, set):
     """Check whether sequence str contains ONLY items in set."""
-    for c in str:
-        if c not in set: return 0
-    return 1
+    return next((0 for c in str if c not in set), 1)
 
 def splitext(path):
     "Same as os.path.splitext() but faster."
@@ -136,15 +130,10 @@ def get_environment_var(varstr):
     to a single environment variable, like "$FOO" or "${FOO}".
     If so, return that variable with no decorations ("FOO").
     If not, return None."""
-    mo=_get_env_var.match(to_String(varstr))
-    if mo:
-        var = mo.group(1)
-        if var[0] == '{':
-            return var[1:-1]
-        else:
-            return var
-    else:
+    if not (mo := _get_env_var.match(to_String(varstr))):
         return None
+    var = mo.group(1)
+    return var[1:-1] if var[0] == '{' else var
 
 class DisplayEngine(object):
     print_it = True
@@ -182,25 +171,19 @@ def render_tree(root, child_func, prune=0, margin=[0], visited={}):
     rname = str(root)
 
     children = child_func(root)
-    retval = ""
-    for pipe in margin[:-1]:
-        if pipe:
-            retval = retval + "| "
-        else:
-            retval = retval + "  "
-
+    retval = "".join("| " if pipe else "  " for pipe in margin[:-1])
     if rname in visited:
-        return retval + "+-[" + rname + "]\n"
+        return f'{retval}+-[{rname}' + "]\n"
 
-    retval = retval + "+-" + rname + "\n"
+    retval = f'{retval}+-{rname}' + "\n"
     if not prune:
         visited = copy.copy(visited)
     visited[rname] = 1
 
     for i in range(len(children)):
         margin.append(i<len(children)-1)
-        retval = retval + render_tree(children[i], child_func, prune, margin, visited
-)
+        retval +=         render_tree(children[i], child_func, prune, margin, visited
+        )
         margin.pop()
 
     return retval
@@ -402,9 +385,7 @@ def to_String_for_subst(s,
     if isinstance(s, BaseStringTypes):
         return s
     elif isinstance(s, SequenceTypes):
-        l = []
-        for e in s:
-            l.append(to_String_for_subst(e))
+        l = [to_String_for_subst(e) for e in s]
         return ' '.join( s )
     elif isinstance(s, UserString):
         # s.data can only be either a unicode or a regular
@@ -439,17 +420,9 @@ def to_String_for_signature(obj, to_String_for_subst=to_String_for_subst,
 _semi_deepcopy_dispatch = d = {}
 
 def semi_deepcopy_dict(x, exclude = [] ):
-    copy = {}
-    for key, val in x.items():
-        # The regular Python copy.deepcopy() also deepcopies the key,
-        # as follows:
-        #
-        #    copy[semi_deepcopy(key)] = semi_deepcopy(val)
-        #
-        # Doesn't seem like we need to, but we'll comment it just in case.
-        if key not in exclude:
-            copy[key] = semi_deepcopy(val)
-    return copy
+    return {
+        key: semi_deepcopy(val) for key, val in x.items() if key not in exclude
+    }
 d[dict] = semi_deepcopy_dict
 
 def _semi_deepcopy_list(x):
@@ -461,18 +434,16 @@ def _semi_deepcopy_tuple(x):
 d[tuple] = _semi_deepcopy_tuple
 
 def semi_deepcopy(x):
-    copier = _semi_deepcopy_dispatch.get(type(x))
-    if copier:
+    if copier := _semi_deepcopy_dispatch.get(type(x)):
         return copier(x)
-    else:
-        if hasattr(x, '__semi_deepcopy__') and callable(x.__semi_deepcopy__):
-            return x.__semi_deepcopy__()
-        elif isinstance(x, UserDict):
-            return x.__class__(semi_deepcopy_dict(x))
-        elif isinstance(x, UserList):
-            return x.__class__(_semi_deepcopy_list(x))
+    if hasattr(x, '__semi_deepcopy__') and callable(x.__semi_deepcopy__):
+        return x.__semi_deepcopy__()
+    elif isinstance(x, UserDict):
+        return x.__class__(semi_deepcopy_dict(x))
+    elif isinstance(x, UserList):
+        return x.__class__(_semi_deepcopy_list(x))
 
-        return x
+    return x
 
 
 class Proxy(object):
@@ -752,7 +723,7 @@ def PrependPath(oldpath, newpath, sep = os.pathsep,
     orig = oldpath
     is_list = 1
     paths = orig
-    if not is_List(orig) and not is_Tuple(orig):
+    if not is_List(paths) and not is_Tuple(paths):
         paths = paths.split(sep)
         is_list = 0
 
@@ -766,6 +737,7 @@ def PrependPath(oldpath, newpath, sep = os.pathsep,
     if canonicalize:
         newpaths=list(map(canonicalize, newpaths))
 
+    normpaths = []
     if not delete_existing:
         # First uniquify the old paths, making sure to
         # preserve the first instance (in Unix/Linux,
@@ -773,7 +745,6 @@ def PrependPath(oldpath, newpath, sep = os.pathsep,
         # Then insert the new paths at the head of the list
         # if they're not already in the normpaths list.
         result = []
-        normpaths = []
         for path in paths:
             if not path:
                 continue
@@ -794,19 +765,15 @@ def PrependPath(oldpath, newpath, sep = os.pathsep,
     else:
         newpaths = newpaths + paths # prepend new paths
 
-        normpaths = []
         paths = []
         # now we add them only if they are unique
         for path in newpaths:
             normpath = os.path.normpath(os.path.normcase(path))
-            if path and not normpath in normpaths:
+            if path and normpath not in normpaths:
                 paths.append(path)
                 normpaths.append(normpath)
 
-    if is_list:
-        return paths
-    else:
-        return sep.join(paths)
+    return paths if is_list else sep.join(paths)
 
 def AppendPath(oldpath, newpath, sep = os.pathsep,
                delete_existing=1, canonicalize=None):
@@ -833,7 +800,7 @@ def AppendPath(oldpath, newpath, sep = os.pathsep,
     orig = oldpath
     is_list = 1
     paths = orig
-    if not is_List(orig) and not is_Tuple(orig):
+    if not is_List(paths) and not is_Tuple(paths):
         paths = paths.split(sep)
         is_list = 0
 
@@ -847,6 +814,7 @@ def AppendPath(oldpath, newpath, sep = os.pathsep,
     if canonicalize:
         newpaths=list(map(canonicalize, newpaths))
 
+    normpaths = []
     if not delete_existing:
         # add old paths to result, then
         # add new paths if not already present
@@ -854,7 +822,6 @@ def AppendPath(oldpath, newpath, sep = os.pathsep,
         # but it's not clear hashing the strings would be faster
         # than linear searching these typically short lists.)
         result = []
-        normpaths = []
         for path in paths:
             if not path:
                 continue
@@ -874,26 +841,22 @@ def AppendPath(oldpath, newpath, sep = os.pathsep,
         newpaths = paths + newpaths # append new paths
         newpaths.reverse()
 
-        normpaths = []
         paths = []
         # now we add them only if they are unique
         for path in newpaths:
             normpath = os.path.normpath(os.path.normcase(path))
-            if path and not normpath in normpaths:
+            if path and normpath not in normpaths:
                 paths.append(path)
                 normpaths.append(normpath)
         paths.reverse()
 
-    if is_list:
-        return paths
-    else:
-        return sep.join(paths)
+    return paths if is_list else sep.join(paths)
 
 if sys.platform == 'cygwin':
     def get_native_path(path):
         """Transforms an absolute path into a native path for the system.  In
         Cygwin, this converts from a Cygwin path to a Windows one."""
-        return os.popen('cygpath -w ' + path).read().replace('\n', '')
+        return os.popen(f'cygpath -w {path}').read().replace('\n', '')
 else:
     def get_native_path(path):
         """Transforms an absolute path into a native path for the system.
@@ -1310,11 +1273,7 @@ def make_path_relative(path):
         drive_s,path = os.path.splitdrive(path)
 
         import re
-        if not drive_s:
-            path=re.compile("/*(.*)").findall(path)[0]
-        else:
-            path=path[1:]
-
+        path = re.compile("/*(.*)").findall(path)[0] if not drive_s else path[1:]
     assert( not os.path.isabs( path ) ), path
     return path
 
@@ -1387,9 +1346,8 @@ def MD5signature(s):
     return str(s)
 
 def MD5filesignature(fname, chunksize=65536):
-    f = open(fname, "rb")
-    result = f.read()
-    f.close()
+    with open(fname, "rb") as f:
+        result = f.read()
     return result
 
 try:
@@ -1406,13 +1364,12 @@ else:
 
         def MD5filesignature(fname, chunksize=65536):
             m = hashlib.md5()
-            f = open(fname, "rb")
-            while True:
-                blck = f.read(chunksize)
-                if not blck:
-                    break
-                m.update(str(blck))
-            f.close()
+            with open(fname, "rb") as f:
+                while True:
+                    blck = f.read(chunksize)
+                    if not blck:
+                        break
+                    m.update(str(blck))
             return m.hexdigest()
 
 def MD5collect(signatures):
@@ -1452,7 +1409,7 @@ def silent_intern(x):
 class Null(object):
     """ Null objects always and reliably "do nothing." """
     def __new__(cls, *args, **kwargs):
-        if not '_instance' in vars(cls):
+        if '_instance' not in vars(cls):
             cls._instance = super(Null, cls).__new__(cls, *args, **kwargs)
         return cls._instance
     def __init__(self, *args, **kwargs):

@@ -130,7 +130,7 @@ class NodeInfoBase(object):
             except AttributeError:
                 pass
             try:
-                func = getattr(node, 'get_' + f)
+                func = getattr(node, f'get_{f}')
             except AttributeError:
                 pass
             else:
@@ -153,7 +153,7 @@ class NodeInfoBase(object):
                 f = None
             f = str(f)
             if names:
-                f = field + ': ' + f
+                f = f'{field}: {f}'
             fields.append(f)
         return fields
 
@@ -400,11 +400,13 @@ class Node(object):
 
         if self.pseudo:
             if self.exists():
-                raise SCons.Errors.UserError("Pseudo target " + str(self) + " must not exist")
-        else:
-            if not self.exists() and do_store_info:
-                SCons.Warnings.warn(SCons.Warnings.TargetNotBuiltWarning,
-                                    "Cannot find target " + str(self) + " after building")
+                raise SCons.Errors.UserError(f'Pseudo target {str(self)} must not exist')
+        elif not self.exists() and do_store_info:
+            SCons.Warnings.warn(
+                SCons.Warnings.TargetNotBuiltWarning,
+                f'Cannot find target {str(self)} after building',
+            )
+
         self.ninfo.update(self)
 
     def visited(self):
@@ -578,13 +580,15 @@ class Node(object):
         #scanner = scanner.select(self)
 
         nodes = [self]
-        seen = {}
-        seen[self] = 1
+        seen = {self: 1}
         deps = []
         while nodes:
             n = nodes.pop(0)
-            d = [x for x in n.get_found_includes(env, scanner, path) if x not in seen]
-            if d:
+            if d := [
+                x
+                for x in n.get_found_includes(env, scanner, path)
+                if x not in seen
+            ]:
                 deps.extend(d)
                 for n in d:
                     seen[n] = 1
@@ -674,10 +678,7 @@ class Node(object):
         # Have the executor scan the sources.
         executor.scan_sources(self.builder.source_scanner)
 
-        # If there's a target scanner, have the executor scan the target
-        # node itself and associated targets that might be built.
-        scanner = self.get_target_scanner()
-        if scanner:
+        if scanner := self.get_target_scanner():
             executor.scan_targets(scanner)
 
     def scanner_key(self):
@@ -706,8 +707,7 @@ class Node(object):
     BuildInfo = BuildInfoBase
 
     def new_ninfo(self):
-        ninfo = self.NodeInfo(self)
-        return ninfo
+        return self.NodeInfo(self)
 
     def get_ninfo(self):
         try:
@@ -717,8 +717,7 @@ class Node(object):
             return self.ninfo
 
     def new_binfo(self):
-        binfo = self.BuildInfo(self)
-        return binfo
+        return self.BuildInfo(self)
 
     def get_binfo(self):
         """
@@ -749,17 +748,14 @@ class Node(object):
             binfo.bactsig = SCons.Util.MD5signature(executor.get_contents())
 
         if self._specific_sources:
-            sources = []
-            for s in self.sources:
-                if s not in ignore_set:
-                    sources.append(s)
+            sources = [s for s in self.sources if s not in ignore_set]
         else:
             sources = executor.get_unignored_sources(self, self.ignore)
         seen = set()
         bsources = []
         bsourcesigs = []
         for s in sources:
-            if not s in seen:
+            if s not in seen:
                 seen.add(s)
                 bsources.append(s)
                 bsourcesigs.append(s.get_ninfo())
@@ -767,18 +763,12 @@ class Node(object):
         binfo.bsourcesigs = bsourcesigs
 
         depends = self.depends
-        dependsigs = []
-        for d in depends:
-            if d not in ignore_set:
-                dependsigs.append(d.get_ninfo())
+        dependsigs = [d.get_ninfo() for d in depends if d not in ignore_set]
         binfo.bdepends = depends
         binfo.bdependsigs = dependsigs
 
         implicit = self.implicit or []
-        implicitsigs = []
-        for i in implicit:
-            if i not in ignore_set:
-                implicitsigs.append(i.get_ninfo())
+        implicitsigs = [i.get_ninfo() for i in implicit if i not in ignore_set]
         binfo.bimplicit = implicit
         binfo.bimplicitsigs = implicitsigs
 
@@ -833,13 +823,13 @@ class Node(object):
         """Set the Node's noclean value."""
         # Make sure noclean is an integer so the --debug=stree
         # output in Util.py can use it as an index.
-        self.noclean = noclean and 1 or 0
+        self.noclean = 1 if noclean else 0
 
     def set_nocache(self, nocache = 1):
         """Set the Node's nocache value."""
         # Make sure nocache is an integer so the --debug=stree
         # output in Util.py can use it as an index.
-        self.nocache = nocache and 1 or 0
+        self.nocache = 1 if nocache else 0
 
     def set_always_build(self, always_build = 1):
         """Set the Node's always_build value."""
@@ -969,10 +959,7 @@ class Node(object):
         if self.ignore_set:
             iter = chain.from_iterable(filter(None, [self.sources, self.depends, self.implicit]))
 
-            children = []
-            for i in iter:
-                if i not in self.ignore_set:
-                    children.append(i)
+            children = [i for i in iter if i not in self.ignore_set]
         else:
             children = self.all_children(scan=0)
 
@@ -1083,8 +1070,7 @@ class Node(object):
         then = bi.bsourcesigs + bi.bdependsigs + bi.bimplicitsigs
         children = self.children()
 
-        diff = len(children) - len(then)
-        if diff:
+        if diff := len(children) - len(then):
             # The old and new dependency lists are different lengths.
             # This always indicates that the Node must be rebuilt.
             # We also extend the old dependency list with enough None
@@ -1107,9 +1093,8 @@ class Node(object):
                 if t: Trace(': bactsig %s != newsig %s' % (bi.bactsig, newsig))
                 result = True
 
-        if not result:
-            if t: Trace(': up to date')
-
+        if not result and t:
+            Trace(': up to date')
         if t: Trace('\n')
 
         return result
@@ -1134,7 +1119,7 @@ class Node(object):
             s = kid.get_state()
             if s and (not state or s > state):
                 state = s
-        return (state == 0 or state == SCons.Node.up_to_date)
+        return state in [0, SCons.Node.up_to_date]
 
     def is_literal(self):
         """Always pass the string representation of a Node to
@@ -1198,9 +1183,7 @@ class Node(object):
         Node.for_signature() or str(Node) properly, depending on whether
         we are calculating a signature or actually constructing a
         command line."""
-        if for_signature:
-            return self.for_signature()
-        return str(self)
+        return self.for_signature() if for_signature else str(self)
 
     def get_subst_proxy(self):
         """
@@ -1250,10 +1233,8 @@ class Node(object):
         # so we only print them after running them through this lambda
         # to turn them into the right relative Node and then return
         # its string.
-        def stringify( s, E=self.dir.Entry ) :
-            if hasattr( s, 'dir' ) :
-                return str(E(s))
-            return str(s)
+        def stringify( s, E=self.dir.Entry ):
+            return str(E(s)) if hasattr( s, 'dir' ) else str(s)
 
         lines = []
 
@@ -1328,8 +1309,7 @@ class Walker(object):
         self.eval_func = eval_func
         node.wkids = copy.copy(kids_func(node, None))
         self.stack = [node]
-        self.history = {} # used to efficiently detect and avoid cycles
-        self.history[node] = None
+        self.history = {node: None}
 
     def get_next(self):
         """Return the next node for this walk of the tree.
@@ -1353,10 +1333,7 @@ class Walker(object):
                 node = self.stack.pop()
                 del self.history[node]
                 if node:
-                    if self.stack:
-                        parent = self.stack[-1]
-                    else:
-                        parent = None
+                    parent = self.stack[-1] if self.stack else None
                     self.eval_func(node, parent)
                 return node
         return None

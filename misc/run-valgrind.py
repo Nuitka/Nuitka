@@ -21,6 +21,7 @@
 
 """
 
+
 import os
 import sys
 
@@ -76,11 +77,11 @@ if not os.path.exists(output_binary):
 log_base = basename[:-3] if input_file.endswith(".py") else basename
 
 if "number" in sys.argv or "numbers" in sys.argv:
-    log_file = log_base + ".log"
+    log_file = f'{log_base}.log'
 else:
     log_file = None
 
-log_file = log_base + ".log"
+log_file = f'{log_base}.log'
 
 sys.stdout.flush()
 

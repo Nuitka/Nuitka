@@ -81,10 +81,10 @@ def scan_on_disk(node, env, path=()):
     except (IOError, OSError):
         return []
     e = node.Entry
-    for f in  filter(do_not_scan, flist):
+    for f in filter(do_not_scan, flist):
         # Add ./ to the beginning of the file name so if it begins with a
         # '#' we don't look it up relative to the top-level directory.
-        e('./' + f)
+        e(f'./{f}')
     return scan_in_memory(node, env, path)
 
 def scan_in_memory(node, env, path=()):

@@ -28,7 +28,7 @@ class NodeVisitor(object):
         exists for this node.  In that case the generic visit function is
         used instead.
         """
-        method = 'visit_' + node.__class__.__name__
+        method = f'visit_{node.__class__.__name__}'
         return getattr(self, method, None)
 
     def visit(self, node, *args, **kwargs):

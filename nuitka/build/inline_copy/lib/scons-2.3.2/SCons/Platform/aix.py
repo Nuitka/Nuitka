@@ -65,12 +65,13 @@ def get_xlc(env, xlc=None, packages=[]):
                 continue # read everything to let lslpp terminate
             fileset, filename = line.split(':')[1:3]
             filename = filename.split()[0]
-            if ('/' in xlc and filename == xlc) \
-            or ('/' not in xlc and filename.endswith('/' + xlc)):
+            if (
+                ('/' in xlc and filename == xlc)
+                or '/' not in xlc
+                and filename.endswith(f'/{xlc}')
+            ):
                 xlcVersion = fileset.split()[1]
                 xlcPath, sep, xlc = filename.rpartition('/')
-            pass
-        pass
     return (xlcPath, xlc, xlcVersion)
 
 def generate(env):

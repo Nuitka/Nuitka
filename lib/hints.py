@@ -55,12 +55,13 @@ def _normalizePath(path):
     for path_entry in paths:
         path_entry = os.path.normcase(path_entry)
 
-        if os.path.normcase(path).startswith(path_entry):
-            if best is None or len(path_entry) > len(best):
-                best = path_entry
+        if os.path.normcase(path).startswith(path_entry) and (
+            best is None or len(path_entry) > len(best)
+        ):
+            best = path_entry
 
     if best is not None:
-        path = "$PYTHONPATH" + path[len(best) :]
+        path = f'$PYTHONPATH{path[len(best) :]}'
 
     return path
 

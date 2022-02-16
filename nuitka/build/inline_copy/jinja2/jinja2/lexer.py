@@ -206,8 +206,14 @@ def compile_rules(environment):
     ]
 
     if environment.line_statement_prefix is not None:
-        rules.append((len(environment.line_statement_prefix), 'linestatement',
-                      r'^[ \t\v]*' + e(environment.line_statement_prefix)))
+        rules.append(
+            (
+                len(environment.line_statement_prefix),
+                'linestatement',
+                f'^[ \\t\\v]*{e(environment.line_statement_prefix)}',
+            )
+        )
+
     if environment.line_comment_prefix is not None:
         rules.append((len(environment.line_comment_prefix), 'linecomment',
                       r'(?:^|(?<=\S))[^\S\r\n]*' +
@@ -259,10 +265,7 @@ class Token(tuple):
 
     def test_any(self, *iterable):
         """Test against multiple token expressions."""
-        for expr in iterable:
-            if self.test(expr):
-                return True
-        return False
+        return any(self.test(expr) for expr in iterable)
 
     def __repr__(self):
         return 'Token(%r, %r, %r)' % (
@@ -332,7 +335,7 @@ class TokenStream(object):
 
     def skip(self, n=1):
         """Got n tokens ahead."""
-        for x in range(n):
+        for _ in range(n):
             next(self)
 
     def next_if(self, expr):
@@ -441,7 +444,7 @@ class Lexer(object):
         root_tag_rules = compile_rules(environment)
 
         # block suffix if trimming is enabled
-        block_suffix_re = environment.trim_blocks and '\\n?' or ''
+        block_suffix_re = '\\n?' if environment.trim_blocks else ''
 
         # strip leading spaces if lstrip_blocks is enabled
         prefix_re = {}
@@ -613,7 +616,7 @@ class Lexer(object):
         stack = ['root']
         if state is not None and state != 'root':
             assert state in ('variable', 'block'), 'invalid state'
-            stack.append(state + '_begin')
+            stack.append(f'{state}_begin')
         else:
             state = 'root'
         statetokens = self.rules[stack[-1]]

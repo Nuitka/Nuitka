@@ -306,9 +306,14 @@ int main() {
 
     context.Display("Checking for %s function %s()... " % (lang, function_name))
     ret = context.BuildProg(text, suffix)
-    _YesNoResult(context, ret, "HAVE_" + function_name, text,
-                 "Define to 1 if the system has the function `%s'." %\
-                 function_name)
+    _YesNoResult(
+        context,
+        ret,
+        f'HAVE_{function_name}',
+        text,
+        "Define to 1 if the system has the function `%s'." % function_name,
+    )
+
     return ret
 
 
@@ -355,8 +360,14 @@ def CheckHeader(context, header_name, header = None, language = None,
 
     context.Display("Checking for %s header file %s... " % (lang, header_name))
     ret = context.CompileProg(text, suffix)
-    _YesNoResult(context, ret, "HAVE_" + header_name, text,
-                 "Define to 1 if you have the <%s> header file." % header_name)
+    _YesNoResult(
+        context,
+        ret,
+        f'HAVE_{header_name}',
+        text,
+        "Define to 1 if you have the <%s> header file." % header_name,
+    )
+
     return ret
 
 
@@ -413,13 +424,17 @@ int main() {
 
     context.Display("Checking for %s type %s... " % (lang, type_name))
     ret = context.BuildProg(text, suffix)
-    _YesNoResult(context, ret, "HAVE_" + type_name, text,
-                 "Define to 1 if the system has the type `%s'." % type_name)
-    if ret and fallback and context.headerfilename:
-        f = open(context.headerfilename, "a")
-        f.write("typedef %s %s;\n" % (fallback, type_name))
-        f.close()
+    _YesNoResult(
+        context,
+        ret,
+        f'HAVE_{type_name}',
+        text,
+        "Define to 1 if the system has the type `%s'." % type_name,
+    )
 
+    if ret and fallback and context.headerfilename:
+        with open(context.headerfilename, "a") as f:
+            f.write("typedef %s %s;\n" % (fallback, type_name))
     return ret
 
 def CheckTypeSize(context, type_name, header = None, language = None, expect = None):
@@ -456,7 +471,7 @@ def CheckTypeSize(context, type_name, header = None, language = None, expect = N
         return msg
 
     src = includetext + header
-    if not expect is None:
+    if expect is not None:
         # Only check if the given size is the right one
         context.Display('Checking %s is %d bytes... ' % (type_name, expect))
 
@@ -475,16 +490,15 @@ int main()
 }
 """
 
-        st = context.CompileProg(src % (type_name, expect), suffix)
-        if not st:
+        if st := context.CompileProg(src % (type_name, expect), suffix):
+            context.Display("no\n")
+            _LogFailed(context, src, st)
+            return 0
+        else:
             context.Display("yes\n")
             _Have(context, "SIZEOF_%s" % type_name, expect,
                   "The size of `%s', as computed by sizeof." % type_name)
             return expect
-        else:
-            context.Display("no\n")
-            _LogFailed(context, src, st)
-            return 0
     else:
         # Only check if the given size is the right one
         context.Message('Checking size of %s ... ' % type_name)
@@ -572,8 +586,14 @@ int main()
 """ % (symbol, symbol)
 
     st = context.CompileProg(src, suffix)
-    _YesNoResult(context, st, "HAVE_DECL_" + symbol, src,
-                 "Set to 1 if %s is defined." % symbol)
+    _YesNoResult(
+        context,
+        st,
+        f'HAVE_DECL_{symbol}',
+        src,
+        "Set to 1 if %s is defined." % symbol,
+    )
+
     return st
 
 def CheckLib(context, libs, func_name = None, header = None,
@@ -637,7 +657,7 @@ return 0;
     if call:
         i = call.find("\n")
         if i > 0:
-            calltext = call[:i] + ".."
+            calltext = f'{call[:i]}..'
         elif call[-1] == ';':
             calltext = call[:-1]
         else:
@@ -663,11 +683,8 @@ return 0;
             l = [ lib_name ]
             if extra_libs:
                 l.extend(extra_libs)
-            if append:
-                oldLIBS = context.AppendLIBS(l)
-            else:
-                oldLIBS = context.PrependLIBS(l)
-            sym = "HAVE_LIB" + lib_name
+            oldLIBS = context.AppendLIBS(l) if append else context.PrependLIBS(l)
+            sym = f'HAVE_LIB{lib_name}'
         else:
             oldLIBS = -1
             sym = None
@@ -734,15 +751,10 @@ def _Have(context, key, have, comment = None):
     else:
         line = "#define %s %s\n" % (key_up, str(have))
 
-    if comment is not None:
-        lines = "\n/* %s */\n" % comment + line
-    else:
-        lines = "\n" + line
-
+    lines = "\n/* %s */\n" % comment + line if comment is not None else "\n" + line
     if context.headerfilename:
-        f = open(context.headerfilename, "a")
-        f.write(lines)
-        f.close()
+        with open(context.headerfilename, "a") as f:
+            f.write(lines)
     elif hasattr(context,'config_h'):
         context.config_h = context.config_h + lines
 
@@ -757,10 +769,8 @@ def _LogFailed(context, text, msg):
         lines = text.split('\n')
         if len(lines) and lines[-1] == '':
             lines = lines[:-1]              # remove trailing empty line
-        n = 1
-        for line in lines:
+        for n, line in enumerate(lines, start=1):
             context.Log("%d: %s\n" % (n, line))
-            n = n + 1
     if LogErrorMessages:
         context.Log("Error message: %s\n" % msg)
 

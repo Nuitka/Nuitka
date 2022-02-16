@@ -19,6 +19,7 @@
 
 """ Small tool to creaet a pbuilder image for Nuitka private CI mainly. """
 
+
 import os
 import shutil
 import subprocess
@@ -53,13 +54,14 @@ try:
             "debootstrap",
             "--include=ccache",
             "--include=dpkg-dev",
-            "--arch=" + arch,
-            "--components=" + components,
+            f'--arch={arch}',
+            f'--components={components}',
             codename,
             "chroot",
             mirror,
         ]
     )
+
 
     subprocess.check_output(["rm", "-rf", "chroot/var/cache/apt/archives"])
 
@@ -69,7 +71,7 @@ try:
     with open("chroot/etc/apt.conf.d/75mine", "w") as output_file:
         output_file.write('Acquire::Languages "none";\n')
 
-    target_filename = codename + ".tgz"
+    target_filename = f'{codename}.tgz'
     subprocess.check_call(["tar", "czf", target_filename, "-C", "chroot", "."])
 
     shutil.copy(target_filename, os.path.join(start_dir, output))

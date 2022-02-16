@@ -198,15 +198,14 @@ def _createNodeTree(filename):
     # Allow plugins to comment on final module set.
     Plugins.onModuleCompleteSet()
 
-    if Options.isExperimental("check_xml_persistence"):
-        for module in ModuleRegistry.getRootModules():
-            if module.isMainModule():
-                return module
-
-        assert False
-    else:
+    if not Options.isExperimental("check_xml_persistence"):
         # Main module might change behind our back, look it up again.
         return main_module
+    for module in ModuleRegistry.getRootModules():
+        if module.isMainModule():
+            return module
+
+    assert False
 
 
 def dumpTreeXML(tree):
@@ -391,9 +390,9 @@ def makeSourceDirectory():
         )
 
         source_code = CodeGeneration.generateModuleCode(
-            module=module,
-            data_filename=os.path.basename(c_filename + "onst"),  # Really .const
+            module=module, data_filename=os.path.basename(f'{c_filename}onst')
         )
+
 
         writeSourceCode(filename=c_filename, source_code=source_code)
 
@@ -643,8 +642,7 @@ def runSconsBackend(quiet):
     if hasPythonFlagUnbuffered():
         options["python_sysflag_unbuffered"] = asBoolStr(True)
 
-    abiflags = getPythonABI()
-    if abiflags:
+    if abiflags := getPythonABI():
         options["abiflags"] = abiflags
 
     if Options.shallMakeModule():
@@ -668,23 +666,19 @@ def runSconsBackend(quiet):
         return True, options
 
         # Need to restart compilation from scratch here.
-    if Options.isPgoMode():
-        # For C level PGO, we have a 2 pass system. TODO: Make it more global for onefile
-        # and standalone mode proper support, which might need data files to be
-        # there, which currently are not yet there, so it won't run.
-        if Options.isPgoMode():
-            options["pgo_mode"] = "generate"
-            result = SconsInterface.runScons(
-                options=options, quiet=quiet, scons_filename="Backend.scons"
-            )
+    if Options.isPgoMode() and Options.isPgoMode():
+        options["pgo_mode"] = "generate"
+        result = SconsInterface.runScons(
+            options=options, quiet=quiet, scons_filename="Backend.scons"
+        )
 
-            if not result:
-                return result, options
+        if not result:
+            return result, options
 
-            # Need to make it usable before executing it.
-            executePostProcessing()
-            _runCPgoBinary()
-            options["pgo_mode"] = "use"
+        # Need to make it usable before executing it.
+        executePostProcessing()
+        _runCPgoBinary()
+        options["pgo_mode"] = "use"
 
     result = (
         SconsInterface.runScons(
@@ -726,7 +720,7 @@ def callExecPython(args, clean_path, add_path):
 
     if add_path:
         if "PYTHONPATH" in os.environ:
-            os.environ["PYTHONPATH"] += ":" + Options.getOutputDir()
+            os.environ["PYTHONPATH"] += f':{Options.getOutputDir()}'
         else:
             os.environ["PYTHONPATH"] = Options.getOutputDir()
 
@@ -748,20 +742,19 @@ def executeMain(binary_filename, clean_path):
 
 def executeModule(tree, clean_path):
 
-    if python_version < 0x340:
-        python_command_template = """\
+    python_command_template = (
+        """\
 import os, imp;\
 assert os.path.normcase(os.path.abspath(os.path.normpath(\
 imp.find_module('%(module_name)s')[1]))) == %(expected_filename)r,\
 'Error, cannot launch extension module %(module_name)s, original package is in the way.'"""
-    else:
-        python_command_template = """\
+        if python_version < 0x340
+        else """\
 import os, importlib.util;\
 assert os.path.normcase(os.path.abspath(os.path.normpath(\
 importlib.util.find_spec('%(module_name)s').origin))) == %(expected_filename)r,\
 'Error, cannot launch extension module %(module_name)s, original package is in the way.'"""
-
-    python_command_template += ";__import__('%(module_name)s')"
+    ) + ";__import__('%(module_name)s')"
 
     python_command = python_command_template % {
         "module_name": tree.getName(),
@@ -917,7 +910,7 @@ def main():
     # Turn that source code into a node tree structure.
     try:
         main_module = _createNodeTree(filename=filename)
-    except (SyntaxError, IndentationError) as e:
+    except SyntaxError as e:
         handleSyntaxError(e)
 
     if Options.shallDumpBuiltTreeXML():
@@ -1008,9 +1001,7 @@ def main():
 
         general.info("Successfully created %r." % final_filename)
 
-        report_filename = Options.getCompilationReportFilename()
-
-        if report_filename:
+        if report_filename := Options.getCompilationReportFilename():
             writeCompilationReport(report_filename)
 
         # Execute the module immediately if option was given.

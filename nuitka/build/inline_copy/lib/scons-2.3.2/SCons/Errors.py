@@ -108,10 +108,7 @@ class BuildError(Exception):
                            executor, action, command, exc_info)
 
     def __str__(self):
-        if self.filename:
-            return self.filename + ': ' + self.errstr
-        else:
-            return self.errstr
+        return f'{self.filename}: {self.errstr}' if self.filename else self.errstr
 
 class InternalError(Exception):
     pass
