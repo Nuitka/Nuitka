@@ -170,26 +170,22 @@ Categories=Utility;"""
     stdout_file = openTextFile(stdout_filename, "wb")
     stderr_file = openTextFile(stderr_filename, "wb")
 
-    if options.appimage_compression == "xz" or options.appimage_compression == "gzip":
-        command = (
-            _getAppImageToolPath(
-                for_operation=True, assume_yes_for_downloads=assumeYesForDownloads()
-            ),
-            dist_dir,
-            "--comp",
-            options.appimage_compression,
-            "-n",
-            onefile_output_filename,
-        )
+    if options.appimage_compression == "gzip":
+        compress_flags = "--comp gzip"
+    elif options.appimage_compression == "xz":
+        compress_flags = "--comp xz"
     else:
-        command = (
-            _getAppImageToolPath(
-                for_operation=True, assume_yes_for_downloads=assumeYesForDownloads()
-            ),
-            dist_dir,
-            "-n",
-            onefile_output_filename,
-        )
+        compress_flags = ""
+
+    command = (
+        _getAppImageToolPath(
+            for_operation=True, assume_yes_for_downloads=assumeYesForDownloads()
+        ),
+        dist_dir,
+        compress_flags,
+        "-n",
+        onefile_output_filename,
+    )
 
     stderr_file.write(b"Executed %r\n" % " ".join(command))
 
