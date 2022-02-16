@@ -64,7 +64,10 @@ Requirements
 
 -  Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10
 
-   .. admonition:: For Python 3.3/3.4 and *only* those, we need other Python version as a *compile time* dependency.
+   .. important::
+
+      For Python 3.3/3.4 and *only* those, we need other Python version
+      as a *compile time* dependency.
 
       Nuitka itself is fully compatible with all listed versions, but
       Scons as an internally used tool is not.
@@ -78,9 +81,14 @@ Requirements
       ``clcache`` does not work with it, there a Python 3.5 or higher
       needs to be installed.
 
-      Nuitka finds these needed Python versions (on Windows via
+      Nuitka finds these needed Python versions (e.g. on Windows via
       registry) and you shouldn't notice it as long as they are
       installed.
+
+      Increasingly, other functionality is available when another Python
+      has a certain package installed. For example, onefile compression
+      will work for a Python 2.x when another Python is found that has
+      the ``zstandard`` package installed.
 
    .. admonition:: Moving binaries to other machines
 
