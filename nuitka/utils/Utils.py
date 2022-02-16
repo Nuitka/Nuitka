@@ -82,6 +82,12 @@ def getLinuxDistribution():
     # singleton, pylint: disable=global-statement
     global _linux_distribution_info
 
+<<<<<<< HEAD
+=======
+    if getOS() != "Linux":
+        return None, None, None
+
+>>>>>>> 632cc2315a16d2976bdc6fd21b72267816456f34
     if _linux_distribution_info is None:
         result = None
         base = None
@@ -91,8 +97,11 @@ def getLinuxDistribution():
             result, base, version = _parseOsReleaseFileContents("/etc/os-release")
         elif os.path.exists("/etc/SuSE-release"):
             result, base, version = _parseOsReleaseFileContents("/etc/SuSE-release")
+<<<<<<< HEAD
         elif os.path.exists("/etc/issue"):
             result, base, version = _parseOsReleaseFileContents("/etc/issue")
+=======
+>>>>>>> 632cc2315a16d2976bdc6fd21b72267816456f34
 
         if result is None:
             from .Execution import check_output
@@ -108,10 +117,14 @@ def getLinuxDistribution():
         if result is None:
             from nuitka.Tracing import general
 
+<<<<<<< HEAD
             general.warning(
                 "Cannot detect Linux distribution, this may prevent optimization."
             )
             result = "Unknown"
+=======
+            general.sysexit("Error, cannot detect Linux distribution.")
+>>>>>>> 632cc2315a16d2976bdc6fd21b72267816456f34
 
         # Change e.g. "11 (Bullseye)"" to "11".
         if version is not None and version.strip():
