@@ -138,6 +138,7 @@
         "rpaths",
         "Scons",
         "Setuptools",
+        "sourcery",
         "stdlib",
         "sysflag",
         "Tkinter",
