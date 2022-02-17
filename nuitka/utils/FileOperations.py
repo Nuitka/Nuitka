@@ -163,7 +163,7 @@ def makePath(path):
 
     with withFileLock("creating directory %s" % path):
         if not os.path.isdir(path):
-            os.makedirs(path)
+            os.makedirs(path, exist_ok=True)
 
 
 def isPathExecutable(path):
