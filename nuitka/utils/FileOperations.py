@@ -143,7 +143,7 @@ def relpath(path, start="."):
 def isRelativePath(path):
     if os.path.isabs(path):
         return False
-    if path.startswith((".." + os.path.sep, "../")):
+    if path.startswith((f'..{os.path.sep}', "../")):
         return False
 
     return True
@@ -341,9 +341,7 @@ def getSubDirectories(path, ignore_dirs=()):
 
         dirnames.sort()
 
-        for dirname in dirnames:
-            result.append(os.path.join(root, dirname))
-
+        result.extend(os.path.join(root, dirname) for dirname in dirnames)
     result.sort()
     return result
 
@@ -532,10 +530,7 @@ def withPreserveFileMode(filenames):
     if type(filenames) is str:
         filenames = [filenames]
 
-    old_modes = {}
-    for filename in filenames:
-        old_modes[filename] = os.stat(filename).st_mode
-
+    old_modes = {filename: os.stat(filename).st_mode for filename in filenames}
     yield
 
     for filename in filenames:
@@ -670,18 +665,12 @@ def isPathBelow(path, filename):
         filename: candidate being checked
     """
     if type(path) in (tuple, list):
-        for p in path:
-            if isPathBelow(path=p, filename=filename):
-                return True
-
-        return False
-
+        return any(isPathBelow(path=p, filename=filename) for p in path)
     path = os.path.abspath(path)
     filename = os.path.abspath(filename)
 
-    if isWin32Windows():
-        if getWindowsDrive(path) != getWindowsDrive(filename):
-            return False
+    if isWin32Windows() and getWindowsDrive(path) != getWindowsDrive(filename):
+        return False
 
     return os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
 
@@ -728,10 +717,7 @@ def getWindowsShortPathName(filename):
         if output_buf_size >= needed:
             # Short paths should be ASCII. Don't return unicode without a need,
             # as e.g. Scons hates that in environment variables.
-            if str is bytes:
-                return output_buf.value.encode("utf8")
-            else:
-                return output_buf.value
+            return output_buf.value.encode("utf8") if str is bytes else output_buf.value
         else:
             output_buf_size = needed
 
