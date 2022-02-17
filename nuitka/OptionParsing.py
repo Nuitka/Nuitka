@@ -1271,9 +1271,10 @@ linux_group.add_option(
     "--linux-onefile-compression",
     action="store",
     dest="appimage_compression",
+    choices=("gzip", "xz"),
     metavar="COMPRESSION",
     default="gzip",
-    help="Compression method to use for Linux onefile builds. gzip (default): larger file but faster startup, xz: smaller file but slower startup."
+    help="Compression method to use for Linux onefile builds. Defaults to gzip for faster decompression"
 )
 
 parser.add_option_group(linux_group)

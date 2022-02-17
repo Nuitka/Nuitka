@@ -25,7 +25,7 @@ import sys
 
 from nuitka import Options, OutputDirectories
 from nuitka.build import SconsInterface
-from nuitka.Options import assumeYesForDownloads, getIconPaths, options
+from nuitka.Options import assumeYesForDownloads, getIconPaths, getAppImageCompression
 from nuitka.OutputDirectories import getResultBasepath, getResultFullpath
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import (
@@ -170,19 +170,13 @@ Categories=Utility;"""
     stdout_file = openTextFile(stdout_filename, "wb")
     stderr_file = openTextFile(stderr_filename, "wb")
 
-    if options.appimage_compression == "gzip":
-        compress_flags = "--comp gzip"
-    elif options.appimage_compression == "xz":
-        compress_flags = "--comp xz"
-    else:
-        compress_flags = ""
-
     command = (
         _getAppImageToolPath(
             for_operation=True, assume_yes_for_downloads=assumeYesForDownloads()
         ),
         dist_dir,
-        compress_flags,
+        "--comp",
+        getAppImageCompression(),
         "-n",
         onefile_output_filename,
     )
