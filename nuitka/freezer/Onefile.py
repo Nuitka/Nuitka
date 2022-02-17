@@ -146,7 +146,7 @@ exec -a $ARGV0 $APPDIR/%s \"$@\""""
     copyFile(icon_paths[0], getResultBasepath() + extension)
 
     putTextFileContents(
-        getResultBasepath() + ".desktop",
+        f'{getResultBasepath()}.desktop',
         contents="""\
 [Desktop Entry]
 Name=%(binary_basename)s
@@ -160,12 +160,13 @@ Categories=Utility;"""
         },
     )
 
+
     postprocessing_logger.info(
         "Creating single file from dist folder, this may take a while."
     )
 
-    stdout_filename = binary_filename + ".appimage.stdout.txt"
-    stderr_filename = binary_filename + ".appimage.stderr.txt"
+    stdout_filename = f'{binary_filename}.appimage.stdout.txt'
+    stderr_filename = f'{binary_filename}.appimage.stderr.txt'
 
     stdout_file = openTextFile(stdout_filename, "wb")
     stderr_file = openTextFile(stderr_filename, "wb")

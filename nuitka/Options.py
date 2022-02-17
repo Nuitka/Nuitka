@@ -196,27 +196,20 @@ very well known environment: '%s'"""
     # Standalone mode implies an executable, not importing "site" module, which is
     # only for this machine, recursing to all modules, and even including the
     # standard library.
-    if options.is_standalone:
-        if options.module_mode:
-            Tracing.options_logger.sysexit(
-                """\
+    if options.is_standalone and options.module_mode:
+        Tracing.options_logger.sysexit(
+            """\
 Error, conflicting options, cannot make standalone module, only executable.
 
 Modules are supposed to be imported to an existing Python installation, therefore it
 makes no sense to include a Python runtime."""
-            )
+        )
 
     for any_case_module in getShallFollowModules():
         if any_case_module.startswith("."):
             bad = True
         else:
-            for char in "/\\:":
-                if char in any_case_module:
-                    bad = True
-                    break
-            else:
-                bad = False
-
+            bad = next((True for char in "/\\:" if char in any_case_module), False)
         if bad:
             Tracing.options_logger.sysexit(
                 """\
@@ -228,13 +221,7 @@ Error, '--follow-import-to' takes only module names or patterns, not directory p
         if no_case_module.startswith("."):
             bad = True
         else:
-            for char in "/\\:":
-                if char in no_case_module:
-                    bad = True
-                    break
-            else:
-                bad = False
-
+            bad = next((True for char in "/\\:" if char in no_case_module), False)
         if bad:
             Tracing.options_logger.sysexit(
                 """\
@@ -259,9 +246,8 @@ but not for module mode where filenames are mandatory, and not for
 standalone where there is a sane default used inside the dist folder."""
         )
 
-    if isLinux():
-        if len(getIconPaths()) > 1:
-            Tracing.options_logger.sysexit("Error, can only use one icon on Linux.")
+    if isLinux() and len(getIconPaths()) > 1:
+        Tracing.options_logger.sysexit("Error, can only use one icon on Linux.")
 
     for icon_path in getIconPaths():
         if "#" in icon_path and isWin32Windows():
@@ -269,9 +255,12 @@ standalone where there is a sane default used inside the dist folder."""
 
             if not icon_index.isdigit() or int(icon_index) < 0:
                 Tracing.options_logger.sysexit(
-                    "Error, icon number in %r not valid."
-                    % (icon_path + "#" + icon_index)
+                    (
+                        "Error, icon number in %r not valid."
+                        % f'{icon_path}#{icon_index}'
+                    )
                 )
+
 
         if not os.path.exists(icon_path):
             Tracing.options_logger.sysexit(
@@ -315,18 +304,23 @@ standalone where there is a sane default used inside the dist folder."""
 
     splash_screen_filename = getWindowsSplashScreen()
 
-    if splash_screen_filename is not None:
-        if not os.path.isfile(splash_screen_filename):
-            Tracing.options_logger.sysexit(
-                "Error, specified splash screen image '%s' does not exist."
-                % splash_screen_filename
-            )
+    if splash_screen_filename is not None and not os.path.isfile(
+        splash_screen_filename
+    ):
+        Tracing.options_logger.sysexit(
+            "Error, specified splash screen image '%s' does not exist."
+            % splash_screen_filename
+        )
 
-    if file_version or product_version or getWindowsVersionInfoStrings():
-        if not (file_version or product_version) and getWindowsCompanyName():
-            Tracing.options_logger.sysexit(
-                "Error, company name and file or product version need to be given when any version information is given."
-            )
+    if (
+        (file_version or product_version or getWindowsVersionInfoStrings())
+        and not file_version
+        and not product_version
+        and getWindowsCompanyName()
+    ):
+        Tracing.options_logger.sysexit(
+            "Error, company name and file or product version need to be given when any version information is given."
+        )
 
     if isOnefileMode() and not hasOnefileSupportedOS():
         Tracing.options_logger.sysexit("Error, unsupported OS for onefile %r" % getOS())
@@ -483,14 +477,14 @@ def commentArgs():
 
     # Inform the user about potential issues with the running version. e.g. unsupported
     # version.
-    if python_version_str not in getSupportedPythonVersions():
-        # Do not disturb run of automatic tests with, detected from the presence of
-        # that environment variable.
-        if "PYTHON" not in os.environ:
-            Tracing.general.warning(
-                "The version %r is not currently supported. Expect problems."
-                % python_version_str,
-            )
+    if (
+        python_version_str not in getSupportedPythonVersions()
+        and "PYTHON" not in os.environ
+    ):
+        Tracing.general.warning(
+            "The version %r is not currently supported. Expect problems."
+            % python_version_str,
+        )
 
     default_reference_mode = (
         "runtime" if shallMakeModule() or isStandaloneMode() else "original"
@@ -498,17 +492,16 @@ def commentArgs():
 
     if getFileReferenceMode() is None:
         options.file_reference_mode = default_reference_mode
+    elif options.file_reference_mode != default_reference_mode:
+        Tracing.options_logger.warning(
+            "Using non-default file reference mode '%s' rather than '%s' may cause runtime issues."
+            % (getFileReferenceMode(), default_reference_mode)
+        )
     else:
-        if options.file_reference_mode != default_reference_mode:
-            Tracing.options_logger.warning(
-                "Using non-default file reference mode '%s' rather than '%s' may cause runtime issues."
-                % (getFileReferenceMode(), default_reference_mode)
-            )
-        else:
-            Tracing.options_logger.info(
-                "Using default file reference mode '%s' need not be specified."
-                % default_reference_mode
-            )
+        Tracing.options_logger.info(
+            "Using default file reference mode '%s' need not be specified."
+            % default_reference_mode
+        )
 
     # TODO: Not all of these are usable with MSYS2 really, split those off.
     if getOS() != "Windows":
@@ -539,14 +532,18 @@ def commentArgs():
             "Requesting both Windows specific compilers makes no sense."
         )
 
-    if getMsvcVersion() and getMsvcVersion() not in ("list", "latest"):
-        if getMsvcVersion().count(".") != 1 or not all(
-            x.isdigit() for x in getMsvcVersion().split(".")
-        ):
-            Tracing.options_logger.sysexit(
-                "For --msvc only values 'latest', 'info', and 'X.Y' values are allowed, but not %r."
-                % getMsvcVersion()
-            )
+    if (
+        getMsvcVersion()
+        and getMsvcVersion() not in ("list", "latest")
+        and (
+            getMsvcVersion().count(".") != 1
+            or not all(x.isdigit() for x in getMsvcVersion().split("."))
+        )
+    ):
+        Tracing.options_logger.sysexit(
+            "For --msvc only values 'latest', 'info', and 'X.Y' values are allowed, but not %r."
+            % getMsvcVersion()
+        )
 
     if isOnefileMode():
         standalone_mode = "onefile"
@@ -742,45 +739,39 @@ def _splitShellPattern(value):
 
 def getShallFollowInNoCase():
     """*list*, items of ``--nofollow-import-to=``"""
-    return sum([_splitShellPattern(x) for x in options.follow_not_modules], [])
+    return sum((_splitShellPattern(x) for x in options.follow_not_modules), [])
 
 
 def getShallFollowModules():
     """*list*, items of ``--follow-import-to=``"""
-    return sum(
-        [
-            _splitShellPattern(x)
-            for x in options.follow_modules
-            + options.include_modules
-            + options.include_packages
-        ],
-        [],
-    )
+    return sum((_splitShellPattern(x) for x in options.follow_modules
+                + options.include_modules
+                + options.include_packages), [])
 
 
 def getShallFollowExtra():
     """*list*, items of ``--include-plugin-directory=``"""
-    return sum([_splitShellPattern(x) for x in options.include_extra], [])
+    return sum((_splitShellPattern(x) for x in options.include_extra), [])
 
 
 def getShallFollowExtraFilePatterns():
     """*list*, items of ``--include-plugin-files=``"""
-    return sum([_splitShellPattern(x) for x in options.include_extra_files], [])
+    return sum((_splitShellPattern(x) for x in options.include_extra_files), [])
 
 
 def getMustIncludeModules():
     """*list*, items of ``--include-module=``"""
-    return sum([_splitShellPattern(x) for x in options.include_modules], [])
+    return sum((_splitShellPattern(x) for x in options.include_modules), [])
 
 
 def getMustIncludePackages():
     """*list*, items of ``--include-package=``"""
-    return sum([_splitShellPattern(x) for x in options.include_packages], [])
+    return sum((_splitShellPattern(x) for x in options.include_packages), [])
 
 
 def getShallIncludePackageData():
     """*list*, items of ``--include-package-data=``"""
-    return sum([_splitShellPattern(x) for x in options.package_data], [])
+    return sum((_splitShellPattern(x) for x in options.package_data), [])
 
 
 def getShallIncludeDataFiles():

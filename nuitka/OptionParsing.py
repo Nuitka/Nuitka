@@ -26,6 +26,7 @@ higher, and we still support Python 2.6 due to the RHELs still being used,
 and despite the long deprecation, it's in every later release.
 """
 
+
 import os
 import re
 import sys
@@ -53,14 +54,10 @@ from nuitka.utils.Utils import (
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
-# Indicator if we were called as "nuitka-run" in which case we assume some
-# other defaults and work a bit different with parameters.
-is_nuitka_run = os.path.basename(sys.argv[0]).lower().endswith("-run")
-
-if not is_nuitka_run:
-    usage = "usage: %prog [--module] [--run] [options] main_module.py"
-else:
+if is_nuitka_run := os.path.basename(sys.argv[0]).lower().endswith("-run"):
     usage = "usage: %prog [options] main_module.py"
+else:
+    usage = "usage: %prog [--module] [--run] [options] main_module.py"
 
 
 def _getPythonFlavor():
@@ -425,24 +422,6 @@ exclude files you need to remove them beforehand. Default empty.""",
 )
 
 data_files_tags = [("inhibit", "do not include the file")]
-
-# TODO: Expose this when finished, pylint: disable=using-constant-test
-if False:
-    data_group.add_option(
-        "--data-file-tags",
-        action="append",
-        dest="data_tags",
-        metavar="DATA_TAGS",
-        default=[],
-        help="""\
-    For included data files, special handlings can be chosen. With the
-    commercial plugins, e.g. files can be included directly in the
-    binary. The list is completed by some plugins. With the current
-    list of plugins, these are available: %s.
-    The default is empty."""
-        % ",".join("'%s' (%s)" % d for d in data_files_tags),
-    )
-
 
 parser.add_option_group(data_group)
 
@@ -1392,10 +1371,7 @@ def _considerPluginOptions(logger):
 
 def _expandProjectArg(arg, filename_arg, for_eval):
     def wrap(value):
-        if for_eval:
-            return repr(value)
-        else:
-            return value
+        return repr(value) if for_eval else value
 
     values = {
         "OS": wrap(getOS()),
@@ -1533,7 +1509,7 @@ def parseOptions(logger):
 
         if count > 0:
             extra_args = sys.argv[count + 1 :]
-            sys.argv = sys.argv[0 : count + 1]
+            sys.argv = sys.argv[:count + 1]
 
     filename_arg = None
 
