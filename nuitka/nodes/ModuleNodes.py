@@ -93,7 +93,7 @@ class PythonModuleBase(NodeBase):
             _package_name, package_filename, finding = locateModule(
                 module_name=package_name,
                 parent_package=None,
-                level=1,
+                level=0,
             )
 
             # If we can't find the package for Python3.3 that is semi-OK, it might be in a

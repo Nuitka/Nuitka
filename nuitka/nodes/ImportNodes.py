@@ -728,7 +728,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                     ) = locateModule(
                         module_name=ModuleName(import_item),
                         parent_package=module_name,
-                        level=-1,  # Relative import, so child is used.
+                        level=1,  # Relative import
                     )
 
                     if name_import_module_filename is not None:
@@ -737,7 +737,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                                 name_import_module_name,
                                 name_import_module_filename,
                                 name_import_finding,
-                                -1,
+                                1,
                             )
                         )
 
