@@ -272,6 +272,9 @@ def subprocess_spawn(args):
         if str is not bytes:
             line = decodeData(line)
 
+        if exit_code != 0 and "terminated with signal 11" in line:
+            exit_code = -11
+
         my_print(line, style="yellow", file=sys.stderr)
 
     return exit_code
