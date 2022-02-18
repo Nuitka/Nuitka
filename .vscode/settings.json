@@ -90,6 +90,7 @@
         "distutils",
         "Doxygen",
         "DYLD",
+        "dylib",
         "elif",
         "EPEL",
         "finalizer",
