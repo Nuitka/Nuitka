@@ -181,6 +181,8 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
         assert (
             parent.isExpressionSideEffects()
             or parent.isExpressionConditional()
+            or parent.isExpressionConditionalOr()
+            or parent.isExpressionConditionalAnd()
             or parent.isExpressionLocalsVariableRefOrFallback()
         ), (expression, expression.parent, expression.asXmlText())
 
