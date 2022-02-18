@@ -1334,6 +1334,10 @@ def getMacOSAppVersion():
     return options.macos_app_version
 
 
+def getAppImageCompression():
+    return options.appimage_compression
+
+
 _python_flags = None
 
 

@@ -25,7 +25,11 @@ import sys
 
 from nuitka import Options, OutputDirectories
 from nuitka.build import SconsInterface
-from nuitka.Options import assumeYesForDownloads, getIconPaths
+from nuitka.Options import (
+    assumeYesForDownloads,
+    getAppImageCompression,
+    getIconPaths,
+)
 from nuitka.OutputDirectories import getResultBasepath, getResultFullpath
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import (
@@ -176,7 +180,7 @@ Categories=Utility;"""
         ),
         dist_dir,
         "--comp",
-        "xz",
+        getAppImageCompression(),
         "-n",
         onefile_output_filename,
     )
