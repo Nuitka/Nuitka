@@ -696,7 +696,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
             return None, None
 
         module_name, module_filename, self.finding = locateModule(
-            module_name=ModuleName(module_name),
+            module_name=resolveModuleName(module_name),
             parent_package=parent_package,
             level=level,
         )
