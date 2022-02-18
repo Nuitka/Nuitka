@@ -1198,7 +1198,7 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                 "importlib_resources",
                 "more_itertools",
             ):
-                yield "pkg_resources._vendor." + part.strip("' ")
+                yield "pkg_resources._vendor." + part
 
         else:
             # create a flattened import set for full_name and yield from it
