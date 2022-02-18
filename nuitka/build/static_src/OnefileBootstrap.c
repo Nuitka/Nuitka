@@ -890,6 +890,8 @@ int main(int argc, char **argv) {
         closeFile(target_file);
     }
 
+    closeFile(exe_file);
+
     // Pass our pid by value to the child. If we exit for some reason, re-parenting
     // might change it by the time the child looks at its parent.
     {
