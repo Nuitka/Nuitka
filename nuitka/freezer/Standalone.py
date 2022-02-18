@@ -815,10 +815,6 @@ def _resolveBinaryPathDLLsMacOS(
     rpaths.update(package_specific_dirs)
 
     for path in paths:
-        if path == os.path.basename(binary_filename):
-            # We ignore odd library that references itself without any path given.
-            continue
-
         if path.startswith("@rpath/"):
             # Resolve rpath to just the ones given, first match.
             for rpath in rpaths:
@@ -830,6 +826,9 @@ def _resolveBinaryPathDLLsMacOS(
                 resolved_path = os.path.join(original_dir, path[7:])
         elif path.startswith("@loader_path/"):
             resolved_path = os.path.join(original_dir, path[13:])
+        elif os.path.basename(path) == os.path.basename(binary_filename):
+            # We ignore the references to itself coming from the library id.
+            continue
         else:
             resolved_path = path
 
