@@ -33,7 +33,7 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Rest import createPDF
 
 
-def optimize_pngs(pngList):
+def _optimizePNGs(pngList):
     for png in pngList:
         check_call(["optipng", "-o2", "%s.png" % png])
 
@@ -45,7 +45,7 @@ def makeLogoImages():
         cmd = "convert -background none %s.svg %s.png" % (basePathLogo, basePathLogo)
         check_call((cmd % (logo, logo)).split())
 
-    optimize_pngs(
+    _optimizePNGs(
         [basePathLogo % item for item in ("Vertical", "Symbol", "Horizontal")]
     )
 
@@ -65,16 +65,49 @@ def makeLogoImages():
             check_call((cmd % (icon, size)).split())
 
 
+extra_rst_keywords = (
+    b"asciinema",
+    b"postlist",
+    b"post",
+    b"youtube",
+    b"grid",
+    b"toctree",
+    b"automodule",
+)
+
+
 def checkRstLint(document):
+    contents = getFileContents(document, mode="rb")
+
+    for keyword in extra_rst_keywords:
+        contents = contents.replace(b".. %s::" % keyword, b".. raw:: %s" % keyword)
+
     import restructuredtext_lint  # pylint: disable=I0021,import-error
 
-    my_print("Checking %r for proper restructed text ..." % document, style="blue")
-    lint_results = restructuredtext_lint.lint_file(document, encoding="utf8")
+    my_print("Checking %r for proper restructured text ..." % document, style="blue")
+    lint_results = restructuredtext_lint.lint(
+        contents.decode("utf8"),
+        document,
+    )
 
     lint_error = False
     for lint_result in lint_results:
         # Not an issue.
         if lint_result.message.startswith("Duplicate implicit target name:"):
+            continue
+
+        # We switched to raw, but attributes will still bne unknown.
+        if lint_result.message.startswith(
+            'Error in "raw" directive:\nunknown option: "hidden"'
+        ):
+            continue
+        if lint_result.message.startswith(
+            'Error in "raw" directive:\nunknown option: "excerpts"'
+        ):
+            continue
+        if lint_result.message.startswith(
+            'Error in "raw" directive:\nunknown option: "members"'
+        ):
             continue
 
         my_print(lint_result, style="yellow")

@@ -116,6 +116,7 @@
         "Nuitka",
         "numpy",
         "onefile",
+        "optipng",
         "organisation",
         "Organisational",
         "otool",

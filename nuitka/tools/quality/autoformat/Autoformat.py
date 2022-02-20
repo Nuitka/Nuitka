@@ -35,6 +35,7 @@ from nuitka.tools.quality.Git import (
     updateWorkingFile,
 )
 from nuitka.tools.quality.ScanSources import isPythonFile
+from nuitka.tools.release.Documentation import extra_rst_keywords
 from nuitka.Tracing import general, my_print
 from nuitka.utils.Execution import (
     NuitkaCalledProcessError,
@@ -384,13 +385,10 @@ def _cleanupImportSortOrder(filename):
         putTextFileContents(filename, contents=contents)
 
 
-_extra_rst_keywords = b"asciinema", b"postlist", b"post", b"youtube", b"grid"
-
-
 def _cleanupRstFmt(filename):
     updated_contents = contents = getFileContents(filename, mode="rb")
 
-    for keyword in _extra_rst_keywords:
+    for keyword in extra_rst_keywords:
         updated_contents = updated_contents.replace(
             b".. %s::" % keyword, b".. raw:: %s" % keyword
         )
@@ -417,7 +415,7 @@ def _cleanupRstFmt(filename):
     # more people will know it.
     updated_contents = contents.replace(b".. code:: sh\n", b".. code:: bash\n")
 
-    for keyword in _extra_rst_keywords:
+    for keyword in extra_rst_keywords:
         updated_contents = updated_contents.replace(
             b".. raw:: %s" % keyword, b".. %s::" % keyword
         )
