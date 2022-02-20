@@ -6,9 +6,9 @@ In this document, we track the per version changes and comments. This
 becomes a document on the website, as well as individual posts on the
 Nuitka blog.
 
-****************************
- Nuitka Release 0.7 (Draft)
-****************************
+********************
+ Nuitka Release 0.7
+********************
 
 This release is massively improving macOS support, esp. for M1 and the
 latest OS releases, but it also has massive improvements for usability
@@ -97,6 +97,11 @@ Bug Fixes
 
 -  Plugins: Add support for the latest version of ``pkg_resources`` that
    has "vendored" even more packages. Fixed in 0.6.19.6 already.
+
+-  Onefile: The onefile binary was locked during run time and could not
+   be renamed, preventing in-place updates. This has been resolved and
+   now on Windows, the standard trick for updating a running binary of
+   renaming it, then placing the new file works.
 
 -  Fix, wasn't checking the ``zstandard`` version and as a result could
    crash if too old versions of it. This is now checked.
@@ -199,7 +204,7 @@ Optimization
    ``encodings.idna`` anymore, these are not file system encodings, but
    require extension modules.
 
--  Make sure we usi proper ``(void)`` arguments for C functions without
+-  Make sure we use proper ``(void)`` arguments for C functions without
    arguments, as for C functions, that makes a real difference, they are
    variable args functions and more expensive to call otherwise.
 
@@ -232,6 +237,11 @@ Optimization
    created with ``AppImage``. The default is also now ``gzip`` and not
    ``xz`` which has been observed to cause much slower startup for
    little size gains.
+
+-  Standalone: For failed relative imports, during compiled time
+   absolute imports were attempted still and included if successful, the
+   imports would not be use them at run time, but lead to more modules
+   being included than necessary.
 
 Organisational
 ==============
@@ -303,8 +313,8 @@ Organisational
    older Python.
 
 -  Added progress bars for DLL dependency detection and DLL copying for
-   standalone. These both can take both a fair bit of time, and it's
-   nice to know what's going on.
+   standalone. These both can end up using take a fair bit of time
+   depending on project size, and it's nice to know what's going on.
 
 -  macOS: Added support for using both ``--onefile`` and
    ``--macos-create-app-bundle`` as it is needed for PySide2 due to
@@ -316,9 +326,15 @@ Organisational
 -  Modules: Catch the user error of following all imports when creating
    a module. This is very unlikely to produce usable results.
 
--  Start integrating `Sorcery <https://sourcery.ai>`__ for improved
+-  Start integrating `Sourcery <https://sourcery.ai>`__ for improved
    Nuitka code. It will comment on PRs and automatically improve Nuitka
    code as we develop it.
+
+-  Debugging: Added command line tool ``find-module`` that outputs how
+   Nuitka locates a module in the Python environment it's ran with. That
+   removes the need to use Python prompt to dump ``__file__`` of
+   imported modules. Some modules even hide parts of their namespace
+   actively during run-time, the tool will not be affected by that.
 
 Cleanups
 ========
