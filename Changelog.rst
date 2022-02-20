@@ -10,6 +10,13 @@ Nuitka blog.
  Nuitka Release 0.8 (Draft)
 ****************************
 
+Cleanups
+========
+
+-  Removed references to ``chrpath`` and dead code around it, it was
+   still listed as a dependency, although we stopped using it a while
+   ago.
+
 This release is not done yet.
 
 ********************

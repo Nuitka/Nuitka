@@ -1273,7 +1273,7 @@ def _parseWindowsVersionNumber(value):
 
         r = tuple(int(d) for d in parts)
         assert min(r) >= 0
-        assert max(r) < 2 ** 16
+        assert max(r) < 2**16
         return r
     else:
         return None

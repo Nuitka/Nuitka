@@ -43,7 +43,7 @@ from .IndexCodes import (
 def _isSmallNumberConstant(node):
     if node.isNumberConstant():
         value = node.getCompileTimeConstant()
-        return abs(int(value)) < 2 ** 63 - 1
+        return abs(int(value)) < 2**63 - 1
     else:
         return False
 

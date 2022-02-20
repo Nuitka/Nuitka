@@ -37,7 +37,7 @@ def _decideIntegerSubscript(subscript):
         if subscript.isIndexConstant():
             constant_value = subscript.getIndexValue()
 
-            if abs(constant_value) < 2 ** 31:
+            if abs(constant_value) < 2**31:
                 return constant_value, True
 
     return None, False
@@ -220,7 +220,7 @@ def _getSubscriptLookupCode(to_name, subscript_name, subscribed_name, emit, cont
 def _getIntegerSubscriptAssignmentCode(
     subscribed_name, subscript_name, subscript_value, value_name, emit, context
 ):
-    assert abs(subscript_value) < 2 ** 31
+    assert abs(subscript_value) < 2**31
 
     res_name = context.allocateTempName("ass_subscript_res", "int")
 
