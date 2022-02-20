@@ -522,27 +522,23 @@ PyTypeObject Nuitka_Method_Type = {
     Nuitka_Method_methods,                            /* tp_methods */
     Nuitka_Method_members,                            /* tp_members */
     Nuitka_Method_getsets,                            /* tp_getset */
-#if defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
-    &PyMethod_Type, /* tp_base */
-#else
-    0, /* tp_base */
-#endif
-    0,                                        /* tp_dict */
-    (descrgetfunc)Nuitka_Method_tp_descr_get, /* tp_descr_get */
-    0,                                        /* tp_descr_set */
-    0,                                        /* tp_dictoffset */
-    0,                                        /* tp_init */
-    0,                                        /* tp_alloc */
-    Nuitka_Method_tp_new,                     /* tp_new */
-    0,                                        /* tp_free */
-    0,                                        /* tp_is_gc */
-    0,                                        /* tp_bases */
-    0,                                        /* tp_mro */
-    0,                                        /* tp_cache */
-    0,                                        /* tp_subclasses */
-    0,                                        /* tp_weaklist */
-    0,                                        /* tp_del */
-    0                                         /* tp_version_tag */
+    0,                                                /* tp_base */
+    0,                                                /* tp_dict */
+    (descrgetfunc)Nuitka_Method_tp_descr_get,         /* tp_descr_get */
+    0,                                                /* tp_descr_set */
+    0,                                                /* tp_dictoffset */
+    0,                                                /* tp_init */
+    0,                                                /* tp_alloc */
+    Nuitka_Method_tp_new,                             /* tp_new */
+    0,                                                /* tp_free */
+    0,                                                /* tp_is_gc */
+    0,                                                /* tp_bases */
+    0,                                                /* tp_mro */
+    0,                                                /* tp_cache */
+    0,                                                /* tp_subclasses */
+    0,                                                /* tp_weaklist */
+    0,                                                /* tp_del */
+    0                                                 /* tp_version_tag */
 #if PYTHON_VERSION >= 0x340
     ,
     0 /* tp_finalizer */
@@ -550,6 +546,8 @@ PyTypeObject Nuitka_Method_Type = {
 };
 
 void _initCompiledMethodType(void) {
+    Nuitka_Method_Type.tp_base = &PyMethod_Type;
+
     PyType_Ready(&Nuitka_Method_Type);
 
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED

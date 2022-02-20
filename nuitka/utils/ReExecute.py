@@ -19,6 +19,8 @@
 
 Note: This avoids imports at all costs, such that initial startup doesn't do more
 than necessary.
+
+spell-checker: ignore execl, Popen
 """
 
 import os
@@ -32,7 +34,11 @@ def callExecProcess(args):
     a new process instead.
     """
 
-    # On Windows os.execl does not work properly
+    # We better flush these, "os.execl" won't do it anymore.
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+    # On Windows "os.execl" does not work properly
     if os.name == "nt":
         import subprocess
 

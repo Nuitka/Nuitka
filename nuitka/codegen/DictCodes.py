@@ -697,8 +697,11 @@ def generateDictOperationSetCode(statement, emit, context):
     res_name = context.getIntResName()
 
     emit(
-        "%s = PyDict_SetItem(%s, %s, %s);"
-        % (res_name, dict_arg_name, key_arg_name, value_arg_name)
+        """\
+assert(PyDict_CheckExact(%s));
+%s = PyDict_SetItem(%s, %s, %s);
+"""
+        % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name)
     )
 
     getErrorExitBoolCode(
@@ -740,8 +743,11 @@ def generateDictOperationSetCodeKeyValue(statement, emit, context):
     res_name = context.getIntResName()
 
     emit(
-        "%s = PyDict_SetItem(%s, %s, %s);"
-        % (res_name, dict_arg_name, key_arg_name, value_arg_name)
+        """\
+assert(PyDict_CheckExact(%s));
+%s = PyDict_SetItem(%s, %s, %s);
+"""
+        % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name)
     )
 
     getErrorExitBoolCode(

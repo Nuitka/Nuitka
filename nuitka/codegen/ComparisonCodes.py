@@ -23,7 +23,6 @@ Rich comparisons, "in", and "not in", also "is", and "is not", and the
 
 from nuitka.containers.oset import OrderedSet
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_bool
-from nuitka.Options import isExperimental
 
 from . import OperatorCodes
 from .CodeHelpers import generateExpressionCode, pickCodeHelper
@@ -131,8 +130,8 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         if left.getTypeShape() is tshape_bool and right.getTypeShape() is tshape_bool:
             type_name = "nuitka_bool"
 
-    left_name = context.allocateTempName("compexpr_left", type_name=type_name)
-    right_name = context.allocateTempName("compexpr_right", type_name=type_name)
+    left_name = context.allocateTempName("cmp_expr_left", type_name=type_name)
+    right_name = context.allocateTempName("cmp_expr_right", type_name=type_name)
 
     generateExpressionCode(
         to_name=left_name, expression=left, emit=emit, context=context
@@ -182,12 +181,6 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         )
     elif comparator in OperatorCodes.rich_comparison_codes:
         needs_check = expression.mayRaiseExceptionComparison()
-
-        # TODO: This is probably not really worth it, but we used to do it.
-        # if comparator == "Eq" and not context.mayRecurse():
-        #     suffix = "_NORECURSE"
-        # else:
-        #     suffix = ""
 
         helper = pickCodeHelper(
             prefix="RICH_COMPARE_xx",
@@ -259,10 +252,7 @@ def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
 
     res_name = context.getIntResName()
 
-    if isExperimental("function-base"):
-        emit("%s = PyObject_IsInstance(%s, %s);" % (res_name, inst_name, cls_name))
-    else:
-        emit("%s = Nuitka_IsInstance(%s, %s);" % (res_name, inst_name, cls_name))
+    emit("%s = PyObject_IsInstance(%s, %s);" % (res_name, inst_name, cls_name))
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,

@@ -15,6 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+# nuitka-project: --follow-imports
+
 import some_package.deep_package.DeepDeepChild
 import some_package.DeepChild
 

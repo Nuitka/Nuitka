@@ -25,12 +25,12 @@ added, and whose dependencies will also be included.
 
 import collections
 import os
-import shutil
 
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
 from nuitka.utils.FileOperations import isRelativePath, makePath
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.SharedLibraries import copyDllFile
 
 IncludedEntryPoint = collections.namedtuple(
     "IncludedEntryPoint",
@@ -63,6 +63,8 @@ def makeDllEntryPoint(source_path, dest_path, package_name):
     assert type(source_path) not in (tuple, list)
     assert isRelativePath(dest_path), dest_path
 
+    assert os.path.exists(source_path), source_path
+
     dest_path = os.path.join(getStandaloneDirectoryPath(), dest_path)
 
     return makeIncludedEntryPoint(
@@ -74,6 +76,8 @@ def makeExeEntryPoint(source_path, dest_path, package_name):
     assert type(dest_path) not in (tuple, list)
     assert type(source_path) not in (tuple, list)
     assert isRelativePath(dest_path), dest_path
+
+    assert os.path.exists(source_path), source_path
 
     dest_path = os.path.join(getStandaloneDirectoryPath(), dest_path)
 
@@ -87,6 +91,8 @@ def makeExeEntryPoint(source_path, dest_path, package_name):
 
 
 def makeDllEntryPointOld(source_path, dest_path, package_name):
+    assert os.path.exists(source_path), source_path
+
     return makeIncludedEntryPoint(
         "dll",
         source_path=source_path,
@@ -98,7 +104,7 @@ def makeDllEntryPointOld(source_path, dest_path, package_name):
 
 def makeExtensionModuleEntryPoint(source_path, dest_path, package_name):
     return makeIncludedEntryPoint(
-        "shlib",
+        "extension",
         source_path=source_path,
         dest_path=dest_path,
         package_name=package_name,
@@ -121,7 +127,7 @@ def setMainEntryPoint(binary_filename):
     standalone_entry_points.insert(0, entry_point)
 
 
-def addShlibEntryPoint(module):
+def addExtensionModuleEntryPoint(module):
     target_filename = os.path.join(
         getStandaloneDirectoryPath(), module.getFullName().asPath()
     )
@@ -132,7 +138,7 @@ def addShlibEntryPoint(module):
     if not os.path.isdir(target_dir):
         makePath(target_dir)
 
-    shutil.copyfile(module.getFilename(), target_filename)
+    copyDllFile(module.getFilename(), target_filename)
 
     standalone_entry_points.append(
         makeExtensionModuleEntryPoint(

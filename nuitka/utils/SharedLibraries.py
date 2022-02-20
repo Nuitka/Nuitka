@@ -28,12 +28,8 @@ from nuitka.__past__ import unicode
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
-from .Execution import (
-    executeProcess,
-    executeToolChecked,
-    withEnvironmentVarOverriden,
-)
-from .FileOperations import getFileList, withMadeWritableFileMode
+from .Execution import executeToolChecked, withEnvironmentVarOverridden
+from .FileOperations import copyFile, getFileList, withMadeWritableFileMode
 from .Utils import isAlpineLinux, isMacOS, isWin32Windows
 from .WindowsResources import (
     RT_MANIFEST,
@@ -62,11 +58,15 @@ def locateDLL(dll_name):
     if dll_name is None:
         return None
 
+    # This happens on macOS.
+    if isMacOS() and not os.path.exists(dll_name):
+        return None
+
     if isWin32Windows():
-        return os.path.normpath(dll_name)
+        return os.path.abspath(dll_name)
 
     if isMacOS():
-        return dll_name
+        return os.path.abspath(dll_name)
 
     if os.path.sep in dll_name:
         # Use this from ctypes instead of rolling our own.
@@ -84,11 +84,11 @@ def locateDLL(dll_name):
             name=dll_name, paths=["/lib", "/usr/lib", "/usr/local/lib"]
         )
 
-    with withEnvironmentVarOverriden("LANG", "C"):
-        # TODO: Could cache ldconfig output
+    with withEnvironmentVarOverridden("LANG", "C"):
+        # TODO: Could and probably should cache "ldconfig -p" output
         output = executeToolChecked(
             logger=postprocessing_logger,
-            command=["/sbin/ldconfig", "-p"],
+            command=("/sbin/ldconfig", "-p"),
             absence_message=_ldconfig_usage,
         )
 
@@ -129,7 +129,7 @@ def getSxsFromDLL(filename, with_data=False):
     )
 
 
-def removeSxsFromDLL(filename):
+def _removeSxsFromDLL(filename):
     """Remove the Windows DLL SxS manifest.
 
     Args:
@@ -213,7 +213,7 @@ def getWindowsDLLVersion(filename):
     if not b:
         return (0, 0, 0, 0)
 
-    if not file_info.contents.dwSignature == 0xFEEF04BD:
+    if file_info.contents.dwSignature != 0xFEEF04BD:
         return (0, 0, 0, 0)
 
     ms = file_info.contents.dwFileVersionMS
@@ -228,7 +228,7 @@ _readelf_usage = "The 'readelf' is used to analyse dependencies on ELF using sys
 def _getSharedLibraryRPATHElf(filename):
     output = executeToolChecked(
         logger=postprocessing_logger,
-        command=["readelf", "-d", filename],
+        command=("readelf", "-d", filename),
         absence_message=_readelf_usage,
     )
 
@@ -244,17 +244,28 @@ def _getSharedLibraryRPATHElf(filename):
     return None
 
 
-_otool_usage = (
+otool_usage = (
     "The 'otool' is used to analyse dependencies on macOS and required to be found."
 )
 
+_otool_l_cache = {}
+
+
+def getOtoolListing(filename):
+    filename = os.path.abspath(filename)
+
+    if filename not in _otool_l_cache:
+        _otool_l_cache[filename] = executeToolChecked(
+            logger=postprocessing_logger,
+            command=("otool", "-l", filename),
+            absence_message=otool_usage,
+        )
+
+    return _otool_l_cache[filename]
+
 
 def _getSharedLibraryRPATHDarwin(filename):
-    output = executeToolChecked(
-        logger=postprocessing_logger,
-        command=["otool", "-l", filename],
-        absence_message=_otool_usage,
-    )
+    output = getOtoolListing(filename)
 
     cmd = b""
     last_was_load_command = False
@@ -289,7 +300,7 @@ def getSharedLibraryRPATH(filename):
 def _removeSharedLibraryRPATHElf(filename):
     executeToolChecked(
         logger=postprocessing_logger,
-        command=["chrpath", "-d", filename],
+        command=("chrpath", "-d", filename),
         absence_message="""\
 Error, needs 'chrpath' on your system, due to 'RPATH' settings in used shared
 libraries that need to be removed.""",
@@ -313,10 +324,10 @@ def _setSharedLibraryRPATHElf(filename, rpath):
     # case seems to use rpaths for executables.
 
     # patchelf --set-rpath "$ORIGIN/path/to/library" <executable>
-    with withEnvironmentVarOverriden("LANG", "C"):
+    with withEnvironmentVarOverridden("LANG", "C"):
         executeToolChecked(
             logger=postprocessing_logger,
-            command=["patchelf", "--set-rpath", rpath, filename],
+            command=("patchelf", "--set-rpath", rpath, filename),
             stderr_filter=_filterPatchelfErrorOutput,
             absence_message="""\
 Error, needs 'patchelf' on your system, due to 'RPATH' settings that need to be
@@ -341,7 +352,7 @@ _installnametool_usage = "The 'install_name_tool' is used to make binaries porta
 def _removeSharedLibraryRPATHDarwin(filename, rpath):
     executeToolChecked(
         logger=postprocessing_logger,
-        command=["install_name_tool", "-delete_rpath", rpath, filename],
+        command=("install_name_tool", "-delete_rpath", rpath, filename),
         absence_message=_installnametool_usage,
         stderr_filter=_filterInstallNameToolErrorOutput,
     )
@@ -356,7 +367,7 @@ def _setSharedLibraryRPATHDarwin(filename, rpath):
 
         executeToolChecked(
             logger=postprocessing_logger,
-            command=["install_name_tool", "-add_rpath", rpath, filename],
+            command=("install_name_tool", "-add_rpath", rpath, filename),
             absence_message=_installnametool_usage,
             stderr_filter=_filterInstallNameToolErrorOutput,
         )
@@ -386,12 +397,12 @@ def setSharedLibraryRPATH(filename, rpath):
 
     with withMadeWritableFileMode(filename):
         if isMacOS():
-            return _setSharedLibraryRPATHDarwin(filename, rpath)
+            _setSharedLibraryRPATHDarwin(filename, rpath)
         else:
-            return _setSharedLibraryRPATHElf(filename, rpath)
+            _setSharedLibraryRPATHElf(filename, rpath)
 
 
-def callInstallNameTool(filename, mapping, rpath):
+def callInstallNameTool(filename, mapping, id_path, rpath):
     """Update the macOS shared library information for a binary or shared library.
 
     Adds the rpath path name `rpath` in the specified `filename` Mach-O
@@ -401,6 +412,7 @@ def callInstallNameTool(filename, mapping, rpath):
     Args:
         filename - The file to be modified.
         mapping  - old_path, new_path pairs of values that should be changed
+        id_path  - Use this value for library id
         rpath    - Set this as an rpath if not None, delete if False
 
     Returns:
@@ -415,6 +427,9 @@ def callInstallNameTool(filename, mapping, rpath):
 
     if rpath is not None:
         command += ("-add_rpath", os.path.join(rpath, "."))
+
+    if id_path is not None:
+        command += ("-id", id_path)
 
     command.append(filename)
 
@@ -461,12 +476,10 @@ def detectBinaryMinMacOS(binary_filename):
 
     """
 
-    stdout, _stderr, exit_code = executeProcess(["otool", "-l", binary_filename])
+    minos_version = None
 
-    if exit_code != 0:
-        postprocessing_logger.sysexit(
-            "Unexpected failure to execute otool -l '%s'." % binary_filename
-        )
+    # This is cached, so we don't have to care about that.
+    stdout = getOtoolListing(binary_filename)
 
     lines = stdout.split(b"\n")
 
@@ -477,16 +490,18 @@ def detectBinaryMinMacOS(binary_filename):
             if str is not bytes:
                 line = line.decode("utf8")
 
-            return line.split("version ", 1)[1]
+            minos_version = line.split("version ", 1)[1]
+            break
 
         # Form two, used by Apple Python builds.
-        elif line.strip().startswith(b"minos"):
+        if line.strip().startswith(b"minos"):
             if str is not bytes:
                 line = line.decode("utf8")
 
-            return line.split("minos ", 1)[1]
+            minos_version = line.split("minos ", 1)[1]
+            break
 
-    return None
+    return minos_version
 
 
 _re_anylib = re.compile(r"^.*(\.(?:dll|so(?:\..*)|dylib))$", re.IGNORECASE)
@@ -513,3 +528,60 @@ def locateDLLsInDirectory(directory):
             result.append((filename, filename_relative, match.group(1)))
 
     return result
+
+
+_lipo_usage = (
+    "The 'lipo' tool from XCode is used to manage universal binaries on macOS platform."
+)
+_file_usage = "The 'file' tool is used to detect macOS file architectures."
+
+
+def makeMacOSThinBinary(filename):
+    file_output = executeToolChecked(
+        logger=postprocessing_logger,
+        command=("file", filename),
+        absence_message=_file_usage,
+    )
+
+    if str is not bytes:
+        file_output = file_output.decode("utf8")
+
+    assert file_output.startswith(filename + ":")
+    file_output = file_output[len(filename) + 1 :].splitlines()[0].strip()
+
+    macos_target_arch = Options.getMacOSTargetArch()
+
+    if "universal" in file_output:
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=(
+                "lipo",
+                "-thin",
+                macos_target_arch,
+                filename,
+                "-o",
+                filename + ".tmp",
+            ),
+            absence_message=_lipo_usage,
+        )
+
+        with withMadeWritableFileMode(filename):
+            os.unlink(filename)
+            os.rename(filename + ".tmp", filename)
+    elif macos_target_arch not in file_output:
+        postprocessing_logger.sysexit(
+            "Error, cannot use file '%s' (%s) to build arch '%s' result"
+            % (filename, file_output, macos_target_arch)
+        )
+
+
+def copyDllFile(source_path, dest_path):
+    """Copy an extension/DLL file making some adjustments on the way."""
+
+    copyFile(source_path=source_path, dest_path=dest_path)
+
+    if isWin32Windows() and python_version < 0x300:
+        _removeSxsFromDLL(dest_path)
+
+    if isMacOS() and Options.getMacOSTargetArch() != "universal":
+        makeMacOSThinBinary(dest_path)

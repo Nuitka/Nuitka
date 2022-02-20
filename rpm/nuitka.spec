@@ -56,6 +56,7 @@ BuildRequires:  chrpath
 BuildRequires:  patchelf
 BuildRequires:  ccache
 BuildRequires:  gdb
+
 %if 0%{?fedora} < 28 && 0%{?rhel} < 8
 Requires:       python-devel
 %endif
@@ -79,6 +80,7 @@ Requires:       strace
 Requires:       chrpath
 Requires:       patchelf
 Requires:       ccache
+
 BuildArchitectures: noarch
 
 %description
@@ -139,10 +141,28 @@ env
 echo "OS information during build:"
 if [ -f /etc/os-release ]
 then
+    echo "Contents of /etc/os-release :"
     cat /etc/os-release
 else
     echo "No /etc/os-release file found"
 fi
+
+if [ -f /etc/SuSE-release ]
+then
+    echo "Contents of /etc/SuSE-release :"
+    cat /etc/SuSE-release
+else
+    echo "No /etc/SuSE-release file found"
+fi
+
+if [ -f /etc/issue ]
+then
+    echo "Contents of /etc/issue :"
+    cat /etc/issue
+else
+    echo "No /etc/issue file found"
+fi
+
 
 if [ -x "$(command -v lsb_release)" ]
 then

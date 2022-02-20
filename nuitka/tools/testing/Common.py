@@ -51,6 +51,7 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     removeDirectory,
 )
+from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.Utils import getOS
 
@@ -80,9 +81,19 @@ def check_result(*popenargs, **kwargs):
         return True
 
 
+_start_dir = None
+
+
 def goMainDir():
+    global _start_dir  # singleton, pylint: disable=global-statement
+    _start_dir = os.getcwd()
+
     # Go its own directory, to have it easy with path knowledge.
     os.chdir(os.path.dirname(os.path.abspath(sys.modules["__main__"].__file__)))
+
+
+def getStartDir():
+    return _start_dir
 
 
 _python_version_str = None
@@ -1736,3 +1747,17 @@ def getMainProgramFilename(filename):
 Error, no file ends with 'Main.py' or 'Main' in '%s', incomplete test case."""
         % (filename)
     )
+
+
+def getInstalledPythonVersion(python_version, must_exist):
+    result = findInstalledPython(
+        python_versions=(python_version,), module_name=None, module_version=None
+    )
+
+    if result is None and must_exist:
+        test_logger.sysexit(
+            "Error, cannot find required Python version %s installation."
+            % python_version
+        )
+
+    return result

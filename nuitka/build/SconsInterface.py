@@ -40,6 +40,7 @@ from nuitka.utils.FileOperations import (
     hasFilenameExtension,
     listDir,
 )
+from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
 
 from .SconsCaching import checkCachingSuccess
@@ -85,23 +86,6 @@ def _getSconsBinaryCall():
             )
 
 
-def _getPythonSconsExePathWindows():
-    """Find Python for Scons on Windows.
-
-    Only 3.5 or higher will do.
-    """
-
-    # Ordered in the list of preference.
-    python_dir = Execution.getPythonInstallPathWindows(
-        supported=("3.5", "3.6", "3.7", "3.8", "3.9", "3.10")
-    )
-
-    if python_dir is not None:
-        return os.path.join(python_dir, "python.exe")
-    else:
-        return None
-
-
 def _getPythonForSconsExePath():
     """Find a way to call any Python that works for Scons.
 
@@ -112,40 +96,35 @@ def _getPythonForSconsExePath():
     if python_exe is not None:
         return python_exe
 
-    if python_version < 0x300 and not Utils.isWin32Windows():
-        # Python 2.6 and 2.7 are fine for scons on all platforms, but not
-        # on Windows due to clcache usage.
-        return sys.executable
-    elif python_version >= 0x350:
-        # Python 3.5 or higher work on all platforms.
-        return sys.executable
-    elif Utils.isWin32Windows():
-        python_exe = _getPythonSconsExePathWindows()
+    scons_supported_pythons = ("3.5", "3.6", "3.7", "3.8", "3.9", "3.10")
+    if not Utils.isWin32Windows():
+        scons_supported_pythons += ("2.7", "2.6")
 
-        if python_exe is not None:
-            return python_exe
+    # Our inline copy needs no other module, just the right version of Python is needed.
+    python_for_scons = findInstalledPython(
+        python_versions=scons_supported_pythons, module_name=None, module_version=None
+    )
+
+    if python_for_scons is None:
+        if Utils.isWin32Windows():
+            scons_python_requirement = "Python 3.5 or higher"
         else:
-            Tracing.scons_logger.sysexit(
-                """\
+            scons_python_requirement = "Python 2.6, 2.7 or Python >= 3.5"
+
+        Tracing.scons_logger.sysexit(
+            """\
 Error, while Nuitka works with older Python, Scons does not, and therefore
-Nuitka needs to find a Python 3.5 or higher executable, so please install
+Nuitka needs to find a %s executable, so please install
 it.
 
 You may provide it using option "--python-for-scons=path_to_python.exe"
 in case it is not visible in registry, e.g. due to using uninstalled
 Anaconda Python.
 """
-            )
+            % scons_python_requirement
+        )
 
-    for version_candidate in ("2.7", "2.6", "3.5", "3.6", "3.7", "3.8", "3.9", "3.10"):
-        candidate = Execution.getExecutablePath("python" + version_candidate)
-
-        if candidate is not None:
-            return candidate
-
-    # Lets be optimistic, this is most often going to be new enough or a
-    # Python2 variant.
-    return "python"
+    return python_for_scons.getPythonExe()
 
 
 @contextlib.contextmanager
@@ -293,7 +272,7 @@ def runScons(options, quiet, scons_filename):
         Tracing.flushStandardOutputs()
 
         # Call scons, make sure to pass on quiet setting.
-        with Execution.withEnvironmentVarOverriden(
+        with Execution.withEnvironmentVarOverridden(
             "NUITKA_QUIET", "1" if Tracing.is_quiet else "0"
         ):
             result = subprocess.call(scons_command, shell=False, cwd=source_dir)
@@ -381,13 +360,7 @@ def setCommonOptions(options):
         options["mingw_mode"] = "true"
 
     if Options.getMsvcVersion():
-        msvc_version = Options.getMsvcVersion()
-
-        msvc_version = msvc_version.replace("exp", "Exp")
-        if "." not in msvc_version and msvc_version != "latest":
-            msvc_version += ".0"
-
-        options["msvc_version"] = msvc_version
+        options["msvc_version"] = Options.getMsvcVersion()
 
     if Options.shallDisableCCacheUsage():
         options["disable_ccache"] = asBoolStr(True)
@@ -413,17 +386,21 @@ def setCommonOptions(options):
     if link_libraries:
         options["link_libraries"] = ",".join(link_libraries)
 
-    if Utils.isMacOS() and Options.isStandaloneMode():
-        macos_minversion = os.environ.get("MACOSX_DEPLOYMENT_TARGET")
-        if macos_minversion is None:
-            macos_minversion = detectBinaryMinMacOS(sys.executable)
+    if Utils.isMacOS():
+        macos_min_version = detectBinaryMinMacOS(sys.executable)
 
-            if macos_minversion is None:
-                Tracing.general.warning(
-                    "Could not detect minimum macOS version for %r." % sys.executable
-                )
+        if macos_min_version is None:
+            Tracing.general.sysexit(
+                "Could not detect minimum macOS version for %r." % sys.executable
+            )
 
-                # Default, but not a good idea.
-                macos_minversion = "10.9"
+        options["macos_min_version"] = macos_min_version
 
-        options["macos_minversion"] = macos_minversion
+        macos_target_arch = Options.getMacOSTargetArch()
+
+        if macos_target_arch == "universal":
+            Tracing.general.sysexit(
+                "Cannot create universal macOS binaries (yet), please pick an arch and create two binaries."
+            )
+
+        options["macos_target_arch"] = macos_target_arch

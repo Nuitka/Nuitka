@@ -80,7 +80,7 @@ def cleanupWindowsNewlines(filename):
 
 def _cleanupTrailingWhitespace(filename):
     """Remove trailing white spaces from a file."""
-    source_lines = list(getFileContentByLine(filename))
+    source_lines = list(getFileContentByLine(filename, encoding="utf8"))
 
     clean_lines = [line.rstrip().replace("\t", "    ") for line in source_lines]
 
@@ -88,7 +88,7 @@ def _cleanupTrailingWhitespace(filename):
         del clean_lines[-1]
 
     if clean_lines != source_lines or (clean_lines and clean_lines[-1] != ""):
-        putTextFileContents(filename, contents=clean_lines)
+        putTextFileContents(filename, contents=clean_lines, encoding="utf8")
 
 
 def _getRequirementsContentsByLine():
@@ -384,7 +384,7 @@ def _cleanupImportSortOrder(filename):
         putTextFileContents(filename, contents=contents)
 
 
-_extra_rst_keywords = b"post", b"youtube", b"grid"
+_extra_rst_keywords = b"asciinema", b"postlist", b"post", b"youtube", b"grid"
 
 
 def _cleanupRstFmt(filename):
@@ -478,6 +478,7 @@ def _cleanupClangFormat(filename):
     if not clang_format_path and getOS() == "Windows":
         with withEnvironmentPathAdded(
             "PATH",
+            r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\bin",
             r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\Llvm\bin",
             r"C:\Program Files\LLVM\bin",
         ):

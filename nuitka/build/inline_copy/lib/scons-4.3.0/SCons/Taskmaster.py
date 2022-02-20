@@ -244,6 +244,9 @@ class Task(ABC):
         except SCons.Errors.BuildError:
             raise
         except Exception as e:
+            # Nuitka: This is only bug hiding, e.g. in case of clcache.
+            raise
+
             buildError = SCons.Errors.convert_to_BuildError(e)
             buildError.node = self.targets[0]
             buildError.exc_info = sys.exc_info()

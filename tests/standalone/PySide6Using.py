@@ -20,6 +20,9 @@
 # This test is using signals and will only work if PySide properly accepts
 # compiled functions as callables.
 
+# nuitka-project: --standalone
+# nuitka-project: --enable-plugin=pyside6
+
 from __future__ import print_function
 
 from PySide6.QtCore import QMetaObject, QObject, Signal, Slot

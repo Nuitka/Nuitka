@@ -73,7 +73,7 @@ from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
     addClangClPathFromMSVC,
     addToPATH,
-    changeKeyboardInteruptToErrorExit,
+    changeKeyboardInterruptToErrorExit,
     createDefinitionsFile,
     createEnvironment,
     getArgumentBool,
@@ -189,7 +189,7 @@ disable_console = getArgumentBool("disable_console", False)
 # Windows might be running a Python whose DLL we have to use.
 uninstalled_python = getArgumentBool("uninstalled_python", False)
 
-# Unstriped mode: Do not remove debug symbols.
+# Unstripped mode: Do not remove debug symbols.
 unstripped_mode = getArgumentBool("unstripped_mode", False)
 
 # Target arch, uses for compiler choice and quick linking of constants binary
@@ -272,6 +272,9 @@ python_sysflag_no_randomization = getArgumentBool(
     "python_sysflag_no_randomization", False
 )
 
+# python_sysflag_unbuffered
+python_sysflag_unbuffered = getArgumentBool("python_sysflag_unbuffered", False)
+
 # Preprocessor defines from plugins
 cpp_defines = getArgumentList("cpp_defines", "")
 link_dirs = getArgumentList("link_dirs", "")
@@ -288,7 +291,10 @@ assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 low_memory = getArgumentBool("low_memory", False)
 
 # Minimum version required on macOS.
-macos_minversion = getArgumentDefaulted("macos_minversion", "")
+macos_min_version = getArgumentDefaulted("macos_min_version", "")
+
+# Target arch for macOS.
+macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
 if getArgumentBool("progress_bar", True) and not show_scons_mode:
     enableSconsProgressBar()
@@ -350,8 +356,7 @@ if "CC" in os.environ:
     scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
 elif clangcl_mode:
     # If possible, add Clang directory from MSVC if available.
-    addClangClPathFromMSVC(env=env, target_arch=target_arch)
-
+    addClangClPathFromMSVC(env=env)
 elif clang_mode:
     # If requested by the user, use the clang compiler, overriding what was
     # said in environment.
@@ -375,7 +380,8 @@ env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
 env.source_dir = source_dir
 env.low_memory = low_memory
-env.macos_minversion = macos_minversion
+env.macos_min_version = macos_min_version
+env.macos_target_arch = macos_target_arch
 
 # Various flavors could influence builds.
 env.anaconda_python = getArgumentBool("anaconda_python", False)
@@ -1002,6 +1008,8 @@ def createBuildDefinitionsFile():
         1 if python_sysflag_no_randomization else 0
     )
 
+    build_definitions["SYSFLAG_UNBUFFERED"] = 1 if python_sysflag_unbuffered else 0
+
     if forced_stdout_path:
         build_definitions["NUITKA_FORCED_STDOUT_PATH"] = forced_stdout_path
     if forced_stderr_path:
@@ -1045,7 +1053,7 @@ enableSpawnMonitoring(
 
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit as the
 # scons traceback is not going to be very interesting to us.
-changeKeyboardInteruptToErrorExit()
+changeKeyboardInterruptToErrorExit()
 
 # Check if ccache is installed, and complain if it is not.
 if env.gcc_mode and not disable_ccache:

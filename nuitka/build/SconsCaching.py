@@ -39,6 +39,7 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
+from .SconsProgress import updateSconsProgressBar
 from .SconsUtils import (
     getExecutablePath,
     getSconsReportValue,
@@ -72,6 +73,7 @@ def _getCcacheGuessedPaths(python_prefix):
     elif isMacOS():
         # For macOS, we might find Homebrew ccache installed but not in PATH.
         yield "/usr/local/opt/ccache"
+        yield "/opt/homebrew/bin/ccache"
 
 
 def _injectCcache(env, cc_path, python_prefix, target_arch, assume_yes_for_downloads):
@@ -102,7 +104,7 @@ def _injectCcache(env, cc_path, python_prefix, target_arch, assume_yes_for_downl
                 ccache_binary = getCachedDownload(
                     url=url,
                     is_arch_specific=False,
-                    specifity=url.rsplit("/", 2)[1],
+                    specificity=url.rsplit("/", 2)[1],
                     flatten=True,
                     binary="ccache.exe",
                     message="Nuitka will make use of ccache to speed up repeated compilation.",
@@ -120,7 +122,7 @@ def _injectCcache(env, cc_path, python_prefix, target_arch, assume_yes_for_downl
                     ccache_binary = getCachedDownload(
                         url=url,
                         is_arch_specific=False,
-                        specifity=url.rsplit("/", 2)[1],
+                        specificity=url.rsplit("/", 2)[1],
                         flatten=True,
                         binary="ccache",
                         message="Nuitka will make use of ccache to speed up repeated compilation.",
@@ -155,11 +157,6 @@ def _injectCcache(env, cc_path, python_prefix, target_arch, assume_yes_for_downl
         scons_details_logger.info(
             "Providing real CC path '%s' via PATH extension." % cc_path
         )
-    else:
-        if isWin32Windows():
-            scons_logger.warning(
-                "Didn't find ccache for C level caching, follow Nuitka User Manual description."
-            )
 
 
 def enableCcache(
@@ -223,7 +220,8 @@ def enableClcache(env, source_dir):
     setEnvironmentVariable(env, "CLCACHE_HIDE_OUTPUTS", "1")
 
     # Use the mode of clcache that is not dependent on MSVC filenames output
-    setEnvironmentVariable(env, "CLCACHE_NODIRECT", "1")
+    if "CLCACHE_NODIRECT" not in os.environ:
+        setEnvironmentVariable(env, "CLCACHE_NODIRECT", "1")
 
     # The clcache stats filename needs absolute path, otherwise it will not work.
     clcache_stats_filename = os.path.abspath(
@@ -324,8 +322,22 @@ def checkCachingSuccess(source_dir):
                 if result in ("cache hit (direct)", "cache hit (preprocessed)"):
                     result = "cache hit"
 
+                # Newer ccache has these, but they duplicate:
+                if result in (
+                    "direct_cache_hit",
+                    "direct_cache_miss",
+                    "preprocessed_cache_hit",
+                    "preprocessed_cache_miss",
+                    "primary_storage_miss",
+                ):
+                    continue
+                if result == "primary_storage_hit":
+                    result = "cache hit"
+                if result == "cache_miss":
+                    result = "cache miss"
+
                 # Usage of incbin causes this for the constants blob integration.
-                if result == "unsupported code directive":
+                if result in ("unsupported code directive", "disabled"):
                     continue
 
                 counts[result] += 1
@@ -367,6 +379,10 @@ def runClCache(args, env):
         scons_logger.sysexit("Error, cannot use Python2 for scons when using MSVC.")
 
     # The first argument is "<clcache>" and should not be used.
-    return runClCache(
+    result = runClCache(
         os.environ["CLCACHE_CL"], [arg.strip('"') for arg in args[1:]], env
     )
+
+    updateSconsProgressBar()
+
+    return result

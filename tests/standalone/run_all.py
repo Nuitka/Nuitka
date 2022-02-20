@@ -156,7 +156,7 @@ def main():
             # For the warnings.
             extra_flags.append("ignore_warnings")
 
-        # TODO: Once we have a noqt Plugin, we should use that.
+        # TODO: Once we have a no-Qt Plugin, we should use that.
         if filename == "MatplotlibUsing.py":
             # For the plugin warnings.
             extra_flags.append("ignore_warnings")

@@ -44,59 +44,80 @@ def getOS():
 _linux_distribution_info = None
 
 
+def _parseOsReleaseFileContents(filename):
+    result = None
+    base = None
+    version = None
+
+    from .FileOperations import getFileContentByLine
+
+    for line in getFileContentByLine(filename):
+        if line.startswith("ID="):
+            result = line[3:].strip('"')
+        if line.startswith("ID_LIKE="):
+            base = line[8:].strip('"').lower()
+
+            if "ubuntu" in base:
+                base = "Ubuntu"
+            elif "debian" in base:
+                base = "Debian"
+        if line.startswith("VERSION="):
+            version = line[8:].strip('"')
+
+        if "SUSE Linux Enterprise Server" in line:
+            result = "SLES"
+
+    return result, base, version
+
+
 def getLinuxDistribution():
     """Name of the Linux distribution.
 
     We should usually avoid this, and rather test for the feature,
     but in some cases it's hard to manage that.
     """
+    if getOS() != "Linux":
+        return None, None, None
+
     # singleton, pylint: disable=global-statement
     global _linux_distribution_info
 
-    if getOS() != "Linux":
-        return None, None
-
     if _linux_distribution_info is None:
-        import platform
+        result = None
+        base = None
+        version = None
 
-        # pylint: disable=I0021,deprecated-method,no-member
-        try:
-            result = platform.dist()[0]
-            version = platform.dist()[1]
-        except AttributeError:
-            result = None
-            version = None
+        if os.path.exists("/etc/os-release"):
+            result, base, version = _parseOsReleaseFileContents("/etc/os-release")
+        elif os.path.exists("/etc/SuSE-release"):
+            result, base, version = _parseOsReleaseFileContents("/etc/SuSE-release")
+        elif os.path.exists("/etc/issue"):
+            result, base, version = _parseOsReleaseFileContents("/etc/issue")
 
-            if os.path.exists("/etc/os-release"):
-                from .FileOperations import getFileContentByLine
+        if result is None:
+            from .Execution import check_output
 
-                for line in getFileContentByLine("/etc/os-release"):
-                    if line.startswith("ID="):
-                        result = line[3:].strip('"')
-                    if line.startswith("VERSION="):
-                        version = line[8:].strip('"')
+            try:
+                result = check_output(["lsb_release", "-i", "-s"], shell=False)
 
-            if result is None:
-                from .Execution import check_output
+                if str is not bytes:
+                    result = result.decode("utf8")
+            except OSError:
+                pass
 
-                try:
-                    result = check_output(["lsb_release", "-i", "-s"], shell=False)
+        if result is None:
+            from nuitka.Tracing import general
 
-                    if str is not bytes:
-                        result = result.decode("utf8")
-                except FileNotFoundError:
-                    pass
-
-            if result is None:
-                from nuitka.Tracing import general
-
-                general.sysexit("Error, cannot detect Linux distribution.")
+            general.warning(
+                "Cannot detect Linux distribution, this may prevent optimization."
+            )
+            result = "Unknown"
 
         # Change e.g. "11 (Bullseye)"" to "11".
         if version is not None and version.strip():
             version = version.split()[0]
 
-        _linux_distribution_info = result.title(), version
+        _linux_distribution_info = result.title(), base, version
 
     return _linux_distribution_info
 
@@ -111,10 +132,10 @@ def getWindowsRelease():
 
 
 def isDebianBasedLinux():
-    # TODO: What is with Mint, maybe others, this list should be expanded potentially.
-    dist_name, _dist_version = getLinuxDistribution()
+    dist_name, base, _dist_version = getLinuxDistribution()
 
-    return dist_name in ("Debian", "Ubuntu")
+    # False alarm, pylint: disable= superfluous-parens
+    return (base or dist_name) in ("Debian", "Ubuntu")
 
 
 def isWin32Windows():
@@ -233,6 +254,8 @@ def getUserName():
     Notes: Currently doesn't work on Windows.
     """
     import pwd  # pylint: disable=I0021,import-error
+
+    # spell-checker: ignore getpwuid,getuid
 
     return pwd.getpwuid(os.getuid())[0]
 

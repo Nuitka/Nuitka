@@ -1,0 +1,18 @@
+---
+shapely.geos:
+  dlls:
+    # Code that will output the filename.
+    - include_from_code:
+      setup_code: "import shapely.geos"
+      dll_filename_code: "shapely.geos._lgeos._name"
+      dest_path: "shapely"
+
+vosk:
+  dlls:
+    # Patterns for DLL filenames below package relative directory
+    - include_from_filenames:
+      # default, only here while we have no docs
+      dir: "."
+      patterns:
+        - "libvosk"
+      dest_path: "vosk"

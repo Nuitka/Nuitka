@@ -54,7 +54,7 @@ def getDependsExePath():
         is_arch_specific=getArchitecture(),
         binary="depends.exe",
         flatten=True,
-        specifity="",  # Note: If there ever was an update, put version here.
+        specificity="",  # Note: If there ever was an update, put version here.
         message="""\
 Nuitka will make use of Dependency Walker (https://dependencywalker.com) tool
 to analyze the dependencies of Python extension modules.""",

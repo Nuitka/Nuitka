@@ -60,8 +60,6 @@ static char **orig_argv;
 #endif
 static int orig_argc;
 
-#ifdef _NUITKA_STANDALONE
-
 #if _NUITKA_FROZEN > 0
 extern void copyFrozenModulesTo(struct _frozen *destination);
 
@@ -71,15 +69,13 @@ static struct _frozen *old_frozen = NULL;
 #else
 static struct _frozen const *old_frozen = NULL;
 #endif
-#endif
 
-static void prepareStandaloneEnvironment() {
+static void prepareFrozenModules(void) {
     // Tell the CPython library to use our pre-compiled modules as frozen
     // modules. This for those modules/packages like "encoding" that will be
     // loaded during "Py_Initialize" already, for the others they may be
     // compiled.
 
-#if _NUITKA_FROZEN > 0
     // The CPython library has some pre-existing frozen modules, we only append
     // to that.
     struct _frozen const *search = PyImport_FrozenModules;
@@ -98,7 +94,12 @@ static void prepareStandaloneEnvironment() {
     copyFrozenModulesTo(merged + pre_existing_count);
     old_frozen = PyImport_FrozenModules;
     PyImport_FrozenModules = merged;
+}
 #endif
+
+#ifdef _NUITKA_STANDALONE
+
+static void prepareStandaloneEnvironment(void) {
 
     /* Setup environment variables to tell CPython that we would like it to use
      * the provided binary directory as the place to look for DLLs and for
@@ -118,11 +119,10 @@ static void prepareStandaloneEnvironment() {
     NUITKA_PRINTF_TRACE("main(): Binary dir is %S\n", binary_directory);
 
     Py_SetPythonHome(binary_directory);
-
 #endif
 }
 
-static void restoreStandaloneEnvironment() {
+static void restoreStandaloneEnvironment(void) {
     /* Make sure to use the optimal value for standalone mode only. */
 #if PYTHON_VERSION < 0x300
     PySys_SetPath((char *)getBinaryDirectoryHostEncoded());
@@ -265,7 +265,7 @@ static void setCommandLineParameters(int argc, wchar_t **argv, bool initial) {
     }
 }
 
-#if defined(_WIN32) && PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
+#if defined(_WIN32) && PYTHON_VERSION >= 0x300 && (SYSFLAG_NO_RANDOMIZATION == 1 || SYSFLAG_UNBUFFERED == 1)
 static void setenv(char const *name, char const *value, int overwrite) {
     assert(overwrite);
 
@@ -276,7 +276,7 @@ static void unsetenv(char const *name) { SetEnvironmentVariableA(name, NULL); }
 #endif
 
 #if _DEBUG_REFCOUNTS
-static void PRINT_REFCOUNTS() {
+static void PRINT_REFCOUNTS(void) {
     PRINT_STRING("REFERENCE counts at program end:\n");
     PRINT_STRING("active | allocated | released\n");
     PRINT_FORMAT("Compiled Coroutines: %d | %d | %d\n", count_active_Nuitka_Coroutine_Type,
@@ -351,7 +351,7 @@ DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
 }
 #endif
 
-static int HANDLE_PROGRAM_EXIT() {
+static int HANDLE_PROGRAM_EXIT(void) {
     int exit_code;
 
     if (ERROR_OCCURRED()) {
@@ -587,6 +587,30 @@ static char **getCommandLineToArgvA(char *lpCmdline) {
 int _dowildcard = 0;
 #endif
 
+#if PYTHON_VERSION >= 0x300 && (SYSFLAG_NO_RANDOMIZATION == 1 || SYSFLAG_UNBUFFERED == 1)
+static void undoEnvironmentVariable(char const *variable_name, char const *old_value) {
+    if (old_value) {
+        setenv(variable_name, old_value, 1);
+
+        PyObject *env_value = PyUnicode_FromString(old_value);
+        PyObject *variable_name_str = PyUnicode_FromString(variable_name);
+
+        int res = PyDict_SetItem(PyObject_GetAttrString(PyImport_ImportModule("os"), "environ"), variable_name_str,
+                                 env_value);
+        assert(res == 0);
+
+        Py_DECREF(env_value);
+        Py_DECREF(variable_name_str);
+    } else {
+        unsetenv(variable_name);
+
+        int res =
+            PyDict_DelItemString(PyObject_GetAttrString(PyImport_ImportModule("os"), "environ"), (char *)variable_name);
+        assert(res == 0);
+    }
+}
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     /* MSVC, MINGW64 */
@@ -602,13 +626,19 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TIMING("main(): Entered.");
     NUITKA_INIT_PROGRAM_EARLY(argc, argv);
 
+#if SYSFLAG_UNBUFFERED == 1
+#if PYTHON_VERSION < 0x300
+    setbuf(stdin, (char *)NULL);
+    setbuf(stdout, (char *)NULL);
+    setbuf(stderr, (char *)NULL);
+#else
+    char const *old_env_unbuffered = getenv("PYTHONUNBUFFERED");
+    setenv("PYTHONUNBUFFERED", "1", 1);
+#endif
+#endif
+
 #ifdef __FreeBSD__
-    /* 754 requires that FP exceptions run in "no stop" mode by default, and
-     *
-     *    until C vendors implement C99's ways to control FP exceptions, Python
-     *    requires non-stop mode.  Alas, some platforms enable FP exceptions by
-     *    default.  Here we disable them.
-     */
+    /* FP exceptions run in "no stop" mode by default */
 
     fp_except_t m;
 
@@ -626,6 +656,10 @@ int main(int argc, char **argv) {
     SetDllDirectory(DLL_EXTRA_PATH);
 #endif
 
+#endif
+
+#if _NUITKA_FROZEN > 0
+    prepareFrozenModules();
 #endif
 
     /* Initialize CPython library environment. */
@@ -705,7 +739,7 @@ orig_argv = argv;
 #endif
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
-    char const *old_env = getenv("PYTHONHASHSEED");
+    char const *old_env_hashseed = getenv("PYTHONHASHSEED");
     setenv("PYTHONHASHSEED", "0", 1);
 #endif
 
@@ -746,24 +780,14 @@ orig_argv = argv;
     Py_Initialize();
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
-    if (old_env) {
-        setenv("PYTHONHASHSEED", old_env, 1);
+    if (old_env_hashseed) {
+        undoEnvironmentVariable("PYTHONHASHSEED", old_env_hashseed);
+    }
+#endif
 
-        PyObject *env_value = PyUnicode_FromString(old_env);
-        PyObject *hashseed_str = PyUnicode_FromString("PYTHONHASHSEED");
-
-        int res =
-            PyObject_SetItem(PyObject_GetAttrString(PyImport_ImportModule("os"), "environ"), hashseed_str, env_value);
-        assert(res == 0);
-
-        Py_DECREF(env_value);
-        Py_DECREF(hashseed_str);
-    } else {
-        unsetenv("PYTHONHASHSEED");
-
-        int res =
-            PyObject_DelItemString(PyObject_GetAttrString(PyImport_ImportModule("os"), "environ"), "PYTHONHASHSEED");
-        assert(res == 0);
+#if PYTHON_VERSION >= 0x300 && SYSFLAG_UNBUFFERED == 1
+    if (old_env_unbuffered) {
+        undoEnvironmentVariable("PYTHONUNBUFFERED", old_env_unbuffered);
     }
 #endif
 
@@ -831,9 +855,6 @@ orig_argv = argv;
     NUITKA_PRINT_TRACE("main(): Calling enhancePythonTypes().");
     enhancePythonTypes();
 
-    NUITKA_PRINT_TRACE("main(): Calling patchBuiltinModule().");
-    patchBuiltinModule();
-
     NUITKA_PRINT_TRACE("main(): Calling patchTypeComparison().");
     patchTypeComparison();
 
@@ -898,7 +919,13 @@ orig_argv = argv;
 
         PyObject *filename = NuitkaUnicode_FromWideChar(filename_buffer, -1);
 
-        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w", const_int_pos_1);
+#if SYSFLAG_UNBUFFERED == 1
+        PyObject *buffering = const_int_0;
+#else
+        PyObject *buffering = const_int_pos_1;
+#endif
+
+        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w", buffering);
         if (unlikely(stdout_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -923,6 +950,12 @@ orig_argv = argv;
 
         PyObject *filename = NuitkaUnicode_FromWideChar(filename_buffer, -1);
 
+#if SYSFLAG_UNBUFFERED == 1
+        PyObject *buffering = const_int_0;
+#else
+        PyObject *buffering = const_int_pos_1;
+#endif
+
         PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w", const_int_pos_1);
         if (unlikely(stderr_file == NULL)) {
             PyErr_PrintEx(1);
@@ -934,6 +967,14 @@ orig_argv = argv;
 #endif
 
 #ifdef _NUITKA_STANDALONE
+
+#if PYTHON_VERSION >= 0x300
+    // Make sure the importlib fully bootstraps as we couldn't load it with the
+    // standard loader.
+    PyObject *importlib_module = getImportLibBootstrapModule();
+    CHECK_OBJECT(importlib_module);
+#endif
+
     NUITKA_PRINT_TRACE("main(): Calling setEarlyFrozenModulesFileAttribute().");
 
     setEarlyFrozenModulesFileAttribute();

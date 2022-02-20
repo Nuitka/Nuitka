@@ -46,7 +46,7 @@ from .templates.CodeTemplatesLoader import (
     template_metapath_loader_body,
     template_metapath_loader_bytecode_module_entry,
     template_metapath_loader_compiled_module_entry,
-    template_metapath_loader_shlib_module_entry,
+    template_metapath_loader_extension_module_entry,
 )
 
 
@@ -65,7 +65,10 @@ def getModuleMetapathLoaderEntryCode(module, bytecode_accessor):
         if is_package:
             flags.append("NUITKA_PACKAGE_FLAG")
 
-        accessor_code = bytecode_accessor.getBlobDataCode(code_data)
+        accessor_code = bytecode_accessor.getBlobDataCode(
+            data=code_data,
+            name="bytecode of module '%s'" % module.getFullName().asString(),
+        )
 
         return template_metapath_loader_bytecode_module_entry % {
             "module_name": module_c_name,
@@ -73,10 +76,10 @@ def getModuleMetapathLoaderEntryCode(module, bytecode_accessor):
             "size": len(code_data),
             "flags": " | ".join(flags) or "0",
         }
-    elif module.isPythonShlibModule():
-        flags.append("NUITKA_SHLIB_FLAG")
+    elif module.isPythonExtensionModule():
+        flags.append("NUITKA_EXTENSION_MODULE_FLAG")
 
-        return template_metapath_loader_shlib_module_entry % {
+        return template_metapath_loader_extension_module_entry % {
             "module_name": module_c_name,
             "flags": " | ".join(flags) or "0",
         }
@@ -135,7 +138,10 @@ extern PyObject *modulecode_%(module_identifier)s(PyObject *, struct Nuitka_Meta
         if is_package:
             size = -size
 
-        accessor_code = bytecode_accessor.getBlobDataCode(code_data)
+        accessor_code = bytecode_accessor.getBlobDataCode(
+            data=code_data,
+            name="bytecode of module '%s'" % uncompiled_module.getFullName().asString(),
+        )
 
         frozen_defs.append(
             """\

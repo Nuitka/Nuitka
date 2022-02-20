@@ -17,14 +17,20 @@
 #
 """ Utils module to provide helper for our common json operations.
 
-TODO: Use this for our information caching files as well, and
-have easy ways to provide information to write.
 """
 
 import json
 
-from .FileOperations import getFileContents
+from .FileOperations import getFileContents, openTextFile
 
 
 def loadJsonFromFilename(filename):
-    return json.loads(getFileContents(filename))
+    try:
+        return json.loads(getFileContents(filename))
+    except json.decoder.JSONDecodeError:
+        return None
+
+
+def writeJsonToFilename(filename, contents):
+    with openTextFile(filename, "w") as output:
+        json.dump(contents, output)

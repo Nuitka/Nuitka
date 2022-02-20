@@ -29,13 +29,12 @@ The base class in PluginBase will serve as documentation of available.
 
 import inspect
 import os
-import shutil
 from optparse import OptionConflictError, OptionGroup
 
 import nuitka.plugins.commercial
 import nuitka.plugins.standard
 from nuitka import Options, OutputDirectories
-from nuitka.__past__ import basestring, iter_modules
+from nuitka.__past__ import basestring, iter_modules, iterItems
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
@@ -44,13 +43,19 @@ from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
+    copyFile,
     makePath,
     putTextFileContents,
 )
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 
-from .PluginBase import NuitkaPluginBase, post_modules, pre_modules
+from .PluginBase import (
+    NuitkaPluginBase,
+    makeTriggerModuleName,
+    postload_trigger_name,
+    preload_trigger_name,
+)
 
 # Maps plugin name to plugin instances.
 active_plugins = OrderedDict()
@@ -59,6 +64,11 @@ plugin_options = {}
 plugin_datatag2pluginclasses = {}
 plugin_values = {}
 user_plugins = OrderedSet()
+
+# Trigger modules
+pre_modules = {}
+post_modules = {}
+fake_modules = {}
 
 
 def _addActivePlugin(plugin_class, args, force=False):
@@ -76,7 +86,11 @@ def _addActivePlugin(plugin_class, args, force=False):
     else:
         plugin_args = {}
 
-    plugin_instance = plugin_class(**plugin_args)
+    try:
+        plugin_instance = plugin_class(**plugin_args)
+    except TypeError as e:
+        plugin_class.sysexit("Problem initializing plugin: %s" % e)
+
     assert isinstance(plugin_instance, NuitkaPluginBase), plugin_instance
 
     active_plugins[plugin_name] = plugin_instance
@@ -283,7 +297,7 @@ class Plugins(object):
                 _module_name, module_filename, _finding = Importing.locateModule(
                     module_name=full_name,
                     parent_package=None,
-                    level=-1,
+                    level=0,
                 )
             except Exception:
                 plugin.warning(
@@ -383,6 +397,25 @@ class Plugins(object):
                 source_ref=module.source_ref,
             )
 
+        if full_name in fake_modules:
+            for fake_module, plugin, reason in fake_modules[full_name]:
+                addUsedModule(
+                    module=fake_module,
+                    using_module=module,
+                    usage_tag="plugins",
+                    reason=reason,
+                    source_ref=module.source_ref,
+                )
+
+    @staticmethod
+    def onCopiedDLLs(dist_dir, used_dlls):
+        """Lets the plugins modify copied DLLs on disk."""
+        for dll_filename, _sources in iterItems(used_dlls):
+            for plugin in getActivePlugins():
+                plugin.onCopiedDLL(
+                    os.path.join(dist_dir, os.path.basename(dll_filename))
+                )
+
     @staticmethod
     def onStandaloneDistributionFinished(dist_dir):
         """Let plugins postprocess the distribution folder in standalone mode"""
@@ -394,6 +427,12 @@ class Plugins(object):
         """Let plugins postprocess the onefile executable in onefile mode"""
         for plugin in getActivePlugins():
             plugin.onStandaloneDistributionFinished(filename)
+
+    @staticmethod
+    def onBootstrapBinary(filename):
+        """Let plugins add to bootstrap binary in some way"""
+        for plugin in getActivePlugins():
+            plugin.onBootstrapBinary(filename)
 
     @staticmethod
     def onFinalResult(filename):
@@ -439,7 +478,7 @@ class Plugins(object):
 
                     makePath(os.path.dirname(extra_dll.dest_path))
 
-                    shutil.copyfile(extra_dll.source_path, extra_dll.dest_path)
+                    copyFile(extra_dll.source_path, extra_dll.dest_path)
 
                     if extra_dll.executable:
                         addFileExecutablePermission(extra_dll.dest_path)
@@ -519,7 +558,7 @@ class Plugins(object):
 
         Args:
             module: the module object (serves as dict key)
-            trigger_name: string ("-preload"/"-postload")
+            trigger_name: string ("preload"/"postload")
             code: the code string
 
         Returns
@@ -528,7 +567,7 @@ class Plugins(object):
 
         from nuitka.tree.Building import buildModule
 
-        module_name = ModuleName(module.getFullName() + trigger_name)
+        module_name = makeTriggerModuleName(module.getFullName(), trigger_name)
 
         # In debug mode, put the files in the build folder, so they can be looked up easily.
         if Options.is_debug and "HIDE_SOURCE" not in flags:
@@ -548,7 +587,7 @@ class Plugins(object):
                 source_code=code,
                 is_top=False,
                 is_main=False,
-                is_shlib=False,
+                is_extension=False,
                 is_fake=module_name,
                 hide_syntax_error=False,
             )
@@ -564,6 +603,9 @@ class Plugins(object):
 
     @classmethod
     def onModuleDiscovered(cls, module):
+        # We offer plugins many ways to provide extra stuff
+        # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+
         full_name = module.getFullName()
 
         def _untangleLoadDesc(descs):
@@ -585,8 +627,21 @@ class Plugins(object):
 
                     yield plugin, code, reason, flags
 
+        def _untangleFakeDesc(descs):
+            if descs and inspect.isgenerator(descs):
+                descs = tuple(descs)
+
+            if descs:
+                if type(descs[0]) not in (tuple, list):
+                    descs = [descs]
+
+                for desc in descs:
+                    assert len(desc) == 4, desc
+                    yield plugin, desc[0], desc[1], desc[2], desc[3]
+
         preload_descs = []
         postload_descs = []
+        fake_descs = []
 
         for plugin in getActivePlugins():
             plugin.onModuleDiscovered(module)
@@ -596,6 +651,9 @@ class Plugins(object):
             )
             postload_descs.extend(
                 _untangleLoadDesc(descs=plugin.createPostModuleLoadCode(module))
+            )
+            fake_descs.extend(
+                _untangleFakeDesc(descs=plugin.createFakeModuleDependency(module))
             )
 
         if preload_descs:
@@ -618,7 +676,7 @@ class Plugins(object):
 
                 pre_modules[full_name] = cls._createTriggerLoadedModule(
                     module=module,
-                    trigger_name="-preLoad",
+                    trigger_name=preload_trigger_name,
                     code="\n\n".join(total_code),
                     flags=total_flags,
                 )
@@ -643,10 +701,38 @@ class Plugins(object):
 
                 post_modules[full_name] = cls._createTriggerLoadedModule(
                     module=module,
-                    trigger_name="-postLoad",
+                    trigger_name=postload_trigger_name,
                     code="\n\n".join(total_code),
                     flags=total_flags,
                 )
+
+        if fake_descs:
+            fake_modules[full_name] = []
+
+            from nuitka.tree.Building import buildModule
+
+            for (
+                plugin,
+                fake_module_name,
+                source_code,
+                fake_filename,
+                reason,
+            ) in fake_descs:
+                fake_module, _added = buildModule(
+                    module_filename=fake_filename,
+                    module_name=fake_module_name,
+                    source_code=source_code,
+                    is_top=False,
+                    is_main=False,
+                    is_extension=False,
+                    is_fake=fake_module_name,
+                    hide_syntax_error=False,
+                )
+
+                if fake_module.getCompilationMode() == "bytecode":
+                    fake_module.setSourceCode(source_code)
+
+                fake_modules[full_name].append((fake_module, plugin, reason))
 
     @staticmethod
     def onModuleSourceCode(module_name, source_code):
@@ -797,7 +883,7 @@ class Plugins(object):
                     assert type(value) is dict, value
 
                     # We order per plugin, but from the plugins, lets just take a dict
-                    # and achieve determism by ordering the defines by name.
+                    # and achieve determinism by ordering the defines by name.
                     for key, value in sorted(value.items()):
                         # False alarm, pylint: disable=I0021,unsupported-assignment-operation
                         cls.preprocessor_symbols[key] = value
@@ -815,7 +901,7 @@ class Plugins(object):
                 assert type(value) is dict
 
                 # We order per plugin, but from the plugins, lets just take a dict
-                # and achieve determism by ordering the files by name.
+                # and achieve determinism by ordering the files by name.
                 for key, value in sorted(value.items()):
                     if not key.startswith("nuitka_"):
                         key = "plugin." + plugin.plugin_name + "." + key
@@ -996,6 +1082,20 @@ def loadPlugins():
 
         # now enable standard plugins
         loadStandardPluginClasses()
+
+
+def addStandardPluginCommandlineOptions(parser, data_files_tags):
+    loadPlugins()
+
+    for (_plugin_name, (plugin_class, _plugin_detector)) in sorted(
+        plugin_name2plugin_classes.items()
+    ):
+        if plugin_class.isAlwaysEnabled():
+            _addPluginCommandLineOptions(
+                parser=parser,
+                plugin_class=plugin_class,
+                data_files_tags=data_files_tags,
+            )
 
 
 def activatePlugins():
@@ -1181,3 +1281,30 @@ def getPluginOptions(plugin_name):
         result[option.dest] = arg_value
 
     return result
+
+
+def replaceTriggerModule(old, new):
+    """Replace a trigger module with another form if it. For use in bytecode demotion."""
+
+    found = None
+    for key, value in pre_modules.items():
+        if value is old:
+            found = key
+            break
+
+    if found is not None:
+        pre_modules[found] = new
+
+    found = None
+    for key, value in post_modules.items():
+        if value is old:
+            found = key
+            break
+
+    if found is not None:
+        post_modules[found] = new
+
+
+def isTriggerModule(module):
+    """Decide of a module is a trigger module."""
+    return module in pre_modules.values() or module in post_modules.values()

@@ -28,23 +28,28 @@ it being used.
 
 import inspect
 import os
-import shutil
 import sys
 from collections import namedtuple
 
 from nuitka.__past__ import getMetaClassBase
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
+from nuitka.ModuleRegistry import getModuleInclusionInfoByName
 from nuitka.Options import isStandaloneMode
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
-from nuitka.utils.FileOperations import makePath
+from nuitka.utils.FileOperations import copyFile, makePath
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
 
-pre_modules = {}
-post_modules = {}
-
 warned_unused_plugins = set()
+
+# Trigger names for shared use.
+postload_trigger_name = "postLoad"
+preload_trigger_name = "preLoad"
+
+
+def makeTriggerModuleName(module_name, trigger_name):
+    return ModuleName(module_name + "-" + trigger_name)
 
 
 class NuitkaPluginBase(getMetaClassBase("Plugin")):
@@ -260,6 +265,42 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=unused-argument
         return None
 
+    @staticmethod
+    def createFakeModuleDependency(module):
+        """Create module to depend on.
+
+        Notes:
+            Called by @onModuleDiscovered.
+
+        Args:
+            module: the module object
+
+        Returns:
+            None (does not apply, default)
+            tuple (code, reason)
+            tuple (code, reason, flags)
+        """
+        # Virtual method, pylint: disable=unused-argument
+        return None
+
+    @staticmethod
+    def hasPreModuleLoadCode(module_name):
+        return (
+            getModuleInclusionInfoByName(
+                makeTriggerModuleName(module_name, preload_trigger_name)
+            )
+            is not None
+        )
+
+    @staticmethod
+    def hasPostModuleLoadCode(module_name):
+        return (
+            getModuleInclusionInfoByName(
+                makeTriggerModuleName(module_name, postload_trigger_name)
+            )
+            is not None
+        )
+
     def onModuleDiscovered(self, module):
         """Called with a module to be loaded.
 
@@ -283,7 +324,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         Args:
             module_filename: filename
             module_name: full module name
-            module_kind: one of "py", "shlib" (shared library)
+            module_kind: one of "py", "extension" (shared library)
         Returns:
             True or False
         """
@@ -370,10 +411,10 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
 
     def reportFileCount(self, module_name, count, section=None):
         if count:
-            msg = "Found %d %s DLLs from '%s' %sinstallation." % (
+            msg = "Found %d %s DLLs from %s%s installation." % (
                 count,
                 "file" if count < 2 else "files",
-                "" if not section else section,
+                "" if not section else (" '%s' " % section),
                 module_name.asString(),
             )
 
@@ -393,9 +434,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             # Copy to the dist directory, which normally should not be a plugin task, but is for now.
             makePath(os.path.dirname(included_entry_point.dest_path))
 
-            shutil.copyfile(
-                included_entry_point.source_path, included_entry_point.dest_path
-            )
+            copyFile(included_entry_point.source_path, included_entry_point.dest_path)
 
             yield included_entry_point
 
@@ -410,6 +449,21 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
+
+    def onCopiedDLL(self, dll_filename):
+        """Chance for a plugin to modify DLLs after copy, e.g. to compress it, remove attributes, etc.
+
+        Args:
+            dll_filename: the filename of the DLL
+
+        Notes:
+            Do not remove or add any files in this method, this will not work well, there
+            is e.g. getExtraDLLs API to add things. This is only for post processing as
+            described above.
+
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
 
     def getModuleSpecificDllPaths(self, module_name):
         """Provide a list of directories, where DLLs should be searched for this package (or module).
@@ -476,6 +530,18 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
 
         Args:
             filename: the created onefile executable
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def onBootstrapBinary(self, filename):
+        """Called after successfully creating a bootstrap binary, but without payload.
+
+        Args:
+            filename: the created bootstrap binary, will be modified later
 
         Returns:
             None
@@ -624,7 +690,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     _runtime_information_cache = {}
 
     def queryRuntimeInformationMultiple(self, info_name, setup_codes, values):
-        info_name = self.plugin_name + "_" + info_name
+        info_name = self.plugin_name.replace("-", "_") + "_" + info_name
 
         if info_name in self._runtime_information_cache:
             return self._runtime_information_cache[info_name]
@@ -707,30 +773,6 @@ except ImportError:
     @classmethod
     def sysexit(cls, message):
         plugins_logger.sysexit(cls.plugin_name + ": " + message)
-
-
-def isTriggerModule(module):
-    return module in pre_modules.values() or module in post_modules.values()
-
-
-def replaceTriggerModule(old, new):
-    found = None
-    for key, value in pre_modules.items():
-        if value is old:
-            found = key
-            break
-
-    if found is not None:
-        pre_modules[found] = new
-
-    found = None
-    for key, value in post_modules.items():
-        if value is old:
-            found = key
-            break
-
-    if found is not None:
-        post_modules[found] = new
 
 
 import functools

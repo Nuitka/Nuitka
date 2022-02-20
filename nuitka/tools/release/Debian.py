@@ -20,11 +20,11 @@
 """
 
 import os
-import shutil
 import sys
 
 from nuitka.utils.Execution import check_call, getNullInput
 from nuitka.utils.FileOperations import (
+    copyFile,
     getFileContentByLine,
     getFileContents,
     listDir,
@@ -129,7 +129,7 @@ def cleanupTarfileForDebian(filename, new_name):
     PDF files.
     """
 
-    shutil.copyfile(filename, new_name)
+    copyFile(filename, new_name)
     check_call(["gunzip", new_name])
     check_call(
         [

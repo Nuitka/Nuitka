@@ -46,6 +46,8 @@ from .PythonVersions import (
 def isNuitkaPython():
     """Is this our own fork of CPython named Nuitka-Python."""
 
+    # spell-checker: ignore nuitkapython
+
     if python_version >= 0x300:
         return sys.implementation.name == "nuitkapython"
     else:
@@ -68,9 +70,44 @@ def isAnacondaPython():
 
 
 def isApplePython():
-    return isMacOS() and isPathBelowOrSameAs(
-        path="/usr/bin/", filename=getSystemPrefixPath()
-    )
+    if not isMacOS():
+        return False
+
+    # Python2 on 10.15 or higher
+    if "+internal-os" in sys.version:
+        return True
+
+    # Older macOS had that
+    if isPathBelowOrSameAs(path="/usr/bin/", filename=getSystemPrefixPath()):
+        return True
+    # Newer macOS has that
+    if isPathBelowOrSameAs(
+        path="/Library/Developer/CommandLineTools/", filename=getSystemPrefixPath()
+    ):
+        return True
+
+    # Xcode has that on macOS, we consider it an Apple Python for now, it might
+    # be more usable than Apple Python, we but we delay that.
+    if isPathBelowOrSameAs(
+        path="/Applications/Xcode.app/Contents/Developer/",
+        filename=getSystemPrefixPath(),
+    ):
+        return True
+
+    return False
+
+
+def isHomebrewPython():
+    if not isMacOS():
+        return False
+
+    if "HOMEBREW_PREFIX" not in os.environ:
+        return False
+
+    if isPathBelowOrSameAs(
+        path=os.environ["HOMEBREW_PREFIX"], filename=getSystemPrefixPath()
+    ):
+        return True
 
 
 def isPyenvPython():
@@ -138,3 +175,15 @@ def isDebianPackagePython():
                 return False
             else:
                 return True
+
+
+def isCPythonOfficialPackage():
+    """Official CPython download, kind of hard to detect since self-compiled doesn't change much."""
+
+    # For macOS however, it's very knowable.
+    if isMacOS() and sys.executable.startswith(
+        "/Library/Frameworks/Python.framework/Versions/"
+    ):
+        return True
+
+    return False

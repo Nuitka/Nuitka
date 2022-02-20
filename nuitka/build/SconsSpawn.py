@@ -30,7 +30,11 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.Timing import TimerReport
 
 from .SconsCaching import runClCache
-from .SconsProgress import closeSconsProgressBar, updateSconsProgressBar
+from .SconsProgress import (
+    closeSconsProgressBar,
+    reportSlowCompilation,
+    updateSconsProgressBar,
+)
 from .SconsUtils import decodeData
 
 
@@ -77,10 +81,7 @@ def runProcessMonitored(cmdline, env):
     thread.join(60)
 
     if thread.is_alive():
-        scons_logger.info(
-            "Slow C compilation detected, used %.0fs so far, this might indicate scalability problems."
-            % thread.timer_report.getTimer().getDelta()
-        )
+        reportSlowCompilation(cmdline, thread.timer_report.getTimer().getDelta())
 
     thread.join()
 
@@ -117,7 +118,7 @@ def _filterMsvcLinkOutput(env, module_mode, data, exit_code):
 
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
-def getWindowsSpawnFunction(env, module_mode, source_files):
+def _getWindowsSpawnFunction(env, module_mode, source_files):
     def spawnWindowsCommand(
         sh, escape, cmd, args, os_env
     ):  # pylint: disable=unused-argument
@@ -156,7 +157,6 @@ def getWindowsSpawnFunction(env, module_mode, source_files):
             data = _filterMsvcLinkOutput(
                 env=env, module_mode=module_mode, data=data, exit_code=rv
             )
-
         elif cmd in ("cl", "<clcache>"):
             # Skip forced output from cl.exe
             data = data[data.find(b"\r\n") + 2 :]
@@ -272,6 +272,9 @@ def subprocess_spawn(args):
         if str is not bytes:
             line = decodeData(line)
 
+        if exit_code != 0 and "terminated with signal 11" in line:
+            exit_code = -11
+
         my_print(line, style="yellow", file=sys.stderr)
 
     return exit_code
@@ -313,10 +316,7 @@ def runSpawnMonitored(sh, cmd, args, env):
     thread.join(60)
 
     if thread.is_alive():
-        scons_logger.info(
-            "Slow C compilation detected, used %.0fs so far, this might indicate scalability problems."
-            % thread.timer_report.getTimer().getDelta()
-        )
+        reportSlowCompilation(cmd, thread.timer_report.getTimer().getDelta())
 
     thread.join()
 
@@ -325,22 +325,29 @@ def runSpawnMonitored(sh, cmd, args, env):
     return thread.getSpawnResult()
 
 
-def getWrappedSpawnFunction():
-    def spawnCommand(sh, escape, cmd, args, env):
+def _getWrappedSpawnFunction(env):
+    def spawnCommand(sh, escape, cmd, args, _env):
         # signature needed towards Scons core, pylint: disable=unused-argument
 
         # Avoid using ccache on binary constants blob, not useful and not working
         # with old ccache.
         if '"__constants_data.o"' in args or '"__constants_data.os"' in args:
-            env = dict(env)
-            env["CCACHE_DISABLE"] = "1"
+            _env = dict(_env)
+            _env["CCACHE_DISABLE"] = "1"
 
-        result, exception = runSpawnMonitored(sh, cmd, args, env)
+        result, exception = runSpawnMonitored(sh, cmd, args, _env)
 
         if exception:
             closeSconsProgressBar()
 
             raise exception
+
+        # Segmentation fault should give a clear error.
+        if result == -11:
+            scons_logger.sysexit(
+                "Error, the C compiler '%s' crashed with segfault. Consider upgrading it or using --clang option."
+                % env.the_compiler
+            )
 
         return result
 
@@ -349,8 +356,8 @@ def getWrappedSpawnFunction():
 
 def enableSpawnMonitoring(env, win_target, module_mode, source_files):
     if win_target:
-        env["SPAWN"] = getWindowsSpawnFunction(
+        env["SPAWN"] = _getWindowsSpawnFunction(
             env=env, module_mode=module_mode, source_files=source_files
         )
     else:
-        env["SPAWN"] = getWrappedSpawnFunction()
+        env["SPAWN"] = _getWrappedSpawnFunction(env=env)

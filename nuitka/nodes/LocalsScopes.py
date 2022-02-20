@@ -17,13 +17,14 @@
 #
 """ This module maintains the locals dict handles. """
 
-from nuitka import Variables
 from nuitka.containers.odict import OrderedDict
+from nuitka.Errors import NuitkaOptimizationError
 from nuitka.utils.InstanceCounters import (
     counted_del,
     counted_init,
     isCountingInstances,
 )
+from nuitka.Variables import LocalsDictVariable, LocalVariable
 
 from .shapes.BuiltinTypeShapes import tshape_dict
 from .shapes.StandardShapes import tshape_unknown
@@ -50,7 +51,16 @@ def getLocalsDictType(kind):
 
 
 def getLocalsDictHandle(locals_name, kind, owner):
-    assert locals_name not in locals_dict_handles, locals_name
+    # Duplicates are bad and cannot be tolerated.
+    if locals_name in locals_dict_handles:
+        raise NuitkaOptimizationError(
+            locals_name,
+            kind,
+            owner.getFullName(),
+            owner.getCompileTimeFilename(),
+            locals_dict_handles[locals_name].owner.getFullName(),
+            locals_dict_handles[locals_name].owner.getCompileTimeFilename(),
+        )
 
     locals_dict_handles[locals_name] = getLocalsDictType(kind)(
         locals_name=locals_name, owner=owner
@@ -206,9 +216,7 @@ class LocalsDictHandleBase(object):
 
     def getLocalsDictVariable(self, variable_name):
         if variable_name not in self.variables:
-            result = Variables.LocalsDictVariable(
-                owner=self, variable_name=variable_name
-            )
+            result = LocalsDictVariable(owner=self, variable_name=variable_name)
 
             self.variables[variable_name] = result
 
@@ -217,7 +225,7 @@ class LocalsDictHandleBase(object):
     # TODO: Have variable ownership moved to the locals scope, so owner becomes not needed here.
     def getLocalVariable(self, owner, variable_name):
         if variable_name not in self.local_variables:
-            result = Variables.LocalVariable(owner=owner, variable_name=variable_name)
+            result = LocalVariable(owner=owner, variable_name=variable_name)
 
             self.local_variables[variable_name] = result
 

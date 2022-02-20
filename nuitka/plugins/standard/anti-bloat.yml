@@ -40,14 +40,13 @@ sklearn.utils._testing:
     "import pytest": "'raise ImportError'"
 
 matplotlib:
-  description: "remove pytest testing framework"
+  description: "remove setuptools and pytest testing framework reference"
   replacements:
     "test.__test__ = False": ""
+    '(root / ".git").exists()"': "'None'"
   change_function:
     "_init_tests": "'None'"
     "test": "'None'"
-  control_tags:
-    - "allow_ipython"
 
 matplotlib.backend_bases:
   description: "remove IPython reference"
@@ -122,9 +121,10 @@ numpy.testing._private.pytesttester:
 
 numpy.core.overrides:
   # see #1189, apparently an upstream problem hard to grasp
-  description: "workaround numpy issue with python flag 'no_docstrings' if used"
+  description: "workaround numpy issues with compiled code"
   replacements:
     "add_docstring(implementation, dispatcher.__doc__)": "'''add_docstring(implementation, dispatcher.__doc__ or '')'''"
+    "public_api.__code__ = ": ""
 
 scipy.stats.morestats:
   description: "remove numpy testing framework"
@@ -189,6 +189,13 @@ pyclbr:
   description: "remove module ability to run as a binary"
   change_function:
     "_main": "'(lambda: None)'"
+
+pydoc:
+  description: "remove module ability to display GUI with tkinter and topics data"
+  replacements:
+    "import pydoc_data.topics": "'raise ImportError'"
+  change_function:
+    "gui": "'(lambda : None)'"
 
 mimetypes:
   description: "remove module ability to run as a binary"

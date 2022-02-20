@@ -41,6 +41,7 @@ from nuitka.tools.testing.Common import (
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import (
+    callProcess,
     check_output,
     executeProcess,
     wrapCommandForDebuggerForSubprocess,
@@ -87,7 +88,7 @@ def checkNoPermissionError(output):
 def _getCPythonResults(cpython_cmd, send_kill):
     stop_watch = StopWatch()
 
-    # Try a coupile of times for permission denied, on Windows it can
+    # Try a compile of times for permission denied, on Windows it can
     # be transient.
     for _i in range(5):
         stop_watch.start()
@@ -702,7 +703,7 @@ Stderr was:
                     if exit_nuitka in (-11, -6) and sys.platform != "nt":
                         nuitka_cmd2 = wrapCommandForDebuggerForSubprocess(*nuitka_cmd2)
 
-                        executeProcess(nuitka_cmd2)
+                        callProcess(nuitka_cmd2, shell=False)
                 else:
                     exit_nuitka = exit_nuitka1
                     stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
@@ -810,7 +811,7 @@ Stderr was:
             nuitka_cmd.insert(len(nuitka_cmd) - 1, "--debugger")
 
             with withPythonPathChange(nuitka_package_dir):
-                executeProcess(command=nuitka_cmd, needs_stdin=True)
+                callProcess(nuitka_cmd, shell=False)
 
         exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
 

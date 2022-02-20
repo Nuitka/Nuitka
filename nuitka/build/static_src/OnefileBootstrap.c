@@ -122,15 +122,15 @@ static void fatalError(char const *message) {
     abort();
 }
 
-static void fatalErrorTempFiles() { fatalError("Error, couldn't runtime expand temporary files."); }
+static void fatalErrorTempFiles(void) { fatalError("Error, couldn't runtime expand temporary files."); }
 
-static void fatalErrorAttachedData() { fatalError("Error, couldn't decode attached data."); }
+static void fatalErrorAttachedData(void) { fatalError("Error, couldn't decode attached data."); }
 
-static void fatalErrorMemory() { fatalError("Error, couldn't allocate memory."); }
+static void fatalErrorMemory(void) { fatalError("Error, couldn't allocate memory."); }
 
 // TODO: Make use of this on other platforms as well.
 #if defined(_WIN32)
-static void fatalErrorChild() { fatalError("Error, couldn't launch child."); }
+static void fatalErrorChild(void) { fatalError("Error, couldn't launch child."); }
 #endif
 
 #if defined(_WIN32)
@@ -217,7 +217,7 @@ static void closeFile(FILE_HANDLE target_file) {
 #endif
 }
 
-static int getMyPid() {
+static int getMyPid(void) {
 #if defined(_WIN32)
     return GetCurrentProcessId();
 #else
@@ -242,7 +242,7 @@ static ZSTD_DCtx *dctx = NULL;
 static ZSTD_inBuffer input = {NULL, 0, 0};
 static ZSTD_outBuffer output = {NULL, 0, 0};
 
-static void initZSTD() {
+static void initZSTD(void) {
     size_t const buffInSize = ZSTD_DStreamInSize();
     input.src = malloc(buffInSize);
     if (input.src == NULL) {
@@ -265,7 +265,7 @@ static void initZSTD() {
 
 static size_t stream_end_pos;
 
-static size_t getPosition() {
+static size_t getPosition(void) {
 #if defined(_WIN32)
     return SetFilePointer(exe_file, 0, NULL, FILE_CURRENT);
 #else
@@ -293,7 +293,7 @@ static void readChunk(void *buffer, size_t size) {
 #endif
 }
 
-static unsigned long long readSizeValue() {
+static unsigned long long readSizeValue(void) {
     unsigned long long result;
     readChunk(&result, sizeof(unsigned long long));
 
@@ -381,14 +381,14 @@ static void readPayloadChunk(void *buffer, size_t size) {
 #endif
 }
 
-static unsigned long long readPayloadSizeValue() {
+static unsigned long long readPayloadSizeValue(void) {
     unsigned long long result;
     readPayloadChunk(&result, sizeof(unsigned long long));
 
     return result;
 }
 
-static filename_char_t readPayloadChar() {
+static filename_char_t readPayloadChar(void) {
     filename_char_t result;
 
     readPayloadChunk(&result, sizeof(filename_char_t));
@@ -396,7 +396,7 @@ static filename_char_t readPayloadChar() {
     return result;
 }
 
-static filename_char_t *readPayloadFilename() {
+static filename_char_t *readPayloadFilename(void) {
     static filename_char_t buffer[1024];
 
     filename_char_t *w = buffer;
@@ -494,7 +494,7 @@ int removeDirectory(char const *path) {
 }
 #endif
 
-static void cleanupChildProcess() {
+static void cleanupChildProcess(void) {
 
     // Cause KeyboardInterrupt in the child process.
     if (handle_process != 0) {
@@ -612,7 +612,7 @@ void ourConsoleCtrlHandler(int sig) { cleanupChildProcess(); }
 #endif
 
 #if !defined(_WIN32)
-char const *getBinaryPath() {
+char const *getBinaryPath(void) {
     static char binary_filename[MAXPATHLEN];
 
 #if defined(__APPLE__)
@@ -768,8 +768,10 @@ int main(int argc, char **argv) {
 #endif
     stream_end_pos = getPosition();
 
-    unsigned long long start_pos = readSizeValue();
+    unsigned long long payload_size = readSizeValue();
+    unsigned long long start_pos = stream_end_pos - payload_size;
 
+    // printf("Payload size at %lld\n", payload_size);
     // printf("Start at %lld\n", start_pos);
     // printf("Start at %ld\n", (LONG)start_pos);
 
@@ -887,6 +889,8 @@ int main(int argc, char **argv) {
 
         closeFile(target_file);
     }
+
+    closeFile(exe_file);
 
     // Pass our pid by value to the child. If we exit for some reason, re-parenting
     // might change it by the time the child looks at its parent.

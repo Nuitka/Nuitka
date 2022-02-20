@@ -26,7 +26,6 @@ make others possible.
 import inspect
 
 from nuitka import ModuleRegistry, Options, Variables
-from nuitka.importing import ImportCache
 from nuitka.importing.Recursion import considerUsedModules
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Progress import (
@@ -50,10 +49,6 @@ from .BytecodeDemotion import demoteCompiledModuleToBytecode
 from .Tags import TagSet
 from .TraceCollections import withChangeIndicationsTo
 
-_progress = Options.isShowProgress()
-_is_verbose = Options.isVerbose()
-
-
 tag_set = None
 
 
@@ -62,7 +57,7 @@ def signalChange(tags, source_ref, message):
     if message is not None:
         # Try hard to not call a delayed evaluation of node descriptions.
 
-        if _is_verbose:
+        if Options.is_verbose:
             optimization_logger.info(
                 "{source_ref} : {tags} : {message}".format(
                     source_ref=source_ref.getAsString(),
@@ -86,7 +81,7 @@ def optimizeCompiledPythonModule(module):
 
     touched = False
 
-    if _progress and Options.isShowMemory():
+    if Options.isShowProgress() and Options.isShowMemory():
         memory_watch = MemoryWatch()
 
     # Temporary workaround, since we do some optimization based on the last pass results
@@ -122,7 +117,7 @@ def optimizeCompiledPythonModule(module):
 
             if unchanged_count == 1 and pass_count == 1:
                 optimization_logger.info_fileoutput(
-                    "No changed, but retrying one more time.",
+                    "Not changed, but retrying one more time.",
                     other_logger=progress_logger,
                 )
                 continue
@@ -143,7 +138,7 @@ def optimizeCompiledPythonModule(module):
         # Otherwise we did stuff, so note that for return value.
         touched = True
 
-    if _progress and Options.isShowMemory():
+    if Options.isShowProgress() and Options.isShowMemory():
         memory_watch.finish()
 
         memory_logger.info(
@@ -166,28 +161,10 @@ def optimizeUncompiledPythonModule(module):
 
     considerUsedModules(module=module, signal_change=signalChange)
 
-    package_name = full_name.getPackageName()
-
-    if package_name is not None:
-        # TODO: It's unclear why, but some standard library modules on older Python3
-        # seem to not have parent packages after the scan.
-        try:
-            used_module = ImportCache.getImportedModuleByName(package_name)
-        except KeyError:
-            pass
-        else:
-            ModuleRegistry.addUsedModule(
-                module=used_module,
-                using_module=module,
-                usage_tag="package",
-                reason="Package of %s" % module.getFullName(),
-                source_ref=module.source_ref,
-            )
-
     Plugins.considerImplicitImports(module=module, signal_change=signalChange)
 
 
-def optimizeShlibModule(module):
+def optimizeExtensionModule(module):
     # Pick up parent package if any.
     module.attemptRecursion()
 
@@ -200,8 +177,8 @@ def optimizeModule(module):
     global tag_set
     tag_set = TagSet()
 
-    if module.isPythonShlibModule():
-        optimizeShlibModule(module)
+    if module.isPythonExtensionModule():
+        optimizeExtensionModule(module)
         changed = False
     elif module.isCompiledPythonModule():
         changed = optimizeCompiledPythonModule(module)
@@ -226,13 +203,14 @@ def _restartProgress():
         "PASS %d:" % pass_count, other_logger=progress_logger
     )
 
-    setupProgressBar(
-        stage="PASS %d" % pass_count,
-        unit="module",
-        total=ModuleRegistry.getRemainingModulesCount()
-        + ModuleRegistry.getDoneModulesCount(),
-        min_total=last_total,
-    )
+    if not Options.is_verbose or optimization_logger.isFileOutput():
+        setupProgressBar(
+            stage="PASS %d" % pass_count,
+            unit="module",
+            total=ModuleRegistry.getRemainingModulesCount()
+            + ModuleRegistry.getDoneModulesCount(),
+            min_total=last_total,
+        )
 
 
 def _traceProgressModuleStart(current_module):
@@ -246,16 +224,14 @@ after that.""".format(
         other_logger=progress_logger,
     )
 
-    # Progress bar and spammy tracing don't go along.
-    if not _is_verbose:
-        reportProgressBar(
-            item=current_module.getFullName(),
-            total=ModuleRegistry.getRemainingModulesCount()
-            + ModuleRegistry.getDoneModulesCount(),
-            update=False,
-        )
+    reportProgressBar(
+        item=current_module.getFullName(),
+        total=ModuleRegistry.getRemainingModulesCount()
+        + ModuleRegistry.getDoneModulesCount(),
+        update=False,
+    )
 
-    if _progress and Options.isShowMemory():
+    if Options.isShowProgress() and Options.isShowMemory():
         output = "Memory usage {memory}:".format(
             memory=getHumanReadableProcessMemoryUsage()
         )

@@ -46,7 +46,11 @@ from nuitka.nodes.ConditionalNodes import (
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
-from nuitka.nodes.DictionaryNodes import StatementDictOperationSetKeyValue
+from nuitka.nodes.DictionaryNodes import (
+    ExpressionDictOperationIteritems,
+    StatementDictOperationSet,
+    StatementDictOperationSetKeyValue,
+)
 from nuitka.nodes.ExceptionNodes import (
     ExpressionBuiltinMakeException,
     StatementRaiseException,
@@ -129,7 +133,7 @@ def getCallableNameDescBody():
     #
     # called_type = type(BuiltinFunctionType)
     #
-    # if ininstance( called, (FunctionType, MethodType, BuiltinFunctionType) ):
+    # if isinstance(called, (FunctionType, MethodType, BuiltinFunctionType)):
     #     return called.__name__
     # elif python_version < 0x3 and isinstance(called, ClassType):
     #     return called_type.__name__ + " constructor"
@@ -558,14 +562,14 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
         )
 
     loop_body.append(
-        StatementAssignmentSubscript(
-            subscribed=ExpressionTempVariableRef(
+        StatementDictOperationSet(
+            dict_arg=ExpressionTempVariableRef(
                 variable=tmp_dict_variable, source_ref=internal_source_ref
             ),
-            subscript=ExpressionTempVariableRef(
+            key=ExpressionTempVariableRef(
                 variable=tmp_key_variable, source_ref=internal_source_ref
             ),
-            source=ExpressionSubscriptLookup(
+            value=ExpressionSubscriptLookup(
                 expression=ExpressionVariableRef(
                     variable=star_dict_variable, source_ref=internal_source_ref
                 ),
@@ -773,18 +777,14 @@ def _makeRaiseDuplicationItem(called_variable, tmp_key_variable):
 def _makeStarDictArgumentMergeToKwStatement(
     result, called_variable, kw_variable, star_dict_variable
 ):
-    # This is plain terribly complex, pylint: disable=too-many-locals
+    # This is plain terribly complex
     temp_scope = result.allocateTempScope("dict")
 
-    tmp_dict_variable = result.allocateTempVariable(temp_scope, "dict")
     tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
     tmp_keys_variable = result.allocateTempVariable(temp_scope, "keys")
     tmp_key_variable = result.allocateTempVariable(temp_scope, "key_xxx")
 
     final = [
-        StatementReleaseVariable(
-            variable=tmp_dict_variable, source_ref=internal_source_ref
-        ),
         StatementReleaseVariable(
             variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
@@ -861,13 +861,6 @@ def _makeStarDictArgumentMergeToKwStatement(
                     variable=tmp_keys_variable, source_ref=internal_source_ref
                 ),
                 source_ref=internal_source_ref,
-            ),
-            source_ref=internal_source_ref,
-        ),
-        StatementAssignmentVariable(
-            variable=tmp_dict_variable,
-            source=makeConstantRefNode(
-                constant={}, source_ref=internal_source_ref, user_provided=True
             ),
             source_ref=internal_source_ref,
         ),
@@ -961,16 +954,11 @@ def _makeStarDictArgumentMergeToKwStatement(
         StatementAssignmentVariable(
             variable=tmp_iter_variable,
             source=ExpressionBuiltinIter1(
-                value=makeCallNode(
-                    _makeNameAttributeLookup(
-                        ExpressionVariableRef(
-                            variable=star_dict_variable, source_ref=internal_source_ref
-                        ),
-                        attribute_name="iteritems"
-                        if python_version < 0x300
-                        else "items",
+                value=ExpressionDictOperationIteritems(
+                    dict_arg=ExpressionVariableRef(
+                        variable=star_dict_variable, source_ref=internal_source_ref
                     ),
-                    internal_source_ref,
+                    source_ref=internal_source_ref,
                 ),
                 source_ref=internal_source_ref,
             ),

@@ -25,11 +25,7 @@ binaries (needed for exec) and run them capturing outputs.
 import os
 from contextlib import contextmanager
 
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    WindowsError,
-    subprocess,
-)
-from nuitka.PythonVersions import python_version
+from nuitka.__past__ import subprocess
 from nuitka.Tracing import general
 
 from .Download import getCachedDownloadedMinGW64
@@ -75,49 +71,6 @@ def getExecutablePath(filename, extra_dir=None):
 
 def isExecutableCommand(command):
     return getExecutablePath(command) is not None
-
-
-def getPythonExePathWindows(search, arch):
-    """Find Python on Windows."""
-
-    # Shortcuts for the default installation directories, to avoid going to
-    # registry at all unless necessary. Any Python2 will do for Scons, so it
-    # might be avoided entirely.
-
-    # Windows only code, pylint: disable=I0021,import-error,undefined-variable
-    try:
-        import _winreg as winreg
-    except ImportError:
-        import winreg  # lint:ok
-
-    if arch is None:
-        if getArchitecture() == "x86":
-            arches = (winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY)
-        else:
-            arches = (winreg.KEY_WOW64_64KEY, winreg.KEY_WOW64_32KEY)
-    elif arch == "x86":
-        arches = (winreg.KEY_WOW64_32KEY,)
-    elif arch == "x86_64":
-        arches = (winreg.KEY_WOW64_64KEY,)
-    else:
-        assert False, arch
-
-    for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
-        for arch_key in arches:
-            try:
-                key = winreg.OpenKey(
-                    hkey_branch,
-                    r"SOFTWARE\Python\PythonCore\%s\InstallPath" % search,
-                    0,
-                    winreg.KEY_READ | arch_key,
-                )
-
-                candidate = os.path.join(winreg.QueryValue(key, ""), "python.exe")
-            except WindowsError:
-                continue
-
-            if os.path.exists(candidate):
-                return candidate
 
 
 class NuitkaCalledProcessError(subprocess.CalledProcessError):
@@ -225,7 +178,7 @@ def withEnvironmentPathAdded(env_var_name, *paths):
 
 
 @contextmanager
-def withEnvironmentVarOverriden(env_var_name, value):
+def withEnvironmentVarOverridden(env_var_name, value):
     """Change an environment and restore it after context."""
 
     if env_var_name in os.environ:
@@ -248,7 +201,7 @@ def withEnvironmentVarOverriden(env_var_name, value):
 
 
 @contextmanager
-def withEnvironmentVarsOverriden(mapping):
+def withEnvironmentVarsOverridden(mapping):
     """Change multiple environment variables and restore them after context."""
 
     old_values = {}
@@ -291,7 +244,7 @@ def wrapCommandForDebuggerForExec(*args):
     gdb_path = getExecutablePath("gdb")
 
     # Windows extra ball, attempt the downloaded one.
-    if isWin32Windows():
+    if isWin32Windows() and gdb_path is None:
         from nuitka.Options import assumeYesForDownloads
 
         mingw64_gcc_path = getCachedDownloadedMinGW64(
@@ -300,9 +253,9 @@ def wrapCommandForDebuggerForExec(*args):
         )
 
         with withEnvironmentPathAdded("PATH", os.path.dirname(mingw64_gcc_path)):
-            gdb_path = getExecutablePath("gdb")
+            lldb_path = getExecutablePath("lldb")
 
-    if gdb_path is None:
+    if gdb_path is None and lldb_path is None:
         lldb_path = getExecutablePath("lldb")
 
         if lldb_path is None:
@@ -337,65 +290,6 @@ def wrapCommandForDebuggerForSubprocess(*args):
     return args
 
 
-def getPythonInstallPathWindows(supported, decider=lambda x: True):
-    """Find suitable Python on Windows.
-
-    Go over a list of provided, supported versions, and first try a few
-    guesses for their paths, then look into registry for user or system wide
-    installations.
-
-    The decider may reject a Python, then the search is continued, otherwise
-    it's returned.
-    """
-    # Many cases to deal with, due to arches, caching, etc.
-    # pylint: disable=too-many-branches
-
-    seen = set()
-
-    # Shortcuts for the default installation directories, to avoid going to
-    # registry at all unless necessary. Any Python2 will do for Scons, so it
-    # might be avoided entirely.
-    for search in supported:
-        candidate = r"C:\Python%s\python.exe" % search.replace(".", "")
-
-        if os.path.isfile(candidate):
-            install_dir = os.path.normcase(os.path.dirname(candidate))
-
-            if decider(install_dir):
-                return install_dir
-
-            seen.add(install_dir)
-
-    # Windows only code, pylint: disable=I0021,import-error,undefined-variable
-    if python_version < 0x300:
-        import _winreg as winreg  # pylint: disable=I0021,import-error,no-name-in-module
-    else:
-        import winreg  # pylint: disable=I0021,import-error,no-name-in-module
-
-    for search in supported:
-        for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
-            for arch_key in (0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY):
-                for suffix in "", "-32":
-                    try:
-                        key = winreg.OpenKey(
-                            hkey_branch,
-                            r"SOFTWARE\Python\PythonCore\%s%s\InstallPath"
-                            % (search, suffix),
-                            0,
-                            winreg.KEY_READ | arch_key,
-                        )
-
-                        install_dir = os.path.normpath(winreg.QueryValue(key, ""))
-                    except WindowsError:
-                        pass
-                    else:
-                        if install_dir not in seen:
-                            if decider(install_dir):
-                                return install_dir
-
-                            seen.add(install_dir)
-
-
 def getNullOutput():
     try:
         return subprocess.NULLDEV
@@ -415,6 +309,7 @@ def getNullInput():
 def executeToolChecked(logger, command, absence_message, stderr_filter=None):
     """Execute external tool, checking for success and no error outputs, returning result."""
 
+    command = list(command)
     tool = command[0]
 
     if not isExecutableCommand(tool):
@@ -447,15 +342,16 @@ def executeToolChecked(logger, command, absence_message, stderr_filter=None):
     return stdout
 
 
-def executeProcess(
-    command, env=None, needs_stdin=False, shell=False, external_cwd=False
-):
+def executeProcess(command, env=None, stdin=False, shell=False, external_cwd=False):
     if not env:
         env = os.environ
 
+    # Note: Empty string should also be allowed for stdin, therefore check for
+    # default "False" and "None" precisely.
+
     process = subprocess.Popen(
         command,
-        stdin=subprocess.PIPE if needs_stdin else getNullInput(),
+        stdin=subprocess.PIPE if stdin not in (False, None) else getNullInput(),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         shell=shell,
@@ -466,7 +362,14 @@ def executeProcess(
         cwd=getExternalUsePath(os.getcwd()) if external_cwd else None,
     )
 
-    stdout, stderr = process.communicate()
+    if stdin is True:
+        process_input = None
+    elif stdin is not False:
+        process_input = stdin
+    else:
+        process_input = None
+
+    stdout, stderr = process.communicate(input=process_input)
     exit_code = process.wait()
 
     return stdout, stderr, exit_code

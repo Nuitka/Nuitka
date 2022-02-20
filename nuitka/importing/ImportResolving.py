@@ -140,6 +140,11 @@ def resolveModuleName(module_name):
     elif module_name.isBelowNamespace("requests.packages"):
         # requests.packages.something -> something
         return module_name.splitPackageName()[1].splitPackageName()[1]
+    elif module_name.isBelowNamespace("pkg_resources.extern"):
+        # pkg_resources.extern.something -> pkg_resources._vendor.something
+        return ModuleName("pkg_resources._vendor").getChildNamed(
+            module_name.getBasename()
+        )
     elif module_name in _six_moves:
         # six moves replicated
         return ModuleName(_six_moves[module_name])

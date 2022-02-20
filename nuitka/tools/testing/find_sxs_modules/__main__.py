@@ -17,7 +17,7 @@
 #     limitations under the License.
 #
 
-""" Tool to compare output of CPython and Nuitka.
+""" Tool to compare find SxS using modules.
 
 """
 

@@ -38,6 +38,9 @@ class Yaml(object):
     def get(self, name):
         return self.data.get(name)
 
+    def keys(self):
+        return self.data.keys()
+
 
 def parseYaml(data):
     try:

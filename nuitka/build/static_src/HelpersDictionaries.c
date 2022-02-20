@@ -756,6 +756,7 @@ typedef struct {
 static inline PyObject *_MAKE_DICT_ITERATOR(PyDictObject *dict, PyTypeObject *type, bool is_iteritems) {
     CHECK_OBJECT((PyObject *)dict);
     assert(PyDict_CheckExact((PyObject *)dict));
+
 #if PYTHON_VERSION < 0x300
     dictiterobject *di = PyObject_GC_New(dictiterobject, type);
     CHECK_OBJECT(di);
@@ -839,6 +840,9 @@ typedef struct {
 } dictviewobject;
 
 static PyObject *_MAKE_DICT_VIEW(PyDictObject *dict, PyTypeObject *type) {
+    CHECK_OBJECT((PyObject *)dict);
+    assert(PyDict_CheckExact((PyObject *)dict));
+
     dictviewobject *dv = PyObject_GC_New(dictviewobject, type);
 
     CHECK_OBJECT(dv);

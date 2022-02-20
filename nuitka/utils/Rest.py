@@ -26,7 +26,7 @@ import functools
 import os
 import tempfile
 
-from .Execution import check_call, withEnvironmentVarOverriden
+from .Execution import check_call, withEnvironmentVarOverridden
 from .FileOperations import (
     changeFilenameExtension,
     deleteFile,
@@ -91,7 +91,7 @@ def createPDF(document):
             document += ".tmp"
             putTextFileContents(filename=document, contents=new_contents)
 
-        with withEnvironmentVarOverriden("PYTHONWARNINGS", "ignore"):
+        with withEnvironmentVarOverridden("PYTHONWARNINGS", "ignore"):
             check_call(["rst2pdf"] + args + [document])
     finally:
         if new_contents != old_contents:

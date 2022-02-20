@@ -19,12 +19,11 @@
 
 """
 import os
-import shutil
 
 from nuitka import Options, OutputDirectories
 from nuitka.containers.odict import OrderedDict
 
-from .FileOperations import makePath, openTextFile
+from .FileOperations import copyFile, makePath, openTextFile
 from .Images import convertImageToIconFormat
 
 
@@ -92,7 +91,7 @@ def createPlistInfoFile(logger, onefile):
         resources_dir = os.path.join(bundle_dir, "Resources")
         makePath(resources_dir)
 
-        shutil.copyfile(icon_path, os.path.join(resources_dir, icon_name))
+        copyFile(icon_path, os.path.join(resources_dir, icon_name))
 
         infos["CFBundleIconFile"] = icon_name
 

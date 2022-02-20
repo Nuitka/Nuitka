@@ -93,7 +93,7 @@ class PythonModuleBase(NodeBase):
             _package_name, package_filename, finding = locateModule(
                 module_name=package_name,
                 parent_package=None,
-                level=1,
+                level=0,
             )
 
             # If we can't find the package for Python3.3 that is semi-OK, it might be in a
@@ -916,14 +916,14 @@ class PythonMainModule(CompiledPythonModule):
             )
 
 
-class PythonShlibModule(PythonModuleBase):
-    kind = "PYTHON_SHLIB_MODULE"
+class PythonExtensionModule(PythonModuleBase):
+    kind = "PYTHON_EXTENSION_MODULE"
 
-    __slots__ = ("used_modules",)
+    __slots__ = ("used_modules", "technical")
 
     avoid_duplicates = set()
 
-    def __init__(self, module_name, source_ref):
+    def __init__(self, module_name, technical, source_ref):
         PythonModuleBase.__init__(self, module_name=module_name, source_ref=source_ref)
 
         # That would be a mistake we just made.
@@ -937,6 +937,9 @@ class PythonShlibModule(PythonModuleBase):
         assert self.getFullName() not in self.avoid_duplicates, self.getFullName()
         self.avoid_duplicates.add(self.getFullName())
 
+        # Required to startup
+        self.technical = technical
+
         self.used_modules = None
 
     def finalize(self):
@@ -947,6 +950,10 @@ class PythonShlibModule(PythonModuleBase):
 
     def startTraversal(self):
         pass
+
+    def isTechnical(self):
+        """Must be present as it's used in CPython library initialization."""
+        return self.technical
 
     def getPyIFilename(self):
         """Get Python type description filename."""

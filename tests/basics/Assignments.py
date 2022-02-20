@@ -158,7 +158,7 @@ def swapVariables():
     print(a, b)
 
 
-def interuptedUnpack():
+def InterruptedUnpack():
     a = 1
     b = 2
 
@@ -274,7 +274,7 @@ varargsFunction(1, 2, 3, 4)
 otherFunction()
 anotherFunction()
 swapVariables()
-interuptedUnpack()
+InterruptedUnpack()
 multiTargetInterrupt()
 optimizeableTargets()
 complexDel()

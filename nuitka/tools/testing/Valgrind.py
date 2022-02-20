@@ -21,12 +21,15 @@ We are using it for benchmarking purposes, as it's an analysis tool at the
 same time and gives deterministic results.
 """
 
-import shutil
 import sys
 
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import check_output, executeProcess
-from nuitka.utils.FileOperations import getFileContentByLine, withTemporaryFile
+from nuitka.utils.FileOperations import (
+    copyFile,
+    getFileContentByLine,
+    withTemporaryFile,
+)
 from nuitka.utils.Utils import isWin32Windows
 
 
@@ -69,7 +72,7 @@ def runValgrind(descr, tool, args, include_startup, save_logfilename=None):
             my_print("OK", file=sys.stderr)
 
         if save_logfilename is not None:
-            shutil.copyfile(log_filename, save_logfilename)
+            copyFile(log_filename, save_logfilename)
 
         max_mem = None
 

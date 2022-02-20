@@ -18,7 +18,7 @@
 """ Utils for file and directory operations.
 
 This provides enhanced and more error resilient forms of standard
-stuff. It will also frequently add sorting for determism.
+stuff. It will also frequently add sorting for determinism.
 
 """
 
@@ -36,9 +36,10 @@ from contextlib import contextmanager
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     WindowsError,
     basestring,
+    raw_input,
 )
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import my_print, options_logger
+from nuitka.Tracing import general, my_print, options_logger
 
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
@@ -170,20 +171,30 @@ def isPathExecutable(path):
     return os.path.isfile(path) and os.access(path, os.X_OK)
 
 
+# Make sure we don't repeat this too much.
+_real_path_windows_cache = {}
+
+
 def _getRealPathWindows(path):
-    # Slow, because we are using an external process, we it's only for standalone and Python2,
+    # Slow, because we are using an external process, we use it's only for standalone and Python2,
     # which is slow already.
-    import subprocess
 
-    result = subprocess.check_output(
-        """powershell -NoProfile "Get-Item '%s' | Select-Object -ExpandProperty Target" """
-        % path
-    )
+    if path not in _real_path_windows_cache:
+        import subprocess
 
-    if str is not bytes:
-        result = result.decode("utf8")
+        result = subprocess.check_output(
+            """powershell -NoProfile "Get-Item '%s' | Select-Object -ExpandProperty Target" """
+            % path
+        )
 
-    return os.path.join(os.path.dirname(path), result.rstrip("\r\n"))
+        if str is not bytes:
+            result = result.decode("utf8")
+
+        _real_path_windows_cache[path] = os.path.join(
+            os.path.dirname(path), result.rstrip("\r\n")
+        )
+
+    return _real_path_windows_cache[path]
 
 
 def getDirectoryRealPath(path):
@@ -517,16 +528,29 @@ def putTextFileContents(filename, contents, encoding=None):
 
 
 @contextmanager
-def withPreserveFileMode(filename):
-    old_mode = os.stat(filename).st_mode
+def withPreserveFileMode(filenames):
+    if type(filenames) is str:
+        filenames = [filenames]
+
+    old_modes = {}
+    for filename in filenames:
+        old_modes[filename] = os.stat(filename).st_mode
+
     yield
-    os.chmod(filename, old_mode)
+
+    for filename in filenames:
+        os.chmod(filename, old_modes[filename])
 
 
 @contextmanager
-def withMadeWritableFileMode(filename):
-    with withPreserveFileMode(filename):
-        os.chmod(filename, int("644", 8))
+def withMadeWritableFileMode(filenames):
+    if type(filenames) is str:
+        filenames = [filenames]
+
+    with withPreserveFileMode(filenames):
+        for filename in filenames:
+            os.chmod(filename, int("644", 8))
+
         yield
 
 
@@ -558,7 +582,7 @@ def renameFile(source_filename, dest_filename):
     try:
         os.rename(source_filename, dest_filename)
     except OSError:
-        shutil.copyfile(source_filename, dest_filename)
+        copyFile(source_filename, dest_filename)
         os.unlink(source_filename)
 
     os.chmod(dest_filename, old_stat.st_mode)
@@ -573,15 +597,15 @@ def copyTree(source_path, dest_path):
 
     Notes:
         This must be used over `shutil.copytree` which has troubles
-        with existing directories.
+        with existing directories on some Python versions.
     """
     if python_version >= 0x380:
         # Python 3.8+ has dirs_exist_ok
         return shutil.copytree(source_path, dest_path, dirs_exist_ok=True)
-    else:
-        from distutils.dir_util import copy_tree
 
-        return copy_tree(source_path, dest_path)
+    from distutils.dir_util import copy_tree
+
+    return copy_tree(source_path, dest_path)
 
 
 def copyFileWithPermissions(source_path, dest_path):
@@ -602,6 +626,35 @@ def copyFileWithPermissions(source_path, dest_path):
         os.chmod(dest_path, source_mode)
 
 
+def copyFile(source_path, dest_path):
+    """Improved version of shutil.copy
+
+    This handles errors with a chance to correct them, e.g. on Windows, files might be
+    locked by running program or virus checkers.
+    """
+
+    while 1:
+        try:
+            shutil.copyfile(source_path, dest_path)
+        except PermissionError as e:
+            if e.errno != errno.EACCES:
+                raise
+
+            general.warning("Problem copying file %s:" % e)
+
+            try:
+                reply = raw_input("Retry? (YES/no) ") or "yes"
+            except EOFError:
+                reply = "no"
+
+            if reply.upper() == "YES":
+                continue
+
+            raise
+
+        break
+
+
 def getWindowsDrive(path):
     """Windows drive for a given path."""
 
@@ -610,7 +663,19 @@ def getWindowsDrive(path):
 
 
 def isPathBelow(path, filename):
-    """Is a path inside of a given directory path."""
+    """Is a path inside of a given directory path
+
+    Args:
+        path: location to be below
+        filename: candidate being checked
+    """
+    if type(path) in (tuple, list):
+        for p in path:
+            if isPathBelow(path=p, filename=filename):
+                return True
+
+        return False
+
     path = os.path.abspath(path)
     filename = os.path.abspath(filename)
 

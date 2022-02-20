@@ -92,10 +92,6 @@ sklearn.datasets:
     - "data"
     - "descr"
 
-opencv-python:
-  patterns:
-    - "config*.py"
-
 osgeo:
   dirs:
     - "data"
@@ -157,3 +153,11 @@ seedir.printing:
 pygsheets:
   dirs:
     - "data"
+
+# TODO: Need to implement control tags, so this is not done for cases where
+# anti-bloat removed this file.
+jaraco.text:
+  patterns:
+    - "Lorem ipsum.txt"
+  control_tags:
+    - "anti-bloat"

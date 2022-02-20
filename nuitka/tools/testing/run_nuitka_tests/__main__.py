@@ -30,17 +30,12 @@ from optparse import OptionParser
 from nuitka.freezer.Onefile import checkOnefileReadiness
 from nuitka.tools.Basics import goHome
 from nuitka.tools.testing.Common import (
+    getInstalledPythonVersion,
     getTempDir,
     my_print,
     withExtendedExtraOptions,
 )
-from nuitka.utils.Execution import (
-    check_call,
-    check_output,
-    getExecutablePath,
-    getNullOutput,
-    getPythonExePathWindows,
-)
+from nuitka.utils.Execution import check_call, check_output, getNullOutput
 from nuitka.utils.FileOperations import (
     getFileContents,
     openTextFile,
@@ -626,10 +621,13 @@ def main():
             if command.startswith("python"):
                 remainder = command[6:]
 
-                if len(remainder) == 3 and remainder[1] == ".":
-                    command = getPythonExePathWindows(search=remainder, arch=None)
-
-                    return True
+                if 3 <= len(remainder) <= 4 and remainder[1] == ".":
+                    return (
+                        getInstalledPythonVersion(
+                            python_version=remainder, must_exist=False
+                        )
+                        is not None
+                    )
 
         return False
 
@@ -691,12 +689,9 @@ def main():
         if sys.version.startswith(intended_version):
             os.environ["PYTHON"] = sys.executable
         else:
-            if os.name == "nt":
-                os.environ["PYTHON"] = getPythonExePathWindows(
-                    search=intended_version, arch=None
-                )
-            else:
-                os.environ["PYTHON"] = getExecutablePath(use_python)
+            os.environ["PYTHON"] = getInstalledPythonVersion(
+                intended_version, must_exist=True
+            ).getPythonExe()
 
         if options.basic_tests:
             my_print(

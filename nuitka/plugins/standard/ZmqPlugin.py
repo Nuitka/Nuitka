@@ -21,11 +21,10 @@
 
 import os
 import re
-import shutil
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.FileOperations import getFileList
+from nuitka.utils.FileOperations import copyFile, getFileList
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.Utils import isWin32Windows
 
@@ -63,7 +62,7 @@ class NuitkaPluginZmq(NuitkaPluginBase):
         if module_name == "zmq.libzmq" and isWin32Windows():
             # TODO: Very strange thing for zmq on Windows, needs the .pyd file in wrong dir too. Have
             # this done in a dedicated form somewhere.
-            shutil.copyfile(
+            copyFile(
                 os.path.join(dist_dir, "zmq\\libzmq.pyd"),
                 os.path.join(
                     dist_dir, "libzmq" + getSharedLibrarySuffix(preferred=True)

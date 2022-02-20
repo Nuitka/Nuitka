@@ -316,7 +316,6 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         _initSlotIternext();
 #endif
 
-        patchBuiltinModule();
         patchTypeComparison();
 
         // Enable meta path based loader if not already done.

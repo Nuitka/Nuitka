@@ -17,7 +17,7 @@ to answer commonly asked questions regarding that, and to provide some insight
 * Read the [Nuitka User Manual](https://nuitka.net/doc/user-manual.html)
 * Read the [Nuitka Developer Manual](https://nuitka.net/doc/developer-manual.html)
 * Checkout the git repo of Nuitka additional docs and sources
-* Join the [Gitter chat](https://gitter.im/Nuitka-chat/community)
+* Join the Discord Server(https://discord.gg/nZ9hr9tUck)
 
 ## Submitting a Pull Request
 

@@ -34,7 +34,7 @@ def getCachedDownload(
     binary,
     flatten,
     is_arch_specific,
-    specifity,
+    specificity,
     message,
     reject,
     assume_yes_for_downloads,
@@ -50,8 +50,8 @@ def getCachedDownload(
     if is_arch_specific:
         nuitka_app_dir = os.path.join(nuitka_app_dir, is_arch_specific)
 
-    if specifity:
-        nuitka_app_dir = os.path.join(nuitka_app_dir, specifity)
+    if specificity:
+        nuitka_app_dir = os.path.join(nuitka_app_dir, specificity)
 
     download_path = os.path.join(nuitka_app_dir, os.path.basename(url))
     exe_path = os.path.join(nuitka_app_dir, binary)
@@ -150,7 +150,7 @@ def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads):
     gcc_binary = getCachedDownload(
         url=url,
         is_arch_specific=target_arch,
-        specifity=url.rsplit("/", 2)[1],
+        specificity=url.rsplit("/", 2)[1],
         binary=binary,
         flatten=False,
         message="Nuitka will use gcc from MinGW64 of winlibs to compile on Windows.",

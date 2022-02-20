@@ -24,14 +24,29 @@ from nuitka.Tracing import postprocessing_logger
 from .Execution import executeToolChecked
 from .FileOperations import withMadeWritableFileMode
 
-_macos_codesign_usage = "The 'codesign' is used to remove invalidated signatures on macOS and required to be found."
+macos_codesign_usage = (
+    "The 'codesign' is used to make signatures on macOS and required to be found."
+)
 
 
-def removeMacOSCodeSignature(filename):
+def _filterSigntoolErrorOutput(stderr):
+    stderr = b"\n".join(
+        line
+        for line in stderr.splitlines()
+        if line
+        if b"replacing existing signature" not in line
+    )
+
+    return stderr
+
+
+def addMacOSCodeSignature(filenames, identity=None, entitlements_filename=None):
     """Remove the code signature from a filename.
 
     Args:
-        filename - The file to be modified.
+        filenames - The files to be signed.
+        identity - Use this identity to sign, default adhoc signature.
+        entitlements_filename - Apply these entitlements in signature.
 
     Returns:
         None
@@ -40,18 +55,7 @@ def removeMacOSCodeSignature(filename):
         This is macOS specific.
     """
 
-    with withMadeWritableFileMode(filename):
-        executeToolChecked(
-            logger=postprocessing_logger,
-            command=["codesign", "--remove-signature", "--all-architectures", filename],
-            absence_message=_macos_codesign_usage,
-        )
-
-
-def addMacOSCodeSignature(filename, identity, entitlements_filename, deep):
-    extra_args = []
-
-    # Weak signing is supported.
+    # Weak signing.
     if not identity:
         identity = "-"
 
@@ -60,26 +64,23 @@ def addMacOSCodeSignature(filename, identity, entitlements_filename, deep):
         "-s",
         identity,
         "--force",
-        "--timestamp",
-        "--all-architectures",
     ]
 
-    # hardened runtime unless no good identify
+    # hardened runtime unless no good identity
     if identity != "-":
-        extra_args.append("--options=runtime")
+        command.append("--options=runtime")
 
     if entitlements_filename:
-        extra_args.append("--entitlements")
-        extra_args.append(entitlements_filename)
+        command.append("--entitlements")
+        command.append(entitlements_filename)
 
-    if deep:
-        extra_args.append("--deep")
+    assert type(filenames) is not str
+    command.extend(filenames)
 
-    command.append(filename)
-
-    with withMadeWritableFileMode(filename):
+    with withMadeWritableFileMode(filenames):
         executeToolChecked(
             logger=postprocessing_logger,
             command=command,
-            absence_message=_macos_codesign_usage,
+            absence_message=macos_codesign_usage,
+            stderr_filter=_filterSigntoolErrorOutput,
         )

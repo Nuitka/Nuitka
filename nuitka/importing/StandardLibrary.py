@@ -29,8 +29,10 @@ module.
 import os
 
 from nuitka.Options import shallUseStaticLibPython
+from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContents, isPathBelow
-from nuitka.utils.Utils import getOS
+from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Utils import getOS, isNetBSD, isPosixWindows, isWin32Windows
 
 
 def getStandardLibraryPaths():
@@ -129,3 +131,184 @@ def isStandardLibraryPath(filename):
             return True
 
     return False
+
+
+# Some modules we want to exclude entirely.
+_excluded_stdlib_modules = ["__main__.py", "__init__.py", "antigravity.py"]
+
+if not isWin32Windows():
+    # On posix systems, and posix Python variants on Windows, this won't
+    # work.
+    _excluded_stdlib_modules.append("wintypes.py")
+    _excluded_stdlib_modules.append("cp65001.py")
+
+
+def scanStandardLibraryPath(stdlib_dir):
+    # There is a lot of filtering here, done in branches, so there is many of
+    # them, but that's acceptable, pylint: disable=too-many-branches,too-many-statements
+
+    for root, dirs, filenames in os.walk(stdlib_dir):
+        import_path = root[len(stdlib_dir) :].strip("/\\")
+        import_path = import_path.replace("\\", ".").replace("/", ".")
+
+        if import_path == "":
+            if "site-packages" in dirs:
+                dirs.remove("site-packages")
+            if "dist-packages" in dirs:
+                dirs.remove("dist-packages")
+            if "test" in dirs:
+                dirs.remove("test")
+            if "idlelib" in dirs:
+                dirs.remove("idlelib")
+            if "turtledemo" in dirs:
+                dirs.remove("turtledemo")
+
+            if "ensurepip" in filenames:
+                filenames.remove("ensurepip")
+            if "ensurepip" in dirs:
+                dirs.remove("ensurepip")
+
+            # Ignore "lib-dynload" and "lib-tk" and alike.
+            dirs[:] = [
+                dirname
+                for dirname in dirs
+                if not dirname.startswith("lib-")
+                if dirname != "Tools"
+                if not dirname.startswith("plat-")
+            ]
+
+        if import_path in (
+            "tkinter",
+            "Tkinter",
+            "importlib",
+            "ctypes",
+            "unittest",
+            "sqlite3",
+            "distutils",
+            "email",
+            "bsddb",
+        ):
+            if "test" in dirs:
+                dirs.remove("test")
+
+        if import_path == "distutils.command":
+            # Misbehaving and crashing while importing the world.
+            if "bdist_conda.py" in filenames:
+                filenames.remove("bdist_conda.py")
+
+        if import_path in ("lib2to3", "json", "distutils"):
+            if "tests" in dirs:
+                dirs.remove("tests")
+
+        if import_path == "asyncio":
+            if "test_utils.py" in filenames:
+                filenames.remove("test_utils.py")
+
+        if python_version >= 0x340 and isWin32Windows():
+            if import_path == "multiprocessing":
+                filenames.remove("popen_fork.py")
+                filenames.remove("popen_forkserver.py")
+                filenames.remove("popen_spawn_posix.py")
+
+        if python_version >= 0x300 and isPosixWindows():
+            if import_path == "curses":
+                filenames.remove("has_key.py")
+
+        if isNetBSD():
+            if import_path == "xml.sax":
+                filenames.remove("expatreader.py")
+
+        for filename in filenames:
+            if filename.endswith(".py") and filename not in _excluded_stdlib_modules:
+                module_name = filename[:-3]
+
+                if import_path == "":
+                    yield ModuleName(module_name)
+                else:
+                    yield ModuleName(import_path + "." + module_name)
+
+        if python_version >= 0x300:
+            if "__pycache__" in dirs:
+                dirs.remove("__pycache__")
+
+        for dirname in dirs:
+            if import_path == "":
+                yield ModuleName(dirname)
+            else:
+                yield ModuleName(import_path + "." + dirname)
+
+
+_stdlib_no_auto_inclusion_list = (
+    # Avoid this to be included, implicit usages will be rare, but it triggers
+    # the Nuitka plugin "multiprocessing" that is always enabled.
+    "multiprocessing",
+    "_multiprocessing",
+    # Implicit usages of these will be rare, but it can have that costly extension module
+    "curses",
+    "_curses",
+    "_curses_panel",
+    "sqlite3",
+    "_sqlite3",
+    "dbm",
+    "_dbm",
+    "bdb",
+    "readline",
+    "unittest",
+    "pydoc",
+    "pydoc_data",
+    "profile",
+    "cProfile",
+    "optparse",
+    "pdb",
+    "site",
+    "sitecustomize",
+    "runpy",
+    "lib2to3",
+    "doctest",
+    "email",
+    "tabnanny",
+    "argparse",
+    "telnetlib",
+    "smtplib",
+    "nntplib",
+    "http",
+    "sunau",
+    "this",
+    # Distribution and bytecode related stuff
+    "plistlib",
+    "distutils",
+    "compileall",
+    "venv",
+    "py_compile",
+    # tkinter under all its names
+    "Tkinter",
+    "tkinter",
+    "_tkinter",
+    # lib-tk from Python2
+    "Tix",
+    "FixTk",
+    "ScrolledText",
+    "turtle",
+    "antigravity",
+    "Dialog",
+    "Tkdnd",
+    "tkMessageBox",
+    "tkSimpleDialog",
+    "Tkinter",
+    "tkFileDialog",
+    "Canvas",
+    "tkCommonDialog",
+    "Tkconstants",
+    "FileDialog",
+    "SimpleDialog",
+    "ttk",
+    "tkFont",
+    "tkColorChooser",
+)
+
+if not isWin32Windows():
+    _stdlib_no_auto_inclusion_list += ("ntpath",)
+
+
+def isStandardLibraryNoAutoInclusionModule(module_name):
+    return module_name.hasOneOfNamespaces(*_stdlib_no_auto_inclusion_list)

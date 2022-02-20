@@ -287,7 +287,7 @@ import %(binding_name)s.QtCore
         """Get the path to the Qt webengine resources."""
         return os.path.join(self._getQtInformation().data_path, "resources")
 
-    def _getLibaryExecutablePath(self):
+    def _getLibraryExecutablePath(self):
         """Get the patch to Qt binaries."""
         return self._getQtInformation().library_executables_path
 
@@ -329,12 +329,10 @@ import %(binding_name)s.QtCore
                 yield qt_bin_dir
 
     def hasPluginFamily(self, family):
-        for plugin_dir in self.getQtPluginDirs():
-            if os.path.isdir(os.path.join(plugin_dir, family)):
-                return True
-
-        # TODO: Special case "xml".
-        return False
+        return any(
+            os.path.isdir(os.path.join(plugin_dir, family))
+            for plugin_dir in self.getQtPluginDirs()
+        )
 
     def _getQmlDirectory(self):
         for plugin_dir in self.getQtPluginDirs():
@@ -401,7 +399,7 @@ import %(binding_name)s.QtCore
             return ModuleName(self.binding_name).getChildNamed(child_name)
 
     def getImplicitImports(self, module):
-        # Way too many indeed, pylint: disable=too-many-branches
+        # Way too many indeed, pylint: disable=too-many-branches,too-many-statements
 
         full_name = module.getFullName()
         top_level_package_name, child_name = full_name.splitPackageName()
@@ -522,6 +520,7 @@ import %(binding_name)s.QtCore
 
         if child_name in ("QtQuick", "QtQuickWidgets"):
             yield self._getChildNamed("QtQml")
+            yield self._getChildNamed("QtOpenGL")
 
         if child_name in ("QtQuickWidgets", "QtQml", "QtQuickControls2"):
             yield self._getChildNamed("QtQuick")
@@ -613,7 +612,7 @@ system Qt plugins, which may be from another Qt version.""",
             Code to insert and descriptive text (tuple), or (None, None).
         """
 
-        # This isonly relevant on standalone mode for Windows
+        # This is only relevant on standalone mode for Windows
         if not isStandaloneMode():
             return
 
@@ -627,7 +626,7 @@ if not path.startswith(__nuitka_binary_dir):
 """
             yield (
                 code,
-                "Adding binary folder to runtime 'PATH' environment variable for proper loading.",
+                "Adding binary folder to runtime 'PATH' environment variable for proper Qt loading.",
             )
 
     def considerDataFiles(self, module):
@@ -799,7 +798,7 @@ Prefix = .
             self.webengine_done_binaries = True  # prevent multiple copies
             self.info("Including QtWebEngine executable.")
 
-            qt_web_engine_dir = self._getLibaryExecutablePath()
+            qt_web_engine_dir = self._getLibraryExecutablePath()
 
             for filename, filename_relative in listDir(qt_web_engine_dir):
                 if filename_relative.startswith("QtWebEngineProcess"):
@@ -859,7 +858,7 @@ Prefix = .
                         """\
 Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encountered, preventing
 its use. As a result an "ImportError" might be given at run time. Uninstall it for full compatible
-behaviour with the uncompiled code to debug it."""
+behavior with the uncompiled code to debug it."""
                         % {
                             "unwanted": top_package_name,
                             "binding_name": self.binding_name,
@@ -965,12 +964,13 @@ class NuitkaPluginPySide2Plugins(NuitkaPluginQtBindingsPluginBase):
         if self._getNuitkaPatchLevel() < 1:
             self.warning(
                 """\
-This PySide2 version only partially supported through workarounds, full support: https://nuitka.net/pages/pyside2.html"""
+For the standard PySide2 incomplete workarounds are applied. For full support: https://nuitka.net/pages/pyside2.html"""
             )
 
             if python_version < 0x360:
                 self.sysexit(
-                    "Error, unpatched PySide2 is not supported before CPython <3.6."
+                    """\
+The standard PySide2 is not supported before CPython <3.6. For full support: https://nuitka.net/pages/pyside2.html"""
                 )
 
         NuitkaPluginQtBindingsPluginBase.__init__(
@@ -1088,6 +1088,10 @@ PySide2.QtCore.QObject.__init_subclass__ = my_init_subclass
 Monkey patching classes derived from PySide2 base classes to pass PySide2 checks.""",
             )
 
+    def getModuleSpecificDllPaths(self, module_name):
+        if module_name.hasNamespace("PySide2"):
+            yield self.locateModule("shiboken2")
+
 
 class NuitkaPluginDetectorPySide2Plugins(NuitkaPluginBase):
     detector_for = NuitkaPluginPySide2Plugins
@@ -1119,6 +1123,10 @@ class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
                 """\
 Only PySide 6.1.2 or higher (or dev branch compiled), otherwise callbacks won't work."""
             )
+
+    def getModuleSpecificDllPaths(self, module_name):
+        if module_name.hasNamespace("PySide6"):
+            yield self.locateModule("shiboken6")
 
 
 class NuitkaPluginDetectorPySide6Plugins(NuitkaPluginBase):

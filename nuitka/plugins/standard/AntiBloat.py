@@ -20,12 +20,6 @@
 Nuitka hard codes stupid monkey patching normally not needed here and avoids
 that to be done and causing massive degradations.
 
-* cffi importing setuptools is not needed, workaround that with
-  --noinclude-setuptools-mode=nofollow if warned about including it.
-
-  Setuptools includes massive amounts of build tools which use other
-  things optionally.
-
 """
 
 import ast
@@ -42,6 +36,10 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
     plugin_desc = (
         "Patch stupid imports out of widely used library modules source codes."
     )
+
+    @staticmethod
+    def isAlwaysEnabled():
+        return True
 
     def __init__(
         self,
@@ -301,7 +299,8 @@ which can and should be a top level package and then one choice, "error",
                 body[:] = replacement.body
 
             self.info(
-                "Updated '%s' function '%s'." % (module_name.asString(), function_name)
+                "Updated module '%s' function '%s'."
+                % (module_name.asString(), function_name)
             )
 
     def onModuleEncounter(self, module_filename, module_name, module_kind):

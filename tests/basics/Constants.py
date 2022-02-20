@@ -29,9 +29,16 @@ except NameError:
 
 def displayDict(d):
     result = "{"
+    first = True
     for key, value in sorted(d.items()):
-        result += "%s: %s" % (key, value)
+        if not first:
+            result += ","
+
+        result += "%s: %s" % (repr(key), repr(value))
+        first = False
     result += "}"
+
+    return result
 
 
 print("A bunch of constants and their representation:")

@@ -31,8 +31,8 @@ from nuitka.build.DataComposerInterface import runDataComposer
 from nuitka.build.SconsUtils import getSconsReportValue
 from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.freezer.IncludedEntryPoints import (
+    addExtensionModuleEntryPoint,
     addIncludedEntryPoints,
-    addShlibEntryPoint,
     getStandaloneEntryPoints,
     setMainEntryPoint,
 )
@@ -42,6 +42,7 @@ from nuitka.Options import (
     getPythonPgoInput,
     hasPythonFlagNoAsserts,
     hasPythonFlagNoWarnings,
+    hasPythonFlagUnbuffered,
 )
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import executePostProcessing
@@ -70,10 +71,11 @@ from nuitka.tree import SyntaxErrors
 from nuitka.utils import InstanceCounters, MemoryUsage
 from nuitka.utils.Execution import (
     callProcess,
-    withEnvironmentVarOverriden,
+    withEnvironmentVarOverridden,
     wrapCommandForDebuggerForExec,
 )
 from nuitka.utils.FileOperations import (
+    changeFilenameExtension,
     deleteFile,
     getDirectoryRealPath,
     getExternalUsePath,
@@ -85,7 +87,7 @@ from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
-from nuitka.utils.Utils import getArchitecture, getOS, isWin32Windows
+from nuitka.utils.Utils import getArchitecture, getOS, isMacOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from . import ModuleRegistry, Options, OutputDirectories, TreeXML
@@ -93,7 +95,7 @@ from .build import SconsInterface
 from .codegen import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
 from .freezer.Onefile import packDistFolderToOnefile
-from .freezer.Standalone import copyUsedDLLs
+from .freezer.Standalone import copyDllsUsed
 from .optimizations.Optimization import optimizeModules
 from .pgo.PGO import readPGOInputFile
 from .Reports import writeCompilationReport
@@ -127,9 +129,13 @@ def _createNodeTree(filename):
 
     # Prepare the ".dist" directory, throwing away what was there before.
     if Options.isStandaloneMode():
-        standalone_dir = OutputDirectories.getStandaloneDirectoryPath()
+        standalone_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=False)
         removeDirectory(path=standalone_dir, ignore_errors=True)
-        makePath(standalone_dir)
+
+        if Options.shallCreateAppBundle():
+            removeDirectory(
+                path=changeFilenameExtension(standalone_dir, ".app"), ignore_errors=True
+            )
 
     # Delete result file, to avoid confusion with previous build and to
     # avoid locking issues after the build.
@@ -245,7 +251,7 @@ def pickSourceFilenames(source_dir, modules):
 
     # First pass, check for collisions.
     for module in modules:
-        if module.isPythonShlibModule():
+        if module.isPythonExtensionModule():
             continue
 
         _base_filename, collision_filename = _getModuleFilenames(module)
@@ -264,7 +270,7 @@ def pickSourceFilenames(source_dir, modules):
     # Second pass, this time sorted, so we get deterministic results. We will
     # apply an "@1"/"@2",... to disambiguate the filenames.
     for module in sorted(modules, key=lambda x: x.getFullName()):
-        if module.isPythonShlibModule():
+        if module.isPythonExtensionModule():
             continue
 
         base_filename, collision_filename = _getModuleFilenames(module)
@@ -347,8 +353,8 @@ def makeSourceDirectory():
                 inclusion_logger.info(
                     "Included compiled module '%s'." % module.getFullName()
                 )
-        elif module.isPythonShlibModule():
-            addShlibEntryPoint(module)
+        elif module.isPythonExtensionModule():
+            addExtensionModuleEntryPoint(module)
 
             if Options.isShowInclusion():
                 inclusion_logger.info(
@@ -468,7 +474,7 @@ def _runCPgoBinary():
     if _wasMsvcMode():
         msvc_pgc_filename = _deleteMsvcPGOFiles(pgo_mode="generate")
 
-        with withEnvironmentVarOverriden(
+        with withEnvironmentVarOverridden(
             "PATH",
             getSconsReportValue(
                 source_dir=OutputDirectories.getSourceDirectoryPath(), key="PATH"
@@ -501,7 +507,7 @@ def _runPythonPgoBinary():
 
     pgo_filename = OutputDirectories.getPgoRunInputFilename()
 
-    with withEnvironmentVarOverriden("NUITKA_PGO_OUTPUT", pgo_filename):
+    with withEnvironmentVarOverridden("NUITKA_PGO_OUTPUT", pgo_filename):
         _exit_code = _runPgoBinary()
 
     if not os.path.exists(pgo_filename):
@@ -634,6 +640,9 @@ def runSconsBackend(quiet):
     if python_version >= 0x370 and sys.flags.utf8_mode:
         options["python_sysflag_utf8"] = asBoolStr(True)
 
+    if hasPythonFlagUnbuffered():
+        options["python_sysflag_unbuffered"] = asBoolStr(True)
+
     abiflags = getPythonABI()
     if abiflags:
         options["abiflags"] = abiflags
@@ -721,10 +730,6 @@ def callExecPython(args, clean_path, add_path):
         else:
             os.environ["PYTHONPATH"] = Options.getOutputDir()
 
-    # We better flush these, "os.execl" won't do it anymore.
-    sys.stdout.flush()
-    sys.stderr.flush()
-
     # Add the main arguments, previous separated.
     args += Options.getPositionalArgs()[1:] + Options.getMainArgs()
 
@@ -732,7 +737,8 @@ def callExecPython(args, clean_path, add_path):
 
 
 def executeMain(binary_filename, clean_path):
-    if Options.shallRunInDebugger():
+    # Wrap in debugger, unless the CMD file contains that call already.
+    if Options.shallRunInDebugger() and not Options.shallCreateCmdFileForExecution():
         args = wrapCommandForDebuggerForExec(binary_filename)
     else:
         args = (binary_filename, binary_filename)
@@ -954,7 +960,7 @@ def main():
             for module in ModuleRegistry.getDoneModules():
                 addIncludedEntryPoints(Plugins.considerExtraDlls(dist_dir, module))
 
-            copyUsedDLLs(
+            copyDllsUsed(
                 source_dir=OutputDirectories.getSourceDirectoryPath(),
                 dist_dir=dist_dir,
                 standalone_entry_points=getStandaloneEntryPoints(),
@@ -992,10 +998,10 @@ def main():
             onefile=Options.isOnefileMode()
         )
 
-        if "macos_minversion" in options:
+        if Options.isStandaloneMode() and isMacOS():
             general.info(
-                "Created binary that runs on macOS %s or higher."
-                % options["macos_minversion"]
+                "Created binary that runs on macOS %s (%s) or higher."
+                % (options["macos_min_version"], options["macos_target_arch"])
             )
 
         Plugins.onFinalResult(final_filename)

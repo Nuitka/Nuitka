@@ -48,12 +48,7 @@ from SCons.Script import (  # pylint: disable=I0021,import-error
     GetOption,
 )
 
-from nuitka.Tracing import (
-    my_print,
-    scons_details_logger,
-    scons_logger,
-    setQuiet,
-)
+from nuitka.Tracing import my_print, scons_details_logger, setQuiet
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
@@ -68,7 +63,7 @@ from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
     addClangClPathFromMSVC,
     addToPATH,
-    changeKeyboardInteruptToErrorExit,
+    changeKeyboardInterruptToErrorExit,
     createDefinitionsFile,
     createEnvironment,
     getArgumentBool,
@@ -140,7 +135,7 @@ win_target = os.name == "nt"
 # Windows subsystem mode: Disable console for windows builds.
 disable_console = getArgumentBool("disable_console", False)
 
-# Unstriped mode: Do not remove debug symbols.
+# Unstripped mode: Do not remove debug symbols.
 unstripped_mode = getArgumentBool("unstripped_mode", False)
 
 # Target arch, uses for compiler choice and quick linking of constants binary
@@ -194,11 +189,15 @@ assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 # Onefile compression is optional.
 onefile_compression = getArgumentBool("onefile_compression", False)
 
-# Onefile bootstrap is opptional.
+# Onefile bootstrap is optional.
 onefile_splash_screen = getArgumentBool("onefile_splash_screen", False)
 
 # Minimum version required on macOS.
-macos_minversion = getArgumentDefaulted("macos_minversion", "")
+macos_min_version = getArgumentDefaulted("macos_min_version", "")
+
+# Target arch for macOS.
+macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
+
 
 if getArgumentBool("progress_bar", True) and not show_scons_mode:
     enableSconsProgressBar()
@@ -276,7 +275,7 @@ if "CC" in os.environ:
     scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
 elif clangcl_mode:
     # If possible, add Clang directory from MSVC if available.
-    addClangClPathFromMSVC(env=env, target_arch=target_arch)
+    addClangClPathFromMSVC(env=env)
 elif clang_mode:
     # If requested by the user, use the clang compiler, overriding what was
     # said in environment.
@@ -300,9 +299,8 @@ env.standalone_mode = True  # We are only used in this case.
 env.debug_mode = debug_mode
 env.source_dir = source_dir
 env.low_memory = False  # Never a concern in this case.
-env.macos_minversion = macos_minversion
-
-scons_logger.info("Onefile C compiler: %s (%s)." % (env.the_compiler, env.the_cc_name))
+env.macos_min_version = macos_min_version
+env.macos_target_arch = macos_target_arch
 
 # Requested or user provided, detect if it's clang even from environment
 if "clang" in env.the_cc_name and "-cl" not in env.the_cc_name:
@@ -601,7 +599,7 @@ enableSpawnMonitoring(
 
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit as the
 # scons traceback is not going to be very interesting to us.
-changeKeyboardInteruptToErrorExit()
+changeKeyboardInterruptToErrorExit()
 
 # Check if ccache is installed, and complain if it is not.
 if env.gcc_mode and not disable_ccache:

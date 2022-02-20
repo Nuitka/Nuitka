@@ -33,6 +33,7 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.Tracing import postprocessing_logger
+from nuitka.utils.Execution import wrapCommandForDebuggerForExec
 from nuitka.utils.FileOperations import (
     getExternalUsePath,
     getFileContents,
@@ -353,10 +354,11 @@ def executePostProcessing():
                     os.path.join(python_lib_path, python_dll_filename),
                 ),
             ),
+            id_path=None,
             rpath=python_lib_path,
         )
 
-    if isMacOS() and Options.shallCreateAppBundle():
+    if Options.shallCreateAppBundle():
         createPlistInfoFile(logger=postprocessing_logger, onefile=False)
 
     # Modules should not be executable, but Scons creates them like it, fix
@@ -373,7 +375,8 @@ def executePostProcessing():
         if os.path.exists(candidate):
             os.unlink(candidate)
 
-    if isWin32Windows() and Options.shallTreatUninstalledPython():
+    # Might have to create a CMD file, potentially with debugger run.
+    if Options.shallCreateCmdFileForExecution():
         dll_directory = getExternalUsePath(os.path.dirname(getTargetPythonDLLPath()))
 
         cmd_filename = OutputDirectories.getResultRunFilename(onefile=False)
@@ -383,8 +386,11 @@ def executePostProcessing():
 rem This script was created by Nuitka to execute '%(exe_filename)s' with Python DLL being found.
 set PATH=%(dll_directory)s;%%PATH%%
 set PYTHONHOME=%(dll_directory)s
-"%%~dp0.\\%(exe_filename)s" %%*
+%(debugger_call)s"%%~dp0.\\%(exe_filename)s" %%*
 """ % {
+            "debugger_call": (" ".join(wrapCommandForDebuggerForExec()) + " ")
+            if Options.shallRunInDebugger()
+            else "",
             "dll_directory": dll_directory,
             "exe_filename": os.path.basename(result_filename),
         }

@@ -17,16 +17,15 @@
 #
 """ Pack and copy files for standalone mode.
 
-This is still under heavy evolution, but expected to work for
-macOS, Windows, and Linux. Patches for other platforms are
-very welcome.
+This is expected to work for macOS, Windows, and Linux. Other things like
+FreeBSD are also very welcome, but might break with time and need your
+help.
 """
 
 import hashlib
 import marshal
 import os
 import pkgutil
-import shutil
 import sys
 
 from nuitka import Options, SourceCodeReferences
@@ -39,19 +38,30 @@ from nuitka.importing import ImportCache
 from nuitka.importing.Importing import locateModule
 from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
+    isStandardLibraryNoAutoInclusionModule,
     isStandardLibraryPath,
+    scanStandardLibraryPath,
 )
 from nuitka.nodes.ModuleNodes import (
-    PythonShlibModule,
+    PythonExtensionModule,
     makeUncompiledPythonModule,
 )
 from nuitka.plugins.Plugins import Plugins
+from nuitka.Progress import (
+    closeProgressBar,
+    reportProgressBar,
+    setupProgressBar,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general, inclusion_logger, printError
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
+from nuitka.utils.Execution import (
+    executeProcess,
+    executeToolChecked,
+    withEnvironmentPathAdded,
+)
 from nuitka.utils.FileOperations import (
     areSamePaths,
     copyFileWithPermissions,
@@ -60,6 +70,7 @@ from nuitka.utils.FileOperations import (
     getFileList,
     getSubDirectories,
     haveSameFileContents,
+    isPathBelow,
     listDir,
     makePath,
     putTextFileContents,
@@ -71,13 +82,15 @@ from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
+    copyDllFile,
+    getOtoolListing,
     getPyWin32Dir,
     getSharedLibraryRPATH,
     getWindowsDLLVersion,
-    removeSxsFromDLL,
+    otool_usage,
     setSharedLibraryRPATH,
 )
-from nuitka.utils.Signing import removeMacOSCodeSignature
+from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
 
@@ -100,15 +113,14 @@ module_names = set()
 
 
 def _detectedPrecompiledFile(filename, module_name, result, user_provided, technical):
-    if filename.endswith(".pyc"):
-        if os.path.isfile(filename[:-1]):
-            return _detectedSourceFile(
-                filename=filename[:-1],
-                module_name=module_name,
-                result=result,
-                user_provided=user_provided,
-                technical=technical,
-            )
+    if filename.endswith(".pyc") and os.path.isfile(filename[:-1]):
+        return _detectedSourceFile(
+            filename=filename[:-1],
+            module_name=module_name,
+            result=result,
+            user_provided=user_provided,
+            technical=technical,
+        )
 
     if module_name in module_names:
         return
@@ -201,25 +213,30 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
     module_names.add(module_name)
 
 
-def _detectedShlibFile(filename, module_name):
+def _detectedExtensionModule(filename, module_name, result, technical):
     # That is not a shared library, but looks like one.
     if module_name == "__main__":
         return
 
-    # Cyclic dependency
-    from nuitka import ModuleRegistry
+    # Extension modules are not tracked outside of standalone
+    # mode.
+    if not Options.isStandaloneMode():
+        return
 
-    if ModuleRegistry.hasRootModule(module_name):
+    # Avoid duplicates
+    if module_name in module_names:
         return
 
     source_ref = SourceCodeReferences.fromFilename(filename=filename)
 
-    shlib_module = PythonShlibModule(module_name=module_name, source_ref=source_ref)
+    extension_module = PythonExtensionModule(
+        module_name=module_name, technical=technical, source_ref=source_ref
+    )
 
-    ModuleRegistry.addRootModule(shlib_module)
-    ImportCache.addImportedModule(shlib_module)
+    ImportCache.addImportedModule(extension_module)
 
     module_names.add(module_name)
+    result.append(extension_module)
 
 
 def _detectImports(command, user_provided, technical):
@@ -250,23 +267,23 @@ print("\\n".join(sorted(
         "import sys; sys.path = %s; sys.real_prefix = sys.prefix;" % repr(reduced_path)
     ) + command
 
-    import tempfile
+    if str is not bytes:
+        command = command.encode("utf8")
 
-    tmp_file, tmp_filename = tempfile.mkstemp()
+    _stdout, stderr, exit_code = executeProcess(
+        command=(
+            sys.executable,
+            "-s",
+            "-S",
+            "-v",
+            "-c",
+            "import sys;exec(sys.stdin.read())",
+        ),
+        stdin=command,
+        env=dict(os.environ, PYTHONIOENCODING="utf-8"),
+    )
 
-    try:
-        if python_version >= 0x300:
-            command = command.encode("utf8")
-        os.write(tmp_file, command)
-        os.close(tmp_file)
-
-        # TODO: Check exit code, should never fail.
-        _stdout, stderr, exit_code = executeProcess(
-            command=(sys.executable, "-s", "-S", "-v", tmp_filename),
-            env=dict(os.environ, PYTHONIOENCODING="utf-8"),
-        )
-    finally:
-        os.unlink(tmp_filename)
+    assert type(stderr) is bytes
 
     # Don't let errors here go unnoticed.
     if exit_code != 0:
@@ -309,7 +326,7 @@ print("\\n".join(sorted(
                 detections.append((module_name, 3, "precompiled", filename))
             elif origin == b"from" and python_version < 0x300:
                 filename = parts[1][len(b"from ") :]
-                if python_version >= 0x300:  # For consistency, and maybe later reuse
+                if str is not bytes:  # For consistency, and maybe later reuse
                     filename = filename.decode("utf8")
 
                 # Do not leave standard library when freezing.
@@ -337,11 +354,10 @@ print("\\n".join(sorted(
                     # Python3 started lying in "__name__" for the "_decimal"
                     # calls itself "decimal", which then is wrong and also
                     # clashes with "decimal" proper
-                    if python_version >= 0x300:
-                        if module_name == "decimal":
-                            module_name = ModuleName("_decimal")
+                    if python_version >= 0x300 and module_name == "decimal":
+                        module_name = ModuleName("_decimal")
 
-                    detections.append((module_name, 2, "shlib", filename))
+                    detections.append((module_name, 2, "extension", filename))
             elif origin == b"dynamically":
                 # Shared library in early load, happens on RPM based systems and
                 # or self compiled Python installations.
@@ -353,10 +369,20 @@ print("\\n".join(sorted(
                 if not isStandardLibraryPath(filename):
                     continue
 
-                detections.append((module_name, 1, "shlib", filename))
+                detections.append((module_name, 1, "extension", filename))
 
-    for module_name, _prio, kind, filename in sorted(detections):
-        if kind == "precompiled":
+    for module_name, _priority, kind, filename in sorted(detections):
+        if isStandardLibraryNoAutoInclusionModule(module_name):
+            continue
+
+        if kind == "extension":
+            _detectedExtensionModule(
+                filename=filename,
+                module_name=module_name,
+                result=result,
+                technical=technical,
+            )
+        elif kind == "precompiled":
             _detectedPrecompiledFile(
                 filename=filename,
                 module_name=module_name,
@@ -372,115 +398,10 @@ print("\\n".join(sorted(
                 user_provided=user_provided,
                 technical=technical,
             )
-        elif kind == "shlib":
-            _detectedShlibFile(filename=filename, module_name=module_name)
         else:
             assert False, kind
 
     return result
-
-
-# Some modules we want to exclude.
-_excluded_stdlib_modules = ["__main__.py", "__init__.py", "antigravity.py"]
-
-if os.name != "nt":
-    # On posix systems, and posix Python veriants on Windows, this won't
-    # work.
-    _excluded_stdlib_modules.append("wintypes.py")
-    _excluded_stdlib_modules.append("cp65001.py")
-
-
-def scanStandardLibraryPath(stdlib_dir):
-    # There is a lot of filtering here, done in branches, so there # is many of
-    # them, but that's acceptable, pylint: disable=too-many-branches,too-many-statements
-
-    for root, dirs, filenames in os.walk(stdlib_dir):
-        import_path = root[len(stdlib_dir) :].strip("/\\")
-        import_path = import_path.replace("\\", ".").replace("/", ".")
-
-        if import_path == "":
-            if "site-packages" in dirs:
-                dirs.remove("site-packages")
-            if "dist-packages" in dirs:
-                dirs.remove("dist-packages")
-            if "test" in dirs:
-                dirs.remove("test")
-            if "idlelib" in dirs:
-                dirs.remove("idlelib")
-            if "turtledemo" in dirs:
-                dirs.remove("turtledemo")
-
-            if "ensurepip" in filenames:
-                filenames.remove("ensurepip")
-            if "ensurepip" in dirs:
-                dirs.remove("ensurepip")
-
-            # Ignore "lib-dynload" and "lib-tk" and alike.
-            dirs[:] = [
-                dirname
-                for dirname in dirs
-                if not dirname.startswith("lib-")
-                if dirname != "Tools"
-                if not dirname.startswith("plat-")
-            ]
-
-        if import_path in (
-            "tkinter",
-            "importlib",
-            "ctypes",
-            "unittest",
-            "sqlite3",
-            "distutils",
-            "email",
-            "bsddb",
-        ):
-            if "test" in dirs:
-                dirs.remove("test")
-
-        if import_path == "distutils.command":
-            # Misbehaving and crashing while importing the world.
-            if "bdist_conda.py" in filenames:
-                filenames.remove("bdist_conda.py")
-
-        if import_path in ("lib2to3", "json", "distutils"):
-            if "tests" in dirs:
-                dirs.remove("tests")
-
-        if import_path == "asyncio":
-            if "test_utils.py" in filenames:
-                filenames.remove("test_utils.py")
-
-        if python_version >= 0x340 and Utils.isWin32Windows():
-            if import_path == "multiprocessing":
-                filenames.remove("popen_fork.py")
-                filenames.remove("popen_forkserver.py")
-                filenames.remove("popen_spawn_posix.py")
-
-        if python_version >= 0x300 and Utils.isPosixWindows():
-            if import_path == "curses":
-                filenames.remove("has_key.py")
-
-        if Utils.isNetBSD():
-            if import_path == "xml.sax":
-                filenames.remove("expatreader.py")
-
-        for filename in filenames:
-            if filename.endswith(".py") and filename not in _excluded_stdlib_modules:
-                module_name = filename[:-3]
-                if import_path == "":
-                    yield module_name
-                else:
-                    yield import_path + "." + module_name
-
-        if python_version >= 0x300:
-            if "__pycache__" in dirs:
-                dirs.remove("__pycache__")
-
-        for dirname in dirs:
-            if import_path == "":
-                yield dirname
-            else:
-                yield import_path + "." + dirname
 
 
 def _detectEarlyImports():
@@ -489,11 +410,22 @@ def _detectEarlyImports():
     ]
 
     if os.name != "nt":
-        # On posix systems, and posix Python veriants on Windows, these won't
+        # On posix systems, and posix Python variants on Windows, these won't
         # work and fail to import.
         for encoding_name in ("mbcs", "cp65001", "oem"):
             if encoding_name in encoding_names:
                 encoding_names.remove(encoding_name)
+
+    # Not for startup.
+    for non_locale_encoding in (
+        "bz2_codec",
+        "idna",
+        "base64_codec",
+        "hex_codec",
+        "rot_13",
+    ):
+        if non_locale_encoding in encoding_names:
+            encoding_names.remove(non_locale_encoding)
 
     import_code = ";".join(
         "import encodings.%s" % encoding_name
@@ -504,17 +436,18 @@ def _detectEarlyImports():
 
     # For Python3 we patch inspect without knowing if it is used.
     if python_version >= 0x300:
-        import_code += "import inspect;"
+        import_code += "import inspect;import importlib._bootstrap"
 
     result = _detectImports(command=import_code, user_provided=False, technical=True)
 
     if Options.shallFreezeAllStdlib():
         stdlib_modules = set()
 
-        # Scan the standard library paths (multiple in case of virtualenv.
+        # Scan the standard library paths (multiple in case of virtualenv).
         for stdlib_dir in getStandardLibraryPaths():
             for module_name in scanStandardLibraryPath(stdlib_dir):
-                stdlib_modules.add(module_name)
+                if not isStandardLibraryNoAutoInclusionModule(module_name):
+                    stdlib_modules.add(module_name)
 
         # Put here ones that should be imported first.
         first_ones = ("Tkinter",)
@@ -565,8 +498,13 @@ for imp in imports:
     for fail in failed:
         if fail in sys.modules:
             del sys.modules[fail]
-""" % sorted(
-            stdlib_modules, key=lambda name: (name not in first_ones, name)
+""" % (
+            tuple(
+                module_name.asString()
+                for module_name in sorted(
+                    stdlib_modules, key=lambda name: (name not in first_ones, name)
+                )
+            ),
         )
 
         early_names = [module.getFullName() for module in result]
@@ -587,8 +525,11 @@ def detectEarlyImports():
     from nuitka import ModuleRegistry
 
     early_modules = tuple(_detectEarlyImports())
+
+    # TODO: Return early_modules, then there is no cycle.
     for module in early_modules:
-        ModuleRegistry.addUncompiledModule(module)
+        if module.isUncompiledPythonModule():
+            ModuleRegistry.addUncompiledModule(module)
 
     return early_modules
 
@@ -649,17 +590,25 @@ _linux_dll_ignore_list = (
     "libdrm.so",
 )
 
+_ld_library_cache = {}
+
 
 def _getLdLibraryPath(package_name, python_rpath, original_dir):
-    ld_library_path = OrderedSet()
-    if python_rpath:
-        ld_library_path.add(python_rpath)
-    ld_library_path.update(getPackageSpecificDLLDirectories(package_name))
+    key = package_name, python_rpath, original_dir
 
-    if original_dir is not None:
-        ld_library_path.add(original_dir)
+    if key not in _ld_library_cache:
 
-    return ld_library_path
+        ld_library_path = OrderedSet()
+        if python_rpath:
+            ld_library_path.add(python_rpath)
+
+        ld_library_path.update(_getPackageSpecificDLLDirectories(package_name))
+        if original_dir is not None:
+            ld_library_path.add(original_dir)
+
+        _ld_library_cache[key] = ld_library_path
+
+    return _ld_library_cache[key]
 
 
 def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
@@ -765,29 +714,10 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     return sub_result
 
 
-def _detectBinaryPathDLLsMacOS(
-    original_dir, binary_filename, package_name, keep_unresolved
-):
-    # TODO: Actually would be better to pass it as env to the created process instead.
-    with withEnvironmentPathAdded(
-        "DYLD_LIBRARY_PATH",
-        *_getLdLibraryPath(
-            package_name=package_name, python_rpath=None, original_dir=original_dir
-        )
-    ):
-        # TODO: Check exit code, should never fail.
-        stdout, _stderr, _exit_code = executeProcess(
-            command=("otool", "-L", binary_filename)
-        )
-    system_paths = (
-        "/usr/lib/",
-        "/System/Library/Frameworks/",
-        "/System/Library/PrivateFrameworks/",
-    )
+def _parseOtoolListingOutput(output):
+    paths = OrderedSet()
 
-    result = OrderedSet()
-
-    for line in stdout.split(b"\n")[1:]:
+    for line in output.split(b"\n")[1:]:
         if str is not bytes:
             line = line.decode("utf8")
 
@@ -795,57 +725,135 @@ def _detectBinaryPathDLLsMacOS(
             continue
 
         filename = line.split(" (", 1)[0].strip()
-        for w in system_paths:
-            if filename.startswith(w):
-                break
-        else:
-            result.add(filename)
 
-    resolved_result = _resolveBinaryPathDLLsMacOS(
+        # Ignore dependency from system paths.
+        if not isPathBelow(
+            path=(
+                "/usr/lib/",
+                "/System/Library/Frameworks/",
+                "/System/Library/PrivateFrameworks/",
+            ),
+            filename=filename,
+        ):
+            paths.add(filename)
+
+    return paths
+
+
+_otool_dependency_cache = {}
+
+
+def getOtoolDependencyOutput(filename, package_specific_dirs):
+    key = filename, tuple(package_specific_dirs), os.environ.get("DYLD_LIBRARY_PATH")
+
+    if key not in _otool_dependency_cache:
+        with withEnvironmentPathAdded("DYLD_LIBRARY_PATH", *package_specific_dirs):
+            _otool_dependency_cache[key] = executeToolChecked(
+                logger=inclusion_logger,
+                command=("otool", "-L", filename),
+                absence_message=otool_usage,
+            )
+
+    return _otool_dependency_cache[key]
+
+
+def _detectBinaryPathDLLsMacOS(
+    original_dir, binary_filename, package_name, keep_unresolved, recursive
+):
+    assert os.path.exists(binary_filename), binary_filename
+
+    package_specific_dirs = _getLdLibraryPath(
+        package_name=package_name, python_rpath=None, original_dir=original_dir
+    )
+
+    # This is recursive potentially and might add more and more.
+    stdout = getOtoolDependencyOutput(
+        filename=binary_filename,
+        package_specific_dirs=_getLdLibraryPath(
+            package_name=package_name, python_rpath=None, original_dir=original_dir
+        ),
+    )
+    paths = _parseOtoolListingOutput(stdout)
+
+    had_self, resolved_result = _resolveBinaryPathDLLsMacOS(
         original_dir=original_dir,
         binary_filename=binary_filename,
-        paths=result,
-        keep_unresolved=keep_unresolved,
+        paths=paths,
+        package_specific_dirs=package_specific_dirs,
     )
-    return resolved_result
 
+    if recursive:
+        merged_result = OrderedDict(resolved_result)
 
-def _resolveBinaryPathDLLsMacOS(original_dir, binary_filename, paths, keep_unresolved):
+        for sub_dll_filename in resolved_result:
+            _, sub_result = _detectBinaryPathDLLsMacOS(
+                original_dir=os.path.dirname(sub_dll_filename),
+                binary_filename=sub_dll_filename,
+                package_name=package_name,
+                recursive=True,
+                keep_unresolved=True,
+            )
+
+            merged_result.update(sub_result)
+
+        resolved_result = merged_result
+
     if keep_unresolved:
-        result = {}
+        return had_self, resolved_result
     else:
-        result = set()
+        return OrderedSet(resolved_result)
+
+
+def _resolveBinaryPathDLLsMacOS(
+    original_dir, binary_filename, paths, package_specific_dirs
+):
+    had_self = False
+
+    result = OrderedDict()
 
     rpaths = _detectBinaryRPathsMacOS(original_dir, binary_filename)
+    rpaths.update(package_specific_dirs)
 
     for path in paths:
         if path.startswith("@rpath/"):
+            # Resolve rpath to just the ones given, first match.
             for rpath in rpaths:
-                if os.path.isfile(os.path.join(rpath, path[7:])):
-                    resolved_path = os.path.join(rpath, path[7:])
+                if os.path.exists(os.path.join(rpath, path[7:])):
+                    resolved_path = os.path.normpath(os.path.join(rpath, path[7:]))
                     break
             else:
+                # This is only a guess, might be missing package specific directories.
                 resolved_path = os.path.join(original_dir, path[7:])
-
         elif path.startswith("@loader_path/"):
             resolved_path = os.path.join(original_dir, path[13:])
+        elif os.path.basename(path) == os.path.basename(binary_filename):
+            # We ignore the references to itself coming from the library id.
+            continue
         else:
             resolved_path = path
-        if keep_unresolved:
-            result.update({resolved_path: path})
-        else:
-            result.add(resolved_path)
-    return result
+
+        if not os.path.exists(resolved_path):
+            inclusion_logger.sysexit(
+                "Error, failed to resolve DLL path %s (for %s), please report the bug."
+                % (path, binary_filename)
+            )
+
+        # Some libraries depend on themselves.
+        if areSamePaths(binary_filename, resolved_path):
+            had_self = True
+            continue
+
+        result[resolved_path] = path
+
+    return had_self, result
 
 
 def _detectBinaryRPathsMacOS(original_dir, binary_filename):
-    # TODO: Check exit code, should never fail.
-    stdout, _stderr, _exit_code = executeProcess(
-        command=("otool", "-l", binary_filename)
-    )
+    stdout = getOtoolListing(binary_filename)
+
     lines = stdout.split(b"\n")
 
-    result = set()
+    result = OrderedSet()
 
     for i, line in enumerate(lines):
         if line.endswith(b"cmd LC_RPATH"):
@@ -855,10 +863,12 @@ def _detectBinaryRPathsMacOS(original_dir, binary_filename):
 
             line = line.split("path ", 1)[1]
             line = line.split(" (offset", 1)[0]
+
             if line.startswith("@loader_path"):
                 line = os.path.join(original_dir, line[13:])
             elif line.startswith("@executable_path"):
                 continue
+
             result.add(line)
 
     return result
@@ -900,7 +910,7 @@ def _getCacheFilename(
 _scan_dir_cache = {}
 
 
-def getPackageSpecificDLLDirectories(package_name):
+def _getPackageSpecificDLLDirectories(package_name):
     scan_dirs = OrderedSet()
 
     if package_name is not None:
@@ -930,7 +940,7 @@ def getScanDirectories(package_name, original_dir):
     scan_dirs = [sys.prefix]
 
     if package_name is not None:
-        scan_dirs.extend(getPackageSpecificDLLDirectories(package_name))
+        scan_dirs.extend(_getPackageSpecificDLLDirectories(package_name))
 
     if original_dir is not None:
         scan_dirs.append(original_dir)
@@ -1028,7 +1038,7 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
     return result
 
 
-def detectBinaryDLLs(
+def _detectBinaryDLLs(
     is_main_executable,
     source_dir,
     original_filename,
@@ -1072,18 +1082,25 @@ def detectBinaryDLLs(
             binary_filename=original_filename,
             package_name=package_name,
             keep_unresolved=False,
+            recursive=True,
         )
     else:
         # Support your platform above.
         assert False, Utils.getOS()
 
 
-_unfound_dlls = set()
+_not_found_dlls = set()
 
 
-def detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache):
+def _detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache):
+    setupProgressBar(
+        stage="Detecting used DLLs",
+        unit="DLL",
+        total=len(standalone_entry_points),
+    )
+
     def addDLLInfo(count, source_dir, original_filename, binary_filename, package_name):
-        used_dlls = detectBinaryDLLs(
+        used_dlls = _detectBinaryDLLs(
             is_main_executable=count == 0,
             source_dir=source_dir,
             original_filename=original_filename,
@@ -1100,17 +1117,21 @@ def detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache)
 
         for dll_filename in sorted(tuple(used_dlls)):
             if not os.path.isfile(dll_filename):
-                if _unfound_dlls:
+                if _not_found_dlls:
                     general.warning(
-                        "Dependency '%s' could not be found, you might need to copy it manually."
+                        """\
+Dependency '%s' could not be found, expect runtime issues. If this is
+working with Python, report a Nuitka bug."""
                         % dll_filename
                     )
 
-                    _unfound_dlls.add(dll_filename)
+                    _not_found_dlls.add(dll_filename)
 
                 used_dlls.remove(dll_filename)
 
-        return binary_filename, used_dlls
+        reportProgressBar(binary_filename)
+
+        return binary_filename, package_name, used_dlls
 
     result = OrderedDict()
 
@@ -1129,43 +1150,71 @@ def detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache)
                 )
             )
 
-        for binary_filename, used_dlls in waitWorkers(workers):
+        for binary_filename, package_name, used_dlls in waitWorkers(workers):
             for dll_filename in used_dlls:
                 # We want these to be absolute paths. Solve that in the parts
-                # where detectBinaryDLLs is platform specific.
+                # where _detectBinaryDLLs is platform specific.
                 assert os.path.isabs(dll_filename), dll_filename
 
                 if dll_filename not in result:
-                    result[dll_filename] = []
-                result[dll_filename].append(binary_filename)
+                    result[dll_filename] = (package_name, [])
+
+                result[dll_filename][1].append(binary_filename)
+
+    closeProgressBar()
 
     return result
 
 
-def fixupBinaryDLLPathsMacOS(binary_filename, dll_map, original_location):
+def _fixupBinaryDLLPathsMacOS(
+    binary_filename, package_name, dll_map, duplicate_dlls, original_location
+):
     """For macOS, the binary needs to be told to use relative DLL paths"""
 
     # There may be nothing to do, in case there are no DLLs.
     if not dll_map:
         return
 
-    rpath_map = _detectBinaryPathDLLsMacOS(
+    had_self, rpath_map = _detectBinaryPathDLLsMacOS(
         original_dir=os.path.dirname(original_location),
         binary_filename=original_location,
-        package_name=None,
+        package_name=package_name,
         keep_unresolved=True,
+        recursive=False,
     )
-    for i, o in enumerate(dll_map):
-        dll_map[i] = (rpath_map.get(o[0], o[0]), o[1])
 
-    callInstallNameTool(
-        filename=binary_filename,
-        mapping=(
-            (original_path, "@executable_path/" + dist_path)
-            for (original_path, dist_path) in dll_map
-        ),
-        rpath=None,
-    )
+    mapping = []
+
+    for resolved_filename, rpath_filename in rpath_map.items():
+        resolved_filename = os.path.normpath(resolved_filename)
+
+        for (original_path, _package_name, dist_path) in dll_map:
+            if resolved_filename == original_path:
+                break
+
+            # Might have been a removed duplicate, check those too.
+            if original_path in duplicate_dlls.get(resolved_filename, ()):
+                break
+
+        else:
+            dist_path = None
+
+        if dist_path is None:
+            inclusion_logger.sysexit(
+                """\
+Error, problem with dependency scan of '%s' with '%s' please report the bug."""
+                % (binary_filename, rpath_filename)
+            )
+
+        mapping.append((rpath_filename, "@executable_path/" + dist_path))
+
+    if mapping or had_self:
+        callInstallNameTool(
+            filename=binary_filename,
+            mapping=mapping,
+            id_path=os.path.basename(binary_filename) if had_self else None,
+            rpath=None,
+        )
 
 
 # These DLLs are run time DLLs from Microsoft, and packages will depend on different
@@ -1178,31 +1227,21 @@ ms_runtime_dlls = (
 )
 
 
-def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
-    # This is terribly complex, because we check the list of used DLLs
-    # trying to avoid duplicates, and detecting errors with them not
-    # being binary identical, so we can report them. And then of course
-    # we also need to handle OS specifics.
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
-
-    used_dlls = detectUsedDLLs(
-        source_dir=source_dir,
-        standalone_entry_points=standalone_entry_points,
-        use_cache=not Options.shallNotUseDependsExeCachedResults()
-        and not Options.getWindowsDependencyTool() == "depends.exe",
-        update_cache=not Options.shallNotStoreDependsExeCachedResults()
-        and not Options.getWindowsDependencyTool() == "depends.exe",
-    )
-
+def _removeDuplicateDlls(used_dlls):
+    # Many things to consider, pylint: disable=too-many-branches
     removed_dlls = set()
     warned_about = set()
 
-    # Fist make checks and remove some.
-    for dll_filename1, sources1 in tuple(iterItems(used_dlls)):
+    # Identical DLLs are interesting for DLL resolution on macOS at least.
+    duplicate_dlls = {}
+
+    # Fist make checks and remove some, in loops we copy the items so we can remove
+    # the used_dll list freely.
+    for dll_filename1, (_package_name1, sources1) in tuple(iterItems(used_dlls)):
         if dll_filename1 in removed_dlls:
             continue
 
-        for dll_filename2, sources2 in tuple(iterItems(used_dlls)):
+        for dll_filename2, (_package_name1, sources2) in tuple(iterItems(used_dlls)):
             if dll_filename1 == dll_filename2:
                 continue
 
@@ -1233,6 +1272,9 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
             if haveSameFileContents(dll_filename1, dll_filename2):
                 del used_dlls[dll_filename2]
                 removed_dlls.add(dll_filename2)
+
+                duplicate_dlls.setdefault(dll_filename1, []).append(dll_filename2)
+                duplicate_dlls.setdefault(dll_filename2, []).append(dll_filename1)
 
                 continue
 
@@ -1286,18 +1328,31 @@ different from
             del used_dlls[dll_filename2]
             removed_dlls.add(dll_filename2)
 
+    return duplicate_dlls
+
+
+def _copyDllsUsed(dist_dir, used_dlls):
+    setupProgressBar(
+        stage="Copying used DLLs",
+        unit="DLL",
+        total=len(used_dlls),
+    )
+
     dll_map = []
 
-    for dll_filename, sources in iterItems(used_dlls):
+    for dll_filename, (package_name, sources) in iterItems(used_dlls):
         dll_name = os.path.basename(dll_filename)
 
         target_path = os.path.join(dist_dir, dll_name)
 
-        # Sometimes DLL dependencies were copied there already.
-        if not os.path.exists(target_path):
-            shutil.copyfile(dll_filename, target_path)
+        reportProgressBar(target_path)
 
-        dll_map.append((dll_filename, dll_name))
+        # Sometimes DLL dependencies were copied there already. TODO: That should
+        # actually become disallowed with plugins no longer seeing that folder.
+        if not os.path.exists(target_path):
+            copyDllFile(source_path=dll_filename, dest_path=target_path)
+
+        dll_map.append((dll_filename, package_name, dll_name))
 
         if Options.isShowInclusion():
             inclusion_logger.info(
@@ -1305,42 +1360,54 @@ different from
                 % (dll_filename, ", ".join(sources))
             )
 
+    closeProgressBar()
+
+    return dll_map
+
+
+def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
+    # This is complex, because we also need to handle OS specifics.
+
+    used_dlls = _detectUsedDLLs(
+        source_dir=source_dir,
+        standalone_entry_points=standalone_entry_points,
+        use_cache=not Options.shallNotUseDependsExeCachedResults()
+        and Options.getWindowsDependencyTool() != "depends.exe",
+        update_cache=not Options.shallNotStoreDependsExeCachedResults()
+        and Options.getWindowsDependencyTool() != "depends.exe",
+    )
+
+    duplicate_dlls = _removeDuplicateDlls(used_dlls=used_dlls)
+
+    dll_map = _copyDllsUsed(dist_dir=dist_dir, used_dlls=used_dlls)
+
+    # TODO: This belongs inside _copyDllsUsed
     if Utils.isMacOS():
         # For macOS, the binary and the DLLs needs to be changed to reflect
         # the relative DLL location in the ".dist" folder.
         for standalone_entry_point in standalone_entry_points:
-            fixupBinaryDLLPathsMacOS(
+            _fixupBinaryDLLPathsMacOS(
                 binary_filename=standalone_entry_point.dest_path,
+                package_name=standalone_entry_point.package_name,
                 dll_map=dll_map,
+                duplicate_dlls=duplicate_dlls,
                 original_location=standalone_entry_point.source_path,
             )
 
-        for original_path, dll_filename in dll_map:
-            fixupBinaryDLLPathsMacOS(
+        for original_path, package_name, dll_filename in dll_map:
+            _fixupBinaryDLLPathsMacOS(
                 binary_filename=os.path.join(dist_dir, dll_filename),
+                package_name=package_name,
                 dll_map=dll_map,
+                duplicate_dlls=duplicate_dlls,
                 original_location=original_path,
             )
 
-        # Remove code signature from CPython installed library
-        candidate = os.path.join(
-            dist_dir,
-            "Python",
-        )
-
-        if os.path.exists(candidate):
-            removeMacOSCodeSignature(candidate)
-
     # Remove or update rpath settings.
-    if Utils.getOS() in ("Linux", "Darwin"):
+    if Utils.getOS() == "Linux":
         # For Linux, the "rpath" of libraries may be an issue and must be
         # removed.
-        if Utils.isMacOS():
-            start = 0
-        else:
-            start = 1
-
-        for standalone_entry_point in standalone_entry_points[start:]:
+        for standalone_entry_point in standalone_entry_points[1:]:
             count = relpath(
                 path=standalone_entry_point.dest_path, start=dist_dir
             ).count(os.path.sep)
@@ -1348,17 +1415,24 @@ different from
             rpath = os.path.join("$ORIGIN", *([".."] * count))
             setSharedLibraryRPATH(standalone_entry_point.dest_path, rpath)
 
-        for _original_path, dll_filename in dll_map:
+        for _original_path, _package_name, dll_filename in dll_map:
             setSharedLibraryRPATH(os.path.join(dist_dir, dll_filename), "$ORIGIN")
 
-    if Utils.isWin32Windows():
-        if python_version < 0x300:
-            # For Win32, we might have to remove SXS paths
-            for standalone_entry_point in standalone_entry_points[1:]:
-                removeSxsFromDLL(standalone_entry_point.dest_path)
+    if Utils.isMacOS():
+        setSharedLibraryRPATH(standalone_entry_points[0].dest_path, "$ORIGIN")
 
-            for _original_path, dll_filename in dll_map:
-                removeSxsFromDLL(os.path.join(dist_dir, dll_filename))
+        addMacOSCodeSignature(
+            filenames=[
+                standalone_entry_point.dest_path
+                for standalone_entry_point in standalone_entry_points
+            ]
+            + [
+                os.path.join(dist_dir, dll_filename)
+                for _original_path, _package_name, dll_filename in dll_map
+            ]
+        )
+
+    Plugins.onCopiedDLLs(dist_dir=dist_dir, used_dlls=used_dlls)
 
 
 def _handleDataFile(dist_dir, tracer, included_datafile):

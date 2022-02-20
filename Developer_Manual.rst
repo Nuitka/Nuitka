@@ -69,37 +69,9 @@ well as private conversations or issue tracker.
  Version Numbers
 *****************
 
-For Nuitka we use a defensive version numbering system to indicate that
-it is not yet ready for everything. We have defined milestones and the
-version numbers should express which of these, we consider done.
-
--  So far:
-
-   Before milestone 1, we used ``0.1.x`` version numbers. After reaching
-   it, we used ``0.2.x`` version numbers.
-
-   Before milestone 2 and 3, we used ``0.3.x`` version numbers. After
-   almost reaching 3, and beginning with 4, we use "0.4.x" version
-   numbers. Due to an interface change, ``0.5.x`` version numbers are
-   being used.
-
-   Due to reaching type inference in code generation, even if only
-   starting, the ``0.6.x`` version numbers were started to be used. This
-   stage should allow quick progress in performance for individual
-   releases.
-
--  Future:
-
-   With ``ctypes`` bindings in a usable state it will be ``0.7.x``.
-
--  Final:
-
-   We will then round it up and call it Nuitka ``1.0`` when this works
-   as expected for a bunch of people. The plan is to reach this goal
-   during 2021. This is based on positive assumptions that may not hold
-   up though.
-
-Of course, all of this may be subject to change.
+For Nuitka we use semantic versioning, initially with a leading zero
+still, once we pass release ``0.9``, the scheme will indicate the ``10``
+through using ``1.0``.
 
 ***************
  Current State
@@ -179,13 +151,13 @@ superior for delivering a nice out of the box environment.
  Commit and Code Hygiene
 *************************
 
-In Nuitka we have tools to autoformat code, you can execute them
+In Nuitka we have tools to auto format code, you can execute them
 manually, but it's probably best to execute them at commit time, to make
 sure when we share code, it's already well format, and to avoid noise
 doing cleanups.
 
 The kinds of changes also often cause unnecessary merge conflicts, while
-the autoformat is designed to format code also in a way that it avoids
+the auto format is designed to format code also in a way that it avoids
 merge conflicts in the normal case, e.g. by doing imports one item per
 line.
 
@@ -227,7 +199,7 @@ automatic formatting to code as much as possible. It uses ``black``
 The tool (mostly ``black`` and ``isort``) encodes all formatting rules,
 and makes the decisions for us. The idea being that we can focus on
 actual code and do not have to care as much about other things. It also
-deals with Windows new lines, trailing space, etc. and even sorts pylint
+deals with Windows new lines, trailing space, etc. and even sorts PyLint
 disable statements.
 
 Identifiers
@@ -504,7 +476,7 @@ Special ``doxygen`` Anatomy of ``__doc__``
 
 .. note::
 
-   We are replacing doxygen with sphinx, this is all obsolete
+   We are replacing Doxygen with sphinx, this is all obsolete
 
 -  Immediately after the leading ``"""``, and after 1 space on the same
    line, enter a brief description or title of the class or method. This
@@ -797,7 +769,7 @@ because Nuitka uses a lot of packages and imports between them.
 
 The documentation from the source code for both the Python and the C
 parts are published as `Nuitka API <https://nuitka.net/apidoc>`__ and
-argumently in a relatively bad shape as we started generating those with
+arguably in a relatively bad shape as we started generating those with
 Doxygen only relatively late.
 
 .. code:: bash
@@ -882,7 +854,7 @@ When adding a test suite, for a new version, proceed like this:
    git commit --amend --no-edit .gitignore
 
    # Now cherry-pick all commits of test support, these disable network, audio, GUI, random filenames and more
-   # and are crucial for determistic outputs and non-reliance on outside stuff.
+   # and are crucial for deterministic outputs and non-reliance on outside stuff.
    git log --reverse origin/CPython39 --oneline -- test/support/__init__.py | tail -n +2 | cut -d' ' -f1 | xargs git cherry-pick
 
    git push
@@ -1055,9 +1027,9 @@ processes:
 
    Windows subsystem mode: Disable console for windows builds.
 
--  ``unstriped_mode``
+-  ``unstripped_mode``
 
-   Unstriped mode: Do not remove debug symbols.
+   Unstripped mode: Do not remove debug symbols.
 
 -  ``clang_mode``
 
@@ -2764,7 +2736,7 @@ nature of its input.
 
 Only string objects are spared from the ``str`` built-in wrapper,
 because that would only cause noise in optimization stage. Later
-optization can then find it unnecessary for certain arguments.
+optimization can then find it unnecessary for certain arguments.
 
 Additionally, each ``print`` may have a target, and multiple arguments,
 which we break down as well for dumber code generation. The target is
@@ -3259,7 +3231,7 @@ b``, that means that a and b now "alias". And if you know the value of
 When assigning ``a`` to something new, that won't change ``b`` at all.
 But when an attribute is set, a method called of it, that might impact
 the actual value, referenced by both. We need to understand mutable vs.
-immutable though, as some things are not affectable by aliasing in any
+immutable though, as some things are not affected by aliasing in any
 way.
 
 .. code:: python
@@ -3649,7 +3621,7 @@ That might be collapsed to:
 
 -  The variable ``x`` is an integer of value in ``(1,2)``
 
-Given this, we then should be able to precompute the value of this:
+Given this, we then should be able to pre-compute the value of this:
 
 .. code:: python
 
@@ -4606,7 +4578,7 @@ only experimental code that just ignores the lock, but it likely only
 works on Linux, and I wonder why there is that lock in the first place.
 
 Ignoring the locks cannot be good. But what updates that thread state
-pointer ever without a thread change, and is this what abiflags are
+pointer ever without a thread change, and is this what ABI flags are
 about in this context, are there some that allow us to ignore the locks.
 
 An important bit would be to use a thread state once acquired for as
@@ -4614,13 +4586,6 @@ much as possible, currently exception helpers do not accept it as an
 argument, but that ought to become an option, that way saving and
 restoring an exception will be much faster, not to mention checking and
 dropping non interesting, or rewriting exceptions.
-
-Onefile compression on Windows
-==============================
-
-We need to add compression on that platform too. This should use zstd
-and probably just needs integration into our build. The Python side
-already is capable of producing compressed payload.
 
 Caching of Python level compilation
 ===================================

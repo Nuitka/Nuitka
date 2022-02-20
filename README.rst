@@ -64,7 +64,10 @@ Requirements
 
 -  Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10
 
-   .. admonition:: For Python 3.3/3.4 and *only* those, we need other Python version as a *compile time* dependency.
+   .. important::
+
+      For Python 3.3/3.4 and *only* those, we need other Python version
+      as a *compile time* dependency.
 
       Nuitka itself is fully compatible with all listed versions, but
       Scons as an internally used tool is not.
@@ -78,9 +81,14 @@ Requirements
       ``clcache`` does not work with it, there a Python 3.5 or higher
       needs to be installed.
 
-      Nuitka finds these needed Python versions (on Windows via
+      Nuitka finds these needed Python versions (e.g. on Windows via
       registry) and you shouldn't notice it as long as they are
       installed.
+
+      Increasingly, other functionality is available when another Python
+      has a certain package installed. For example, onefile compression
+      will work for a Python 2.x when another Python is found that has
+      the ``zstandard`` package installed.
 
    .. admonition:: Moving binaries to other machines
 
@@ -227,12 +235,13 @@ Setup
 Install Python
 --------------
 
--  Download and install from https://www.python.org/downloads/windows
+-  Download and install Python from
+   https://www.python.org/downloads/windows
 
 -  Select one of ``Windows x86-64 web-based installer`` (64 bits Python,
    recommended) or ``x86 executable`` (32 bits Python) installer.
 
--  Verify using command ``python --version``.
+-  Verify it's working using command ``python --version``.
 
 Install Nuitka
 --------------
@@ -247,7 +256,7 @@ Write some code and test
 Create a folder for the Python code
 -----------------------------------
 
--  mkdir HelloWorld
+-  ``mkdir`` HelloWorld
 
 -  make a python file named **hello.py**
 
@@ -471,10 +480,10 @@ that.
    output for the details of these and check the section "Good Looks".
 
 Again, on Windows, for the temporary file directory, by default the user
-one is used, however this is overridable with a path specification given
-in ``--windows-onefile-tempdir-spec=%TEMP%\\onefile_%PID%_%TIME%`` which
-is the default and asserts that the temporary directories created cannot
-collide.
+one is used, however this can be overridden with a path specification
+given in ``--windows-onefile-tempdir-spec=%TEMP%\\onefile_%PID%_%TIME%``
+which is the default and asserts that the temporary directories created
+cannot collide.
 
 Currently these expanded tokens are available:
 
@@ -661,9 +670,9 @@ from it. There are several options you can explore here:
 Ask Nuitka to use less memory
 -----------------------------
 
-There is a dedicated option ``--low-memory`` which influces decisions of
-Nuitka, such that it avoids high usage of memory during compilation at
-the cost of increased compile time.
+There is a dedicated option ``--low-memory`` which influences decisions
+of Nuitka, such that it avoids high usage of memory during compilation
+at the cost of increased compile time.
 
 Avoid 32 bit C compiler/assembler memory limits
 -----------------------------------------------
@@ -715,15 +724,58 @@ Dynamic ``sys.path``
 ====================
 
 If your script modifies ``sys.path`` to e.g. insert directories with
-source code relative to it, Nuitka will currently not be able to see
-those. However, if you set the ``PYTHONPATH`` to the resulting value,
-you will be able to compile it.
+source code relative to it, Nuitka will not be able to see those.
+However, if you set the ``PYTHONPATH`` to the resulting value, it will
+be able to compile it and find the used modules from these paths as
+well.
+
+Manual Python File Loading
+--------------------------
+
+A very frequent pattern with private code is that it scans plugin
+directories of some kind, and uses ``os.listdir``, checks filenames, and
+then opens a file and does ``exec`` on them. This approach is working
+for Python code, but for compiled code, you should use this much cleaner
+approach, that works for pure Python code and is a lot less vulnerable.
+
+.. code:: python
+
+   # Using a package name, to locate the plugins, but this can actually
+   # be also a directory.
+   scan_path = scan_package.__path__
+
+   for item in pkgutil.iter_modules(scan_path):
+      # You may want to do it recursively, but we don't do this here in
+      # this example.
+      if item.ispkg:
+         continue
+
+      # The loader object knows how to do it.
+      module_loader = item.module_finder.find_module(item.name)
+
+      # Ignore bytecode only left overs. Deleted files can cause
+      # these things, so we just ignore it. Not every load has a
+      # filename, so we need to catch that error.
+      try:
+         if module_loader.get_filename().endswith(".pyc"):
+            continue
+      except AttributeError:
+         # Not a bytecode loader, but e.g. extension module, which is OK in case
+         # it was compiled with Nuitka.
+         pass
+
+      plugin_module = module_loader.load_module(item.name)
+
+      # At least for Python2, this is not set properly, but we use it for package
+      # data loading, so this manual patching up allows these to use proper methods
+      # for loading their stuff as well.
+      plugin_module.__package__ = scan_package.__name__
 
 Missing data files in standalone
 ================================
 
 If your program fails to file data, it can cause all kinds of different
-behaviours, e.g. a package might complain it is not the right version,
+behaviors, e.g. a package might complain it is not the right version,
 because a ``VERSION`` file check defaulted to unknown. The absence of
 icon files or help texts, may raise strange errors.
 
@@ -757,7 +809,7 @@ Nuitka will have to learn effective caching to deal with this in the
 future. Right now, you will have to deal with huge compilation times for
 these.
 
-For now, a major weapon in fighting dependency creap should be applied,
+For now, a major weapon in fighting dependency creep should be applied,
 namely the ``anti-bloat`` plugin, which offers interesting abilities,
 that can be put to use and block unneeded imports, giving an error for
 where they occur. Use it e.g. like this ``--enable-plugin=anti-bloat
@@ -821,8 +873,8 @@ The comments must be a start of line, and indentation is to be used, to
 end a conditional block, much like in Python. There are currently no
 other keywords than the used ones demonstrated above.
 
-You can put abitrary Python expressions there, and if you wanted to e.g.
-access a version information of a package, you could simply use
+You can put arbitrary Python expressions there, and if you wanted to
+e.g. access a version information of a package, you could simply use
 ``__import__("module_name").__version__`` if that would be required to
 e.g. enable or disable certain Nuitka settings. The only thing Nuitka
 does that makes this not Python expressions, is expanding ``{variable}``
@@ -873,7 +925,7 @@ hang.
 Nuitka will pick up ``ccache`` if it's in found in system ``PATH``, and
 it will also be possible to provide if by setting
 ``NUITKA_CCACHE_BINARY`` to the full path of the binary, this is for use
-in CI systems.
+in CI systems where things might be non-standard.
 
 For the MSVC compilers and ClangCL setups, using the ``clcache`` is
 automatic and included in Nuitka.
@@ -955,15 +1007,15 @@ it, e.g. adding more resources, and then preventing operations randomly
 due to holding locks. Make sure to exclude your compilation stage from
 these services.
 
-Windows standalone program redistribuation
-==========================================
+Windows standalone program redistribution
+=========================================
 
 Whether compiling with MingW or MSVC, the standalone programs have
 external dependencies to Visual C Runtime libraries. Nuitka tries to
 ship those dependent DLLs by copying them from your system.
 
 Beginning with Microsoft Windows 10, Microsoft ships ``ucrt.dll``
-(Universal C Runtime libraries) which rehook calls to
+(Universal C Runtime libraries) which handles calls to
 ``api-ms-crt-*.dll``.
 
 With earlier Windows platforms (and wine/ReactOS), you should consider
@@ -1020,7 +1072,7 @@ pystone results
 
 The results are the top value from this kind of output, running pystone
 1000 times and taking the minimal value. The idea is that the fastest
-run is most meanigful, and eliminates usage spikes.
+run is most meaningful, and eliminates usage spikes.
 
 .. code:: bash
 
@@ -1588,5 +1640,3 @@ readable to human, but easily used to generate PDF or HTML documents.
 
 You will find the current version at:
 https://nuitka.net/doc/user-manual.html
-
-And the current PDF under: https://nuitka.net/doc/README.pdf

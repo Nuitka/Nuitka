@@ -128,7 +128,7 @@ def getModuleNameAndKindFromFilename(module_filename):
                 module_name = ModuleName(
                     os.path.basename(module_filename)[: -len(suffix)]
                 )
-                module_kind = "shlib"
+                module_kind = "extension"
 
                 break
         else:
@@ -213,7 +213,7 @@ def findModule(module_name, parent_package, level):
         method used.
     """
     # We have many branches here, because there are a lot of cases to try.
-    # pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     assert type(module_name) is ModuleName, module_name
 
@@ -226,8 +226,6 @@ def findModule(module_name, parent_package, level):
     # Do not allow star imports to get here. We just won't find modules with
     # that name, but it would be wasteful.
     assert module_name != "*"
-
-    tried_names = []
 
     if level > 1:
         # TODO: Should give a warning and return not found if the levels
@@ -245,7 +243,6 @@ def findModule(module_name, parent_package, level):
             full_name = ModuleName(parent_package)
 
         full_name = normalizePackageName(full_name)
-        tried_names.append(full_name)
 
         preloaded_path = getPreloadedPackagePath(module_name)
 
@@ -272,9 +269,8 @@ def findModule(module_name, parent_package, level):
 
             return full_name.getPackageName(), module_filename, "relative"
 
-    if level <= 1 and module_name != "":
+    if level < 1 and module_name != "":
         module_name = normalizePackageName(module_name)
-        tried_names.append(module_name)
 
         package_name = module_name.getPackageName()
 

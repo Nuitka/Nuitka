@@ -327,7 +327,7 @@ static PyObject *_getImportingSuffixesByPriority(int kind) {
 }
 #endif
 
-static PyObject *getExtensionModuleSuffixesByPriority() {
+static PyObject *getExtensionModuleSuffixesByPriority(void) {
     static PyObject *result = NULL;
 
     if (result == NULL) {
@@ -451,12 +451,12 @@ static bool scanModuleInPackagePath(PyObject *module_name, char const *parent_mo
 }
 
 #ifdef _WIN32
-static PyObject *callIntoShlibModule(char const *full_name, const wchar_t *filename);
+static PyObject *callIntoExtensionModule(char const *full_name, const wchar_t *filename);
 #else
-static PyObject *callIntoShlibModule(char const *full_name, const char *filename);
+static PyObject *callIntoExtensionModule(char const *full_name, const char *filename);
 #endif
 
-static PyObject *callIntoInstalledShlibModule(PyObject *module_name, PyObject *extension_module_filename) {
+static PyObject *callIntoInstalledExtensionModule(PyObject *module_name, PyObject *extension_module_filename) {
 #if _WIN32
     // We can rely on unicode object to be there in case of Windows, to have an easier time to
     // create the string needed.
@@ -471,7 +471,7 @@ static PyObject *callIntoInstalledShlibModule(PyObject *module_name, PyObject *e
     char const *extension_module_filename_str = Nuitka_String_AsString(extension_module_filename);
 #endif
 
-    return callIntoShlibModule(Nuitka_String_AsString(module_name), extension_module_filename_str);
+    return callIntoExtensionModule(Nuitka_String_AsString(module_name), extension_module_filename_str);
 }
 
 #endif
@@ -608,9 +608,9 @@ static PyObject *createModuleSpec(PyObject *module_name, bool is_package);
 #endif
 
 #ifdef _WIN32
-static PyObject *callIntoShlibModule(char const *full_name, const wchar_t *filename) {
+static PyObject *callIntoExtensionModule(char const *full_name, const wchar_t *filename) {
 #else
-static PyObject *callIntoShlibModule(char const *full_name, const char *filename) {
+static PyObject *callIntoExtensionModule(char const *full_name, const char *filename) {
 #endif
     // Determine the package name and basename of the module to load.
     char const *dot = strrchr(full_name, '.');
@@ -914,7 +914,7 @@ static char **_bytecode_data = NULL;
 static PyObject *loadModule(PyObject *module, PyObject *module_name,
                             struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
 #ifdef _NUITKA_STANDALONE
-    if ((entry->flags & NUITKA_SHLIB_FLAG) != 0) {
+    if ((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) != 0) {
         // Append the the entry name from full path module name with dots,
         // and translate these into directory separators.
 #ifdef _WIN32
@@ -945,7 +945,7 @@ static PyObject *loadModule(PyObject *module, PyObject *module_name,
         PyObject_SetAttrString((PyObject *)spec_value, "origin", LOOKUP_ATTRIBUTE(module, const_str_plain___file__));
 #endif
 
-        callIntoShlibModule(entry->name, filename);
+        callIntoExtensionModule(entry->name, filename);
 
         Py_DECREF(module);
     } else
@@ -965,7 +965,7 @@ static PyObject *loadModule(PyObject *module, PyObject *module_name,
 
         return loadModuleFromCodeObject(module, code_object, entry->name, (entry->flags & NUITKA_PACKAGE_FLAG) != 0);
     } else {
-        assert((entry->flags & NUITKA_SHLIB_FLAG) == 0);
+        assert((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) == 0);
         assert(entry->python_initfunc);
 
         bool res = Nuitka_SetModule(module_name, module);
@@ -1112,7 +1112,7 @@ static PyObject *_path_unfreezer_load_module(PyObject *self, PyObject *args, PyO
 
         if (extension_module_filename != NULL) {
             // TODO: Should we not set __file__ for the module here, but there is no object.
-            return callIntoInstalledShlibModule(module_name, extension_module_filename);
+            return callIntoInstalledExtensionModule(module_name, extension_module_filename);
         }
     }
 #endif
@@ -1217,7 +1217,7 @@ static PyObject *_path_unfreezer_iter_modules(struct Nuitka_LoaderObject *self, 
 
 #if PYTHON_VERSION >= 0x300
 // Used in module template too, therefore exported.
-PyObject *getImportLibBootstrapModule() {
+PyObject *getImportLibBootstrapModule(void) {
     static PyObject *importlib = NULL;
     if (importlib == NULL) {
         importlib = PyImport_ImportModule("importlib._bootstrap");
@@ -1415,7 +1415,7 @@ static PyObject *_path_unfreezer_exec_module(PyObject *self, PyObject *args, PyO
                 CLEAR_ERROR_OCCURRED();
             }
 
-            return callIntoInstalledShlibModule(module_name, extension_module_filename);
+            return callIntoInstalledExtensionModule(module_name, extension_module_filename);
         }
     }
 #endif
@@ -1668,7 +1668,7 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
     _bytecode_data = (char **)bytecode_data;
 
     if (isVerbose()) {
-        PySys_WriteStderr("Setup nuitka compiled module/bytecode/shlib importer.\n");
+        PySys_WriteStderr("Setup nuitka compiled module/bytecode/extension importer.\n");
     }
 
 #ifdef _NUITKA_MODULE
@@ -1730,12 +1730,6 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 // This is called for the technical module imported early on during interpreter
 // into, to still get compatible "__file__" attributes.
 void setEarlyFrozenModulesFileAttribute(void) {
-#if PYTHON_VERSION >= 0x300
-    // Make sure the importlib fully bootstraps before doing this.
-    PyObject *importlib_module = getImportLibBootstrapModule();
-    CHECK_OBJECT(importlib_module);
-#endif
-
     PyObject *sys_modules = PyImport_GetModuleDict();
     Py_ssize_t ppos = 0;
     PyObject *key, *value;

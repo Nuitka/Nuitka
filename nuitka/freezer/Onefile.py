@@ -20,45 +20,45 @@
 """
 
 import os
-import shutil
-import struct
 import subprocess
 import sys
-from contextlib import contextmanager
 
 from nuitka import Options, OutputDirectories
 from nuitka.build import SconsInterface
-from nuitka.Options import assumeYesForDownloads, getIconPaths
+from nuitka.Options import (
+    assumeYesForDownloads,
+    getAppImageCompression,
+    getIconPaths,
+)
 from nuitka.OutputDirectories import getResultBasepath, getResultFullpath
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import (
     executePostProcessingResources,
     version_resources,
 )
-from nuitka.Progress import (
-    closeProgressBar,
-    reportProgressBar,
-    setupProgressBar,
-)
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import onefile_logger, postprocessing_logger
 from nuitka.utils.Download import getCachedDownload
-from nuitka.utils.Execution import getNullInput, withEnvironmentVarsOverriden
+from nuitka.utils.Execution import getNullInput, withEnvironmentVarsOverridden
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
+    areSamePaths,
+    copyFile,
     deleteFile,
     getFileContents,
-    getFileList,
     openTextFile,
     putTextFileContents,
     removeDirectory,
 )
+from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.SharedLibraries import locateDLL
+from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.Utils import (
     getArchitecture,
     getOS,
     hasOnefileSupportedOS,
     isLinux,
+    isMacOS,
     isWin32Windows,
 )
 
@@ -103,7 +103,7 @@ def _getAppImageToolPath(for_operation, assume_yes_for_downloads):
         is_arch_specific=getArchitecture(),
         binary=appimagetool_url.rsplit("/", 1)[1],
         flatten=True,
-        specifity=appimagetool_url.rsplit("/", 2)[1],
+        specificity=appimagetool_url.rsplit("/", 2)[1],
         message="""\
 Nuitka will make use of AppImage (https://appimage.org/) tool
 to combine Nuitka dist folder to onefile binary.""",
@@ -147,7 +147,7 @@ exec -a $ARGV0 $APPDIR/%s \"$@\""""
     assert icon_paths
     extension = os.path.splitext(icon_paths[0])[1].lower()
 
-    shutil.copyfile(icon_paths[0], getResultBasepath() + extension)
+    copyFile(icon_paths[0], getResultBasepath() + extension)
 
     putTextFileContents(
         getResultBasepath() + ".desktop",
@@ -174,22 +174,26 @@ Categories=Utility;"""
     stdout_file = openTextFile(stdout_filename, "wb")
     stderr_file = openTextFile(stderr_filename, "wb")
 
+    command = (
+        _getAppImageToolPath(
+            for_operation=True, assume_yes_for_downloads=assumeYesForDownloads()
+        ),
+        dist_dir,
+        "--comp",
+        getAppImageCompression(),
+        "-n",
+        onefile_output_filename,
+    )
+
+    stderr_file.write(b"Executed %r\n" % " ".join(command))
+
     # Starting the process while locked, so file handles are not duplicated, we
     # need fine grained control over process here, therefore we cannot use the
     # Execution.executeProcess() function without making it too complex and not
     # all Python versions allow using with, pylint: disable=consider-using-with
     # pylint: disable
     appimagetool_process = subprocess.Popen(
-        (
-            _getAppImageToolPath(
-                for_operation=True, assume_yes_for_downloads=assumeYesForDownloads()
-            ),
-            dist_dir,
-            "--comp",
-            "xz",
-            "-n",
-            onefile_output_filename,
-        ),
+        command,
         shell=False,
         stdin=getNullInput(),
         stdout=stdout_file,
@@ -285,7 +289,7 @@ def _runOnefileScons(quiet, onefile_compression):
         onefile_env_values["ONEFILE_PRODUCT"] = version_resources["ProductName"]
         onefile_env_values["ONEFILE_VERSION"] = effective_version
 
-    with withEnvironmentVarsOverriden(onefile_env_values):
+    with withEnvironmentVarsOverridden(onefile_env_values):
         result = SconsInterface.runScons(
             options=options, quiet=quiet, scons_filename="Onefile.scons"
         )
@@ -303,41 +307,81 @@ def _runOnefileScons(quiet, onefile_compression):
         onefile_logger.info("Keeping onefile build directory %r." % source_dir)
 
 
-def _pickCompressor():
-    try:
-        from zstandard import ZstdCompressor  # pylint: disable=I0021,import-error
-    except ImportError:
+def getCompressorPython():
+    zstandard_supported_pythons = ("3.5", "3.6", "3.7", "3.8", "3.9", "3.10")
+
+    compressor_python = findInstalledPython(
+        python_versions=zstandard_supported_pythons,
+        module_name="zstandard",
+        module_version="0.15",
+    )
+
+    if compressor_python is None:
         if python_version < 0x350:
-            onefile_logger.info(
-                "Onefile compression is not supported before Python 3.5 at this time."
-            )
-        else:
             onefile_logger.warning(
                 "Onefile mode cannot compress without 'zstandard' module installed."
             )
+        else:
+            onefile_logger.warning(
+                "Onefile mode cannot compress without 'zstandard' module installed on any Python >= 3.5."
+            )
+
+    return compressor_python
+
+
+def runOnefileCompressor(
+    compressor_python, dist_dir, onefile_output_filename, start_binary
+):
+    if compressor_python is None:
+        from nuitka.tools.onefile_compressor.OnefileCompressor import (
+            attachOnefilePayload,
+        )
+
+        attachOnefilePayload(
+            dist_dir=dist_dir,
+            onefile_output_filename=onefile_output_filename,
+            start_binary=start_binary,
+            expect_compression=False,
+        )
+    elif areSamePaths(compressor_python.getPythonExe(), sys.executable):
+        from nuitka.tools.onefile_compressor.OnefileCompressor import (
+            attachOnefilePayload,
+        )
+
+        attachOnefilePayload(
+            dist_dir=dist_dir,
+            onefile_output_filename=onefile_output_filename,
+            start_binary=start_binary,
+            expect_compression=True,
+        )
     else:
-        cctx = ZstdCompressor(level=22)
+        onefile_compressor_path = os.path.normpath(
+            os.path.join(os.path.dirname(__file__), "..", "tools", "onefile_compressor")
+        )
 
-        @contextmanager
-        def useCompressedFile(output_file):
-            with cctx.stream_writer(output_file, closefd=False) as compressed_file:
-                yield compressed_file
+        mapping = {
+            "NUITKA_PACKAGE_HOME": os.path.dirname(
+                os.path.abspath(sys.modules["nuitka"].__path__[0])
+            )
+        }
 
-        onefile_logger.info("Using compression for onefile payload.")
+        mapping["NUITKA_PROGRESS_BAR"] = "1" if Options.shallUseProgressBar() else "0"
 
-        return b"Y", useCompressedFile
-
-    # By default use the same file handle that does not compress.
-    @contextmanager
-    def useSameFile(output_file):
-        yield output_file
-
-    return b"X", useSameFile
+        with withEnvironmentVarsOverridden(mapping):
+            subprocess.check_call(
+                [
+                    compressor_python.getPythonExe(),
+                    onefile_compressor_path,
+                    dist_dir,
+                    onefile_output_filename,
+                    start_binary,
+                    str(onefile_compressor_path is not None),
+                ],
+                shell=False,
+            )
 
 
 def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
-    # Dealing with details, pylint: disable=too-many-locals
-
     postprocessing_logger.info(
         "Creating single file from dist folder, this may take a while."
     )
@@ -345,100 +389,28 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
     onefile_logger.info("Running bootstrap binary compilation via Scons.")
 
     # Now need to append to payload it, potentially compressing it.
-    compression_indicator, compressor = _pickCompressor()
+    compressor_python = getCompressorPython()
 
     # First need to create the bootstrap binary for unpacking.
     _runOnefileScons(
         quiet=not Options.isShowScons(),
-        onefile_compression=compression_indicator == b"Y",
+        onefile_compression=compressor_python is not None,
     )
 
     if isWin32Windows():
         executePostProcessingResources(manifest=None, onefile=True)
 
-    with open(onefile_output_filename, "ab") as output_file:
-        # Seeking to end of file seems necessary on Python2 at least, maybe it's
-        # just that tell reports wrong value initially.
-        output_file.seek(0, 2)
-        start_pos = output_file.tell()
-        output_file.write(b"KA" + compression_indicator)
+    Plugins.onBootstrapBinary(onefile_output_filename)
 
-        # Move the binary to start immediately to the start position
-        start_binary = getResultFullpath(onefile=False)
-        file_list = getFileList(dist_dir, normalize=False)
-        file_list.remove(start_binary)
-        file_list.insert(0, start_binary)
+    if isMacOS():
+        addMacOSCodeSignature(filenames=[onefile_output_filename])
 
-        if isWin32Windows():
-            filename_encoding = "utf-16le"
-        else:
-            filename_encoding = "utf8"
-
-        payload_size = 0
-
-        setupProgressBar(
-            stage="Onefile Payload",
-            unit="module",
-            total=len(file_list),
-        )
-
-        with compressor(output_file) as compressed_file:
-
-            # TODO: Use progress bar here.
-            for filename_full in file_list:
-                filename_relative = os.path.relpath(filename_full, dist_dir)
-
-                reportProgressBar(
-                    item=filename_relative,
-                    update=False,
-                )
-
-                filename_encoded = (filename_relative + "\0").encode(filename_encoding)
-
-                compressed_file.write(filename_encoded)
-                payload_size += len(filename_encoded)
-
-                with open(filename_full, "rb") as input_file:
-                    input_file.seek(0, 2)
-                    input_size = input_file.tell()
-                    input_file.seek(0, 0)
-
-                    compressed_file.write(struct.pack("Q", input_size))
-                    shutil.copyfileobj(input_file, compressed_file)
-
-                    payload_size += input_size + 8
-
-                reportProgressBar(
-                    item=filename_relative,
-                    update=True,
-                )
-
-            # Using empty filename as a terminator.
-            filename_encoded = "\0".encode(filename_encoding)
-            compressed_file.write(filename_encoded)
-            payload_size += len(filename_encoded)
-
-            compressed_size = compressed_file.tell()
-
-        if compression_indicator == b"Y":
-            onefile_logger.info(
-                "Onefile payload compression ratio (%.2f%%) size %d to %d."
-                % (
-                    (float(compressed_size) / payload_size) * 100,
-                    payload_size,
-                    compressed_size,
-                )
-            )
-
-        # add padding to have the start position at a double world boundary
-        # this is needed on windows so that a possible certificate immediately
-        # follows the start position
-        pad = output_file.tell() % 8
-        if pad != 0:
-            output_file.write(bytes(8 - pad))
-        output_file.write(struct.pack("Q", start_pos))
-
-    closeProgressBar()
+    runOnefileCompressor(
+        compressor_python=compressor_python,
+        dist_dir=dist_dir,
+        onefile_output_filename=onefile_output_filename,
+        start_binary=getResultFullpath(onefile=False),
+    )
 
 
 def checkOnefileReadiness(assume_yes_for_downloads):

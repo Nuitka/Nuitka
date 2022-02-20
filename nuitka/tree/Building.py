@@ -68,6 +68,7 @@ from nuitka.freezer.Standalone import detectEarlyImports
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
+from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
 from nuitka.nodes.AttributeNodes import (
     StatementAssignmentAttribute,
@@ -107,8 +108,8 @@ from nuitka.nodes.ModuleAttributeNodes import (
 from nuitka.nodes.ModuleNodes import (
     CompiledPythonModule,
     CompiledPythonPackage,
+    PythonExtensionModule,
     PythonMainModule,
-    PythonShlibModule,
     makeUncompiledPythonModule,
 )
 from nuitka.nodes.NodeMakingHelpers import (
@@ -956,6 +957,16 @@ required to compiled."""
         )
         result = "compiled"
 
+    # Include all of standard library as bytecode, for now. We need to identify
+    # which ones really need that.
+    if not is_top:
+        module_filename = Importing.locateModule(
+            module_name=module_name, parent_package=None, level=0
+        )[1]
+
+        if module_filename is not None and isStandardLibraryPath(module_filename):
+            result = "bytecode"
+
     # Plugins need to win over PGO, as they might know it better
     if result is None and not for_pgo:
         result = decideCompilationFromPGO(module_name=module_name)
@@ -967,22 +978,65 @@ required to compiled."""
     return result
 
 
+def _loadUncompiledModuleFromCache(module_name, is_package, source_code, source_ref):
+    result = makeUncompiledPythonModule(
+        module_name=module_name,
+        filename=source_ref.getFilename(),
+        bytecode=demoteSourceCodeToBytecode(
+            module_name=module_name,
+            source_code=source_code,
+            filename=source_ref.getFilename(),
+        ),
+        user_provided=False,
+        technical=False,
+        is_package=is_package,
+    )
+
+    used_modules = OrderedSet()
+
+    for used_module_name, line_number in getCachedImportedModulesNames(
+        module_name=module_name, source_code=source_code
+    ):
+        _module_name, module_filename, finding = Importing.locateModule(
+            module_name=used_module_name,
+            parent_package=None,
+            level=0,
+        )
+
+        assert _module_name == used_module_name
+
+        used_modules.add(
+            (
+                used_module_name,
+                module_filename,
+                finding,
+                0,
+                source_ref.atLineNumber(line_number),
+            )
+        )
+
+    # assert not is_package, (module_name, used_modules, result, result.getCompileTimeFilename())
+
+    result.setUsedModules(used_modules)
+
+    return result
+
+
 def _createModule(
     module_name,
     source_code,
     source_ref,
-    is_shlib,
+    is_extension,
     is_namespace,
     is_package,
     is_top,
     is_main,
     main_added,
 ):
-    # Many details due to the caching done here.
-    # pylint: disable=too-many-locals
-
-    if is_shlib:
-        result = PythonShlibModule(module_name=module_name, source_ref=source_ref)
+    if is_extension:
+        result = PythonExtensionModule(
+            module_name=module_name, technical=False, source_ref=source_ref
+        )
     elif is_main:
         result = PythonMainModule(
             main_added=main_added,
@@ -1005,39 +1059,15 @@ def _createModule(
         if (
             mode == "bytecode"
             and not is_top
+            and not Options.shallDisableBytecodeCacheUsage()
             and hasCachedImportedModulesNames(module_name, source_code)
         ):
-
-            optimization_logger.info(
-                "'%s' is included as bytecode." % (module_name.asString())
-            )
-            result = makeUncompiledPythonModule(
+            result = _loadUncompiledModuleFromCache(
                 module_name=module_name,
-                filename=source_ref.getFilename(),
-                bytecode=demoteSourceCodeToBytecode(
-                    module_name=module_name,
-                    source_code=source_code,
-                    filename=source_ref.getFilename(),
-                ),
-                user_provided=False,
-                technical=False,
                 is_package=is_package,
+                source_code=source_code,
+                source_ref=source_ref,
             )
-
-            used_modules = OrderedSet()
-
-            for used_module_name in getCachedImportedModulesNames(
-                module_name=module_name, source_code=source_code
-            ):
-                (_module_name, module_filename, _finding,) = Importing.locateModule(
-                    module_name=used_module_name,
-                    parent_package=None,
-                    level=0,
-                )
-
-                used_modules.add((used_module_name, os.path.relpath(module_filename)))
-
-            result.setUsedModules(used_modules)
 
             # Not used anymore
             source_code = None
@@ -1109,12 +1139,12 @@ def buildMainModuleTree(filename, is_main):
         source_code=None,
         is_top=True,
         is_main=is_main,
-        is_shlib=False,
+        is_extension=False,
         is_fake=False,
         hide_syntax_error=False,
     )
 
-    if Options.isStandaloneMode() and is_main:
+    if is_main and Options.isStandaloneMode():
         module.setEarlyModules(detectEarlyImports())
 
     # Main modules do not get added to the import cache, but plugins get to see it.
@@ -1195,7 +1225,7 @@ def buildModule(
     source_code,
     is_top,
     is_main,
-    is_shlib,
+    is_extension,
     is_fake,
     hide_syntax_error,
 ):
@@ -1226,7 +1256,7 @@ def buildModule(
 
     # Read source code if necessary. Might give a SyntaxError due to not being proper
     # encoded source.
-    if source_filename is not None and not is_namespace and not is_shlib:
+    if source_filename is not None and not is_namespace and not is_extension:
         try:
             # For fake modules, source is provided directly.
             if source_code is None:
@@ -1285,7 +1315,7 @@ def buildModule(
         source_ref=source_ref,
         is_top=is_top,
         is_main=is_main,
-        is_shlib=is_shlib,
+        is_extension=is_extension,
         is_namespace=is_namespace,
         is_package=is_package,
         main_added=main_added,

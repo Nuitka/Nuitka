@@ -222,7 +222,7 @@ def checkWindowsCompilerFound(
 
             if decision:
                 scons_logger.info(
-                    "Mismatch between Python binary (%r -> %r) and C compiler (%r -> %r) arches, ignored!"
+                    "Mismatch between Python binary (%r -> %r) and C compiler (%r -> %r) arches, that compiler is ignored!"
                     % (
                         os.environ["NUITKA_PYTHON_EXE_PATH"],
                         linker_arch,
@@ -353,7 +353,7 @@ def addConstantBlobFile(env, resource_desc, source_dir, target_arch):
 
 INCBIN(constant_bin, "%(constants_bin_filename)s");
 
-unsigned char const *getConstantsBlobData() {
+unsigned char const *getConstantsBlobData(void) {
     return constant_bin_data;
 }
 """
@@ -496,8 +496,16 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
             env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
     # Support for macOS standalone backporting.
-    if isMacOS() and env.macos_minversion:
-        setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_minversion)
+    if isMacOS():
+        setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_min_version)
+
+        target_flag = "--target=%s-apple-macos%s" % (
+            env.macos_target_arch,
+            env.macos_min_version,
+        )
+
+        env.Append(CCFLAGS=[target_flag])
+        env.Append(LINKFLAGS=[target_flag])
 
     # The 32 bits MinGW does not default for API level properly, so help it.
     if env.mingw_mode:

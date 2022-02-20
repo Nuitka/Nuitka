@@ -435,7 +435,7 @@ def pickCodeHelper(
     nonhelpers,
     source_ref,
 ):
-    # Lots of details to deal with, # pylint: disable=too-many-locals
+    # Lots of details to deal with, pylint: disable=too-many-locals
 
     left_part = left_shape.helper_code
     right_part = right_shape.helper_code

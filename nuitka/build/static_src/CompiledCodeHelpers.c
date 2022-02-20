@@ -29,7 +29,7 @@
 
 #include "HelpersBuiltinTypeMethods.c"
 
-void _initBuiltinTypeMethods() {
+static void _initBuiltinTypeMethods(void) {
 #if PYTHON_VERSION < 0x300
     _initStrBuiltinMethods();
 #endif
@@ -945,7 +945,7 @@ void PRINT_TRACEBACK(PyTracebackObject *traceback) {
 }
 #endif
 
-PyObject *GET_STDOUT() {
+PyObject *GET_STDOUT(void) {
     PyObject *result = Nuitka_SysGetObject("stdout");
 
     if (unlikely(result == NULL)) {
@@ -956,7 +956,7 @@ PyObject *GET_STDOUT() {
     return result;
 }
 
-PyObject *GET_STDERR() {
+PyObject *GET_STDERR(void) {
     PyObject *result = Nuitka_SysGetObject("stderr");
 
     if (unlikely(result == NULL)) {
@@ -1158,117 +1158,6 @@ extern "C"
 
 #ifdef __FreeBSD__
 #include <floatingpoint.h>
-#endif
-
-#if !defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
-PyObject *original_isinstance = NULL;
-
-// Note: Installed and used by "InspectPatcher" as "instance" too.
-int Nuitka_IsInstance(PyObject *inst, PyObject *cls) {
-    CHECK_OBJECT(original_isinstance);
-    CHECK_OBJECT(inst);
-    CHECK_OBJECT(cls);
-
-    // Quick paths
-    if (Py_TYPE(inst) == (PyTypeObject *)cls) {
-        return true;
-    }
-
-    // Our paths for the types we need to hook.
-    if (cls == (PyObject *)&PyFunction_Type && Nuitka_Function_Check(inst)) {
-        return true;
-    }
-
-    if (cls == (PyObject *)&PyGen_Type && Nuitka_Generator_Check(inst)) {
-        return true;
-    }
-
-    if (cls == (PyObject *)&PyMethod_Type && Nuitka_Method_Check(inst)) {
-        return true;
-    }
-
-    if (cls == (PyObject *)&PyFrame_Type && Nuitka_Frame_Check(inst)) {
-        return true;
-    }
-
-#if PYTHON_VERSION >= 0x350
-    if (cls == (PyObject *)&PyCoro_Type && Nuitka_Coroutine_Check(inst)) {
-        return true;
-    }
-#endif
-
-#if PYTHON_VERSION >= 0x360
-    if (cls == (PyObject *)&PyAsyncGen_Type && Nuitka_Asyncgen_Check(inst)) {
-        return true;
-    }
-#endif
-
-    // May need to be recursive for tuple arguments.
-    if (PyTuple_Check(cls)) {
-        for (Py_ssize_t i = 0, size = PyTuple_GET_SIZE(cls); i < size; i++) {
-            PyObject *element = PyTuple_GET_ITEM(cls, i);
-
-            if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
-                return -1;
-            }
-
-            int res = Nuitka_IsInstance(inst, element);
-
-            Py_LeaveRecursiveCall();
-
-            if (res != 0) {
-                return res;
-            }
-        }
-
-        return 0;
-    } else {
-        PyObject *args[] = {inst, cls};
-        PyObject *result = CALL_FUNCTION_WITH_ARGS2(original_isinstance, args);
-
-        if (result == NULL) {
-            return -1;
-        }
-
-        int res = CHECK_IF_TRUE(result);
-        Py_DECREF(result);
-
-        if (res == 0) {
-            if (cls == (PyObject *)&PyFunction_Type) {
-                args[1] = (PyObject *)&Nuitka_Function_Type;
-            } else if (cls == (PyObject *)&PyMethod_Type) {
-                args[1] = (PyObject *)&Nuitka_Method_Type;
-            } else if (cls == (PyObject *)&PyFrame_Type) {
-                args[1] = (PyObject *)&Nuitka_Frame_Type;
-            }
-#if PYTHON_VERSION >= 0x350
-            else if (cls == (PyObject *)&PyCoro_Type) {
-                args[1] = (PyObject *)&Nuitka_Coroutine_Type;
-            }
-#endif
-#if PYTHON_VERSION >= 0x360
-            else if (cls == (PyObject *)&PyAsyncGen_Type) {
-                args[1] = (PyObject *)&Nuitka_Asyncgen_Type;
-            }
-#endif
-            else {
-                return 0;
-            }
-
-            result = CALL_FUNCTION_WITH_ARGS2(original_isinstance, args);
-
-            if (result == NULL) {
-                return -1;
-            }
-
-            res = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-        }
-
-        return res;
-    }
-}
-
 #endif
 
 #define ITERATOR_GENERIC 0
@@ -1641,7 +1530,7 @@ PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
 #if defined(_NUITKA_EXE)
 
 #ifndef _WIN32
-char const *getBinaryDirectoryHostEncoded() {
+char const *getBinaryDirectoryHostEncoded(void) {
     static char binary_directory[MAXPATHLEN + 1];
     static bool init_done = false;
 
@@ -1717,7 +1606,7 @@ static void stripFilenameW(wchar_t *path) {
 }
 #endif
 
-wchar_t const *getBinaryDirectoryWideChars() {
+wchar_t const *getBinaryDirectoryWideChars(void) {
     static wchar_t binary_directory[MAXPATHLEN + 1];
     static bool init_done = false;
 
@@ -1757,7 +1646,7 @@ wchar_t const *getBinaryDirectoryWideChars() {
 }
 
 #if defined(_WIN32) && PYTHON_VERSION < 0x300
-char const *getBinaryDirectoryHostEncoded() {
+char const *getBinaryDirectoryHostEncoded(void) {
     static char *binary_directory = NULL;
 
     if (binary_directory != NULL) {
@@ -1782,7 +1671,7 @@ char const *getBinaryDirectoryHostEncoded() {
 }
 #endif
 
-static PyObject *getBinaryDirectoryObject() {
+static PyObject *getBinaryDirectoryObject(void) {
     static PyObject *binary_directory = NULL;
 
     if (binary_directory != NULL) {
@@ -1829,7 +1718,7 @@ PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
 
 #if defined(_WIN32)
 /* Small helper function to get current DLL handle. */
-static HMODULE getDllModuleHandle() {
+static HMODULE getDllModuleHandle(void) {
     static HMODULE hm = NULL;
 
     if (hm == NULL) {
@@ -1863,7 +1752,7 @@ static void stripFilenameA(char *path) {
 }
 #endif
 
-static char const *getDllDirectory() {
+static char const *getDllDirectory(void) {
 #if defined(_WIN32)
     static char path[MAXPATHLEN + 1];
     path[0] = '\0';
@@ -1896,9 +1785,9 @@ static char const *getDllDirectory() {
 }
 #endif
 
-static void _initDeepCopy();
+static void _initDeepCopy(void);
 
-void _initBuiltinModule() {
+void _initBuiltinModule(void) {
     _initBuiltinTypeMethods();
     _initDeepCopy();
 
@@ -1983,7 +1872,7 @@ NUITKA_DEFINE_BUILTIN(long)
 NUITKA_DEFINE_BUILTIN(range);
 #endif
 
-void _initBuiltinOriginalValues() {
+void _initBuiltinOriginalValues(void) {
     NUITKA_ASSIGN_BUILTIN(type);
     NUITKA_ASSIGN_BUILTIN(len);
     NUITKA_ASSIGN_BUILTIN(range);
@@ -2007,7 +1896,7 @@ volatile int _Py_Ticker = _Py_CheckInterval;
 #if PYTHON_VERSION >= 0x270
 iternextfunc default_iternext;
 
-void _initSlotIternext() {
+void _initSlotIternext(void) {
     PyObject *pos_args = PyTuple_New(1);
     PyTuple_SET_ITEM(pos_args, 0, (PyObject *)&PyBaseObject_Type);
     Py_INCREF(&PyBaseObject_Type);

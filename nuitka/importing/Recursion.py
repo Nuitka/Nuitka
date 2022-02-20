@@ -33,7 +33,7 @@ from nuitka.Tracing import recursion_logger
 from nuitka.utils.FileOperations import listDir
 from nuitka.utils.ModuleNames import ModuleName
 
-from .Importing import getModuleNameAndKindFromFilename
+from .Importing import getModuleNameAndKindFromFilename, locateModule
 
 
 def _recurseTo(module_name, module_filename, module_kind):
@@ -45,7 +45,7 @@ def _recurseTo(module_name, module_filename, module_kind):
         source_code=None,
         is_top=False,
         is_main=False,
-        is_shlib=module_kind == "shlib",
+        is_extension=module_kind == "extension",
         is_fake=False,
         hide_syntax_error=True,
     )
@@ -100,14 +100,14 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
     if plugin_decision is not None:
         return plugin_decision
 
-    if module_kind == "shlib":
+    if module_kind == "extension":
         if Options.isStandaloneMode():
             return True, "Extension module needed for standalone mode."
         else:
             return False, "Extension module cannot be inspected."
 
     # PGO decisions are not overruling plugins, but all command line options, they are
-    # supposed to be applied alrealdy.
+    # supposed to be applied already.
     is_stdlib = StandardLibrary.isStandardLibraryPath(module_filename)
 
     if not is_stdlib or Options.shallFollowStandardLibrary():
@@ -144,18 +144,21 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
     if Options.shallFollowNoImports():
         return (False, "Instructed by user to not follow at all.")
 
-    if is_stdlib:
-        return (
-            Options.shallFollowStandardLibrary(),
-            "Instructed by user to %sfollow to standard library."
-            % ("" if Options.shallFollowStandardLibrary() else "not "),
-        )
+    if is_stdlib and Options.shallFollowStandardLibrary():
+        return (True, "Instructed by user to follow to standard library.")
 
     if Options.shallFollowAllImports():
-        return (
-            True,
-            "Instructed by user to follow to all non-standard library modules.",
-        )
+        if is_stdlib:
+            if StandardLibrary.isStandardLibraryNoAutoInclusionModule(module_name):
+                return (
+                    True,
+                    "Instructed by user to follow all modules, including non-automatic standard library modules.",
+                )
+        else:
+            return (
+                True,
+                "Instructed by user to follow to all non-standard library modules.",
+            )
 
     # Means, we were not given instructions how to handle things.
     if extra_recursion:
@@ -214,6 +217,12 @@ def checkPluginSinglePath(plugin_filename, module_package):
     )
 
     module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
+
+    if module_kind == "extension" and not Options.isStandaloneMode():
+        recursion_logger.warning(
+            "Cannot include '%s' unless using at least standalone mode."
+            % module_name.asString()
+        )
 
     if module_kind is not None:
         decision, reason = decideRecursion(
@@ -283,7 +292,7 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
                 elif module.isCompiledPythonModule():
                     ModuleRegistry.addRootModule(module)
-                elif module.isPythonShlibModule():
+                elif module.isPythonExtensionModule():
                     if Options.isStandaloneMode():
                         ModuleRegistry.addRootModule(module)
 
@@ -341,6 +350,42 @@ def checkPluginFilenamePattern(pattern):
         recursion_logger.warning("Didn't match any files against pattern %r." % pattern)
 
 
+def _addParentPackageUsages(using_module, module_name, signal_change, source_ref):
+    for parent_package_name in module_name.getParentPackageNames():
+        _parent_package_name, parent_package_filename, _finding = locateModule(
+            module_name=parent_package_name, parent_package=None, level=0
+        )
+
+        assert parent_package_filename is not None, parent_package_name
+        assert _parent_package_name == parent_package_name
+
+        _parent_package_name, package_module_kind = getModuleNameAndKindFromFilename(
+            parent_package_filename
+        )
+
+        _decision, reason = decideRecursion(
+            module_filename=parent_package_filename,
+            module_name=parent_package_name,
+            module_kind=package_module_kind,
+        )
+
+        used_package_module = recurseTo(
+            signal_change=signal_change,
+            module_name=parent_package_name,
+            module_filename=parent_package_filename,
+            module_kind=package_module_kind,
+            reason=reason,
+        )
+
+        addUsedModule(
+            module=used_package_module,
+            using_module=using_module,
+            usage_tag="package",
+            reason=reason,
+            source_ref=source_ref,
+        )
+
+
 def considerUsedModules(module, signal_change):
     for (
         used_module_name,
@@ -372,6 +417,13 @@ def considerUsedModules(module, signal_change):
             )
 
             if decision:
+                _addParentPackageUsages(
+                    using_module=module,
+                    module_name=used_module_name,
+                    signal_change=signal_change,
+                    source_ref=source_ref,
+                )
+
                 used_module = recurseTo(
                     signal_change=signal_change,
                     module_name=used_module_name,
@@ -389,8 +441,8 @@ def considerUsedModules(module, signal_change):
                 )
         except NuitkaForbiddenImportEncounter as e:
             recursion_logger.sysexit(
-                "Error, forbidden import of '%s' in module '%s' encountered."
-                % (e, module.getFullName().asString())
+                "Error, forbidden import of '%s' in module '%s' at '%s' encountered."
+                % (e, module.getFullName().asString(), source_ref.getAsString())
             )
 
     Plugins.considerImplicitImports(module=module, signal_change=signal_change)

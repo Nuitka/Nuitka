@@ -54,7 +54,7 @@ def readPGOInputFile(input_filename):
     with open(input_filename, "rb") as input_file:
         header = input_file.read(7)
 
-        if header != "KAY.PGO":
+        if header != b"KAY.PGO":
             pgo_logger.sysexit(
                 "Error, file '%s' is not a valid PGO input for this version of Nuitka."
                 % input_filename
@@ -63,7 +63,7 @@ def readPGOInputFile(input_filename):
         input_file.seek(-7, os.SEEK_END)
         header = input_file.read(7)
 
-        if header != "YAK.PGO":
+        if header != b"YAK.PGO":
             pgo_logger.sysexit(
                 "Error, file '%s' was not completed correctly." % input_filename
             )
@@ -122,7 +122,7 @@ def decideInclusionFromPGO(module_name, module_kind):
 
     # At this time, we do not yet detect the loading of extension modules,
     # but of course we could and should do that.
-    if module_kind == "shlib":
+    if module_kind == "extension":
         return None
 
     if module_name in _module_entries:

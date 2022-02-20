@@ -29,8 +29,8 @@ extern bool PRINT_FORMAT(char const *fmt, ...);
 extern bool PRINT_ITEM_TO(PyObject *file, PyObject *object);
 extern bool PRINT_NEW_LINE_TO(PyObject *file);
 
-extern PyObject *GET_STDOUT();
-extern PyObject *GET_STDERR();
+extern PyObject *GET_STDOUT(void);
+extern PyObject *GET_STDERR(void);
 
 // -----------------------------------------------------------------------
 // Helper functions to debug the run time operation of the compiled binary

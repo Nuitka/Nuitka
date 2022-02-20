@@ -17,9 +17,16 @@
 #
 def displayDict(d):
     result = "{"
+    first = True
     for key, value in sorted(d.items()):
-        result += "%s: %s" % (key, value)
+        if not first:
+            result += ","
+
+        result += "%s: %s" % (repr(key), repr(value))
+        first = False
     result += "}"
+
+    return result
 
 
 def kwonlysimple(*, a):

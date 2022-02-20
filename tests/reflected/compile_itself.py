@@ -49,7 +49,12 @@ from nuitka.tools.testing.Common import (
     test_logger,
 )
 from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
-from nuitka.utils.FileOperations import copyTree, listDir, removeDirectory
+from nuitka.utils.FileOperations import (
+    copyTree,
+    deleteFile,
+    listDir,
+    removeDirectory,
+)
 from nuitka.utils.Importing import getSharedLibrarySuffix
 
 nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
@@ -200,7 +205,7 @@ def executePASS1():
         os.mkdir(target_dir)
 
         for path, filename in listDir(target_dir):
-            if filename.endswith(".so"):
+            if filename.endswith((".so", ".dylib")):
                 os.unlink(path)
 
         for path, filename in listDir(source_dir):
@@ -218,7 +223,6 @@ def executePASS1():
                     nuitka_main_path,
                     "--module",
                     "--nofollow-imports",
-                    "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % target_dir,
                     "--no-pyi-file",
                     path,
@@ -332,6 +336,7 @@ def compileAndCompareWith(nuitka, pass_number):
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % tmp_dir,
                     "--no-pyi-file",
+                    "--nofollow-imports",
                     path,
                 ]
                 command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
@@ -355,16 +360,19 @@ def compileAndCompareWith(nuitka, pass_number):
 
                 shutil.rmtree(target_dir)
 
-                target_filename = filename.replace(
-                    ".py", getSharedLibrarySuffix(preferred=True)
-                )
+                for preferred in (True, False):
+                    target_filename = filename.replace(
+                        ".py", getSharedLibrarySuffix(preferred=preferred)
+                    )
 
-                os.unlink(os.path.join(tmp_dir, target_filename))
+                    deleteFile(
+                        path=os.path.join(tmp_dir, target_filename), must_exist=False
+                    )
 
 
 def executePASS2():
     test_logger.info(
-        "PASS 2: Compiling from compiler running from entry .exe and many .so files."
+        "PASS 2: Compiling from compiler running from entry '.exe' and many extension files."
     )
 
     # Windows will load the compiled modules (pyd) only from PYTHONPATH, so we
@@ -434,7 +442,9 @@ def executePASS4():
 
 
 def executePASS5():
-    my_print("PASS 5: Compiling the compiler 'nuitka' package to single '.so' file.")
+    my_print(
+        "PASS 5: Compiling the compiler 'nuitka' package to single extension module."
+    )
 
     path = os.path.join("..", "..", "nuitka")
 

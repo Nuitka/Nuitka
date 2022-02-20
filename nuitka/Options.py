@@ -19,7 +19,11 @@
 
 This exposes the choices made by the user. Defaults will be applied here, and
 some handling of defaults.
+
 """
+
+# These are for use in option values.
+# spell-checker: ignore uiaccess,noannotations,nodocstrings,noasserts,nowarnings,norandomization,etherium
 
 import os
 import shlex
@@ -30,6 +34,7 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.OptionParsing import isPyenvPython, parseOptions
 from nuitka.PythonFlavors import (
     isAnacondaPython,
+    isApplePython,
     isDebianPackagePython,
     isMSYS2MingwPython,
     isNuitkaPython,
@@ -43,6 +48,7 @@ from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
     isPathExecutable,
     openTextFile,
+    relpath,
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
@@ -52,6 +58,7 @@ from nuitka.utils.Utils import (
     getOS,
     hasOnefileSupportedOS,
     hasStandaloneSupportedOS,
+    isDebianBasedLinux,
     isFreeBSD,
     isLinux,
     isMacOS,
@@ -67,6 +74,7 @@ is_debug = None
 is_nondebug = None
 is_fullcompat = None
 is_report_missing = None
+is_verbose = None
 
 
 def parseArgs():
@@ -76,7 +84,8 @@ def parseArgs():
     """
     # singleton with many cases checking the options right away.
     # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements
-    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug, is_fullcompat, is_report_missing
+    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug
+    global is_fullcompat, is_report_missing, is_verbose
 
     if os.name == "nt":
         # Windows store Python's don't allow looking at the python, catch that.
@@ -123,6 +132,8 @@ def parseArgs():
 
         options.verbose = True
 
+    is_verbose = options.verbose
+
     Tracing.optimization_logger.is_quiet = not options.verbose
 
     if options.show_inclusion_output:
@@ -139,15 +150,54 @@ def parseArgs():
     if options.is_onefile:
         options.is_standalone = True
 
+    # Standalone implies no_site build
+    if options.is_standalone:
+        options.python_flags.insert(0, "no_site")
+
     # Provide a tempdir spec implies onefile tempdir, even on Linux.
     if options.onefile_tempdir_spec:
         options.is_onefile_tempdir = True
+
+        if os.path.normpath(options.onefile_tempdir_spec) == ".":
+            Tracing.options_logger.sysexit(
+                """\
+Error, using '.' as a value for '--onefile-tempdir-spec' is not supported,
+you cannot unpack the onefile payload into the same directory as the binary,
+as that would overwrite it and cause locking issues as well."""
+            )
+
+        if options.onefile_tempdir_spec.count("%") % 2 != 0:
+            Tracing.options_logger.warning(
+                """Unmatched '%%' is suspicious for '--onefile-tempdir-spec' and may
+not do what you want it to do: '%s'"""
+                % options.onefile_tempdir_spec
+            )
+
+        if options.onefile_tempdir_spec.count("%") == 0:
+            Tracing.options_logger.warning(
+                """Not using any variables for '--onefile-tempdir-spec' should only be
+done if your program absolutely needs to be in the same path always: '%s'"""
+                % options.onefile_tempdir_spec
+            )
+
+        if os.path.isabs(options.onefile_tempdir_spec):
+            Tracing.options_logger.warning(
+                """Using an absolute path should be avoided unless you are targeting a
+very well known environment: '%s'"""
+                % options.onefile_tempdir_spec
+            )
+        elif relpath(options.onefile_tempdir_spec):
+            Tracing.options_logger.warning(
+                """Using an relative path above the executable should be avoided unless you are targeting a
+very well known environment: '%s'"""
+                % options.onefile_tempdir_spec
+            )
 
     # Standalone mode implies an executable, not importing "site" module, which is
     # only for this machine, recursing to all modules, and even including the
     # standard library.
     if options.is_standalone:
-        if not options.executable:
+        if options.module_mode:
             Tracing.options_logger.sysexit(
                 """\
 Error, conflicting options, cannot make standalone module, only executable.
@@ -399,10 +449,16 @@ might be missing required packages. Disable with --static-libpython=no" if you d
 want to install it."""
         )
 
-    if isStandaloneMode() and isMacOS() and sys.executable.startswith("/usr/bin/"):
-        Tracing.options_logger.sysexit(
-            "Error, Apple Python from macOS is not supported, use e.g. CPython instead."
-        )
+    if isApplePython():
+        if isStandaloneMode():
+            Tracing.options_logger.sysexit(
+                "Error, for standalone mode, Apple Python from macOS is not supported, use e.g. CPython instead."
+            )
+
+        if str is bytes:
+            Tracing.options_logger.sysexit(
+                "Error, Apple Python 2.7 from macOS is not usable as per Apple decision, use e.g. CPython 2.7 instead."
+            )
 
     if isStandaloneMode() and isLinux() and getExecutablePath("patchelf") is None:
         Tracing.options_logger.sysexit(
@@ -456,7 +512,7 @@ def commentArgs():
 
     # TODO: Not all of these are usable with MSYS2 really, split those off.
     if getOS() != "Windows":
-        # Too many Windows specific options clearly, pylint: disable=too-many-boolean-expressions
+        # Too many Windows specific options clearly
         if (
             getWindowsIconExecutablePath()
             or shallAskForWindowsAdminRights()
@@ -468,7 +524,6 @@ def commentArgs():
             or getForcedStderrPath()  # not yet for other platforms
             or getForcedStdoutPath()
             or getWindowsSplashScreen()
-            or getIntendedPythonArch()
         ):
             Tracing.options_logger.warning(
                 "Using Windows specific options has no effect on other platforms."
@@ -484,6 +539,15 @@ def commentArgs():
             "Requesting both Windows specific compilers makes no sense."
         )
 
+    if getMsvcVersion() and getMsvcVersion() not in ("list", "latest"):
+        if getMsvcVersion().count(".") != 1 or not all(
+            x.isdigit() for x in getMsvcVersion().split(".")
+        ):
+            Tracing.options_logger.sysexit(
+                "For --msvc only values 'latest', 'info', and 'X.Y' values are allowed, but not %r."
+                % getMsvcVersion()
+            )
+
     if isOnefileMode():
         standalone_mode = "onefile"
     elif isStandaloneMode():
@@ -495,6 +559,14 @@ def commentArgs():
         Tracing.options_logger.warning(
             "Standalone mode on %s is not known to be supported, might fail to work."
             % getOS()
+        )
+
+    if options.follow_all and shallMakeModule():
+        Tracing.optimization_logger.sysexit(
+            """\
+In module mode you must follow modules more selectively, and e.g. should \
+not include standard library or all foreign modules or else it will fail \
+to work. You can selectively add them with '--follow-import-to=name' though."""
         )
 
     if options.follow_all and standalone_mode:
@@ -636,7 +708,7 @@ def getFileReferenceMode():
 
 def shallMakeModule():
     """:returns: bool derived from ``--module``"""
-    return not options.executable
+    return options.module_mode
 
 
 def shallCreatePyiFile():
@@ -771,7 +843,7 @@ def isUnstripped():
 
     A binary is called stripped when debug information is not present, an
     unstripped when it is present. For profiling and debugging it will be
-    necessary, but it doesn*t enable debug checks like ``--debug`` does.
+    necessary, but it doesn't enable debug checks like ``--debug`` does.
 
     Passed to Scons as ``unstripped_mode`` to it can ask the linker to
     include symbol information.
@@ -847,7 +919,8 @@ def _shallUseStaticLibPython():
         )
 
         if (
-            isDebianPackagePython()
+            isDebianBasedLinux()
+            and isDebianPackagePython()
             and isDebianSuitableForStaticLinking()
             and not isPythonDebug()
         ):
@@ -915,6 +988,15 @@ def shallTreatUninstalledPython():
     return isUninstalledPython()
 
 
+def shallCreateCmdFileForExecution():
+    """*bool* = derived from Python installation and modes
+
+    Notes: Most for accerated mode on Windows with uninstalled python, to
+    make sure they find their Python DLL.
+    """
+    return isWin32Windows() and shallTreatUninstalledPython()
+
+
 def isShowScons():
     """:returns: bool derived from ``--show-scons``"""
     return options.show_scons
@@ -964,8 +1046,13 @@ def getMsvcVersion():
 
 
 def shallDisableCCacheUsage():
-    """:returns: bool derived from ``disable-ccache``"""
+    """:returns: bool derived from ``--disable-ccache``"""
     return options.disable_ccache
+
+
+def shallDisableBytecodeCacheUsage():
+    """:returns: bool derived from ``--disable-bytecode-cache``"""
+    return options.disable_bytecode_cache
 
 
 def shallDisableConsoleWindow():
@@ -1001,15 +1088,6 @@ def isShowInclusion():
 def isRemoveBuildDir():
     """:returns: bool derived from ``--remove-output``"""
     return options.remove_build and not options.generate_c_only
-
-
-def getIntendedPythonArch():
-    """:returns: str, one of ``"x86"``, ``"x86_64"`` or ``None``
-
-    Notes: This is only available on Windows, on other platforms
-    it will be `None`
-    """
-    return options.python_arch if isWin32Windows() else None
 
 
 experimental = set()
@@ -1226,9 +1304,19 @@ def getWindowsProductName():
     return options.windows_product_name
 
 
+def getMacOSTargetArch():
+    """:returns: str enum ("universal", "arm64", "x86_64") derived from ``--macos-target-arch`` value"""
+    macos_target_arch = options.macos_target_arch or "native"
+
+    if macos_target_arch == "native":
+        macos_target_arch = getArchitecture()
+
+    return macos_target_arch
+
+
 def shallCreateAppBundle():
     """*bool* shall create an application bundle"""
-    return options.macos_create_bundle
+    return options.macos_create_bundle and isMacOS()
 
 
 def getMacOSAppName():
@@ -1244,6 +1332,10 @@ def getMacOSSignedAppName():
 def getMacOSAppVersion():
     """*str* version of the app to use for bundle"""
     return options.macos_app_version
+
+
+def getAppImageCompression():
+    return options.appimage_compression
 
 
 _python_flags = None
@@ -1263,6 +1355,9 @@ def _getPythonFlags():
             for part in parts.split(","):
                 if part in ("-S", "nosite", "no_site"):
                     _python_flags.add("no_site")
+                elif part in ("site"):
+                    if "no_site" in _python_flags:
+                        _python_flags.remove("no_site")
                 elif part in (
                     "-R",
                     "static_hashes",
@@ -1283,6 +1378,8 @@ def _getPythonFlags():
                     _python_flags.add("no_asserts")
                 elif part in ("no_annotations", "noannotations"):
                     _python_flags.add("no_annotations")
+                elif part in ("unbuffered", "-u"):
+                    _python_flags.add("unbuffered")
                 elif part in ("-m", "package_mode"):
                     _python_flags.add("package_mode")
                 else:
@@ -1331,6 +1428,12 @@ def hasPythonFlagNoRandomization():
     """*bool* = "no_randomization", "-R", "static_hashes" in python flags given"""
 
     return "no_randomization" in _getPythonFlags()
+
+
+def hasPythonFlagUnbuffered():
+    """*bool* = "package_mode", "-m" in python flags given"""
+
+    return "unbuffered" in _getPythonFlags()
 
 
 def hasPythonFlagPackageMode():

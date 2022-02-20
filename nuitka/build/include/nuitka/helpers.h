@@ -297,11 +297,6 @@ extern PyObject *BUILTIN_SUPER0(PyObject *type, PyObject *object);
 // For built-in built-in all() functionality.
 extern PyObject *BUILTIN_ALL(PyObject *value);
 
-#if !defined(_NUITKA_EXPERIMENTAL_FUNCTION_BASE)
-// The patched isinstance() functionality used for the built-in.
-extern int Nuitka_IsInstance(PyObject *inst, PyObject *cls);
-#endif
-
 // For built-in getattr() functionality.
 extern PyObject *BUILTIN_GETATTR(PyObject *object, PyObject *attribute, PyObject *default_value);
 
@@ -373,7 +368,7 @@ extern void checkModuleConstants___main__(void);
 extern void createMainModuleConstants(void);
 #endif
 
-// Unstreaming constants from a blob.
+// Deserialize constants from a blob.
 #include "nuitka/constants_blob.h"
 
 // Performance enhancements to Python types.
@@ -381,9 +376,6 @@ extern void enhancePythonTypes(void);
 
 // Setup meta path based loader if any.
 extern void setupMetaPathBasedLoader(void);
-
-// Replace built-in functions with ones that accept compiled types too.
-extern void patchBuiltinModule(void);
 
 /* Replace inspect functions with ones that handle compiles types too. */
 #if PYTHON_VERSION >= 0x300
@@ -424,11 +416,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME0(PyObject *module) {
 }
 
 // Get the binary directory was wide characters.
-extern wchar_t const *getBinaryDirectoryWideChars();
+extern wchar_t const *getBinaryDirectoryWideChars(void);
 
 #if !defined(_WIN32) || PYTHON_VERSION < 0x300
 // Get the binary directory, translated to native path
-extern char const *getBinaryDirectoryHostEncoded();
+extern char const *getBinaryDirectoryHostEncoded(void);
 #endif
 
 #if _NUITKA_STANDALONE
@@ -441,7 +433,7 @@ extern void setEarlyFrozenModulesFileAttribute(void);
  */
 extern PyObject *MAKE_RELATIVE_PATH(PyObject *relative);
 
-/* For concatenating two elemented path, typically a dirname and a filename.
+/* For concatenating two elements path, typically a dirname and a filename.
 
    We do this in a lot of helper code, and this is shared functionality.
 */
@@ -472,7 +464,7 @@ extern PyObject *DEEP_COPY_SET(PyObject *value);
 extern PyTypeObject *Nuitka_PyUnion_Type;
 
 // Force a garbage collection, for debugging purposes.
-NUITKA_MAY_BE_UNUSED static void forceGC() {
+NUITKA_MAY_BE_UNUSED static void forceGC(void) {
     PyObject_CallObject(PyObject_GetAttrString(PyImport_ImportModule("gc"), "collect"), NULL);
 }
 

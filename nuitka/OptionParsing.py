@@ -34,7 +34,9 @@ from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 from nuitka.PythonFlavors import (
     isAnacondaPython,
     isApplePython,
+    isCPythonOfficialPackage,
     isDebianPackagePython,
+    isHomebrewPython,
     isMSYS2MingwPython,
     isNuitkaPython,
     isPyenvPython,
@@ -72,6 +74,8 @@ def _getPythonFlavor():
         return "WinPython"
     elif isDebianPackagePython():
         return "Debian Python"
+    elif isHomebrewPython():
+        return "Homebrew Python"
     elif isApplePython():
         return "Apple Python"
     elif isPyenvPython():
@@ -80,6 +84,8 @@ def _getPythonFlavor():
         return "MSYS2 Posix"
     elif isMSYS2MingwPython():
         return "MSYS2 MinGW"
+    elif isCPythonOfficialPackage():
+        return "CPython Official"
     else:
         return "Unknown"
 
@@ -96,22 +102,38 @@ def _getVersionInformationValues():
     yield "Arch: %s" % getArchitecture()
 
     if isLinux():
-        yield "Distribution: %s %s" % getLinuxDistribution()
+        yield "Distribution: %s (based on %s) %s" % getLinuxDistribution()
 
     if getOS() == "Windows":
         yield "WindowsRelease: %s" % getWindowsRelease()
 
 
-parser = OptionParser(
+class OurOptionParser(OptionParser):
+    # spell-checker: ignore rargs
+    def _process_long_opt(self, rargs, values):
+        arg = rargs[0]
+
+        if "=" not in arg:
+            opt = self._match_long_opt(arg)
+            option = self._long_opt[opt]
+            if option.takes_value():
+                self.error(
+                    "The '%s' option requires an argument with '%s='." % (opt, opt)
+                )
+
+        return OptionParser._process_long_opt(self, rargs, values)
+
+
+parser = OurOptionParser(
     usage=usage,
     version="\n".join(_getVersionInformationValues()),
 )
 
 parser.add_option(
     "--module",
-    action="store_false",
-    dest="executable",
-    default=True,
+    action="store_true",
+    dest="module_mode",
+    default=False,
     help="""\
 Create an extension module executable instead of a program. Defaults to off.""",
 )
@@ -124,9 +146,8 @@ parser.add_option(
     help="""\
 Enable standalone mode for output. This allows you to transfer the created binary
 to other machines without it using an existing Python installation. This also
-means it will become big. It implies these option: "--follow-imports". You may also
-want to use "--python-flag=no_site" to avoid the "site.py" module, which can save
-a lot of code dependencies. Defaults to off.""",
+means it will become big. It implies these option: "--follow-imports" and
+"--python-flag=no_site". Defaults to off.""",
 )
 
 parser.add_option(
@@ -156,20 +177,6 @@ parser.add_option(
     help=SUPPRESS_HELP,
 )
 
-
-if os.name == "nt":
-    parser.add_option(
-        "--python-arch",
-        action="store",
-        dest="python_arch",
-        choices=("x86", "x86_64"),
-        default=None,
-        help="""\
-Architecture of Python to use. One of "x86" or "x86_64".
-Defaults to what you run Nuitka with (currently "%s")."""
-        % (getArchitecture()),
-    )
-
 parser.add_option(
     "--python-debug",
     action="store_true",
@@ -192,7 +199,7 @@ enforces a specific mode. These are options that also exist to standard
 Python executable. Currently supported: "-S" (alias "no_site"),
 "static_hashes" (do not use hash randomization), "no_warnings" (do not
 give Python runtime warnings), "-O" (alias "no_asserts"), "no_docstrings"
-(do not use docstrings), and "-m".  Default empty.""",
+(do not use docstrings), "-u" (alias "unbuffered") and "-m".  Default empty.""",
 )
 
 parser.add_option(
@@ -494,6 +501,16 @@ parser.add_option_group(dump_group)
 codegen_group = OptionGroup(parser, "Code generation choices")
 
 codegen_group.add_option(
+    "--disable-bytecode-cache",
+    action="store_true",
+    dest="disable_bytecode_cache",
+    default=False,
+    help="""\
+Do not reuse dependency analysis results for modules, esp. from standard library,
+that are included as bytecode.""",
+)
+
+codegen_group.add_option(
     "--full-compat",
     action="store_false",
     dest="improved",
@@ -755,11 +772,11 @@ c_compiler_group.add_option(
     default=None,
     help="""\
 Enforce the use of specific MSVC version on Windows. Allowed values
-are e.g. "14.2" (MSVC 2019), specify an illegal value for a list of
-installed compilers, or use "latest". Notice that only latest
-MSVC is really supported, and you can use "latest" to enforce that.
+are e.g. "14.3" (MSVC 2022) and other MSVC version numbers, specify
+"list" for a list of installed compilers, or use "latest".
 
-Defaults to MSVC on Windows being used if installed, otherwise MinGW64.""",
+Defaults to latest MSVC being used if installed, otherwise MinGW64
+is used.""",
 )
 
 c_compiler_group.add_option(
@@ -1120,6 +1137,7 @@ windows_group.add_option(
 
 windows_group.add_option(
     "--windows-onefile-tempdir-spec",
+    "--onefile-tempdir-spec",
     action="store",
     dest="onefile_tempdir_spec",
     metavar="ONEFILE_TEMPDIR_SPEC",
@@ -1158,12 +1176,16 @@ parser.add_option_group(windows_group)
 macos_group = OptionGroup(parser, "macOS specific controls")
 
 macos_group.add_option(
-    "--macos-onefile-icon",
-    action="append",
-    dest="icon_path",
-    metavar="ICON_PATH",
-    default=[],
-    help="Add executable icon for binary to use. Can be given only one time. Defaults to Python icon if available.",
+    "--macos-target-arch",
+    action="store",
+    dest="macos_target_arch",
+    choices=("universal", "arm64", "x86_64"),
+    metavar="MACOS_TARGET_ARCH",
+    default=None,
+    help="""\
+What architectures is this to supposed to run on. Default and limit
+is what the running Python allows for. Default is "native" which is
+the architecture the Python is run with.""",
 )
 
 macos_group.add_option(
@@ -1186,6 +1208,16 @@ When compiling for macOS, create a bundle rather than a plain binary
 application. Currently experimental and incomplete. Currently this
 is the only way to unlock disabling of console.Defaults to off.""",
 )
+
+macos_group.add_option(
+    "--macos-onefile-icon",
+    action="append",
+    dest="icon_path",
+    metavar="ICON_PATH",
+    default=[],
+    help="Add executable icon for binary to use. Can be given only one time. Defaults to Python icon if available.",
+)
+
 
 macos_group.add_option(
     "--macos-signed-app-name",
@@ -1233,6 +1265,16 @@ linux_group.add_option(
     metavar="ICON_PATH",
     default=[],
     help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to Python icon if available.",
+)
+
+linux_group.add_option(
+    "--linux-onefile-compression",
+    action="store",
+    dest="appimage_compression",
+    choices=("gzip", "xz"),
+    metavar="COMPRESSION",
+    default="gzip",
+    help="Compression method to use for Linux onefile builds. Defaults to gzip for faster decompression",
 )
 
 parser.add_option_group(linux_group)
@@ -1314,8 +1356,11 @@ def _considerPluginOptions(logger):
     # Cyclic dependency on plugins during parsing of command line.
     from nuitka.plugins.Plugins import (
         addPluginCommandLineOptions,
+        addStandardPluginCommandlineOptions,
         addUserPluginCommandLineOptions,
     )
+
+    addStandardPluginCommandlineOptions(parser=parser, data_files_tags=data_files_tags)
 
     for arg in sys.argv[1:]:
         if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
@@ -1364,10 +1409,11 @@ def _expandProjectArg(arg, filename_arg, for_eval):
     if isLinux():
         dist_info = getLinuxDistribution()
     else:
-        dist_info = "N/A", "0"
+        dist_info = "N/A", "N/A", "0"
 
     values["Linux_Distribution_Name"] = dist_info[0]
-    values["Linux_Distribution_Version"] = dist_info[1]
+    values["Linux_Distribution_Base"] = dist_info[1] or dist_info[0]
+    values["Linux_Distribution_Version"] = dist_info[2]
 
     if getOS() == "Windows":
         values["WindowsRelease"] = getWindowsRelease()
