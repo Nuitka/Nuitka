@@ -29,8 +29,12 @@ to "print for_debug" without much hassle (braces).
 from __future__ import print_function
 
 import os
+import struct
 import sys
+import textwrap
 import traceback
+
+from nuitka.utils.Utils import isWin32Windows
 
 # Written by Options module.
 is_quiet = False
@@ -66,7 +70,7 @@ def flushStandardOutputs():
     sys.stderr.flush()
 
 
-def getEnableStyleCode(style):
+def _getEnableStyleCode(style):
     if style == "pink":
         style = "\033[95m"
     elif style == "blue":
@@ -104,8 +108,74 @@ def _enableAnsi():
         _enabled_ansi = True
 
 
-def getDisableStyleCode():
+def _getDisableStyleCode():
     return "\033[0m"
+
+
+def _getIoctlGWINSZ(fd):
+    # On non-Windows, this might work, # spell-checker: ignore GWINSZ,TIOCGWINSZ
+    try:
+        # pylint: disable=I0021,import-error
+        import fcntl
+        import termios
+
+        return struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
+    except BaseException:  # Catch all the things, pylint: disable=broad-except
+        return None
+
+
+def _getTerminalSizeWin32():
+    try:
+        from ctypes import create_string_buffer, windll
+
+        # handles are -10 to -12
+        h = windll.kernel32.GetStdHandle(-12)
+        buffer = create_string_buffer(22)
+
+        res = windll.kernel32.GetConsoleScreenBufferInfo(h, buffer)
+        if res:
+            # TODO: Could also define the C structure
+            (
+                _,
+                _,
+                _,
+                _,
+                _,
+                left,
+                top,
+                right,
+                bottom,
+                _,
+                _,
+            ) = struct.unpack("hhhhHhhhhhh", buffer.raw)
+
+            columns = right - left + 1
+            lines = bottom - top + 1
+
+            return lines, columns
+    except BaseException:  # Catch all the things, pylint: disable=broad-except
+        return None
+
+
+def _getTerminalSize():
+    # For Python2, we get to do it ourselves.
+
+    if str is bytes:
+        if isWin32Windows():
+            columns = _getTerminalSizeWin32()
+        else:
+            # Try all file handles.
+            columns = _getIoctlGWINSZ(0) or _getIoctlGWINSZ(1) or _getIoctlGWINSZ(2)
+
+        if columns:
+            return columns[1]
+
+        try:
+            return int(os.environ.get("COLUMNS", "1000"))
+        except ValueError:
+            return 1000
+    else:
+        return os.get_terminal_size()[0]
 
 
 def _my_print(file_output, is_atty, args, kwargs):
@@ -120,7 +190,7 @@ def _my_print(file_output, is_atty, args, kwargs):
             end = "\n"
 
         if style is not None and is_atty:
-            enable_style = getEnableStyleCode(style)
+            enable_style = _getEnableStyleCode(style)
 
             if enable_style is None:
                 raise ValueError(
@@ -134,7 +204,7 @@ def _my_print(file_output, is_atty, args, kwargs):
         print(*args, end=end, **kwargs)
 
         if style is not None and is_atty:
-            print(getDisableStyleCode(), end="", **kwargs)
+            print(_getDisableStyleCode(), end="", **kwargs)
     else:
         print(*args, **kwargs)
 
@@ -176,12 +246,26 @@ class OurLogger(object):
     def warning(self, message, style="red"):
         if not self.is_no_warnings:
             if self.name:
-                message = "%s:WARNING: %s" % (self.name, message)
+                prefix = "%s:WARNING: " % self.name
             else:
-                message = "WARNING: %s" % message
+                prefix = "WARNING: "
 
             style = style or self.base_style
-            self.my_print(message, style=style, file=sys.stderr)
+
+            if sys.stderr.isatty():
+                width = _getTerminalSize()
+            else:
+                width = 10000
+
+            formatted_message = textwrap.fill(
+                message,
+                width=width,
+                initial_indent=prefix,
+                subsequent_indent=prefix,
+                break_on_hyphens=False,
+                expand_tabs=False,
+            )
+            self.my_print(formatted_message, style=style, file=sys.stderr)
 
     def sysexit(self, message, exit_code=1):
         from nuitka.Progress import closeProgressBar
