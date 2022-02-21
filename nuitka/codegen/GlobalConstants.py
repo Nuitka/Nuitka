@@ -94,7 +94,6 @@ def getConstantDefaultPopulation():
         "level",
         # Meta path based loader.
         "read",
-        "rb",
     ]
 
     # Pickling of instance methods.

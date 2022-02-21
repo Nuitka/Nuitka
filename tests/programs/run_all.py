@@ -22,7 +22,7 @@
 Program tests are typically aiming at checking specific module constellations
 and making sure the details are being right there. These are synthetic small
 programs, each of which try to demonstrate one or more points or special
-behaviour.
+behavior.
 
 """
 
@@ -112,9 +112,9 @@ def main():
 
         extra_flags.append("--follow-imports")
 
-        # Use the original __file__ value, at least one case warns about things
-        # with filename included, but for pkgutil iteration, make sure we do not
-        # see original Python dirs.
+        # Use the original "__file__" value normally, at least one case warns
+        # about things with filename included, but for pkgutil iteration, make
+        # sure we do not see original Python dirs.
         if filename != "pkgutil_itermodules":
             extra_flags.append("--file-reference-choice=original")
         else:

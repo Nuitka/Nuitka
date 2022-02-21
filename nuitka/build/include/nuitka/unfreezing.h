@@ -34,18 +34,29 @@ struct Nuitka_MetaPathBasedLoaderEntry;
 typedef PyObject *(*module_initfunc)(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry);
 
 struct Nuitka_MetaPathBasedLoaderEntry {
-    /* Full module name, including package name. */
+    // Full module name, including package name.
     char const *name;
 
-    /* Entry function if compiled module, otherwise NULL. */
+    // Entry function if compiled module, otherwise NULL.
     module_initfunc python_initfunc;
 
-    /* For bytecode modules, start and size inside the constants blob. */
+    // For bytecode modules, start and size inside the constants blob.
     int bytecode_index;
     int bytecode_size;
 
-    /* Flags: Indicators if this is compiled, bytecode or shared library. */
+    // Flags: Indicators if this is compiled, bytecode or shared library.
     int flags;
+
+    // For accelerated mode, we need to be able to tell where the module "__file__"
+    // lives, so we can resolve resource reader paths, not relative to the binary
+    // but to code location without loading it.
+#if PYTHON_VERSION >= 0x370 && !defined(_NUITKA_STANDALONE)
+#if defined _WIN32
+    wchar_t const *file_path;
+#else
+    char const *file_path;
+#endif
+#endif
 };
 
 /* For embedded modules, register the meta path based loader. Used by main

@@ -271,11 +271,11 @@ def decideFilenameVersionSkip(filename):
     This codifies certain rules that files can have as suffixes or prefixes
     to make them be part of the set of tests executed for a version or not.
 
-    Generally, an ening of "<major><minor>.py" indicates that it must be that
+    Generally, an ending of "<major><minor>.py" indicates that it must be that
     Python version or higher. There is no need for ending in "26.py" as this
     is the minimum version anyway.
 
-    The "_2.py" indicates a maxmimum version of 2.7, i.e. not Python 3.x, for
+    The "_2.py" indicates a maximum version of 2.7, i.e. not Python 3.x, for
     language syntax no more supported.
     """
 
@@ -1207,6 +1207,9 @@ def scanDirectoryForTestCaseFolders(dirname):
     filenames = os.listdir(dirname)
 
     for filename in sorted(filenames):
+        if not decideFilenameVersionSkip(filename + ".py"):
+            continue
+
         filename = os.path.join(dirname, filename)
         filename = os.path.relpath(filename)
 

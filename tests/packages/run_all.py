@@ -24,7 +24,7 @@
 Package tests are typically aiming at checking specific module constellations
 in module mode and making sure the details are being right there. These are
 synthetic small packages, each of which try to demonstrate one or more points
-or special behaviour.
+or special behavior.
 
 """
 

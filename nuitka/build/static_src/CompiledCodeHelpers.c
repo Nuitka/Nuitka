@@ -1505,20 +1505,26 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
 #include <sys/sysctl.h>
 #endif
 
+static PyObject *getPathSeparatorStringObject(void) {
+    static char const sep[2] = {SEP, 0};
+
+    static PyObject *sep_str = NULL;
+
+    if (sep_str == NULL) {
+        sep_str = Nuitka_String_FromString(sep);
+    }
+
+    CHECK_OBJECT(sep_str);
+
+    return sep_str;
+}
+
 PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
     CHECK_OBJECT(dirname);
     CHECK_OBJECT(filename);
 
-    static PyObject *sep_object = NULL;
-
-    if (sep_object == NULL) {
-        static char const sep[2] = {SEP, 0};
-        sep_object = Nuitka_String_FromString(sep);
-    }
-    CHECK_OBJECT(sep_object);
-
     // Avoid string APIs, so str, unicode doesn't matter for input.
-    PyObject *result = PyNumber_Add(dirname, sep_object);
+    PyObject *result = PyNumber_Add(dirname, getPathSeparatorStringObject());
     CHECK_OBJECT(result);
 
     result = PyNumber_InPlaceAdd(result, filename);
@@ -1526,6 +1532,25 @@ PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
 
     return result;
 }
+
+#if defined(_WIN32)
+// Replacement for RemoveFileSpecW, slightly smaller, avoids a link library.
+NUITKA_MAY_BE_UNUSED static void stripFilenameW(wchar_t *path) {
+    wchar_t *last_slash = NULL;
+
+    while (*path != 0) {
+        if (*path == L'\\') {
+            last_slash = path;
+        }
+
+        path++;
+    }
+
+    if (last_slash != NULL) {
+        *last_slash = 0;
+    }
+}
+#endif
 
 #if defined(_NUITKA_EXE)
 
@@ -1587,25 +1612,6 @@ char const *getBinaryDirectoryHostEncoded(void) {
 }
 #endif
 
-#if defined(_WIN32)
-// Replacement for RemoveFileSpecW, slightly smaller.
-static void stripFilenameW(wchar_t *path) {
-    wchar_t *last_slash = NULL;
-
-    while (*path != 0) {
-        if (*path == L'\\') {
-            last_slash = path;
-        }
-
-        path++;
-    }
-
-    if (last_slash != NULL) {
-        *last_slash = 0;
-    }
-}
-#endif
-
 wchar_t const *getBinaryDirectoryWideChars(void) {
     static wchar_t binary_directory[MAXPATHLEN + 1];
     static bool init_done = false;
@@ -1613,7 +1619,7 @@ wchar_t const *getBinaryDirectoryWideChars(void) {
     if (init_done == false) {
         binary_directory[0] = 0;
 
-#ifdef _WIN32
+#if defined(_WIN32)
         DWORD res = GetModuleFileNameW(NULL, binary_directory, sizeof(binary_directory));
         assert(res != 0);
 
@@ -2005,3 +2011,5 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 #if _NUITKA_PGO_PYTHON
 #include "HelpersPythonPgo.c"
 #endif
+
+#include "MetaPathBasedLoader.c"

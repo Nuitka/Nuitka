@@ -31,6 +31,8 @@ The level of compatibility for C compiled stuff is so high that this is not
 needed except for technical reasons.
 """
 
+import sys
+
 from nuitka import Options
 from nuitka.ModuleRegistry import (
     getDoneModules,
@@ -38,8 +40,9 @@ from nuitka.ModuleRegistry import (
     getUncompiledTechnicalModules,
 )
 from nuitka.plugins.Plugins import Plugins
+from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
-from nuitka.utils.CStrings import encodePythonStringToC
+from nuitka.utils.CStrings import encodePythonStringToC, encodePythonUnicodeToC
 
 from .Indentation import indented
 from .templates.CodeTemplatesLoader import (
@@ -56,6 +59,16 @@ def getModuleMetapathLoaderEntryCode(module, bytecode_accessor):
     )
 
     flags = ["NUITKA_TRANSLATED_FLAG"]
+
+    if not Options.isStandaloneMode() and python_version >= 0x370:
+        if Options.isWin32Windows():
+            file_path = encodePythonUnicodeToC(module.getCompileTimeFilename())
+        else:
+            file_path = encodePythonStringToC(
+                module.getCompileTimeFilename().encode(sys.getfilesystemencoding())
+            )
+    else:
+        file_path = "NULL"
 
     if module.isUncompiledPythonModule():
         code_data = module.getByteCode()
@@ -74,14 +87,16 @@ def getModuleMetapathLoaderEntryCode(module, bytecode_accessor):
             "module_name": module_c_name,
             "bytecode": accessor_code[accessor_code.find("[") + 1 : -1],
             "size": len(code_data),
-            "flags": " | ".join(flags) or "0",
+            "flags": " | ".join(flags),
+            "file_path": file_path,
         }
     elif module.isPythonExtensionModule():
         flags.append("NUITKA_EXTENSION_MODULE_FLAG")
 
         return template_metapath_loader_extension_module_entry % {
             "module_name": module_c_name,
-            "flags": " | ".join(flags) or "0",
+            "flags": " | ".join(flags),
+            "file_path": file_path,
         }
     else:
         if module.isCompiledPythonPackage():
@@ -91,6 +106,7 @@ def getModuleMetapathLoaderEntryCode(module, bytecode_accessor):
             "module_name": module_c_name,
             "module_identifier": module.getCodeName(),
             "flags": " | ".join(flags),
+            "file_path": file_path,
         }
 
 

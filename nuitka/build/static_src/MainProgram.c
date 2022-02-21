@@ -307,15 +307,6 @@ static void PRINT_REFCOUNTS(void) {
 }
 #endif
 
-// Small helper to open files with few arguments.
-static PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, PyObject *buffering) {
-#if PYTHON_VERSION < 0x300
-    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), buffering);
-#else
-    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), buffering, NULL, NULL, NULL, NULL, NULL);
-#endif
-}
-
 #if defined(_NUITKA_ONEFILE) && defined(_WIN32)
 
 static long onefile_ppid;

@@ -24,6 +24,8 @@ values.
 import codecs
 import re
 
+from nuitka.__past__ import unicode
+
 
 def _identifierEncode(c):
     """Nuitka handler to encode unicode to ASCII identifiers for C compiler."""
@@ -70,8 +72,22 @@ def _encodePythonStringToC(value):
     return '"%s"' % result
 
 
+def encodePythonUnicodeToC(value):
+    """Encode a string, so that it gives a wide C string literal."""
+    assert type(value) is unicode, type(value)
+
+    result = ""
+
+    for c in value:
+        cv = ord(c)
+
+        result += r"\%o" % cv
+
+    return 'L"%s"' % result
+
+
 def encodePythonStringToC(value):
-    """Encode a string, so that it gives a C string literal."""
+    """Encode bytes, so that it gives a C string literal."""
 
     # Not all compilers allow arbitrary large C strings, therefore split it up
     # into chunks. That changes nothing to the meanings, but is easier on the

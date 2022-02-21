@@ -906,7 +906,6 @@ def discoverSourceFiles():
 
     # Helper codes.
     static_src_filenames.append("InspectPatcher.c")
-    static_src_filenames.append("MetaPathBasedLoader.c")
 
     result += [
         provideStaticSourceFile(

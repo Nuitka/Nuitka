@@ -21,19 +21,38 @@
 
 
 template_metapath_loader_compiled_module_entry = """\
-{%(module_name)s, modulecode_%(module_identifier)s, 0, 0, %(flags)s},"""
+{%(module_name)s, modulecode_%(module_identifier)s, 0, 0, %(flags)s
+#if PYTHON_VERSION >= 0x370 && !defined(_NUITKA_STANDALONE)
+, %(file_path)s
+#endif
+},"""
 
 template_metapath_loader_extension_module_entry = """\
-{%(module_name)s, NULL, 0, 0, %(flags)s},"""
+{%(module_name)s, NULL, 0, 0, %(flags)s
+#if PYTHON_VERSION >= 0x370 && !defined(_NUITKA_STANDALONE)
+, %(file_path)s
+#endif
+},"""
 
 template_metapath_loader_bytecode_module_entry = """\
-{%(module_name)s, NULL, %(bytecode)s, %(size)d, %(flags)s},"""
+{%(module_name)s, NULL, %(bytecode)s, %(size)d, %(flags)s
+#if PYTHON_VERSION >= 0x370 && !defined(_NUITKA_STANDALONE)
+, %(file_path)s
+#endif
+},"""
 
 
 template_metapath_loader_body = r"""
 /* Code to register embedded modules for meta path based loading if any. */
 
 #include <Python.h>
+
+/* Use a hex version of our own to compare for versions. We do not care about pre-releases */
+#if PY_MICRO_VERSION < 16
+#define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + PY_MICRO_VERSION)
+#else
+#define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + 15)
+#endif
 
 #include "nuitka/constants_blob.h"
 
