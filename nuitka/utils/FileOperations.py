@@ -721,6 +721,10 @@ def getWindowsShortPathName(filename):
         if needed == 0:
             # Windows only code, pylint: disable=I0021,undefined-variable
 
+            # Permission denied.
+            if ctypes.GetLastError() == 5:
+                return filename
+
             raise WindowsError(
                 ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
             )
