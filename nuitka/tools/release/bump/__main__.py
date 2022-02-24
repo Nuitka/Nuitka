@@ -60,7 +60,7 @@ def getBumpedVersion(mode, old_version):
 
         parts = old_version.split(".")
 
-        if len(parts) == 3:
+        if len(parts) == 2:
             parts.append("1")
         else:
             parts[-1] = str(int(parts[-1]) + 1)
