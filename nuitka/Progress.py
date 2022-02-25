@@ -165,9 +165,9 @@ def reportProgressBar(item, total=None, update=True):
 
             if update:
                 Tracing.progress.update()
-        except Exception:  # Catch all the things, pylint: disable=broad-except
+        except Exception as e:  # Catch all the things, pylint: disable=broad-except
             # We disable the progress bar now, because it's causing issues.
-            general.warning("Progress bar disabled due to bug")
+            general.warning("Progress bar disabled due to bug: %s" % (str(e)))
             closeProgressBar()
 
 

@@ -53,7 +53,7 @@ Update the pbuilder chroot before building. Default %default.""",
     category = getBranchCategory(branch_name)
 
     if category == "stable":
-        if nuitka_version.count(".") == 2:
+        if nuitka_version.count(".") == 1:
             assert checkChangeLog("New upstream release.")
         else:
             assert checkChangeLog("New upstream hotfix release.")

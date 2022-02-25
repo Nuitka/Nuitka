@@ -578,6 +578,9 @@ def getCompilerArch(mingw_mode, msvc_mode, the_cc_name, compiler_path):
                 _compiler_arch[compiler_path] = "pei-x86-64"
             elif b"x86" in stderr or b"i686" in stdout:
                 _compiler_arch[compiler_path] = "pei-i386"
+            elif b"ARM64" in stderr:
+                # TODO: The ARM64 output for Clang is not known yet.
+                _compiler_arch[compiler_path] = "pei-arm64"
             else:
                 assert False, (stdout, stderr)
         else:
