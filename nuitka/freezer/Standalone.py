@@ -1186,8 +1186,6 @@ def _fixupBinaryDLLPathsMacOS(
     mapping = []
 
     for resolved_filename, rpath_filename in rpath_map.items():
-        resolved_filename = os.path.normpath(resolved_filename)
-
         for (original_path, _package_name, dist_path) in dll_map:
             if resolved_filename == original_path:
                 break

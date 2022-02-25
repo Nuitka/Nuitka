@@ -151,7 +151,12 @@ scipy._lib._testutils:
       def __init__(self, name):
         pass
 
-# TODO: Move required stuff like this to separate file and apply it always.
+scipy.integrate._quadrature:
+  description: "remove useless function copying"
+  change_function:
+    "_copy_func": "'(lambda f: f)'"
+
+
 tensorflow.python.ops.distributions.distribution:
   description: "remove useless function copying"
   change_function:
