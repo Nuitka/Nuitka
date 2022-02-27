@@ -714,9 +714,9 @@ Organisational
 -  Added a small presentation about Nuitka on the Download page, to make
    sure people are aware of core features.
 
--  The ``gi`` plugin is now always on. The copying of the typelib when
-   ``gi`` is imported is harmless and people can disable the plugin if
-   that's not needed.
+-  The ``gi`` plugin is now always on. The copying of the ``typelib``
+   when ``gi`` is imported is harmless and people can disable the plugin
+   if that's not needed.
 
 -  The ``matplotlib`` plugin is new and also always on. It previously
    was part of the ``numpy`` plugin, which is doing too many unrelated
@@ -756,7 +756,7 @@ Organisational
    User Manual.
 
 -  Warnings about imports not done, are now only given when optimization
-   can not remove the usage, and no options relatved to following have
+   can not remove the usage, and no options related to following have
    been given.
 
 -  Added Windows version to ``--version`` output of Nuitka. This is to
@@ -766,7 +766,7 @@ Organisational
 -  In Visual Code, the default Python used is now 3.9 in the "Linux" C
    configuration. This matches Debian Bullseye.
 
--  Nicer outputs from check mode of the autoformat as run for CI
+-  Nicer outputs from check mode of the auto-format as run for CI
    testing, displays problematic files more clearly.
 
 -  Remove broken links to old bug tracker that is no longer online from
@@ -1365,8 +1365,8 @@ Cleanups
 -  The PDF specific annotations were moved into being applied only in
    the PDF building step, avoiding errors for raw PDF directives.
 
--  Apply Visual Code autoformat to our Yaml files. This is unfortunately
-   not and automatic formatting yet.
+-  Apply Visual Code auto-format to our Yaml files. This is
+   unfortunately not and automatic formatting yet.
 
 -  Introduce dedicated ``nuitka.utils.Json`` module, as we intend to
    expand its usage, e.g. for caching.
@@ -1747,7 +1747,7 @@ Cleanups
 
 -  Encoding names for UTF8 in calls to ``.encode()`` were used
    inconsistent with and without dashes in the source code, added
-   cleanup to autoformat that picks the one blessed.
+   cleanup to auto-format that picks the one blessed.
 
 -  Cleanup taking of runtime traces of DLLs used in preparation for
    using it in main code eventually, moving it to a dedicated module.
@@ -1767,7 +1767,7 @@ Cleanups
    than unknown, allowing for many optimizations to still work on them.,
    esp. for immutable value
 
--  Enhanced autoformat for rest documents, bullet list spacing is now
+-  Enhanced auto-format for rest documents, bullet list spacing is now
    consistent and spelling of organisational is unified automatically.
 
 -  Moved icon conversion functionality to separate module, so it can be
@@ -2575,7 +2575,7 @@ Optimization
 -  Plugins: Revamped the ``eventlet`` plugin, include needed DNS modules
    as bytecode rather than as source code, scanning them with
    ``pkgutil`` rather than filesystem, with much cleaner code in the
-   plugin.
+   plugin. The plugin is also now enabled by default.
 
 Organisational
 ==============
@@ -3179,7 +3179,7 @@ Organisational
    only the changed files get checked. This is much faster and allows to
    do it more often before commit.
 
--  Check the versions of isort and black when doing the autoformat to
+-  Check the versions of isort and black when doing the auto-format to
    avoid using outdated versions.
 
 -  Handling missing pylint more gracefully when checking source code
@@ -4669,7 +4669,7 @@ Cleanups
 -  Plugins: To locate module kind, use core Nuitka code that handles
    more cases.
 
--  The test suite runners are also now autoformatted and checked with
+-  The test suite runners are also now auto-formatted and checked with
    PyLint.
 
 -  The Scons file is now PyLint clean too.
@@ -4970,13 +4970,13 @@ Organisational
    remains only used with Python 2.6, making it easier to know the
    relevant code.
 
--  Autoformat was very much enhanced and handles C and ReST files too
+-  Auto-format was very much enhanced and handles C and ReST files too
    now. For Python code it does pylint comment formatting, import
    statement sorting, and blackening.
 
 -  Added script ``misc/install-git-hooks.py`` that adds a commit hook
-   that runs autoformat on commit. Currently it commits unstaged content
-   and therefore is not yet ready for prime time.
+   that runs auto-format on commit. Currently it commits unstaged
+   content and therefore is not yet ready for prime time.
 
 -  Moved adapted CPython test suites to `Github repository under Nuitka
    Organisation <https://github.com/Nuitka/Nuitka-CPython-tests>`__.
@@ -6302,7 +6302,7 @@ Organisational
    replaced by using ``-m nuitka`` with the correct Python version.
    Outputs have been updated to recommend this one instead.
 
--  Make automatic import sorting and autoformat tools properly
+-  Make automatic import sorting and auto-format tools properly
    executable on Windows without them changing new lines.
 
 -  The documentation was updated to prefer the call method with ``-m
@@ -6668,7 +6668,7 @@ Cleanups
 -  Use the ``bool`` enum definition of Python2 which is more elegant
    than ours.
 
--  Move quality tools, autoformat, isort, etc. to the
+-  Move quality tools, auto-format, isort, etc. to the
    ``nuitka.tools.quality`` namespace.
 
 -  Move output comparison tool to the ``nuitka.tools.testing``
@@ -7232,7 +7232,7 @@ Cleanups
 -  We now use symbolic identifiers in all PyLint annotations.
 
 -  The release scripts started to move into ``nuitka.tools.release`` so
-   they get PyLint checks, autoformat and proper code re-use.
+   they get PyLint checks, auto-format and proper code re-use.
 
 -  The use of ``INCREASE_REFCOUNT_X`` was removed, it got replaced with
    proper ``Py_XINCREF`` usages.
@@ -7456,7 +7456,7 @@ Cleanups
 ========
 
 -  Moved the tools to compare CPython output, to sort import statements
-   (isort) to autoformat the source code (Redbaron usage), and to check
+   (isort) to auto-format the source code (Redbaron usage), and to check
    with PyLint to a common new ``nuitka.tools`` package, runnable with
    ``__main__`` modules and dedicated runners in ``bin`` directory.
 
@@ -8938,7 +8938,7 @@ Cleanups
 
 -  Added more assertions to the generated code, to aid bug finding.
 
--  The autoformat now sorts pylint markups for increased consistency.
+-  The auto-format now sorts pylint markups for increased consistency.
 
 -  Releases no longer have a ``tolerant`` flag, this was not needed
    anymore as we use SSA.
@@ -10092,8 +10092,8 @@ Cleanups
 
 -  Massive indentation cleanup of keyword argument calls. We have a rule
    to align the keywords, but as this was done manually, it could easily
-   get out of touch. Now with a "autoformat" tool based on RedBaron,
-   it's correct. Also, spacing around arguments is now automatically
+   get out of touch. Now with a auto-format tool based on RedBaron, it's
+   correct. Also, spacing around arguments is now automatically
    corrected. More to come.
 
 -  For ``exec`` statements, the coping back to local variables is now an
