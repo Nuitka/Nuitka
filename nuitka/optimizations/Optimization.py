@@ -159,6 +159,9 @@ def optimizeUncompiledPythonModule(module):
         )
     )
 
+    # Pick up parent package if any.
+    module.attemptRecursion()
+
     considerUsedModules(module=module, signal_change=signalChange)
 
     Plugins.considerImplicitImports(module=module, signal_change=signalChange)

@@ -135,7 +135,7 @@ class PythonModuleBase(NodeBase):
                 package,
                 using_module=self,
                 usage_tag="package",
-                reason="Containing package",
+                reason="Containing package of '%s'." % self.getFullName(),
                 source_ref=self.source_ref,
             )
 
