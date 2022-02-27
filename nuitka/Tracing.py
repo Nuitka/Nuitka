@@ -175,7 +175,10 @@ def _getTerminalSize():
         except ValueError:
             return 1000
     else:
-        return os.get_terminal_size()[0]
+        try:
+            return os.get_terminal_size()[0]
+        except OSError:
+            return 1000
 
 
 def _my_print(file_output, is_atty, args, kwargs):
