@@ -530,6 +530,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     for include_module in include_modules:
         extra_options.append("--include-module=%s" % include_module)
 
+    # Progress bar is not used.
+    extra_options.append("--no-progressbar")
+
     # Now build the command to run Nuitka.
     if not two_step_execution:
         if module_mode:
