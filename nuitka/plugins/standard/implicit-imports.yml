@@ -82,3 +82,8 @@ PySide2:
 
 PySide6:
   disable_console: recommend
+
+dns.rdtypes:
+  depends:
+    - ".IN.A"
+    - ".CH.A"
