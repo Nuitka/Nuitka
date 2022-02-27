@@ -69,3 +69,16 @@ importlib.metadata:
 shiboken6:
   depends:
     - "argparse"
+
+# For wx, we need to insist on application bundle.
+wx:
+  standalone_macos_bundle_mode: true
+  disable_console: macos
+
+# For PySide2, we need to use even --onefile when application bundle
+PySide2:
+  standalone_macos_bundle_mode: onefile
+  disable_console: recommend
+
+PySide6:
+  disable_console: recommend

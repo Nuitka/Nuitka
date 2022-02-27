@@ -1190,6 +1190,7 @@ the architecture the Python is run with.""",
 
 macos_group.add_option(
     "--macos-disable-console",
+    "--disable-console",
     action="store_true",
     dest="disable_console",
     default=False,
