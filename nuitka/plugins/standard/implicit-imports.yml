@@ -65,3 +65,7 @@ pathlib:
 importlib.metadata:
   depends:
     - "email"
+
+shiboken6:
+  depends:
+    - "argparse"

@@ -611,6 +611,16 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use
         return None
 
+    def getExtraIncludeDirectories(self):
+        """Decide which extra directories to use for C includes in compilation.
+
+        Returns:
+            List of directories or None by default
+        """
+
+        # Virtual method, pylint: disable=no-self-use
+        return None
+
     def getExtraCodeFiles(self):
         """Add extra code files to the compilation.
 

@@ -378,6 +378,10 @@ def setCommonOptions(options):
             for key, value in cpp_defines.items()
         )
 
+    cpp_include_dirs = Plugins.getExtraIncludeDirectories()
+    if cpp_include_dirs:
+        options["cpp_include_dirs"] = ",".join(cpp_include_dirs)
+
     link_dirs = Plugins.getExtraLinkDirectories()
     if link_dirs:
         options["link_dirs"] = ",".join(link_dirs)

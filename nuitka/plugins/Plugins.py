@@ -890,6 +890,30 @@ class Plugins(object):
 
         return cls.preprocessor_symbols
 
+    extra_include_directories = None
+
+    @classmethod
+    def getExtraIncludeDirectories(cls):
+        """Let plugins extra directories to use for C includes in compilation.
+
+        Notes:
+            The plugins can each contribute, but are hopefully not colliding,
+            order will be plugin order.
+
+        Returns:
+            OrderedSet() of paths to include as well.
+        """
+        if cls.extra_include_directories is None:
+            cls.extra_include_directories = OrderedSet()
+
+            for plugin in getActivePlugins():
+                value = plugin.getExtraIncludeDirectories()
+
+                if value:
+                    cls.extra_include_directories.update(value)
+
+        return cls.extra_include_directories
+
     @staticmethod
     def getExtraCodeFiles():
         result = OrderedDict()
