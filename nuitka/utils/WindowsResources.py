@@ -268,7 +268,7 @@ def addResourceToFile(target_filename, data, resource_kind, lang_id, res_name, l
         try:
             _closeFileWindowsResources(update_handle)
         except OSError as e:
-            if e.errno == 110:
+            if e.errno in (110, 13):
                 logger.warning(
                     """
 Failed to add resources to file %r in attempt %d.

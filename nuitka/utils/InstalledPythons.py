@@ -76,7 +76,10 @@ class InstalledPython(object):
             def catch_print(value):
                 output.append(value)
 
-            self._exec(code=test_code, context={"catch_print": catch_print})
+            try:
+                self._exec(code=test_code, context={"catch_print": catch_print})
+            except ImportError:
+                return False
 
             if str is not bytes:
                 output = [line.encode("utf8") for line in output]

@@ -277,6 +277,7 @@ python_sysflag_unbuffered = getArgumentBool("python_sysflag_unbuffered", False)
 
 # Preprocessor defines from plugins
 cpp_defines = getArgumentList("cpp_defines", "")
+cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
 link_dirs = getArgumentList("link_dirs", "")
 link_libraries = getArgumentList("link_libraries", "")
 
@@ -1037,6 +1038,8 @@ if env.gcc_mode:
 
 # Plugin contributed C defines should be used too.
 env.Append(CPPDEFINES=cpp_defines)
+# Plugin contributed C include directories should be used too.
+env.Append(CPPPATH=cpp_include_dirs)
 # Plugin contributed link dirs should be used too.
 env.Append(LIBPATH=link_dirs)
 # Plugin contributed link libraries should be used too.

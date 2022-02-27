@@ -23,6 +23,7 @@ import os
 import shutil
 import struct
 import sys
+import time
 from contextlib import contextmanager
 
 from nuitka.Progress import (
@@ -33,10 +34,12 @@ from nuitka.Progress import (
 )
 from nuitka.Tracing import onefile_logger
 from nuitka.utils.FileOperations import getFileList
-from nuitka.utils.Utils import isWin32Windows
+from nuitka.utils.Utils import isPosixWindows, isWin32Windows
 
 
 def getCompressorFunction(expect_compression):
+    # spell-checker: ignore zstd, closefd
+
     try:
         from zstandard import ZstdCompressor  # pylint: disable=I0021,import-error
     except ImportError:
@@ -50,16 +53,61 @@ def getCompressorFunction(expect_compression):
     else:
         assert expect_compression
 
-        cctx = ZstdCompressor(level=22)
+        compressor_context = ZstdCompressor(level=22)
 
         @contextmanager
         def useCompressedFile(output_file):
-            with cctx.stream_writer(output_file, closefd=False) as compressed_file:
+            with compressor_context.stream_writer(
+                output_file, closefd=False
+            ) as compressed_file:
                 yield compressed_file
 
         onefile_logger.info("Using compression for onefile payload.")
 
         return b"Y", useCompressedFile
+
+
+@contextmanager
+def _openBinaryFileForAppending(onefile_output_filename):
+    max_attempts = 5
+
+    # TODO: This is code duplication with resource handling, should be unified
+    # and with as a context manager.
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            with open(onefile_output_filename, "ab") as output_file:
+                yield output_file
+                return
+        except OSError as e:
+            # Only for Windows at this time, other platforms don't have the issue.
+            if not isWin32Windows() and not isPosixWindows():
+                raise
+
+            if e.errno in (110, 13):
+                onefile_logger.warning(
+                    """
+Failed to open binary for payload attachment in attempt %d.
+Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
+                    % attempt
+                )
+            else:
+                onefile_logger.warning(
+                    """
+Failed to open binary for payload attachment in attempt %d with error code %d.
+Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
+                    % (attempt, e.errno)
+                )
+
+            time.sleep(1)
+            continue
+        else:
+            if attempt != 1:
+                onefile_logger.warning(
+                    "Succeeded to open binary for payload attachment in attempt %d."
+                    % attempt
+                )
+            break
 
 
 def attachOnefilePayload(
@@ -70,7 +118,7 @@ def attachOnefilePayload(
         expect_compression=expect_compression
     )
 
-    with open(onefile_output_filename, "ab") as output_file:
+    with _openBinaryFileForAppending(onefile_output_filename) as output_file:
         # Seeking to end of file seems necessary on Python2 at least, maybe it's
         # just that tell reports wrong value initially.
         output_file.seek(0, 2)
