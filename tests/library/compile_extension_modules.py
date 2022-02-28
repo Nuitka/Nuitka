@@ -127,7 +127,7 @@ def main():
         module_name = ModuleName(module_name)
 
         with openTextFile(filename, "w") as output:
-            plugin_names = set(["pylint-warnings", "anti-bloat"])
+            plugin_names = set(["pylint-warnings"])
             if module_name.hasNamespace("PySide2"):
                 plugin_names.add("pyside2")
             elif module_name.hasNamespace("PySide6"):

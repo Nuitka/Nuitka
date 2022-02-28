@@ -536,7 +536,7 @@ Nuitka.
             # options without value, e.g. enforce using Clang
             '--clang': ("setup.py", None),
             # options with single values, e.g. enable a plugin of Nuitka
-            '--enable-plugin': 'anti-bloat',
+            '--enable-plugin': "pyside2",
             # options with several values, e.g. avoiding including modules
             '--nofollow-import-to' : ["*.tests", "*.distutils"],
          }
@@ -557,7 +557,7 @@ Nuitka.
             # options without value, e.g. enforce using Clang
             '--clang': ("setup.py", None),
             # options with single values, e.g. enable a plugin of Nuitka
-            '--enable-plugin': ("setup.py", 'anti-bloat'),
+            '--enable-plugin': ("setup.py", "pyside2"),
             # options with several values, e.g. avoiding including modules
             '--nofollow-import-to' : ("setup.py", ["*.tests", "*.distutils"]),
          }
@@ -809,14 +809,19 @@ Nuitka will have to learn effective caching to deal with this in the
 future. Right now, you will have to deal with huge compilation times for
 these.
 
-For now, a major weapon in fighting dependency creep should be applied,
-namely the ``anti-bloat`` plugin, which offers interesting abilities,
-that can be put to use and block unneeded imports, giving an error for
-where they occur. Use it e.g. like this ``--enable-plugin=anti-bloat
---noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow``
-and check its help output. It can take for each module of your choice,
-e.g. forcing also that PyQt5 is considered uninstalled for standalone
-mode.
+A major weapon in fighting dependency creep should be applied, namely
+the ``anti-bloat`` plugin, which offers interesting abilities, that can
+be put to use and block unneeded imports, giving an error for where they
+occur. Use it e.g. like this ``--noinclude-pytest-mode=nofollow
+--noinclude-setuptools-mode=nofollow`` and e.g. also
+``--noinclude-custom-mode=setuptools:error`` to get the compiler to
+error out for a specific package. Make sure to check its help output. It
+can take for each module of your choice, e.g. forcing also that e.g.
+``PyQt5`` is considered uninstalled for standalone mode.
+
+It's also driven by a configuration file, ``anti-bloat.yml`` that you
+can contribute to, removing typical bloat from packages. Feel free to
+enhance it and make PRs towards Nuitka with it.
 
 Onefile: Finding files
 ======================
