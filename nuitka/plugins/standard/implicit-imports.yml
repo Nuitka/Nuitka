@@ -66,6 +66,10 @@ importlib.metadata:
   depends:
     - "email"
 
+urllib.request:
+  depends:
+    - "http.client"
+
 shiboken6:
   depends:
     - "argparse"
