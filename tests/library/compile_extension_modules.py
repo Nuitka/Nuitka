@@ -56,7 +56,8 @@ from nuitka.tools.testing.Common import (
     setup,
     test_logger,
 )
-from nuitka.utils.FileOperations import openTextFile
+from nuitka.utils.Execution import NuitkaCalledProcessError
+from nuitka.utils.FileOperations import getFileContents, openTextFile
 from nuitka.utils.ModuleNames import ModuleName
 
 
@@ -144,6 +145,8 @@ def main():
             # Make it an error to find unwanted bloat compiled in.
             output.write("# nuitka-project: --noinclude-default-mode=error\n")
 
+            output.write("# nuitka-project: --standalone\n")
+
             output.write("import " + module_name.asString() + "\n")
             output.write("print('OK.')")
 
@@ -154,6 +157,11 @@ def main():
         if checkSucceedsWithCPython(filename):
             try:
                 output = check_output(command).splitlines()
+            except NuitkaCalledProcessError as e:
+                my_print("SCRIPT:", filename, style="blue")
+                my_print(getFileContents(filename))
+
+                test_logger.sysexit("Error with compilation: %s" % e)
             except Exception:  # only trying to check for no exception, pylint: disable=try-except-raise
                 raise
             else:
