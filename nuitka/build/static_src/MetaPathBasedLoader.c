@@ -481,6 +481,18 @@ static PyObject *callIntoInstalledExtensionModule(PyObject *module_name, PyObjec
 
 #endif
 
+static char const *getEntryModeString(struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
+    char const *mode = "compiled";
+
+    if ((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) != 0) {
+        mode = "extension";
+    } else if ((entry->flags & NUITKA_BYTECODE_FLAG) != 0) {
+        mode = "bytecode";
+    }
+
+    return mode;
+}
+
 static char *_kwlist[] = {(char *)"fullname", (char *)"unused", NULL};
 
 static PyObject *_path_unfreezer_find_module(PyObject *self, PyObject *args, PyObject *kwds) {
@@ -503,7 +515,7 @@ static PyObject *_path_unfreezer_find_module(PyObject *self, PyObject *args, PyO
 
     if (entry) {
         if (isVerbose()) {
-            PySys_WriteStderr("import %s # claimed responsibility (compiled)\n", name);
+            PySys_WriteStderr("import %s # claimed responsibility (%s)\n", name, getEntryModeString(entry));
         }
 
         PyObject *metapath_based_loader = (PyObject *)&Nuitka_Loader_Type;
@@ -722,11 +734,19 @@ static PyObject *callIntoExtensionModule(char const *full_name, const char *file
     // Finally call into the DLL.
     PGO_onModuleEntered(full_name);
 
+    if (isVerbose()) {
+        PySys_WriteStderr("import %s # calling entrypoint\n", full_name);
+    }
+
 #if PYTHON_VERSION < 0x300
     (*entrypoint)();
 #else
     PyObject *module = (*entrypoint)();
 #endif
+
+    if (isVerbose()) {
+        PySys_WriteStderr("import %s # return from entrypoint\n", full_name);
+    }
 
     _Py_PackageContext = old_context;
 
@@ -749,6 +769,10 @@ static PyObject *callIntoExtensionModule(char const *full_name, const char *file
     PyModuleDef *def;
 
     if (Py_TYPE(module) == &PyModuleDef_Type) {
+        if (isVerbose()) {
+            PySys_WriteStderr("import %s # entrypoint returned module def\n", full_name);
+        }
+
         def = (PyModuleDef *)module;
 
         PyObject *full_name_obj = Nuitka_String_FromString(full_name);
@@ -1331,8 +1355,8 @@ static PyObject *_path_unfreezer_find_spec(PyObject *self, PyObject *args, PyObj
 
             if (result != NULL) {
                 if (isVerbose()) {
-                    PySys_WriteStderr("import %s # claimed responsibility (contained in compiled package %s)\n",
-                                      full_name, entry->name);
+                    PySys_WriteStderr("import %s # claimed responsibility (%s, contained in compiled package %s)\n",
+                                      full_name, getEntryModeString(entry), entry->name);
                 }
 
                 return result;
@@ -1358,7 +1382,7 @@ static PyObject *_path_unfreezer_find_spec(PyObject *self, PyObject *args, PyObj
 
     if (isVerbose()) {
         PySys_WriteStderr("import %s # claimed responsibility (%s)\n", Nuitka_String_AsString(module_name),
-                          (entry->flags & NUITKA_BYTECODE_FLAG) != 0 ? "bytecode" : "compiled");
+                          getEntryModeString(entry));
     }
 
     return createModuleSpec(module_name, (entry->flags & NUITKA_PACKAGE_FLAG) != 0);
@@ -1447,7 +1471,7 @@ static PyObject *_path_unfreezer_get_resource_reader(PyObject *self, PyObject *a
 
     if (entry) {
         if (isVerbose()) {
-            PySys_WriteStderr("import %s # claimed responsibility (compiled)\n", name);
+            PySys_WriteStderr("import %s # get_resource_reader (%s)\n", name, getEntryModeString(entry));
         }
 
         return Nuitka_ResourceReader_New(entry);
