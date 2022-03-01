@@ -124,6 +124,7 @@ if sys.version_info < (3, 6) or sdist_mode:
 if sys.version_info >= (3, 6) or sdist_mode:
     addInlineCopy("jinja2")
 
+addInlineCopy("pkg_resources")
 
 # Scons really only, with historic naming and positioning. Needs to match the
 # "scons.py" in bin with respect to versions selection.
