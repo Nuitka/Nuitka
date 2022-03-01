@@ -1402,11 +1402,19 @@ static PyObject *_path_unfreezer_create_module(PyObject *self, PyObject *args, P
 
     PyObject *module_name = PyObject_GetAttr(spec, const_str_plain_name);
 
+    if (unlikely(module_name == NULL)) {
+        return NULL;
+    }
+
     if (isVerbose()) {
         PySys_WriteStderr("import %s # created module\n", Nuitka_String_AsString(module_name));
     }
-    // TODO: Should we clean it up here?
-    return PyModule_NewObject(module_name);
+
+    PyObject *result = PyModule_NewObject(module_name);
+
+    Py_DECREF(module_name);
+
+    return result;
 }
 
 static char const *_kwlist_exec_module[] = {"module", NULL};
