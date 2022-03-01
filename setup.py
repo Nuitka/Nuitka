@@ -33,7 +33,7 @@ sys.path.insert(0, os.path.abspath(os.getcwd()))
 
 import re
 
-from setuptools import setup
+from setuptools import Distribution, setup
 from setuptools.command import easy_install
 
 # TODO: We need a better solution for this, probably error exit, once sys.exit
@@ -261,6 +261,14 @@ else:
         "nuitka%s-run = nuitka.__main__:main" % binary_suffix,
     ]
 
+# With this, we can enforce a binary package.
+class BinaryDistribution(Distribution):
+    """Distribution which always forces a binary package with platform name"""
+
+    @staticmethod
+    def has_ext_modules():
+        return True
+
 
 with open("README.rst", "rb") as input_file:
     long_description = input_file.read().decode("utf8")
@@ -371,4 +379,7 @@ Python compiler with full language support and CPython compatibility""",
         ],
         "console_scripts": console_scripts,
     },
+    # As we do version specific hacks for installed inline copies, make the
+    # wheel version and platform specific.
+    distclass=BinaryDistribution,
 )
