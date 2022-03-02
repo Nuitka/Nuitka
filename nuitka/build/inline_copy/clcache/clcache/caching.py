@@ -150,7 +150,7 @@ class CacheLockException(Exception):
 
 class CompilerFailedException(Exception):
     def __init__(self, exitCode, msgErr, msgOut=""):
-        Exception.__init__(msgErr)
+        Exception.__init__(self, msgErr)
         self.exitCode = exitCode
         self.msgOut = msgOut
         self.msgErr = msgErr
