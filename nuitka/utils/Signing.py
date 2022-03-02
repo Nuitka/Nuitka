@@ -59,12 +59,7 @@ def addMacOSCodeSignature(filenames, identity=None, entitlements_filename=None):
     if not identity:
         identity = "-"
 
-    command = [
-        "codesign",
-        "-s",
-        identity,
-        "--force",
-    ]
+    command = ["codesign", "-s", identity, "--force", "--deep"]
 
     # hardened runtime unless no good identity
     if identity != "-":

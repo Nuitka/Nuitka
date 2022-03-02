@@ -33,7 +33,7 @@ sys.path.insert(0, os.path.abspath(os.getcwd()))
 
 import re
 
-from setuptools import setup
+from setuptools import Distribution, setup
 from setuptools.command import easy_install
 
 # TODO: We need a better solution for this, probably error exit, once sys.exit
@@ -124,6 +124,7 @@ if sys.version_info < (3, 6) or sdist_mode:
 if sys.version_info >= (3, 6) or sdist_mode:
     addInlineCopy("jinja2")
 
+addInlineCopy("pkg_resources")
 
 # Scons really only, with historic naming and positioning. Needs to match the
 # "scons.py" in bin with respect to versions selection.
@@ -260,6 +261,14 @@ else:
         "nuitka%s-run = nuitka.__main__:main" % binary_suffix,
     ]
 
+# With this, we can enforce a binary package.
+class BinaryDistribution(Distribution):
+    """Distribution which always forces a binary package with platform name"""
+
+    @staticmethod
+    def has_ext_modules():
+        return True
+
 
 with open("README.rst", "rb") as input_file:
     long_description = input_file.read().decode("utf8")
@@ -370,4 +379,7 @@ Python compiler with full language support and CPython compatibility""",
         ],
         "console_scripts": console_scripts,
     },
+    # As we do version specific hacks for installed inline copies, make the
+    # wheel version and platform specific.
+    distclass=BinaryDistribution,
 )

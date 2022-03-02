@@ -26,6 +26,13 @@ import fnmatch
 
 from nuitka.__past__ import iter_modules
 from nuitka.containers.oset import OrderedSet
+from nuitka.Options import (
+    isOnefileMode,
+    isStandaloneMode,
+    mayDisableConsoleWindow,
+    shallCreateAppBundle,
+    shallDisableConsoleWindow,
+)
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
@@ -108,9 +115,75 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
 
         # Checking for config, but also allowing fall through.
         if config:
-            dependencies = config.get("depends")
+            dependencies = config.get("depends", [])
+            standalone_macos_bundle_mode = config.get("standalone_macos_bundle_mode")
+            disable_console = config.get("disable_console")
 
-            if type(dependencies) is not list or not dependencies:
+            if standalone_macos_bundle_mode is not None:
+                if standalone_macos_bundle_mode is True:
+                    standalone_macos_bundle_mode = "yes"
+                if standalone_macos_bundle_mode is False:
+                    standalone_macos_bundle_mode = "no"
+
+                if type(standalone_macos_bundle_mode) is not str:
+                    self.sysexit(
+                        "Error, requiring str as 'standalone_macos_bundle_mode' value for '%s' entry."
+                        % full_name
+                    )
+
+                if standalone_macos_bundle_mode not in ("yes", "no", "onefile"):
+                    self.sysexit(
+                        "Error, illegal value for 'standalone_macos_bundle_mode' for '%s' entry."
+                        % full_name
+                    )
+
+                if isMacOS():
+                    if standalone_macos_bundle_mode == "yes":
+                        if isStandaloneMode() and not shallCreateAppBundle():
+                            self.sysexit(
+                                """\
+Error, package '%s' requires '--macos-create-app-bundle' to be used or else it cannot work."""
+                                % full_name
+                            )
+                    elif standalone_macos_bundle_mode == "onefile":
+                        if shallCreateAppBundle() and not isOnefileMode():
+                            self.sysexit(
+                                """\
+Error, package '%s' requires '--onefile' to be used on top of '--macos-create-app-bundle' or else it cannot work."""
+                                % full_name
+                            )
+
+            if disable_console is not None:
+                if disable_console is True:
+                    disable_console = "yes"
+                if disable_console is False:
+                    disable_console = "no"
+
+                if type(disable_console) is not str:
+                    self.sysexit(
+                        "Error, requiring str as 'disable_console' value for '%s' entry."
+                        % full_name
+                    )
+
+                # Required on macOS is recommended elsewhere.
+                if not isMacOS() and disable_console == "macos":
+                    disable_console = "recommend"
+
+                if (
+                    disable_console == "recommend"
+                    and mayDisableConsoleWindow()
+                    and not shallDisableConsoleWindow()
+                ):
+                    self.info(
+                        "Note, when using '%s', consider using '--disable-console' option."
+                    )
+
+            if (
+                type(dependencies) is not list
+                and not dependencies
+                and standalone_macos_bundle_mode is None
+                and disable_console is None
+            ):
                 self.sysexit(
                     "Error, requiring list below 'depends' entry for '%s' entry."
                     % full_name

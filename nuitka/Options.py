@@ -1060,6 +1060,13 @@ def shallDisableConsoleWindow():
     return options.disable_console
 
 
+def mayDisableConsoleWindow():
+    """:returns: bool derived from platform support of disabling the console,"""
+
+    # TODO: What about MSYS2?
+    return isWin32Windows() or isMacOS()
+
+
 def _isFullCompat():
     """:returns: bool derived from ``--full-compat``
 
