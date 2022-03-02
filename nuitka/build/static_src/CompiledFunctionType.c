@@ -1192,7 +1192,7 @@ static inline bool checkKeywordType(PyObject *arg_name) {
 #if PYTHON_VERSION < 0x300
     return (PyString_Check(arg_name) || PyUnicode_Check(arg_name));
 #else
-    return PyUnicode_Check(arg_name);
+    return PyUnicode_Check(arg_name) != 0;
 #endif
 }
 
