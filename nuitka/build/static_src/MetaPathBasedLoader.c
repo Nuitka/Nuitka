@@ -738,6 +738,8 @@ static PyObject *callIntoExtensionModule(char const *full_name, const char *file
         PySys_WriteStderr("import %s # calling entrypoint\n", full_name);
     }
 
+    Nuitka_DelModuleString(full_name);
+
 #if PYTHON_VERSION < 0x300
     (*entrypoint)();
 #else
