@@ -70,6 +70,10 @@ urllib.request:
   depends:
     - "http.client"
 
+_asyncio:
+  depends:
+    - "asyncio"
+
 shiboken6:
   depends:
     - "argparse"
