@@ -415,9 +415,10 @@ Bastion:
     "_test": "'(lambda: None)'"
 
 h5py:
-  description: "remove h5py testing framework"
+  description: "remove h5py testing framework and interactive IPython completer"
   change_function:
     "run_tests": "'(lambda args=None: None)'"
+    "enable_ipython_completer": "'(lambda: None)'"
 
 pandas:
   description: "remove pandas testing framework"
