@@ -168,8 +168,8 @@ static PyGetSetDef Nuitka_Cell_getsetlist[] = {
 
 PyTypeObject Nuitka_Cell_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "compiled_cell",
-    sizeof(struct Nuitka_CellObject),
-    0,
+    sizeof(struct Nuitka_CellObject),   /* tp_basicsize */
+    0,                                  /* tp_itemsize */
     (destructor)Nuitka_Cell_tp_dealloc, /* tp_dealloc */
     0,                                  /* tp_print */
     0,                                  /* tp_getattr */
