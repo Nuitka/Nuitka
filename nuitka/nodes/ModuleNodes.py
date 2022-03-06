@@ -32,6 +32,7 @@ from nuitka.importing.Importing import (
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.tree.Operations import DetectUsedModules, visitTree
@@ -56,7 +57,7 @@ from .NodeBases import (
 class PythonModuleBase(NodeBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    __slots__ = ("module_name",)
+    __slots__ = ("module_name", "module_data_files")
 
     def __init__(self, module_name, source_ref):
         assert type(module_name) is ModuleName, module_name
@@ -64,6 +65,9 @@ class PythonModuleBase(NodeBase):
         NodeBase.__init__(self, source_ref=source_ref)
 
         self.module_name = module_name
+
+        # Data files provided by the module
+        self.module_data_files = None
 
     def getDetails(self):
         return {"module_name": self.module_name}
@@ -199,6 +203,13 @@ class PythonModuleBase(NodeBase):
                 result = os.path.join(os.path.basename(current), result)
 
             return result
+
+    def getDataFiles(self):
+        # Data files, collected initially.
+        if self.module_data_files is None:
+            self.module_data_files = tuple(Plugins.considerDataFiles(module=self))
+
+        return self.module_data_files
 
 
 class CompiledPythonModule(

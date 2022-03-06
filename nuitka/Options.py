@@ -25,6 +25,7 @@ some handling of defaults.
 # These are for use in option values.
 # spell-checker: ignore uiaccess,noannotations,nodocstrings,noasserts,nowarnings,norandomization,etherium
 
+import fnmatch
 import os
 import shlex
 import sys
@@ -960,6 +961,18 @@ def _shallUseStaticLibPython():
             return True, "Nuitka on pyenv should not use '--enable-shared'."
 
     return options.static_libpython == "yes", None
+
+
+def getDataFileTags(dest_path):
+    result = OrderedSet()
+
+    for value in options.data_file_tags:
+        pattern, tags = value.rsplit(":", 1)
+
+        if fnmatch.fnmatch(dest_path, pattern):
+            result.update(tags.split(","))
+
+    return result
 
 
 def shallUseStaticLibPython():

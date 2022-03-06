@@ -1438,6 +1438,9 @@ def _handleDataFile(dist_dir, tracer, included_datafile):
     if not isinstance(included_datafile, (IncludedDataFile, IncludedDataDirectory)):
         tracer.sysexit("Error, cannot only include 'IncludedData*' objects in plugins.")
 
+    # TODO: Make use of these
+    _tags = Plugins.getDataFileTags(included_datafile)
+
     if included_datafile.kind == "empty_dirs":
         tracer.info(
             "Included empty directories '%s' due to %s."
@@ -1579,7 +1582,7 @@ def copyDataFiles(dist_dir):
     from nuitka import ModuleRegistry
 
     for module in ModuleRegistry.getDoneModules():
-        for plugin, included_datafile in Plugins.considerDataFiles(module):
+        for plugin, included_datafile in module.getDataFiles():
             _handleDataFile(
                 dist_dir=dist_dir, tracer=plugin, included_datafile=included_datafile
             )

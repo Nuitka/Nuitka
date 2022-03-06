@@ -417,6 +417,12 @@ class Plugins(object):
                 )
 
     @staticmethod
+    def onBeforeCodeParsing():
+        """Let plugins prepare for code parsing"""
+        for plugin in getActivePlugins():
+            plugin.onBeforeCodeParsing()
+
+    @staticmethod
     def onStandaloneDistributionFinished(dist_dir):
         """Let plugins postprocess the distribution folder in standalone mode"""
         for plugin in getActivePlugins():
@@ -547,6 +553,17 @@ class Plugins(object):
             for value in plugin.considerDataFiles(module):
                 if value:
                     yield plugin, value
+
+    @staticmethod
+    def getDataFileTags(included_datafile):
+        tags = OrderedSet([included_datafile.kind])
+
+        tags.update(Options.getDataFileTags(tags))
+
+        for plugin in getActivePlugins():
+            plugin.updateDataFileTags(included_datafile)
+
+        return tags
 
     @classmethod
     def _createTriggerLoadedModule(cls, module, trigger_name, code, flags):

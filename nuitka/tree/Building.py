@@ -1124,6 +1124,8 @@ def buildMainModuleTree(filename, is_main):
     # Detect to be frozen modules if any, so we can consider to not follow
     # to them.
 
+    Plugins.onBeforeCodeParsing()
+
     if is_main:
         # TODO: Doesn't work for deeply nested packages at all.
         if Options.hasPythonFlagPackageMode():

@@ -436,23 +436,25 @@ exclude files you need to remove them beforehand. Default empty.""",
 
 data_files_tags = [("inhibit", "do not include the file")]
 
-# TODO: Expose this when finished, pylint: disable=using-constant-test
-if False:
-    data_group.add_option(
-        "--data-file-tags",
-        action="append",
-        dest="data_tags",
-        metavar="DATA_TAGS",
-        default=[],
-        help="""\
-    For included data files, special handlings can be chosen. With the
-    commercial plugins, e.g. files can be included directly in the
-    binary. The list is completed by some plugins. With the current
-    list of plugins, these are available: %s.
-    The default is empty."""
-        % ",".join("'%s' (%s)" % d for d in data_files_tags),
+
+def _getDataFileTagsOptionHelp():
+    return """\
+For included data files, special handlings can be chosen. With the
+commercial plugins, e.g. files can be included directly in the
+binary. The list is completed by some plugins. With the current
+list of plugins, these are available: %s.
+The default is empty.""" % ", ".join(
+        "'%s' (%s)" % d for d in data_files_tags
     )
 
+
+data_file_tags_option = data_group.add_option(
+    "--data-file-tags",
+    action="append",
+    dest="data_file_tags",
+    metavar="DATA_TAGS",
+    default=[],
+)
 
 parser.add_option_group(data_group)
 
@@ -1415,6 +1417,9 @@ def _considerPluginOptions(logger):
             addUserPluginCommandLineOptions(
                 parser=parser, filename=plugin_name, data_files_tags=data_files_tags
             )
+
+    # The help text is plugin driven.
+    data_file_tags_option.help = _getDataFileTagsOptionHelp()
 
 
 def _expandProjectArg(arg, filename_arg, for_eval):

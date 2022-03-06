@@ -501,6 +501,12 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    def updateDataFileTags(self, included_datafile):
+        """Add or remove data file tags."""
+
+    def onBeforeCodeParsing(self):
+        """Prepare for code parsing, normally not needed."""
+
     def onStandaloneDistributionFinished(self, dist_dir):
         """Called after successfully creating a standalone distribution.
 
