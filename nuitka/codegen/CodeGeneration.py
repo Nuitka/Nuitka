@@ -241,6 +241,7 @@ from .OperationCodes import (
     generateOperationNotCode,
     generateOperationUnaryCode,
 )
+from .PackageResourceCodes import generatePkglibGetDataCallCode
 from .PrintCodes import generatePrintNewlineCode, generatePrintValueCode
 from .RaisingCodes import (
     generateRaiseCode,
@@ -693,7 +694,8 @@ addExpressionDispatchDict(
         "EXPRESSION_FUNCTION_ERROR_STR": generateFunctionErrorStrCode,
         "EXPRESSION_IMPORT_MODULE_FIXED": generateImportModuleFixedCode,
         "EXPRESSION_IMPORT_MODULE_HARD": generateImportModuleHardCode,
-        "EXPRESSION_IMPORT_MODULE_NAME_HARD": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORT_MODULE_NAME_HARD_EXISTS": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_IMPORT_MODULE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_IMPORT_MODULE_CALL": generateImportlibImportCallCode,
         "EXPRESSION_IMPORT_NAME": generateImportNameCode,
@@ -778,6 +780,8 @@ addExpressionDispatchDict(
         "EXPRESSION_LOCALS_VARIABLE_REF": generateLocalsDictVariableRefCode,
         "EXPRESSION_RAISE_EXCEPTION": generateRaiseExpressionCode,
         "EXPRESSION_NUITKA_LOADER_CREATION": generateNuitkaLoaderCreationCode,
+        "EXPRESSION_PKGLIB_GET_DATA_CALL": generatePkglibGetDataCallCode,
+        "EXPRESSION_PKGLIB_GET_DATA_REF": generateImportModuleNameHardCode,
     }
 )
 

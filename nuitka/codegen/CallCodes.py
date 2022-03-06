@@ -657,7 +657,7 @@ def getCallCodePosArgsQuick(
 
     getErrorExitCode(
         check_name=to_name,
-        release_names=[called_name] + arg_names,
+        release_names=[called_name] + list(arg_names),
         needs_check=needs_check,
         emit=emit,
         context=context,

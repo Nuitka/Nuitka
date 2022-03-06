@@ -15,10 +15,14 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" This package loads a file via pkgutil.get_data and outputs its contents in import.
+
+"""
+
 import pkgutil
 
-__version__ = (
-    pkgutil.get_data(__package__ or __name__, "DATA_FILE.txt").decode("ascii").strip()
-)
+# Setting version from a file, is an example use case of this, but not limited
+# to that of course.
+__version__ = pkgutil.get_data(__package__, "DATA_FILE.txt").decode("ascii").strip()
 
 print(__version__)

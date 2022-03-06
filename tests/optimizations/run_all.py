@@ -89,7 +89,8 @@ def isConstantExpression(expression):
 
     return kind.startswith("Constant") or kind in (
         "ImportModuleHard",
-        "ImportModuleNameHard",
+        "ImportModuleNameHardExists",
+        "ImportModuleNameHardMaybeExists",
         "ModuleAttributeFileRef",
         "ModuleLoaderRef",
     )
