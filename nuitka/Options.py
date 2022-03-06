@@ -510,6 +510,16 @@ def commentArgs():
                 % default_reference_mode
             )
 
+    default_mode_name_mode = "runtime" if shallMakeModule() else "original"
+
+    if getModuleNameMode() is None:
+        options.module_name_mode = default_mode_name_mode
+    elif getModuleNameMode() == default_mode_name_mode:
+        Tracing.options_logger.info(
+            "Using module name mode '%s' need not be specified."
+            % default_mode_name_mode
+        )
+
     # TODO: Not all of these are usable with MSYS2 really, split those off.
     if getOS() != "Windows":
         # Too many Windows specific options clearly
@@ -704,6 +714,16 @@ def getFileReferenceMode():
     """
 
     return options.file_reference_mode
+
+
+def getModuleNameMode():
+    """*str*, one of "runtime", "original", coming from ``--module-name-choice``
+
+    Notes:
+        Defaults to runtime for modules and packages, otherwise original is kept.
+    """
+
+    return options.module_name_mode
 
 
 def shallMakeModule():

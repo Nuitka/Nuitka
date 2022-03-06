@@ -552,6 +552,22 @@ compatibility reasons, the "__file__" value will always have ".py" suffix
 independent of what it really is.""",
 )
 
+codegen_group.add_option(
+    "--module-name-choice",
+    action="store",
+    dest="module_name_mode",
+    metavar="MODE",
+    choices=("original", "runtime"),
+    default=None,
+    help="""\
+Select what value "__name__" and "__package__" are going to be. With "runtime"
+(default for module mode), the created module, it uses the parent package to
+deduct the value of "__package__", to be fully compatible. This allows for more
+optimization to happen, but normally any package can be loaded into another one,
+but this will raise an import error when it detects that with "original" mode.""",
+)
+
+
 parser.add_option_group(codegen_group)
 
 output_group = OptionGroup(parser, "Output choices")

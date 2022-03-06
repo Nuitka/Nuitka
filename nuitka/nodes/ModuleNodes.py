@@ -657,9 +657,6 @@ class CompiledPythonModule(
         return self.locals_scope
 
     def getRuntimePackageValue(self):
-        # Do not want to get asked for now.
-        assert not Options.shallMakeModule()
-
         if self.isCompiledPythonPackage():
             return self.getFullName().asString()
 
@@ -677,9 +674,6 @@ class CompiledPythonModule(
             return None
 
     def getRuntimeNameValue(self):
-        # Do not want to get asked for now.
-        assert not Options.shallMakeModule()
-
         if self.isMainModule() and Options.hasPythonFlagPackageMode():
             return "__main__"
         else:
