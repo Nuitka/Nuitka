@@ -261,15 +261,15 @@ def getUserName():
 
 
 @contextmanager
-def withNoDeprecationWarning():
+def withWarningRemoved(category):
     import warnings
 
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        warnings.filterwarnings("ignore", category=category)
 
         # These do not inherit from DeprecationWarning by some decision we
         # are not to care about.
-        if "pkg_resources" in sys.modules:
+        if "pkg_resources" in sys.modules and category is DeprecationWarning:
             try:
                 from pkg_resources import PkgResourcesDeprecationWarning
             except ImportError:
@@ -279,4 +279,16 @@ def withNoDeprecationWarning():
                     "ignore", category=PkgResourcesDeprecationWarning
                 )
 
+        yield
+
+
+@contextmanager
+def withNoDeprecationWarning():
+    with withWarningRemoved(DeprecationWarning):
+        yield
+
+
+@contextmanager
+def withNoSyntaxWarning():
+    with withWarningRemoved(SyntaxWarning):
         yield

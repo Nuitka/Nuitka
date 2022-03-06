@@ -50,6 +50,7 @@ from nuitka.utils.Utils import (
     getWindowsRelease,
     isLinux,
     isPosixWindows,
+    withNoSyntaxWarning,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
@@ -1484,9 +1485,11 @@ def _getProjectOptions(logger, filename_arg, module_mode):
                 arg = arg[:-1]
 
                 expanded = _expandProjectArg(arg, filename_arg, for_eval=True)
-                r = eval(  # We allow the user to run any code, pylint: disable=eval-used
-                    expanded
-                )
+
+                with withNoSyntaxWarning():
+                    r = eval(  # We allow the user to run any code, pylint: disable=eval-used
+                        expanded
+                    )
 
                 # Likely mistakes, e.g. with "in" tests.
                 if r is not True and r is not False:
