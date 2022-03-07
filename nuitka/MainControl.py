@@ -30,13 +30,17 @@ import sys
 from nuitka.build.DataComposerInterface import runDataComposer
 from nuitka.build.SconsUtils import getSconsReportValue
 from nuitka.constants.Serialization import ConstantAccessor
+from nuitka.freezer.IncludedDataFiles import (
+    addIncludedDataFilesFromFileOptions,
+    addIncludedDataFilesFromPackageOptions,
+    copyDataFiles,
+)
 from nuitka.freezer.IncludedEntryPoints import (
     addExtensionModuleEntryPoint,
     addIncludedEntryPoints,
     getStandaloneEntryPoints,
     setMainEntryPoint,
 )
-from nuitka.freezer.Standalone import copyDataFiles
 from nuitka.importing import Importing, Recursion
 from nuitka.Options import (
     getPythonPgoInput,
@@ -914,6 +918,8 @@ def main():
         main_dir=os.path.dirname(os.path.abspath(filename))
     )
 
+    addIncludedDataFilesFromFileOptions()
+
     # Turn that source code into a node tree structure.
     try:
         main_module = _createNodeTree(filename=filename)
@@ -931,6 +937,8 @@ def main():
         # Exit if compilation failed.
         if not result:
             sys.exit(1)
+
+        addIncludedDataFilesFromPackageOptions()
 
         # Relaunch in case of Python PGO input to be produced.
         if Options.shallCreatePgoInput():
@@ -950,6 +958,8 @@ def main():
 
         executePostProcessing()
 
+        copyDataFiles()
+
         if Options.isStandaloneMode():
             binary_filename = options["result_exe"]
 
@@ -965,8 +975,6 @@ def main():
                 dist_dir=dist_dir,
                 standalone_entry_points=getStandaloneEntryPoints(),
             )
-
-            copyDataFiles(dist_dir=dist_dir)
 
             Plugins.onStandaloneDistributionFinished(dist_dir)
 

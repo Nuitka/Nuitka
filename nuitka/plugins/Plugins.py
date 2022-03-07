@@ -552,7 +552,7 @@ class Plugins(object):
         for plugin in getActivePlugins():
             for value in plugin.considerDataFiles(module):
                 if value:
-                    yield plugin, value
+                    yield value
 
     @staticmethod
     def getDataFileTags(included_datafile):

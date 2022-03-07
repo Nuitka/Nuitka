@@ -24,10 +24,6 @@ own dependencies.
 import os
 
 from nuitka.containers.oset import OrderedSet
-from nuitka.freezer.IncludedDataFiles import (
-    makeIncludedDataFile,
-    makeIncludedGeneratedDataFile,
-)
 from nuitka.freezer.IncludedEntryPoints import makeExeEntryPoint
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -643,20 +639,21 @@ if not path.startswith(__nuitka_binary_dir):
             for filename in self._getQmlFileList(dlls=False):
                 filename_relative = os.path.relpath(filename, qml_plugin_dir)
 
-                yield makeIncludedDataFile(
+                yield self.makeIncludedDataFile(
                     source_path=filename,
                     dest_path=os.path.join(
                         qml_target_dir,
                         filename_relative,
                     ),
                     reason="Qt QML datafile",
+                    tags="qml",
                 )
         elif self.isQtWebEngineModule(full_name) and not self.webengine_done_data:
             self.webengine_done_data = True
 
             # TODO: This is probably wrong/not needed on macOS
             if not isMacOS():
-                yield makeIncludedGeneratedDataFile(
+                yield self.makeIncludedGeneratedDataFile(
                     data="""\
 [Paths]
 Prefix = .
@@ -668,7 +665,7 @@ Prefix = .
             resources_dir = self._getResourcesPath()
 
             for filename, filename_relative in listDir(resources_dir):
-                yield makeIncludedDataFile(
+                yield self.makeIncludedDataFile(
                     source_path=filename,
                     dest_path=os.path.join(
                         self._getResourcesTargetDir(), filename_relative
@@ -683,10 +680,11 @@ Prefix = .
                     filename_relative = os.path.relpath(filename, translations_path)
                     dest_path = self._getTranslationsTargetDir()
 
-                    yield makeIncludedDataFile(
+                    yield self.makeIncludedDataFile(
                         source_path=filename,
                         dest_path=os.path.join(dest_path, filename_relative),
                         reason="Qt translation",
+                        tags="translation",
                     )
 
     def getExtraDlls(self, module):

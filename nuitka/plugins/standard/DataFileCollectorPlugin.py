@@ -23,82 +23,12 @@ import os
 
 from nuitka import Options
 from nuitka.containers.oset import OrderedSet
-from nuitka.freezer.IncludedDataFiles import (
-    makeIncludedDataDirectory,
-    makeIncludedDataFile,
-    makeIncludedEmptyDirectories,
-)
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import (
     getFileList,
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Yaml import parsePackageYaml
-
-
-def _getSubDirectoryFolders(module, subdirs):
-    """Get dirnames in given subdirs of the module.
-
-    Notes:
-        All dirnames in folders below one of the subdirs are recursively
-        retrieved and returned shortened to begin with the string of subdir.
-    Args:
-        module: module object
-        subdirs: sub folder name(s) - tuple
-    Returns:
-        makeIncludedEmptyDirectories of found dirnames.
-    """
-
-    module_dir = module.getCompileTimeDirectory()
-    file_list = []
-
-    data_dirs = [os.path.join(module_dir, subdir) for subdir in subdirs]
-
-    # Gather the full file list, probably makes no sense to include bytecode files
-    file_list = sum(
-        (
-            getFileList(
-                data_dir, ignore_dirs=("__pycache__",), ignore_suffixes=(".pyc",)
-            )
-            for data_dir in data_dirs
-        ),
-        [],
-    )
-
-    if not file_list:
-        msg = "No files or folders found for '%s' in subfolder(s) %r (%r)." % (
-            module.getFullName(),
-            subdirs,
-            data_dirs,
-        )
-        NuitkaPluginDataFileCollector.warning(msg)
-
-    is_package = module.isCompiledPythonPackage() or module.isUncompiledPythonPackage()
-
-    # We need to preserve the package target path in the dist folder.
-    if is_package:
-        package_part = module.getFullName().asPath()
-    else:
-        package = module.getFullName().getPackageName()
-
-        if package is None:
-            package_part = ""
-        else:
-            package_part = package.asPath()
-
-    item_set = OrderedSet()
-
-    for f in file_list:
-        target = os.path.join(package_part, os.path.relpath(f, module_dir))
-
-        dir_name = os.path.dirname(target)
-        item_set.add(dir_name)
-
-    return makeIncludedEmptyDirectories(
-        source_path=module_dir,
-        dest_paths=item_set,
-        reason="Subdirectories of module %s" % module.getFullName(),
-    )
 
 
 class NuitkaPluginDataFileCollector(NuitkaPluginBase):
@@ -154,12 +84,13 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                     pattern = os.path.join(module_folder, pattern)
 
                     for filename in resolveShellPatternToFilenames(pattern):
-                        yield makeIncludedDataFile(
+                        yield self.makeIncludedDataFile(
                             source_path=filename,
                             dest_path=os.path.normpath(
                                 os.path.join(target_dir, os.path.basename(filename))
                             ),
                             reason="package data for %r" % module_name.asString(),
+                            tags="config",
                         )
 
             empty_dirs = config.get("empty_dirs")
@@ -170,12 +101,13 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                         % module_name
                     )
 
-                yield makeIncludedEmptyDirectories(
+                yield self.makeIncludedEmptyDirectories(
                     source_path=target_dir,
                     dest_paths=tuple(
                         os.path.join(target_dir, empty_dir) for empty_dir in empty_dirs
                     ),
                     reason="empty dir needed for %r" % module_name.asString(),
+                    tags="config",
                 )
 
             empty_dir_structures = config.get("empty_dir_structures")
@@ -187,7 +119,9 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                     )
 
                 # TODO: This ignored dest_path, which is unused, but not consistent.
-                yield _getSubDirectoryFolders(module, empty_dir_structures)
+                yield self._getSubDirectoryFolders(
+                    module, sub_dirs=empty_dir_structures
+                )
 
             dirs = config.get("dirs")
             if dirs is not None:
@@ -201,9 +135,77 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                     source_path = os.path.join(module_folder, data_dir)
 
                     if os.path.isdir(source_path):
-                        yield makeIncludedDataDirectory(
+                        yield self.makeIncludedDataDirectory(
                             source_path=source_path,
                             dest_path=os.path.join(target_dir, data_dir),
                             reason="package data directory for %r"
                             % module_name.asString(),
+                            tags="config",
                         )
+
+    def _getSubDirectoryFolders(self, module, sub_dirs):
+        """Get dirnames in given subdirs of the module.
+
+        Notes:
+            All dirnames in folders below one of the sub_dirs are recursively
+            retrieved and returned shortened to begin with the string of subdir.
+        Args:
+            module: module object
+            sub_dirs: sub folder name(s) - tuple
+        Returns:
+            makeIncludedEmptyDirectories of found dirnames.
+        """
+
+        module_dir = module.getCompileTimeDirectory()
+        file_list = []
+
+        data_dirs = [os.path.join(module_dir, subdir) for subdir in sub_dirs]
+
+        # Gather the full file list, probably makes no sense to include bytecode files
+        file_list = sum(
+            (
+                getFileList(
+                    data_dir, ignore_dirs=("__pycache__",), ignore_suffixes=(".pyc",)
+                )
+                for data_dir in data_dirs
+            ),
+            [],
+        )
+
+        if not file_list:
+            msg = "No files or folders found for '%s' in subfolder(s) %r (%r)." % (
+                module.getFullName(),
+                sub_dirs,
+                data_dirs,
+            )
+            self.warning(msg)
+
+        is_package = (
+            module.isCompiledPythonPackage() or module.isUncompiledPythonPackage()
+        )
+
+        # We need to preserve the package target path in the dist folder.
+        if is_package:
+            package_part = module.getFullName().asPath()
+        else:
+            package = module.getFullName().getPackageName()
+
+            if package is None:
+                package_part = ""
+            else:
+                package_part = package.asPath()
+
+        item_set = OrderedSet()
+
+        for f in file_list:
+            target = os.path.join(package_part, os.path.relpath(f, module_dir))
+
+            dir_name = os.path.dirname(target)
+            item_set.add(dir_name)
+
+        return self.makeIncludedEmptyDirectories(
+            source_path=module_dir,
+            dest_paths=item_set,
+            reason="Subdirectories of module %s" % module.getFullName(),
+            tags="config",
+        )

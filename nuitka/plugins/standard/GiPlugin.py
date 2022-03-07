@@ -19,7 +19,6 @@
 """
 import os
 
-from nuitka.freezer.IncludedDataFiles import makeIncludedDataDirectory
 from nuitka.plugins.PluginBase import NuitkaPluginBase, standalone_only
 
 
@@ -62,7 +61,7 @@ if not os.environ.get("GI_TYPELIB_PATH="):
             )
 
             gi_repository_path = os.path.dirname(path.introspection_module)
-            yield makeIncludedDataDirectory(
+            yield self.makeIncludedDataDirectory(
                 source_path=gi_repository_path,
                 dest_path="girepository",
                 reason="typelib files for gi modules",

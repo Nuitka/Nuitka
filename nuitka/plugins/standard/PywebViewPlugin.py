@@ -20,7 +20,6 @@
 
 import os
 
-from nuitka.freezer.IncludedDataFiles import makeIncludedDataFile
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin
@@ -102,7 +101,7 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
             for filename, filename_relative in self._getWebviewFiles(
                 module, dlls=False
             ):
-                yield makeIncludedDataFile(
+                yield self.makeIncludedDataFile(
                     source_path=filename,
                     dest_path=os.path.normpath(
                         os.path.join(

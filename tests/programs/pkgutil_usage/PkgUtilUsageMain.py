@@ -24,8 +24,9 @@ the file must exist in the file system.
 
 # nuitka-project: --include-package=package
 # nuitka-project-if: {Commercial} is not None:
-#  nuitka-project: --enable-plugin=datafile-inclusion-ng
-#  nuitka-project: --data-file-tags=*:include_direct
+#  nuitka-project: --data-file-tags=*:embed-direct
+#  nuitka-project: --include-package-data=package
+
 
 # Module mode only,
 # nuitka-project: --module-name-choice=original

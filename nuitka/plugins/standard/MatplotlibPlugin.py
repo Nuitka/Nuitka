@@ -18,10 +18,6 @@
 """ Matplotlib standard plugin module. """
 import os
 
-from nuitka.freezer.IncludedDataFiles import (
-    makeIncludedDataDirectory,
-    makeIncludedGeneratedDataFile,
-)
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin, hasActivePlugin
@@ -99,12 +95,13 @@ from inspect import getsource
             )
 
         # Include the "mpl-data" files.
-        yield makeIncludedDataDirectory(
+        yield self.makeIncludedDataDirectory(
             source_path=matplotlib_info.data_path,
             dest_path=os.path.join("matplotlib", "mpl-data"),
             ignore_dirs=("sample_data",),
             ignore_filenames=("matplotlibrc",),
             reason="package data for 'matplotlib",
+            tags="mpl-data",
         )
 
         # Handle the config file with an update.
@@ -128,7 +125,7 @@ from inspect import getsource
             # Set the backend, so even if it was run time determined, we now enforce it.
             new_lines.append("backend: %s" % matplotlib_info.backend)
 
-        yield makeIncludedGeneratedDataFile(
+        yield self.makeIncludedGeneratedDataFile(
             data=new_lines,
             dest_path=os.path.join("matplotlib", "mpl-data", "matplotlibrc"),
             reason="Updated matplotlib config file with backend to use.",

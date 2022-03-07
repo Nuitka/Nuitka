@@ -21,7 +21,6 @@ import os
 import sys
 
 from nuitka import Options
-from nuitka.freezer.IncludedDataFiles import makeIncludedDataDirectory
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.Utils import isWin32Windows
 
@@ -185,13 +184,13 @@ The Tcl library dir. See comments for Tk library dir.""",
             )
 
         # survived the above, now do provide the locations
-        yield makeIncludedDataDirectory(
+        yield self.makeIncludedDataDirectory(
             source_path=tk,
             dest_path="tk",
             reason="Tk copy needed for standalone Tcl",
             ignore_dirs=("demos",),
         )
-        yield makeIncludedDataDirectory(
+        yield self.makeIncludedDataDirectory(
             source_path=tcl,
             dest_path="tcl",
             reason="Tcl needed for tkinter usage",

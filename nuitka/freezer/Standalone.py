@@ -64,10 +64,8 @@ from nuitka.utils.Execution import (
 )
 from nuitka.utils.FileOperations import (
     areSamePaths,
-    copyFileWithPermissions,
     getDirectoryRealPath,
     getFileContentByLine,
-    getFileList,
     getSubDirectories,
     haveSameFileContents,
     isPathBelow,
@@ -75,10 +73,8 @@ from nuitka.utils.FileOperations import (
     makePath,
     putTextFileContents,
     relpath,
-    resolveShellPatternToFilenames,
     withFileLock,
 )
-from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
@@ -95,11 +91,6 @@ from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
 
 from .DependsExe import detectDLLsWithDependencyWalker
-from .IncludedDataFiles import (
-    IncludedDataDirectory,
-    IncludedDataFile,
-    makeIncludedDataFile,
-)
 
 
 def loadCodeObjectData(precompiled_filename):
@@ -1431,191 +1422,3 @@ def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
         )
 
     Plugins.onCopiedDLLs(dist_dir=dist_dir, used_dlls=used_dlls)
-
-
-def _handleDataFile(dist_dir, tracer, included_datafile):
-    """Handle a data file."""
-    if not isinstance(included_datafile, (IncludedDataFile, IncludedDataDirectory)):
-        tracer.sysexit("Error, cannot only include 'IncludedData*' objects in plugins.")
-
-    # TODO: Make use of these
-    _tags = Plugins.getDataFileTags(included_datafile)
-
-    if included_datafile.kind == "empty_dirs":
-        tracer.info(
-            "Included empty directories '%s' due to %s."
-            % (
-                ",".join(included_datafile.dest_path),
-                included_datafile.reason,
-            )
-        )
-
-        for sub_dir in included_datafile.dest_path:
-            created_dir = os.path.join(dist_dir, sub_dir)
-
-            makePath(created_dir)
-            putTextFileContents(
-                filename=os.path.join(created_dir, ".keep_dir.txt"), contents=""
-            )
-
-    elif included_datafile.kind == "data_file":
-        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
-
-        tracer.info(
-            "Included data file '%s' due to %s."
-            % (
-                included_datafile.dest_path,
-                included_datafile.reason,
-            )
-        )
-
-        makePath(os.path.dirname(dest_path))
-        copyFileWithPermissions(
-            source_path=included_datafile.source_path, dest_path=dest_path
-        )
-    elif included_datafile.kind == "data_dir":
-        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
-        makePath(os.path.dirname(dest_path))
-
-        copied = []
-
-        for filename in getFileList(
-            included_datafile.source_path,
-            ignore_dirs=included_datafile.ignore_dirs,
-            ignore_filenames=included_datafile.ignore_filenames,
-            ignore_suffixes=included_datafile.ignore_suffixes,
-            only_suffixes=included_datafile.only_suffixes,
-            normalize=included_datafile.normalize,
-        ):
-            filename_relative = os.path.relpath(filename, included_datafile.source_path)
-
-            filename_dest = os.path.join(dest_path, filename_relative)
-            makePath(os.path.dirname(filename_dest))
-
-            copyFileWithPermissions(source_path=filename, dest_path=filename_dest)
-
-            copied.append(filename_relative)
-
-        tracer.info(
-            "Included data dir %r with %d files due to: %s."
-            % (
-                included_datafile.dest_path,
-                len(copied),
-                included_datafile.reason,
-            )
-        )
-    elif included_datafile.kind == "data_blob":
-        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
-        makePath(os.path.dirname(dest_path))
-
-        putTextFileContents(filename=dest_path, contents=included_datafile.data)
-
-        tracer.info(
-            "Included data file '%s' due to %s."
-            % (
-                included_datafile.dest_path,
-                included_datafile.reason,
-            )
-        )
-    else:
-        assert False, included_datafile
-
-
-def copyDataFiles(dist_dir):
-    """Copy the data files needed for standalone distribution.
-
-    Args:
-        dist_dir: The distribution folder under creation
-    Notes:
-        This is for data files only, not DLLs or even extension modules,
-        those must be registered as entry points, and would not go through
-        necessary handling if provided like this.
-    """
-
-    # Many details to deal with, pylint: disable=too-many-branches,too-many-locals
-
-    for pattern, src, dest, arg in Options.getShallIncludeDataFiles():
-        filenames = resolveShellPatternToFilenames(pattern)
-
-        if not filenames:
-            inclusion_logger.warning(
-                "No matching data file to be included for '%s'." % pattern
-            )
-
-        for filename in filenames:
-            file_reason = "specified data file '%s' on command line" % arg
-
-            if src is None:
-                rel_path = dest
-
-                if rel_path.endswith(("/", os.path.sep)):
-                    rel_path = os.path.join(rel_path, os.path.basename(filename))
-            else:
-                rel_path = os.path.join(dest, relpath(filename, src))
-
-            _handleDataFile(
-                dist_dir,
-                inclusion_logger,
-                makeIncludedDataFile(filename, rel_path, file_reason),
-            )
-
-    for src, dest in Options.getShallIncludeDataDirs():
-        filenames = getFileList(src)
-
-        if not filenames:
-            inclusion_logger.warning("No files in directory '%s.'" % src)
-
-        for filename in filenames:
-            relative_filename = relpath(filename, src)
-
-            file_reason = "specified data dir %r on command line" % src
-
-            rel_path = os.path.join(dest, relative_filename)
-
-            _handleDataFile(
-                dist_dir,
-                inclusion_logger,
-                makeIncludedDataFile(filename, rel_path, file_reason),
-            )
-
-    # Cyclic dependency
-    from nuitka import ModuleRegistry
-
-    for module in ModuleRegistry.getDoneModules():
-        for plugin, included_datafile in module.getDataFiles():
-            _handleDataFile(
-                dist_dir=dist_dir, tracer=plugin, included_datafile=included_datafile
-            )
-
-    for module in ModuleRegistry.getDoneModules():
-        if module.isCompiledPythonPackage() or module.isUncompiledPythonPackage():
-            package_name = module.getFullName()
-
-            match, reason = package_name.matchesToShellPatterns(
-                patterns=Options.getShallIncludePackageData()
-            )
-
-            if match:
-                package_directory = module.getCompileTimeDirectory()
-
-                pkg_filenames = getFileList(
-                    package_directory,
-                    ignore_dirs=("__pycache__",),
-                    ignore_suffixes=(".py", ".pyw", ".pyc", ".pyo", ".dll")
-                    + getSharedLibrarySuffixes(),
-                )
-
-                if pkg_filenames:
-                    file_reason = "package '%s' %s" % (package_name, reason)
-
-                    for pkg_filename in pkg_filenames:
-                        rel_path = os.path.join(
-                            package_name.asPath(),
-                            os.path.relpath(pkg_filename, package_directory),
-                        )
-
-                        _handleDataFile(
-                            dist_dir,
-                            inclusion_logger,
-                            makeIncludedDataFile(pkg_filename, rel_path, file_reason),
-                        )

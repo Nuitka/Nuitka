@@ -32,6 +32,12 @@ import sys
 from collections import namedtuple
 
 from nuitka.__past__ import getMetaClassBase
+from nuitka.freezer.IncludedDataFiles import (
+    makeIncludedDataDirectory,
+    makeIncludedDataFile,
+    makeIncludedEmptyDirectories,
+    makeIncludedGeneratedDataFile,
+)
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.ModuleRegistry import getModuleInclusionInfoByName
 from nuitka.Options import isStandaloneMode
@@ -500,6 +506,54 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
+
+    def makeIncludedDataFile(self, source_path, dest_path, reason, tags=""):
+        return makeIncludedDataFile(
+            source_path=source_path,
+            dest_path=dest_path,
+            reason=reason,
+            tracer=self,
+            tags=tags,
+        )
+
+    def makeIncludedGeneratedDataFile(self, data, dest_path, reason, tags=""):
+        return makeIncludedGeneratedDataFile(
+            data=data, dest_path=dest_path, reason=reason, tracer=self, tags=tags
+        )
+
+    def makeIncludedDataDirectory(
+        self,
+        source_path,
+        dest_path,
+        reason,
+        tags="",
+        ignore_dirs=(),
+        ignore_filenames=(),
+        ignore_suffixes=(),
+        only_suffixes=(),
+        normalize=True,
+    ):
+        return makeIncludedDataDirectory(
+            source_path=source_path,
+            dest_path=dest_path,
+            reason=reason,
+            tracer=self,
+            tags=tags,
+            ignore_dirs=ignore_dirs,
+            ignore_filenames=ignore_filenames,
+            ignore_suffixes=ignore_suffixes,
+            only_suffixes=only_suffixes,
+            normalize=normalize,
+        )
+
+    def makeIncludedEmptyDirectories(self, source_path, dest_paths, reason, tags):
+        return makeIncludedEmptyDirectories(
+            source_path=source_path,
+            dest_paths=dest_paths,
+            reason=reason,
+            tracer=self,
+            tags=tags,
+        )
 
     def updateDataFileTags(self, included_datafile):
         """Add or remove data file tags."""

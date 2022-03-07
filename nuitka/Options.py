@@ -337,11 +337,6 @@ standalone where there is a sane default used inside the dist folder."""
             "Conflicting options '--follow-imports' and '--nofollow-imports' given."
         )
 
-    if getShallIncludePackageData() and not isStandaloneMode():
-        Tracing.options_logger.sysexit(
-            "Error, package data files are only included in standalone or onefile mode."
-        )
-
     for module_pattern in getShallIncludePackageData():
         if (
             module_pattern.startswith("-")
