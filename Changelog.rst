@@ -573,7 +573,7 @@ New Features
 -  Compiled types of Nuitka now inherit from uncompiled types. This
    should allow easier and more complete compatibility, making even code
    in extension modules that uses ``PyObject_IsInstance`` work, e.g.
-   ``pydanctic``.
+   ``pydantic``.
 
 -  macOS: Added signing of application bundles and standalone binaries
    for deployment to newer macOS platforms and esp. M1 where these are
@@ -1539,7 +1539,7 @@ New Features
    uncompiled types. This should allow easier and more complete
    compatibility, making even code in extension modules that uses
    ``PyObject_IsInstance`` work, providing support for packages like
-   ``pydanctic``.
+   ``pydantic``.
 
 -  Plugins: The Qt binding plugins now resolve ``pyqtgraph`` selection
    of binding by hard coding ``QT_LIB``. This will allow to resolve its
@@ -4319,7 +4319,7 @@ Bug Fixes
    initialisation and switch to built-in bytecode loader that is more
    compatible afterwards, increasing compatibility.
 
--  Standalone: Fix for pydanctic support.
+-  Standalone: Fix for ``pydantic`` support.
 
 -  Standalone: Added missing hidden dependency of uvicorn.
 
