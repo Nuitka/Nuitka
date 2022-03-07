@@ -153,4 +153,5 @@
         "virtualenv",
         "zstandard"
     ],
+    "esbonio.server.enabled": true,
 }
