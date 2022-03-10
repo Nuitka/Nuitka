@@ -135,30 +135,30 @@ The Tcl library dir. See comments for Tk library dir.""",
         # Check typical locations of the dirs
         candidates_tcl = (
             os.environ.get("TCL_LIBRARY"),
-            os.path.join(sys.prefix, "tcl", "tcl8.5"),
-            os.path.join(sys.prefix, "tcl", "tcl8.6"),
-            os.path.join(sys.prefix, "lib", "tcl8.5"),
-            os.path.join(sys.prefix, "lib", "tcl8.6"),
             "/usr/share/tcltk/tcl8.6",
             "/usr/share/tcltk/tcl8.5",
             "/usr/share/tcl8.6",
             "/usr/share/tcl8.5",
             "/usr/lib64/tcl/tcl8.5",
             "/usr/lib64/tcl/tcl8.6",
+            os.path.join(sys.prefix, "tcl", "tcl8.5"),
+            os.path.join(sys.prefix, "tcl", "tcl8.6"),
+            os.path.join(sys.prefix, "lib", "tcl8.5"),
+            os.path.join(sys.prefix, "lib", "tcl8.6"),
         )
 
         candidates_tk = (
             os.environ.get("TK_LIBRARY"),
-            os.path.join(sys.prefix, "tcl", "tk8.5"),
-            os.path.join(sys.prefix, "tcl", "tk8.6"),
-            os.path.join(sys.prefix, "lib", "tk8.5"),
-            os.path.join(sys.prefix, "lib", "tk8.6"),
             "/usr/share/tcltk/tk8.6",
             "/usr/share/tcltk/tk8.5",
             "/usr/share/tk8.6",
             "/usr/share/tk8.5",
             "/usr/lib64/tcl/tk8.5",
             "/usr/lib64/tcl/tk8.6",
+            os.path.join(sys.prefix, "tcl", "tk8.5"),
+            os.path.join(sys.prefix, "tcl", "tk8.6"),
+            os.path.join(sys.prefix, "lib", "tk8.5"),
+            os.path.join(sys.prefix, "lib", "tk8.6"),
         )
 
         tcl = self.tcl_library_dir
