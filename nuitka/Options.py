@@ -1502,9 +1502,7 @@ def shallNotStoreDependsExeCachedResults():
 def getPluginNameConsideringRenames(plugin_name):
     """Name of the plugin with renames considered."""
 
-    if plugin_name == "qt-plugins":
-        return "pyqt5"
-    elif plugin_name == "etherium":
+    if plugin_name == "etherium":
         return "ethereum"
     else:
         return plugin_name
