@@ -80,6 +80,7 @@ hard_modules = frozenset(
         "_frozen_importlib_external",
         "pkgutil",
         "functools",
+        "sysconfig",
     )
 )
 
@@ -150,6 +151,7 @@ hard_modules_trust = {
     "_frozen_importlib_external": {},
     "pkgutil": {"get_data": trust_node},
     "functools": {"partial": trust_exist},
+    "sysconfig": {},
 }
 
 

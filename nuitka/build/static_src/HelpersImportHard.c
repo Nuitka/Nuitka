@@ -143,6 +143,19 @@ PyObject *IMPORT_HARD_SYS(void) {
 
     return module_sys;
 }
+/* C helper for hard import of module "sysconfig" import. */
+
+PyObject *IMPORT_HARD_SYSCONFIG(void) {
+    static PyObject *module_sysconfig = NULL;
+
+    if (module_sysconfig == NULL) {
+        module_sysconfig = PyImport_ImportModule("sysconfig");
+    }
+
+    CHECK_OBJECT(module_sysconfig);
+
+    return module_sysconfig;
+}
 /* C helper for hard import of module "types" import. */
 
 PyObject *IMPORT_HARD_TYPES(void) {
