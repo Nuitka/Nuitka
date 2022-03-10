@@ -51,33 +51,7 @@ class NuitkaPluginTensorflow(NuitkaPluginBase):
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         for candidate in ("tensor", "google"):
             if module_name.hasNamespace(candidate):
-                return True, "Accept everything from %s" % candidate
-
-    def onModuleSourceCode(self, module_name, source_code):
-        """Neutralize some path magic in tensorflow.
-
-        Notes:
-            Make sure tensorflow understands, we are not running as a PIP
-            installed application.
-        """
-        if module_name != "tensorflow":
-            return source_code
-
-        source_lines = source_code.splitlines()
-        found_insert = False
-        for i, l in enumerate(source_lines):
-            if l.startswith("def ") and "_running_from_pip_package():" in l:
-                source_lines.insert(i, "_site_packages_dirs = []")
-                source_lines.insert(i, "from tensorflow.python import keras")
-                found_insert = True
-                break
-
-        if found_insert is True:
-            self.info("Patched 'running-from-pip' path magic.")
-        else:
-            self.sysexit("Did not find 'running-from-pip' path magic code.")
-
-        return "\n".join(source_lines)
+                return True, "Including everything from %s" % candidate
 
     def decideCompilation(self, module_name):
         """Include major packages as bytecode.

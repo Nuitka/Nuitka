@@ -271,8 +271,8 @@ which can and should be a top level package and then one choice, "error",
         # We trust the yaml files, pylint: disable=eval-used,exec-used
         context_ready = not bool(context_code)
 
-        for change_function_name, replace_code in config.get(
-            "change_function", {}
+        for change_function_name, replace_code in (
+            config.get("change_function") or {}
         ).items():
             if function_name != change_function_name:
                 continue

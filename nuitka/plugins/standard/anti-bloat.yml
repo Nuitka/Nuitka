@@ -22,6 +22,11 @@ cffi.ffiplatform:
   replacements:
     "import setuptools": "'pass'"
 
+cffi.api:
+  description: "disable distutils extension build"
+  change_function:
+    "distutils_extension": "'(lambda: None)'"
+
 skimage:
   description: "remove pytest testing framework"
   replacements:
@@ -156,6 +161,13 @@ scipy.integrate._quadrature:
   change_function:
     "_copy_func": "'(lambda f: f)'"
 
+tensorflow:
+  description: "remove useless distutils usage"
+  replacements:
+    "import distutils as _distutils": "'_distutils = None'"
+    "import site as _site": "'_site = None'"
+    "if _running_from_pip_package()": "'if False'"
+    "_site.ENABLE_USER_SITE": "'False'"
 
 tensorflow.python.ops.distributions.distribution:
   description: "remove useless function copying"
@@ -163,6 +175,19 @@ tensorflow.python.ops.distributions.distribution:
     "_copy_fn": "'(lambda fn: fn)'"
   replacements:
     "class_attr_value.__doc__ = _update_docstring": "'class_attr_value___doc__ = _update_docstring'"
+
+tensorflow.python.framework.meta_graph:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils import version as distutils_version": ""
+    "distutils_version.LooseVersion": "'str'"
+
+tensorflow.python.compiler.tensorrt.utils:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils import version as distutils_version": ""
+    "distutils_version.LooseVersion": "'str'"
+
 
 gevent._util:
   description: "remove gevent release framework"

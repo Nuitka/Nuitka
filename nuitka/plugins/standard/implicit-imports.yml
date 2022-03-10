@@ -95,3 +95,7 @@ dns.rdtypes:
   depends:
     - ".IN.A"
     - ".CH.A"
+
+tensorflow:
+  depends:
+    - "tensorflow.python.keras"
