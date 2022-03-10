@@ -531,10 +531,10 @@ Nuitka.
       ...,
       command_options={
          'nuitka': {
-            # boolean option, e.g. if you cared for C commands
+            # boolean option, e.g. if you cared for C compilation commands
             '--show-scons': True,
             # options without value, e.g. enforce using Clang
-            '--clang': ("setup.py", None),
+            '--clang': None,
             # options with single values, e.g. enable a plugin of Nuitka
             '--enable-plugin': "pyside2",
             # options with several values, e.g. avoiding including modules
@@ -552,7 +552,7 @@ Nuitka.
       ...,
       command_options={
          'nuitka': {
-            # boolean option, e.g. if you cared for C commands
+            # boolean option, e.g. if you cared for C compilation commands
             '--show-scons': ("setup.py", True),
             # options without value, e.g. enforce using Clang
             '--clang': ("setup.py", None),
@@ -598,6 +598,24 @@ value:
    [build-system]
    requires = ["setuptools>=42", "wheel", "nuitka"]
    build-backend = "nuitka.distutils.Build"
+
+   [nuitka]
+   # These are not recommended, but they make it obvious to have effect.
+
+   # boolean option, e.g. if you cared for C compilation commands, leading
+   # dashes are omitted
+   show-scons = true
+
+   # options without value, e.g. enforce using Clang, empty value
+   # indicates no value.
+   clang = ""
+
+   # options with single values, e.g. enable a plugin of Nuitka
+   enable-plugin = pyside2
+
+   # options with several values, e.g. avoiding including modules, accepts
+   # list argument.
+   nofollow-import-to = ["*.tests", "*.distutils"]
 
 ********
  Tweaks

@@ -158,6 +158,25 @@ class build(distutils.command.build.build):
 
         return builds
 
+    @staticmethod
+    def _parseOptionsEntry(option, value):
+        option = "--" + option.lstrip("-")
+
+        if type(value) is tuple and len(value) == 2 and value[0] == "setup.py":
+            value = value[1]
+
+        if value is None or value == "":
+            yield option
+        elif isinstance(value, bool):
+            yield "--" + ("no" if not value else "") + option.lstrip("-")
+        elif isinstance(value, Iterable) and not isinstance(
+            value, (unicode, bytes, str)
+        ):
+            for val in value:
+                yield "%s=%s" % (option, val)
+        else:
+            yield "%s=%s" % (option, value)
+
     def _build(self, build_lib):
         # High complexity, pylint: disable=too-many-branches,too-many-locals
 
@@ -204,32 +223,29 @@ class build(distutils.command.build.build):
             else:
                 command.append("--include-module=%s" % module_name)
 
+            toml_filename = os.environ.get("NUITKA_TOML_FILE")
+            if toml_filename:
+                # Import toml parser like "build" module does.
+                try:
+                    from tomli import loads as toml_loads
+                except ImportError:
+                    from toml import loads as toml_loads
+
+                # Cannot use FileOperations.getFileContents() here, because of non-Nuitka process
+                # pylint: disable=unspecified-encoding
+
+                with open(toml_filename) as toml_file:
+                    toml_options = toml_loads(toml_file.read())
+
+                for option, value in toml_options.get("nuitka", {}).items():
+                    command.extend(self._parseOptionsEntry(option, value))
+
             # Process any extra options from setuptools
             if "nuitka" in self.distribution.command_options:
                 for option, value in self.distribution.command_options[
                     "nuitka"
                 ].items():
-                    option = "--" + option.lstrip("-")
-
-                    if (
-                        type(value) is tuple
-                        and len(value) == 2
-                        and value[0] == "setup.py"
-                    ):
-                        value = value[1]
-
-                    if value is None:
-                        command.append(option)
-                    elif isinstance(value, bool):
-                        option = "--" + ("no" if not value else "") + option.lstrip("-")
-                        command.append(option)
-                    elif isinstance(value, Iterable) and not isinstance(
-                        value, (unicode, bytes, str)
-                    ):
-                        for val in value:
-                            command.append("%s=%s" % (option, val))
-                    else:
-                        command.append("%s=%s" % (option, value))
+                    command.extend(self._parseOptionsEntry(option, value))
 
             command.append(main_filename)
 

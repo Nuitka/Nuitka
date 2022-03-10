@@ -18,6 +18,7 @@
 """ Nuitka python -m build integration """
 
 import contextlib
+import os
 
 import setuptools.build_meta
 
@@ -35,6 +36,8 @@ class NuitkaBuildMetaBackend(setuptools.build_meta._BuildMetaBackend):
     def build_wheel(
         self, wheel_directory, config_settings=None, metadata_directory=None
     ):
+        os.environ["NUITKA_TOML_FILE"] = os.path.join(os.getcwd(), "pyproject.toml")
+
         with suppress_known_deprecation():
             return self._build_with_temp_dir(
                 ["bdist_nuitka"], ".whl", wheel_directory, config_settings

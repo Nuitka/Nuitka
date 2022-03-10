@@ -20,3 +20,8 @@
 [build-system]
 requires = ["setuptools>=42", "wheel", "nuitka"]
 build-backend = "nuitka.distutils.Build"
+
+[nuitka]
+# These are not recommended, but they make it obvious to have effect.
+show-scons = true
+clang = ""
