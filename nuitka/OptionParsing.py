@@ -1255,9 +1255,9 @@ macos_group.add_option(
     metavar="MACOS_SIGNED_APP_NAME",
     default=None,
     help="""\
-Name of the application to use for macOS signing. Follow com.yourcompany.appname naming
-results for best results, as these have to be globally unique, and will grant protected
-API accesses.""",
+Name of the application to use for macOS signing. Follow "com.yourcompany.appname"
+naming results for best results, as these have to be globally unique, and will
+potentially grant protected API accesses.""",
 )
 
 macos_group.add_option(
@@ -1272,14 +1272,43 @@ filename of the binary.""",
 )
 
 macos_group.add_option(
+    "--macos-sign-identity",
+    action="store",
+    dest="macos_sign_identity",
+    metavar="MACOS_APP_VERSION",
+    default="-",
+    help="""\
+When signing on macOS, by default an ad-hoc identify will be used, but with this
+option your get to specify another identity to use. The signing of code is now
+mandatory on macOS and cannot be disabled. Default "-" if not given, which means
+ad-hoc.""",
+)
+
+macos_group.add_option(
     "--macos-app-version",
     action="store",
     dest="macos_app_version",
     metavar="MACOS_APP_VERSION",
     default=None,
     help="""\
-Product version to use in macOS bundle information. Defaults to 1.0 if
+Product version to use in macOS bundle information. Defaults to "1.0" if
 not given.""",
+)
+
+macos_group.add_option(
+    "--macos-app-protected-resource",
+    action="append",
+    dest="macos_protected_resources",
+    metavar="RESOURCE_DESC",
+    default=[],
+    help="""\
+Request access for macOS protected resources, e.g.
+"NSMicrophoneUsageDescription:Microphone access for recording audio."
+requests access to the microphone and provides an informative text for
+the user, why that is needed. Before the colon, is an OS identifier for
+an access right, then the informative text. Legal values can be found on
+https://developer.apple.com/documentation/bundleresources/information_property_list/protected_resources and
+the option can be specified multiple times. Default empty.""",
 )
 
 

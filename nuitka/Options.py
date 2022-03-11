@@ -1350,8 +1350,13 @@ def getMacOSTargetArch():
 
 
 def shallCreateAppBundle():
-    """*bool* shall create an application bundle"""
+    """*bool* shall create an application bundle, derived from ``--macos-create-app-bundle`` value"""
     return options.macos_create_bundle and isMacOS()
+
+
+def getMacOSSigningIdentity():
+    """*str* value to use as identity for codesign, derived from ``--macos-sign-identity`` value"""
+    return options.macos_sign_identity
 
 
 def getMacOSAppName():
@@ -1367,6 +1372,12 @@ def getMacOSSignedAppName():
 def getMacOSAppVersion():
     """*str* version of the app to use for bundle"""
     return options.macos_app_version
+
+
+def getMacOSAppProtectedResourcesAccesses():
+    """*list* key, value for protected resources of the app to use for bundle"""
+    for macos_protected_resource in options.macos_protected_resources:
+        yield macos_protected_resource.split(":", 1)
 
 
 def getAppImageCompression():

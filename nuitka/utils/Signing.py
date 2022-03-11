@@ -19,6 +19,7 @@
 
 """
 
+from nuitka.Options import getMacOSSigningIdentity
 from nuitka.Tracing import postprocessing_logger
 
 from .Execution import executeToolChecked
@@ -40,13 +41,11 @@ def _filterSigntoolErrorOutput(stderr):
     return stderr
 
 
-def addMacOSCodeSignature(filenames, identity=None, entitlements_filename=None):
+def addMacOSCodeSignature(filenames):
     """Remove the code signature from a filename.
 
     Args:
         filenames - The files to be signed.
-        identity - Use this identity to sign, default adhoc signature.
-        entitlements_filename - Apply these entitlements in signature.
 
     Returns:
         None
@@ -56,18 +55,16 @@ def addMacOSCodeSignature(filenames, identity=None, entitlements_filename=None):
     """
 
     # Weak signing.
-    if not identity:
-        identity = "-"
+    identity = getMacOSSigningIdentity()
 
-    command = ["codesign", "-s", identity, "--force", "--deep"]
-
-    # hardened runtime unless no good identity
-    if identity != "-":
-        command.append("--options=runtime")
-
-    if entitlements_filename:
-        command.append("--entitlements")
-        command.append(entitlements_filename)
+    command = [
+        "codesign",
+        "-s",
+        identity,
+        "--force",
+        "--deep",
+        "--preserve-metadata=entitlements",
+    ]
 
     assert type(filenames) is not str
     command.extend(filenames)
