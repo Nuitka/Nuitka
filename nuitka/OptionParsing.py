@@ -103,7 +103,16 @@ def _getVersionInformationValues():
     yield "Arch: %s" % getArchitecture()
 
     if isLinux():
-        yield "Distribution: %s (based on %s) %s" % getLinuxDistribution()
+        dist_name, dist_base, dist_version = getLinuxDistribution()
+
+        if dist_base is not None:
+            yield "Distribution: %s (based on %s) %s" % (
+                dist_name,
+                dist_base,
+                dist_version,
+            )
+        else:
+            yield "Distribution: %s %s" % (dist_name, dist_version)
 
     if getOS() == "Windows":
         yield "WindowsRelease: %s" % getWindowsRelease()
