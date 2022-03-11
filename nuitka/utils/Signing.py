@@ -38,6 +38,13 @@ def _filterSigntoolErrorOutput(stderr):
         if b"replacing existing signature" not in line
     )
 
+    if b"errSecInternalComponent" in stderr:
+        postprocessing_logger.sysexit(
+            """\
+Access to the certificate is now allowed. Please allow all items or with
+GUI, enable prompting for the certificate in KeyChain Access."""
+        )
+
     return stderr
 
 
