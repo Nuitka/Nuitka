@@ -262,7 +262,15 @@ standalone where there is a sane default used inside the dist folder."""
 
     if isLinux():
         if len(getIconPaths()) > 1:
-            Tracing.options_logger.sysexit("Error, can only use one icon on Linux.")
+            Tracing.options_logger.sysexit(
+                "Error, can only use one icon file on Linux."
+            )
+
+    if isMacOS():
+        if len(getIconPaths()) > 1:
+            Tracing.options_logger.sysexit(
+                "Error, can only use one icon file on macOS."
+            )
 
     for icon_path in getIconPaths():
         if "#" in icon_path and isWin32Windows():

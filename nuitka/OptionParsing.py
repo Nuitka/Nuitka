@@ -1239,12 +1239,12 @@ is the only way to unlock disabling of console.Defaults to off.""",
 )
 
 macos_group.add_option(
-    "--macos-onefile-icon",
+    "--macos-app-icon",
     action="append",
     dest="icon_path",
     metavar="ICON_PATH",
     default=[],
-    help="Add executable icon for binary to use. Can be given only one time. Defaults to Python icon if available.",
+    help="Add icon for the application bundle to use. Can be given only one time. Defaults to Python icon if available.",
 )
 
 
