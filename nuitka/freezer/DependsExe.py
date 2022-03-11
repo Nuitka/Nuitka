@@ -175,7 +175,7 @@ SxS
 
     if not os.path.exists(output_filename):
         inclusion_logger.sysexit(
-            "Error, depends.exe failed to produce expected output."
+            "Error, 'depends.exe' failed to produce expected output."
         )
 
     # Opening the result under lock, so it is not getting locked by new processes.

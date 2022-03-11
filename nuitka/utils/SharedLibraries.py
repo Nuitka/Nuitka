@@ -305,7 +305,7 @@ def _filterPatchelfErrorOutput(stderr):
         if b"warning: working around" not in line
     )
 
-    return stderr
+    return None, stderr
 
 
 def _setSharedLibraryRPATHElf(filename, rpath):
@@ -329,7 +329,7 @@ def _filterInstallNameToolErrorOutput(stderr):
         if b"invalidate the code signature" not in line
     )
 
-    return stderr
+    return None, stderr
 
 
 _installnametool_usage = "The 'install_name_tool' is used to make binaries portable on macOS and required to be found."

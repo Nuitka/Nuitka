@@ -330,7 +330,10 @@ def executeToolChecked(logger, command, absence_message, stderr_filter=None):
     result = process.poll()
 
     if stderr_filter is not None:
-        stderr = stderr_filter(stderr)
+        new_result, stderr = stderr_filter(stderr)
+
+        if new_result is not None:
+            result = new_result
 
     if result != 0:
         logger.sysexit("Error, call to %r failed: %s -> %s." % (tool, command, stderr))

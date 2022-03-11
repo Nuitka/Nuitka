@@ -25,7 +25,7 @@ from nuitka.Tracing import postprocessing_logger
 from .Execution import executeToolChecked
 from .FileOperations import withMadeWritableFileMode
 
-macos_codesign_usage = (
+_macos_codesign_usage = (
     "The 'codesign' is used to make signatures on macOS and required to be found."
 )
 
@@ -45,7 +45,7 @@ Access to the certificate is now allowed. Please allow all items or with
 GUI, enable prompting for the certificate in KeyChain Access."""
         )
 
-    return stderr
+    return None, stderr
 
 
 def addMacOSCodeSignature(filenames):
@@ -80,6 +80,6 @@ def addMacOSCodeSignature(filenames):
         executeToolChecked(
             logger=postprocessing_logger,
             command=command,
-            absence_message=macos_codesign_usage,
+            absence_message=_macos_codesign_usage,
             stderr_filter=_filterSigntoolErrorOutput,
         )
