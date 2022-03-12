@@ -23,6 +23,7 @@ import sys
 from nuitka import Options
 from nuitka.freezer.IncludedDataFiles import makeIncludedDataDirectory
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.utils.Utils import isWin32Windows
 
 
 def _isTkInterModule(module):
@@ -195,6 +196,13 @@ The Tcl library dir. See comments for Tk library dir.""",
             dest_path="tcl",
             reason="Tcl needed for tkinter usage",
         )
+
+        if isWin32Windows():
+            yield self.makeIncludedDataDirectory(
+                source_path=os.path.join(tcl, "..", "tcl8"),
+                dest_path="tcl8",
+                reason="Tcl modules needed for tkinter usage",
+            )
 
 
 class NuitkaPluginDetectorTkinter(NuitkaPluginBase):
