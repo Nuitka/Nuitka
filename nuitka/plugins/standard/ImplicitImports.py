@@ -1320,6 +1320,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
         "telethon.tl.types",  # Not performance relevant and slow C compile
         "importlib_metadata",  # Not performance relevant and slow C compile
         "comtypes.gen",  # Not performance relevant and slow C compile
+        "win32com.gen_py",  # Not performance relevant and slow C compile
         "phonenumbers.geodata",  # Not performance relevant and slow C compile
         "site",  # Not performance relevant and problems with .pth files
         "packaging",  # Not performance relevant.

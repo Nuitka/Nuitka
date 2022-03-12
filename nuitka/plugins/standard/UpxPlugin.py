@@ -68,6 +68,9 @@ Do not cache UPX compression result, by default DLLs are cached, exe files are n
     def _compressFile(self, filename, use_cache):
         upx_options = ["-q", "--no-progress"]
 
+        if os.path.basename(filename).startswith("vcruntime140"):
+            return
+
         if use_cache:
             if self.upx_binary_hash is None:
                 self.upx_binary_hash = getFileContentsHash(
