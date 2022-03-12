@@ -27,6 +27,7 @@ import sys
 from nuitka.PythonVersions import (
     getPartiallySupportedPythonVersions,
     getSupportedPythonVersions,
+    python_version_str,
 )
 from nuitka.Tracing import my_print
 
@@ -68,7 +69,7 @@ def createMSIPackage():
                 sys.executable,
                 "setup.py",
                 "bdist_msi",
-                "--target-version=" + sys.version[:3],
+                "--target-version=" + python_version_str,
             )
         )
         == 0

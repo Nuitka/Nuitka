@@ -52,8 +52,12 @@ def _parseOsReleaseFileContents(filename):
     from .FileOperations import getFileContentByLine
 
     for line in getFileContentByLine(filename):
+        if line.startswith("PRETTY_NAME=") and "/sid" in line:
+            version = "sid"
+
         if line.startswith("ID="):
             result = line[3:].strip('"')
+
         if line.startswith("ID_LIKE="):
             base = line[8:].strip('"').lower()
 
@@ -61,11 +65,12 @@ def _parseOsReleaseFileContents(filename):
                 base = "Ubuntu"
             elif "debian" in base:
                 base = "Debian"
+
         if line.startswith("VERSION="):
             version = line[8:].strip('"')
 
         if "SUSE Linux Enterprise Server" in line:
-            result = "SLES"
+            result = "SLES"  # spell-checker: ignore SLES
 
     return result, base, version
 
@@ -261,15 +266,15 @@ def getUserName():
 
 
 @contextmanager
-def withNoDeprecationWarning():
+def withWarningRemoved(category):
     import warnings
 
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        warnings.filterwarnings("ignore", category=category)
 
         # These do not inherit from DeprecationWarning by some decision we
         # are not to care about.
-        if "pkg_resources" in sys.modules:
+        if "pkg_resources" in sys.modules and category is DeprecationWarning:
             try:
                 from pkg_resources import PkgResourcesDeprecationWarning
             except ImportError:
@@ -279,4 +284,16 @@ def withNoDeprecationWarning():
                     "ignore", category=PkgResourcesDeprecationWarning
                 )
 
+        yield
+
+
+@contextmanager
+def withNoDeprecationWarning():
+    with withWarningRemoved(DeprecationWarning):
+        yield
+
+
+@contextmanager
+def withNoSyntaxWarning():
+    with withWarningRemoved(SyntaxWarning):
         yield

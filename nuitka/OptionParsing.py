@@ -50,6 +50,7 @@ from nuitka.utils.Utils import (
     getWindowsRelease,
     isLinux,
     isPosixWindows,
+    withNoSyntaxWarning,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
@@ -102,7 +103,16 @@ def _getVersionInformationValues():
     yield "Arch: %s" % getArchitecture()
 
     if isLinux():
-        yield "Distribution: %s (based on %s) %s" % getLinuxDistribution()
+        dist_name, dist_base, dist_version = getLinuxDistribution()
+
+        if dist_base is not None:
+            yield "Distribution: %s (based on %s) %s" % (
+                dist_name,
+                dist_base,
+                dist_version,
+            )
+        else:
+            yield "Distribution: %s %s" % (dist_name, dist_version)
 
     if getOS() == "Windows":
         yield "WindowsRelease: %s" % getWindowsRelease()
@@ -1484,9 +1494,11 @@ def _getProjectOptions(logger, filename_arg, module_mode):
                 arg = arg[:-1]
 
                 expanded = _expandProjectArg(arg, filename_arg, for_eval=True)
-                r = eval(  # We allow the user to run any code, pylint: disable=eval-used
-                    expanded
-                )
+
+                with withNoSyntaxWarning():
+                    r = eval(  # We allow the user to run any code, pylint: disable=eval-used
+                        expanded
+                    )
 
                 # Likely mistakes, e.g. with "in" tests.
                 if r is not True and r is not False:
