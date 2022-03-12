@@ -586,6 +586,7 @@ def autoformat(
             ".sh",
             ".in",
             ".md",
+            ".toml",
             ".asciidoc",
             ".nuspec",
             ".yml",
