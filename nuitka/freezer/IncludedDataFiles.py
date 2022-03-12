@@ -140,6 +140,7 @@ def makeIncludedDataDirectory(
     normalize=True,
 ):
     assert isRelativePath(dest_path), dest_path
+    assert os.path.isdir(source_path), source_path
 
     return IncludedDataDirectory(
         kind="data_dir",
