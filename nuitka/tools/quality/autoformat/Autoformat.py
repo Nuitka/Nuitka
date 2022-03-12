@@ -215,7 +215,7 @@ def _updateCommentNode(comment_node):
 
 
 def _cleanupPyLintComments(filename):
-    new_code = old_code = getFileContents(filename)
+    new_code = old_code = getFileContents(filename, encoding="utf8")
 
     def replacer(part):
         def renamer(pylint_token):
@@ -349,7 +349,7 @@ def _cleanupImportSortOrder(filename):
 
     isort_call = _getPythonBinaryCall("isort")
 
-    contents = getFileContents(filename)
+    contents = getFileContents(filename, encoding="utf8")
 
     start_index = None
     if "\n# isort:start" in contents:
