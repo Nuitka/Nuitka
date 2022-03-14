@@ -198,7 +198,7 @@ The Tcl library dir. See comments for Tk library dir.""",
         )
 
         if isWin32Windows():
-            yield self.makeIncludedDataDirectory(
+            yield makeIncludedDataDirectory(
                 source_path=os.path.join(tcl, "..", "tcl8"),
                 dest_path="tcl8",
                 reason="Tcl modules needed for tkinter usage",
