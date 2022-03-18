@@ -569,23 +569,7 @@ static PyObject *_path_unfreezer_get_data(PyObject *self, PyObject *args, PyObje
         return NULL;
     }
 
-    PyObject *data_file = BUILTIN_OPEN_SIMPLE(filename, "rb", false);
-
-    if (unlikely(data_file == NULL)) {
-        // TODO: Issue a runtime warning maybe.
-        return NULL;
-    }
-
-    PyObject *read_method = PyObject_GetAttr(data_file, const_str_plain_read);
-    Py_DECREF(data_file);
-
-    if (unlikely(read_method == NULL)) {
-        return NULL;
-    }
-
-    PyObject *result = CALL_FUNCTION_NO_ARGS(read_method);
-    Py_DECREF(read_method);
-    return result;
+    return GET_FILE_BYTES(filename);
 }
 
 #ifdef _WIN32

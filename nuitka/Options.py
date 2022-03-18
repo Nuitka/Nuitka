@@ -429,11 +429,6 @@ standalone where there is a sane default used inside the dist folder."""
                 % (dst, data_dir)
             )
 
-    if (options.data_files or options.data_dirs) and not isStandaloneMode():
-        Tracing.options_logger.sysexit(
-            "Error, data files are only included in standalone or onefile mode."
-        )
-
     for pattern in getShallFollowExtraFilePatterns():
         if os.path.isdir(pattern):
             Tracing.options_logger.sysexit(
@@ -976,6 +971,10 @@ def getDataFileTags(dest_path):
             result.update(tags.split(","))
 
     return result
+
+
+def addDataFileTags(pattern):
+    options.data_file_tags.append(pattern)
 
 
 def shallUseStaticLibPython():

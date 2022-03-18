@@ -531,6 +531,12 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #define UNTRANSLATE(x) (x)
 #endif
 
+#if _NUITKA_EXPERIMENTAL_FILE_TRACING
+#include "nuitka_file_tracer.h"
+#else
+#define TRACE_FILE_OPEN(x, y) (false)
+#endif
+
 #if _NUITKA_EXPERIMENTAL_INIT_PROGRAM
 #include "nuitka_init_program.h"
 #else

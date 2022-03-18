@@ -558,6 +558,9 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     def updateDataFileTags(self, included_datafile):
         """Add or remove data file tags."""
 
+    def onDataFileTags(self, included_datafile):
+        """Action on data file tags."""
+
     def onBeforeCodeParsing(self):
         """Prepare for code parsing, normally not needed."""
 
@@ -738,6 +741,15 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             plugins_logger.warning(
                 "Use '--enable-plugin=%s' for: %s" % (self.plugin_name, message)
             )
+
+    def onDataComposerRun(self):
+        """Internal use only.
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use
+        return None
 
     def onDataComposerResult(self, blob_filename):
         """Internal use only.

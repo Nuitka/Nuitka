@@ -32,6 +32,7 @@ from nuitka.Options import (
     getShallIncludeDataFiles,
     getShallIncludePackageData,
     isStandaloneMode,
+    shallMakeModule,
 )
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
 from nuitka.Tracing import options_logger
@@ -283,6 +284,12 @@ def addIncludedDataFilesFromPackageOptions():
         for included_datafile in Plugins.considerDataFiles(module=module):
             addIncludedDataFile(included_datafile)
 
+    for included_datafile in getIncludedDataFiles():
+        if isinstance(included_datafile, (IncludedDataFile)):
+            Plugins.onDataFileTags(
+                included_datafile,
+            )
+
 
 def _handleDataFile(included_datafile):
     """Handle a data file."""
@@ -393,6 +400,17 @@ def copyDataFiles():
             not isinstance(included_datafile, (IncludedDataFile))
             or included_datafile.needsCopy()
         ):
+            if shallMakeModule():
+                options_logger.sysexit(
+                    """\
+Error, data files for modules must be done via wheels, or commercial plugins '--embed-*' options."""
+                )
+            elif not isStandaloneMode():
+                options_logger.sysexit(
+                    """\
+Error, data files cannot be included in accelerated mode unless using commercial plugins '--embed-*' options."""
+                )
+
             _handleDataFile(
                 included_datafile,
             )

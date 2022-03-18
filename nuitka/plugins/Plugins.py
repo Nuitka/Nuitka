@@ -565,6 +565,11 @@ class Plugins(object):
 
         return tags
 
+    @staticmethod
+    def onDataFileTags(included_datafile):
+        for plugin in getActivePlugins():
+            plugin.onDataFileTags(included_datafile)
+
     @classmethod
     def _createTriggerLoadedModule(cls, module, trigger_name, code, flags):
         """Create a "trigger" for a module to be imported.
@@ -989,6 +994,11 @@ class Plugins(object):
                             cls.extra_link_directories.add(dir_name)
 
         return cls.extra_link_directories
+
+    @classmethod
+    def onDataComposerRun(cls):
+        for plugin in getActivePlugins():
+            plugin.onDataComposerRun()
 
     @classmethod
     def onDataComposerResult(cls, blob_filename):

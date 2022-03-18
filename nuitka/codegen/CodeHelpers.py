@@ -37,7 +37,11 @@ from .Reports import onMissingHelper
 expression_dispatch_dict = {}
 
 
-def addExpressionDispatchDict(dispatch_dict):
+def addExpressionDispatchDict(dispatch_dict, update=False):
+    if not update:
+        for key in dispatch_dict:
+            assert key not in expression_dispatch_dict, key
+
     # We use this to break the cyclic dependency.
     expression_dispatch_dict.update(dispatch_dict)
 

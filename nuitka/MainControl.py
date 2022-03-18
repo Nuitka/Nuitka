@@ -798,6 +798,7 @@ def compileTree():
                     memory=MemoryUsage.getHumanReadableProcessMemoryUsage()
                 )
             )
+
         # Now build the target language code for the whole tree.
         makeSourceDirectory()
 
@@ -837,8 +838,7 @@ def compileTree():
 
     general.info("Running data composer tool for optimal constant value handling.")
 
-    blob_filename = runDataComposer(source_dir)
-    Plugins.onDataComposerResult(blob_filename)
+    runDataComposer(source_dir)
 
     for filename, source_code in Plugins.getExtraCodeFiles().items():
         target_dir = os.path.join(source_dir, "plugins")
@@ -926,6 +926,8 @@ def main():
     except (SyntaxError, IndentationError) as e:
         handleSyntaxError(e)
 
+    addIncludedDataFilesFromPackageOptions()
+
     if Options.shallDumpBuiltTreeXML():
         # XML output only.
         for module in ModuleRegistry.getDoneModules():
@@ -937,8 +939,6 @@ def main():
         # Exit if compilation failed.
         if not result:
             sys.exit(1)
-
-        addIncludedDataFilesFromPackageOptions()
 
         # Relaunch in case of Python PGO input to be produced.
         if Options.shallCreatePgoInput():

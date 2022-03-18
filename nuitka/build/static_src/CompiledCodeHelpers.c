@@ -41,6 +41,7 @@ static void _initBuiltinTypeMethods(void) {
 #include "HelpersClasses.c"
 #include "HelpersDictionaries.c"
 #include "HelpersExceptions.c"
+#include "HelpersFiles.c"
 #include "HelpersHeapStorage.c"
 #include "HelpersImport.c"
 #include "HelpersImportHard.c"
@@ -1677,7 +1678,7 @@ char const *getBinaryDirectoryHostEncoded(void) {
 }
 #endif
 
-static PyObject *getBinaryDirectoryObject(void) {
+PyObject *getBinaryDirectoryObject(void) {
     static PyObject *binary_directory = NULL;
 
     if (binary_directory != NULL) {

@@ -246,23 +246,6 @@ PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering,
 
 #endif
 
-// Small helper to open files with few arguments.
-PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool buffering) {
-    PyObject *mode_obj = Nuitka_String_FromString(mode);
-
-    PyObject *buffering_obj = buffering ? const_int_pos_1 : const_int_0;
-
-#if PYTHON_VERSION < 0x300
-    PyObject *result = BUILTIN_OPEN(filename, mode_obj, buffering_obj);
-#else
-    PyObject *result = BUILTIN_OPEN(filename, mode_obj, buffering_obj, NULL, NULL, NULL, NULL, NULL);
-#endif
-
-    Py_DECREF(mode_obj);
-
-    return result;
-}
-
 /** The "staticmethod" built-in.
  *
  **/
