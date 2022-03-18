@@ -1081,6 +1081,15 @@ It doesn't set ``sys.frozen`` unlike other tools. For Nuitka, we have
 the module attribute ``__compiled__`` to test if a specific module was
 compiled.
 
+Providing extra Options to Nuitka C compilation
+===============================================
+
+Nuitka will apply values from the environment variables ``CCFLAGS``,
+``LDFLAGS`` during the compilation on top of what it determines to be
+necessary. Beware of course, that is this is only useful if you know
+what you are doing, so should this pose an issues, raise them only with
+perfect information.
+
 *************
  Performance
 *************
