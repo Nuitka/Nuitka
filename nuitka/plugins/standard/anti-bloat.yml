@@ -1,5 +1,6 @@
 ---
 # yamllint disable rule:line-length
+# too many spelling things, spell-checker: disable
 psutil:
   description: "resolve platform specific imports at compile time"
   context:

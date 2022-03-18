@@ -80,8 +80,7 @@ static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] = {
     {NULL, NULL, 0, 0, 0}
 };
 
-static void _loadBytesCodesBlob()
-{
+static void _loadBytesCodesBlob(void) {
     static bool init_done = false;
 
     if (init_done == false) {
@@ -100,8 +99,6 @@ void setupMetaPathBasedLoader(void) {
 
         init_done = true;
     }
-
-
 }
 
 // This provides the frozen (compiled bytecode) files that are included if
