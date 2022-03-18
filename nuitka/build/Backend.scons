@@ -828,8 +828,8 @@ else:
             env.Append(LINKFLAGS=["-s"])
 
 
-# MinGW for 64 bits needs this due to CPython bugs.
-if win_target and target_arch == "x86_64" and env.gcc_mode:
+# MinGW64 for 64 bits needs this due to CPython bugs.
+if env.mingw_mode and target_arch == "x86_64":
     env.Append(CPPDEFINES=["MS_WIN64"])
 
 # Set load libpython from binary directory default
