@@ -294,7 +294,10 @@ which can and should be a top level package and then one choice, "error",
             replacement = ast.parse(replacement).body[0]
 
             if type(replacement) is ast.Expr:
-                body[:] = [ast.Return(replacement.value)]
+                if type(replacement.value) is ast.Lambda:
+                    body[:] = [ast.Return(replacement.value.body)]
+                else:
+                    body[:] = [ast.Return(replacement.value)]
             else:
                 body[:] = replacement.body
 
@@ -306,7 +309,7 @@ which can and should be a top level package and then one choice, "error",
     def onModuleEncounter(self, module_filename, module_name, module_kind):
         for handled_module_name, mode in self.handled_modules.items():
             if module_name.hasNamespace(handled_module_name):
-                # Make sure the compilation abrts.
+                # Make sure the compilation aborts.
                 if mode == "error":
                     raise NuitkaForbiddenImportEncounter(module_name)
 

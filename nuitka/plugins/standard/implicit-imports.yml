@@ -74,6 +74,10 @@ _asyncio:
   depends:
     - "asyncio"
 
+shelve:
+  depends:
+    - "dbm"
+
 shiboken6:
   depends:
     - "argparse"
