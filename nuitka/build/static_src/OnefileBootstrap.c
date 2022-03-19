@@ -512,12 +512,14 @@ static void cleanupChildProcess(void) {
 #endif
         // We only need to wait if there is a need to cleanup files.
 #if _NUITKA_ONEFILE_TEMP == 1
+        NUITKA_PRINT_TRACE("Waiting for child to exit.\n");
 #if defined(_WIN32)
         WaitForSingleObject(handle_process, INFINITE);
         CloseHandle(handle_process);
 #else
         waitpid(handle_process, NULL, 0);
 #endif
+        NUITKA_PRINT_TRACE("Child is exited.\n");
 #endif
     }
 

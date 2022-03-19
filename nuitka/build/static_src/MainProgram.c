@@ -312,6 +312,8 @@ static void PRINT_REFCOUNTS(void) {
 static long onefile_ppid;
 
 DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
+    NUITKA_PRINT_TRACE("Onefile parent monitoring starts.");
+
     for (;;) {
         Sleep(1000);
 
@@ -334,7 +336,7 @@ DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
         }
     }
 
-    // puts("Onefile parent monitoring kicks in.");
+    NUITKA_PRINT_TRACE("Onefile parent monitoring causes KeyboardInterrupt.");
 
     PyErr_SetInterrupt();
 
