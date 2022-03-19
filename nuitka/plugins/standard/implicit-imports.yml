@@ -70,6 +70,14 @@ urllib.request:
   depends:
     - "http.client"
 
+_asyncio:
+  depends:
+    - "asyncio"
+
+shelve:
+  depends:
+    - "dbm"
+
 shiboken6:
   depends:
     - "argparse"

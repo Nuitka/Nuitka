@@ -167,8 +167,13 @@ class build(distutils.command.build.build):
         old_dir = os.getcwd()
         os.chdir(build_lib)
 
+        if self.distribution.package_dir and "" in self.distribution.package_dir:
+            main_package_dir = self.distribution.package_dir.get("")
+        else:
+            main_package_dir = os.path.abspath(old_dir)
+
         # Search in the build directory preferably.
-        setMainScriptDirectory(os.path.abspath(old_dir))
+        setMainScriptDirectory(main_package_dir)
 
         for is_package, module_name in self._find_to_build():
             module_name, main_filename, finding = locateModule(
