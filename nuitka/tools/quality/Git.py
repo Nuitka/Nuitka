@@ -27,9 +27,8 @@ Original author: Jesse Hallett <jesse@sitr.us>
 import os
 import re
 
-from nuitka.__past__ import subprocess
 from nuitka.Tracing import my_print
-from nuitka.utils.Execution import check_call, check_output
+from nuitka.utils.Execution import check_call, check_output, executeProcess
 from nuitka.utils.FileOperations import openTextFile
 
 
@@ -164,18 +163,24 @@ def updateWorkingFile(path, orig_object_hash, new_object_hash):
     # Substitute object hashes in patch header with path to working tree file
     patch = b"\n".join(updateLine(line) for line in patch.splitlines()) + b"\n"
 
-    # Cannot use executeProcess, because we supply input, and we cannot
-    # use context managers, because not all Python versions have it that
-    # way, xpylintx: disable=consider-using-with
-    apply_patch = subprocess.Popen(
+    # Apply the patch.
+    output, err, exit_code = executeProcess(
         ["git", "apply", "-"],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdin=patch,
     )
 
-    output, err = apply_patch.communicate(input=patch)
-    success = apply_patch.returncode == 0
+    # Windows extra ball, new files have new lines that make the patch fail.
+    if exit_code != 0 and os.name == "nt":
+        from .autoformat.Autoformat import cleanupWindowsNewlines
+
+        cleanupWindowsNewlines(path)
+
+        output, err, exit_code = executeProcess(
+            ["git", "apply", "-"],
+            stdin=patch,
+        )
+
+    success = exit_code == 0
 
     if not success:
         # TODO: In case of failure, do we need to abort, or what do we do.
