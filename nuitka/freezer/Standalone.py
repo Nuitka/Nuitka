@@ -891,7 +891,7 @@ def _getCacheFilename(
     if str is not bytes:
         hashed_value = hashed_value.encode("utf8")
 
-    cache_dir = os.path.join(getCacheDir(), "library_deps", dependency_tool)
+    cache_dir = os.path.join(getCacheDir(), "library_dependencies", dependency_tool)
 
     makePath(cache_dir)
 
@@ -1207,7 +1207,7 @@ Error, problem with dependency scan of '%s' with '%s' please report the bug."""
 
 
 # These DLLs are run time DLLs from Microsoft, and packages will depend on different
-# ones, but it will be OK to use the latest one.
+# ones, but it will be OK to use the latest one, spell-checker: ignore msvcp vcruntime
 ms_runtime_dlls = (
     "msvcp140_1.dll",
     "msvcp140.dll",
