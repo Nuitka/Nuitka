@@ -1,3 +1,5 @@
+# Spell checking makes no sense, spell-checker: disable
+
 include LICENSE.txt
 include MANIFEST.in
 include README.rst README.pdf
@@ -36,8 +38,8 @@ recursive-include tests/basics *.py
 recursive-include tests/syntax *.py
 recursive-include tests/packages *.py
 recursive-include tests/programs *.py
-include tests/programs/pkgutil_usage/package/DATA_FILE.txt
-include tests/programs/resource_reader37/some_package/DATA_FILE.txt
+include tests/programs/pkgutil_usage/package/DATA_FILE*.txt
+include tests/programs/resource_reader37/some_package/DATA_FILE*.txt
 recursive-include tests/optimizations *.py
 recursive-include tests/standalone *.py
 recursive-include tests/onefile *.py

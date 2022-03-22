@@ -1,5 +1,5 @@
 name: Nuitka tests
-
+# makes little sense, spell-checker: disable
 on:
   pull_request:
     branches:

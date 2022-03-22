@@ -94,6 +94,9 @@ from .SconsUtils import (
     writeSconsReport,
 )
 
+# spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath,cppflags
+# spell-checker: ignore cxxflags,ldflags
+
 # Set the arguments.
 setArguments(ARGUMENTS)
 
@@ -637,7 +640,7 @@ def _detectPythonHeaderPath():
 
     if win_target:
         scons_logger.sysexit(
-            """Error, you seem to be using the unsupported embeddable CPython distribution."""
+            """Error, you seem to be using the unsupported embedable CPython distribution."""
         )
     else:
         scons_logger.sysexit(

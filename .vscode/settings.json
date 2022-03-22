@@ -89,6 +89,7 @@
         "devel",
         "distutils",
         "Doxygen",
+        "dpkg",
         "DYLD",
         "dylib",
         "elif",
@@ -151,7 +152,9 @@
         "uncompiled",
         "unstripped",
         "virtualenv",
-        "zstandard"
+        "vmprof",
+        "zstandard",
+        "zstd"
     ],
     "esbonio.server.enabled": true,
 }
