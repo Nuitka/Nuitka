@@ -250,7 +250,6 @@ def _runOnefileScons(quiet, onefile_compression):
         "result_exe": OutputDirectories.getResultFullpath(onefile=True),
         "source_dir": source_dir,
         "debug_mode": asBoolStr(Options.is_debug),
-        "unstripped_mode": asBoolStr(Options.isUnstripped()),
         "experimental": ",".join(Options.getExperimentalIndications()),
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "target_arch": getArchitecture(),

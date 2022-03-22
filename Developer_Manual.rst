@@ -1027,9 +1027,9 @@ processes:
 
    Windows subsystem mode: Disable console for windows builds.
 
--  ``unstripped_mode``
+-  ``unstriped_mode``
 
-   Unstripped mode: Do not remove debug symbols.
+   Unstriped mode: Do not remove debug symbols.
 
 -  ``clang_mode``
 

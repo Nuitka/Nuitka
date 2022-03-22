@@ -55,7 +55,7 @@ from nuitka.Tracing import (
 )
 from nuitka.utils.Execution import check_output
 from nuitka.utils.Json import loadJsonFromFilename
-from nuitka.utils.Utils import isDebianBasedLinux, isNetBSD
+from nuitka.utils.Utils import isDebianBasedLinux, isMacOS, isNetBSD
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
@@ -82,7 +82,6 @@ from .SconsUtils import (
     getArgumentList,
     getArgumentRequired,
     getExecutablePath,
-    getMsvcVersion,
     getMsvcVersionString,
     initScons,
     isGccName,
@@ -182,9 +181,8 @@ if static_libpython:
 # no longer cross compile this way.
 win_target = os.name == "nt"
 
+# Non-elf binary, for linker settings.
 noelf_mode = getArgumentBool("noelf_mode", False)
-
-macosx_target = sys.platform == "darwin"
 
 # Windows subsystem mode: Disable console for windows builds.
 disable_console = getArgumentBool("disable_console", False)
@@ -192,8 +190,8 @@ disable_console = getArgumentBool("disable_console", False)
 # Windows might be running a Python whose DLL we have to use.
 uninstalled_python = getArgumentBool("uninstalled_python", False)
 
-# Unstripped mode: Do not remove debug symbols.
-unstripped_mode = getArgumentBool("unstripped_mode", False)
+# Unstriped mode: Do not remove debug symbols.
+unstriped_mode = getArgumentBool("unstriped_mode", False)
 
 # Target arch, uses for compiler choice and quick linking of constants binary
 # data.
@@ -382,6 +380,8 @@ env.the_compiler = env["CC"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
+env.unstriped_mode = debug_mode or unstriped_mode
+env.noelf_mode = noelf_mode
 env.source_dir = source_dir
 env.low_memory = low_memory
 env.macos_min_version = macos_min_version
@@ -462,9 +462,6 @@ if env.gcc_mode and not env.clang_mode and env.gcc_version >= (8,):
                 ),
             ]
         )
-
-if env.gcc_mode and not noelf_mode and not macosx_target:
-    env.Append(LINKFLAGS=["-z", "noexecstack"])
 
 if env.msvc_mode:
     # With Clang on Windows, there is also an linker to use.
@@ -789,8 +786,14 @@ elif not module_mode:
     # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
     if isNetBSD():
         env.Append(LINKFLAGS=["-rpath=" + python_lib_path])
-elif macosx_target and module_mode:
-    env.Append(LINKFLAGS=["-undefined", "dynamic_lookup"])
+
+if isMacOS():
+    if module_mode:
+        # Dynamic lookup needed for extension modules.
+        env.Append(LINKFLAGS=["-undefined", "dynamic_lookup"])
+    else:
+        # For macOS we need to make sure install_name_tool can do its work
+        env.Append(LINKFLAGS=["-headerpad_max_install_names"])
 
 # The static include files reside in Nuitka installation, which may be where
 # the "nuitka.build" package lives.
@@ -806,37 +809,13 @@ if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
 # that is located inside Nuitka installation.
 env.Append(CPPPATH=[source_dir, nuitka_include, os.path.join(nuitka_src, "static_src")])
 
-if env.debug_mode or unstripped_mode:
-    # Use debug format, so we get good tracebacks from it.
-    if env.gcc_mode:
-        env.Append(LINKFLAGS=["-g"])
-        env.Append(CCFLAGS=["-g"])
-        env.Append(ASFLAGS=["-g"])
-
-        if not env.clang_mode:
-            env.Append(CCFLAGS=["-feliminate-unused-debug-types"])
-    elif env.msvc_mode:
-        env.Append(CCFLAGS=["/Z7"])
-
-        # Higher MSVC versions need this for parallel compilation
-        if job_count > 1 and getMsvcVersion(env) >= 11:
-            env.Append(CCFLAGS=["/FS"])
-
-        env.Append(LINKFLAGS=["/DEBUG"])
-else:
-    if env.gcc_mode:
-        if macosx_target:
-            env.Append(LINKFLAGS=["-Wno-deprecated-declarations"])
-        elif not env.clang_mode:
-            env.Append(LINKFLAGS=["-s"])
-
 
 # MinGW64 for 64 bits needs this due to CPython bugs.
 if env.mingw_mode and target_arch == "x86_64":
     env.Append(CPPDEFINES=["MS_WIN64"])
 
 # Set load libpython from binary directory default
-if env.gcc_mode and not macosx_target and not win_target and not module_mode:
+if env.gcc_mode and not isMacOS() and not win_target and not module_mode:
     if env.standalone_mode:
         rpath = "$$ORIGIN"
     else:
@@ -850,9 +829,6 @@ if env.gcc_mode and not macosx_target and not win_target and not module_mode:
     if "linux" in sys.platform:
         env.Append(LINKFLAGS=["-Wl,--disable-new-dtags"])
 
-# For macOS we need to make sure install_name_tool can do its work
-if macosx_target and not module_mode:
-    env.Append(LINKFLAGS=["-headerpad_max_install_names"])
 
 addConstantBlobFile(
     env=env,

@@ -150,7 +150,7 @@
         "tshape",
         "ucrt",
         "uncompiled",
-        "unstripped",
+        "unstriped",
         "virtualenv",
         "vmprof",
         "zstandard",

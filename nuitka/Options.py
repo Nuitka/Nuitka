@@ -858,17 +858,17 @@ def isPythonDebug():
     return options.python_debug or sys.flags.debug
 
 
-def isUnstripped():
-    """:returns: bool derived from ``--unstripped`` or ``--profile``
+def isUnstriped():
+    """:returns: bool derived from ``--unstriped`` or ``--profile``
 
     A binary is called stripped when debug information is not present, an
-    unstripped when it is present. For profiling and debugging it will be
+    unstriped when it is present. For profiling and debugging it will be
     necessary, but it doesn't enable debug checks like ``--debug`` does.
 
-    Passed to Scons as ``unstripped_mode`` to it can ask the linker to
+    Passed to Scons as ``unstriped_mode`` to it can ask the linker to
     include symbol information.
     """
-    return options.unstripped or options.profile
+    return options.unstriped or options.profile
 
 
 def isProfile():

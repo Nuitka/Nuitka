@@ -42,6 +42,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
+from nuitka.utils.Utils import getOS, isMacOS
 
 from .SconsCaching import checkCachingSuccess
 from .SconsUtils import flushSconsReports
@@ -370,6 +371,12 @@ def setCommonOptions(options):
 
     if Options.getLtoMode() != "auto":
         options["lto_mode"] = Options.getLtoMode()
+
+    if getOS() == "Windows" or isMacOS():
+        options["noelf_mode"] = asBoolStr(True)
+
+    if Options.isUnstriped():
+        options["unstriped_mode"] = asBoolStr(True)
 
     cpp_defines = Plugins.getPreprocessorSymbols()
     if cpp_defines:

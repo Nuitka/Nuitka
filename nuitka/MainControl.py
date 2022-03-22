@@ -91,7 +91,7 @@ from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
-from nuitka.utils.Utils import getArchitecture, getOS, isMacOS, isWin32Windows
+from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from . import ModuleRegistry, Options, OutputDirectories, TreeXML
@@ -535,7 +535,6 @@ def runSconsBackend(quiet):
         "nuitka_python": asBoolStr(isNuitkaPython()),
         "debug_mode": asBoolStr(Options.is_debug),
         "python_debug": asBoolStr(Options.isPythonDebug()),
-        "unstripped_mode": asBoolStr(Options.isUnstripped()),
         "module_mode": asBoolStr(Options.shallMakeModule()),
         "full_compat": asBoolStr(Options.is_fullcompat),
         "experimental": ",".join(Options.getExperimentalIndications()),
@@ -605,9 +604,6 @@ def runSconsBackend(quiet):
         options["frozen_modules"] = str(
             len(ModuleRegistry.getUncompiledTechnicalModules())
         )
-
-    if getOS() == "Windows":
-        options["noelf_mode"] = asBoolStr(True)
 
     if Options.isProfile():
         options["profile_mode"] = asBoolStr(True)

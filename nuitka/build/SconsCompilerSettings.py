@@ -616,6 +616,11 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
 
         env.Append(CPPDEFINES=["__NUITKA_NO_ASSERT__"])
 
+    _enableDebugSystemSettings(env, job_count=job_count)
+
+    if env.gcc_mode and not env.noelf_mode:
+        env.Append(LINKFLAGS=["-z", "noexecstack"])
+
 
 def _enablePgoSettings(env, pgo_mode):
     if pgo_mode == "no":
@@ -663,6 +668,31 @@ def _enablePgoSettings(env, pgo_mode):
         assert False, env.pgo_mode
 
     env.pgo_mode = pgo_mode
+
+
+def _enableDebugSystemSettings(env, job_count):
+    if env.unstriped_mode:
+        # Use debug format, so we get good tracebacks from it.
+        if env.gcc_mode:
+            env.Append(LINKFLAGS=["-g"])
+            env.Append(CCFLAGS=["-g"])
+
+            if not env.clang_mode:
+                env.Append(CCFLAGS=["-feliminate-unused-debug-types"])
+        elif env.msvc_mode:
+            env.Append(CCFLAGS=["/Z7"])
+
+            # Higher MSVC versions need this for parallel compilation
+            if job_count > 1 and getMsvcVersion(env) >= 11:
+                env.Append(CCFLAGS=["/FS"])
+
+            env.Append(LINKFLAGS=["/DEBUG"])
+    else:
+        if env.gcc_mode:
+            if isMacOS():
+                env.Append(LINKFLAGS=["-Wno-deprecated-declarations"])
+            elif not env.clang_mode:
+                env.Append(LINKFLAGS=["-s"])
 
 
 def switchFromGccToGpp(env):

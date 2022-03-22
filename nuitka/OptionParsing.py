@@ -640,9 +640,9 @@ production. Defaults to off.""",
 )
 
 debug_group.add_option(
-    "--unstripped",
+    "--unstriped",
     action="store_true",
-    dest="unstripped",
+    dest="unstriped",
     default=False,
     help="""\
 Keep debug info in the resulting object file for better debugger interaction.

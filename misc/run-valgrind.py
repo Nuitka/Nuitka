@@ -63,7 +63,7 @@ os.system(
         sys.executable,
         nuitka_binary,
         tempdir,
-        "--unstripped",
+        "--unstriped",
         "--quiet",
         os.environ.get("NUITKA_EXTRA_OPTIONS", ""),
         input_file,

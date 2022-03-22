@@ -71,7 +71,6 @@ from .SconsUtils import (
     getArgumentList,
     getArgumentRequired,
     getExecutablePath,
-    getMsvcVersion,
     getMsvcVersionString,
     initScons,
     isGccName,
@@ -81,6 +80,9 @@ from .SconsUtils import (
     setupScons,
     writeSconsReport,
 )
+
+# spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath,cppflags
+# spell-checker: ignore cxxflags,ldflags
 
 # Set the arguments.
 setArguments(ARGUMENTS)
@@ -132,11 +134,14 @@ lto_mode = getArgumentDefaulted("lto_mode", "auto")
 # no longer cross compile this way.
 win_target = os.name == "nt"
 
+# Non-elf binary, for linker settings.
+noelf_mode = getArgumentBool("noelf_mode", False)
+
 # Windows subsystem mode: Disable console for windows builds.
 disable_console = getArgumentBool("disable_console", False)
 
-# Unstripped mode: Do not remove debug symbols.
-unstripped_mode = getArgumentBool("unstripped_mode", False)
+# Unstriped mode: Do not remove debug symbols.
+unstriped_mode = getArgumentBool("unstriped_mode", False)
 
 # Target arch, uses for compiler choice and quick linking of constants binary
 # data.
@@ -298,6 +303,8 @@ env.the_compiler = env["CC"] or env["CXX"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = True  # We are only used in this case.
 env.debug_mode = debug_mode
+env.unstriped_mode = debug_mode or unstriped_mode
+env.noelf_mode = noelf_mode
 env.source_dir = source_dir
 env.low_memory = False  # Never a concern in this case.
 env.macos_min_version = macos_min_version
@@ -466,27 +473,6 @@ env.Append(
         os.path.join(nuitka_src, "inline_copy", "zstd"),
     ],
 )
-
-if debug_mode or unstripped_mode:
-    # Use debug format, so we get good tracebacks from it.
-    if env.gcc_mode:
-        env.Append(CCFLAGS=["-g"])
-        env.Append(ASFLAGS=["-g"])
-
-        if not env.clang_mode:
-            env.Append(CCFLAGS=["-feliminate-unused-debug-types"])
-    elif env.msvc_mode:
-        env.Append(CCFLAGS=["/Z7"])
-
-        # Higher MSVC versions need this for parallel compilation
-        if job_count > 1 and getMsvcVersion(env) >= 11:
-            env.Append(CCFLAGS=["/FS"])
-
-        env.Append(LINKFLAGS=["/DEBUG"])
-else:
-    if env.gcc_mode:
-        if not env.clang_mode:
-            env.Append(LINKFLAGS=["-s"])
 
 # Tell compiler to create a program.
 if env.msvc_mode:
