@@ -154,7 +154,8 @@
         "virtualenv",
         "vmprof",
         "zstandard",
-        "zstd"
+        "zstd",
+        "Py_ssize_t"
     ],
     "esbonio.server.enabled": true,
 }

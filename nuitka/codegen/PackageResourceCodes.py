@@ -54,3 +54,35 @@ def generatePkglibGetDataCallCode(to_name, expression, emit, context):
             emit=emit,
             context=context,
         )
+
+
+def generatePkgResourcesResourceStringCallCode(to_name, expression, emit, context):
+    package_name, resource_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "resource_string_value", expression, emit, context
+    ) as result_name:
+        resource_string_function = context.allocateTempName(
+            "resource_string_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=resource_string_function,
+            module_name="pkg_resources",
+            import_name="resource_string",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=resource_string_function,
+            expression=expression,
+            arg_names=(package_name, resource_name),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )

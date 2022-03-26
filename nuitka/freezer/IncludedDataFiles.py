@@ -38,6 +38,7 @@ from nuitka.OutputDirectories import getStandaloneDirectoryPath
 from nuitka.Tracing import options_logger
 from nuitka.utils.FileOperations import (
     copyFileWithPermissions,
+    getFileContents,
     getFileList,
     isRelativePath,
     makePath,
@@ -76,6 +77,14 @@ class IncludedDataFile(object):
 
     def needsCopy(self):
         return "copy" in self.tags
+
+    def getFileContents(self):
+        if self.kind == "data_file":
+            return getFileContents(filename=self.source_path, mode="rb")
+        elif self.kind == "data_blob":
+            return self.data
+        else:
+            assert False
 
 
 def makeIncludedEmptyDirectories(source_path, dest_paths, reason, tracer, tags):
@@ -321,7 +330,19 @@ def _handleDataFile(included_datafile):
             putTextFileContents(
                 filename=os.path.join(created_dir, ".keep_dir.txt"), contents=""
             )
+    elif included_datafile.kind == "data_blob":
+        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
+        makePath(os.path.dirname(dest_path))
 
+        putTextFileContents(filename=dest_path, contents=included_datafile.data)
+
+        tracer.info(
+            "Included data file '%s' due to %s."
+            % (
+                included_datafile.dest_path,
+                included_datafile.reason,
+            )
+        )
     elif included_datafile.kind == "data_file":
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
 
@@ -365,19 +386,6 @@ def _handleDataFile(included_datafile):
             % (
                 included_datafile.dest_path,
                 len(copied),
-                included_datafile.reason,
-            )
-        )
-    elif included_datafile.kind == "data_blob":
-        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
-        makePath(os.path.dirname(dest_path))
-
-        putTextFileContents(filename=dest_path, contents=included_datafile.data)
-
-        tracer.info(
-            "Included data file '%s' due to %s."
-            % (
-                included_datafile.dest_path,
                 included_datafile.reason,
             )
         )

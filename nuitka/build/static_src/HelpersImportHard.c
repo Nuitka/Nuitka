@@ -104,6 +104,19 @@ PyObject *IMPORT_HARD_OS(void) {
 
     return module_os;
 }
+/* C helper for hard import of module "pkg_resources" import. */
+
+PyObject *IMPORT_HARD_PKG_RESOURCES(void) {
+    static PyObject *module_pkg_resources = NULL;
+
+    if (module_pkg_resources == NULL) {
+        module_pkg_resources = PyImport_ImportModule("pkg_resources");
+    }
+
+    CHECK_OBJECT(module_pkg_resources);
+
+    return module_pkg_resources;
+}
 /* C helper for hard import of module "pkgutil" import. */
 
 PyObject *IMPORT_HARD_PKGUTIL(void) {

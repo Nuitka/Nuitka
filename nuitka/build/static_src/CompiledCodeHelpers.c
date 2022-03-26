@@ -1678,7 +1678,7 @@ char const *getBinaryDirectoryHostEncoded(void) {
 }
 #endif
 
-PyObject *getBinaryDirectoryObject(void) {
+static PyObject *getBinaryDirectoryObject(void) {
     static PyObject *binary_directory = NULL;
 
     if (binary_directory != NULL) {

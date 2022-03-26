@@ -31,6 +31,9 @@ from .NodeBases import SideEffectsFromChildrenMixin
 pkgutil_get_data_spec = BuiltinParameterSpec(
     "pkg_util.get_data", ("package", "resource"), default_count=0
 )
+pkg_resources_resource_stream_spec = BuiltinParameterSpec(
+    "pkg_resources.resource_string", ("package", "resource"), default_count=0
+)
 
 
 class ExpressionPkglibGetDataRef(ExpressionImportModuleNameHardExists):
@@ -60,7 +63,7 @@ class ExpressionPkglibGetDataRef(ExpressionImportModuleNameHardExists):
             builtin_spec=pkgutil_get_data_spec,
         )
 
-        return result, "new_expression", "Call to 'strip' of str recognized."
+        return result, "new_expression", "Call to 'pkgutil.get_data' recognized."
 
 
 class ExpressionPkglibGetDataCall(
@@ -81,3 +84,37 @@ class ExpressionPkglibGetDataCall(
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+
+class ExpressionPkgResourcesResourceStringRef(ExpressionImportModuleNameHardExists):
+    """Function reference pkg_resources.resource_string"""
+
+    kind = "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExists.__init__(
+            self,
+            module_name="pkg_resources",
+            import_name="resource_string",
+            source_ref=source_ref,
+        )
+
+    def computeExpressionRaw(self, trace_collection):
+        return self, None, None
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionPkgResourcesResourceStringCall,
+            builtin_spec=pkg_resources_resource_stream_spec,
+        )
+
+        return result, "new_expression", "Call to 'pkgutil.get_data' recognized."
+
+
+class ExpressionPkgResourcesResourceStringCall(ExpressionPkglibGetDataCall):
+    kind = "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_CALL"

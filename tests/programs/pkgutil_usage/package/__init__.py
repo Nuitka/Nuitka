@@ -19,10 +19,26 @@
 
 """
 
+from __future__ import print_function
+
 import pkgutil
+
+print("This is", __name__, "in", __package__, "speaking:")
 
 # Setting version from a file, is an example use case of this, but not limited
 # to that of course.
 __version__ = pkgutil.get_data(__package__, "DATA_FILE.txt").decode("ascii").strip()
 
-print(__version__)
+print("pkgutil.get_data()", __version__)
+
+try:
+    import pkg_resources
+except ImportError:
+    pass
+else:
+    data = pkg_resources.resource_string(__package__, "DATA_FILE2.txt")
+    print("pkg_resources.resource_string", data)
+
+    readable = pkg_resources.resource_stream(__package__, "DATA_FILE3.txt")
+    data = readable.read()
+    print("pkg_resources.resource_readable.read()", data)

@@ -63,7 +63,10 @@ from .ImportHardNodes import (
 from .LocalsScopes import GlobalsDictHandle
 from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
-from .PackageResourceNodes import ExpressionPkglibGetDataRef
+from .PackageResourceNodes import (
+    ExpressionPkglibGetDataRef,
+    ExpressionPkgResourcesResourceStringRef,
+)
 from .shapes.BuiltinTypeShapes import tshape_module, tshape_module_builtin
 
 # These module are supported in code generation to be imported the hard way.
@@ -81,6 +84,7 @@ hard_modules = frozenset(
         "pkgutil",
         "functools",
         "sysconfig",
+        "pkg_resources",
     )
 )
 
@@ -150,12 +154,19 @@ hard_modules_trust = {
     "_frozen_importlib": {},
     "_frozen_importlib_external": {},
     "pkgutil": {"get_data": trust_node},
+    "pkg_resources": {
+        "resource_string": trust_node,
+        # "resource_stream": trust_node
+    },
     "functools": {"partial": trust_exist},
     "sysconfig": {},
 }
 
 
 trust_node_factory[("pkgutil", "get_data")] = ExpressionPkglibGetDataRef
+trust_node_factory[
+    ("pkg_resources", "resource_string")
+] = ExpressionPkgResourcesResourceStringRef
 
 
 def makeExpressionImportModuleNameHard(module_name, import_name, source_ref):
@@ -747,7 +758,10 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 imported_module_name = resolveModuleName(imported_module_name)
 
                 if self.finding == "absolute" and imported_module_name in hard_modules:
-                    if isStandardLibraryPath(module_filename):
+                    if (
+                        isStandardLibraryPath(module_filename)
+                        or imported_module_name == "pkg_resources"
+                    ):
                         result = ExpressionImportModuleHard(
                             module_name=imported_module_name, source_ref=self.source_ref
                         )
