@@ -1270,6 +1270,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                 "jaraco",
                 "importlib_resources",
                 "more_itertools",
+                "six",
             ):
                 yield "pkg_resources._vendor." + part
 
