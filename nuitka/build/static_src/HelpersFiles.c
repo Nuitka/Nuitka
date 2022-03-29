@@ -43,7 +43,7 @@ PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool bufferi
 PyObject *GET_FILE_BYTES(PyObject *filename) {
     PyObject *result;
 
-    if (TRACE_FILE_OPEN(filename, &result)) {
+    if (TRACE_FILE_READ(filename, &result)) {
         return result;
     }
 

@@ -534,7 +534,12 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #if _NUITKA_EXPERIMENTAL_FILE_TRACING
 #include "nuitka_file_tracer.h"
 #else
-#define TRACE_FILE_OPEN(x, y) (false)
+#if PYTHON_VERSION < 0x300
+#define TRACE_FILE_OPEN(x, y, z, r) (false)
+#else
+#define TRACE_FILE_OPEN(x, y, z, a, b, c, d, e, r) (false)
+#endif
+#define TRACE_FILE_READ(x, y) (false)
 #endif
 
 #if _NUITKA_EXPERIMENTAL_INIT_PROGRAM

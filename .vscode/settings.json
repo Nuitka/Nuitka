@@ -155,7 +155,8 @@
         "vmprof",
         "zstandard",
         "zstd",
-        "Py_ssize_t"
+        "Py_ssize_t",
+        "closefd"
     ],
     "esbonio.server.enabled": true,
 }
