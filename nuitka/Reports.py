@@ -20,6 +20,7 @@
 """
 
 from nuitka import TreeXML
+from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.ModuleRegistry import getDoneModules, getModuleInclusionInfos
 from nuitka.Tracing import general
 from nuitka.utils.FileOperations import putTextFileContents
@@ -41,6 +42,27 @@ def writeCompilationReport(report_filename):
                 reason=active_module_info.reason,
             )
         )
+
+    for included_datafile in getIncludedDataFiles():
+        if included_datafile.kind == "data_file":
+            root.append(
+                TreeXML.Element(
+                    "data_file",
+                    name=included_datafile.dest_path,
+                    source=included_datafile.source_path,
+                    reason=included_datafile.reason,
+                    tags=",".join(included_datafile.tags),
+                )
+            )
+        elif included_datafile.kind == "data_blob":
+            root.append(
+                TreeXML.Element(
+                    "data_blob",
+                    name=included_datafile.dest_path,
+                    reason=included_datafile.reason,
+                    tags=",".join(included_datafile.tags),
+                )
+            )
 
     putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
 
