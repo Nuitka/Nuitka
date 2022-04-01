@@ -146,6 +146,10 @@ kivymd:
     - "fonts"
     - "images"
 
+arcade:
+  dirs:
+    - "resources"
+
 seedir.printing:
   patterns:
     - "words.txt"
