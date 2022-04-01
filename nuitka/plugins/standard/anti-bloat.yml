@@ -189,6 +189,11 @@ tensorflow.python.compiler.tensorrt.utils:
     "from distutils import version as distutils_version": ""
     "distutils_version.LooseVersion": "'str'"
 
+tensorflow.lite.python.convert:
+  description: "remove useless distutils usage"
+  replacements:
+    "import distutils.spawn": ""
+    "distutils.spawn.find_executable(_deprecated_conversion_binary) is None": "'False'"
 
 gevent._util:
   description: "remove gevent release framework"
@@ -456,6 +461,9 @@ pandas._testing:
   description: "remove pytest testing framework"
   change_function:
     "external_error_raised": "'(lambda: None)'"
+    # TODO: See below
+    "round_trip_pathlib": "'(lambda: None)'"
+    "round_trip_localpath": "'(lambda: None)'"
 
 pandas._testing._io:
   description: "remove pytest testing framework"
@@ -466,6 +474,88 @@ pandas._testing._io:
     "network": "'(lambda: None)'"
     "round_trip_pathlib": "'(lambda: None)'"
     "round_trip_localpath": "'(lambda: None)'"
+
+pandas.compat._optional:
+  description: "remove useless distutils usage"
+  replacements:
+    "distutils.version.LooseVersion(version) < minimum_version": "'False'"
+    "import distutils.version": "''"
+
+pandas.core.computation.ops:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    'NUMEXPR_VERSION < LooseVersion("2.6.9")': "'False'"
+
+pandas.io.excel._base:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    "LooseVersion(xlrd.__version__)": "'xlrd.__version__'"
+
+pandas.core.util.numba_:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    'LooseVersion(numba.__version__) >= LooseVersion("0.49.0")': "'True'"
+
+pandas.plotting._matplotlib.compat:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    "op(LooseVersion(mpl.__version__), LooseVersion(version))": "'op(mpl.__version__, version)'"
+
+pandas.core.arrays._arrow_utils:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    'LooseVersion(pyarrow.__version__) >= LooseVersion("0.15")': '''pyarrow.__version__ >= "0.15"'''
+
+pandas.core.arrays.string_arrow:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    'LooseVersion(pa.__version__) < "1.0.0"': '''pa.__version__ < "1.0.0"'''
+
+pandas.io.parquet:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    'LooseVersion(self.api.__version__) >= "0.16"': '''self.api.__version__ >= "0.16"'''
+
+pandas.compat.numpy.function:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    'LooseVersion(__version__) >= LooseVersion("1.17.0")': '''__version__ >= "1.17.0"'''
+
+pandas.compat.numpy:
+  description: "remove useless distutils usage"
+  replacements:
+    # TODO: Smells not only like regexp, must be one.
+    "from distutils.version import LooseVersion": "''"
+    "LooseVersion(_np_version)": "'_np_version'"
+    'LooseVersion("1.17")': '''"1.17"'''
+    'LooseVersion("1.18")': '''"1.18"'''
+    'LooseVersion("1.19")': '''"1.19"'''
+    'LooseVersion("1.20")': '''"1.20"'''
+
+pandas.io.formats.printing:
+  description: "remove IPython reference"
+  change_function:
+    "enable_data_resource_formatter": "'(lambda enable: None)'"
+
+pandas.io.orc:
+  description: "remove useless distutils usage"
+  replacements:
+    "import distutils": "''"
+    'distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0"': '''pyarrow.__version__ < "0.13.0"'''
+
+sphinx.util.docutils:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    "__version_info__ = tuple(LooseVersion(docutils.__version__).version)": '''tuple(int(d) for d in docutils.__version__.split("."))'''
 
 distributed.scheduler:
   # TODO: We should replace this with a nuitkarize in Cython maybe.
@@ -498,3 +588,11 @@ certifi.core:
   description: "avoid using importlib.resources without need"
   replacements:
     "from importlib.resources import path as get_path, read_text": "'raise ImportError'"
+
+tensorboard:
+  description: "remove IPython reference"
+  change_function:
+    "notebook": "'(lambda: None)'"
+    "load_ipython_extension": "'(lambda ipython: None)'"
+  control_tags:
+    - "allow_ipython"
