@@ -134,7 +134,7 @@ def isUninstalledPython():
         return False
 
     if isStaticallyLinkedPython():
-        return True
+        return False
 
     if os.name == "nt":
         import ctypes.wintypes
