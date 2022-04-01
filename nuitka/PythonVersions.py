@@ -186,7 +186,7 @@ def getTargetPythonDLLPath():
 
 
 def isStaticallyLinkedPython():
-    # On Windows, there is no way to detect this from syconfig.
+    # On Windows, there is no way to detect this from sysconfig.
     if os.name == "nt":
         import ctypes
 

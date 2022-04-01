@@ -405,8 +405,8 @@ def _findModuleInPath2(package_name, module_name, search_path):
         if os.path.isdir(package_directory):
             found = False
 
-            for suffix, _mode, mtype in imp.get_suffixes():
-                if mtype == imp.C_EXTENSION:
+            for suffix, _mode, module_type in imp.get_suffixes():
+                if module_type == imp.C_EXTENSION:
                     continue
 
                 package_file_name = "__init__" + suffix
@@ -417,7 +417,7 @@ def _findModuleInPath2(package_name, module_name, search_path):
                     candidates.add(
                         ImportScanFinding(
                             found_in=entry,
-                            priority=priority_map[mtype],
+                            priority=priority_map[module_type],
                             full_path=package_directory,
                             search_order=count,
                         )
@@ -435,10 +435,10 @@ def _findModuleInPath2(package_name, module_name, search_path):
                 )
 
         # Then, check out suffixes of all kinds, but only for one directory.
-        last_mtype = 0
-        for suffix, _mode, mtype in imp.get_suffixes():
+        last_module_type = 0
+        for suffix, _mode, module_type in imp.get_suffixes():
             # Use first match per kind only.
-            if mtype == last_mtype:
+            if module_type == last_module_type:
                 continue
 
             full_path = os.path.join(entry, module_name + suffix)
@@ -447,12 +447,12 @@ def _findModuleInPath2(package_name, module_name, search_path):
                 candidates.add(
                     ImportScanFinding(
                         found_in=entry,
-                        priority=4 + priority_map[mtype],
+                        priority=4 + priority_map[module_type],
                         full_path=full_path,
                         search_order=count,
                     )
                 )
-                last_mtype = mtype
+                last_module_type = module_type
 
     if _debug_module_finding:
         my_print("Candidates:", candidates)
