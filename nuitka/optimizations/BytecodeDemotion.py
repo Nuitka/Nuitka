@@ -21,7 +21,6 @@
 
 import marshal
 
-from nuitka import Options
 from nuitka.Bytecodes import compileSourceToBytecode
 from nuitka.Caching import writeImportedModulesNamesToCache
 from nuitka.importing.ImportCache import (
@@ -30,6 +29,7 @@ from nuitka.importing.ImportCache import (
 )
 from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
+from nuitka.Options import isShowProgress, isStandaloneMode
 from nuitka.plugins.Plugins import (
     Plugins,
     isTriggerModule,
@@ -44,6 +44,9 @@ def demoteSourceCodeToBytecode(module_name, source_code, filename):
     source_code = Plugins.onFrozenModuleSourceCode(
         module_name=module_name, is_package=False, source_code=source_code
     )
+
+    if isStandaloneMode():
+        filename = module_name.asPath() + ".py"
 
     bytecode = compileSourceToBytecode(source_code, filename)
 
@@ -60,7 +63,7 @@ def demoteCompiledModuleToBytecode(module):
     full_name = module.getFullName()
     filename = module.getCompileTimeFilename()
 
-    if Options.isShowProgress():
+    if isShowProgress():
         inclusion_logger.info(
             "Demoting module %r to bytecode from %r." % (full_name.asString(), filename)
         )
