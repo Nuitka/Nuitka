@@ -122,8 +122,8 @@ def _checkRequiredVersion(tool, tool_call):
 
     try:
         version_output = check_output(tool_call)
-    except NuitkaCalledProcessError:
-        return False, "failed to execute"
+    except NuitkaCalledProcessError as e:
+        return False, "failed to execute: %s" % e.stderr
 
     if str is not bytes:
         version_output = version_output.decode("utf8")
