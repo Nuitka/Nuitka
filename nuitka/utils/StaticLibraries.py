@@ -81,7 +81,11 @@ def isDebianSuitableForStaticLinking():
         if dist_version is None:
             return True
 
-        dist_version = tuple(int(x) for x in dist_version.split("."))
+        try:
+            dist_version = tuple(int(x) for x in dist_version.split("."))
+        except ValueError:
+            # dist_version contains a non-numeric string such as "sid".
+            return True
 
         return dist_version >= (10,)
     else:
