@@ -100,7 +100,7 @@ def _injectCcache(env, cc_path, python_prefix, target_arch, assume_yes_for_downl
 
         if ccache_binary is None:
             if isWin32Windows():
-                url = "https://github.com/ccache/ccache/releases/download/v3.7.12/ccache-3.7.12-windows-32.zip"
+                url = "https://github.com/ccache/ccache/releases/download/v4.6/ccache-4.6-windows-32.zip"
                 ccache_binary = getCachedDownload(
                     url=url,
                     is_arch_specific=False,
