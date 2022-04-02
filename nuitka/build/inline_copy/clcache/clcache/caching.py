@@ -251,7 +251,7 @@ class ManifestRepository(object):
         self._manifestsRootDir = manifestsRootDir
 
     def section(self, manifestHash):
-        return ManifestSection(os.path.join(self._manifestsRootDir, manifestHash[:2]))
+        return ManifestSection(os.path.join(self._manifestsRootDir, manifestHash[:3]))
 
     def sections(self):
         return (
@@ -285,7 +285,7 @@ class ManifestRepository(object):
         # preprocessor options.  In direct mode we do not perform preprocessing
         # before cache lookup, so all parameters are important.  One of the few
         # exceptions to this rule is the /MP switch, which only defines how many
-        # compiler processes are running simultaneusly.  Arguments that specify
+        # compiler processes are running simultaneously.  Arguments that specify
         # the compiler where to find the source files are parsed to replace
         # occurrences of CLCACHE_BASEDIR by a placeholder.
         arguments, inputFiles = CommandLineAnalyzer.parseArgumentsAndInputFiles(
@@ -333,9 +333,8 @@ cache_lock = RLock()
 class CacheLock2(object):
     """Implement a lock inside the process only. """
 
-    def __init__(self, mutexName, timeoutMs):
+    def __init__(self):
         self._rlock = None
-        self._timeoutMs = timeoutMs
 
     def __enter__(self):
         cache_lock.acquire()
@@ -345,9 +344,7 @@ class CacheLock2(object):
 
     @staticmethod
     def forPath(path):
-        timeoutMs = int(os.environ.get("CLCACHE_OBJECT_CACHE_TIMEOUT_MS", 10 * 1000))
-        lockName = path.replace(":", "-").replace("\\", "-")
-        return CacheLock2(lockName, timeoutMs)
+        return CacheLock2()
 
 class CacheLock(object):
     """Implements a lock for the object cache which
@@ -363,10 +360,11 @@ class CacheLock(object):
         self._timeoutMs = timeoutMs
 
     def createMutex(self):
-        self._mutex = windll.kernel32.CreateMutexW(
-            None, wintypes.BOOL(False), self._mutexName
-        )
-        assert self._mutex
+        with CacheLock2():
+            self._mutex = windll.kernel32.CreateMutexW(
+                None, wintypes.BOOL(False), self._mutexName
+            )
+            assert self._mutex
 
     def __enter__(self):
         self.acquire()
@@ -477,7 +475,7 @@ class CompilerArtifactsRepository(object):
 
     def section(self, key):
         return CompilerArtifactsSection(
-            os.path.join(self._compilerArtifactsRootDir, key[:2])
+            os.path.join(self._compilerArtifactsRootDir, key[:3])
         )
 
     def sections(self):
