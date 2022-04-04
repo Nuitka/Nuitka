@@ -86,6 +86,7 @@ from nuitka.utils.FileOperations import (
     makePath,
     putTextFileContents,
     removeDirectory,
+    resetDirectory,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
@@ -134,10 +135,10 @@ def _createNodeTree(filename):
     # Prepare the ".dist" directory, throwing away what was there before.
     if Options.isStandaloneMode():
         standalone_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=False)
-        removeDirectory(path=standalone_dir, ignore_errors=True)
+        resetDirectory(path=standalone_dir, ignore_errors=True)
 
         if Options.shallCreateAppBundle():
-            removeDirectory(
+            resetDirectory(
                 path=changeFilenameExtension(standalone_dir, ".app"), ignore_errors=True
             )
 

@@ -411,7 +411,7 @@ def hasFilenameExtension(path, extensions):
 def removeDirectory(path, ignore_errors):
     """Remove a directory recursively.
 
-    On Windows, it happens that operations fail, and succeed when reried,
+    On Windows, it happens that operations fail, and succeed when retried,
     so added a retry and small delay, then another retry. Should make it
     much more stable during tests.
 
@@ -437,6 +437,11 @@ def removeDirectory(path, ignore_errors):
                     shutil.rmtree(path, ignore_errors=ignore_errors)
                 else:
                     raise
+
+
+def resetDirectory(path, ignore_errors):
+    removeDirectory(path=path, ignore_errors=ignore_errors)
+    makePath(path)
 
 
 @contextmanager
