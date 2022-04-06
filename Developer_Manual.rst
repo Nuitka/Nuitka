@@ -4590,7 +4590,7 @@ dropping non interesting, or rewriting exceptions.
 Caching of Python level compilation
 ===================================
 
-While the C compilation result is already cached with ``ccache`` and
+While the C compilation result is already cached with `ccache` and
 friends now, we need to also cover our bases and save the resulting node
 tree of potential expensive optimization on the module level.
 
