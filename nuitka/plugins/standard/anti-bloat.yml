@@ -596,3 +596,7 @@ tensorboard:
     "load_ipython_extension": "'(lambda ipython: None)'"
   control_tags:
     - "allow_ipython"
+
+persistent._compat:
+  replacements:
+    "os.environ.get('PURE_PYTHON')": '''"1"'''
