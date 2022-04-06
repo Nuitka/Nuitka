@@ -80,8 +80,13 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
 
             module_filename = self.locateModule(full_name)
 
+            if os.path.isdir(module_filename):
+                module_directory = module_filename
+            else:
+                module_directory = os.path.dirname(module_filename)
+
             dll_dir = dll_config.get("dll_dir", ".")
-            dll_dir = os.path.normpath(os.path.join(module_filename, dll_dir))
+            dll_dir = os.path.normpath(os.path.join(module_directory, dll_dir))
 
             dest_path = dll_config.get("dest_path")
 

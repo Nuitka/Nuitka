@@ -1,4 +1,5 @@
 ---
+# Spelling has no role in module names, spell-checker: disable
 shapely.geos:
   dlls:
     # Code that will output the filename.
@@ -16,3 +17,12 @@ vosk:
       patterns:
         - "libvosk"
       dest_path: "vosk"
+
+tensorflow.lite.experimental.microfrontend.python.ops.audio_microfrontend_op:
+  dlls:
+    # Patterns for DLL filenames below package relative directory
+    - include_from_filenames:
+      dir: "."
+      patterns:
+        - "_audio_microfrontend_op"
+      dest_path: "tensorflow/lite/experimental/microfrontend/python/ops"
