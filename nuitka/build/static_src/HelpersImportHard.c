@@ -31,7 +31,13 @@ PyObject *IMPORT_HARD___FUTURE__(void) {
         module___future__ = PyImport_ImportModule("__future__");
     }
 
-    CHECK_OBJECT(module___future__);
+    if (unlikely(module___future__ == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+        PyErr_PrintEx(0);
+#endif
+        NUITKA_CANNOT_GET_HERE("failed hard import of '__future__'");
+        abort();
+    }
 
     return module___future__;
 }
@@ -45,7 +51,13 @@ PyObject *IMPORT_HARD__FROZEN_IMPORTLIB(void) {
         module__frozen_importlib = PyImport_ImportModule("_frozen_importlib");
     }
 
-    CHECK_OBJECT(module__frozen_importlib);
+    if (unlikely(module__frozen_importlib == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+        PyErr_PrintEx(0);
+#endif
+        NUITKA_CANNOT_GET_HERE("failed hard import of '_frozen_importlib'");
+        abort();
+    }
 
     return module__frozen_importlib;
 }
@@ -60,7 +72,13 @@ PyObject *IMPORT_HARD__FROZEN_IMPORTLIB_EXTERNAL(void) {
         module__frozen_importlib_external = PyImport_ImportModule("_frozen_importlib_external");
     }
 
-    CHECK_OBJECT(module__frozen_importlib_external);
+    if (unlikely(module__frozen_importlib_external == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+        PyErr_PrintEx(0);
+#endif
+        NUITKA_CANNOT_GET_HERE("failed hard import of '_frozen_importlib_external'");
+        abort();
+    }
 
     return module__frozen_importlib_external;
 }
@@ -74,7 +92,13 @@ PyObject *IMPORT_HARD_FUNCTOOLS(void) {
         module_functools = PyImport_ImportModule("functools");
     }
 
-    CHECK_OBJECT(module_functools);
+    if (unlikely(module_functools == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+        PyErr_PrintEx(0);
+#endif
+        NUITKA_CANNOT_GET_HERE("failed hard import of 'functools'");
+        abort();
+    }
 
     return module_functools;
 }
@@ -87,7 +111,13 @@ PyObject *IMPORT_HARD_IMPORTLIB(void) {
         module_importlib = PyImport_ImportModule("importlib");
     }
 
-    CHECK_OBJECT(module_importlib);
+    if (unlikely(module_importlib == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+        PyErr_PrintEx(0);
+#endif
+        NUITKA_CANNOT_GET_HERE("failed hard import of 'importlib'");
+        abort();
+    }
 
     return module_importlib;
 }
@@ -100,7 +130,13 @@ PyObject *IMPORT_HARD_OS(void) {
         module_os = PyImport_ImportModule("os");
     }
 
-    CHECK_OBJECT(module_os);
+    if (unlikely(module_os == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+        PyErr_PrintEx(0);
+#endif
+        NUITKA_CANNOT_GET_HERE("failed hard import of 'os'");
+        abort();
+    }
 
     return module_os;
 }
@@ -113,7 +149,13 @@ PyObject *IMPORT_HARD_PKG_RESOURCES(void) {
         module_pkg_resources = PyImport_ImportModule("pkg_resources");
     }
 
-    CHECK_OBJECT(module_pkg_resources);
+    if (unlikely(module_pkg_resources == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+        PyErr_PrintEx(0);
+#endif
+        NUITKA_CANNOT_GET_HERE("failed hard import of 'pkg_resources'");
+        abort();
+    }
 
     return module_pkg_resources;
 }
@@ -126,7 +168,13 @@ PyObject *IMPORT_HARD_PKGUTIL(void) {
         module_pkgutil = PyImport_ImportModule("pkgutil");
     }
 
-    CHECK_OBJECT(module_pkgutil);
+    if (unlikely(module_pkgutil == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+        PyErr_PrintEx(0);
+#endif
+        NUITKA_CANNOT_GET_HERE("failed hard import of 'pkgutil'");
+        abort();
+    }
 
     return module_pkgutil;
 }
@@ -139,7 +187,13 @@ PyObject *IMPORT_HARD_SITE(void) {
         module_site = PyImport_ImportModule("site");
     }
 
-    CHECK_OBJECT(module_site);
+    if (unlikely(module_site == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+        PyErr_PrintEx(0);
+#endif
+        NUITKA_CANNOT_GET_HERE("failed hard import of 'site'");
+        abort();
+    }
 
     return module_site;
 }
@@ -152,7 +206,13 @@ PyObject *IMPORT_HARD_SYS(void) {
         module_sys = PyImport_ImportModule("sys");
     }
 
-    CHECK_OBJECT(module_sys);
+    if (unlikely(module_sys == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+        PyErr_PrintEx(0);
+#endif
+        NUITKA_CANNOT_GET_HERE("failed hard import of 'sys'");
+        abort();
+    }
 
     return module_sys;
 }
@@ -165,7 +225,13 @@ PyObject *IMPORT_HARD_SYSCONFIG(void) {
         module_sysconfig = PyImport_ImportModule("sysconfig");
     }
 
-    CHECK_OBJECT(module_sysconfig);
+    if (unlikely(module_sysconfig == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+        PyErr_PrintEx(0);
+#endif
+        NUITKA_CANNOT_GET_HERE("failed hard import of 'sysconfig'");
+        abort();
+    }
 
     return module_sysconfig;
 }
@@ -178,7 +244,13 @@ PyObject *IMPORT_HARD_TYPES(void) {
         module_types = PyImport_ImportModule("types");
     }
 
-    CHECK_OBJECT(module_types);
+    if (unlikely(module_types == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+        PyErr_PrintEx(0);
+#endif
+        NUITKA_CANNOT_GET_HERE("failed hard import of 'types'");
+        abort();
+    }
 
     return module_types;
 }
@@ -191,7 +263,13 @@ PyObject *IMPORT_HARD_TYPING(void) {
         module_typing = PyImport_ImportModule("typing");
     }
 
-    CHECK_OBJECT(module_typing);
+    if (unlikely(module_typing == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+        PyErr_PrintEx(0);
+#endif
+        NUITKA_CANNOT_GET_HERE("failed hard import of 'typing'");
+        abort();
+    }
 
     return module_typing;
 }

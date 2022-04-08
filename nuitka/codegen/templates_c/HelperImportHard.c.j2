@@ -22,7 +22,13 @@
         module_{{module_name}} = PyImport_ImportModule("{{module_name}}");
     }
 
-    CHECK_OBJECT(module_{{module_name}});
+    if (unlikely(module_{{module_name}} == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+        PyErr_PrintEx(0);
+#endif
+        NUITKA_CANNOT_GET_HERE("failed hard import of '{{module_name}}'");
+        abort();
+    }
 
     return module_{{module_name}};
 }
