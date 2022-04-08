@@ -1157,6 +1157,8 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                 yield crypto_module_name + ".PublicKey._ec_ws"
             elif full_name == crypto_module_name + ".Cipher.ARC4":
                 yield crypto_module_name + ".Cipher._ARC4"
+            elif full_name == crypto_module_name + ".Cipher.PKCS1_v1_5":
+                yield crypto_module_name + ".Cipher._pkcs1_decode"
             elif full_name == crypto_module_name + ".Math._IntegerCustom":
                 yield crypto_module_name + ".Math._modexp"
         elif full_name == "pycparser.c_parser":
