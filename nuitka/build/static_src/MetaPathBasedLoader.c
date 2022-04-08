@@ -133,9 +133,9 @@ static void patchCodeObjectPaths(PyCodeObject *code_object, PyObject *module_pat
     code_object->co_filename = module_path;
     Py_INCREF(module_path);
 
-    Py_ssize_t nconsts = PyTuple_GET_SIZE(code_object->co_consts);
+    Py_ssize_t consts_count = PyTuple_GET_SIZE(code_object->co_consts);
 
-    for (int i = 0; i < nconsts; i++) {
+    for (int i = 0; i < consts_count; i++) {
         PyObject *constant = PyTuple_GET_ITEM(code_object->co_consts, i);
 
         if (PyCode_Check(constant)) {

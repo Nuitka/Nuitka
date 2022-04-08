@@ -54,7 +54,7 @@ PyObject *GET_FILE_BYTES(PyObject *filename) {
         return NULL;
     }
 
-    PyObject *read_method = PyObject_GetAttr(data_file, const_str_plain_read);
+    PyObject *read_method = LOOKUP_ATTRIBUTE(data_file, const_str_plain_read);
     Py_DECREF(data_file);
 
     if (unlikely(read_method == NULL)) {
