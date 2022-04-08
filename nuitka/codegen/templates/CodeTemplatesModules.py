@@ -516,6 +516,24 @@ template_module_external_entry_point = r"""
 #endif
 
 #if PYTHON_VERSION >= 0x300
+static setattrofunc orig_PyModule_Type_tp_setattro;
+static PyObject *orig_dunder_file_value;
+
+/* This is used one time only. */
+static int Nuitka_TopLevelModule_tp_setattro(PyObject *module, PyObject *name, PyObject *value) {
+    PyModule_Type.tp_setattro = orig_PyModule_Type_tp_setattro;
+
+    UPDATE_STRING_DICT0(
+        moduledict_%(module_identifier)s,
+        (Nuitka_StringObject *)const_str_plain___file__,
+        orig_dunder_file_value
+    );
+
+    return orig_PyModule_Type_tp_setattro(module, name, value);
+}
+#endif
+
+#if PYTHON_VERSION >= 0x300
 static struct PyModuleDef mdef_%(module_identifier)s = {
     PyModuleDef_HEAD_INIT,
     NULL,                /* m_name, filled later */
@@ -527,7 +545,6 @@ static struct PyModuleDef mdef_%(module_identifier)s = {
     NULL,                /* m_clear */
     NULL,                /* m_free */
 };
-
 #endif
 
 /* The exported interface to CPython. On import of the module, this function
@@ -567,6 +584,16 @@ MOD_INIT_DECL(%(module_identifier)s) {
     modulecode_%(module_identifier)s(module, NULL);
 #else
     PyObject *result = modulecode_%(module_identifier)s(module, NULL);
+
+    if (result != NULL) {
+        // Make sure we undo the change of the "__file__" attribute during importing. We do not
+        // know how to achieve it for Python2 though. TODO: Find something for Python2 too.
+        orig_PyModule_Type_tp_setattro = PyModule_Type.tp_setattro;
+        PyModule_Type.tp_setattro = Nuitka_TopLevelModule_tp_setattro;
+
+        orig_dunder_file_value = DICT_GET_ITEM_WITH_HASH_ERROR1((PyObject *)moduledict_%(module_identifier)s, const_str_plain___file__);
+    }
+
     return result;
 #endif
 }
