@@ -103,19 +103,10 @@ static PyObject *Nuitka_Cell_tp_richcompare(PyObject *a, PyObject *b, int op) {
 
 static PyObject *Nuitka_Cell_tp_repr(struct Nuitka_CellObject *cell) {
     if (cell->ob_ref == NULL) {
-#if PYTHON_VERSION < 0x300
-        return PyString_FromFormat(
-#else
-        return PyUnicode_FromFormat(
-#endif
-            "<compiled_cell at %p: empty>", cell);
+        return Nuitka_String_FromFormat("<compiled_cell at %p: empty>", cell);
     } else {
-#if PYTHON_VERSION < 0x300
-        return PyString_FromFormat(
-#else
-        return PyUnicode_FromFormat(
-#endif
-            "<compiled_cell at %p: %s object at %p>", cell, cell->ob_ref->ob_type->tp_name, cell->ob_ref);
+        return Nuitka_String_FromFormat("<compiled_cell at %p: %s object at %p>", cell, cell->ob_ref->ob_type->tp_name,
+                                        cell->ob_ref);
     }
 }
 

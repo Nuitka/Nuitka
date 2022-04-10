@@ -1498,12 +1498,7 @@ static void Nuitka_Distribution_tp_dealloc(struct Nuitka_DistributionObject *dis
 }
 
 static PyObject *Nuitka_Distribution_tp_repr(struct Nuitka_DistributionObject *loader) {
-#if PYTHON_VERSION < 0x300
-    return PyString_FromFormat(
-#else
-    return PyUnicode_FromFormat(
-#endif
-        "<nuitka_distribution for '%s'>", loader->m_loader_entry->name);
+    return Nuitka_String_FromFormat("<nuitka_distribution for '%s'>", loader->m_loader_entry->name);
 }
 
 static int Nuitka_Distribution_tp_traverse(struct Nuitka_DistributionObject *loader, visitproc visit, void *arg) {

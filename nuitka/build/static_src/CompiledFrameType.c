@@ -265,11 +265,7 @@ static PyGetSetDef Nuitka_Frame_getsetlist[] = {
 
 // tp_repr slot, decide how a function shall be output
 static PyObject *Nuitka_Frame_tp_repr(struct Nuitka_FrameObject *nuitka_frame) {
-#if PYTHON_VERSION < 0x300
-    return PyString_FromFormat(
-#else
-    return PyUnicode_FromFormat(
-#endif
+    return Nuitka_String_FromFormat(
 #if PYTHON_VERSION >= 0x370
         "<compiled_frame at %p, file %R, line %d, code %S>", nuitka_frame, nuitka_frame->m_frame.f_code->co_filename,
         nuitka_frame->m_frame.f_lineno, nuitka_frame->m_frame.f_code->co_name
@@ -277,8 +273,7 @@ static PyObject *Nuitka_Frame_tp_repr(struct Nuitka_FrameObject *nuitka_frame) {
         "<compiled_frame object for %s at %p>", Nuitka_String_AsString(nuitka_frame->m_frame.f_code->co_name),
         nuitka_frame
 #else
-        "<compiled_frame object at %p>",
-        nuitka_frame
+        "<compiled_frame object at %p>", nuitka_frame
 #endif
     );
 }

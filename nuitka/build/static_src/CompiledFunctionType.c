@@ -46,18 +46,13 @@ static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object,
 
 // tp_repr slot, decide how compiled function shall be output to "repr" built-in
 static PyObject *Nuitka_Function_tp_repr(struct Nuitka_FunctionObject *function) {
+    return Nuitka_String_FromFormat("<compiled_function %s at %p>",
 #if PYTHON_VERSION < 0x300
-    return PyString_FromFormat(
+                                    Nuitka_String_AsString(function->m_name),
 #else
-    return PyUnicode_FromFormat(
+                                    Nuitka_String_AsString(function->m_qualname),
 #endif
-        "<compiled_function %s at %p>",
-#if PYTHON_VERSION < 0x300
-        Nuitka_String_AsString(function->m_name),
-#else
-        Nuitka_String_AsString(function->m_qualname),
-#endif
-        function);
+                                    function);
 }
 
 static long Nuitka_Function_tp_traverse(struct Nuitka_FunctionObject *function, visitproc visit, void *arg) {
