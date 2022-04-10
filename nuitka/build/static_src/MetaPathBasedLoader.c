@@ -1179,7 +1179,13 @@ static PyObject *_path_unfreezer_iter_modules(struct Nuitka_LoaderObject *self, 
     struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
     assert(current);
 
-    char const *s = self->m_loader_entry->name;
+    char const *s;
+
+    if (self->m_loader_entry) {
+        s = self->m_loader_entry->name;
+    } else {
+        s = "";
+    }
 
     while (current->name != NULL) {
         if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
@@ -1645,12 +1651,12 @@ static PyMethodDef Nuitka_Loader_methods[] = {
 };
 
 static PyObject *Nuitka_Loader_tp_repr(struct Nuitka_LoaderObject *loader) {
-#if PYTHON_VERSION < 0x300
-    return PyString_FromFormat(
-#else
-    return PyUnicode_FromFormat(
-#endif
-        "<nuitka_module_loader for '%s'>", loader->m_loader_entry->name);
+    if (loader->m_loader_entry == NULL) {
+        // TODO: Indicate in module mode, which one it is for.
+        return Nuitka_String_FromString("<nuitka_module_loader");
+    } else {
+        return Nuitka_String_FromFormat("<nuitka_module_loader for '%s'>", loader->m_loader_entry->name);
+    }
 }
 
 #include "nuitka/freelists.h"
@@ -1784,7 +1790,7 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
                             2,
 #endif
 
-                            (PyObject *)&Nuitka_Loader_Type);
+                            Nuitka_Loader_New(NULL));
     assert(res == 0);
 }
 
