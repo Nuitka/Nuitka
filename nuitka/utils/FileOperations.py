@@ -180,9 +180,9 @@ def _getRealPathWindows(path):
     # which is slow already.
 
     if path not in _real_path_windows_cache:
-        import subprocess
+        from .Execution import check_output
 
-        result = subprocess.check_output(
+        result = check_output(
             """powershell -NoProfile "Get-Item '%s' | Select-Object -ExpandProperty Target" """
             % path
         )
