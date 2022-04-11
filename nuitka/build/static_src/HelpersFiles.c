@@ -26,15 +26,51 @@
 // Small helper to open files with few arguments.
 PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool buffering) {
     PyObject *mode_obj = Nuitka_String_FromString(mode);
-
     PyObject *buffering_obj = buffering ? const_int_pos_1 : const_int_0;
 
+    PyObject *result;
+
 #if PYTHON_VERSION < 0x300
-    PyObject *result = BUILTIN_OPEN(filename, mode_obj, buffering_obj);
-#else
-    PyObject *result = BUILTIN_OPEN(filename, mode_obj, buffering_obj, NULL, NULL, NULL, NULL, NULL);
+    // On Windows, it seems that line buffering is actually the default.
+#ifdef _WIN32
+    if ((strcmp(mode, "w") == 0) && buffering == true) {
+        buffering_obj = const_int_0;
+    }
 #endif
 
+    result = BUILTIN_OPEN(filename, mode_obj, buffering_obj);
+
+#else
+    if ((strcmp(mode, "w") == 0) && buffering == false) {
+        // TODO: Hard import code could be used for this.
+        static PyObject *_io_module = NULL;
+        static PyObject *_io_module_textiowrapper = NULL;
+        if (_io_module == NULL) {
+            _io_module = PyImport_ImportModule("_io");
+            CHECK_OBJECT(_io_module);
+
+            _io_module_textiowrapper = PyObject_GetAttrString(_io_module, "TextIOWrapper");
+            CHECK_OBJECT(_io_module_textiowrapper);
+        }
+
+        PyObject *mode_obj2 = PyUnicode_FromString("wb");
+
+        PyObject *binary_stream = BUILTIN_OPEN(filename, mode_obj2, buffering_obj, NULL, NULL, NULL, NULL, NULL);
+
+        Py_DECREF(mode_obj2);
+
+        if (binary_stream == NULL) {
+            return NULL;
+        }
+
+        PyObject *args[] = {binary_stream, Py_None, Py_None, Py_None, Py_False, Py_True};
+
+        result = CALL_FUNCTION_WITH_ARGS6(_io_module_textiowrapper, args);
+    } else {
+        result = BUILTIN_OPEN(filename, mode_obj, buffering_obj, NULL, NULL, NULL, NULL, NULL);
+    }
+
+#endif
     Py_DECREF(mode_obj);
 
     return result;

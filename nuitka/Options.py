@@ -531,8 +531,6 @@ def commentArgs():
             or getWindowsProductName()
             or getWindowsProductVersion()
             or getWindowsFileVersion()
-            or getForcedStderrPath()  # not yet for other platforms
-            or getForcedStdoutPath()
             or getWindowsSplashScreen()
         ):
             Tracing.options_logger.warning(
