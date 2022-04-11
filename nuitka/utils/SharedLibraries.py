@@ -85,7 +85,7 @@ def locateDLL(dll_name):
         )
 
     with withEnvironmentVarOverridden("LANG", "C"):
-        # TODO: Could and probably should cache "ldconfig -p" output
+        # TODO: Could and probably should cache "ldconfig -p" output to avoid forks
         output = executeToolChecked(
             logger=postprocessing_logger,
             command=("/sbin/ldconfig", "-p"),
