@@ -78,7 +78,7 @@ _asyncio:
 
 shelve:
   depends:
-    - "dbm"
+    - "dbm.dumb"
 
 shiboken6:
   depends:
