@@ -694,7 +694,7 @@ def locateModules(package_name):
 def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     # Many branches due to the many cases
 
-    assert type(module_name) is ModuleName
+    assert type(module_name) is ModuleName, module_name
     assert filename is not None
 
     is_namespace = False
