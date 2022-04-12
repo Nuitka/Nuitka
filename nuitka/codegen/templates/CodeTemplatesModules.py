@@ -529,6 +529,13 @@ static int Nuitka_TopLevelModule_tp_setattro(PyObject *module, PyObject *name, P
         orig_dunder_file_value
     );
 
+    // Prevent "__spec__" update as well.
+#if PYTHON_VERSION >= 0x340
+    if (PyUnicode_Check(name) && PyUnicode_Compare(name, const_str_plain___spec__) == 0) {
+        return 0;
+    }
+#endif
+
     return orig_PyModule_Type_tp_setattro(module, name, value);
 }
 #endif
