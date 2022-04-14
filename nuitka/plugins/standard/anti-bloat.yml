@@ -572,6 +572,7 @@ pywt._pytesttester:
         pass
 
 feedparser.html:
+  description: "use SGML code more naturally"
   context:
     - "import inspect"
     - "import textwrap"
@@ -598,5 +599,6 @@ tensorboard:
     - "allow_ipython"
 
 persistent._compat:
+  description: "use own compilation for compatibility"
   replacements:
     "os.environ.get('PURE_PYTHON')": '''"1"'''
