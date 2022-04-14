@@ -602,3 +602,8 @@ persistent._compat:
   description: "use own compilation for compatibility"
   replacements:
     "os.environ.get('PURE_PYTHON')": '''"1"'''
+
+pkg_resources:
+  description: "avoid using plistlib dependency on non-macOS"
+  replacements:
+    "import plistlib": '''if sys.platform == "darwin": import plistlib'''
