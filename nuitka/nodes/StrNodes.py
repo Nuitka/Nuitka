@@ -21,6 +21,7 @@
 
 from abc import abstractmethod
 
+from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import (
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
@@ -1401,8 +1402,10 @@ class ExpressionStrOperationEncode3(
 
     def __init__(self, str_arg, encoding, errors, source_ref):
         assert str_arg is not None
-        assert encoding is not None
         assert errors is not None
+
+        if encoding is None:
+            encoding = makeConstantRefNode(constant="utf-8", source_ref=source_ref)
 
         ExpressionChildrenHavingBase.__init__(
             self,

@@ -115,6 +115,7 @@
         "metaclass",
         "MSVC",
         "msys",
+        "Namify",
         "NBOOL",
         "noelf",
         "nofollow",
