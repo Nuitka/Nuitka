@@ -1023,7 +1023,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_FLOAT(PyObject *operand1,
         double div = (a - mod) / b;
 
         if (mod) {
-            if ((a < 0) != (mod < 0)) {
+            if ((b < 0) != (mod < 0)) {
                 mod += b;
                 div -= 1.0;
             }
@@ -1246,7 +1246,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1
             double div = (a - mod) / b;
 
             if (mod) {
-                if ((a < 0) != (mod < 0)) {
+                if ((b < 0) != (mod < 0)) {
                     mod += b;
                     div -= 1.0;
                 }
@@ -1485,7 +1485,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1
             double div = (a - mod) / b;
 
             if (mod) {
-                if ((a < 0) != (mod < 0)) {
+                if ((b < 0) != (mod < 0)) {
                     mod += b;
                     div -= 1.0;
                 }
