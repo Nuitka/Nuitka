@@ -34,6 +34,7 @@ from nuitka.nodes.AttributeNodes import (
     makeExpressionAttributeLookup,
 )
 from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
+from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -175,10 +176,13 @@ def _buildMatchSequence(provider, pattern, against, source_ref):
                     StatementAssignmentVariableName(
                         provider=provider,
                         variable_name=variable_name,
-                        source=ExpressionSubscriptLookup(
-                            expression=against.makeClone(),
-                            subscript=makeConstantRefNode(
-                                constant=slice_value, source_ref=source_ref
+                        source=ExpressionBuiltinList(
+                            ExpressionSubscriptLookup(
+                                expression=against.makeClone(),
+                                subscript=makeConstantRefNode(
+                                    constant=slice_value, source_ref=source_ref
+                                ),
+                                source_ref=source_ref,
                             ),
                             source_ref=source_ref,
                         ),
@@ -257,8 +261,7 @@ def _buildMatchMapping(provider, pattern, against, source_ref):
 
 def _buildMatchClass(provider, pattern, against, source_ref):
     # TODO: What is that when set.
-    assert not pattern.patterns
-
+    assert not pattern.patterns, ast.dump(pattern)
     cls_node = buildNode(provider, pattern.cls, source_ref)
 
     assert len(pattern.kwd_attrs) == len(pattern.kwd_patterns), ast.dump(pattern)
