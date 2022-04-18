@@ -82,12 +82,16 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
                     elif os_part.startswith("darwin"):
                         if isMacOS():
                             yield plugin_name_part
-                    elif os_part.startswith(("posix", "osmesa", "egl")):
+                    elif os_part.startswith(("posix", "osmesa", "egl", "x11")):
                         if getOS() != "Windows":
+                            yield plugin_name_part
+                    elif os_part.startswith("wayland"):
+                        if getOS() != "Windows" and not isMacOS():
                             yield plugin_name_part
                     else:
                         self.sysexit(
-                            "Undetected OS, please report bug for '%s'." % os_part
+                            "Undetected OS specific glfw plugin '%s', please report bug for."
+                            % os_part
                         )
 
     def _getDLLFilename(self):
