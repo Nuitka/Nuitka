@@ -97,7 +97,7 @@ def loadCodeObjectData(precompiled_filename):
     # Ignoring magic numbers, etc. which we don't have to care for much as
     # CPython already checked them (would have rejected it otherwise).
     with open(precompiled_filename, "rb") as f:
-        return f.read()[8:]
+        return f.read()[8 if str is bytes else 16 :]
 
 
 module_names = set()
