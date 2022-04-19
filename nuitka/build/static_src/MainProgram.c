@@ -607,9 +607,9 @@ static void undoEnvironmentVariable(char const *variable_name, char const *old_v
 
 #if defined(NUITKA_FORCED_STDOUT_PATH) || defined(NUITKA_FORCED_STDERR_PATH)
 #ifdef _WIN32
-static PyObject *getExpandedTemplatePath(wchar_t const *template) {
+static PyObject *getExpandedTemplatePath(wchar_t const *template_path) {
     wchar_t filename_buffer[1024];
-    bool res = expandTemplatePathW(filename_buffer, template, sizeof(filename_buffer) / sizeof(wchar_t));
+    bool res = expandTemplatePathW(filename_buffer, template_path, sizeof(filename_buffer) / sizeof(wchar_t));
 
     if (res == false) {
         puts("Error, couldn't expand pattern:");
