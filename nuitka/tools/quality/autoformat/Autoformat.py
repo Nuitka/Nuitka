@@ -465,11 +465,13 @@ def _cleanupClangFormat(filename):
 
     clang_format_path = (
         getExecutablePath("clang-format-12")
+        or getExecutablePath("clang-format-12")
         or getExecutablePath("clang-format-11")
         or getExecutablePath("clang-format-10")
         or getExecutablePath("clang-format-9")
         or getExecutablePath("clang-format-8")
         or getExecutablePath("clang-format-7")
+        or getExecutablePath("clang-format")
     )
 
     # Extra ball on Windows, check default installations paths in MSVC and LLVM too.
