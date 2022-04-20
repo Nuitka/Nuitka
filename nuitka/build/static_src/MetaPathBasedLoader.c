@@ -787,10 +787,17 @@ static PyObject *callIntoExtensionModule(char const *full_name, const char *file
         SET_ATTRIBUTE(spec_value, const_str_plain__initializing, Py_False);
 
         Py_DECREF(spec_value);
+        CHECK_OBJECT(spec_value);
 
         if (unlikely(res == -1)) {
             return NULL;
         }
+
+        if (isVerbose()) {
+            PySys_WriteStderr("import %s # executed module def\n", full_name);
+        }
+
+        CHECK_OBJECT(module);
 
         return module;
     } else {
@@ -958,8 +965,6 @@ static PyObject *loadModule(PyObject *module, PyObject *module_name,
 #endif
 
         callIntoExtensionModule(entry->name, filename);
-
-        Py_DECREF(module);
     } else
 #endif
         if ((entry->flags & NUITKA_BYTECODE_FLAG) != 0) {
