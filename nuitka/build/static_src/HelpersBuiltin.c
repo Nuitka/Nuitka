@@ -801,6 +801,10 @@ PyObject *BUILTIN_CALLABLE(PyObject *value) {
  **/
 
 PyObject *BUILTIN_GETATTR(PyObject *object, PyObject *attribute, PyObject *default_value) {
+    CHECK_OBJECT(object);
+    CHECK_OBJECT(attribute);
+    CHECK_OBJECT_X(default_value);
+
 #if PYTHON_VERSION < 0x300
     if (PyUnicode_Check(attribute)) {
         attribute = _PyUnicode_AsDefaultEncodedString(attribute, NULL);
