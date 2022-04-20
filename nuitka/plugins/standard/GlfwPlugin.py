@@ -27,6 +27,8 @@ from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import getOS, isLinux, isMacOS
 
+# spell-checker: ignore glfw,opengl,osmesa,pyglfw,xwayland
+
 
 class NuitkaPluginGlfw(NuitkaPluginBase):
     """This class represents the main logic of the glfw plugin.
@@ -37,7 +39,7 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
 
     """
 
-    # TODO: Maybe rename to opengl
+    # TODO: Maybe rename to opengl maybe
     plugin_name = "glfw"  # Nuitka knows us by this name
     plugin_desc = "Required for OpenGL and glfw in standalone mode"
 
@@ -67,6 +69,8 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
                 yield ModuleName(import_path).getPackageName()
 
             for line in getFileContentByLine(module.getCompileTimeFilename()):
+                line = line.partition("#")[0]
+
                 if line.startswith("PlatformPlugin("):
                     os_part, plugin_name_part = line[15:-1].split(",")
                     os_part = os_part.strip("' ")
@@ -82,10 +86,9 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
                     elif os_part.startswith("darwin"):
                         if isMacOS():
                             yield plugin_name_part
-                    elif os_part.startswith(("posix", "osmesa", "egl", "x11")):
-                        if getOS() != "Windows":
-                            yield plugin_name_part
-                    elif os_part.startswith("wayland"):
+                    elif os_part.startswith(
+                        ("posix", "osmesa", "egl", "x11", "wayland", "xwayland")
+                    ):
                         if getOS() != "Windows" and not isMacOS():
                             yield plugin_name_part
                     else:
