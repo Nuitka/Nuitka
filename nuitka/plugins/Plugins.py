@@ -292,7 +292,13 @@ class Plugins(object):
 
                 yield ModuleName(v)
 
+        seen = set()
+
         for full_name in iterateModuleNames(plugin.getImplicitImports(module)):
+            if full_name in seen:
+                continue
+            seen.add(full_name)
+
             try:
                 _module_name, module_filename, _finding = Importing.locateModule(
                     module_name=full_name,
