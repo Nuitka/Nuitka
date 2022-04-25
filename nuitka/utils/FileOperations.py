@@ -27,6 +27,7 @@ from __future__ import print_function
 import errno
 import glob
 import os
+import re
 import shutil
 import stat
 import tempfile
@@ -227,7 +228,7 @@ def listDir(path):
 
     Returns:
         Sorted list of tuples of full filename, and basename of
-        a directory.
+        files in that directory.
 
     Notes:
         Typically the full name and the basename are both needed
@@ -318,6 +319,7 @@ def getSubDirectories(path, ignore_dirs=()):
 
     Args:
         path: directory to create a recursive listing from
+        ignore_dirs: directories named that like will be ignored
 
     Returns:
         Sorted list of all directories below that directory,
@@ -346,6 +348,58 @@ def getSubDirectories(path, ignore_dirs=()):
 
     result.sort()
     return result
+
+
+def listDllFilesFromDirectory(path, prefix=""):
+    """Give a sorted listing of DLLs filenames in a path.
+
+    Args:
+        path: directory to create a DLL listing from
+        prefix: regexp to match filename against
+
+    Returns:
+        Sorted list of tuples of full filename, and basename of
+        DLLs in that directory.
+
+    Notes:
+        Typically the full name and the basename are both needed
+        so this function simply does both, for ease of use on the
+        calling side.
+
+        This should be used, because it makes sure to resolve the
+        symlinks to directories on Windows, that a naive "os.listdir"
+        won't do by default.
+    """
+
+    #
+    prefix = prefix or ""
+
+    pattern = r"^%s.*\.(?:dll|so.*|dylib)$" % prefix
+    regexp = re.compile(pattern, re.IGNORECASE)
+
+    for fullpath, filename in listDir(path):
+        if regexp.match(filename):
+            yield fullpath, filename
+
+
+def getSubDirectoriesWithDlls(path):
+    """Get all directories below a given path.
+
+    Args:
+        path: directory to create a recursive listing from
+
+    Returns:
+        Sorted list of all directories below that directory,
+        relative to it, that contain DLL files.
+
+    Notes:
+        This function descends into directories, but does
+        not follow symlinks.
+    """
+
+    for sub_directory in getSubDirectories(path=path, ignore_dirs=("__pycache__",)):
+        if any(listDllFilesFromDirectory(sub_directory)):
+            yield sub_directory
 
 
 def deleteFile(path, must_exist):
@@ -842,6 +896,8 @@ def resolveShellPatternToFilenames(pattern):
 @contextmanager
 def withDirectoryChange(path, allow_none=False):
     """Change current directory temporarily in a context."""
+
+    # spellchecker: ignore chdir
 
     if path is not None or not allow_none:
         old_cwd = os.getcwd()

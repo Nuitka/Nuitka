@@ -23,12 +23,11 @@ and submit patches to make it more complete.
 """
 
 import os
-import re
 import sys
 
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.FileOperations import listDir
+from nuitka.utils.FileOperations import listDllFilesFromDirectory
 from nuitka.utils.SharedLibraries import getPyWin32Dir
 from nuitka.utils.Utils import isLinux, isWin32Windows
 from nuitka.utils.Yaml import parsePackageYaml
@@ -90,15 +89,10 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
 
             dest_path = dll_config.get("dest_path")
 
-            # TODO: Rather than using listDir, we should have a function that
-            # gives all DLLs below a folder.
             for pattern in dll_config.get("patterns"):
-                pattern = pattern + r"\.(?:dll|so|dylib)"
-                regexp = re.compile(pattern, re.IGNORECASE)
-
-                for dll_filename, filename in listDir(dll_dir):
-                    if not regexp.match(filename):
-                        continue
+                for dll_filename, filename in listDllFilesFromDirectory(
+                    dll_dir, prefix=pattern
+                ):
                     yield self.makeDllEntryPoint(
                         source_path=dll_filename,
                         dest_path=os.path.join(

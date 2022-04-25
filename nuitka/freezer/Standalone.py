@@ -66,10 +66,10 @@ from nuitka.utils.FileOperations import (
     areSamePaths,
     getDirectoryRealPath,
     getFileContentByLine,
-    getSubDirectories,
+    getSubDirectoriesWithDlls,
     haveSameFileContents,
     isPathBelow,
-    listDir,
+    listDllFilesFromDirectory,
     makePath,
     putTextFileContents,
     relpath,
@@ -911,9 +911,8 @@ def _getPackageSpecificDLLDirectories(package_name):
 
         if os.path.isdir(package_dir):
             scan_dirs.add(package_dir)
-            scan_dirs.update(
-                getSubDirectories(package_dir, ignore_dirs=("__pycache__",))
-            )
+
+            scan_dirs.update(getSubDirectoriesWithDlls(package_dir))
 
         scan_dirs.update(Plugins.getModuleSpecificDllPaths(package_name))
 
@@ -921,8 +920,6 @@ def _getPackageSpecificDLLDirectories(package_name):
 
 
 def getScanDirectories(package_name, original_dir):
-    # Many cases, pylint: disable=too-many-branches
-
     cache_key = package_name, original_dir
 
     if cache_key in _scan_dir_cache:
@@ -935,7 +932,7 @@ def getScanDirectories(package_name, original_dir):
 
     if original_dir is not None:
         scan_dirs.append(original_dir)
-        scan_dirs.extend(getSubDirectories(original_dir))
+        scan_dirs.extend(getSubDirectoriesWithDlls(original_dir))
 
     if (
         Utils.isWin32Windows()
@@ -964,16 +961,10 @@ def getScanDirectories(package_name, original_dir):
 
     # Remove directories that hold no DLLs.
     for scan_dir in scan_dirs:
-        sys.stdout.flush()
-
-        # These are useless, but plenty.
-        if os.path.basename(scan_dir) == "__pycache__":
-            continue
-
         scan_dir = getDirectoryRealPath(scan_dir)
 
         # No DLLs, no use.
-        if not any(entry[1].lower().endswith(".dll") for entry in listDir(scan_dir)):
+        if not any(listDllFilesFromDirectory(scan_dir)):
             continue
 
         result.append(os.path.realpath(scan_dir))
