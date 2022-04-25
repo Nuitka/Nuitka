@@ -176,6 +176,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                 ):
                     self.info(
                         "Note, when using '%s', consider using '--disable-console' option."
+                        % full_name
                     )
 
             if (
