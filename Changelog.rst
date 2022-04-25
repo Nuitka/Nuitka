@@ -517,7 +517,7 @@ Bug Fixes
 
 -  Distutils: When providing arguments, the method suggested in the docs
    is not compatible with all other systems, e.g. not
-   ``setuptools_rust`` for which a two elemented tuple form needs to be
+   ``setuptools_rust`` for which a two elements tuple form needs to be
    used for values. Added support for that and documented its use as
    well in the User Manual.
 
@@ -841,7 +841,7 @@ Tests
    to a few details not yet being as compatible as needed.
 
 -  Added test suite for CPython 3.10 and enable execution of tests with
-   this version on Github actions.
+   this version on GitHub actions.
 
 Summary
 =======
@@ -850,7 +850,7 @@ This release is another big step forward.
 
 The amount of optimization added is again very large, some of which yet
 again unlocks more static optimization of module imports, that
-previously would have to be considered implicit. Now analysing these on
+previously would have to be considered implicit. Now analyzing these on
 the function level as well, we can start searching for cases, where it
 could be done, but is not done yet.
 
@@ -1956,7 +1956,7 @@ Organisational
 -  Make it clear that PySide 6.1.2 is actually going to be the supported
    version of PySide6.
 
--  Use MSVC in Github actions.
+-  Use MSVC in GitHub actions.
 
 Summary
 =======
@@ -2100,7 +2100,7 @@ Optimization
 Organisational
 ==============
 
--  Enhanced Github issue raising instructions.
+-  Enhanced GitHub issue raising instructions.
 
 -  Apply ``rstfmt`` to all documentation and make it part of the commit
    hook.
@@ -2994,7 +2994,7 @@ Bug Fixes
    0.6.10.1 already.
 
 -  Pipenv: Workaround parsing issue with our ``setup.py`` to allow
-   installation from Github. Fixed in 0.6.10.1 already.
+   installation from GitHub. Fixed in 0.6.10.1 already.
 
 -  Merging of branches in optimization could give indeterministic
    results leading to more iterations than necessary. Fixed in 0.6.10.1
@@ -3187,9 +3187,9 @@ Organisational
 
 -  Make sure to use the codespell tool with Python3 and make sure to
    error exit when spelling problems were found, so we can use this in
-   Github actions too.
+   GitHub actions too.
 
--  Removed Travis config, we now only use Github actions.
+-  Removed Travis config, we now only use GitHub actions.
 
 -  Removed landscape config, it doesn't really exist anymore.
 
@@ -3630,7 +3630,7 @@ Organisational
 -  The commit hook should be reinstalled, since it got improved and
    adapted for newer git versions.
 
--  Added link to donations to funding document, following a Github
+-  Added link to donations to funding document, following a GitHub
    standard.
 
 -  Bumped requirements for development to the latest versions, esp.
@@ -4039,7 +4039,7 @@ Organisational
 -  Added 3.8 support mentions in even more places.
 
 -  The mailing list has been deleted. We now prefer Gitter chat and
-   Github issues for discussions.
+   GitHub issues for discussions.
 
 -  Visual Code recommended extensions are now defined as such in the
    project configuration and you will be prompted to install them.
@@ -4211,7 +4211,7 @@ Cleanups
 Tests
 =====
 
--  Added tests to Github Actions, for the supported Python versions for
+-  Added tests to GitHub Actions, for the supported Python versions for
    all of Linux, macOS and Windows, covering the later publicly for the
    first time. We use Anaconda on macOS for the tests now, rather than
    Homebrew.
@@ -4649,7 +4649,7 @@ Organisational
 
 -  Added repository for openSUSE 15.1 for download.
 
--  Ask people to compile hello world program in the Github issue
+-  Ask people to compile hello world program in the GitHub issue
    template, because many times, they have setup problems only.
 
 -  Visual Studio Code is now the recommended IDE and has integrated
@@ -4811,7 +4811,7 @@ Organisational
 -  Added description of how to use experimental flags for your PRs.
 
 -  Removed mirroring from Bitbucket and Gitlab, as we increasingly use
-   the Github organisation features.
+   the GitHub organisation features.
 
 -  Added support for Ubuntu Disco, removed support for Ubuntu Artful
    packages.
@@ -4978,13 +4978,13 @@ Organisational
    that runs auto-format on commit. Currently it commits unstaged
    content and therefore is not yet ready for prime time.
 
--  Moved adapted CPython test suites to `Github repository under Nuitka
+-  Moved adapted CPython test suites to `GitHub repository under Nuitka
    Organisation <https://github.com/Nuitka/Nuitka-CPython-tests>`__.
 
--  Moved Nuitka-website repository to `Github repository under Nuitka
+-  Moved Nuitka-website repository to `GitHub repository under Nuitka
    Organisation <https://github.com/Nuitka/Nuitka-website>`__.
 
--  Moved Nuitka-speedcenter repository to `Github repository under
+-  Moved Nuitka-speedcenter repository to `GitHub repository under
    Nuitka Organisation
    <https://github.com/Nuitka/Nuitka-speedcenter>`__.
 
@@ -5108,7 +5108,7 @@ Optimization
 Organisational
 ==============
 
--  The Nuitka Github Organisation that was created a while ago and owns
+-  The Nuitka GitHub Organisation that was created a while ago and owns
    the Nuitka repo now, has gained members. Check out
    https://github.com/orgs/Nuitka/people for their list. This is an
    exciting transformation for Nuitka.
@@ -5674,7 +5674,7 @@ Bug Fixes
 Organisational
 ==============
 
--  The issue tracker on Github is now the one that should be used with
+-  The issue tracker on GitHub is now the one that should be used with
    Nuitka, winning due to easier issue templating and integration with
    pull requests.
 
@@ -6296,7 +6296,7 @@ Cleanups
 Organisational
 ==============
 
--  There is now a pull request template for Github when used.
+-  There is now a pull request template for GitHub when used.
 
 -  Deprecating the ``--python-version`` argument which should be
    replaced by using ``-m nuitka`` with the correct Python version.
@@ -6483,7 +6483,7 @@ Organisational
 -  Removed support for Debian Wheezy and Ubuntu Precise (they are too
    old for modern packaging used).
 
--  There is now a issue template for Github when used.
+-  There is now a issue template for GitHub when used.
 
 Tests
 =====
@@ -7261,10 +7261,10 @@ Organisational
 -  Added repository for Ubuntu Zesty (17.04) for download.
 
 -  Added support for testing with Travis to complement the internal
-   Buildbot based infrastructure and have pull requests on Github
+   Buildbot based infrastructure and have pull requests on GitHub
    automatically tested before merge.
 
--  The ``factory`` branch is now also on Github.
+-  The ``factory`` branch is now also on GitHub.
 
 -  Removed MSI for Python3.4 32 bits. It seems impossible to co-install
    this one with the 64 bits variant. All other versions are provided
@@ -11804,7 +11804,7 @@ Organisational
 -  Nuitka is now available on the social code platforms as well
 
    -  Bitbucket (since removed)
-   -  `Github <https://github.com/kayhayen/Nuitka>`__
+   -  `GitHub <https://github.com/kayhayen/Nuitka>`__
    -  Gitorious (since discontinued)
    -  Google Code (since discontinued)
 

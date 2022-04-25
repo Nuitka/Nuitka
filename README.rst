@@ -1132,9 +1132,11 @@ run is most meaningful, and eliminates usage spikes.
  Where to go next
 ******************
 
-Remember, this project is not completed yet. Although the CPython test
-suite works near perfect, there is still more work needed, esp. to make
-it do more optimization. Try it out.
+Remember, this project needs constant work. Although the Python
+compatibility is insanely high, and test suite works near perfectly,
+there is still more work needed, esp. to make it do more optimization.
+Try it out, and when popular packages do not work, please make reports
+on GitHub.
 
 Follow me on Twitter
 ====================

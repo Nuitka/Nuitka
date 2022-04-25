@@ -1417,7 +1417,7 @@ nuitka (0.3.18~pre2+ds-1) unstable; urgency=low
     sponsor Yaroslav Halchenko <debian@onerussian.com>
   * New maintainer (Closes: #648489)
   * Added Developer Manual to the generated PDF documentation.
-  * Added python-dbg to Build-Depends to also execcute reference
+  * Added python-dbg to Build-Depends to also execute reference
     count tests.
   * Changed copyright file to reference Apache license via its
     standard Debian location as well.

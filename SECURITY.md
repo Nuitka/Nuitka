@@ -15,6 +15,6 @@ expected to use version, with main always being as bug free as possible.
 
 ## Reporting a Vulnerability
 
-When you email me at kay.hayen@gmail.com with a well defined report, I guarantuee a reaction
+When you email me at `kay.hayen@gmail.com` with a well defined report, I guarantee a reaction
 within 24h, and correction as soon as possible. Generally private emails are not acceptable
-for questions, there I would point to Github, but for sensitive information only, it's great.
+for questions, there I would point to GitHub, but for sensitive information only, it's great.

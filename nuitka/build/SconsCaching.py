@@ -65,7 +65,7 @@ def _getCcacheGuessedPaths(python_prefix):
     if isWin32Windows():
         # Search the compiling Python, the Scons Python (likely the same, but not necessarily)
         # and then Anaconda, if an environment variable present from activated, or installed in
-        # CI like Github actions.
+        # CI like GitHub actions.
         for python_dir in _getPythonDirCandidates(python_prefix):
             yield os.path.join(python_dir, "bin", "ccache.exe")
             yield os.path.join(python_dir, "scripts", "ccache.exe")
