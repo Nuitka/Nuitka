@@ -631,6 +631,16 @@ def _detectPythonHeaderPath():
             ),
         ]
 
+        # Not all Python versions, have the ABI version to use for the debug version.
+        if python_debug and "d" in python_abi_version:
+            candidates.append(
+                os.path.join(
+                    python_prefix,
+                    "include",
+                    "python" + python_abi_version.replace("d", ""),
+                )
+            )
+
     for candidate in candidates:
         if os.path.exists(os.path.join(candidate, "Python.h")):
             return candidate

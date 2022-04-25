@@ -33,6 +33,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.tools.testing.Common import (
     addToPythonPath,
     executeAfterTimePassed,
+    getDebugPython,
     getTempDir,
     getTestingCPythonOutputsCacheDir,
     killProcess,
@@ -226,7 +227,7 @@ def main():
     ignore_warnings = hasArg("ignore_warnings")
     expect_success = hasArg("expect_success")
     expect_failure = hasArg("expect_failure")
-    python_debug = hasArg("python_debug")
+    python_debug = hasArg("python_debug") or hasArg("--python-debug")
     module_mode = hasArg("--module")
     coverage_mode = hasArg("coverage")
     two_step_execution = hasArg("two_step_execution")
@@ -325,22 +326,12 @@ def main():
 
     extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
-    if "--python-debug" in extra_options or "--python-dbg" in extra_options:
+    if os.path.normcase(os.environ["PYTHON"]).endswith(("-dbg", "-debug", "_d.exe")):
+        python_debug = True
+    elif "--python-debug" in extra_options or "--python-dbg" in extra_options:
         python_debug = True
 
-    if python_debug:
-        if os.path.exists(os.path.join("/usr/bin/", os.environ["PYTHON"] + "-dbg")):
-            os.environ["PYTHON"] += "-dbg"
-
-        if os.name == "nt":
-            if os.path.exists(os.environ["PYTHON"][:-4] + "_d.exe"):
-                os.environ["PYTHON"] = os.environ["PYTHON"][:-4] + "_d.exe"
-
-    if os.environ["PYTHON"].endswith("-dbg"):
-        python_debug = True
-
-    if os.environ["PYTHON"].lower().endswith("_d.exe"):
-        python_debug = True
+        os.environ["PYTHON"] = getDebugPython() or os.environ["PYTHON"]
 
     if comparison_mode:
         my_print(

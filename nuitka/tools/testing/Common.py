@@ -469,11 +469,16 @@ def checkSucceedsWithCPython(filename):
     return result == 0
 
 
-def hasDebugPython():
+def getDebugPython():
     # On Debian systems, these work.
     debug_python = os.path.join("/usr/bin/", os.environ["PYTHON"] + "-dbg")
     if os.path.exists(debug_python):
-        return True
+        return debug_python
+
+    # On Fedora systems, these work.
+    debug_python = os.path.join("/usr/bin/", os.environ["PYTHON"] + "-debug")
+    if os.path.exists(debug_python):
+        return debug_python
 
     # On Windows systems, these work.
     debug_python = os.environ["PYTHON"]
@@ -481,16 +486,16 @@ def hasDebugPython():
         debug_python = debug_python[:-4]
     debug_python = debug_python + "_d.exe"
     if os.path.exists(debug_python):
-        return True
+        return debug_python
 
     # For other Python, if it's the one also executing the runner, which is
     # very probably the case, we check that. We don't check the provided
     # binary here, this could be done as well.
     if sys.executable == os.environ["PYTHON"] and hasattr(sys, "gettotalrefcount"):
-        return True
+        return sys.executable
 
     # Otherwise no.
-    return False
+    return None
 
 
 def displayRuntimeTraces(logger, path):
@@ -1385,7 +1390,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             if r"windows\winsxs" in loaded_filename:
                 continue
 
-            # Github actions have these in PATH overriding SYSTEMROOT
+            # GitHub actions have these in PATH overriding SYSTEMROOT
             if r"windows performance toolkit" in loaded_filename:
                 continue
             if r"powershell" in loaded_filename:
