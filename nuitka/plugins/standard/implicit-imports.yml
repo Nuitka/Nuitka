@@ -109,3 +109,7 @@ tensorflow:
 persistent.ring:
   depends:
     - "_cffi_backend"
+
+pydantic.typing:
+  depends:
+    - "typing_extensions"
