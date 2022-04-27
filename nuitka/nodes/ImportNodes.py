@@ -663,7 +663,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         if type(level) not in (int, long):
             return None, None
 
-        module_name, module_filename, self.finding = locateModuleAllowed(
+        module_name, module_filename, self.finding = locateModule(
             module_name=resolveModuleName(module_name),
             parent_package=parent_package,
             level=level,
@@ -693,7 +693,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                         name_import_module_name,
                         name_import_module_filename,
                         name_import_finding,
-                    ) = locateModuleAllowed(
+                    ) = locateModule(
                         module_name=ModuleName(import_item),
                         parent_package=module_name,
                         level=1,  # Relative import
