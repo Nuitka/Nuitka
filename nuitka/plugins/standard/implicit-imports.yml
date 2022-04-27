@@ -97,6 +97,14 @@ PySide2:
 PySide6:
   disable_console: recommend
 
+Tkinter:
+  standalone_macos_bundle_mode: onefile
+  disable_console: recommend
+
+tkinter:
+  standalone_macos_bundle_mode: onefile
+  disable_console: recommend
+
 dns.rdtypes:
   depends:
     - ".IN.A"
