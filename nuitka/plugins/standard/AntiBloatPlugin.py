@@ -45,15 +45,20 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         self,
         noinclude_setuptools_mode,
         noinclude_pytest_mode,
+        noinclude_unittest_mode,
         noinclude_ipython_mode,
         noinclude_default_mode,
         custom_choices,
     ):
+        # Many details, due to many repetitive arguments, pylint: disable=too-many-branches
+
         # Default manually to default argument value:
         if noinclude_setuptools_mode is None:
             noinclude_setuptools_mode = noinclude_default_mode
         if noinclude_pytest_mode is None:
             noinclude_pytest_mode = noinclude_default_mode
+        if noinclude_unittest_mode is None:
+            noinclude_unittest_mode = noinclude_default_mode
         if noinclude_ipython_mode is None:
             noinclude_ipython_mode = noinclude_default_mode
 
@@ -73,6 +78,11 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
             self.handled_modules["pytest"] = noinclude_pytest_mode
         else:
             self.control_tags.add("allow_pytest")
+
+        if noinclude_unittest_mode != "allow":
+            self.handled_modules["unittest"] = noinclude_unittest_mode
+        else:
+            self.control_tags.add("allow_unittest")
 
         if noinclude_ipython_mode != "allow":
             self.handled_modules["IPython"] = noinclude_ipython_mode
@@ -117,6 +127,17 @@ dependencies, and should definitely be avoided.""",
             default=None,
             help="""\
 What to do if a pytest import is encountered. This package can be big with
+dependencies, and should definitely be avoided.""",
+        )
+
+        group.add_option(
+            "--noinclude-unittest-mode",
+            action="store",
+            dest="noinclude_unittest_mode",
+            choices=("error", "warning", "nofollow", "allow"),
+            default=None,
+            help="""\
+What to do if a unittest import is encountered. This package can be big with
 dependencies, and should definitely be avoided.""",
         )
 

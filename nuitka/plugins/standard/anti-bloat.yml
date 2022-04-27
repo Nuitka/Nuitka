@@ -607,3 +607,11 @@ pkg_resources:
   description: "avoid using plistlib dependency on non-macOS"
   replacements:
     "import plistlib": '''if sys.platform == "darwin": import plistlib'''
+
+zope.interface._compat:
+  description: "remove unittest reference"
+  change_function:
+    "_skip_under_py2": "'(lambda test_method: None)'"
+    "_skip_under_py3k": "'(lambda test_method: None)'"
+  control_tags:
+    - "allow_unittest"
