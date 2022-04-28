@@ -18,7 +18,9 @@
 #     limitations under the License.
 #
 [build-system]
-requires = ["setuptools>=42", "wheel", "nuitka"]
+# TODO: Add the absolute path here through our testing framework, so we test
+# local Nuitka and not remote one.
+requires = ["setuptools>=42", "wheel", "nuitka", "toml"]
 build-backend = "nuitka.distutils.Build"
 
 [nuitka]

@@ -596,7 +596,7 @@ value:
 .. code:: toml
 
    [build-system]
-   requires = ["setuptools>=42", "wheel", "nuitka"]
+   requires = ["setuptools>=42", "wheel", "nuitka", "toml"]
    build-backend = "nuitka.distutils.Build"
 
    [nuitka]
@@ -616,6 +616,12 @@ value:
    # options with several values, e.g. avoiding including modules, accepts
    # list argument.
    nofollow-import-to = ["*.tests", "*.distutils"]
+
+.. note::
+
+   For the ``nuitka`` requirement above absolute paths like
+   ``C:\Users\...\Nuitka`` will also work on Linux, use an absolute path
+   with *two* leading slashes, e.g. ``//home/.../Nuitka``.
 
 ********
  Tweaks
