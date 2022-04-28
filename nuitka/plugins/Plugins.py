@@ -38,7 +38,6 @@ from nuitka.__past__ import basestring, iter_modules, iterItems
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
-from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPointOld
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
@@ -802,19 +801,15 @@ class Plugins(object):
         return bytecode
 
     @staticmethod
-    def onModuleEncounter(module_filename, module_name, module_kind):
+    def onModuleEncounter(module_name, module_filename, module_kind):
         result = None
 
-        raised_exception = None
-
         for plugin in getActivePlugins():
-            try:
-                must_recurse = plugin.onModuleEncounter(
-                    module_filename, module_name, module_kind
-                )
-            except NuitkaForbiddenImportEncounter as e:
-                raised_exception = e
-                continue
+            must_recurse = plugin.onModuleEncounter(
+                module_name=module_name,
+                module_filename=module_filename,
+                module_kind=module_kind,
+            )
 
             if must_recurse is None:
                 continue
@@ -830,10 +825,16 @@ class Plugins(object):
 
             result = must_recurse
 
-        if raised_exception is not None and (result is None or result[0]):
-            raise raised_exception
-
         return result
+
+    @staticmethod
+    def onModuleRecursion(module_name, module_filename, module_kind):
+        for plugin in getActivePlugins():
+            plugin.onModuleRecursion(
+                module_name=module_name,
+                module_filename=module_filename,
+                module_kind=module_kind,
+            )
 
     @staticmethod
     def onModuleInitialSet():

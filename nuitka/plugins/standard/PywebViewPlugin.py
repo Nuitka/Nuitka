@@ -112,8 +112,8 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
                     reason="Package 'webview' datafile",
                 )
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
-        # Make sure
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
+        # Make sure webview platforms are included as needed.
         if module_name.isBelowNamespace("webview.platforms"):
             if isWin32Windows():
                 result = module_name in (

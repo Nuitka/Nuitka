@@ -843,7 +843,7 @@ Prefix = .
                         if os.path.basename(sub_dll_filename).startswith(badword):
                             yield sub_dll_filename
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
         top_package_name = module_name.getTopLevelPackageName()
 
         if isStandaloneMode():
@@ -975,16 +975,14 @@ The standard PySide2 is not supported before CPython <3.6. For full support: htt
             self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
         )
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
-        # Enforce recursion in to multiprocessing for accelerated mode, which
-        # would normally avoid this.
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
         if module_name == self.binding_name and self._getNuitkaPatchLevel() < 1:
             return True, "Need to monkey patch PySide2 for abstract methods."
 
         return NuitkaPluginQtBindingsPluginBase.onModuleEncounter(
             self,
-            module_filename=module_filename,
             module_name=module_name,
+            module_filename=module_filename,
             module_kind=module_kind,
         )
 

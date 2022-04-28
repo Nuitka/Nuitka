@@ -30,7 +30,7 @@ import sys
 
 from nuitka.__past__ import long, unicode, xrange
 from nuitka.codegen.Reports import onMissingTrust
-from nuitka.importing.Importing import isPackageDir, locateModule
+from nuitka.importing.Importing import isPackageDir
 from nuitka.importing.ImportResolving import (
     locateModuleAllowed,
     resolveModuleName,
@@ -222,7 +222,7 @@ class ExpressionImportModuleFixed(ExpressionBase):
         ) = self._attemptFollow()
 
     def _attemptFollow(self):
-        found_module_name, found_module_filename, finding = locateModule(
+        found_module_name, found_module_filename, finding = locateModuleAllowed(
             module_name=self.module_name,
             parent_package=None,
             level=0,
@@ -235,7 +235,7 @@ class ExpressionImportModuleFixed(ExpressionBase):
                 if module_name is None:
                     break
 
-                found_module_name, found_module_filename, finding = locateModule(
+                found_module_name, found_module_filename, finding = locateModuleAllowed(
                     module_name=module_name,
                     parent_package=None,
                     level=0,
@@ -663,7 +663,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         if type(level) not in (int, long):
             return None, None
 
-        module_name, module_filename, self.finding = locateModule(
+        module_name, module_filename, self.finding = locateModuleAllowed(
             module_name=resolveModuleName(module_name),
             parent_package=parent_package,
             level=level,
@@ -693,7 +693,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                         name_import_module_name,
                         name_import_module_filename,
                         name_import_finding,
-                    ) = locateModule(
+                    ) = locateModuleAllowed(
                         module_name=ModuleName(import_item),
                         parent_package=module_name,
                         level=1,  # Relative import
@@ -719,7 +719,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 if module_name is None:
                     break
 
-                module_name_found, module_filename, finding = locateModule(
+                module_name_found, module_filename, finding = locateModuleAllowed(
                     module_name=module_name,
                     parent_package=parent_package,
                     level=level,

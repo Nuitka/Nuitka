@@ -48,7 +48,7 @@ class NuitkaPluginTensorflow(NuitkaPluginBase):
         """
         return Options.isStandaloneMode()
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
         for candidate in ("tensor", "google"):
             if module_name.hasNamespace(candidate):
                 return True, "Including everything from %s" % candidate

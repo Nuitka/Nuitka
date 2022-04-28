@@ -64,6 +64,12 @@ def recurseTo(signal_change, module_name, module_filename, module_kind, reason):
         module = None
 
     if module is None:
+        Plugins.onModuleRecursion(
+            module_filename=module_filename,
+            module_name=module_name,
+            module_kind=module_kind,
+        )
+
         module, added_flag = _recurseTo(
             module_name=module_name,
             module_filename=module_filename,

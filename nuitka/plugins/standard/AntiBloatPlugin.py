@@ -327,18 +327,21 @@ which can and should be a top level package and then one choice, "error",
                 % (module_name.asString(), function_name)
             )
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    def onModuleRecursion(self, module_name, module_filename, module_kind):
         for handled_module_name, mode in self.handled_modules.items():
             if module_name.hasNamespace(handled_module_name):
                 # Make sure the compilation aborts.
                 if mode == "error":
                     raise NuitkaForbiddenImportEncounter(module_name)
-
-                # Either issue a warning, or pretend the module doesn't exist for standalone or
-                # at least will not be included.
                 if mode == "warning":
                     self.warning("Unwanted import of '%s' encountered." % module_name)
-                elif mode == "nofollow":
+
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
+        for handled_module_name, mode in self.handled_modules.items():
+            if module_name.hasNamespace(handled_module_name):
+                # Either issue a warning, or pretend the module doesn't exist for standalone or
+                # at least will not be included.
+                if mode == "nofollow":
                     self.info(
                         "Forcing import of '%s' to not be followed." % module_name
                     )

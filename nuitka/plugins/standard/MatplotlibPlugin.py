@@ -131,7 +131,7 @@ from inspect import getsource
             reason="Updated matplotlib config file with backend to use.",
         )
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
         if module_name.hasNamespace("mpl_toolkits"):
             return True, "Needed by matplotlib"
 

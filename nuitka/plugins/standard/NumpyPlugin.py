@@ -219,7 +219,7 @@ Should scipy, sklearn or skimage when used be not included with numpy, Default i
                             "scipy", dll_dir_name, source_filename
                         )
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
         if not self.include_scipy and module_name.hasOneOfNamespaces(
             "scipy", "sklearn", "skimage"
         ):

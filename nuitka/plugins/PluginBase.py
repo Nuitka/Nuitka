@@ -324,18 +324,32 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
         """Help decide whether to include a module.
 
         Args:
-            module_filename: filename
             module_name: full module name
+            module_filename: filename
             module_kind: one of "py", "extension" (shared library)
         Returns:
             True or False
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
+
+    def onModuleRecursion(self, module_name, module_filename, module_kind):
+        """React to recursion to a module coming up.
+
+        Args:
+            module_name: full module name
+            module_filename: filename
+            module_kind: one of "py", "extension" (shared library)
+        Returns:
+            None
+        Notes:
+            May raise "NuitkaForbiddenImportEncounter" exception when it
+            wants to make it an error.
+        """
 
     def onModuleInitialSet(self):
         """Provide extra modules to the initial root module set.
