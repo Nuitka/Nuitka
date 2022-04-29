@@ -243,6 +243,26 @@ def enableClcache(env, source_dir):
         "Using inline copy of clcache with %r cl binary." % cl_binary
     )
 
+    import atexit
+
+    atexit.register(_writeClcacheStatistics)
+
+
+def _writeClcacheStatistics():
+    try:
+        # pylint: disable=I0021,import-error,no-name-in-module,redefined-outer-name
+        from clcache.caching import stats
+
+        if stats is not None:
+            stats.save()
+
+    except IOError:
+        raise
+    except Exception:  # Catch all the things, pylint: disable=broad-except
+        # This is run in "atexit" even without the module being loaded, or
+        # the stats being begun or usable.
+        pass
+
 
 def _getCcacheStatistics(ccache_logfile):
     data = {}
