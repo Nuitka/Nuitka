@@ -25,7 +25,6 @@ These tests are created on the fly, and some use Nuitka internals to
 decide what to test for or how, e.g. to check that a type indeed does
 have a certain slot.
 
-
 """
 
 import os
@@ -41,10 +40,12 @@ sys.path.insert(
 
 # isort:start
 
+import nuitka.specs.BuiltinStrOperationSpecs
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
     decideNeeds2to3,
+    my_print,
     scanDirectoryForTestCases,
     setup,
 )
@@ -82,8 +83,8 @@ candidates = (
     ("int", "17", "-9"),
     ("float", "17.2", "-8"),
     ("complex", "2j", "-4j"),
-    ("str", "'lala'", "'lele'"),
-    ("bytearray", "bytearray(b'lulu')", "bytearray(b'lolo')"),
+    ("str", "'lala'", "'lol'"),
+    ("bytearray", "bytearray(b'lulu')", "bytearray(b'lol')"),
     ("list", "[1,2]", "[3]"),
     ("tuple", "(1,2)", "(3,)"),
     ("set", "set([1,2])", "set([3])"),
@@ -115,15 +116,56 @@ def main():
 
     if python_version < (3,):
         candidates += (("long", "17L", "-9L"),)
-        candidates += (("unicode", "u'lala'", "u'lele'"),)
+        candidates += (("unicode", "u'lala'", "u'lol'"),)
     else:
-        candidates += (("bytes", "b'lala'", "b'lele'"),)
+        candidates += (("bytes", "b'lala'", "b'lol'"),)
+
+    method_arguments = {}
+
+    for str_method_name in str_method_names:
+        spec = getattr(
+            nuitka.specs.BuiltinStrOperationSpecs, "str_%s_spec" % str_method_name, None
+        )
+
+        if spec is None:
+            my_print(
+                "Warning, str function '%s' has no spec." % str_method_name,
+                style="yellow",
+            )
+            continue
+
+        method_arguments[str_method_name] = spec.getArgumentNames()
+
+    for dict_method_name in dict_method_names:
+        spec = getattr(
+            nuitka.specs.BuiltinDictOperationSpecs,
+            "dict_%s_spec" % dict_method_name,
+            None,
+        )
+
+        if spec is None:
+            my_print(
+                "Warning, dict function '%s' has no spec." % dict_method_name,
+                style="yellow",
+            )
+            continue
+
+        method_arguments[dict_method_name] = spec.getArgumentNames()
 
     template_context = {
         "operations": operations,
-        "dict_method_names": dict_method_names,
-        "str_method_names": str_method_names,
-        "ioperations": tuple(
+        "dict_method_names": [
+            dict_method_name
+            for dict_method_name in dict_method_names
+            if dict_method_name in method_arguments
+        ],
+        "str_method_names": [
+            str_method_name
+            for str_method_name in str_method_names
+            if str_method_name in method_arguments
+        ],
+        "method_arguments": method_arguments,
+        "inplace_operations": tuple(
             operation
             for operation in operations
             if operation[0] not in ("Divmod", "Subscript")
