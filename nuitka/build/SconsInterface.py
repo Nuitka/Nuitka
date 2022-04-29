@@ -268,7 +268,7 @@ def runScons(options, quiet, scons_filename):
         )
 
         if Options.isShowScons():
-            Tracing.printLine("Scons command:", " ".join(scons_command))
+            Tracing.scons_logger.info("Scons command: %s" % " ".join(scons_command))
 
         Tracing.flushStandardOutputs()
 
