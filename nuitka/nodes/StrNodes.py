@@ -891,8 +891,10 @@ class ExpressionStrOperationSplit3Base(
 
     def __init__(self, str_arg, sep, maxsplit, source_ref):
         assert str_arg is not None
-        assert sep is not None
         assert maxsplit is not None
+
+        if sep is None:
+            sep = makeConstantRefNode(constant=None, source_ref=source_ref)
 
         ExpressionChildrenHavingBase.__init__(
             self,
