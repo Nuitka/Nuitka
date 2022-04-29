@@ -17,13 +17,34 @@
 #
 """Str operation specs. """
 
+from nuitka import Options
+
 from .BuiltinParameterSpecs import (
     BuiltinParameterSpec,
     BuiltinParameterSpecNoKeywords,
 )
 
 
-class StrMethodSpecNoKeywords(BuiltinParameterSpecNoKeywords):
+class MethodKeywordErrorCompatibilityMixin:
+    def getKeywordRefusalText(self):
+        if Options.is_fullcompat:
+            assert "." in self.name, self.name
+
+            try:
+                eval(  # These are harmless calls, pylint: disable=eval-used
+                    "''.%s(x=1)" % self.name.split(".")[-1]
+                )
+            except TypeError as e:
+                return str(e)
+            else:
+                assert False, self.name
+        else:
+            return "%s() takes no keyword arguments" % self.name
+
+
+class StrMethodSpecNoKeywords(
+    MethodKeywordErrorCompatibilityMixin, BuiltinParameterSpecNoKeywords
+):
     __slots__ = ()
 
     def __init__(
@@ -88,10 +109,10 @@ str_rindex_spec = StrMethodSpecNoKeywords(
     "rindex", arg_names=("sub", "start", "end"), default_count=2
 )
 
-str_split_spec = StrMethodSpecNoKeywords(
+str_split_spec = (StrMethodSpecNoKeywords if str is bytes else StrMethodSpec)(
     "split", arg_names=("sep", "maxsplit"), default_count=2
 )
-str_rsplit_spec = StrMethodSpecNoKeywords(
+str_rsplit_spec = (StrMethodSpecNoKeywords if str is bytes else StrMethodSpec)(
     "rsplit", arg_names=("sep", "maxsplit"), default_count=2
 )
 
