@@ -1192,7 +1192,10 @@ def scanDirectoryForTestCases(dirname, template_context=None):
             assert template_context is not None
 
             template = getTemplate(
-                package_name=None, template_name=filename, template_subdir=dirname
+                package_name=None,
+                template_name=filename,
+                template_subdir=dirname,
+                extensions=("jinja2.ext.do",),
             )
 
             code = template.render(name=template.name, **template_context)
