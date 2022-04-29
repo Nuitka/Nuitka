@@ -15,14 +15,14 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
-{{target.getTypeDecl()}} IMPORT_HARD_{{module_name.upper()}}(void) {
-    static PyObject *module_{{module_name}} = NULL;
+{{target.getTypeDecl()}} {{module_code_name}}(void) {
+    static PyObject *module_{{module_code_name.lower()}} = NULL;
 
-    if (module_{{module_name}} == NULL) {
-        module_{{module_name}} = PyImport_ImportModule("{{module_name}}");
+    if (module_{{module_code_name.lower()}} == NULL) {
+        module_{{module_code_name.lower()}} = PyImport_ImportModule("{{module_name}}");
     }
 
-    if (unlikely(module_{{module_name}} == NULL)) {
+    if (unlikely(module_{{module_code_name.lower()}} == NULL)) {
 #ifndef __NUITKA_NO_ASSERT__
         PyErr_PrintEx(0);
 #endif
@@ -30,5 +30,5 @@
         abort();
     }
 
-    return module_{{module_name}};
+    return module_{{module_code_name.lower()}};
 }
