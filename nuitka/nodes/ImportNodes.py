@@ -82,6 +82,7 @@ hard_modules = frozenset(
         "__future__",
         "site",
         "importlib",
+        "importlib.metadata",
         "_frozen_importlib",
         "_frozen_importlib_external",
         "pkgutil",
@@ -95,6 +96,7 @@ hard_modules_version = {
     "typing": 0x350,
     "_frozen_importlib": 0x300,
     "_frozen_importlib_external": 0x350,
+    "importlib.metadata": 0x390,
 }
 
 trust_undefined = 0
@@ -152,17 +154,18 @@ hard_modules_trust = {
     "types": {},
     "typing": module_typing_trust,
     "__future__": dict((key, trust_future) for key in getFutureModuleKeys()),
-    "site": {},
     "importlib": module_importlib_trust,
+    "importlib.metadata": {},
     "_frozen_importlib": {},
     "_frozen_importlib_external": {},
     "pkgutil": {"get_data": trust_node},
+    "functools": {"partial": trust_exist},
+    "sysconfig": {},
+    "site": {},
     "pkg_resources": {
         "resource_string": trust_node,
         # "resource_stream": trust_node
     },
-    "functools": {"partial": trust_exist},
-    "sysconfig": {},
 }
 
 

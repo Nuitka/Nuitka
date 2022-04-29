@@ -41,6 +41,11 @@ extern PyObject *IMPORT_HARD_FUNCTOOLS(void);
 /* C helper for hard import of module "importlib" import. */
 
 extern PyObject *IMPORT_HARD_IMPORTLIB(void);
+/* C helper for hard import of module "importlib.metadata" import. */
+
+#if PYTHON_VERSION >= 0x390
+extern PyObject *IMPORT_HARD_IMPORTLIB__METADATA(void);
+#endif
 /* C helper for hard import of module "os" import. */
 
 extern PyObject *IMPORT_HARD_OS(void);
@@ -64,4 +69,6 @@ extern PyObject *IMPORT_HARD_SYSCONFIG(void);
 extern PyObject *IMPORT_HARD_TYPES(void);
 /* C helper for hard import of module "typing" import. */
 
+#if PYTHON_VERSION >= 0x350
 extern PyObject *IMPORT_HARD_TYPING(void);
+#endif
