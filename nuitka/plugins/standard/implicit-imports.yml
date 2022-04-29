@@ -80,6 +80,10 @@ shelve:
   depends:
     - "dbm.dumb"
 
+wsgiref.simple_server:
+  depends:
+    - "http.server"
+
 shiboken6:
   depends:
     - "argparse"
