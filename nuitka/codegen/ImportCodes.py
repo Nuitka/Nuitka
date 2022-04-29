@@ -20,10 +20,13 @@
 That is import as expression, and star import.
 """
 
+import os
+
 from nuitka.nodes.ImportNodes import hard_modules
 from nuitka.nodes.LocalsScopes import GlobalsDictHandle
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Jinja2 import renderTemplateFromString
+from nuitka.utils.ModuleNames import ModuleName
 
 from .CodeHelpers import (
     generateChildExpressionsCode,
@@ -167,6 +170,14 @@ def generateImportModuleFixedCode(to_name, expression, emit, context):
             context.addCleanupTempName(value_name)
 
 
+def getImportModuleHardCodeName(module_name):
+    """Encoding hard module name for code name."""
+
+    module_name = ModuleName(module_name)
+
+    return "IMPORT_HARD_%s" % module_name.asPath().replace(os.path.sep, "__").upper()
+
+
 def generateImportModuleHardCode(to_name, expression, emit, context):
     module_name = expression.getModuleName()
     needs_check = expression.mayRaiseException(BaseException)
@@ -177,7 +188,7 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
     ) as value_name:
-        emit("""%s = IMPORT_HARD_%s();""" % (value_name, module_name.upper()))
+        emit("""%s = %s();""" % (value_name, getImportModuleHardCodeName(module_name)))
 
         getErrorExitCode(
             check_name=value_name, needs_check=needs_check, emit=emit, context=context
@@ -209,13 +220,13 @@ def getImportModuleNameHardCode(
         emit(
             """\
 {
-    PyObject *hard_module = IMPORT_HARD_%(module_name)s();
+    PyObject *hard_module = %(module_code_name)s();
     %(to_name)s = LOOKUP_ATTRIBUTE(hard_module, %(import_name)s);
 }
 """
             % {
                 "to_name": to_name,
-                "module_name": module_name.upper(),
+                "module_code_name": getImportModuleHardCodeName(module_name),
                 "import_name": context.getConstantCode(import_name),
             }
         )
@@ -262,7 +273,7 @@ def generateImportlibImportCallCode(to_name, expression, emit, context):
             renderTemplateFromString(
                 r"""
 {
-    PyObject *hard_module = IMPORT_HARD_IMPORTLIB();
+    PyObject *hard_module = {{import_hard_importlib}}();
     PyObject *import_module_func = LOOKUP_ATTRIBUTE(hard_module, {{context.getConstantCode("import_module")}});
 {% if package_name == None %}
     {{to_name}} = CALL_FUNCTION_WITH_SINGLE_ARG(import_module_func, {{import_name}});
@@ -277,6 +288,7 @@ def generateImportlibImportCallCode(to_name, expression, emit, context):
                 to_name=value_name,
                 import_name=import_name,
                 package_name=package_name,
+                import_hard_importlib=getImportModuleHardCodeName("importlib"),
             )
         )
 

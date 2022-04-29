@@ -82,6 +82,7 @@ hard_modules = frozenset(
         "__future__",
         "site",
         "importlib",
+        "importlib.metadata",
         "_frozen_importlib",
         "_frozen_importlib_external",
         "pkgutil",
@@ -95,6 +96,7 @@ hard_modules_version = {
     "typing": 0x350,
     "_frozen_importlib": 0x300,
     "_frozen_importlib_external": 0x350,
+    "importlib.metadata": 0x390,
 }
 
 trust_undefined = 0

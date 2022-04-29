@@ -44,7 +44,8 @@ from nuitka.codegen.CallCodes import (
     getTemplateCodeDeclaredFunction,
     max_quick_call,
 )
-from nuitka.nodes.ImportNodes import hard_modules
+from nuitka.codegen.ImportCodes import getImportModuleHardCodeName
+from nuitka.nodes.ImportNodes import hard_modules, hard_modules_version
 from nuitka.utils.Jinja2 import getTemplateC
 
 from .Common import (
@@ -2001,10 +2002,10 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
     emit('/* C helper for hard import of module "%s" import. */' % module_name)
     emit()
 
-    if module_name == "_frozen_importlib":
-        python_requirement = "PYTHON_VERSION >= 0x300"
-    elif module_name == "_frozen_importlib_external":
-        python_requirement = "PYTHON_VERSION >= 0x350"
+    python_min_version = hard_modules_version.get(module_name)
+
+    if python_min_version is not None:
+        python_requirement = "PYTHON_VERSION >= %s" % hex(python_min_version)
     else:
         python_requirement = None
 
@@ -2012,7 +2013,10 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
         emit("#if %s" % python_requirement)
 
     code = template.render(
-        module_name=module_name, name=template.name, target=object_desc
+        module_name=module_name,
+        module_code_name=getImportModuleHardCodeName(module_name),
+        name=template.name,
+        target=object_desc,
     )
 
     emit_c(code)
