@@ -625,7 +625,7 @@ class CacheFileStrategy(object):
     def lock(self):
         with allSectionsLocked(self.manifestRepository), allSectionsLocked(
             self.compilerArtifactsRepository
-        ), self.statistics.lock:
+        ):
             yield
 
     def lockFor(self, key):
@@ -806,6 +806,7 @@ class Configuration(object):
     def setMaximumCacheSize(self, size):
         self._cfg["MaximumCacheSize"] = size
 
+stats = None
 
 class Statistics(object):
     CALLS_WITH_INVALID_ARGUMENT = "CallsWithInvalidArgument"
@@ -844,13 +845,14 @@ class Statistics(object):
 
     def __init__(self, statsFile):
         self._statsFile = statsFile
-        self._stats = None
 
-        # TODO: Provide this via an indicator environment variable.
-        self.lock = CacheLock2.forPath(self._statsFile)
+        global stats
+        if stats is None:
+            stats = PersistentJSONDict(self._statsFile)
+
+        self._stats = stats
 
     def __enter__(self):
-        self._stats = PersistentJSONDict(self._statsFile)
         for k in Statistics.RESETTABLE_KEYS | Statistics.NON_RESETTABLE_KEYS:
             if k not in self._stats:
                 self._stats[k] = 0
@@ -858,7 +860,9 @@ class Statistics(object):
 
     def __exit__(self, typ, value, traceback):
         # Does not write to disc when unchanged
-        self._stats.save()
+        # Nuitka: Only write at the end.
+        # self._stats.save()
+        pass
 
     def __eq__(self, other):
         return type(self) is type(other) and self.__dict__ == other.__dict__
@@ -1564,7 +1568,7 @@ clcache statistics:
     called w/ multiple sources : {}
     called w/ PCH              : {}""".strip()
 
-    with cache.statistics.lock, cache.statistics as stats, cache.configuration as cfg:
+    with cache.statistics as stats, cache.configuration as cfg:
         print(
             template.format(
                 str(cache),
@@ -1588,7 +1592,7 @@ clcache statistics:
 
 
 def resetStatistics(cache):
-    with cache.statistics.lock, cache.statistics as stats:
+    with cache.statistics as stats:
         stats.resetCounters()
 
 
@@ -1667,7 +1671,7 @@ def processCacheHit(cache, objectFile, cachekey):
     )
 
     with cache.lockFor(cachekey):
-        with cache.statistics.lock, cache.statistics as stats:
+        with cache.statistics as stats:
             stats.registerCacheHit()
 
         if os.path.exists(objectFile):
@@ -1724,7 +1728,7 @@ def runClCache(compiler, compiler_args, env):
 
 
 def updateCacheStatistics(cache, method):
-    with cache.statistics.lock, cache.statistics as stats:
+    with cache.statistics as stats:
         method(stats)
 
 
@@ -1980,7 +1984,7 @@ def ensureArtifactsExist(
     correctCompiliation = returnCode == 0 and os.path.exists(objectFile)
     with cache.lockFor(cachekey):
         if not cache.hasEntry(cachekey):
-            with cache.statistics.lock, cache.statistics as stats:
+            with cache.statistics as stats:
                 reason(stats)
                 if correctCompiliation:
                     artifacts = CompilerArtifacts(
