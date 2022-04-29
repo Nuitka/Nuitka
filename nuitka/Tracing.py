@@ -270,12 +270,13 @@ class OurLogger(object):
             )
             self.my_print(formatted_message, style=style, file=sys.stderr)
 
-    def sysexit(self, message, exit_code=1):
+    def sysexit(self, message="", exit_code=1):
         from nuitka.Progress import closeProgressBar
 
         closeProgressBar()
 
-        self.my_print("FATAL: %s" % message, style="red", file=sys.stderr)
+        if message:
+            self.my_print("FATAL: %s" % message, style="red", file=sys.stderr)
 
         sys.exit(exit_code)
 
