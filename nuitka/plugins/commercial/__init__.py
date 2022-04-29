@@ -17,19 +17,4 @@
 #
 """ Commercial plugins package.
 
-This may load code from the commercial Nuitka repository
 """
-
-# Auto extend to a Nuitka commercial installation, by adding it to the package
-# path. That aims at making extending Nuitka with these plugins easier.
-import os
-
-if "NUITKA_COMMERCIAL" in os.environ:
-    path = os.environ["NUITKA_COMMERCIAL"]
-
-    candidate = os.path.join(path, __name__.replace(".", os.path.sep))
-
-    if os.path.isdir(candidate) and os.path.isfile(
-        os.path.join(candidate, "__init__.py")
-    ):
-        __path__.append(candidate)
