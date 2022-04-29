@@ -25,7 +25,6 @@ to add to this and submit patches to make it more complete.
 import fnmatch
 
 from nuitka.__past__ import iter_modules
-from nuitka.containers.oset import OrderedSet
 from nuitka.Options import (
     isOnefileMode,
     isStandaloneMode,
@@ -101,14 +100,8 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
 
         yield current
 
-    def _getImportsByFullname(self, full_name):
-        """Provides names of modules to imported implicitly.
-
-        Notes:
-            This methods works much like 'getImplicitImports', except that it
-            accepts the search argument as a string. This allows callers to
-            obtain results, which cannot provide a Nuitka module object.
-        """
+    def _getImportsByFullname(self, module, full_name):
+        """Provides names of modules to imported implicitly."""
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
 
         config = self.config.get(full_name)
@@ -192,7 +185,15 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
 
             for dependency in dependencies:
                 if dependency.startswith("."):
-                    dependency = full_name.getChildNamed(dependency[1:]).asString()
+                    if (
+                        module.isUncompiledPythonPackage()
+                        or module.isCompiledPythonPackage()
+                    ):
+                        dependency = full_name.getChildNamed(dependency[1:]).asString()
+                    else:
+                        dependency = full_name.getSiblingNamed(
+                            dependency[1:]
+                        ).asString()
 
                 if "*" in dependency or "?" in dependency:
                     for resolved in self._resolveModulePattern(dependency):
@@ -1230,33 +1231,10 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
             yield "mercurial.charencode"
             yield "mercurial.cext.parsers"
 
-    def getImportsByFullname(self, full_name):
-        """Recursively create a set of imports for a fullname.
-
-        Notes:
-            If an imported item has imported kids, call again with each new item,
-            resulting in a leaf-only set (no more consequential kids).
-        """
-        result = OrderedSet()
-
-        def checkImportsRecursive(module_name):
-            for item in self._getImportsByFullname(module_name):
-                item = ModuleName(item)
-
-                if item not in result:
-                    result.add(item)
-                    checkImportsRecursive(item)
-
-        checkImportsRecursive(full_name)
-
-        if full_name in result:
-            result.remove(full_name)
-
-        return result
-
     def getImplicitImports(self, module):
         full_name = module.getFullName()
 
+        # TODO: This code absolutely doesn't below here.
         if module.isPythonExtensionModule():
             for used_module in module.getUsedModules():
                 yield used_module[0]
@@ -1278,8 +1256,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                 yield "pkg_resources._vendor." + part
 
         else:
-            # create a flattened import set for full_name and yield from it
-            for item in self.getImportsByFullname(full_name):
+            for item in self._getImportsByFullname(module=module, full_name=full_name):
                 yield item
 
     def onModuleSourceCode(self, module_name, source_code):
