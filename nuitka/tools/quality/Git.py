@@ -28,7 +28,12 @@ import os
 import re
 
 from nuitka.Tracing import my_print
-from nuitka.utils.Execution import check_call, check_output, executeProcess
+from nuitka.utils.Execution import (
+    NuitkaCalledProcessError,
+    check_call,
+    check_output,
+    executeProcess,
+)
 from nuitka.utils.FileOperations import openTextFile
 
 
@@ -99,7 +104,10 @@ def getModifiedPaths():
 def getUnpushedPaths():
     result = set()
 
-    output = check_output(["git", "diff", "--stat", "--name-only", "@{upstream}"])
+    try:
+        output = check_output(["git", "diff", "--stat", "--name-only", "@{upstream}"])
+    except NuitkaCalledProcessError:
+        return result
 
     for line in output.splitlines():
         if str is not bytes:
