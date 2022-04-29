@@ -17,3 +17,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+"""
+Package using package data file.
+"""
+import pkgutil
+
+print(pkgutil.get_data(__package__, "data/package_data.txt"))
