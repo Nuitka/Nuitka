@@ -53,11 +53,11 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.tools.testing.Virtualenv import withVirtualenv
-from nuitka.utils.FileOperations import removeDirectory
+from nuitka.utils.FileOperations import copyFile, deleteFile, removeDirectory
 
 
 def main():
-    # Complex stuff, pylint: disable=too-many-locals,too-many-statements
+    # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     python_version = setup(suite="distutils", needs_io_encoding=True)
 
@@ -90,8 +90,12 @@ def main():
                 reportSkip("Skipped, only relevant for Python3", ".", filename)
                 continue
 
-            if "_pyproject_" in filename:
-                reportSkip("Skipped, manual test for now", ".", filename)
+            if filename == "example_pyproject_2":
+                reportSkip(
+                    "Skipped, 'poetry' based pyproject is now working for now",
+                    ".",
+                    filename,
+                )
                 continue
 
             case_dir = os.path.join(os.getcwd(), filename)
@@ -100,9 +104,22 @@ def main():
             removeDirectory(os.path.join(case_dir, "dist"), ignore_errors=False)
 
             with withVirtualenv("venv_cpython") as venv:
-                venv.runCommand(
-                    commands=['cd "%s"' % case_dir, "python setup.py bdist_wheel"]
-                )
+                if "_pyproject_" not in filename:
+                    venv.runCommand(
+                        commands=['cd "%s"' % case_dir, "python setup.py bdist_wheel"]
+                    )
+
+                else:
+                    venv.runCommand("pip install build")
+
+                    copyFile(
+                        source_path=os.path.join(case_dir, "pyproject.cpython.toml"),
+                        dest_path=os.path.join(case_dir, "pyproject.toml"),
+                    )
+                    venv.runCommand(commands=['cd "%s"' % case_dir, "python -m build"])
+                    deleteFile(
+                        os.path.join(case_dir, "pyproject.toml"), must_exist=True
+                    )
 
                 dist_dir = os.path.join(case_dir, "dist")
 
@@ -164,7 +181,8 @@ def main():
             with withVirtualenv("venv_nuitka") as venv:
                 # Install nuitka from source.
                 venv.runCommand(
-                    commands=['cd "%s"' % nuitka_dir, "python setup.py install"]
+                    commands=['cd "%s"' % nuitka_dir, "python setup.py install"],
+                    style="test-prepare",
                 )
 
                 # Remove that left over from the install command.
@@ -174,9 +192,21 @@ def main():
                 )
 
                 # Create the wheel with Nuitka compilation.
-                venv.runCommand(
-                    commands=['cd "%s"' % case_dir, "python setup.py bdist_nuitka"]
-                )
+                if "_pyproject_" not in filename:
+                    venv.runCommand(
+                        commands=['cd "%s"' % case_dir, "python setup.py bdist_nuitka"]
+                    )
+                else:
+                    venv.runCommand("pip install build")
+
+                    copyFile(
+                        source_path=os.path.join(case_dir, "pyproject.nuitka.toml"),
+                        dest_path=os.path.join(case_dir, "pyproject.toml"),
+                    )
+                    venv.runCommand(commands=['cd "%s"' % case_dir, "python -m build"])
+                    deleteFile(
+                        os.path.join(case_dir, "pyproject.toml"), must_exist=True
+                    )
 
                 dist_dir = os.path.join(case_dir, "dist")
                 venv.runCommand(

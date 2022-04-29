@@ -181,9 +181,21 @@ def _getTerminalSize():
             return 1000
 
 
+def aliasStyle(style):
+    if style == "test-prepare":
+        return "pink"
+    if style == "test-progress":
+        return "blue"
+    else:
+        return style
+
+
 def _my_print(file_output, is_atty, args, kwargs):
     if "style" in kwargs:
         style = kwargs["style"]
+
+        style = aliasStyle(style)
+
         del kwargs["style"]
 
         if "end" in kwargs:
