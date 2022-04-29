@@ -188,6 +188,9 @@ class ModuleName(str):
     def getChildNamed(self, *args):
         return ModuleName(".".join([self] + list(args)))
 
+    def getSiblingNamed(self, *args):
+        return self.getPackageName().getChildNamed(*args)
+
     def matchesToShellPatterns(self, patterns):
         """Match a module name to a list of patterns
 
