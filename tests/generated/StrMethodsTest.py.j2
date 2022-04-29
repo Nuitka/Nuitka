@@ -49,6 +49,10 @@ def forgetType(value):
 {% set method_arg_variants = ["", "1", "'a'", "'a', 'b'", "'a', 'b', 'c'"] %}
 {% endif %}
 
+{% if method_arguments[str_method_name] %}
+{% do method_arg_variants.append("%s=1" % method_arguments[str_method_name][-1]) %}
+{% endif %}
+
 {% for method_args in method_arg_variants %}
 
 {% set left_1 = "'some_value'" %}
