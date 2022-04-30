@@ -160,6 +160,7 @@
         "tshape",
         "ucrt",
         "uncompiled",
+        "unoptimized",
         "unstriped",
         "virtualenv",
         "vmprof",
