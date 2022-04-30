@@ -44,6 +44,7 @@ from nuitka.PythonFlavors import (
 )
 from nuitka.PythonVersions import (
     getSupportedPythonVersions,
+    python_version,
     python_version_str,
 )
 from nuitka.utils.Execution import getExecutablePath
@@ -666,6 +667,17 @@ but errors may happen."""
             Tracing.options_logger.warning(
                 "The '--execute-with-pythonpath' option has no effect without '--run' option."
             )
+
+    # Check if the fallback is used, except for Python2 on Windows, where we cannot
+    # have it.
+    if hasattr(OrderedSet, "is_fallback") and not (
+        isWin32Windows() and python_version < 0x360
+    ):
+        Tracing.general.warning(
+            """\
+Using very slow fallback for ordered sets, please install 'ordered-set' or \
+'orderset' PyPI packages for best Python compile time performance."""
+        )
 
 
 def isVerbose():
