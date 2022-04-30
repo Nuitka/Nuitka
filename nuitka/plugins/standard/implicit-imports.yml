@@ -125,3 +125,23 @@ persistent.ring:
 pydantic.typing:
   depends:
     - "typing_extensions"
+
+falcon.app:
+  depends:
+    - ".app_helpers"
+    - ".responders"
+    - ".routing"
+
+falcon.request:
+  depends:
+    - ".request_helpers"
+    - ".forwarded"
+    - ".media"
+
+falcon.media.handlers:
+  depends:
+    - "falcon.vendor.mimeparse"
+
+falcon.response:
+  depends:
+    - ".response_helpers"
