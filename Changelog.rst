@@ -8597,8 +8597,8 @@ New Features
    measured performance with ``vmprof``. This is work in progress and
    not functional yet.
 
--  Started work on ``--graph`` to render the SSA state into diagrams.
-   This is work in progress and not functional yet.
+-  Started work on ``--internal-graph`` to render the SSA state into
+   diagrams. This is work in progress and not too functional yet.
 
 -  Plug-in framework added. Not yet ready for users. Working ``PyQt4``
    and ``PyQt5`` plug-in support. Experimental Windows
