@@ -887,8 +887,8 @@ def isProfile():
 
 
 def shallCreateGraph():
-    """:returns: bool derived from ``--graph``"""
-    return options.graph
+    """:returns: bool derived from ``--internal-graph``"""
+    return options.internal_graph
 
 
 def getOutputFilename():
