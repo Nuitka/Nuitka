@@ -3,6 +3,8 @@ Upstream-Name: nuitka
 Upstream-Contact: Kay Hayen <kay.hayen@gmail.com>
 Source: https://nuitka.net/
 
+# No spell checking for this file, spell-checker: disable
+
 Files: *
 Copyright: 2021 Kay Hayen
            2020 Batakrishna Sahu
@@ -75,7 +77,7 @@ License: BSD-3-clause
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Files: nuitka/containers/oset.py
+Files: nuitka/containers/OrderedSetFallback.py
 Copyright: 2009 Raymond Hettinger
 License: MIT+Hettinger
  Permission is hereby granted, free of charge, to any person obtaining

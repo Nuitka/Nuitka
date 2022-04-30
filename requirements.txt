@@ -23,6 +23,7 @@ appdirs
 tqdm; python_version == '2.7' or python_version >= '3.4'
 
 # Faster OrderedSet
+ordered-set; python_version >= "3.10"
 orderedset; python_version >= '3.6' or os.name != "nt"
 
 # More capable subprocess.
