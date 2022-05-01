@@ -719,6 +719,10 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
         # been seen with Qt at least.
         filename = os.path.normpath(filename)
 
+        # If we encounter a valid relative path, resolve it to an absolute one.
+        if not os.path.isabs(filename) and os.path.isfile(filename):
+            filename = os.path.abspath(filename)
+
         # Do not include kernel DLLs on the ignore list.
         filename_base = os.path.basename(filename)
         if any(
