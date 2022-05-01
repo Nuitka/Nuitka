@@ -50,6 +50,10 @@ static void _initBuiltinTypeMethods(void) {
 
 #include "HelpersSafeStrings.c"
 
+#if PYTHON_VERSION >= 0x3a0
+#include "HelpersMatching.c"
+#endif
+
 #if PYTHON_VERSION < 0x300
 
 static Py_ssize_t ESTIMATE_RANGE(long low, long high, long step) {

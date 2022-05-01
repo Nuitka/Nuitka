@@ -38,6 +38,7 @@ from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.MatchNodes import ExpressionMatchArgs
 from nuitka.nodes.SubscriptNodes import (
     ExpressionSubscriptCheck,
     ExpressionSubscriptLookup,
@@ -260,11 +261,9 @@ def _buildMatchMapping(provider, pattern, against, source_ref):
 
 
 def _buildMatchClass(provider, pattern, against, source_ref):
-    # TODO: What is that when set.
-    assert not pattern.patterns, ast.dump(pattern)
     cls_node = buildNode(provider, pattern.cls, source_ref)
 
-    assert len(pattern.kwd_attrs) == len(pattern.kwd_patterns), ast.dump(pattern)
+    assignments = []
 
     conditions = [
         ExpressionBuiltinIsinstance(
@@ -274,9 +273,34 @@ def _buildMatchClass(provider, pattern, against, source_ref):
         )
     ]
 
-    assignments = []
-
+    assert not (pattern.patterns and pattern.kwd_patterns), ast.dump(pattern)
     assert len(pattern.kwd_attrs) == len(pattern.kwd_patterns), ast.dump(pattern)
+
+    for count, pos_pattern in enumerate(pattern.patterns):
+        # TODO: Not reusing Match args, is very wasteful for performance, but
+        # temporary variable handling is a bit of a problem in this so far,
+        # we should create an outline function for it, but match value args
+        # ought to be global probably, so they can be shared.
+        item_conditions, item_assignments = _buildMatch(
+            provider=provider,
+            against=ExpressionSubscriptLookup(
+                expression=ExpressionMatchArgs(
+                    expression=against.makeClone(),
+                    max_allowed=len(pattern.patterns),
+                    source_ref=source_ref,
+                ),
+                subscript=makeConstantRefNode(constant=count, source_ref=source_ref),
+                source_ref=source_ref,
+            ),
+            pattern=pos_pattern,
+            source_ref=source_ref,
+        )
+
+        if item_conditions:
+            conditions.extend(item_conditions)
+
+        if item_assignments:
+            assignments.extend(item_assignments)
 
     for key, kwd_pattern in zip(pattern.kwd_attrs, pattern.kwd_patterns):
         conditions.append(

@@ -173,4 +173,7 @@ def getConstantDefaultPopulation():
     if python_version >= 0x370:
         result.append("__class_getitem__")
 
+    if python_version >= 0x3A0:
+        result.append("__match_args__")
+
     return result

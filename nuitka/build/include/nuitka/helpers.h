@@ -407,6 +407,10 @@ extern python_initproc default_tp_init_wrapper;
 extern PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases);
 #endif
 
+#if PYTHON_VERSION >= 0x3a0
+extern PyObject *MATCH_CLASS_ARGS(PyObject *matched, int max_allowed);
+#endif
+
 NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME1(PyObject *module) {
     assert(PyModule_Check(module));
     PyObject *module_dict = ((PyModuleObject *)module)->md_dict;
