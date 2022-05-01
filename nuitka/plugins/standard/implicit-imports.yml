@@ -72,6 +72,10 @@ urllib.request:
   depends:
     - "http.client"
 
+http.client:
+  depends:
+    - "http.cookiejar"
+
 _asyncio:
   depends:
     - "asyncio"
