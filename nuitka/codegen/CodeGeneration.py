@@ -230,6 +230,7 @@ from .LoopCodes import (
     generateLoopCode,
     generateLoopContinueCode,
 )
+from .MatchCodes import generateMatchArgsCode
 from .ModuleCodes import (
     generateModuleAttributeCode,
     generateModuleAttributeFileCode,
@@ -787,6 +788,7 @@ addExpressionDispatchDict(
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKGLIB_GET_DATA_CALL": generatePkglibGetDataCallCode,
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_CALL": generatePkgResourcesResourceStringCallCode,
+        "EXPRESSION_MATCH_ARGS": generateMatchArgsCode,
     }
 )
 
