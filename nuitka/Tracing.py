@@ -186,6 +186,8 @@ def aliasStyle(style):
         return "pink"
     if style == "test-progress":
         return "blue"
+    if style == "test-debug":
+        return "bold"
     else:
         return style
 
