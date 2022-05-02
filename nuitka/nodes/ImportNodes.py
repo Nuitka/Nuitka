@@ -30,11 +30,13 @@ import sys
 
 from nuitka.__past__ import long, unicode, xrange
 from nuitka.codegen.Reports import onMissingTrust
-from nuitka.importing.Importing import isPackageDir
-from nuitka.importing.ImportResolving import (
-    locateModuleAllowed,
-    resolveModuleName,
+from nuitka.importing.Importing import (
+    getModuleNameAndKindFromFilename,
+    isPackageDir,
+    locateModule,
 )
+from nuitka.importing.ImportResolving import resolveModuleName
+from nuitka.importing.Recursion import decideRecursion
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.Options import isStandaloneMode, shallWarnUnusualCode
 from nuitka.PythonVersions import (
@@ -80,7 +82,6 @@ hard_modules = frozenset(
         "types",
         "typing",
         "__future__",
-        "site",
         "importlib",
         "importlib.metadata",
         "_frozen_importlib",
@@ -88,9 +89,18 @@ hard_modules = frozenset(
         "pkgutil",
         "functools",
         "sysconfig",
+    )
+)
+
+# Lets put here, hard modules that are kind of backports only.
+hard_modules_non_stdlib = frozenset(
+    (
+        "site",
         "pkg_resources",
     )
 )
+
+hard_modules = hard_modules | hard_modules_non_stdlib
 
 hard_modules_version = {
     "typing": 0x350,
@@ -194,6 +204,32 @@ def isHardModuleWithoutSideEffect(module_name):
     return module_name in hard_modules and module_name != "site"
 
 
+class ExpressionImportAllowanceMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    def __init__(self):
+        if self.finding == "not-found":
+            self.allowed = False
+        elif self.finding == "built-in":
+            self.allowed = True
+        else:
+            _module_name, module_kind = getModuleNameAndKindFromFilename(
+                self.module_filename
+            )
+
+            self.allowed, _reason = decideRecursion(
+                module_filename=self.module_filename,
+                module_name=self.module_name,
+                module_kind=module_kind,
+            )
+
+            # In case of hard imports, that are not forbidden explicitly, allow their use
+            # anyway.
+            if self.allowed is None and self.isExpressionImportModuleHard():
+                self.allowed = True
+
+
 class ExpressionImportModuleFixed(ExpressionBase):
     """Hard coded import names, that we know to exist."
 
@@ -208,12 +244,13 @@ class ExpressionImportModuleFixed(ExpressionBase):
         "found_module_name",
         "found_module_filename",
         "finding",
+        "allowance",
     )
 
     def __init__(self, module_name, source_ref):
         ExpressionBase.__init__(self, source_ref=source_ref)
 
-        self.module_name = resolveModuleName(module_name)
+        self.module_name = ModuleName(module_name)
 
         self.finding = None
 
@@ -225,7 +262,7 @@ class ExpressionImportModuleFixed(ExpressionBase):
         ) = self._attemptFollow()
 
     def _attemptFollow(self):
-        found_module_name, found_module_filename, finding = locateModuleAllowed(
+        found_module_name, found_module_filename, finding = locateModule(
             module_name=self.module_name,
             parent_package=None,
             level=0,
@@ -238,7 +275,7 @@ class ExpressionImportModuleFixed(ExpressionBase):
                 if module_name is None:
                     break
 
-                found_module_name, found_module_filename, finding = locateModuleAllowed(
+                found_module_name, found_module_filename, finding = locateModule(
                     module_name=module_name,
                     parent_package=None,
                     level=0,
@@ -285,7 +322,8 @@ class ExpressionImportModuleFixed(ExpressionBase):
         return self, None, None
 
     def computeExpressionImportName(self, import_node, import_name, trace_collection):
-        # TODO: For include modules, something might be possible here.
+        # TODO: For include modules, something might be possible here, consider self.allowance
+        # when that is implemented.
         return self.computeExpressionAttribute(
             lookup_node=import_node,
             attribute_name=import_name,
@@ -293,7 +331,9 @@ class ExpressionImportModuleFixed(ExpressionBase):
         )
 
 
-class ExpressionImportModuleHard(ExpressionImportHardBase):
+class ExpressionImportModuleHard(
+    ExpressionImportAllowanceMixin, ExpressionImportHardBase
+):
     """Hard coded import names, e.g. of "__future__"
 
     These are directly created for some Python mechanics, but also due to
@@ -302,14 +342,18 @@ class ExpressionImportModuleHard(ExpressionImportHardBase):
 
     kind = "EXPRESSION_IMPORT_MODULE_HARD"
 
-    __slots__ = ("module",)
+    __slots__ = ("module", "allowed")
 
     def __init__(self, module_name, source_ref):
         ExpressionImportHardBase.__init__(
             self, module_name=module_name, source_ref=source_ref
         )
 
-        if isHardModuleWithoutSideEffect(self.module_name):
+        ExpressionImportAllowanceMixin.__init__(self)
+
+        if self.finding != "not-found" and isHardModuleWithoutSideEffect(
+            self.module_name
+        ):
             self.module = __import__(self.module_name)
         else:
             self.module = None
@@ -336,9 +380,6 @@ class ExpressionImportModuleHard(ExpressionImportHardBase):
             return tshape_module
 
     def computeExpressionRaw(self, trace_collection):
-        if self.finding is None:
-            self._attemptFollow()
-
         if self.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -370,7 +411,7 @@ class ExpressionImportModuleHard(ExpressionImportHardBase):
         # By default, an attribute lookup may change everything about the lookup
         # source.
 
-        if self.module is not None:
+        if self.module is not None and self.allowed:
             trust = hard_modules_trust[self.module_name].get(
                 attribute_name, trust_undefined
             )
@@ -666,7 +707,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         if type(level) not in (int, long):
             return None, None
 
-        module_name, module_filename, self.finding = locateModuleAllowed(
+        module_name, module_filename, self.finding = locateModule(
             module_name=resolveModuleName(module_name),
             parent_package=parent_package,
             level=level,
@@ -696,7 +737,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                         name_import_module_name,
                         name_import_module_filename,
                         name_import_finding,
-                    ) = locateModuleAllowed(
+                    ) = locateModule(
                         module_name=ModuleName(import_item),
                         parent_package=module_name,
                         level=1,  # Relative import
@@ -722,7 +763,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 if module_name is None:
                     break
 
-                module_name_found, module_filename, finding = locateModuleAllowed(
+                module_name_found, module_filename, finding = locateModule(
                     module_name=module_name,
                     parent_package=parent_package,
                     level=level,
@@ -765,8 +806,8 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
                 if self.finding == "absolute" and imported_module_name in hard_modules:
                     if (
-                        isStandardLibraryPath(module_filename)
-                        or imported_module_name == "pkg_resources"
+                        imported_module_name in hard_modules_non_stdlib
+                        or isStandardLibraryPath(module_filename)
                     ):
                         result = ExpressionImportModuleHard(
                             module_name=imported_module_name, source_ref=self.source_ref
@@ -937,16 +978,13 @@ class ExpressionImportName(ExpressionChildHavingBase):
 
 
 def makeExpressionImportModuleFixed(module_name, source_ref):
+    module_name = resolveModuleName(module_name)
+
     if module_name in hard_modules:
-        _module_name, _module_filename, finding = locateModuleAllowed(
-            module_name=module_name,
-            parent_package=None,
-            level=0,
+        return ExpressionImportModuleHard(
+            module_name=module_name, source_ref=source_ref
         )
-
-        if finding != "not-found":
-            return ExpressionImportModuleHard(
-                module_name=module_name, source_ref=source_ref
-            )
-
-    return ExpressionImportModuleFixed(module_name=module_name, source_ref=source_ref)
+    else:
+        return ExpressionImportModuleFixed(
+            module_name=module_name, source_ref=source_ref
+        )

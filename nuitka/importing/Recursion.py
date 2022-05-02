@@ -147,8 +147,8 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
     if any_case:
         return (True, "Module %s instructed by user to follow to." % reason)
 
-    if Options.shallFollowNoImports():
-        return (False, "Instructed by user to not follow at all.")
+    if extra_recursion:
+        return (True, "Lives in plug-in directory.")
 
     if is_stdlib and Options.shallFollowStandardLibrary():
         return (True, "Instructed by user to follow to standard library.")
@@ -166,14 +166,14 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
                 "Instructed by user to follow to all non-standard library modules.",
             )
 
+    if Options.shallFollowNoImports():
+        return (None, "Instructed by user to not follow at all.")
+
     # Means, we were not given instructions how to handle things.
-    if extra_recursion:
-        return (True, "Lives in plug-in directory.")
-
-    if Options.shallMakeModule():
-        return (False, "Making a module, not following any imports by default.")
-
-    return (None, "Default behavior, not recursing without request.")
+    return (
+        None,
+        "Default behavior in non-standalone mode, not following without request.",
+    )
 
 
 def considerFilename(module_filename):

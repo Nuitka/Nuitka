@@ -23,9 +23,6 @@ from nuitka.__past__ import unicode
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
 
-from .Importing import getModuleNameAndKindFromFilename, locateModule
-from .Recursion import decideRecursion
-
 _six_moves = {
     "six.moves.builtins": "__builtin__" if python_version < 0x300 else "builtins",
     "six.moves.configparser": "ConfigParser"
@@ -153,26 +150,3 @@ def resolveModuleName(module_name):
         return ModuleName(_six_moves[module_name])
     else:
         return module_name
-
-
-def locateModuleAllowed(module_name, parent_package, level):
-    module_name, module_filename, finding = locateModule(
-        module_name=resolveModuleName(module_name),
-        parent_package=parent_package,
-        level=level,
-    )
-
-    if module_filename is not None:
-        _module_name2, module_kind = getModuleNameAndKindFromFilename(module_filename)
-
-        decision, _reason = decideRecursion(
-            module_filename=module_filename,
-            module_name=module_name,
-            module_kind=module_kind,
-        )
-
-        if decision is False:
-            finding = "not-found"
-            module_filename = None
-
-    return module_name, module_filename, finding
