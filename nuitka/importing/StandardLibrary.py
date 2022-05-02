@@ -272,6 +272,7 @@ _stdlib_no_auto_inclusion_list = (
     "smtplib",
     "nntplib",
     "http",
+    "wsgiref",
     "sunau",
     "this",
     # Distribution and bytecode related stuff
