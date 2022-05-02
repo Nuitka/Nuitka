@@ -346,9 +346,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             module_kind: one of "py", "extension" (shared library)
         Returns:
             None
-        Notes:
-            May raise "NuitkaForbiddenImportEncounter" exception when it
-            wants to make it an error.
         """
 
     def onModuleInitialSet(self):
