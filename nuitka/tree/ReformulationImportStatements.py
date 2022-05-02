@@ -314,6 +314,9 @@ def buildImportModulesNode(provider, node, source_ref):
             else None
         )
 
+        # TODO: Go to fixed node directly, avoiding the optimization for the
+        # node to do it, with absolute imports we can use makeExpressionImportModuleFixed
+        # instead.
         import_node = ExpressionBuiltinImport(
             name=makeConstantRefNode(module_name, source_ref, True),
             globals_arg=ExpressionBuiltinGlobals(source_ref),
