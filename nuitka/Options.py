@@ -51,7 +51,6 @@ from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
     isPathExecutable,
     openTextFile,
-    relpath,
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
@@ -78,6 +77,57 @@ is_nondebug = None
 is_fullcompat = None
 is_report_missing = None
 is_verbose = None
+
+
+def _checkSpec(value, arg_name):
+    if "%COMPANY%" in value and not getWindowsCompanyName():
+        Tracing.options_logger.sysexit(
+            "Using value '%%COMPANY%%' in '%s=%s' value without being specified."
+            % (arg_name, value)
+        )
+
+
+def _checkOnefileTargetSpec():
+    options.is_onefile_tempdir = True
+
+    _checkSpec(options.onefile_tempdir_spec, arg_name="--onefile-tempdir-spec")
+
+    if os.path.normpath(options.onefile_tempdir_spec) == ".":
+        Tracing.options_logger.sysexit(
+            """\
+Error, using '.' as a value for '--onefile-tempdir-spec' is not supported,
+you cannot unpack the onefile payload into the same directory as the binary,
+as that would overwrite it and cause locking issues as well."""
+        )
+
+    if options.onefile_tempdir_spec.count("%") % 2 != 0:
+        Tracing.options_logger.warning(
+            """Unmatched '%%' is suspicious for '--onefile-tempdir-spec' and may
+not do what you want it to do: '%s'"""
+            % options.onefile_tempdir_spec
+        )
+
+    if options.onefile_tempdir_spec.count("%") == 0:
+        Tracing.options_logger.warning(
+            """Not using any variables for '--onefile-tempdir-spec' should only be
+done if your program absolutely needs to be in the same path always: '%s'"""
+            % options.onefile_tempdir_spec
+        )
+
+    if os.path.isabs(options.onefile_tempdir_spec):
+        Tracing.options_logger.warning(
+            """Using an absolute path should be avoided unless you are targeting a
+very well known environment: anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
+            % options.onefile_tempdir_spec
+        )
+    elif not options.onefile_tempdir_spec.startswith(
+        ("%TEMP%", "%HOME%", "%CACHE_DIR%")
+    ):
+        Tracing.options_logger.warning(
+            """Using an relative to the executable should be avoided unless you are targeting a
+very well known environment, anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
+            % options.onefile_tempdir_spec
+        )
 
 
 def parseArgs():
@@ -157,45 +207,11 @@ def parseArgs():
     if options.is_standalone:
         options.python_flags.insert(0, "no_site")
 
-    # Provide a tempdir spec implies onefile tempdir, even on Linux.
+    # Check onefile tempdir spec.
     if options.onefile_tempdir_spec:
-        options.is_onefile_tempdir = True
+        _checkOnefileTargetSpec()
 
-        if os.path.normpath(options.onefile_tempdir_spec) == ".":
-            Tracing.options_logger.sysexit(
-                """\
-Error, using '.' as a value for '--onefile-tempdir-spec' is not supported,
-you cannot unpack the onefile payload into the same directory as the binary,
-as that would overwrite it and cause locking issues as well."""
-            )
-
-        if options.onefile_tempdir_spec.count("%") % 2 != 0:
-            Tracing.options_logger.warning(
-                """Unmatched '%%' is suspicious for '--onefile-tempdir-spec' and may
-not do what you want it to do: '%s'"""
-                % options.onefile_tempdir_spec
-            )
-
-        if options.onefile_tempdir_spec.count("%") == 0:
-            Tracing.options_logger.warning(
-                """Not using any variables for '--onefile-tempdir-spec' should only be
-done if your program absolutely needs to be in the same path always: '%s'"""
-                % options.onefile_tempdir_spec
-            )
-
-        if os.path.isabs(options.onefile_tempdir_spec):
-            Tracing.options_logger.warning(
-                """Using an absolute path should be avoided unless you are targeting a
-very well known environment: '%s'"""
-                % options.onefile_tempdir_spec
-            )
-        elif relpath(options.onefile_tempdir_spec):
-            Tracing.options_logger.warning(
-                """Using an relative path above the executable should be avoided unless you are targeting a
-very well known environment: '%s'"""
-                % options.onefile_tempdir_spec
-            )
-
+    # Provide a tempdir spec implies onefile tempdir, even on Linux.
     # Standalone mode implies an executable, not importing "site" module, which is
     # only for this machine, recursing to all modules, and even including the
     # standard library.
@@ -1244,14 +1260,10 @@ def getPythonPgoUnseenModulePolicy():
     return options.python_pgo_policy_unused_module
 
 
-def getOnefileTempDirSpec(use_default):
-    if use_default:
-        return (
-            options.onefile_tempdir_spec
-            or "%TEMP%" + os.path.sep + "onefile_%PID%_%TIME%"
-        )
-    else:
-        return options.onefile_tempdir_spec
+def getOnefileTempDirSpec():
+    return (
+        options.onefile_tempdir_spec or "%TEMP%" + os.path.sep + "onefile_%PID%_%TIME%"
+    )
 
 
 def getIconPaths():

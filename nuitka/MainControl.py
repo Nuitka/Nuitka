@@ -76,6 +76,7 @@ from nuitka.utils import InstanceCounters, MemoryUsage
 from nuitka.utils.Execution import (
     callProcess,
     withEnvironmentVarOverridden,
+    withEnvironmentVarsOverridden,
     wrapCommandForDebuggerForExec,
 )
 from nuitka.utils.FileOperations import (
@@ -651,14 +652,15 @@ def runSconsBackend(quiet):
     if Options.shallMakeModule():
         options["module_suffix"] = getSharedLibrarySuffix(preferred=True)
 
-    SconsInterface.setCommonOptions(options)
+    env_values = SconsInterface.setCommonOptions(options)
 
     if Options.shallCreatePgoInput():
         options["pgo_mode"] = "python"
 
-        result = SconsInterface.runScons(
-            options=options, quiet=quiet, scons_filename="Backend.scons"
-        )
+        with withEnvironmentVarsOverridden(env_values):
+            result = SconsInterface.runScons(
+                options=options, quiet=quiet, scons_filename="Backend.scons"
+            )
         if not result:
             return result, options
 
@@ -675,9 +677,11 @@ def runSconsBackend(quiet):
         # there, which currently are not yet there, so it won't run.
         if Options.isPgoMode():
             options["pgo_mode"] = "generate"
-            result = SconsInterface.runScons(
-                options=options, quiet=quiet, scons_filename="Backend.scons"
-            )
+
+            with withEnvironmentVarsOverridden(env_values):
+                result = SconsInterface.runScons(
+                    options=options, quiet=quiet, scons_filename="Backend.scons"
+                )
 
             if not result:
                 return result, options
@@ -687,12 +691,13 @@ def runSconsBackend(quiet):
             _runCPgoBinary()
             options["pgo_mode"] = "use"
 
-    result = (
-        SconsInterface.runScons(
-            options=options, quiet=quiet, scons_filename="Backend.scons"
-        ),
-        options,
-    )
+    with withEnvironmentVarsOverridden(env_values):
+        result = (
+            SconsInterface.runScons(
+                options=options, quiet=quiet, scons_filename="Backend.scons"
+            ),
+            options,
+        )
 
     if options.get("pgo_mode") == "use" and _wasMsvcMode():
         _deleteMsvcPGOFiles(pgo_mode="use")

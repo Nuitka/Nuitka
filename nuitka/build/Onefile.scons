@@ -54,6 +54,7 @@ from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
     checkWindowsCompilerFound,
     reportCCompiler,
+    setProductVersionDefinitions,
     setupCCompiler,
     switchFromGccToGpp,
 )
@@ -305,6 +306,7 @@ env.standalone_mode = True  # We are only used in this case.
 env.debug_mode = debug_mode
 env.unstriped_mode = debug_mode or unstriped_mode
 env.noelf_mode = noelf_mode
+env.disable_console = disable_console
 env.source_dir = source_dir
 env.low_memory = False  # Never a concern in this case.
 env.macos_min_version = macos_min_version
@@ -433,24 +435,6 @@ if debug_mode:
 
 if trace_mode:
     env.Append(CPPDEFINES=["_NUITKA_TRACE"])
-
-
-# For MinGW and cross compilation, we need to tell the subsystem
-# to target as well as to automatically import everything used.
-if win_target:
-    if env.gcc_mode:
-        if not env.clang_mode:
-            env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
-
-        if disable_console:
-            env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
-
-    if disable_console:
-        env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
-
-# For shell API usage to lookup app folders we need this.
-if env.msvc_mode:
-    env.Append(LIBS=["Shell32"])
 
 # The static include files reside in Nuitka installation, which may be where
 # the "nuitka.build" package lives.
@@ -606,28 +590,31 @@ if env.msvc_mode and not disable_ccache:
         source_dir=source_dir,
     )
 
-onefile_definitions = {}
 
-if "ONEFILE_COMPANY" in os.environ:
-    onefile_definitions["ONEFILE_COMPANY"] = os.environ["ONEFILE_COMPANY"]
-    onefile_definitions["ONEFILE_PRODUCT"] = os.environ["ONEFILE_PRODUCT"]
-    onefile_definitions["ONEFILE_VERSION"] = os.environ["ONEFILE_VERSION"]
+def createBuildDefinitionsFile():
+    onefile_definitions = {}
 
-if "ONEFILE_TEMP_SPEC" in os.environ:
-    onefile_definitions["_NUITKA_ONEFILE_TEMP_SPEC"] = os.environ["ONEFILE_TEMP_SPEC"]
-    onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 1
-else:
-    onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 0
+    if "ONEFILE_TEMP_SPEC" in os.environ:
+        onefile_definitions["_NUITKA_ONEFILE_TEMP_SPEC"] = os.environ[
+            "ONEFILE_TEMP_SPEC"
+        ]
+        onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 1
+    else:
+        onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 0
 
-if onefile_compression:
-    onefile_definitions["_NUITKA_ONEFILE_COMPRESSION"] = 1
+    if onefile_compression:
+        onefile_definitions["_NUITKA_ONEFILE_COMPRESSION"] = 1
 
-if onefile_splash_screen:
-    onefile_definitions["_NUITKA_ONEFILE_SPLASH_SCREEN"] = 1
-    env.Append(LIBS=["Ole32", "Windowscodecs", "User32", "Gdi32", "Shlwapi"])
+    if onefile_splash_screen:
+        onefile_definitions["_NUITKA_ONEFILE_SPLASH_SCREEN"] = 1
+        env.Append(LIBS=["Ole32", "Windowscodecs", "User32", "Gdi32", "Shlwapi"])
+
+    setProductVersionDefinitions(onefile_definitions)
+
+    createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
 
 
-createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
+createBuildDefinitionsFile()
 
 writeSconsReport(
     env=env,

@@ -340,7 +340,7 @@ def cleanSconsDirectory(source_dir):
 def setCommonOptions(options):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-statements
 
     if Options.shallRunInDebugger():
         options["full_names"] = "true"
@@ -415,3 +415,38 @@ def setCommonOptions(options):
             )
 
         options["macos_target_arch"] = macos_target_arch
+
+    env_values = {}
+
+    string_values = Options.getWindowsVersionInfoStrings()
+    if "CompanyName" in string_values:
+        env_values["NUITKA_COMPANY_NAME"] = string_values["CompanyName"]
+    if "ProductName" in string_values:
+        env_values["NUITKA_PRODUCT_NAME"] = string_values["ProductName"]
+
+    # Merge version information if possible, to avoid collisions, or deep nesting
+    # in file system.
+    product_version = Options.getWindowsProductVersion()
+    file_version = Options.getWindowsFileVersion()
+
+    if product_version is None:
+        product_version = file_version
+    if product_version is not None:
+        product_version = ".".join(str(d) for d in product_version)
+    if file_version is None:
+        file_version = product_version
+    if file_version is not None:
+        file_version = ".".join(str(d) for d in file_version)
+
+    if product_version != file_version:
+        effective_version = "%s-%s" % (
+            product_version,
+            file_version,
+        )
+    else:
+        effective_version = file_version
+
+    if effective_version:
+        env_values["NUITKA_VERSION_COMBINED"] = effective_version
+
+    return env_values

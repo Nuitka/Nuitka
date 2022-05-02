@@ -218,9 +218,6 @@ def _addWindowsIconFromIcons(onefile):
         )
 
 
-version_resources = {}
-
-
 def executePostProcessingResources(manifest, onefile):
     """Adding Windows resources to the binary.
 
@@ -244,16 +241,15 @@ def executePostProcessingResources(manifest, onefile):
         or Options.getWindowsProductVersion()
         or Options.getWindowsFileVersion()
     ):
-        version_resources.update(
-            addVersionInfoResource(
-                string_values=Options.getWindowsVersionInfoStrings(),
-                product_version=Options.getWindowsProductVersion(),
-                file_version=Options.getWindowsFileVersion(),
-                file_date=(0, 0),
-                is_exe=not Options.shallMakeModule(),
-                result_filename=result_filename,
-                logger=postprocessing_logger,
-            )
+
+        addVersionInfoResource(
+            string_values=Options.getWindowsVersionInfoStrings(),
+            product_version=Options.getWindowsProductVersion(),
+            file_version=Options.getWindowsFileVersion(),
+            file_date=(0, 0),
+            is_exe=not Options.shallMakeModule(),
+            result_filename=result_filename,
+            logger=postprocessing_logger,
         )
 
     # Attach icons from template file if given.
