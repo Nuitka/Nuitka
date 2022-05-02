@@ -46,14 +46,10 @@
 #endif
 
 #if defined(_WIN32)
-#include <Shlobj.h>
-#include <imagehlp.h>
+// Note: Keep this separate line, must be included before other Windows headers.
 #include <windows.h>
 
-#ifndef CSIDL_LOCAL_APPDATA
-#define CSIDL_LOCAL_APPDATA 28
-#endif
-
+#include <imagehlp.h>
 #else
 #include <dirent.h>
 #include <signal.h>
@@ -67,9 +63,6 @@
 // Generated during build with optional defines.
 #include "onefile_definitions.h"
 #else
-#define ONEFILE_COMPANY "SomeVendor"
-#define ONEFILE_PRODUCT "SomeProduct"
-#define ONEFILE_VERSION "SomeVersion"
 #define _NUITKA_ONEFILE_TEMP_SPEC "%TEMP%/onefile_%PID%_%TIME%"
 #endif
 

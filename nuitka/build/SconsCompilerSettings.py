@@ -621,6 +621,23 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
     if env.gcc_mode and not env.noelf_mode:
         env.Append(LINKFLAGS=["-z", "noexecstack"])
 
+    # For MinGW64 we need to tell the subsystem to target as well as to
+    # automatically import everything used.
+    if env.mingw_mode:
+        if not env.clang_mode:
+            env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
+
+        if env.disable_console:
+            env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
+
+    if env.mingw_mode or env.msvc_mode:
+        if env.disable_console:
+            env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
+
+    # For shell API usage to lookup app folders we need this.
+    if env.msvc_mode:
+        env.Append(LIBS=["Shell32"])
+
 
 def _enablePgoSettings(env, pgo_mode):
     if pgo_mode == "no":
@@ -768,3 +785,12 @@ def reportCCompiler(env, context):
     scons_logger.info(
         "%s C compiler: %s (%s)." % (context, env.the_compiler, cc_output)
     )
+
+
+def setProductVersionDefinitions(build_vars):
+    if "NUITKA_COMPANY_NAME" in os.environ:
+        build_vars["NUITKA_COMPANY_NAME"] = os.environ["NUITKA_COMPANY_NAME"]
+    if "NUITKA_PRODUCT_NAME" in os.environ:
+        build_vars["NUITKA_PRODUCT_NAME"] = os.environ["NUITKA_PRODUCT_NAME"]
+    if "NUITKA_VERSION_COMBINED" in os.environ:
+        build_vars["NUITKA_VERSION_COMBINED"] = os.environ["NUITKA_VERSION_COMBINED"]

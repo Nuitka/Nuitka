@@ -64,6 +64,7 @@ from .SconsCompilerSettings import (
     decideConstantsBlobResourceMode,
     enableWindowsStackSize,
     reportCCompiler,
+    setProductVersionDefinitions,
     setupCCompiler,
     switchFromGccToGpp,
 )
@@ -382,6 +383,7 @@ env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
 env.unstriped_mode = debug_mode or unstriped_mode
 env.noelf_mode = noelf_mode
+env.disable_console = disable_console
 env.source_dir = source_dir
 env.low_memory = low_memory
 env.macos_min_version = macos_min_version
@@ -557,20 +559,6 @@ if "linux" in sys.platform:
 
 if not env.msvc_mode:
     env.Append(LIBS=["m"])
-
-
-if win_target:
-    # For MinGW and cross compilation, we need to tell the subsystem
-    # to target as well as to automatically import everything used.
-    if env.gcc_mode:
-        if not clang_mode:
-            env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
-
-        if disable_console:
-            env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
-
-    if disable_console:
-        env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
 if python_debug:
     env.Append(CPPDEFINES=["Py_DEBUG"])
@@ -1008,6 +996,8 @@ def createBuildDefinitionsFile():
 
     if main_module_name != "__main__":
         build_definitions["NUITKA_MAIN_PACKAGE_MODE"] = 1
+
+    setProductVersionDefinitions(build_definitions)
 
     createDefinitionsFile(source_dir, "build_definitions.h", build_definitions)
 
