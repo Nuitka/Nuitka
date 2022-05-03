@@ -25,6 +25,7 @@ import os
 import sys
 from optparse import OptionParser
 
+from nuitka.PythonVersions import isDebugPython
 from nuitka.tools.testing.Common import checkReferenceCount, getTempDir
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import check_call
@@ -76,7 +77,7 @@ Try to explain the differences by comparing object counts.""",
         "--output-dir=%s" % temp_dir,
     ]
 
-    if hasattr(sys, "gettotalrefcount"):
+    if isDebugPython():
         command.append("--python-debug")
 
     check_call(command)

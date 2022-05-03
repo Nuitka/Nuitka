@@ -35,6 +35,7 @@ from nuitka.__past__ import subprocess
 from nuitka.PythonVersions import (
     getPartiallySupportedPythonVersions,
     getSupportedPythonVersions,
+    isDebugPython,
 )
 from nuitka.Tracing import OurLogger, my_print
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
@@ -470,6 +471,12 @@ def checkSucceedsWithCPython(filename):
 
 
 def getDebugPython():
+    # For all Python, if it's the one also executing the runner, which is
+    # very probably the case, we check that. We don't check the provided
+    # binary here, this could be done as well.
+    if sys.executable == os.environ["PYTHON"] and isDebugPython():
+        return sys.executable
+
     # On Debian systems, these work.
     debug_python = os.path.join("/usr/bin/", os.environ["PYTHON"] + "-dbg")
     if os.path.exists(debug_python):
@@ -487,12 +494,6 @@ def getDebugPython():
     debug_python = debug_python + "_d.exe"
     if os.path.exists(debug_python):
         return debug_python
-
-    # For other Python, if it's the one also executing the runner, which is
-    # very probably the case, we check that. We don't check the provided
-    # binary here, this could be done as well.
-    if sys.executable == os.environ["PYTHON"] and hasattr(sys, "gettotalrefcount"):
-        return sys.executable
 
     # Otherwise no.
     return None
@@ -606,7 +607,7 @@ def reenablePrinting():
         orig_print = None
 
 
-_debug_python = hasattr(sys, "gettotalrefcount")
+_debug_python = isDebugPython()
 
 
 def getTotalReferenceCount():
