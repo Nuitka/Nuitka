@@ -145,3 +145,7 @@ falcon.media.handlers:
 falcon.response:
   depends:
     - ".response_helpers"
+
+uvicorn.config:
+  depends:
+    - "websockets.legacy.server"
