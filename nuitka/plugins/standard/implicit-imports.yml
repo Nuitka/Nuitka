@@ -71,6 +71,7 @@ importlib.metadata:
 urllib.request:
   depends:
     - "http.client"
+    - "http.cookiejar"
 
 _asyncio:
   depends:
