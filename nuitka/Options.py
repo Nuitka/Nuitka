@@ -44,6 +44,7 @@ from nuitka.PythonFlavors import (
 )
 from nuitka.PythonVersions import (
     getSupportedPythonVersions,
+    isDebugPython,
     python_version,
     python_version_str,
 )
@@ -695,6 +696,14 @@ Using very slow fallback for ordered sets, please install 'ordered-set' or \
 'orderset' PyPI packages for best Python compile time performance."""
         )
 
+    if shallUsePythonDebug() and not isDebugPython():
+        Tracing.general.sysexit(
+            """\
+Error, for using the debug Python version, you need to run it will that version
+and not with the non-debug version.
+"""
+        )
+
 
 def isVerbose():
     """:returns: bool derived from ``--verbose``"""
@@ -872,7 +881,7 @@ def _isDebug():
     return options is not None and (options.debug or options.debugger)
 
 
-def isPythonDebug():
+def shallUsePythonDebug():
     """:returns: bool derived from ``--python-debug`` or ``sys.flags.debug``
 
     Passed to Scons as ``python_debug`` so it can consider it when picking
@@ -968,7 +977,7 @@ def _shallUseStaticLibPython():
             isDebianBasedLinux()
             and isDebianPackagePython()
             and isDebianSuitableForStaticLinking()
-            and not isPythonDebug()
+            and not shallUsePythonDebug()
         ):
             return True, "Nuitka on Debian-Python needs package '%s' installed." % (
                 "python2-dev" if str is bytes else "python3-dev"
