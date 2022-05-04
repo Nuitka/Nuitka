@@ -150,3 +150,7 @@ falcon.response:
 uvicorn.config:
   depends:
     - "websockets.legacy.server"
+
+zipfile:
+  depends:
+    - "py_compile"
