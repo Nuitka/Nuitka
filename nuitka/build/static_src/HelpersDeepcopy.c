@@ -579,17 +579,25 @@ Py_hash_t DEEP_HASH(PyObject *value) {
         return result;
 #if PYTHON_VERSION >= 0x390
     } else if (Py_TYPE(value) == &Py_GenericAliasType) {
-        GenericAliasObject *generic_alias = (GenericAliasObject *)value;
-
         Py_hash_t result = DEEP_HASH_INIT(value);
+
+        GenericAliasObject *generic_alias = (GenericAliasObject *)value;
 
         result ^= DEEP_HASH(generic_alias->args);
         result ^= DEEP_HASH(generic_alias->origin);
 
         return result;
 #endif
+#if PYTHON_VERSION >= 0x3a0
+    } else if (Py_TYPE(value) == Nuitka_PyUnion_Type) {
+        Py_hash_t result = DEEP_HASH_INIT(value);
+
+        result ^= DEEP_HASH(LOOKUP_ATTRIBUTE(value, const_str_plain___args__));
+
+        return result;
+#endif
     } else {
-        assert(false);
+        NUITKA_CANNOT_GET_HERE("Unknown type hashed");
 
         return -1;
     }

@@ -176,4 +176,7 @@ def getConstantDefaultPopulation():
     if python_version >= 0x3A0:
         result.append("__match_args__")
 
+        if Options.is_debug:
+            result.append("__args__")
+
     return result
