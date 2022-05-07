@@ -884,6 +884,8 @@ bool PRINT_REPR(PyObject *object) {
 
 bool PRINT_NULL(void) { return PRINT_STRING("<NULL>"); }
 
+bool PRINT_TYPE(PyObject *object) { return PRINT_ITEM((PyObject *)Py_TYPE(object)); }
+
 void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyObject *exception_tb) {
     PRINT_REPR(exception_type);
     if (exception_type) {

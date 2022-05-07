@@ -25,7 +25,6 @@ extern bool PRINT_NEW_LINE(void);
 extern bool PRINT_ITEM(PyObject *object);
 extern bool PRINT_STRING(char const *str);
 extern bool PRINT_FORMAT(char const *fmt, ...);
-
 extern bool PRINT_ITEM_TO(PyObject *file, PyObject *object);
 extern bool PRINT_NEW_LINE_TO(PyObject *file);
 
@@ -62,5 +61,7 @@ extern bool PRINT_REPR(PyObject *object);
 
 // Print the word <NULL>, as an alternative to pointers.
 extern bool PRINT_NULL(void);
+
+extern bool PRINT_TYPE(PyObject *object);
 
 #endif
