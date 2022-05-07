@@ -57,7 +57,6 @@ from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.Utils import getOS
 
 from .SearchModes import (
-    SearchModeAll,
     SearchModeByPattern,
     SearchModeCoverage,
     SearchModeImmediate,
@@ -781,16 +780,17 @@ Defaults to off.""",
     mode = positional_args[0] if positional_args else "search"
 
     # Avoid having to use options style.
-    if mode in ("search", "only"):
+    if mode in ("search", "only", "coverage"):
         if len(positional_args) >= 2 and not options.pattern:
             options.pattern = positional_args[1]
 
     if mode == "search":
         if options.all:
-            return SearchModeAll()
+            return SearchModeByPattern(start_at=None)
         elif options.pattern:
-            pattern = options.pattern.replace("/", os.path.sep)
-            return SearchModeByPattern(pattern)
+            return SearchModeByPattern(
+                start_at=options.pattern.replace("/", os.path.sep)
+            )
         else:
             return SearchModeImmediate()
     elif mode == "resume":
@@ -802,7 +802,11 @@ Defaults to off.""",
         else:
             assert False
     elif mode == "coverage":
-        return SearchModeCoverage()
+        return SearchModeCoverage(
+            start_at=options.pattern.replace("/", os.path.sep)
+            if options.pattern
+            else None
+        )
     else:
         test_logger.sysexit("Error, using unknown search mode %r" % mode)
 
