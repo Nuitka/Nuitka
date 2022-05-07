@@ -55,7 +55,12 @@ from nuitka.Tracing import (
 )
 from nuitka.utils.Execution import check_output
 from nuitka.utils.Json import loadJsonFromFilename
-from nuitka.utils.Utils import isDebianBasedLinux, isMacOS, isNetBSD
+from nuitka.utils.Utils import (
+    isDebianBasedLinux,
+    isFedoraBasedLinux,
+    isMacOS,
+    isNetBSD,
+)
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
@@ -764,12 +769,12 @@ elif not module_mode:
 
             env.Append(LINKFLAGS=["-Xlinker", "-export-dynamic", "-rdynamic"])
     else:
-        # Debian and Ubuntu distinguish the system libraries like this.
+        # Fedora, Debian and Ubuntu distinguish the system libraries like this.
         if (
             python_debug
             and python_prefix == "/usr"
             and python_version < (3,)
-            and isDebianBasedLinux()
+            and (isDebianBasedLinux() or isFedoraBasedLinux())
         ):
             env.Append(LIBS=["python" + python_abi_version + "_d"])
         else:
