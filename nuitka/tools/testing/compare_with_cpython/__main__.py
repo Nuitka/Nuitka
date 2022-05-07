@@ -331,6 +331,7 @@ def main():
     elif "--python-debug" in extra_options or "--python-dbg" in extra_options:
         python_debug = True
 
+    if python_debug:
         os.environ["PYTHON"] = getDebugPython() or os.environ["PYTHON"]
 
     if comparison_mode:
@@ -400,7 +401,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         # Would need to extract which "python" this is going to use.
         assert not coverage_mode, "Not implemented for binaries."
 
-        nuitka_call = [os.environ["NUITKA"]]
+        nuitka_call = [os.environ["PYTHON"], os.environ["NUITKA"]]
     else:
         if comparison_mode:
             nuitka_call = [
