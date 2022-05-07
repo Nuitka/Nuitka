@@ -467,7 +467,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     if binary_python_path:
         addToPythonPath(os.path.dirname(os.path.abspath(filename)))
 
-    if keep_python_path or binary_python_path:
+    if (keep_python_path or binary_python_path) and not coverage_mode:
         extra_options.append("--execute-with-pythonpath")
 
     if report:
