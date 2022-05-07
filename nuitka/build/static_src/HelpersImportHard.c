@@ -171,11 +171,7 @@ PyObject *IMPORT_HARD_PKG_RESOURCES(void) {
     }
 
     if (unlikely(module_import_hard_pkg_resources == NULL)) {
-#ifndef __NUITKA_NO_ASSERT__
-        PyErr_PrintEx(0);
-#endif
-        NUITKA_CANNOT_GET_HERE("failed hard import of 'pkg_resources'");
-        abort();
+        return NULL;
     }
 
     return module_import_hard_pkg_resources;
@@ -209,11 +205,7 @@ PyObject *IMPORT_HARD_SITE(void) {
     }
 
     if (unlikely(module_import_hard_site == NULL)) {
-#ifndef __NUITKA_NO_ASSERT__
-        PyErr_PrintEx(0);
-#endif
-        NUITKA_CANNOT_GET_HERE("failed hard import of 'site'");
-        abort();
+        return NULL;
     }
 
     return module_import_hard_site;

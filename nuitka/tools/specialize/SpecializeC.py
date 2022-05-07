@@ -45,7 +45,11 @@ from nuitka.codegen.CallCodes import (
     max_quick_call,
 )
 from nuitka.codegen.ImportCodes import getImportModuleHardCodeName
-from nuitka.nodes.ImportNodes import hard_modules, hard_modules_version
+from nuitka.nodes.ImportNodes import (
+    hard_modules,
+    hard_modules_non_stdlib,
+    hard_modules_version,
+)
 from nuitka.utils.Jinja2 import getTemplateC
 
 from .Common import (
@@ -2017,6 +2021,7 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
         module_code_name=getImportModuleHardCodeName(module_name),
         name=template.name,
         target=object_desc,
+        is_stdlib=module_name not in hard_modules_non_stdlib,
     )
 
     emit_c(code)

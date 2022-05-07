@@ -371,7 +371,7 @@ class ExpressionImportModuleHard(
         return self.module is None
 
     def mayRaiseException(self, exception_type):
-        return self.mayHaveSideEffects()
+        return not self.allowed or self.mayHaveSideEffects()
 
     def getTypeShape(self):
         if self.module_name in sys.builtin_module_names:
