@@ -85,6 +85,10 @@ wsgiref.simple_server:
   depends:
     - "http.server"
 
+zipfile:
+  depends:
+    - "py_compile"
+
 shiboken6:
   depends:
     - "argparse"
@@ -151,6 +155,18 @@ uvicorn.config:
   depends:
     - "websockets.legacy.server"
 
-zipfile:
+sklearn.metrics._dist_metrics:
   depends:
-    - "py_compile"
+    - "sklearn.utils._typedefs"
+
+sklearn.neighbors._ball_tree:
+  depends:
+    - "sklearn.neighbors._partition_nodes"
+
+sklearn.linear_model._sgd_fast:
+  depends:
+    - "sklearn.utils._weight_vector"
+
+sklearn.tree._tree:
+  depends:
+    - "sklearn.neighbors._quad_tree"
