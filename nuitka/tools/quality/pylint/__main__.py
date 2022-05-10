@@ -35,7 +35,14 @@ from nuitka.utils.FileOperations import resolveShellPatternToFilenames
 
 
 def isIgnoredFile(filename):
-    return filename.startswith("Mini")
+    if filename.startswith("Mini"):
+        return True
+    if filename.startswith("examples/"):
+        return True
+    if filename.startswith("tests/") and not filename.endswith("/run_all.py"):
+        return True
+
+    return False
 
 
 def main():
