@@ -32,6 +32,8 @@
 static void _initBuiltinTypeMethods(void) {
 #if PYTHON_VERSION < 0x300
     _initStrBuiltinMethods();
+#else
+    _initBytesBuiltinMethods();
 #endif
     _initUnicodeBuiltinMethods();
     _initDictBuiltinMethods();

@@ -86,3 +86,100 @@ def generatePkgResourcesResourceStringCallCode(to_name, expression, emit, contex
             emit=emit,
             context=context,
         )
+
+
+def generateImportlibResourcesReadBinaryCallCode(to_name, expression, emit, context):
+    package_name, resource_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "read_binary_value", expression, emit, context
+    ) as result_name:
+        read_binary_function = context.allocateTempName(
+            "read_binary_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=read_binary_function,
+            module_name="importlib.resources",
+            import_name="read_binary",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=read_binary_function,
+            expression=expression,
+            arg_names=(package_name, resource_name),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibResourcesReadTextCallCode(to_name, expression, emit, context):
+    (
+        package_name,
+        resource_name,
+        encoding_name,
+        errors_name,
+    ) = generateChildExpressionsCode(expression=expression, emit=emit, context=context)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "read_text_value", expression, emit, context
+    ) as result_name:
+        read_text_function = context.allocateTempName("read_text_function", unique=True)
+
+        getImportModuleNameHardCode(
+            to_name=read_text_function,
+            module_name="importlib.resources",
+            import_name="read_text",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=read_text_function,
+            expression=expression,
+            arg_names=(package_name, resource_name, encoding_name, errors_name),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
+def generatePkgResourcesResourceStreamCallCode(to_name, expression, emit, context):
+    package_name, resource_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "resource_stream_value", expression, emit, context
+    ) as result_name:
+        resource_stream_function = context.allocateTempName(
+            "resource_stream_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=resource_stream_function,
+            module_name="pkg_resources",
+            import_name="resource_stream",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=resource_stream_function,
+            expression=expression,
+            arg_names=(package_name, resource_name),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )

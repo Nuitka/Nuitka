@@ -405,18 +405,18 @@ empty.""",
 )
 
 data_group.add_option(
-    "--include-data-file",
+    "--include-data-files",
     action="append",
     dest="data_files",
     metavar="DESC",
     default=[],
     help="""\
 Include data files by filenames in the distribution. There are many
-allowed forms. With '--include-data-file=/path/to/file/*.txt=folder_name/some.txt' it
+allowed forms. With '--include-data-files=/path/to/file/*.txt=folder_name/some.txt' it
 will copy a single file and complain if it's multiple. With
-'--include-data-file=/path/to/files/*.txt=folder_name/' it will put
+'--include-data-files=/path/to/files/*.txt=folder_name/' it will put
 all matching files into that folder. For recursive copy there is a
-form with 3 values that '--include-data-file=/path/to/scan=folder_name=**/*.txt'
+form with 3 values that '--include-data-files=/path/to/scan=folder_name=**/*.txt'
 that will preserve directory structure. Default empty.""",
 )
 
@@ -428,32 +428,24 @@ data_group.add_option(
     default=[],
     help="""\
 Include data files from complete directory in the distribution. This is
-recursive. Check '--include-data-file' with patterns if you want non-recursive
+recursive. Check '--include-data-files' with patterns if you want non-recursive
 inclusion. An example would be '--include-data-dir=/path/somedir=data/somedir'
 for plain copy, of the whole directory. All files are copied, if you want to
-exclude files you need to remove them beforehand. Default empty.""",
+exclude files you need to remove them beforehand, or use --noinclude-data-files
+option to remove them. Default empty.""",
 )
 
-data_files_tags = [("inhibit", "do not include the file")]
-
-
-def _getDataFileTagsOptionHelp():
-    return """\
-For included data files, special handlings can be chosen. With the
-commercial plugins, e.g. files can be included directly in the
-binary. The list is completed by some plugins. With the current
-list of plugins, these are available: %s.
-The default is empty.""" % ", ".join(
-        "'%s' (%s)" % d for d in data_files_tags
-    )
-
-
-data_file_tags_option = data_group.add_option(
-    "--data-file-tags",
+data_group.add_option(
+    "--noinclude-data-files",
     action="append",
-    dest="data_file_tags",
-    metavar="DATA_TAGS",
+    dest="data_files_inhibited",
+    metavar="PATTERN",
     default=[],
+    help="""\
+Do not include data files matching the filename pattern given. This is against
+the target filename, not source paths. So ignore file pattern from package
+data for "package_name" should be matched as "package_name/*.txt". Default
+empty.""",
 )
 
 parser.add_option_group(data_group)
@@ -1425,7 +1417,7 @@ def _considerPluginOptions(logger):
         addUserPluginCommandLineOptions,
     )
 
-    addStandardPluginCommandlineOptions(parser=parser, data_files_tags=data_files_tags)
+    addStandardPluginCommandlineOptions(parser=parser)
 
     for arg in sys.argv[1:]:
         if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
@@ -1439,7 +1431,6 @@ def _considerPluginOptions(logger):
             addPluginCommandLineOptions(
                 parser=parser,
                 plugin_names=plugin_names.split(","),
-                data_files_tags=data_files_tags,
             )
 
         if arg.startswith("--user-plugin="):
@@ -1450,12 +1441,7 @@ def _considerPluginOptions(logger):
                     % plugin_name.split("=", 1)[0]
                 )
 
-            addUserPluginCommandLineOptions(
-                parser=parser, filename=plugin_name, data_files_tags=data_files_tags
-            )
-
-    # The help text is plugin driven.
-    data_file_tags_option.help = _getDataFileTagsOptionHelp()
+            addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
 
 
 def _expandProjectArg(arg, filename_arg, for_eval):
@@ -1492,7 +1478,7 @@ def _expandProjectArg(arg, filename_arg, for_eval):
 
 
 def _getProjectOptions(logger, filename_arg, module_mode):
-    # Complex stuff, pylint: disable=too-many-branches,too-many-locals
+    # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if os.path.isdir(filename_arg):
         if module_mode:
@@ -1514,7 +1500,7 @@ def _getProjectOptions(logger, filename_arg, module_mode):
 
     cond_level = -1
 
-    for count, line in enumerate(contents_by_line):
+    for line_number, line in enumerate(contents_by_line):
         match = re.match(b"^\\s*#(\\s+)nuitka-project(.*?):(.*)", line)
 
         if match:
@@ -1525,13 +1511,15 @@ def _getProjectOptions(logger, filename_arg, module_mode):
             # Check for empty conditional blocks.
             if expect_block and level <= cond_level:
                 sysexit(
-                    count,
-                    "Error, 'nuitka-project-if' is expected to be followed by block start.",
+                    line_number,
+                    "Error, 'nuitka-project-if|else' is expected to be followed by block start.",
                 )
 
             expect_block = False
 
-            if level <= cond_level:
+            if level == cond_level and command == "-else":
+                execute_block = not execute_block
+            elif level <= cond_level:
                 execute_block = True
 
             if level > cond_level and not execute_block:
@@ -1544,7 +1532,7 @@ def _getProjectOptions(logger, filename_arg, module_mode):
             if command == "-if":
                 if not arg.endswith(":"):
                     sysexit(
-                        count,
+                        line_number,
                         "Error, 'nuitka-project-if' needs to start a block with a colon at line end.",
                     )
 
@@ -1565,6 +1553,21 @@ def _getProjectOptions(logger, filename_arg, module_mode):
                     )
 
                 execute_block = r
+                expect_block = True
+                cond_level = level
+            elif command == "-else":
+                if arg:
+                    sysexit(
+                        line_number,
+                        "Error, 'nuitka-project-else' cannot have argument.",
+                    )
+
+                if cond_level != level:
+                    sysexit(
+                        line_number,
+                        "Error, 'nuitka-project-else' not currently allowed after nested nuitka-project-if.",
+                    )
+
                 expect_block = True
                 cond_level = level
             elif command == "":

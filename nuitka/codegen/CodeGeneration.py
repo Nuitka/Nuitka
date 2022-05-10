@@ -30,6 +30,7 @@ from nuitka.nodes.AttributeNodesGenerated import (
     attribute_classes,
     attribute_typed_classes,
 )
+from nuitka.nodes.BytesNodes import getBytesOperationClasses
 from nuitka.nodes.StrNodes import getStrOperationClasses
 from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.CStrings import encodePythonStringToC
@@ -243,7 +244,10 @@ from .OperationCodes import (
     generateOperationUnaryCode,
 )
 from .PackageResourceCodes import (
+    generateImportlibResourcesReadBinaryCallCode,
+    generateImportlibResourcesReadTextCallCode,
     generatePkglibGetDataCallCode,
+    generatePkgResourcesResourceStreamCallCode,
     generatePkgResourcesResourceStringCallCode,
 )
 from .PrintCodes import generatePrintNewlineCode, generatePrintValueCode
@@ -284,6 +288,7 @@ from .StringCodes import (
     generateBuiltinOrdCode,
     generateBuiltinStrCode,
     generateBuiltinUnicodeCode,
+    generateBytesOperationCode,
     generateStringContenationCode,
     generateStrOperationCode,
 )
@@ -786,8 +791,14 @@ addExpressionDispatchDict(
         "EXPRESSION_NUITKA_LOADER_CREATION": generateNuitkaLoaderCreationCode,
         "EXPRESSION_PKGLIB_GET_DATA_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_PKG_RESOURCES_RESOURCE_STREAM_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKGLIB_GET_DATA_CALL": generatePkglibGetDataCallCode,
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_CALL": generatePkgResourcesResourceStringCallCode,
+        "EXPRESSION_PKG_RESOURCES_RESOURCE_STREAM_CALL": generatePkgResourcesResourceStreamCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_CALL": generateImportlibResourcesReadBinaryCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_CALL": generateImportlibResourcesReadTextCallCode,
         "EXPRESSION_MATCH_ARGS": generateMatchArgsCode,
     }
 )
@@ -802,8 +813,14 @@ addExpressionDispatchDict(
     dict((cls.kind, generateAttributeLookupCode) for cls in attribute_typed_classes)
 )
 
+# Add code generation for the EXPRESSION_STR_OPERATION_* nodes.
 addExpressionDispatchDict(
     dict((cls.kind, generateStrOperationCode) for cls in getStrOperationClasses())
+)
+
+# Add code generation for the EXPRESSION_BYTES_OPERATION_* nodes.
+addExpressionDispatchDict(
+    dict((cls.kind, generateBytesOperationCode) for cls in getBytesOperationClasses())
 )
 
 

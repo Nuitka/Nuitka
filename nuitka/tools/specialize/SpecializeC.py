@@ -32,6 +32,7 @@ from abc import abstractmethod
 import nuitka.codegen.ComparisonCodes
 import nuitka.codegen.HelperDefinitions
 import nuitka.codegen.Namify
+import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs
 import nuitka.specs.BuiltinStrOperationSpecs
 import nuitka.specs.BuiltinUnicodeOperationSpecs
@@ -58,6 +59,7 @@ from .Common import (
     python2_dict_methods,
     python2_str_methods,
     python2_unicode_methods,
+    python3_bytes_methods,
     python3_dict_methods,
     python3_str_methods,
     withFileOpenedAndAutoformatted,
@@ -2004,12 +2006,21 @@ def makeHelpersImportHard():
 
 def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
     emit('/* C helper for hard import of module "%s" import. */' % module_name)
-    emit()
 
-    python_min_version = hard_modules_version.get(module_name)
+    python_min_max_version = hard_modules_version.get(module_name)
 
-    if python_min_version is not None:
-        python_requirement = "PYTHON_VERSION >= %s" % hex(python_min_version)
+    if python_min_max_version is not None:
+        python_min_version, python_max_version = python_min_max_version
+
+        parts = []
+
+        if python_min_version is not None:
+            parts.append("PYTHON_VERSION >= %s" % hex(python_min_version))
+        if python_max_version is not None:
+            parts.append("PYTHON_VERSION < %s" % hex(python_max_version))
+
+        python_requirement = " && ".join(parts)
+
     else:
         python_requirement = None
 
@@ -2029,6 +2040,8 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
 
     if python_requirement:
         emit("#endif")
+
+    emit()
 
 
 def makeHelperCalls():
@@ -2117,6 +2130,8 @@ def _makeHelperBuiltinTypeAttributes(
     python3_methods,
     emit_c,
 ):
+    # many cases to deal with, pylint: disable=too-many-branches
+
     def getVarName(method_name):
         return "%s_builtin_%s" % (type_prefix, method_name)
 
@@ -2137,13 +2152,23 @@ def _makeHelperBuiltinTypeAttributes(
 
     if not python3_methods:
         emit_c("#if PYTHON_VERSION < 0x300")
+    if not python2_methods:
+        emit_c("#if PYTHON_VERSION >= 0x300")
 
     emit_c("static void _init%sBuiltinMethods(void) {" % type_prefix.capitalize())
     for method_name in sorted(set(python2_methods + python3_methods)):
-        if method_name in python2_methods and method_name not in python3_methods:
+        if (
+            method_name in python2_methods
+            and method_name not in python3_methods
+            and python3_methods
+        ):
             emit_c("#if PYTHON_VERSION < 0x300")
             needs_endif = True
-        elif method_name not in python2_methods and method_name in python3_methods:
+        elif (
+            method_name not in python2_methods
+            and method_name in python3_methods
+            and python2_methods
+        ):
             emit_c("#if PYTHON_VERSION >= 0x300")
             needs_endif = True
         else:
@@ -2159,7 +2184,7 @@ def _makeHelperBuiltinTypeAttributes(
 
     emit_c("}")
 
-    if not python3_methods:
+    if not python2_methods or not python3_methods:
         emit_c("#endif")
 
 
@@ -2246,6 +2271,12 @@ generate_builtin_type_operations = [
             "encode",
         ),
     ),
+    (
+        "tshape_bytes",
+        bytes_desc,
+        nuitka.specs.BuiltinBytesOperationSpecs,
+        ("decode",),
+    ),
 ]
 
 
@@ -2273,6 +2304,13 @@ def makeHelperBuiltinTypeMethods():
                 "PyString_Type",
                 python2_str_methods,
                 (),
+                emit_c,
+            )
+            _makeHelperBuiltinTypeAttributes(
+                "bytes",
+                "PyBytes_Type",
+                (),
+                python3_bytes_methods,
                 emit_c,
             )
             _makeHelperBuiltinTypeAttributes(

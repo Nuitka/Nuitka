@@ -37,7 +37,12 @@ from .NodeMakingHelpers import (
     wrapExpressionWithNodeSideEffects,
     wrapExpressionWithSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_dict, tshape_str, tshape_unicode
+from .shapes.BuiltinTypeShapes import (
+    tshape_bytes,
+    tshape_dict,
+    tshape_str,
+    tshape_unicode,
+)
 from .shapes.StandardShapes import tshape_unknown
 
 
@@ -844,6 +849,10 @@ class ExpressionBase(NodeBase):
 
         def hasShapeStrOrUnicodeExact(self):
             return self.getTypeShape() is tshape_str
+
+    def hasShapeBytesExact(self):
+        """Does an expression have exactly a bytes shape."""
+        return self.getTypeShape() is tshape_bytes
 
 
 class ExpressionNoSideEffectsMixin(object):

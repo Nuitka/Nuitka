@@ -137,120 +137,204 @@ static PyObject *str_builtin_zfill = NULL;
 #endif
 #if PYTHON_VERSION < 0x300
 static void _initStrBuiltinMethods(void) {
-#if PYTHON_VERSION < 0x300
     str_builtin_capitalize = PyObject_GetAttrString((PyObject *)&PyString_Type, "capitalize");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_center = PyObject_GetAttrString((PyObject *)&PyString_Type, "center");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_count = PyObject_GetAttrString((PyObject *)&PyString_Type, "count");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_decode = PyObject_GetAttrString((PyObject *)&PyString_Type, "decode");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_encode = PyObject_GetAttrString((PyObject *)&PyString_Type, "encode");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_endswith = PyObject_GetAttrString((PyObject *)&PyString_Type, "endswith");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_expandtabs = PyObject_GetAttrString((PyObject *)&PyString_Type, "expandtabs");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_find = PyObject_GetAttrString((PyObject *)&PyString_Type, "find");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_format = PyObject_GetAttrString((PyObject *)&PyString_Type, "format");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_index = PyObject_GetAttrString((PyObject *)&PyString_Type, "index");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_isalnum = PyObject_GetAttrString((PyObject *)&PyString_Type, "isalnum");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_isalpha = PyObject_GetAttrString((PyObject *)&PyString_Type, "isalpha");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_isdigit = PyObject_GetAttrString((PyObject *)&PyString_Type, "isdigit");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_islower = PyObject_GetAttrString((PyObject *)&PyString_Type, "islower");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_isspace = PyObject_GetAttrString((PyObject *)&PyString_Type, "isspace");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_istitle = PyObject_GetAttrString((PyObject *)&PyString_Type, "istitle");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_isupper = PyObject_GetAttrString((PyObject *)&PyString_Type, "isupper");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_join = PyObject_GetAttrString((PyObject *)&PyString_Type, "join");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_ljust = PyObject_GetAttrString((PyObject *)&PyString_Type, "ljust");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_lower = PyObject_GetAttrString((PyObject *)&PyString_Type, "lower");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_lstrip = PyObject_GetAttrString((PyObject *)&PyString_Type, "lstrip");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_partition = PyObject_GetAttrString((PyObject *)&PyString_Type, "partition");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_replace = PyObject_GetAttrString((PyObject *)&PyString_Type, "replace");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_rfind = PyObject_GetAttrString((PyObject *)&PyString_Type, "rfind");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_rindex = PyObject_GetAttrString((PyObject *)&PyString_Type, "rindex");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_rjust = PyObject_GetAttrString((PyObject *)&PyString_Type, "rjust");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_rpartition = PyObject_GetAttrString((PyObject *)&PyString_Type, "rpartition");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_rsplit = PyObject_GetAttrString((PyObject *)&PyString_Type, "rsplit");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_rstrip = PyObject_GetAttrString((PyObject *)&PyString_Type, "rstrip");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_split = PyObject_GetAttrString((PyObject *)&PyString_Type, "split");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_splitlines = PyObject_GetAttrString((PyObject *)&PyString_Type, "splitlines");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_startswith = PyObject_GetAttrString((PyObject *)&PyString_Type, "startswith");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_strip = PyObject_GetAttrString((PyObject *)&PyString_Type, "strip");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_swapcase = PyObject_GetAttrString((PyObject *)&PyString_Type, "swapcase");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_title = PyObject_GetAttrString((PyObject *)&PyString_Type, "title");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_translate = PyObject_GetAttrString((PyObject *)&PyString_Type, "translate");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_upper = PyObject_GetAttrString((PyObject *)&PyString_Type, "upper");
-#endif
-#if PYTHON_VERSION < 0x300
     str_builtin_zfill = PyObject_GetAttrString((PyObject *)&PyString_Type, "zfill");
+}
 #endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_capitalize = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_center = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_count = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_decode = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_endswith = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_expandtabs = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_find = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_hex = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_index = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_isalnum = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_isalpha = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_isascii = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_isdigit = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_islower = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_isspace = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_istitle = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_isupper = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_join = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_ljust = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_lower = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_lstrip = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_maketrans = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_partition = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_replace = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_rfind = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_rindex = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_rjust = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_rpartition = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_rsplit = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_rstrip = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_split = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_splitlines = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_startswith = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_strip = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_swapcase = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_title = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_translate = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_upper = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *bytes_builtin_zfill = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static void _initBytesBuiltinMethods(void) {
+    bytes_builtin_capitalize = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "capitalize");
+    bytes_builtin_center = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "center");
+    bytes_builtin_count = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "count");
+    bytes_builtin_decode = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "decode");
+    bytes_builtin_endswith = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "endswith");
+    bytes_builtin_expandtabs = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "expandtabs");
+    bytes_builtin_find = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "find");
+    bytes_builtin_hex = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "hex");
+    bytes_builtin_index = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "index");
+    bytes_builtin_isalnum = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "isalnum");
+    bytes_builtin_isalpha = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "isalpha");
+    bytes_builtin_isascii = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "isascii");
+    bytes_builtin_isdigit = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "isdigit");
+    bytes_builtin_islower = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "islower");
+    bytes_builtin_isspace = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "isspace");
+    bytes_builtin_istitle = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "istitle");
+    bytes_builtin_isupper = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "isupper");
+    bytes_builtin_join = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "join");
+    bytes_builtin_ljust = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "ljust");
+    bytes_builtin_lower = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "lower");
+    bytes_builtin_lstrip = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "lstrip");
+    bytes_builtin_maketrans = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "maketrans");
+    bytes_builtin_partition = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "partition");
+    bytes_builtin_replace = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "replace");
+    bytes_builtin_rfind = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "rfind");
+    bytes_builtin_rindex = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "rindex");
+    bytes_builtin_rjust = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "rjust");
+    bytes_builtin_rpartition = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "rpartition");
+    bytes_builtin_rsplit = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "rsplit");
+    bytes_builtin_rstrip = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "rstrip");
+    bytes_builtin_split = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "split");
+    bytes_builtin_splitlines = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "splitlines");
+    bytes_builtin_startswith = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "startswith");
+    bytes_builtin_strip = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "strip");
+    bytes_builtin_swapcase = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "swapcase");
+    bytes_builtin_title = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "title");
+    bytes_builtin_translate = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "translate");
+    bytes_builtin_upper = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "upper");
+    bytes_builtin_zfill = PyObject_GetAttrString((PyObject *)&PyBytes_Type, "zfill");
 }
 #endif
 static PyObject *unicode_builtin_capitalize = NULL;
@@ -1310,3 +1394,30 @@ PyObject *UNICODE_UPPER(PyObject *unicode) {
 
     return CALL_METHODDESCR_WITH_SINGLE_ARG(unicode_builtin_upper, unicode);
 }
+#if PYTHON_VERSION >= 0x300
+PyObject *BYTES_DECODE1(PyObject *bytes) {
+    CHECK_OBJECT(bytes);
+    assert(PyBytes_CheckExact(bytes));
+
+    return CALL_METHODDESCR_WITH_SINGLE_ARG(bytes_builtin_decode, bytes);
+}
+PyObject *BYTES_DECODE2(PyObject *bytes, PyObject *encoding) {
+    CHECK_OBJECT(bytes);
+    assert(PyBytes_CheckExact(bytes));
+
+    CHECK_OBJECT(encoding);
+
+    PyObject *args[2] = {bytes, encoding};
+    return CALL_METHODDESCR_WITH_ARGS2(bytes_builtin_decode, args);
+}
+PyObject *BYTES_DECODE3(PyObject *bytes, PyObject *encoding, PyObject *errors) {
+    CHECK_OBJECT(bytes);
+    assert(PyBytes_CheckExact(bytes));
+
+    CHECK_OBJECT(encoding);
+    CHECK_OBJECT(errors);
+
+    PyObject *args[3] = {bytes, encoding, errors};
+    return CALL_METHODDESCR_WITH_ARGS3(bytes_builtin_decode, args);
+}
+#endif

@@ -44,7 +44,7 @@ def getStrOperationClasses():
     return (
         cls
         for kind, cls in NodeCheckMetaClass.kinds.items()
-        if kind.startswith("EXPRESSION_STR_OPERATION")
+        if kind.startswith("EXPRESSION_STR_OPERATION_")
     )
 
 

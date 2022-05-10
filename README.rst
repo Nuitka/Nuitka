@@ -434,13 +434,13 @@ modules by specifically saying ``--nofollow-import-to``, but then an
 runtime.
 
 For data files to be included, use the option
-``--include-data-file=<source>=<target>`` where the source is a file
+``--include-data-files=<source>=<target>`` where the source is a file
 system path, but target has to be specified relative. For standalone you
 can also copy them manually, but this can do extra checks, and for
 onefile mode, there is no manual copying possible.
 
 To copy some or all file in a directory, use the option
-``--include-data-file=/etc/*.txt=etc/`` where you get to specify shell
+``--include-data-files=/etc/*.txt=etc/`` where you get to specify shell
 patterns for the files, and a subdirectory where to put them, indicated
 by the trailing slash.
 

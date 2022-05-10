@@ -20,18 +20,18 @@
 
     if (module_{{module_code_name.lower()}} == NULL) {
         module_{{module_code_name.lower()}} = PyImport_ImportModule("{{module_name}}");
-    }
 
-    if (unlikely(module_{{module_code_name.lower()}} == NULL)) {
+        if (unlikely(module_{{module_code_name.lower()}} == NULL)) {
 {% if is_stdlib %}
 #ifndef __NUITKA_NO_ASSERT__
-        PyErr_PrintEx(0);
+            PyErr_PrintEx(0);
 #endif
-        NUITKA_CANNOT_GET_HERE("failed hard import of '{{module_name}}'");
-        abort();
+            NUITKA_CANNOT_GET_HERE("failed hard import of '{{module_name}}'");
+            abort();
 {% else %}
-        return NULL;
+            return NULL;
 {% endif %}
+        }
     }
 
     return module_{{module_code_name.lower()}};

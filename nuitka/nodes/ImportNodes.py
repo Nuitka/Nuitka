@@ -69,7 +69,10 @@ from .LocalsScopes import GlobalsDictHandle
 from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
 from .PackageResourceNodes import (
+    ExpressionImportlibResourcesReadBinaryRef,
+    ExpressionImportlibResourcesReadTextRef,
     ExpressionPkglibGetDataRef,
+    ExpressionPkgResourcesResourceStreamRef,
     ExpressionPkgResourcesResourceStringRef,
 )
 from .shapes.BuiltinTypeShapes import tshape_module, tshape_module_builtin
@@ -83,12 +86,15 @@ hard_modules = frozenset(
         "typing",
         "__future__",
         "importlib",
+        "importlib.resources",
         "importlib.metadata",
         "_frozen_importlib",
         "_frozen_importlib_external",
         "pkgutil",
         "functools",
         "sysconfig",
+        # "cStringIO",
+        "io",
     )
 )
 
@@ -97,17 +103,36 @@ hard_modules_non_stdlib = frozenset(
     (
         "site",
         "pkg_resources",
+        "importlib_metadata",
     )
 )
 
 hard_modules = hard_modules | hard_modules_non_stdlib
 
 hard_modules_version = {
-    "typing": 0x350,
-    "_frozen_importlib": 0x300,
-    "_frozen_importlib_external": 0x350,
-    "importlib.metadata": 0x390,
+    "cStringIO": (None, 0x300),
+    "typing": (0x350, None),
+    "_frozen_importlib": (0x300, None),
+    "_frozen_importlib_external": (0x350, None),
+    "importlib.resources": (0x370, None),
+    "importlib.metadata": (0x390, None),
 }
+
+
+def isHardModule(module_name):
+    if module_name not in hard_modules:
+        return False
+
+    min_version, max_version = hard_modules_version.get(module_name, (None, None))
+
+    if min_version is not None and python_version < min_version:
+        return False
+
+    if max_version is not None and python_version >= max_version:
+        return False
+
+    return True
+
 
 trust_undefined = 0
 trust_constant = 1
@@ -117,7 +142,6 @@ trust_importable = 3
 trust_node = 4
 trust_may_exist = 5
 trust_not_exist = 6
-
 trust_node_factory = {}
 
 module_importlib_trust = dict(
@@ -166,16 +190,17 @@ hard_modules_trust = {
     "__future__": dict((key, trust_future) for key in getFutureModuleKeys()),
     "importlib": module_importlib_trust,
     "importlib.metadata": {},
+    "importlib_metadata": {},
     "_frozen_importlib": {},
     "_frozen_importlib_external": {},
     "pkgutil": {"get_data": trust_node},
     "functools": {"partial": trust_exist},
     "sysconfig": {},
+    "io": {"BytesIO": trust_exist},
+    # "cStringIO": {"StringIO": trust_exist},
+    "pkg_resources": {"resource_string": trust_node, "resource_stream": trust_node},
+    "importlib.resources": {"read_binary": trust_node, "read_text": trust_node},
     "site": {},
-    "pkg_resources": {
-        "resource_string": trust_node,
-        # "resource_stream": trust_node
-    },
 }
 
 
@@ -183,6 +208,30 @@ trust_node_factory[("pkgutil", "get_data")] = ExpressionPkglibGetDataRef
 trust_node_factory[
     ("pkg_resources", "resource_string")
 ] = ExpressionPkgResourcesResourceStringRef
+trust_node_factory[
+    ("pkg_resources", "resource_stream")
+] = ExpressionPkgResourcesResourceStreamRef
+trust_node_factory[
+    ("importlib.resources", "read_binary")
+] = ExpressionImportlibResourcesReadBinaryRef
+trust_node_factory[
+    ("importlib.resources", "read_text")
+] = ExpressionImportlibResourcesReadTextRef
+
+
+def _checkHardModules():
+    for module_name in hard_modules:
+        assert module_name in hard_modules_trust, module_name
+
+    for module_name, trust in hard_modules_trust.items():
+        assert module_name in hard_modules, module_name
+
+        for attribute_name, trust_value in trust.items():
+            if trust_value is trust_node_factory:
+                assert (module_name, attribute_name) in trust_node_factory, module_name
+
+
+_checkHardModules()
 
 
 def makeExpressionImportModuleNameHard(module_name, import_name, source_ref):
@@ -342,30 +391,39 @@ class ExpressionImportModuleHard(
 
     kind = "EXPRESSION_IMPORT_MODULE_HARD"
 
-    __slots__ = ("module", "allowed")
+    __slots__ = ("module", "allowed", "value_name", "is_package")
 
-    def __init__(self, module_name, source_ref):
+    def __init__(self, module_name, value_name, source_ref):
         ExpressionImportHardBase.__init__(
             self, module_name=module_name, source_ref=source_ref
         )
 
         ExpressionImportAllowanceMixin.__init__(self)
 
+        self.value_name = value_name
+
         if self.finding != "not-found" and isHardModuleWithoutSideEffect(
             self.module_name
         ):
-            self.module = __import__(self.module_name)
+            __import__(self.module_name)
+            self.module = sys.modules[self.value_name]
+
+            self.is_package = hasattr(self.module, "__path__")
         else:
             self.module = None
+            self.is_package = None
 
     def finalize(self):
         del self.parent
 
     def getDetails(self):
-        return {"module_name": self.module_name}
+        return {"module_name": self.module_name, "value_name": self.value_name}
 
     def getModuleName(self):
         return self.module_name
+
+    def getValueName(self):
+        return self.value_name
 
     def mayHaveSideEffects(self):
         return self.module is None
@@ -386,10 +444,11 @@ class ExpressionImportModuleHard(
         return self, None, None
 
     def computeExpressionImportName(self, import_node, import_name, trace_collection):
-        return self.computeExpressionAttribute(
+        return self._computeExpressionAttribute(
             lookup_node=import_node,
             attribute_name=import_name,
             trace_collection=trace_collection,
+            is_import=True,
         )
 
     @staticmethod
@@ -407,12 +466,49 @@ class ExpressionImportModuleHard(
                 module.__file__ if hasattr(module, "__file__") else "unknown location",
             )
 
-    def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
-        # By default, an attribute lookup may change everything about the lookup
-        # source.
+    def _makeRaiseExceptionReplacementExpression(
+        self, lookup_node, attribute_name, is_import
+    ):
+        if is_import:
+            return makeRaiseExceptionReplacementExpression(
+                expression=lookup_node,
+                exception_type="ImportError",
+                exception_value=self._getImportNameErrorString(
+                    self.module, self.value_name, attribute_name
+                ),
+            )
+        else:
+            return makeRaiseExceptionReplacementExpression(
+                expression=lookup_node,
+                exception_type="AttributeError",
+                # TODO: Not the right error message
+                exception_value=self._getImportNameErrorString(
+                    self.module, self.value_name, attribute_name
+                ),
+            )
+
+    def _computeExpressionAttribute(
+        self, lookup_node, attribute_name, trace_collection, is_import
+    ):
+        # Return driven handling of many cases, pylint: disable=too-many-return-statements
 
         if self.module is not None and self.allowed:
-            trust = hard_modules_trust[self.module_name].get(
+            full_name = self.value_name.getChildNamed(attribute_name)
+
+            if full_name in hard_modules:
+                new_node = makeExpressionImportModuleFixed(
+                    module_name=full_name,
+                    source_ref=lookup_node.source_ref,
+                )
+
+                return (
+                    new_node,
+                    "new_expression",
+                    "Hard module '%s' submodule %r pre-computed."
+                    % (self.value_name, attribute_name),
+                )
+
+            trust = hard_modules_trust[self.value_name].get(
                 attribute_name, trust_undefined
             )
 
@@ -423,35 +519,57 @@ class ExpressionImportModuleHard(
                 trace_collection.onExceptionRaiseExit(BaseException)
             elif trust is trust_may_exist:
                 trace_collection.onExceptionRaiseExit(BaseException)
-            elif (
-                not hasattr(self.module, attribute_name)
-                and trust is not trust_undefined
+            elif trust is not trust_undefined and not hasattr(
+                self.module, attribute_name
             ):
                 # TODO: Unify with below branches.
                 trace_collection.onExceptionRaiseExit(ImportError)
 
-                new_node = makeRaiseExceptionReplacementExpression(
-                    expression=lookup_node,
-                    exception_type="AttributeError",
-                    exception_value=self._getImportNameErrorString(
-                        self.module, self.module_name, attribute_name
-                    ),
+                new_node = self._makeRaiseExceptionReplacementExpression(
+                    lookup_node=lookup_node,
+                    attribute_name=attribute_name,
+                    is_import=is_import,
                 )
 
                 return (
                     new_node,
                     "new_raise",
-                    "Hard module %r attribute missing %r pre-computed."
-                    % (self.module_name, attribute_name),
+                    "Hard module %s attribute missing %r pre-computed."
+                    % (self.value_name, attribute_name),
                 )
             else:
                 if trust is trust_undefined:
+                    # TODO: Should add this, such that these imports are
+                    # properly resolved: pylint: disable=condition-evals-to-constant
+
+                    if self.is_package and False:
+                        full_name = self.value_name.getChildNamed(attribute_name)
+
+                        _sub_module_name, _sub_module_filename, finding = locateModule(
+                            module_name=full_name,
+                            parent_package=None,
+                            level=0,
+                        )
+
+                        if finding != "not-found":
+                            result = makeExpressionImportModuleFixed(
+                                module_name=full_name,
+                                source_ref=lookup_node.getSourceReference(),
+                            )
+
+                            return (
+                                result,
+                                "new_expression",
+                                "Attribute lookup %s of hard module %r becomes hard module name import."
+                                % (self.value_name, attribute_name),
+                            )
+
                     trace_collection.onExceptionRaiseExit(ImportError)
 
                     onMissingTrust(
-                        "Hard module %r attribute %r missing trust config for existing value.",
+                        "Hard module %s attribute %r missing trust config for existing value.",
                         lookup_node.getSourceReference(),
-                        self.module_name,
+                        self.value_name,
                         attribute_name,
                     )
                 elif trust is trust_constant:
@@ -465,23 +583,23 @@ class ExpressionImportModuleHard(
                             user_provided=True,
                         ),
                         "new_constant",
-                        "Hard module '%s' imported %r pre-computed to constant value."
-                        % (self.module_name.asString(), attribute_name),
+                        "Hard module %s imported %r pre-computed to constant value."
+                        % (self.value_name, attribute_name),
                     )
                 elif trust is trust_node:
-                    result = trust_node_factory[self.module_name, attribute_name](
+                    result = trust_node_factory[self.value_name, attribute_name](
                         source_ref=lookup_node.source_ref
                     )
 
                     return (
                         result,
                         "new_expression",
-                        "Attribute lookup %r of hard module %r becomes node %r."
-                        % (self.module_name.asString(), attribute_name, result.kind),
+                        "Attribute lookup %s of hard module %r becomes node %r."
+                        % (self.value_name, attribute_name, result.kind),
                     )
                 else:
                     result = makeExpressionImportModuleNameHard(
-                        module_name=self.module_name,
+                        module_name=self.value_name,
                         import_name=attribute_name,
                         source_ref=lookup_node.getSourceReference(),
                     )
@@ -489,8 +607,8 @@ class ExpressionImportModuleHard(
                     return (
                         result,
                         "new_expression",
-                        "Attribute lookup %r of hard module %r becomes hard module name import."
-                        % (self.module_name, attribute_name),
+                        "Attribute lookup %s of hard module %r becomes hard module name import."
+                        % (self.value_name, attribute_name),
                     )
 
         else:
@@ -499,6 +617,14 @@ class ExpressionImportModuleHard(
             trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
+
+    def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
+        return self._computeExpressionAttribute(
+            lookup_node=lookup_node,
+            attribute_name=attribute_name,
+            trace_collection=trace_collection,
+            is_import=False,
+        )
 
     def hasShapeTrustedAttributes(self):
         return True
@@ -780,7 +906,8 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         return self.used_modules
 
     def computeExpression(self, trace_collection):
-        # Attempt to recurse if not already done.
+        # Attempt to recurse if not already done, many cases to consider
+        # pylint: disable=too-many-branches
         if self.follow_attempted:
             if self.finding == "not-found":
                 # Importing and not finding, may raise an exception obviously.
@@ -804,13 +931,25 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
             if type(imported_module_name) in (str, unicode):
                 imported_module_name = resolveModuleName(imported_module_name)
 
-                if self.finding == "absolute" and imported_module_name in hard_modules:
+                if self.finding == "absolute" and isHardModule(imported_module_name):
                     if (
                         imported_module_name in hard_modules_non_stdlib
                         or isStandardLibraryPath(module_filename)
                     ):
+                        from_list_truth = (
+                            self.subnode_fromlist is not None
+                            and self.subnode_fromlist.getTruthValue()
+                        )
+
+                        if from_list_truth is True:
+                            value_name = imported_module_name
+                        else:
+                            value_name = imported_module_name.getTopLevelPackageName()
+
                         result = ExpressionImportModuleHard(
-                            module_name=imported_module_name, source_ref=self.source_ref
+                            module_name=imported_module_name,
+                            value_name=value_name,
+                            source_ref=self.source_ref,
                         )
 
                         return (
@@ -830,9 +969,11 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                         )
 
                 if self.finding == "built-in":
-                    if imported_module_name in hard_modules:
+                    if isHardModule(imported_module_name):
                         result = ExpressionImportModuleHard(
-                            module_name=imported_module_name, source_ref=self.source_ref
+                            module_name=imported_module_name,
+                            value_name=imported_module_name.getTopLevelPackageName(),
+                            source_ref=self.source_ref,
                         )
 
                         return (
@@ -980,9 +1121,11 @@ class ExpressionImportName(ExpressionChildHavingBase):
 def makeExpressionImportModuleFixed(module_name, source_ref):
     module_name = resolveModuleName(module_name)
 
-    if module_name in hard_modules:
+    if isHardModule(module_name):
         return ExpressionImportModuleHard(
-            module_name=module_name, source_ref=source_ref
+            module_name=module_name,
+            value_name=module_name.getTopLevelPackageName(),
+            source_ref=source_ref,
         )
     else:
         return ExpressionImportModuleFixed(

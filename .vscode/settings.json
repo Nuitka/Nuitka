@@ -106,6 +106,7 @@
         "importlib",
         "inplace",
         "ipython",
+        "isgenerator",
         "isort",
         "Kivy",
         "libc",

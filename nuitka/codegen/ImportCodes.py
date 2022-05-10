@@ -179,7 +179,9 @@ def getImportModuleHardCodeName(module_name):
 
 
 def generateImportModuleHardCode(to_name, expression, emit, context):
-    module_name = expression.getModuleName()
+    imported_module_name = expression.getModuleName()
+    module_value_name = expression.getValueName()
+
     needs_check = expression.mayRaiseException(BaseException)
 
     if needs_check:
@@ -188,7 +190,17 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
     ) as value_name:
-        emit("""%s = %s();""" % (value_name, getImportModuleHardCodeName(module_name)))
+        if imported_module_name == module_value_name:
+            emit(
+                """%s = %s();"""
+                % (value_name, getImportModuleHardCodeName(imported_module_name))
+            )
+        else:
+            emit("""%s();""" % getImportModuleHardCodeName(imported_module_name))
+            emit(
+                """%s = %s();"""
+                % (value_name, getImportModuleHardCodeName(module_value_name))
+            )
 
         getErrorExitCode(
             check_name=value_name, needs_check=needs_check, emit=emit, context=context
@@ -218,17 +230,18 @@ def getImportModuleNameHardCode(
         # TODO: The import name wouldn't have to be an object really, could do with a
         # C string only.
         emit(
-            """\
+            renderTemplateFromString(
+                r"""
 {
-    PyObject *hard_module = %(module_code_name)s();
-    %(to_name)s = LOOKUP_ATTRIBUTE(hard_module, %(import_name)s);
+    PyObject *hard_module = {{module_code_name}}();
+    {{to_name}} = LOOKUP_ATTRIBUTE(hard_module, {{import_name}});
 }
-"""
-            % {
-                "to_name": to_name,
-                "module_code_name": getImportModuleHardCodeName(module_name),
-                "import_name": context.getConstantCode(import_name),
-            }
+""",
+                to_name=to_name,
+                module_name=str(module_name),
+                module_code_name=getImportModuleHardCodeName(module_name),
+                import_name=context.getConstantCode(import_name),
+            )
         )
     else:
         assert False, module_name

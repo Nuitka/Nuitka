@@ -248,3 +248,20 @@ def generateStrOperationCode(to_name, expression, emit, context):
         emit=emit,
         context=context,
     )
+
+
+def generateBytesOperationCode(to_name, expression, emit, context):
+    assert str is not bytes
+
+    api_name = "BYTES_" + expression.kind.rsplit("_")[-1]
+
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi=api_name,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )

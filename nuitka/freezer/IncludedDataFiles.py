@@ -22,15 +22,15 @@ DLLs or extension modules, these need to be seen by Nuitka as entry points
 for dependency analysis.
 """
 
-import collections
+import fnmatch
 import os
 
 from nuitka.containers.oset import OrderedSet
 from nuitka.Options import (
-    getDataFileTags,
     getShallIncludeDataDirs,
     getShallIncludeDataFiles,
     getShallIncludePackageData,
+    getShallNotIncludeDataFilePatterns,
     isStandaloneMode,
     shallMakeModule,
 )
@@ -47,6 +47,24 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffixes
+
+data_file_tags = []
+
+
+def addDataFileTags(pattern):
+    data_file_tags.append(pattern)
+
+
+def getDataFileTags(dest_path):
+    result = OrderedSet()
+
+    for value in data_file_tags:
+        pattern, tags = value.rsplit(":", 1)
+
+        if fnmatch.fnmatch(dest_path, pattern):
+            result.update(tags.split(","))
+
+    return result
 
 
 def _decodeTags(tags):
@@ -119,24 +137,6 @@ def makeIncludedDataFile(source_path, dest_path, reason, tracer, tags):
     )
 
 
-IncludedDataDirectory = collections.namedtuple(
-    "IncludedDataDirectory",
-    (
-        "kind",
-        "source_path",
-        "dest_path",
-        "reason",
-        "ignore_dirs",
-        "ignore_filenames",
-        "ignore_suffixes",
-        "only_suffixes",
-        "normalize",
-        "tracer",
-        "tags",
-    ),
-)
-
-
 def makeIncludedDataDirectory(
     source_path,
     dest_path,
@@ -152,19 +152,29 @@ def makeIncludedDataDirectory(
     assert isRelativePath(dest_path), dest_path
     assert os.path.isdir(source_path), source_path
 
-    return IncludedDataDirectory(
-        kind="data_dir",
-        source_path=source_path,
-        dest_path=dest_path,
+    for filename in getFileList(
+        source_path,
         ignore_dirs=ignore_dirs,
         ignore_filenames=ignore_filenames,
         ignore_suffixes=ignore_suffixes,
         only_suffixes=only_suffixes,
         normalize=normalize,
-        reason=reason,
-        tracer=tracer,
-        tags=_decodeTags(tags),
-    )
+    ):
+        filename_relative = os.path.relpath(filename, source_path)
+
+        filename_dest = os.path.join(dest_path, filename_relative)
+
+        included_datafile = makeIncludedDataFile(
+            source_path=filename,
+            dest_path=filename_dest,
+            reason=reason,
+            tracer=tracer,
+            tags=tags,
+        )
+
+        included_datafile.tags.add("data_dir_content")
+
+        yield included_datafile
 
 
 def makeIncludedGeneratedDataFile(data, dest_path, reason, tracer, tags):
@@ -294,7 +304,12 @@ def addIncludedDataFilesFromPackageOptions():
             addIncludedDataFile(included_datafile)
 
     for included_datafile in getIncludedDataFiles():
-        if isinstance(included_datafile, (IncludedDataFile)):
+        for noinclude_datafile_pattern in getShallNotIncludeDataFilePatterns():
+            if fnmatch.fnmatch(included_datafile.dest_path, noinclude_datafile_pattern):
+                included_datafile.tags.add("inhibit")
+                included_datafile.tags.remove("copy")
+                break
+        else:
             Plugins.onDataFileTags(
                 included_datafile,
             )
@@ -304,7 +319,7 @@ def _handleDataFile(included_datafile):
     """Handle a data file."""
     tracer = included_datafile.tracer
 
-    if not isinstance(included_datafile, (IncludedDataFile, IncludedDataDirectory)):
+    if not isinstance(included_datafile, IncludedDataFile):
         tracer.sysexit("Error, can only accept 'IncludedData*' objects from plugins.")
 
     if not isStandaloneMode():
@@ -358,37 +373,6 @@ def _handleDataFile(included_datafile):
         copyFileWithPermissions(
             source_path=included_datafile.source_path, dest_path=dest_path
         )
-    elif included_datafile.kind == "data_dir":
-        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
-        makePath(os.path.dirname(dest_path))
-
-        copied = []
-
-        for filename in getFileList(
-            included_datafile.source_path,
-            ignore_dirs=included_datafile.ignore_dirs,
-            ignore_filenames=included_datafile.ignore_filenames,
-            ignore_suffixes=included_datafile.ignore_suffixes,
-            only_suffixes=included_datafile.only_suffixes,
-            normalize=included_datafile.normalize,
-        ):
-            filename_relative = os.path.relpath(filename, included_datafile.source_path)
-
-            filename_dest = os.path.join(dest_path, filename_relative)
-            makePath(os.path.dirname(filename_dest))
-
-            copyFileWithPermissions(source_path=filename, dest_path=filename_dest)
-
-            copied.append(filename_relative)
-
-        tracer.info(
-            "Included data dir %r with %d files due to: %s."
-            % (
-                included_datafile.dest_path,
-                len(copied),
-                included_datafile.reason,
-            )
-        )
     else:
         assert False, included_datafile
 
@@ -404,19 +388,20 @@ def copyDataFiles():
 
     for included_datafile in getIncludedDataFiles():
         # TODO: directories should be resolved to files.
-        if (
-            not isinstance(included_datafile, (IncludedDataFile))
-            or included_datafile.needsCopy()
-        ):
+        if included_datafile.needsCopy():
             if shallMakeModule():
                 options_logger.sysexit(
                     """\
-Error, data files for modules must be done via wheels, or commercial plugins '--embed-*' options."""
+Error, data files for modules must be done via wheels, or commercial plugins \
+'--embed-*' options. Not done for '%s'."""
+                    % included_datafile.dest_path
                 )
             elif not isStandaloneMode():
                 options_logger.sysexit(
                     """\
-Error, data files cannot be included in accelerated mode unless using commercial plugins '--embed-*' options."""
+Error, data files cannot be included in accelerated mode unless using commercial \
+plugins '--embed-*' options. Not done for '%s'."""
+                    % included_datafile.dest_path
                 )
 
             _handleDataFile(

@@ -26,7 +26,6 @@ some handling of defaults.
 # spell-checker: ignore uiaccess,noannotations,reexecution,etherium
 # spell-checker: ignore nodocstrings,noasserts,nowarnings,norandomization
 
-import fnmatch
 import os
 import shlex
 import sys
@@ -396,14 +395,14 @@ standalone where there is a sane default used inside the dist folder."""
                 % module_pattern
             )
 
-    for data_file in options.data_files:
-        if "=" not in data_file:
+    for data_file_desc in options.data_files:
+        if "=" not in data_file_desc:
             Tracing.options_logger.sysexit(
                 "Error, malformed data file description, must specify relative target path separated with '='."
             )
 
-        if data_file.count("=") == 1:
-            src, dst = data_file.split("=", 1)
+        if data_file_desc.count("=") == 1:
+            src, dst = data_file_desc.split("=", 1)
 
             filenames = resolveShellPatternToFilenames(src)
 
@@ -413,7 +412,7 @@ standalone where there is a sane default used inside the dist folder."""
                     % src
                 )
         else:
-            src, dst, pattern = data_file.split("=", 2)
+            src, dst, pattern = data_file_desc.split("=", 2)
 
             filenames = resolveShellPatternToFilenames(os.path.join(src, pattern))
 
@@ -425,7 +424,7 @@ standalone where there is a sane default used inside the dist folder."""
         if os.path.isabs(dst):
             Tracing.options_logger.sysexit(
                 "Error, must specify relative target path for data file, not absolute path '%s'."
-                % data_file
+                % data_file_desc
             )
 
     for data_dir in options.data_dirs:
@@ -839,18 +838,18 @@ def getShallIncludePackageData():
 
 
 def getShallIncludeDataFiles():
-    """*list*, items of ``--include-data-file=``"""
-    for data_file in options.data_files:
-        if data_file.count("=") == 1:
-            src, dest = data_file.split("=", 1)
+    """*list*, items of ``--include-data-files=``"""
+    for data_file_desc in options.data_files:
+        if data_file_desc.count("=") == 1:
+            src, dest = data_file_desc.split("=", 1)
 
             for pattern in _splitShellPattern(src):
-                yield pattern, None, dest, data_file
+                yield pattern, None, dest, data_file_desc
         else:
-            src, dest, pattern = data_file.split("=", 2)
+            src, dest, pattern = data_file_desc.split("=", 2)
 
             for pattern in _splitShellPattern(pattern):
-                yield os.path.join(src, pattern), src, dest, data_file
+                yield os.path.join(src, pattern), src, dest, data_file_desc
 
 
 def getShallIncludeDataDirs():
@@ -859,6 +858,12 @@ def getShallIncludeDataDirs():
         src, dest = data_file.split("=", 1)
 
         yield src, dest
+
+
+def getShallNotIncludeDataFilePatterns():
+    """*list*, items of ``--noinclude-data-files=``"""
+
+    return options.data_files_inhibited
 
 
 def shallWarnImplicitRaises():
@@ -995,22 +1000,6 @@ def _shallUseStaticLibPython():
             return True, "Nuitka on pyenv should not use '--enable-shared'."
 
     return options.static_libpython == "yes", None
-
-
-def getDataFileTags(dest_path):
-    result = OrderedSet()
-
-    for value in options.data_file_tags:
-        pattern, tags = value.rsplit(":", 1)
-
-        if fnmatch.fnmatch(dest_path, pattern):
-            result.update(tags.split(","))
-
-    return result
-
-
-def addDataFileTags(pattern):
-    options.data_file_tags.append(pattern)
 
 
 def shallUseStaticLibPython():

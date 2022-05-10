@@ -203,6 +203,53 @@ python2_unicode_methods = (
     "zfill",
 )
 
+python3_bytes_methods = (
+    "capitalize",
+    "center",
+    "count",
+    "decode",
+    "endswith",
+    "expandtabs",
+    "find",
+    # static method
+    # "fromhex",
+    "hex",
+    "index",
+    "isalnum",
+    "isalpha",
+    "isascii",
+    "isdigit",
+    "islower",
+    "isspace",
+    "istitle",
+    "isupper",
+    "join",
+    "ljust",
+    "lower",
+    "lstrip",
+    "maketrans",
+    "partition",
+    # TODO: Python3.9 or higher:
+    # "removeprefix",
+    # "removesuffix",
+    "replace",
+    "rfind",
+    "rindex",
+    "rjust",
+    "rpartition",
+    "rsplit",
+    "rstrip",
+    "split",
+    "splitlines",
+    "startswith",
+    "strip",
+    "swapcase",
+    "title",
+    "translate",
+    "upper",
+    "zfill",
+)
+
 
 def getMethodVariations(spec_module, shape_name, method_name, must_exist=False):
     spec_name = shape_name.split("_")[-1] + "_" + method_name + "_spec"
