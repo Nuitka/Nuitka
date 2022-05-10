@@ -22,7 +22,11 @@
 import os
 
 from nuitka.containers.oset import OrderedSet
-from nuitka.PythonFlavors import isDebianPackagePython, isNuitkaPython
+from nuitka.PythonFlavors import (
+    isAnacondaPython,
+    isDebianPackagePython,
+    isNuitkaPython,
+)
 from nuitka.PythonVersions import (
     getPythonABI,
     getSystemPrefixPath,
@@ -116,6 +120,11 @@ def _getSystemStaticLibPythonPath():
             )
 
     if isWin32Windows():
+        # The gcc used on Windows for Anaconda is far too old for winlibs gcc
+        # to use its library.
+        if isAnacondaPython():
+            return None
+
         candidates = [
             # Anaconda has this.
             os.path.join(
