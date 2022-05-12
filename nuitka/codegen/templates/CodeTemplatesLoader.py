@@ -22,21 +22,21 @@
 
 template_metapath_loader_compiled_module_entry = """\
 {%(module_name)s, modulecode_%(module_identifier)s, 0, 0, %(flags)s
-#if PYTHON_VERSION >= 0x370 && !defined(_NUITKA_STANDALONE)
+#if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
 , %(file_path)s
 #endif
 },"""
 
 template_metapath_loader_extension_module_entry = """\
 {%(module_name)s, NULL, 0, 0, %(flags)s
-#if PYTHON_VERSION >= 0x370 && !defined(_NUITKA_STANDALONE)
+#if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
 , %(file_path)s
 #endif
 },"""
 
 template_metapath_loader_bytecode_module_entry = """\
 {%(module_name)s, NULL, %(bytecode)s, %(size)d, %(flags)s
-#if PYTHON_VERSION >= 0x370 && !defined(_NUITKA_STANDALONE)
+#if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
 , %(file_path)s
 #endif
 },"""

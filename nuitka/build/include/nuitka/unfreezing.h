@@ -33,6 +33,10 @@ struct Nuitka_MetaPathBasedLoaderEntry;
 
 typedef PyObject *(*module_initfunc)(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry);
 
+#if PYTHON_VERSION >= 0x370 && defined(_NUITKA_EXE) && !defined(_NUITKA_STANDALONE)
+#define _NUITKA_FREEZER_HAS_FILE_PATH
+#endif
+
 struct Nuitka_MetaPathBasedLoaderEntry {
     // Full module name, including package name.
     char const *name;
@@ -50,7 +54,7 @@ struct Nuitka_MetaPathBasedLoaderEntry {
     // For accelerated mode, we need to be able to tell where the module "__file__"
     // lives, so we can resolve resource reader paths, not relative to the binary
     // but to code location without loading it.
-#if PYTHON_VERSION >= 0x370 && !defined(_NUITKA_STANDALONE)
+#if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
 #if defined _WIN32
     wchar_t const *file_path;
 #else

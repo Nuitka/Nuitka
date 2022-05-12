@@ -52,23 +52,7 @@ static int Nuitka_ResourceReader_tp_traverse(struct Nuitka_ResourceReaderObject 
 }
 
 static PyObject *_Nuitka_ResourceReader_resource_path(struct Nuitka_ResourceReaderObject *reader, PyObject *resource) {
-#if defined(_NUITKA_STANDALONE)
-    PyObject *module_name = Nuitka_String_FromString(reader->m_loader_entry->name);
-
-    PyObject *module_path = UNICODE_REPLACE3(module_name, const_str_dot, getPathSeparatorStringObject());
-
-    Py_DECREF(module_name);
-
-    if (unlikely(module_path == NULL)) {
-        return NULL;
-    }
-
-    // TODO: For acceleration mode, we need to know the "__path__" of included modules,
-    // which we might have to read from the object, and right now it's unclear if the
-    // package is loaded already, so we may not be able to ask it.
-    PyObject *dir_name = MAKE_RELATIVE_PATH(module_path);
-    Py_DECREF(module_path);
-#else
+#if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
 #if defined(_WIN32)
     wchar_t buffer[1024];
     buffer[0] = 0;
@@ -82,6 +66,19 @@ static PyObject *_Nuitka_ResourceReader_resource_path(struct Nuitka_ResourceRead
 
     PyObject *dir_name = Nuitka_String_FromString(dirname(buffer));
 #endif
+#else
+    PyObject *module_name = Nuitka_String_FromString(reader->m_loader_entry->name);
+
+    PyObject *module_path = UNICODE_REPLACE3(module_name, const_str_dot, getPathSeparatorStringObject());
+
+    Py_DECREF(module_name);
+
+    if (unlikely(module_path == NULL)) {
+        return NULL;
+    }
+
+    PyObject *dir_name = MAKE_RELATIVE_PATH(module_path);
+    Py_DECREF(module_path);
 #endif
 
     if (unlikely(dir_name == NULL)) {

@@ -60,7 +60,11 @@ def getModuleMetapathLoaderEntryCode(module, bytecode_accessor):
 
     flags = ["NUITKA_TRANSLATED_FLAG"]
 
-    if not Options.isStandaloneMode() and python_version >= 0x370:
+    if (
+        not Options.isStandaloneMode()
+        and not Options.shallMakeModule()
+        and python_version >= 0x370
+    ):
         if Options.isWin32Windows():
             file_path = encodePythonUnicodeToC(module.getCompileTimeFilename())
         else:

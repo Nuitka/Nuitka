@@ -145,16 +145,28 @@ static void patchCodeObjectPaths(PyCodeObject *code_object, PyObject *module_pat
 }
 #endif
 
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_RELATIVE_PATH_FROM_NAME(char const *name, bool is_package) {
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_RELATIVE_PATH_FROM_NAME(char const *name, bool is_package, bool dir_only) {
     char buffer[MAXPATHLEN + 1] = {0};
 
     appendModulenameAsPath(buffer, name, sizeof(buffer));
 
-    if (is_package) {
-        appendCharSafe(buffer, SEP, sizeof(buffer));
-        appendStringSafe(buffer, "__init__.py", sizeof(buffer));
+    if (dir_only == false) {
+        if (is_package) {
+            appendCharSafe(buffer, SEP, sizeof(buffer));
+            appendStringSafe(buffer, "__init__.py", sizeof(buffer));
+        } else {
+            appendStringSafe(buffer, ".py", sizeof(buffer));
+        }
     } else {
-        appendStringSafe(buffer, ".py", sizeof(buffer));
+        if (is_package == false) {
+            char *sep = strrchr(buffer, SEP);
+            if (sep) {
+                *sep = 0;
+            } else {
+                buffer[0] = '.';
+                buffer[1] = 0;
+            }
+        }
     }
 
     PyObject *module_path_entry_base = Nuitka_String_FromString(buffer);
@@ -1812,7 +1824,7 @@ void setEarlyFrozenModulesFileAttribute(void) {
             if (HAS_ATTR_BOOL(value, const_str_plain___file__)) {
                 bool is_package = HAS_ATTR_BOOL(value, const_str_plain___path__);
 
-                PyObject *file_value = MAKE_RELATIVE_PATH_FROM_NAME(Nuitka_String_AsString(key), is_package);
+                PyObject *file_value = MAKE_RELATIVE_PATH_FROM_NAME(Nuitka_String_AsString(key), is_package, false);
                 PyObject_SetAttr(value, const_str_plain___file__, file_value);
                 Py_DECREF(file_value);
             }
