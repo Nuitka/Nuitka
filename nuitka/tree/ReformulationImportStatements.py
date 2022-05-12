@@ -32,9 +32,9 @@ from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.ImportNodes import (
     ExpressionBuiltinImport,
-    ExpressionImportModuleHard,
     ExpressionImportName,
     StatementImportStar,
+    makeExpressionImportModuleFixed,
 )
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
@@ -207,7 +207,7 @@ def buildImportFromNode(provider, node, source_ref):
         )
     else:
         if module_name == "__future__":
-            imported_from_module = ExpressionImportModuleHard(
+            imported_from_module = makeExpressionImportModuleFixed(
                 module_name="__future__", source_ref=source_ref
             )
         else:
