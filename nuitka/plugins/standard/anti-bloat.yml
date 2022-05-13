@@ -440,6 +440,24 @@ pickle:
   change_function:
     "_test": "'(lambda: None)'"
 
+tkinter:
+  description: "enhanced tk-inter in case of missing tcl"
+  context:
+    - "import textwrap"
+  replacements:
+    ? "self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)"
+    : |
+      textwrap.indent("""
+      try:
+        self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+      except _tkinter.TclError as e:
+        if "usable init.tcl" not in str(e):
+          raise\n\
+        sys.exit("Nuitka: Need to use '--enable-plugin=tk-inter' option during compilation for tk-inter to work!")
+      """, "        ")
+  control_tags:
+    - "deployment"
+
 Bastion:
   description: "remove module ability to run as a binary"
   change_function:
