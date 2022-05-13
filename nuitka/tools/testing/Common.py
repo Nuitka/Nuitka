@@ -486,13 +486,15 @@ def getDebugPython():
     if os.path.exists(debug_python):
         return debug_python
 
-    # On Windows systems, these work.
-    debug_python = os.environ["PYTHON"]
-    if debug_python.lower().endswith(".exe"):
-        debug_python = debug_python[:-4]
-    debug_python = debug_python + "_d.exe"
-    if os.path.exists(debug_python):
-        return debug_python
+    # On Windows systems, these work. TODO: Python asserts in Nuitka with
+    # these, not sure why, pylint: disable=using-constant-test
+    if False:
+        debug_python = os.environ["PYTHON"]
+        if debug_python.lower().endswith(".exe"):
+            debug_python = debug_python[:-4]
+        debug_python = debug_python + "_d.exe"
+        if os.path.exists(debug_python):
+            return debug_python
 
     # Otherwise no.
     return None
