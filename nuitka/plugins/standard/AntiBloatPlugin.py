@@ -238,6 +238,13 @@ which can and should be a top level package and then one choice, "error",
             if old != source_code:
                 change_count += 1
 
+        for replace_src, replace_dst in config.get("replacements_plain", {}).items():
+            old = source_code
+            source_code = source_code.replace(replace_src, replace_dst)
+
+            if old != source_code:
+                change_count += 1
+
         append_code = config.get("append_result", "")
         if type(append_code) in (tuple, list):
             append_code = "\n".join(append_code)
