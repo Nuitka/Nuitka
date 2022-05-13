@@ -1397,15 +1397,13 @@ plugin_group.add_option(
 )
 
 plugin_group.add_option(
-    "--persist-source-changes",
+    "--show-source-changes",
     action="store_true",
-    dest="persist_source_changes",
+    dest="show_source_changes",
     default=False,
     help="""\
-Write source changes to original Python files. Use with care. May need
-permissions, best for use in a virtualenv to debug if plugin code
-changes work with standard Python or to benefit from bloat removal
-even with pure Python. Default False.""",
+Show source changes to original Python file content before compilation. Mostly
+intended for developing plugins. Default False.""",
 )
 
 

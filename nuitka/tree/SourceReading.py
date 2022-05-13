@@ -29,8 +29,7 @@ from nuitka import Options, SourceCodeReferences
 from nuitka.__past__ import unicode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version, python_version_str
-from nuitka.Tracing import general
-from nuitka.utils.FileOperations import putTextFileContents
+from nuitka.Tracing import general, my_print
 from nuitka.utils.Shebang import getShebangFromSource, parseShebang
 from nuitka.utils.Utils import getOS
 
@@ -170,13 +169,24 @@ def readSourceCodeFromFilename(module_name, source_filename):
     else:
         source_code_modified = source_code
 
-    if Options.shallPersistModifications() and source_code_modified != source_code:
-        orig_source_filename = source_filename + ".orig"
+    if Options.shallShowSourceModifications() and source_code_modified != source_code:
+        import difflib
 
-        if not os.path.exists(orig_source_filename):
-            putTextFileContents(filename=orig_source_filename, contents=source_code)
+        diff = difflib.unified_diff(
+            source_code.splitlines(),
+            source_code_modified.splitlines(),
+            "original",
+            "modified",
+            "",
+            "",
+            n=3,
+        )
 
-        putTextFileContents(filename=source_filename, contents=source_code_modified)
+        result = list(diff)
+
+        if result:
+            for line in result:
+                my_print(line, end="\n" if not line.startswith("---") else "")
 
     return source_code_modified
 

@@ -1637,9 +1637,9 @@ def getForcedStderrPath():
     return options.force_stderr_spec
 
 
-def shallPersistModifications():
-    """*bool* write plugin source changes to disk"""
-    return options is not None and options.persist_source_changes
+def shallShowSourceModifications():
+    """*bool* display plugin source changes"""
+    return options is not None and options.show_source_changes
 
 
 def isLowMemory():
