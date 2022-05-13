@@ -365,10 +365,6 @@ def listDllFilesFromDirectory(path, prefix=""):
         Typically the full name and the basename are both needed
         so this function simply does both, for ease of use on the
         calling side.
-
-        This should be used, because it makes sure to resolve the
-        symlinks to directories on Windows, that a naive "os.listdir"
-        won't do by default.
     """
 
     #

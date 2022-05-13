@@ -22,6 +22,7 @@ import sys
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.utils.FileOperations import listDllFilesFromDirectory, relpath
 from nuitka.utils.Utils import isWin32Windows
 
 
@@ -116,6 +117,34 @@ override it here. Default is automatic detection.""",
 The Tcl library dir. See comments for Tk library dir.""",
         )
 
+    @staticmethod
+    def _getTkinterDnDPlatformDirectory():
+        # From their code:
+        import platform
+
+        if platform.system() == "Darwin":
+            return "osx64"
+        elif platform.system() == "Linux":
+            return "linux64"
+        elif platform.system() == "Windows":
+            return "win64"
+        else:
+            return None
+
+    def _considerDataFilesTkinterDnD(self, module):
+        platform_rep = self._getTkinterDnDPlatformDirectory()
+
+        if platform_rep is None:
+            return
+
+        yield self.makeIncludedPackageDataFiles(
+            package_name="tkinterdnd2",
+            package_directory=module.getCompileTimeDirectory,
+            pattern=os.path.join("tkinterdnd2", "tkdnd", platform_rep, "**"),
+            reason="Tcl needed for 'tkinterdnd2' usage",
+            tags="tcl",
+        )
+
     def considerDataFiles(self, module):
         """Provide TCL libraries to the dist folder.
 
@@ -129,6 +158,13 @@ The Tcl library dir. See comments for Tk library dir.""",
         Yields:
             IncludedDataFile objects.
         """
+
+        # Extra TCL providing module go here:
+        if module.getFullName() == "tkinterdnd2.TkinterDnD":
+            yield self._considerDataFilesTkinterDnD(module)
+
+            return
+
         if not _isTkInterModule(module):
             return
 
@@ -189,19 +225,42 @@ The Tcl library dir. See comments for Tk library dir.""",
             dest_path="tk",
             reason="Tk copy needed for standalone Tcl",
             ignore_dirs=("demos",),
+            tags="tk",
         )
         yield self.makeIncludedDataDirectory(
             source_path=tcl,
             dest_path="tcl",
             reason="Tcl needed for tkinter usage",
+            tags="tcl",
         )
 
         if isWin32Windows():
             yield self.makeIncludedDataDirectory(
                 source_path=os.path.join(tcl, "..", "tcl8"),
                 dest_path="tcl8",
-                reason="Tcl modules needed for tkinter usage",
+                reason="Tcl needed for tkinter usage",
+                tags="tcl",
             )
+
+    def getExtraDlls(self, module):
+        if module.getFullName() == "tkinterdnd2.TkinterDnD":
+            platform_rep = self._getTkinterDnDPlatformDirectory()
+
+            if platform_rep is None:
+                return
+
+            module_directory = module.getCompileTimeDirectory()
+
+            for filename, _dll_filename in listDllFilesFromDirectory(
+                os.path.join(module_directory, "tkdnd", platform_rep)
+            ):
+                dest_path = relpath(filename, module_directory)
+                yield self.makeDllEntryPoint(
+                    source_path=filename,
+                    dest_path=os.path.join("tkinterdnd2", dest_path),
+                    package_name="tkinterdnd2"
+                    # reason="tkinterdnd2 package DLL",
+                )
 
 
 class NuitkaPluginDetectorTkinter(NuitkaPluginBase):
