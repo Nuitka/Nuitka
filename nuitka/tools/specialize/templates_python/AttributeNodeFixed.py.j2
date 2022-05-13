@@ -38,11 +38,22 @@
 {% set str_shape = 0 %}
 {% endif %}
 
+{% if "tshape_bytes" in shape_names %}
+{% set bytes_shape = 1 %}
+{% set bytes_operation_version_check = attribute_shape_versions.get((attribute_name, "tshape_bytes")) %}
+{% set bytes_operation_version_presence = attribute_shape_operations.get((attribute_name, "tshape_bytes")) %}
+{% set bytes_operation_args = attribute_shape_args.get((attribute_name, "tshape_bytes")) %}
+{% set bytes_operation_variation = attribute_shape_variations.get((attribute_name, "tshape_bytes")) %}
+{% set bytes_operation_node_arg_mapping = attribute_shape_node_arg_mapping.get((attribute_name, "tshape_bytes")) %}
+{% else %}
+{% set bytes_shape = 0 %}
+{% endif %}
+
 
 {% set attribute_name_class = attribute_name.replace("_", "").title() %}
 
 class ExpressionAttributeLookupFixed{{attribute_name_class}}(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value '{{attribute_name}}' of an object.
+    """Looking up an attribute value '{{attribute_name}}' of an object. spell-checker: ignore {{attribute_name}}
 
     Typically code like: source.{{attribute_name}}
     """
@@ -78,6 +89,18 @@ class ExpressionAttributeLookupFixed{{attribute_name_class}}(ExpressionAttribute
             )
 
             return result, "new_expression", "Attribute lookup '{{attribute_name}}' on str shape resolved."
+{% endif %}
+{% if bytes_shape %}
+{% if bytes_operation_version_check %}
+        if {{bytes_operation_version_check}} and subnode_expression.hasShapeBytesExact():
+{% else %}
+        if subnode_expression.hasShapeBytesExact():
+{% endif %}
+            result = ExpressionAttributeLookupBytes{{attribute_name_class}}(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return result, "new_expression", "Attribute lookup '{{attribute_name}}' on bytes shape resolved."
 {% endif %}
 
         return subnode_expression.computeExpressionAttribute(
@@ -252,5 +275,84 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
 {% endif %}
 
 attribute_typed_classes.add(ExpressionAttributeLookupStr{{attribute_name_class}})
+
+{% endif %}
+
+{% if "tshape_bytes" in shape_names %}
+
+{% if bytes_operation_version_presence %}
+from nuitka.specs.BuiltinBytesOperationSpecs import bytes_{{attribute_name}}_spec
+{% endif %}
+
+class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixed{{attribute_name_class}}):
+    """Attribute {{attribute_name_class}} lookup on a bytes value.
+
+    Typically code like: some_bytes.{{attribute_name}}
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_{{attribute_name_class.upper()}}"
+    attribute_name = "{{attribute_name}}"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+{% if bytes_operation_version_presence %}
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionBytesOperation{{attribute_name_class}}({{formatArgs(bytes_operation_args, starting=True, finishing=False)}} source_ref):
+{% if python3_operation_name %}
+            if str is bytes:
+                from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}
+
+                return ExpressionBytesOperation{{attribute_name_class}}(
+                    bytes_arg=self.subnode_expression, source_ref=source_ref
+                )
+            else:
+                from .BytesNodes import ExpressionBytesOperation{{python3_operation_name.title()}}
+
+                return ExpressionBytesOperation{{python3_operation_name.title()}}(
+                    bytes_arg=self.subnode_expression, source_ref=source_ref
+                )
+{% else %}
+{% if bytes_operation_variation %}
+{% for count in reversed(bytes_operation_variation[1:]) %}
+            {{"if" if count == bytes_operation_variation[-1] else "elif"}} {{bytes_operation_args[count-1]}} is not None:
+                from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}{{count+1}}
+
+                return ExpressionBytesOperation{{attribute_name_class}}{{count+1}}(
+                    bytes_arg=self.subnode_expression {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args[:count], starting=False)}}, source_ref=source_ref
+                )
+{% endfor %}
+            else:
+                from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}{{bytes_operation_variation[0]+1}}
+
+                return ExpressionBytesOperation{{attribute_name_class}}{{bytes_operation_variation[0]+1}}(
+                    bytes_arg=self.subnode_expression {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args[:bytes_operation_variation[0]], starting=False)}}, source_ref=source_ref
+                )
+
+{% else %}
+            from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}
+
+            return ExpressionBytesOperation{{attribute_name_class}}(
+                bytes_arg=self.subnode_expression {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args, starting=False)}}, source_ref=source_ref
+            )
+{% endif %}
+{% endif %}
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionBytesOperation{{attribute_name_class}},
+            builtin_spec=bytes_{{attribute_name}}_spec,
+        )
+
+        return result, "new_expression", "Call to '{{attribute_name}}' of bytes recognized."
+{% else %}
+    # No computeExpressionCall as bytes operation ExpressionBytesOperation{{attribute_name_class}} is not yet implemented
+{% endif %}
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytes{{attribute_name_class}})
 
 {% endif %}
