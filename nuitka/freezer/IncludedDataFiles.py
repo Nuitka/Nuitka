@@ -253,6 +253,40 @@ def addIncludedDataFilesFromFileOptions():
         addIncludedDataFile(included_datafile)
 
 
+def makeIncludedPackageDataFiles(
+    tracer, package_name, package_directory, pattern, reason, tags
+):
+    tags = _decodeTags(tags)
+    tags.add("package_data")
+
+    pkg_filenames = getFileList(
+        package_directory,
+        ignore_dirs=("__pycache__",),
+        ignore_suffixes=(".py", ".pyw", ".pyc", ".pyo", ".dll")
+        + getSharedLibrarySuffixes(),
+    )
+
+    if pkg_filenames:
+        file_reason = "package '%s' %s" % (package_name, reason)
+
+        for pkg_filename in pkg_filenames:
+            rel_path = os.path.join(
+                package_name.asPath(),
+                os.path.relpath(pkg_filename, package_directory),
+            )
+
+            if pattern and not fnmatch.fnmatch(rel_path, pattern):
+                continue
+
+            yield makeIncludedDataFile(
+                source_path=pkg_filename,
+                dest_path=rel_path,
+                reason=file_reason,
+                tracer=tracer,
+                tags=tags,
+            )
+
+
 def addIncludedDataFilesFromPackageOptions():
     """Late data files, from plugins and user options that work with packages"""
     # Cyclic dependency
@@ -269,31 +303,15 @@ def addIncludedDataFilesFromPackageOptions():
             if match:
                 package_directory = module.getCompileTimeDirectory()
 
-                pkg_filenames = getFileList(
-                    package_directory,
-                    ignore_dirs=("__pycache__",),
-                    ignore_suffixes=(".py", ".pyw", ".pyc", ".pyo", ".dll")
-                    + getSharedLibrarySuffixes(),
-                )
-
-                if pkg_filenames:
-                    file_reason = "package '%s' %s" % (package_name, reason)
-
-                    for pkg_filename in pkg_filenames:
-                        rel_path = os.path.join(
-                            package_name.asPath(),
-                            os.path.relpath(pkg_filename, package_directory),
-                        )
-
-                        addIncludedDataFile(
-                            makeIncludedDataFile(
-                                source_path=pkg_filename,
-                                dest_path=rel_path,
-                                reason=file_reason,
-                                tracer=options_logger,
-                                tags="user,package_data",
-                            )
-                        )
+                for included_datafile in makeIncludedPackageDataFiles(
+                    tracer=options_logger,
+                    package_name=package_name,
+                    package_directory=package_directory,
+                    pattern=None,
+                    reason=reason,
+                    tags="user",
+                ):
+                    addIncludedDataFile(included_datafile)
 
     # Circular dependency
     from nuitka.plugins.Plugins import Plugins

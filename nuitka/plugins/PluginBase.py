@@ -37,6 +37,7 @@ from nuitka.freezer.IncludedDataFiles import (
     makeIncludedDataFile,
     makeIncludedEmptyDirectories,
     makeIncludedGeneratedDataFile,
+    makeIncludedPackageDataFiles,
 )
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.ModuleRegistry import getModuleInclusionInfoByName
@@ -558,6 +559,18 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             dest_paths=dest_paths,
             reason=reason,
             tracer=self,
+            tags=tags,
+        )
+
+    def makeIncludedPackageDataFiles(
+        self, package_name, package_directory, pattern, reason, tags
+    ):
+        return makeIncludedPackageDataFiles(
+            tracer=self,
+            package_name=ModuleName(package_name),
+            package_directory=package_directory,
+            pattern=pattern,
+            reason=reason,
             tags=tags,
         )
 
