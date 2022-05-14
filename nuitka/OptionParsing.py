@@ -555,10 +555,10 @@ codegen_group.add_option(
     default=None,
     help="""\
 Select what value "__name__" and "__package__" are going to be. With "runtime"
-(default for module mode), the created module, it uses the parent package to
-deduct the value of "__package__", to be fully compatible. This allows for more
-optimization to happen, but normally any package can be loaded into another one,
-but this will raise an import error when it detects that with "original" mode.""",
+(default for module mode), the created module uses the parent package to
+deduce the value of "__package__", to be fully compatible. The value "original"
+(default for other modes) allows for more static optimization to happen, but
+is incompatible for modules that normally can be loaded into any package.""",
 )
 
 
