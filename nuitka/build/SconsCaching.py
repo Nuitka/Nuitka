@@ -182,6 +182,11 @@ def enableCcache(
         setEnvironmentVariable(env, "CCACHE_DIR", ccache_dir)
         env["CCACHE_DIR"] = ccache_dir
 
+    # We know the include files we created are safe to use.
+    setEnvironmentVariable(
+        env, "CCACHE_SLOPPINESS", "include_file_ctime,include_file_mtime"
+    )
+
     # First check if it's not already supposed to be a ccache, then do nothing.
     cc_path = getExecutablePath(env.the_compiler, env=env)
 
