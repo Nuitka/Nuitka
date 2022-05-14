@@ -174,18 +174,40 @@ def isPathExecutable(path):
 
 # Make sure we don't repeat this too much.
 _real_path_windows_cache = {}
+_powershell_path = None
 
 
 def _getRealPathWindows(path):
     # Slow, because we are using an external process, we use it's only for standalone and Python2,
     # which is slow already.
 
-    if path not in _real_path_windows_cache:
+    # Singleton, pylint: disable=global-statement
+    global _powershell_path
+    if _powershell_path is None:
+        from .Execution import getExecutablePath
+
+        _powershell_path = getExecutablePath("powershell")
+
+        # Try to find it only once, otherwise ignore its absence, symlinks are not
+        # that important.
+        if _powershell_path is None:
+            _powershell_path = False
+
+    if path not in _real_path_windows_cache and _powershell_path:
         from .Execution import check_output
 
         result = check_output(
-            """powershell -NoProfile "Get-Item '%s' | Select-Object -ExpandProperty Target" """
-            % path
+            [
+                _powershell_path,
+                "-NoProfile",
+                "Get-Item",
+                path,
+                "|",
+                "Select-Object",
+                "-ExpandProperty",
+                "Target",
+            ],
+            shell=False,
         )
 
         if str is not bytes:
