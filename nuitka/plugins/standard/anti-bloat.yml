@@ -645,3 +645,8 @@ eliot._traceback:
   description: "avoid useless duplication of traceback module"
   replacements:
     'load_module(str("_traceback_no_io"), traceback)': '''__import__("traceback")'''
+
+pytz:
+  description: "remove doctest usage"
+  change_function:
+    "_test": "'(lambda: None)'"
