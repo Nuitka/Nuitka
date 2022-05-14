@@ -538,7 +538,7 @@ def main():
     # There are many cases to deal with,
     # pylint: disable=too-many-branches,too-many-statements
 
-    # Lets honor this Debian option here.
+    # Lets honor this Debian option here, spell-checker: ignore nocheck
     if "nocheck" in os.environ.get("DEB_BUILD_OPTIONS", "").split():
         my_print("Skipped all tests as per DEB_BUILD_OPTIONS environment.")
         sys.exit(0)
