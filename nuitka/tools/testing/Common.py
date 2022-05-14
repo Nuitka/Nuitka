@@ -103,6 +103,48 @@ _python_executable = None
 _python_vendor = None
 
 
+def _parsePythonVersionOutput(python_binary):
+    version_output = check_output(
+        (
+            python_binary,
+            "-c",
+            """\
+import sys, os;\
+print(".".join(str(s) for s in list(sys.version_info)[:3]));\
+print(("x86_64" if "AMD64" in sys.version else "x86") if os.name == "nt" else os.uname()[4]);\
+print(sys.executable);\
+print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else "Unknown")\
+""",
+        ),
+        stderr=subprocess.STDOUT,
+    )
+
+    python_version_str = version_output.split(b"\n")[0].strip()
+    python_arch = version_output.split(b"\n")[1].strip()
+    python_executable = version_output.split(b"\n")[2].strip()
+    python_vendor = version_output.split(b"\n")[3].strip()
+
+    if str is not bytes:
+        python_version_str = python_version_str.decode("utf8")
+        python_arch = python_arch.decode("utf8")
+        python_executable = python_executable.decode("utf8")
+        python_vendor = python_vendor.decode("utf8")
+
+    assert type(python_version_str) is str, repr(python_version_str)
+    assert type(python_arch) is str, repr(python_arch)
+    assert type(python_executable) is str, repr(_python_executable)
+
+    python_version = tuple(int(d) for d in python_version_str.split("."))
+
+    return (
+        python_version,
+        python_version_str,
+        python_arch,
+        python_executable,
+        python_vendor,
+    )
+
+
 def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
     if go_main:
         goMainDir()
@@ -128,37 +170,15 @@ def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
     if needs_io_encoding and "PYTHONIOENCODING" not in os.environ:
         os.environ["PYTHONIOENCODING"] = "utf-8"
 
-    version_output = check_output(
-        (
-            os.environ["PYTHON"],
-            "-c",
-            """\
-import sys, os;\
-print(".".join(str(s) for s in list(sys.version_info)[:3]));\
-print(("x86_64" if "AMD64" in sys.version else "x86") if os.name == "nt" else os.uname()[4]);\
-print(sys.executable);\
-print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else "Unknown")\
-""",
-        ),
-        stderr=subprocess.STDOUT,
-    )
-
     global _python_version_str, _python_version, _python_arch, _python_executable, _python_vendor  # singleton, pylint: disable=global-statement
 
-    _python_version_str = version_output.split(b"\n")[0].strip()
-    _python_arch = version_output.split(b"\n")[1].strip()
-    _python_executable = version_output.split(b"\n")[2].strip()
-    _python_vendor = version_output.split(b"\n")[3].strip()
-
-    if str is not bytes:
-        _python_version_str = _python_version_str.decode("utf8")
-        _python_arch = _python_arch.decode("utf8")
-        _python_executable = _python_executable.decode("utf8")
-        _python_vendor = _python_vendor.decode("utf8")
-
-    assert type(_python_version_str) is str, repr(_python_version_str)
-    assert type(_python_arch) is str, repr(_python_arch)
-    assert type(_python_executable) is str, repr(_python_executable)
+    (
+        _python_version,
+        _python_version_str,
+        _python_arch,
+        _python_executable,
+        _python_vendor,
+    ) = _parsePythonVersionOutput(python_binary=os.environ["PYTHON"])
 
     if not silent:
         my_print("Using concrete python", _python_version_str, "on", _python_arch)
@@ -167,8 +187,6 @@ print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else 
         os.environ["COVERAGE_FILE"] = os.path.join(
             os.path.dirname(__file__), "..", "..", "..", ".coverage"
         )
-
-    _python_version = tuple(int(d) for d in _python_version_str.split("."))
 
     return _python_version
 
@@ -481,9 +499,11 @@ def getDebugPython():
     if os.path.exists(debug_python):
         return debug_python
 
-    # On Fedora systems, these work.
+    # On Fedora systems, these work, but on for Python3
     debug_python = os.path.join("/usr/bin/", os.environ["PYTHON"] + "-debug")
-    if os.path.exists(debug_python):
+    if os.path.exists(debug_python) and _parsePythonVersionOutput(debug_python)[0] >= (
+        3,
+    ):
         return debug_python
 
     # On Windows systems, these work. TODO: Python asserts in Nuitka with
