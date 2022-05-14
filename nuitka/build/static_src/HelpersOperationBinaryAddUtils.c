@@ -62,8 +62,8 @@ static PyObject *LIST_CONCAT(PyObject *operand1, PyObject *operand2) {
 #include <longintrepr.h>
 
 #if PYTHON_VERSION < 0x270
-// Renamed from Python2.6
-#define sdigit wdigit
+// Not present in Python2.6 yet
+typedef signed int sdigit;
 #endif
 #endif
 
