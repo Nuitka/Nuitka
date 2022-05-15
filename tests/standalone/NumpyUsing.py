@@ -26,13 +26,15 @@ from __future__ import print_function
 
 # Make sure, the usual bad ones are not included with anti-bloat.
 
-# nuitka-project: --noinclude-setuptools-mode=error
-# nuitka-project: --noinclude-pytest-mode=error
+# nuitka-project: --noinclude-default-mode=error
 # nuitka-project: --noinclude-custom-mode=numpy.distutils:error
 
-import numpy as np
+# nuitka-project: --noinclude-custom-mode=pydoc:error
 
-a = np.arange(15).reshape(3, 5)
+# To trigger DLL usage on non-Linux.
+import numpy.core.multiarray
+
+a = numpy.arange(15).reshape(3, 5)
 
 print("An array", a)
 
