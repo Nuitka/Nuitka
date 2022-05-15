@@ -138,6 +138,7 @@
         "Py_ssize_t",
         "pyenv",
         "pygsheets",
+        "pylint",
         "pyproject",
         "pyqt",
         "pyside",
@@ -165,6 +166,7 @@
         "unstriped",
         "virtualenv",
         "vmprof",
+        "winlibs",
         "zstandard",
         "zstd"
     ],
