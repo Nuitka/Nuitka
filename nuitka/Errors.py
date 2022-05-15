@@ -67,7 +67,7 @@ class NuitkaNodeDesignError(Exception):
 
 
 class NuitkaForbiddenImportEncounter(Exception):
-    pass
+    """This import was an error to attempt and include it."""
 
 
 class CodeTooComplexCode(Exception):
@@ -78,3 +78,7 @@ class CodeTooComplexCode(Exception):
 
     Example of this is "idnadata".
     """
+
+
+class NuitkaForbiddenDLLEncounter(Exception):
+    """This DLL is not allowed to be included."""

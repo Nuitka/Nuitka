@@ -34,6 +34,7 @@ from nuitka.build.SconsUtils import readSconsReport
 from nuitka.Bytecodes import compileSourceToBytecode
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
+from nuitka.Errors import NuitkaForbiddenDLLEncounter
 from nuitka.importing import ImportCache
 from nuitka.importing.Importing import locateModule
 from nuitka.importing.StandardLibrary import (
@@ -824,6 +825,10 @@ def _resolveBinaryPathDLLsMacOS(
             resolved_path = path
 
         if not os.path.exists(resolved_path):
+            # TODO: Make this a plugin decision, to move this from here to PySide6 plugin:
+            if os.path.basename(binary_filename) == "libqpdf.dylib":
+                raise NuitkaForbiddenDLLEncounter(binary_filename, "pyside6")
+
             inclusion_logger.sysexit(
                 "Error, failed to resolve DLL path %s (for %s), please report the bug."
                 % (path, binary_filename)
@@ -1082,15 +1087,22 @@ def _detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache
     )
 
     def addDLLInfo(count, source_dir, original_filename, binary_filename, package_name):
-        used_dlls = _detectBinaryDLLs(
-            is_main_executable=count == 0,
-            source_dir=source_dir,
-            original_filename=original_filename,
-            binary_filename=binary_filename,
-            package_name=package_name,
-            use_cache=use_cache,
-            update_cache=update_cache,
-        )
+        try:
+            used_dlls = _detectBinaryDLLs(
+                is_main_executable=count == 0,
+                source_dir=source_dir,
+                original_filename=original_filename,
+                binary_filename=binary_filename,
+                package_name=package_name,
+                use_cache=use_cache,
+                update_cache=update_cache,
+            )
+        except NuitkaForbiddenDLLEncounter:
+            inclusion_logger.info(
+                "Not including forbidden DLL '%s'." % original_filename
+            )
+
+            return None, None, None
 
         # Allow plugins to prevent inclusion, this may discard things from used_dlls.
         Plugins.removeDllDependencies(
@@ -1133,6 +1145,10 @@ working with Python, report a Nuitka bug."""
             )
 
         for binary_filename, package_name, used_dlls in waitWorkers(workers):
+            # Ignore forbidden DLLs.
+            if binary_filename is None:
+                continue
+
             for dll_filename in used_dlls:
                 # We want these to be absolute paths. Solve that in the parts
                 # where _detectBinaryDLLs is platform specific.
