@@ -694,3 +694,12 @@ cv2:
     "load_first_config([\n": "if False: (["
   control_tags:
     - "standalone_mode_only"
+
+orderedmultidict:
+  description: "remove manual version file import"
+  context:
+    - "import orderedmultidict.__version__"
+  replacements_plain:
+    "with open(pjoin(dirname(__file__), '__version__.py')) as f": "if True"
+  replacements:
+    "exec(f.read(), meta)": "'__version__ = %r' % orderedmultidict.__version__.__version__"
