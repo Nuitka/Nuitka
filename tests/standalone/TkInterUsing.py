@@ -24,6 +24,10 @@
 # nuitka-project: --standalone
 # nuitka-project: --enable-plugin=tk-inter
 
+# Make sure, the usual bad ones are not included with anti-bloat.
+
+# nuitka-project: --noinclude-default-mode=error
+
 from __future__ import print_function
 
 # Python3 changed module name.
