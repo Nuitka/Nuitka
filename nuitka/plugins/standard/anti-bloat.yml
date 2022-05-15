@@ -680,3 +680,17 @@ tornado.httputil:
   description: "remove doctest usage"
   change_function:
     "doctests": "'(lambda: None)'"
+
+cv2:
+  description: "workaround for colliding native module import"
+  context:
+    - "import textwrap"
+    - "import pkgutil"
+    - "from nuitka.utils.Importing import getSharedLibrarySuffix"
+  replacements:
+    "load_first_config(['config.py'], True)": "textwrap.indent(pkgutil.get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(pkgutil.get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
+    'native_module = importlib.import_module("cv2.cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % getSharedLibrarySuffix(False)'
+  replacements_plain:
+    "load_first_config([\n": "if False: (["
+  control_tags:
+    - "standalone_mode_only"

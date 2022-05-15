@@ -26,6 +26,7 @@ import ast
 
 from nuitka.containers.odict import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
+from nuitka.Options import isStandaloneMode, shallMakeModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Yaml import parsePackageYaml
@@ -88,6 +89,12 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
             self.handled_modules["IPython"] = noinclude_ipython_mode
         else:
             self.control_tags.add("allow_ipython")
+
+        if not isStandaloneMode():
+            self.control_tags.add("standalone_mode_only")
+
+        if not shallMakeModule():
+            self.control_tags.add("module_mode_only")
 
         for custom_choice in custom_choices:
             if ":" not in custom_choice:
