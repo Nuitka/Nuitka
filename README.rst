@@ -616,10 +616,6 @@ value:
    # dashes are omitted
    show-scons = true
 
-   # options without value, e.g. enforce using Clang, empty value
-   # indicates no value.
-   clang = ""
-
    # options with single values, e.g. enable a plugin of Nuitka
    enable-plugin = pyside2
 
