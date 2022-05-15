@@ -26,3 +26,12 @@ tensorflow.lite.experimental.microfrontend.python.ops.audio_microfrontend_op:
       patterns:
         - "_audio_microfrontend_op"
       dest_path: "tensorflow/lite/experimental/microfrontend/python/ops"
+
+sklearn._distributor_init:
+  dlls:
+    - include_from_filenames:
+      dir: ".libs"
+      # TODO: Ought to become the default
+      patterns:
+        - ""
+      dest_path: "sklearn/.libs"

@@ -25,9 +25,9 @@ stuff. It will also frequently add sorting for determinism.
 from __future__ import print_function
 
 import errno
+import fnmatch
 import glob
 import os
-import re
 import shutil
 import stat
 import tempfile
@@ -377,7 +377,7 @@ def listDllFilesFromDirectory(path, prefix=""):
 
     Args:
         path: directory to create a DLL listing from
-        prefix: regexp to match filename against
+        prefix: shell pattern to match filename start against, can be None
 
     Returns:
         Sorted list of tuples of full filename, and basename of
@@ -389,15 +389,16 @@ def listDllFilesFromDirectory(path, prefix=""):
         calling side.
     """
 
-    #
+    # Accept None value as well.
     prefix = prefix or ""
 
-    pattern = r"^%s.*\.(?:dll|so.*|dylib)$" % prefix
-    regexp = re.compile(pattern, re.IGNORECASE)
+    pattern_list = [prefix + "*." + suffix for suffix in ("dll", "so.*", "dylib")]
 
     for fullpath, filename in listDir(path):
-        if regexp.match(filename):
-            yield fullpath, filename
+        for pattern in pattern_list:
+            if fnmatch.fnmatch(filename, pattern):
+                yield fullpath, filename
+                break
 
 
 def getSubDirectoriesWithDlls(path):

@@ -159,6 +159,10 @@ sklearn.metrics._dist_metrics:
   depends:
     - "sklearn.utils._typedefs"
 
+sklearn.neighbors._dist_metrics:
+  depends:
+    - "sklearn.neighbors._typedefs"
+
 sklearn.neighbors._ball_tree:
   depends:
     - "sklearn.neighbors._partition_nodes"
