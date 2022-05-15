@@ -25,6 +25,7 @@ for dependency analysis.
 import fnmatch
 import os
 
+from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
 from nuitka.Options import (
     getShallIncludeDataDirs,
@@ -333,6 +334,50 @@ def addIncludedDataFilesFromPackageOptions():
             )
 
 
+_data_file_traces = OrderedDict()
+
+
+def _reportDataFiles():
+    for key in _data_file_traces:
+        count = len(_data_file_traces[key])
+        tracer, reason = key
+
+        # Avoid being too noisy, maybe add a control for increasing this.
+        if count > 10:
+            tracer.info("Included %d data files due to %s." % (count, reason))
+        else:
+            for kind, dest_path in _data_file_traces[key]:
+                if kind == "empty_dirs":
+                    tracer.info(
+                        "Included empty directories '%s' due to %s."
+                        % (
+                            ",".join(dest_path),
+                            reason,
+                        )
+                    )
+                elif kind == "data_blob":
+                    tracer.info(
+                        "Included data file '%s' due to %s."
+                        % (
+                            dest_path,
+                            reason,
+                        )
+                    )
+                elif kind == "data_file":
+                    tracer.info(
+                        "Included data file '%s' due to %s."
+                        % (
+                            dest_path,
+                            reason,
+                        )
+                    )
+                else:
+                    assert False
+
+    # Release the memory
+    _data_file_traces.clear()
+
+
 def _handleDataFile(included_datafile):
     """Handle a data file."""
     tracer = included_datafile.tracer
@@ -347,15 +392,13 @@ def _handleDataFile(included_datafile):
 
     dist_dir = getStandaloneDirectoryPath()
 
-    if included_datafile.kind == "empty_dirs":
-        tracer.info(
-            "Included empty directories '%s' due to %s."
-            % (
-                ",".join(included_datafile.dest_path),
-                included_datafile.reason,
-            )
-        )
+    key = tracer, included_datafile.reason
+    if key not in _data_file_traces:
+        _data_file_traces[key] = []
 
+    _data_file_traces[key].append((included_datafile.kind, included_datafile.dest_path))
+
+    if included_datafile.kind == "empty_dirs":
         for sub_dir in included_datafile.dest_path:
             created_dir = os.path.join(dist_dir, sub_dir)
 
@@ -368,24 +411,8 @@ def _handleDataFile(included_datafile):
         makePath(os.path.dirname(dest_path))
 
         putTextFileContents(filename=dest_path, contents=included_datafile.data)
-
-        tracer.info(
-            "Included data file '%s' due to %s."
-            % (
-                included_datafile.dest_path,
-                included_datafile.reason,
-            )
-        )
     elif included_datafile.kind == "data_file":
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
-
-        tracer.info(
-            "Included data file '%s' due to %s."
-            % (
-                included_datafile.dest_path,
-                included_datafile.reason,
-            )
-        )
 
         makePath(os.path.dirname(dest_path))
         copyFileWithPermissions(
@@ -425,3 +452,5 @@ plugins '--embed-*' options. Not done for '%s'."""
             _handleDataFile(
                 included_datafile,
             )
+
+    _reportDataFiles()
