@@ -52,6 +52,13 @@ sklearn.utils._testing:
     "assert_raises_regex = _dummy.assert_raises_regex": "def assert_dict_equal(*args, **kwargs): pass"
     "unittest.case.SkipTest": "None"
 
+skimage._shared.tester:
+  description: "remove skimage testing framework"
+  module_code: |
+    class PytestTester:
+      def __init__(self, name):
+        pass
+
 matplotlib:
   description: "remove setuptools and pytest testing framework reference"
   replacements:
@@ -138,6 +145,12 @@ numpy.core.overrides:
   replacements:
     "add_docstring(implementation, dispatcher.__doc__)": "'''add_docstring(implementation, dispatcher.__doc__ or '')'''"
     "public_api.__code__ = ": ""
+
+numpy.lib.utils:
+  description: "remove pydoc usage"
+  replacements_plain:
+    "import pydoc": ""
+    ".pydoc.allmethods(object)": "()"
 
 scipy.stats.morestats:
   description: "remove numpy testing framework"
@@ -489,6 +502,8 @@ pandas._testing:
     # TODO: See below
     "round_trip_pathlib": "'(lambda: None)'"
     "round_trip_localpath": "'(lambda: None)'"
+    "ensure_clean": "'(lambda: None)'"
+    "network": "'(lambda: None)'"
 
 pandas._testing._io:
   description: "remove pytest testing framework"
@@ -650,3 +665,18 @@ pytz:
   description: "remove doctest usage"
   change_function:
     "_test": "'(lambda: None)'"
+
+tornado.util:
+  description: "remove doctest usage"
+  change_function:
+    "doctests": "'(lambda: None)'"
+
+tornado.iostream:
+  description: "remove doctest usage"
+  change_function:
+    "doctests": "'(lambda: None)'"
+
+tornado.httputil:
+  description: "remove doctest usage"
+  change_function:
+    "doctests": "'(lambda: None)'"
