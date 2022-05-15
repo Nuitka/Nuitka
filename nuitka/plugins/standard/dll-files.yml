@@ -35,3 +35,12 @@ sklearn._distributor_init:
       patterns:
         - ""
       dest_path: "sklearn/.libs"
+
+clr:
+  dlls:
+    - include_from_filenames:
+      dir: "."
+      patterns:
+        "Python.Runtime"
+      dest_path:
+        "."

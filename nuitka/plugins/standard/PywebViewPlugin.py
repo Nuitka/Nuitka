@@ -84,18 +84,6 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
                     package_name=module.getFullName(),
                 )
 
-            # TODO: Not sure where this pointing to "site-packages" comes from.
-            if isWin32Windows():
-                yield self.makeDllEntryPoint(
-                    source_path=os.path.abspath(
-                        os.path.join(
-                            module.getCompileTimeDirectory(), "..", "Python.Runtime.dll"
-                        )
-                    ),
-                    dest_path="Python.Runtime.dll",
-                    package_name=module.getFullName(),
-                )
-
     def considerDataFiles(self, module):
         if module.getFullName() == "webview":
             for filename, filename_relative in self._getWebviewFiles(
