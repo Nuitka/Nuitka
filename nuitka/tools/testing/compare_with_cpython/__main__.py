@@ -229,6 +229,7 @@ def main():
     expect_failure = hasArg("expect_failure")
     python_debug = hasArg("python_debug") or hasArg("--python-debug")
     module_mode = hasArg("--module")
+    module_entry_point = hasArgValue("--module-entry-point")
     coverage_mode = hasArg("coverage")
     two_step_execution = hasArg("two_step_execution")
     binary_python_path = hasArg("binary_python_path")
@@ -367,11 +368,15 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if module_name.endswith(".py"):
             module_name = module_name[:-3]
 
+        mini_script = "import %s" % module_name
+        if module_entry_point:
+            mini_script += "; %s.%s()" % (module_name, module_entry_point)
+
         cpython_cmd = [
             os.environ["PYTHON"],
             "-c",
-            "import sys; sys.path.append(%s); import %s"
-            % (repr(os.path.dirname(filename)), module_name),
+            "import sys; sys.path.append(%s); %s"
+            % (repr(os.path.dirname(filename)), mini_script),
         ]
 
         if no_warnings:
@@ -558,13 +563,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if module_name.endswith(".py"):
             module_name = module_name[:-3]
 
-        nuitka_cmd2 = [
-            os.environ["PYTHON"],
-            "-W",
-            "ignore",
-            "-c",
-            "import %s" % module_name,
-        ]
+        nuitka_cmd2 = [os.environ["PYTHON"], "-W", "ignore", "-c", mini_script]
     else:
         exe_filename = os.path.basename(filename)
 
