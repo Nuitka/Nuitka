@@ -73,7 +73,6 @@
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingImports": "none"
     },
-    "restructuredtext.confPath": "",
     "cSpell.words": [
         "abiflags",
         "appdirs",
@@ -172,4 +171,5 @@
     ],
     "esbonio.server.enabled": true,
     "esbonio.sphinx.confDir": "",
+    "cSpell.spellCheckOnlyWorkspaceFiles": true
 }
