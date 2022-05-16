@@ -589,6 +589,10 @@ MOD_INIT_DECL(%(module_identifier)s) {
 
 #if PYTHON_VERSION < 0x300
     modulecode_%(module_identifier)s(module, NULL);
+
+    // TODO: Our "__file__" value will not be respected by CPython and one
+    // way we could avoid it, is by having a capsule type, that when it gets
+    // released, we are called.
 #else
     PyObject *result = modulecode_%(module_identifier)s(module, NULL);
 

@@ -614,7 +614,7 @@ typedef PyObject *(*entrypoint_t)(void);
 #endif
 
 #if PYTHON_VERSION >= 0x350
-static PyObject *createModuleSpec(PyObject *module_name, bool is_package);
+static PyObject *createModuleSpec(PyObject *module_name, PyObject *origin, bool is_package);
 #endif
 
 #ifdef _WIN32
@@ -775,7 +775,7 @@ static PyObject *callIntoExtensionModule(char const *full_name, const char *file
 
         PyObject *full_name_obj = Nuitka_String_FromString(full_name);
 
-        PyObject *spec_value = createModuleSpec(full_name_obj, false);
+        PyObject *spec_value = createModuleSpec(full_name_obj, NULL, false);
 
         module = PyModule_FromDefAndSpec(def, spec_value);
 
@@ -787,9 +787,9 @@ static PyObject *callIntoExtensionModule(char const *full_name, const char *file
             return NULL;
         }
 
-        SET_ATTRIBUTE(module, const_str_plain___spec__, spec_value);
         setModuleFileValue(module, filename);
         PyObject_SetAttrString((PyObject *)spec_value, "origin", LOOKUP_ATTRIBUTE(module, const_str_plain___file__));
+        SET_ATTRIBUTE(module, const_str_plain___spec__, spec_value);
 
         Nuitka_SetModule(full_name_obj, module);
         Py_DECREF(full_name_obj);
@@ -815,13 +815,13 @@ static PyObject *callIntoExtensionModule(char const *full_name, const char *file
     } else {
         def = PyModule_GetDef(module);
 
-        // Set "__spec__" after load.
+        // Set "__spec__" and "__file__" after load.
+        setModuleFileValue(module, filename);
         PyObject *full_name_obj = Nuitka_String_FromString(full_name);
-        PyObject *spec_value = createModuleSpec(full_name_obj, false);
+        PyObject *spec_value =
+            createModuleSpec(full_name_obj, LOOKUP_ATTRIBUTE(module, const_str_plain___file__), false);
 
         SET_ATTRIBUTE(module, const_str_plain___spec__, spec_value);
-        setModuleFileValue(module, filename);
-        PyObject_SetAttrString((PyObject *)spec_value, "origin", LOOKUP_ATTRIBUTE(module, const_str_plain___file__));
 
         // Fixup __package__ after load. It seems some modules ignore _Py_PackageContext value.
         // so we patch it up here if it's None, but a package was specified.
@@ -966,14 +966,11 @@ static PyObject *loadModule(PyObject *module, PyObject *module_name,
 #endif
 
         // Set "__spec__" and "__file__", some modules expect it early.
-#if PYTHON_VERSION >= 0x350
-        PyObject *spec_value = createModuleSpec(module_name, false);
-
-        SET_ATTRIBUTE(module, const_str_plain___spec__, spec_value);
-#endif
         setModuleFileValue(module, filename);
 #if PYTHON_VERSION >= 0x350
-        PyObject_SetAttrString((PyObject *)spec_value, "origin", LOOKUP_ATTRIBUTE(module, const_str_plain___file__));
+        PyObject *spec_value = createModuleSpec(module_name, LOOKUP_ATTRIBUTE(module, const_str_plain___file__), false);
+
+        SET_ATTRIBUTE(module, const_str_plain___spec__, spec_value);
 #endif
 
         callIntoExtensionModule(entry->name, filename);
@@ -1287,9 +1284,86 @@ static PyObject *getModuleSpecClass(PyObject *importlib_module) {
     return module_spec_class;
 }
 
-static PyObject *createModuleSpec(PyObject *module_name, bool is_package) {
+static PyObject *getModuleDirectory(struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
+#if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
+#if defined(_WIN32)
+    wchar_t buffer[1024];
+    buffer[0] = 0;
+
+    appendWStringSafeW(buffer, entry->file_path, sizeof(buffer));
+    stripFilenameW(buffer);
+    PyObject *dir_name = NuitkaUnicode_FromWideChar(buffer, -1);
+#else
+    char buffer[1024];
+    copyStringSafe(buffer, entry->file_path, sizeof(buffer));
+
+    PyObject *dir_name = Nuitka_String_FromString(dirname(buffer));
+#endif
+#else
+    PyObject *module_name;
+    if ((entry->flags & NUITKA_PACKAGE_FLAG) != 0) {
+        module_name = Nuitka_String_FromString(entry->name);
+    } else {
+        char buffer[1024];
+        copyStringSafe(buffer, entry->name, sizeof(buffer));
+
+        char *dot = strrchr(buffer, '.');
+        if (dot != NULL) {
+            *dot = 0;
+        }
+
+        module_name = Nuitka_String_FromString(buffer);
+    }
+
+    PyObject *module_path = UNICODE_REPLACE3(module_name, const_str_dot, getPathSeparatorStringObject());
+
+    Py_DECREF(module_name);
+
+    if (unlikely(module_path == NULL)) {
+        return NULL;
+    }
+
+    PyObject *dir_name = MAKE_RELATIVE_PATH(module_path);
+    Py_DECREF(module_path);
+#endif
+
+    return dir_name;
+}
+
+static PyObject *getModuleFileValue(struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
+    PyObject *dir_name = getModuleDirectory(entry);
+
+    char filename_buffer[1024];
+
+    char const *basename = strrchr(entry->name, '.');
+    if (basename == NULL) {
+        basename = entry->name;
+    } else {
+        basename += 1;
+    }
+
+    copyStringSafe(filename_buffer, basename, sizeof(filename_buffer));
+
+    if ((entry->flags & NUITKA_PACKAGE_FLAG) != 0) {
+        appendCharSafe(filename_buffer, SEP, sizeof(filename_buffer));
+        appendStringSafe(filename_buffer, "__init__.py", sizeof(filename_buffer));
+    } else {
+        appendStringSafe(filename_buffer, ".py", sizeof(filename_buffer));
+    }
+
+    PyObject *module_filename = Nuitka_String_FromString(filename_buffer);
+
+    PyObject *result = JOIN_PATH2(dir_name, module_filename);
+
+    Py_DECREF(module_filename);
+
+    return result;
+}
+
+static PyObject *createModuleSpec(PyObject *module_name, PyObject *origin, bool is_package) {
     CHECK_OBJECT(module_name);
     assert(Nuitka_String_Check(module_name));
+    CHECK_OBJECT_X(origin);
 
     PyObject *importlib_module = getImportLibBootstrapModule();
 
@@ -1309,6 +1383,9 @@ static PyObject *createModuleSpec(PyObject *module_name, bool is_package) {
 
     PyObject *kwargs = PyDict_New();
     PyDict_SetItemString(kwargs, "is_package", is_package ? Py_True : Py_False);
+    if (origin != NULL) {
+        PyDict_SetItemString(kwargs, "origin", origin);
+    }
 
     PyObject *result = CALL_FUNCTION(module_spec_class, args, kwargs);
 
@@ -1322,7 +1399,7 @@ static PyObject *createModuleSpec(PyObject *module_name, bool is_package) {
 // We might have to load stuff from installed modules in our package namespaces.
 static PyObject *createModuleSpecViaPathFinder(PyObject *module_name, char const *parent_module_name) {
     if (scanModuleInPackagePath(module_name, parent_module_name)) {
-        return createModuleSpec(module_name, false);
+        return createModuleSpec(module_name, NULL, false);
     } else {
         // Without error this means we didn't make it.
         return NULL;
@@ -1394,7 +1471,7 @@ static PyObject *_path_unfreezer_find_spec(PyObject *self, PyObject *args, PyObj
                           getEntryModeString(entry));
     }
 
-    return createModuleSpec(module_name, (entry->flags & NUITKA_PACKAGE_FLAG) != 0);
+    return createModuleSpec(module_name, getModuleFileValue(entry), (entry->flags & NUITKA_PACKAGE_FLAG) != 0);
 }
 
 #if PYTHON_VERSION >= 0x350

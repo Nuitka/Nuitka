@@ -108,6 +108,7 @@
         "isgenerator",
         "isort",
         "Kivy",
+        "kwargs",
         "libc",
         "libpython",
         "lldb",

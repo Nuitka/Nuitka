@@ -48,10 +48,17 @@ def main():
     # We do not optimize through globals()
     try:
         print("SPEC from globals", getPathEnd(globals()["__spec__"].origin, 2))
-    except NameError as e:
-        print("No __spec__ globals name", str(e))
+    except KeyError as e:
+        print("No __spec__ globals name:", str(e))
 
     try:
         print("FILE from globals", getPathEnd(globals()["__file__"], 2))
-    except NameError as e:
-        print("No __file__ globals name", str(e))
+    except KeyError as e:
+        print("No __file__ globals name:", str(e))
+
+    try:
+        from importlib.util import find_spec
+
+        print(getPathEnd(find_spec("some_package.some_module").origin, 2))
+    except ImportError as e:
+        print("No importlib.util import find_spec:", str(e))
