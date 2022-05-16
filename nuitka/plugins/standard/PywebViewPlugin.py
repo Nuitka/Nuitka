@@ -26,6 +26,8 @@ from nuitka.plugins.Plugins import getActiveQtPlugin
 from nuitka.utils.FileOperations import getFileList, hasFilenameExtension
 from nuitka.utils.Utils import getArchitecture, getOS, isMacOS, isWin32Windows
 
+# spellchecker: ignore pywebview,mshtml
+
 
 class NuitkaPluginPywebview(NuitkaPluginBase):
     """This class represents the main logic of the plugin."""

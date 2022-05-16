@@ -628,7 +628,7 @@ template_module_exception_exit = """\
     return NULL;
 }"""
 
-template_module_noexception_exit = """\
+template_module_no_exception_exit = """\
 }"""
 
 template_helper_impl_decl = """\

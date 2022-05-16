@@ -507,7 +507,7 @@ static char const *getEntryModeString(struct Nuitka_MetaPathBasedLoaderEntry con
 
 static char *_kwlist[] = {(char *)"fullname", (char *)"unused", NULL};
 
-static PyObject *_path_unfreezer_find_module(PyObject *self, PyObject *args, PyObject *kwds) {
+static PyObject *_nuitka_loader_find_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
     PyObject *unused;
 
@@ -572,7 +572,7 @@ static PyObject *_path_unfreezer_find_module(PyObject *self, PyObject *args, PyO
 
 static char const *_kwlist_get_data[] = {"filename", NULL};
 
-static PyObject *_path_unfreezer_get_data(PyObject *self, PyObject *args, PyObject *kwds) {
+static PyObject *_nuitka_loader_get_data(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *filename;
 
     int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:get_data", (char **)_kwlist_get_data, &filename);
@@ -1113,7 +1113,7 @@ PyObject *EXECUTE_EMBEDDED_MODULE(PyObject *module) {
     return _EXECUTE_EMBEDDED_MODULE(module, module_name, name);
 }
 
-static PyObject *_path_unfreezer_load_module(PyObject *self, PyObject *args, PyObject *kwds) {
+static PyObject *_nuitka_loader_load_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
     PyObject *unused;
 
@@ -1148,7 +1148,7 @@ static PyObject *_path_unfreezer_load_module(PyObject *self, PyObject *args, PyO
 
 static char const *_kwlist_is_package[] = {"fullname", NULL};
 
-static PyObject *_path_unfreezer_is_package(PyObject *self, PyObject *args, PyObject *kwds) {
+static PyObject *_nuitka_loader_is_package(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
 
     int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:is_package", (char **)_kwlist_is_package, &module_name);
@@ -1179,7 +1179,7 @@ static PyObject *_path_unfreezer_is_package(PyObject *self, PyObject *args, PyOb
 
 static char const *_kwlist_iter_modules[] = {"package", NULL};
 
-static PyObject *_path_unfreezer_iter_modules(struct Nuitka_LoaderObject *self, PyObject *args, PyObject *kwds) {
+static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, PyObject *args, PyObject *kwds) {
     PyObject *prefix;
 
     int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:iter_modules", (char **)_kwlist_iter_modules, &prefix);
@@ -1261,7 +1261,7 @@ PyObject *getImportLibBootstrapModule(void) {
 
 #if PYTHON_VERSION >= 0x340
 
-static PyObject *_path_unfreezer_repr_module(PyObject *self, PyObject *args, PyObject *kwds) {
+static PyObject *_nuitka_loader_repr_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module;
     PyObject *unused;
 
@@ -1409,7 +1409,7 @@ static PyObject *createModuleSpecViaPathFinder(PyObject *module_name, char const
 
 static char const *_kwlist_find_spec[] = {"fullname", "is_package", "path", NULL};
 
-static PyObject *_path_unfreezer_find_spec(PyObject *self, PyObject *args, PyObject *kwds) {
+static PyObject *_nuitka_loader_find_spec(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
     PyObject *unused1; // We ignore "is_package"
     PyObject *unused2; // We ignore "path"
@@ -1477,7 +1477,7 @@ static PyObject *_path_unfreezer_find_spec(PyObject *self, PyObject *args, PyObj
 #if PYTHON_VERSION >= 0x350
 static char const *_kwlist_create_module[] = {"spec", NULL};
 
-static PyObject *_path_unfreezer_create_module(PyObject *self, PyObject *args, PyObject *kwds) {
+static PyObject *_nuitka_loader_create_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *spec;
 
     int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:create_module", (char **)_kwlist_create_module, &spec);
@@ -1505,7 +1505,7 @@ static PyObject *_path_unfreezer_create_module(PyObject *self, PyObject *args, P
 
 static char const *_kwlist_exec_module[] = {"module", NULL};
 
-static PyObject *_path_unfreezer_exec_module(PyObject *self, PyObject *args, PyObject *kwds) {
+static PyObject *_nuitka_loader_exec_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module;
 
     int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:exec_module", (char **)_kwlist_exec_module, &module);
@@ -1549,7 +1549,7 @@ static PyObject *_path_unfreezer_exec_module(PyObject *self, PyObject *args, PyO
 // The resource reader class is implemented in a separate file.
 #include "MetaPathBasedLoaderResourceReader.c"
 
-static PyObject *_path_unfreezer_get_resource_reader(PyObject *self, PyObject *args, PyObject *kwds) {
+static PyObject *_nuitka_loader_get_resource_reader(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
 
     int res =
@@ -1674,7 +1674,7 @@ PyObject *Nuitka_Distribution_New(struct Nuitka_MetaPathBasedLoaderEntry const *
 
 static char const *_kwlist_find_distributions[] = {"context", NULL};
 
-static PyObject *_path_unfreezer_find_distributions(PyObject *self, PyObject *args, PyObject *kwds) {
+static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *context;
 
     int res =
@@ -1718,26 +1718,26 @@ static PyObject *_path_unfreezer_find_distributions(PyObject *self, PyObject *ar
 #endif
 
 static PyMethodDef Nuitka_Loader_methods[] = {
-    {"iter_modules", (PyCFunction)_path_unfreezer_iter_modules, METH_VARARGS | METH_KEYWORDS, NULL},
-    {"get_data", (PyCFunction)_path_unfreezer_get_data, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
-    {"find_module", (PyCFunction)_path_unfreezer_find_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
-    {"load_module", (PyCFunction)_path_unfreezer_load_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
-    {"is_package", (PyCFunction)_path_unfreezer_is_package, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"iter_modules", (PyCFunction)_nuitka_loader_iter_modules, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"get_data", (PyCFunction)_nuitka_loader_get_data, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"find_module", (PyCFunction)_nuitka_loader_find_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"load_module", (PyCFunction)_nuitka_loader_load_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"is_package", (PyCFunction)_nuitka_loader_is_package, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 #if PYTHON_VERSION >= 0x340
-    {"module_repr", (PyCFunction)_path_unfreezer_repr_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
-    {"find_spec", (PyCFunction)_path_unfreezer_find_spec, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"module_repr", (PyCFunction)_nuitka_loader_repr_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"find_spec", (PyCFunction)_nuitka_loader_find_spec, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 #endif
 #if PYTHON_VERSION >= 0x350
-    {"create_module", (PyCFunction)_path_unfreezer_create_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
-    {"exec_module", (PyCFunction)_path_unfreezer_exec_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"create_module", (PyCFunction)_nuitka_loader_create_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"exec_module", (PyCFunction)_nuitka_loader_exec_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 #endif
 #if PYTHON_VERSION >= 0x370
-    {"get_resource_reader", (PyCFunction)_path_unfreezer_get_resource_reader,
-     METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"get_resource_reader", (PyCFunction)_nuitka_loader_get_resource_reader, METH_STATIC | METH_VARARGS | METH_KEYWORDS,
+     NULL},
 #endif
 
 #if _NUITKA_EXPERIMENTAL_METADATA
-    {"find_distributions", (PyCFunction)_path_unfreezer_find_distributions, METH_STATIC | METH_VARARGS | METH_KEYWORDS,
+    {"find_distributions", (PyCFunction)_nuitka_loader_find_distributions, METH_STATIC | METH_VARARGS | METH_KEYWORDS,
      NULL},
 #endif
 
@@ -1893,10 +1893,10 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 // into, to still get compatible "__file__" attributes.
 void setEarlyFrozenModulesFileAttribute(void) {
     PyObject *sys_modules = PyImport_GetModuleDict();
-    Py_ssize_t ppos = 0;
+    Py_ssize_t pos = 0;
     PyObject *key, *value;
 
-    while (PyDict_Next(sys_modules, &ppos, &key, &value)) {
+    while (PyDict_Next(sys_modules, &pos, &key, &value)) {
         if (key != NULL && value != NULL && PyModule_Check(value)) {
             if (HAS_ATTR_BOOL(value, const_str_plain___file__)) {
                 bool is_package = HAS_ATTR_BOOL(value, const_str_plain___path__);
