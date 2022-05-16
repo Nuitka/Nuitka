@@ -25,7 +25,7 @@ import os
 
 from nuitka.containers.oset import OrderedSet
 from nuitka.freezer.IncludedEntryPoints import makeExeEntryPoint
-from nuitka.Options import isStandaloneMode
+from nuitka.Options import isExperimental, isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin
 from nuitka.PythonVersions import python_version
@@ -378,6 +378,15 @@ import %(binding_name)s.QtCore
                 qt_plugin_name = filename_relative.split(os.path.sep, 1)[0]
 
                 if not self.hasQtPluginSelected(qt_plugin_name):
+                    continue
+
+                # TODO: The qpdf plugin is causing issues, and we would have to check
+                # here, already, if dependencies of the plugin will be available, and
+                # if not, then skip it, but that is for a future release, as it is
+                # blocking on macOS now.
+                if "qpdf" in os.path.basename(filename_relative) and not isExperimental(
+                    "qt-force-qpdf"
+                ):
                     continue
 
                 yield self.makeDllEntryPoint(
