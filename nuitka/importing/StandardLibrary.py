@@ -158,8 +158,6 @@ def scanStandardLibraryPath(stdlib_dir):
                 dirs.remove("dist-packages")
             if "test" in dirs:
                 dirs.remove("test")
-            if "idlelib" in dirs:
-                dirs.remove("idlelib")
             if "turtledemo" in dirs:
                 dirs.remove("turtledemo")
 
@@ -305,6 +303,7 @@ _stdlib_no_auto_inclusion_list = (
     "ttk",
     "tkFont",
     "tkColorChooser",
+    "idlelib",
 )
 
 if not isWin32Windows():
