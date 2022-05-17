@@ -38,7 +38,11 @@ from nuitka.importing.Importing import (
 from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.importing.Recursion import decideRecursion
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.Options import isStandaloneMode, shallWarnUnusualCode
+from nuitka.Options import (
+    isStandaloneMode,
+    shallMakeModule,
+    shallWarnUnusualCode,
+)
 from nuitka.PythonVersions import (
     getFutureModuleKeys,
     getImportlibSubPackages,
@@ -234,17 +238,21 @@ def _checkHardModules():
 _checkHardModules()
 
 
-def makeExpressionImportModuleNameHard(module_name, import_name, source_ref):
+def makeExpressionImportModuleNameHard(
+    module_name, import_name, module_guaranteed, source_ref
+):
     if hard_modules_trust[module_name].get(import_name) is None:
         return ExpressionImportModuleNameHardMaybeExists(
             module_name=module_name,
             import_name=import_name,
+            module_guaranteed=module_guaranteed,
             source_ref=source_ref,
         )
     else:
         return ExpressionImportModuleNameHardExists(
             module_name=module_name,
             import_name=import_name,
+            module_guaranteed=module_guaranteed,
             source_ref=source_ref,
         )
 
@@ -391,7 +399,7 @@ class ExpressionImportModuleHard(
 
     kind = "EXPRESSION_IMPORT_MODULE_HARD"
 
-    __slots__ = ("module", "allowed", "value_name", "is_package")
+    __slots__ = ("module", "allowed", "guaranteed", "value_name", "is_package")
 
     def __init__(self, module_name, value_name, source_ref):
         ExpressionImportHardBase.__init__(
@@ -413,6 +421,10 @@ class ExpressionImportModuleHard(
             self.module = None
             self.is_package = None
 
+        self.guaranteed = self.allowed and (
+            not shallMakeModule() or self.module_name not in hard_modules_non_stdlib
+        )
+
     def finalize(self):
         del self.parent
 
@@ -426,7 +438,7 @@ class ExpressionImportModuleHard(
         return self.value_name
 
     def mayHaveSideEffects(self):
-        return self.module is None
+        return self.module is None or not self.guaranteed
 
     def mayRaiseException(self, exception_type):
         return not self.allowed or self.mayHaveSideEffects()
@@ -601,6 +613,7 @@ class ExpressionImportModuleHard(
                     result = makeExpressionImportModuleNameHard(
                         module_name=self.value_name,
                         import_name=attribute_name,
+                        module_guaranteed=self.guaranteed,
                         source_ref=lookup_node.getSourceReference(),
                     )
 
@@ -643,6 +656,7 @@ class ExpressionImportlibImportModuleRef(ExpressionImportModuleNameHardExists):
             self,
             module_name="importlib",
             import_name="import_module",
+            module_guaranteed=True,
             source_ref=source_ref,
         )
 
@@ -919,6 +933,11 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
             # We stay here.
             return self, None, None
 
+        # Importing may raise an exception obviously, unless we know it will
+        # not.
+        if self.finding != "built-in":
+            trace_collection.onExceptionRaiseExit(BaseException)
+
         module_name = self.subnode_name
 
         if module_name.isCompileTimeConstant():
@@ -1006,11 +1025,6 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 assert change_tags == "new_raise", module_name
 
                 return new_node, change_tags, message
-
-        # Importing may raise an exception obviously, unless we know it will
-        # not.
-        if self.finding != "built-in":
-            trace_collection.onExceptionRaiseExit(BaseException)
 
         # TODO: May return a module or module variable reference of some sort in
         # the future with embedded modules.

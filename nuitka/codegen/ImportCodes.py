@@ -227,20 +227,27 @@ def getImportModuleNameHardCode(
         if needs_check:
             emitLineNumberUpdateCode(expression=None, emit=emit, context=context)
 
-        # TODO: The import name wouldn't have to be an object really, could do with a
-        # C string only.
         emit(
             renderTemplateFromString(
                 r"""
 {
     PyObject *hard_module = {{module_code_name}}();
+{% if needs_check %}
+    if (likely(hard_module != NULL)) {
+        {{to_name}} = LOOKUP_ATTRIBUTE(hard_module, {{import_name}});
+    } else {
+        {{to_name}} = NULL;
+    }
+{% else %}
     {{to_name}} = LOOKUP_ATTRIBUTE(hard_module, {{import_name}});
+{% endif %}
 }
 """,
                 to_name=to_name,
                 module_name=str(module_name),
                 module_code_name=getImportModuleHardCodeName(module_name),
                 import_name=context.getConstantCode(import_name),
+                needs_check=needs_check,
             )
         )
     else:

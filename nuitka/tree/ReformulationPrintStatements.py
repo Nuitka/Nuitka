@@ -54,7 +54,10 @@ def buildPrintNode(provider, node, source_ref):
         target_default_statement = StatementAssignmentVariable(
             variable=tmp_target_variable,
             source=makeExpressionImportModuleNameHard(
-                module_name="sys", import_name="stdout", source_ref=source_ref
+                module_name="sys",
+                import_name="stdout",
+                module_guaranteed=True,
+                source_ref=source_ref,
             ),
             source_ref=source_ref,
         )

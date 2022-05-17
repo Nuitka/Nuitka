@@ -56,7 +56,10 @@ def _makeCall(module_name, import_name, attribute_name, source_ref, *args):
     return ExpressionCallNoKeywords(
         called=makeExpressionAttributeLookup(
             expression=makeExpressionImportModuleNameHard(
-                module_name=module_name, import_name=import_name, source_ref=source_ref
+                module_name=module_name,
+                import_name=import_name,
+                module_guaranteed=True,
+                source_ref=source_ref,
             ),
             attribute_name=attribute_name,
             source_ref=source_ref,
@@ -88,7 +91,10 @@ def getNameSpacePathExpression(package, source_ref):
             ExpressionCallNoKeywords(
                 called=makeExpressionAttributeLookup(
                     expression=makeExpressionImportModuleNameHard(
-                        module_name="os", import_name="path", source_ref=source_ref
+                        module_name="os",
+                        import_name="path",
+                        module_guaranteed=True,
+                        source_ref=source_ref,
                     ),
                     attribute_name="dirname",
                     source_ref=source_ref,
@@ -208,7 +214,10 @@ def createNamespacePackage(module_name, is_top, source_ref):
 def createImporterCacheAssignment(package, source_ref):
     return StatementDictOperationSet(
         dict_arg=makeExpressionImportModuleNameHard(
-            module_name="sys", import_name="path_importer_cache", source_ref=source_ref
+            module_name="sys",
+            import_name="path_importer_cache",
+            module_guaranteed=True,
+            source_ref=source_ref,
         ),
         key=ExpressionSubscriptLookup(
             expression=ExpressionVariableNameRef(

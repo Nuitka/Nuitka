@@ -55,14 +55,16 @@ class ExpressionImportModuleNameHardBase(ExpressionImportHardBase):
 
     # Base classes can be abstract, pylint: disable=I0021,abstract-method
 
-    __slots__ = ("import_name", "finding", "module_filename")
+    __slots__ = ("import_name", "finding", "module_filename", "module_guaranteed")
 
-    def __init__(self, module_name, import_name, source_ref):
+    def __init__(self, module_name, import_name, module_guaranteed, source_ref):
         ExpressionImportHardBase.__init__(
             self, module_name=module_name, source_ref=source_ref
         )
 
         self.import_name = import_name
+
+        self.module_guaranteed = module_guaranteed
 
     # Derived ones have the same interface.
     @staticmethod
@@ -114,13 +116,14 @@ class ExpressionImportModuleNameHardExists(ExpressionImportModuleNameHardBase):
     kind = "EXPRESSION_IMPORT_MODULE_NAME_HARD_EXISTS"
 
     def computeExpressionRaw(self, trace_collection):
+        if not self.module_guaranteed:
+            trace_collection.onExceptionRaiseExit(ImportError)
+
         # As good as it gets.
         return self, None, None
 
-    @staticmethod
-    def mayHaveSideEffects():
-        return False
+    def mayHaveSideEffects(self):
+        return not self.module_guaranteed
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
+    def mayRaiseException(self, exception_type):
+        return not self.module_guaranteed
