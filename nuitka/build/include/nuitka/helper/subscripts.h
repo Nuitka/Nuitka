@@ -20,6 +20,50 @@
 
 extern PyObject *STRING_FROM_CHAR(unsigned char c);
 
+static void formatNotSubscriptableError(PyObject *source) {
+    PyErr_Format(PyExc_TypeError,
+#if PYTHON_VERSION < 0x270
+                 "'%s' object is unsubscriptable",
+#elif PYTHON_VERSION >= 0x300 || PYTHON_VERSION <= 0x272
+                 "'%s' object is not subscriptable",
+#else
+                 "'%s' object has no attribute '__getitem__'",
+#endif
+                 Py_TYPE(source)->tp_name);
+}
+
+#if PYTHON_VERSION < 0x370
+#define HAS_SEQUENCE_ITEM_SLOT(type) (type->tp_as_sequence != NULL)
+#else
+#define HAS_SEQUENCE_ITEM_SLOT(type) (type->tp_as_sequence != NULL && type->tp_as_sequence->sq_item)
+#endif
+
+static PyObject *SEQUENCE_GET_ITEM_CONST(PyObject *sequence, Py_ssize_t int_subscript) {
+    PySequenceMethods *m = Py_TYPE(sequence)->tp_as_sequence;
+    assert(m != NULL);
+
+#if PYTHON_VERSION < 0x370
+    if (unlikely(m->sq_item == NULL)) {
+        PyErr_Format(PyExc_TypeError, "'%s' object does not support indexing", Py_TYPE(sequence)->tp_name);
+        return NULL;
+    }
+#endif
+
+    if (int_subscript < 0) {
+        if (m->sq_length) {
+            Py_ssize_t length = (*m->sq_length)(sequence);
+            if (length < 0) {
+                return NULL;
+            }
+
+            int_subscript += length;
+        }
+    }
+
+    PyObject *res = m->sq_item(sequence, int_subscript);
+    return res;
+}
+
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, PyObject *const_subscript,
                                                              Py_ssize_t int_subscript) {
     CHECK_OBJECT(source);
@@ -86,8 +130,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, P
         else {
             result = mapping_methods->mp_subscript(source, const_subscript);
         }
-    } else if (type->tp_as_sequence) {
-        result = PySequence_GetItem(source, int_subscript);
+    } else if (HAS_SEQUENCE_ITEM_SLOT(type)) {
+        result = SEQUENCE_GET_ITEM_CONST(source, int_subscript);
     } else {
 #if PYTHON_VERSION >= 0x370
         if (PyType_Check(source)) {
@@ -114,15 +158,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, P
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError,
-#if PYTHON_VERSION < 0x270
-                     "'%s' object is unsubscriptable",
-#elif PYTHON_VERSION >= 0x300 || PYTHON_VERSION <= 0x272
-                     "'%s' object is not subscriptable",
-#else
-                     "'%s' object has no attribute '__getitem__'",
-#endif
-                     Py_TYPE(source)->tp_name);
+        formatNotSubscriptableError(source);
         return NULL;
     }
 
@@ -142,7 +178,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
 
     if (mapping != NULL && mapping->mp_subscript != NULL) {
         return mapping->mp_subscript(source, subscript);
-    } else if (type->tp_as_sequence != NULL) {
+    } else if (HAS_SEQUENCE_ITEM_SLOT(type)) {
         if (PyIndex_Check(subscript)) {
             Py_ssize_t index = PyNumber_AsSsize_t(subscript, NULL);
 
@@ -150,21 +186,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
                 return NULL;
             }
 
-            return PySequence_GetItem(source, index);
+            return SEQUENCE_GET_ITEM_CONST(source, index);
         } else if (type->tp_as_sequence->sq_item) {
             PyErr_Format(PyExc_TypeError, "sequence index must be integer, not '%s'", Py_TYPE(subscript)->tp_name);
             return NULL;
 #if PYTHON_VERSION < 0x370
         } else {
-            PyErr_Format(PyExc_TypeError,
-#if PYTHON_VERSION < 0x270
-                         "'%s' object is unsubscriptable",
-#elif PYTHON_VERSION >= 0x300 || PYTHON_VERSION <= 0x272
-                         "'%s' object is not subscriptable",
-#else
-                         "'%s' object has no attribute '__getitem__'",
-#endif
-                         Py_TYPE(source)->tp_name);
+            formatNotSubscriptableError(source);
             return NULL;
 #endif
         }
@@ -188,16 +216,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
     }
 #endif
 
-    PyErr_Format(PyExc_TypeError,
-#if PYTHON_VERSION < 0x270
-                 "'%s' object is unsubscriptable",
-#elif PYTHON_VERSION >= 0x300 || PYTHON_VERSION <= 0x272
-                 "'%s' object is not subscriptable",
-#else
-                 "'%s' object has no attribute '__getitem__'",
-#endif
-                 Py_TYPE(source)->tp_name);
-
+    formatNotSubscriptableError(source);
     return NULL;
 }
 
@@ -269,7 +288,7 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT_CONST(PyObject *source, PyObject 
             return bool_result;
         }
     } else if (type->tp_as_sequence) {
-        PyObject *result = PySequence_GetItem(source, int_subscript);
+        PyObject *result = SEQUENCE_GET_ITEM_CONST(source, int_subscript);
 
         bool bool_result = !DROP_ERROR_OCCURRED();
 
@@ -327,7 +346,7 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT(PyObject *source, PyObject *subsc
                 return false;
             }
 
-            PyObject *result = PySequence_GetItem(source, index);
+            PyObject *result = SEQUENCE_GET_ITEM_CONST(source, index);
             bool bool_result = !DROP_ERROR_OCCURRED();
 
             Py_XDECREF(result);
