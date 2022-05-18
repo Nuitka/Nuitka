@@ -138,13 +138,13 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                         yield self.makeIncludedDataDirectory(
                             source_path=source_path,
                             dest_path=os.path.join(target_dir, data_dir),
-                            reason="package data directory for %r"
-                            % module_name.asString(),
+                            reason="package data directory %r for %r"
+                            % (data_dir, module_name.asString()),
                             tags="config",
                         )
 
     def _getSubDirectoryFolders(self, module, sub_dirs):
-        """Get dirnames in given subdirs of the module.
+        """Get dirnames in given subdirectories of the module.
 
         Notes:
             All dirnames in folders below one of the sub_dirs are recursively
