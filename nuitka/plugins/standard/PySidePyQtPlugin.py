@@ -263,7 +263,9 @@ import %(binding_name)s.QtCore
         )
 
         if info is None:
-            self.sysexit("Error, it seems '%s' is not installed." % self.binding_name)
+            self.sysexit(
+                "Error, it seems '%s' is not installed or broken." % self.binding_name
+            )
 
         return info
 
