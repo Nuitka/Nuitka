@@ -1448,13 +1448,13 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
         if (_PyDict_HasSplitTable((PyDictObject *)kw)) {
             PyDictObject *mp = (PyDictObject *)kw;
 
-            PyObject **newvalues = PyMem_NEW(PyObject *, mp->ma_keys->dk_size);
-            assert(newvalues != NULL);
+            PyObject **new_values = PyMem_NEW(PyObject *, mp->ma_keys->dk_size);
+            assert(new_values != NULL);
 
             PyDictObject *split_copy = PyObject_GC_New(PyDictObject, &PyDict_Type);
             assert(split_copy != NULL);
 
-            split_copy->ma_values = newvalues;
+            split_copy->ma_values = new_values;
             split_copy->ma_keys = mp->ma_keys;
             split_copy->ma_used = mp->ma_used;
 

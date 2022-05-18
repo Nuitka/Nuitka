@@ -67,13 +67,13 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
     if (_PyDict_HasSplitTable((PyDictObject *)value)) {
         PyDictObject *mp = (PyDictObject *)value;
 
-        PyObject **newvalues = PyMem_NEW(PyObject *, mp->ma_keys->dk_size);
-        assert(newvalues != NULL);
+        PyObject **new_values = PyMem_NEW(PyObject *, mp->ma_keys->dk_size);
+        assert(new_values != NULL);
 
         PyDictObject *result = PyObject_GC_New(PyDictObject, &PyDict_Type);
         assert(result != NULL);
 
-        result->ma_values = newvalues;
+        result->ma_values = new_values;
         result->ma_keys = mp->ma_keys;
         result->ma_used = mp->ma_used;
 

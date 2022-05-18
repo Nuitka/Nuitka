@@ -922,19 +922,17 @@ PyObject *DICT_COPY(PyObject *value) {
     if (_PyDict_HasSplitTable((PyDictObject *)value)) {
         PyDictObject *mp = (PyDictObject *)value;
 
-        PyObject **newvalues = PyMem_NEW(PyObject *, mp->ma_keys->dk_size);
-        assert(newvalues != NULL);
+        PyObject **new_values = PyMem_NEW(PyObject *, mp->ma_keys->dk_size);
+        assert(new_values != NULL);
 
         PyDictObject *result = PyObject_GC_New(PyDictObject, &PyDict_Type);
         assert(result != NULL);
 
-        result->ma_values = newvalues;
+        result->ma_values = new_values;
         result->ma_keys = mp->ma_keys;
         result->ma_used = mp->ma_used;
 
         mp->ma_keys->dk_refcnt += 1;
-
-        Nuitka_GC_Track(result);
 
 #if PYTHON_VERSION < 0x360
         Py_ssize_t size = mp->ma_keys->dk_size;
@@ -949,6 +947,8 @@ PyObject *DICT_COPY(PyObject *value) {
                 result->ma_values[i] = NULL;
             }
         }
+
+        Nuitka_GC_Track(result);
 
         return (PyObject *)result;
     } else {
