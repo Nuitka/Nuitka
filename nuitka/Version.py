@@ -79,11 +79,14 @@ def getNuitkaMsiVersion():
     # Pre-releases are always smaller, official releases get the "1".
     middle = 1 if is_final else 0
 
+    # Cannot encode rc numbers higher than 9, tough luck, lets overwrite
+    # existing ones.
+
     return ".".join(
         "%s" % value
         for value in (
-            int(major) * 10 + int(minor),
+            major * 10 + minor,
             middle,
-            int(micro) * 10 + int(rc_number),
+            micro * 10 + min(9, rc_number),
         )
     )
