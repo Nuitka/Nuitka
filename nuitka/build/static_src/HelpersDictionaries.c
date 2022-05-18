@@ -898,6 +898,10 @@ PyObject *DICT_COPY(PyObject *value) {
     CHECK_OBJECT(value);
     assert(PyDict_CheckExact(value));
 
+    if (((PyDictObject *)value)->ma_used == 0) {
+        return PyDict_New();
+    }
+
 #if PYTHON_VERSION < 0x300
     // For Python3, this can be done much faster in the same way as it is
     // done in parameter parsing.
@@ -922,7 +926,13 @@ PyObject *DICT_COPY(PyObject *value) {
     if (_PyDict_HasSplitTable((PyDictObject *)value)) {
         PyDictObject *mp = (PyDictObject *)value;
 
-        PyObject **new_values = PyMem_NEW(PyObject *, mp->ma_keys->dk_size);
+#if PYTHON_VERSION < 0x360
+        Py_ssize_t size = mp->ma_keys->dk_size;
+#else
+        Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
+#endif
+
+        PyObject **new_values = PyMem_NEW(PyObject *, size);
         assert(new_values != NULL);
 
         PyDictObject *result = PyObject_GC_New(PyDictObject, &PyDict_Type);
@@ -934,11 +944,6 @@ PyObject *DICT_COPY(PyObject *value) {
 
         mp->ma_keys->dk_refcnt += 1;
 
-#if PYTHON_VERSION < 0x360
-        Py_ssize_t size = mp->ma_keys->dk_size;
-#else
-        Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
-#endif
         for (Py_ssize_t i = 0; i < size; i++) {
             if (mp->ma_values[i]) {
                 result->ma_values[i] = mp->ma_values[i];

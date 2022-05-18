@@ -38,6 +38,13 @@ typedef PyObject *(*copy_func)(PyObject *);
 static PyObject *DEEP_COPY_ITEM(PyObject *value, PyTypeObject **type, copy_func *copy_function);
 
 PyObject *DEEP_COPY_DICT(PyObject *value) {
+    CHECK_OBJECT(value);
+    assert(PyDict_CheckExact(value));
+
+    if (((PyDictObject *)value)->ma_used == 0) {
+        return PyDict_New();
+    }
+
 #if PYTHON_VERSION < 0x300
     // For Python3, this can be done much faster in the same way as it is
     // done in parameter parsing.
@@ -67,7 +74,13 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
     if (_PyDict_HasSplitTable((PyDictObject *)value)) {
         PyDictObject *mp = (PyDictObject *)value;
 
-        PyObject **new_values = PyMem_NEW(PyObject *, mp->ma_keys->dk_size);
+#if PYTHON_VERSION < 0x360
+        Py_ssize_t size = mp->ma_keys->dk_size;
+#else
+        Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
+#endif
+
+        PyObject **new_values = PyMem_NEW(PyObject *, size);
         assert(new_values != NULL);
 
         PyDictObject *result = PyObject_GC_New(PyDictObject, &PyDict_Type);
@@ -79,13 +92,6 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
 
         mp->ma_keys->dk_refcnt += 1;
 
-        Nuitka_GC_Track(result);
-
-#if PYTHON_VERSION < 0x360
-        Py_ssize_t size = mp->ma_keys->dk_size;
-#else
-        Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
-#endif
         for (Py_ssize_t i = 0; i < size; i++) {
             if (mp->ma_values[i]) {
                 result->ma_values[i] = DEEP_COPY(mp->ma_values[i]);
@@ -93,6 +99,8 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
                 result->ma_values[i] = NULL;
             }
         }
+
+        Nuitka_GC_Track(result);
 
         return (PyObject *)result;
     } else {
@@ -406,10 +414,10 @@ Py_hash_t DEEP_HASH(PyObject *value) {
     } else if (PyDict_Check(value)) {
         Py_hash_t result = DEEP_HASH_INIT(value);
 
-        Py_ssize_t ppos = 0;
+        Py_ssize_t pos = 0;
         PyObject *key, *dict_value;
 
-        while (PyDict_Next(value, &ppos, &key, &dict_value)) {
+        while (PyDict_Next(value, &pos, &key, &dict_value)) {
             if (key != NULL && value != NULL) {
                 result ^= DEEP_HASH(key);
                 result ^= DEEP_HASH(dict_value);
@@ -621,10 +629,10 @@ void CHECK_OBJECT_DEEP(PyObject *value) {
             CHECK_OBJECT_DEEP(element);
         }
     } else if (PyDict_Check(value)) {
-        Py_ssize_t ppos = 0;
+        Py_ssize_t pos = 0;
         PyObject *dict_key, *dict_value;
 
-        while (PyDict_Next(value, &ppos, &dict_key, &dict_value)) {
+        while (PyDict_Next(value, &pos, &dict_key, &dict_value)) {
             CHECK_OBJECT_DEEP(dict_key);
             CHECK_OBJECT_DEEP(dict_value);
         }
