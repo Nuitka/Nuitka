@@ -259,10 +259,10 @@ static PyObject *our_float_richcompare(PyFloatObject *a, PyFloatObject *b, int o
 static Py_hash_t our_dict_hash(PyObject *dict) {
     Py_hash_t result = 0;
 
-    Py_ssize_t ppos = 0;
+    Py_ssize_t pos = 0;
     PyObject *key, *value;
 
-    while (PyDict_Next(dict, &ppos, &key, &value)) {
+    while (PyDict_Next(dict, &pos, &key, &value)) {
         result *= 1000003;
         result ^= Nuitka_FastHashBytes(key, sizeof(PyObject *));
         result *= 1000003;
@@ -280,15 +280,15 @@ static PyObject *our_dict_richcompare(PyObject *a, PyObject *b, int op) {
     } else {
         result = Py_True;
 
-        Py_ssize_t ppos1 = 0, ppos2 = 0;
+        Py_ssize_t pos1 = 0, pos2 = 0;
         PyObject *key1, *value1;
         PyObject *key2, *value2;
 
         // Same sized dictionary, simply check if key and values are identical.
         // Other reductions should make it identical, or else this won't have the
         // effect intended.
-        while (PyDict_Next(a, &ppos1, &key1, &value1)) {
-            int res = PyDict_Next(b, &ppos2, &key2, &value2);
+        while (PyDict_Next(a, &pos1, &key1, &value1)) {
+            int res = PyDict_Next(b, &pos2, &key2, &value2);
             assert(res != 0);
 
             if (key1 != key2 || value1 != value2) {

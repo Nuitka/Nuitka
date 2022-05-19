@@ -20,6 +20,7 @@
 
 static inline Py_ssize_t DICT_SIZE(PyObject *dict) {
     CHECK_OBJECT(dict);
+    assert(PyDict_CheckExact(dict));
 
     return ((PyDictObject *)dict)->ma_used;
 }

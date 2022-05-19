@@ -1209,10 +1209,10 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
     assert(function->m_args_star_dict_index == -1);
 
     Py_ssize_t kw_found = 0;
-    Py_ssize_t ppos = 0;
+    Py_ssize_t pos = 0;
     PyObject *key, *value;
 
-    while (PyDict_Next(kw, &ppos, &key, &value)) {
+    while (PyDict_Next(kw, &pos, &key, &value)) {
         if (unlikely(!checkKeywordType(key))) {
             formatErrorKeywordsMustBeString(function);
             return -1;
